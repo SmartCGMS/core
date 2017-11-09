@@ -1,0 +1,5 @@
+LIBRARY factory.dll
+
+EXPORTS
+	get_filter_factories
+	create_filter_pipe
