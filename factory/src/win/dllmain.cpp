@@ -2,6 +2,9 @@
 
 
 #include "..\..\..\..\..\common\DebugHelper.h"
+
+#include "..\filters.h"
+
 #include <Windows.h>
 
 BOOL APIENTRY DllMain( HMODULE hModule,
@@ -9,9 +12,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
                        LPVOID lpReserved
 					 )
 {
-	switch (ul_reason_for_call)
-	{
-	case DLL_PROCESS_ATTACH: 
+	switch (ul_reason_for_call)	{
+	case DLL_PROCESS_ATTACH:		filter_factories.load_libraries();
 	case DLL_THREAD_ATTACH:
 	case DLL_THREAD_DETACH:	
 	case DLL_PROCESS_DETACH: 
