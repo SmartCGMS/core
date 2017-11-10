@@ -1,5 +1,7 @@
 LIBRARY factory.dll
 
 EXPORTS
-	get_filter_factories
-	create_filter_pipe
+  create_filter  
+  create_filter_pipe
+  get_filter_descriptors
+	

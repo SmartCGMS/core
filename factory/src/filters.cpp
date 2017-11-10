@@ -1,23 +1,26 @@
 #include "filters.h"
 
+#include <QtCore/QDir>
+#include <QtCore/QFileInfo>
 
 namespace imported {
-	const char* rsCreate_Filter_Factory_Symbol = "DoCreateFilterFactory";
+	const char* rsGet_Filter_Descriptors = "do_get_filter_descriptors";
+	const char* rsDo_Create_Filter = "do_create_filter";
 }
 
-const char* rsSolversDir = "solvers";
+const char* rsSolversDir = "filters";
 
 extern "C" char __ImageBase;
 
 
-CFilter_Factories filter_factories;
+CLoaded_Filters loaded_filters;
 
 
-HRESULT IfaceCalling get_filter_factories(glucose::IFilter_Factory **begin, glucose::IFilter_Factory **end) {
+HRESULT IfaceCalling get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
 
-	if (!filter_factories.empty()) {
-		*begin = filter_factories[0];
-		*end = *begin + filter_factories.size();
+	if (!loaded_filters.empty()) {
+		*begin = &loaded_filters[0];
+		*end = *begin + loaded_filters.size();
 	}
 	else
 		*begin = *end = nullptr;
@@ -27,7 +30,11 @@ HRESULT IfaceCalling get_filter_factories(glucose::IFilter_Factory **begin, gluc
 	return S_OK;
 }
 
-void CFilter_Factories::load_libraries() {	
+HRESULT IfaceCalling create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter) {
+	return loaded_filters.create_filter(id, input, output, filter);
+}
+
+void CLoaded_Filters::load_libraries() {
 
 	const size_t bufsize = 1024;
 	char SolverFileName[bufsize];
@@ -35,7 +42,7 @@ void CFilter_Factories::load_libraries() {
 	QString SolverQFileName(SolverFileName);
 
 	QFileInfo solver_path(SolverQFileName);
-
+	
 	QString filepath = solver_path.absoluteDir().absolutePath() + QDir::separator() + QString(rsSolversDir);
 
 	QDir dlldir(filepath);
@@ -43,7 +50,7 @@ void CFilter_Factories::load_libraries() {
 
 	foreach(const QString &filename, allFiles) {
 		if (QLibrary::isLibrary(filename)) {				//just checks the extension
-			TLibraryInfo lib;
+			imported::TLibraryInfo lib;
 
 			QString fullpath = filepath + QDir::separator() + filename;
 			QFileInfo fileInfo(fullpath);
@@ -51,36 +58,29 @@ void CFilter_Factories::load_libraries() {
 			lib.library->setFileName(fileInfo.canonicalFilePath());	//will not work without this
 
 			if (lib.library->load()) {
-				lib.solver = reinterpret_cast<decltype(lib.solver)> (lib.library->resolve(rsCreateSolverFuncName));
-				lib.calculation = reinterpret_cast<decltype(lib.calculation)> (lib.library->resolve(rsCreateCalculationFuncName));
-				lib.metric = reinterpret_cast<decltype(lib.metric)> (lib.library->resolve(rsCreateMetricFuncName));
+				lib.create_filter = reinterpret_cast<decltype(lib.create_filter)> (lib.library->resolve(imported::rsDo_Create_Filter));
 
+				bool lib_used = lib.create_filter != nullptr;
 
 				{
-					//try to load model descriptions just once
-					const TGetModelDescription desc_func = reinterpret_cast<decltype(desc_func)> (lib.library->resolve(rsGetModelDescriptionFuncName));
-					size_t desc_count;
-					TUIModel_Description *desc;
-					if ((desc_func) && (desc_func(&desc_count, &desc) == S_OK)) {
-						std::copy(desc, desc + desc_count, std::back_inserter(mDescribed_Models));
+					//try to load filter descriptions just once
+					const glucose::TGet_Filter_Descriptors desc_func = reinterpret_cast<decltype(desc_func)> (lib.library->resolve(imported::rsGet_Filter_Descriptors));
+
+					glucose::TFilter_Descriptor *desc_begin, *desc_end;
+
+					if ((desc_func) && (desc_func(&desc_begin, &desc_end) == S_OK)) {
+						lib_used |= desc_begin != desc_end;
+						std::copy(desc_begin, desc_end, std::back_inserter(*this));
 					}
 				}
 
-				{
-					//try to load solver descriptions just once
-					const TGetSolverDescription desc_func = reinterpret_cast<decltype(desc_func)> (lib.library->resolve(rsGetSolverDescription));
-					size_t desc_count;
-					TUISolver_Method_Description *desc;
-					if ((desc_func) && (desc_func(&desc_count, &desc) == S_OK)) {
-						std::copy(desc, desc + desc_count, std::back_inserter(mDescribed_Solvers));
-					}
-				}
-
-				if ((lib.solver != nullptr) || (lib.metric != nullptr) || (lib.calculation != nullptr)) mLibraries.push_back(std::move(lib));
-				else lib.library->unload();
+			
+				if (lib_used) mLibraries.push_back(std::move(lib));
+					else lib.library->unload();
 
 			}
 		}
 	}
 
 }
+

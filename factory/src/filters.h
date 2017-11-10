@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../common/iface/FilterIface.h"
+#include "../../../common/iface/UIIface.h"
 
 #include <vector>
 #include <QtCore/QLibrary>
@@ -11,15 +11,14 @@
 
 namespace imported {
 	extern const char* rsCreate_Filter_Factory_Symbol;
-	using TCreate_Filter_Factory = HRESULT(glucose::IFilter_Factory**);
-
+	
 	typedef struct {
 		std::unique_ptr<QLibrary> library;	//we hate this pointer, but we have to - otherwise Qt won't let us to use it
-		TCreate_Filter_Factory filter_factory;
+		glucose::TCreate_Filter create_filter;
 	} TLibraryInfo;
 }
 
-class CFilter_Factories : public std::vector<glucose::IFilter_Factory*> {
+class CLoaded_Filters : public std::vector<glucose::TFilter_Descriptor> {
 protected:
 protected:
 	std::vector<imported::TLibraryInfo> mLibraries;
@@ -36,13 +35,18 @@ protected:
 		}
 		return E_NOTIMPL;
 	}
-public:
-	~CFilter_Factories();	//we need to free all known factories
+public:	
 	void load_libraries();
+
+	HRESULT create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter) {
+		auto call_create_filter = [](const imported::TLibraryInfo &info) { return info.create_filter; }; //actually, we do offsetof & co., but in a much cleaner and in-lineable way
+		return CallFunc(call_create_filter, id, input, output, filter);
+	}
 };
 
-extern CFilter_Factories filter_factories;
+extern CLoaded_Filters loaded_filters;
 
 #ifdef _WIN32
-	extern "C" __declspec(dllexport)  HRESULT IfaceCalling get_filter_factories(glucose::IFilter_Factory **begin, glucose::IFilter_Factory **end);
+	extern "C" __declspec(dllexport)  HRESULT IfaceCalling get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end);
+	extern "C" __declspec(dllexport)  HRESULT IfaceCalling create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter);
 #endif

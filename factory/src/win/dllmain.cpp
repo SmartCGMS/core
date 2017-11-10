@@ -13,7 +13,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 					 )
 {
 	switch (ul_reason_for_call)	{
-	case DLL_PROCESS_ATTACH:		filter_factories.load_libraries();
+	case DLL_PROCESS_ATTACH:		loaded_filters.load_libraries();
 	case DLL_THREAD_ATTACH:
 	case DLL_THREAD_DETACH:	
 	case DLL_PROCESS_DETACH: 
