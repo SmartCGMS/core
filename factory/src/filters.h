@@ -48,5 +48,6 @@ extern CLoaded_Filters loaded_filters;
 
 #ifdef _WIN32
 	extern "C" __declspec(dllexport)  HRESULT IfaceCalling get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end);
-	extern "C" __declspec(dllexport)  HRESULT IfaceCalling create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter);
+	extern "C" __declspec(dllexport)  HRESULT IfaceCalling advertise_filter_descriptors(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end);
+	extern "C" __declspec(dllexport)  HRESULT IfaceCalling create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter);	
 #endif
