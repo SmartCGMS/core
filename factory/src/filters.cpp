@@ -30,11 +30,6 @@ HRESULT IfaceCalling get_filter_descriptors(glucose::TFilter_Descriptor **begin,
 	return S_OK;
 }
 
-HRESULT IfaceCalling advertise_filter_descriptors(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end) {
-	std::copy(begin, end, std::back_inserter(loaded_filters));
-	return S_OK;
-}
-
 HRESULT IfaceCalling create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter) {
 	return loaded_filters.create_filter(id, input, output, filter);
 }

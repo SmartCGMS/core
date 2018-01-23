@@ -9,4 +9,3 @@ EXPORTS
   
 	get_filter_descriptors
 	
-	advertise_filter_descriptors

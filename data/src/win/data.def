@@ -1,0 +1,6 @@
+LIBRARY data.dll
+
+
+EXPORTS
+  
+	do_get_filter_descriptors	
