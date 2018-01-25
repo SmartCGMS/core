@@ -7,7 +7,7 @@
 namespace db_reader {
 
 	constexpr size_t param_count = 5;
-	constexpr glucose::NParameter_Type param_type[param_count] = { glucose::NParameter_Type::ptString,  glucose::NParameter_Type::ptString, glucose::NParameter_Type::ptString,  glucose::NParameter_Type::ptString,  glucose::NParameter_Type::ptString };
+	constexpr glucose::NParameter_Type param_type[param_count] = { glucose::NParameter_Type::ptWChar_Container,  glucose::NParameter_Type::ptWChar_Container, glucose::NParameter_Type::ptWChar_Container,  glucose::NParameter_Type::ptWChar_Container,  glucose::NParameter_Type::ptWChar_Container };
 	const wchar_t* ui_param_name[param_count] = { dsDb_Host, dsDb_Provider, dsDb_Name, dsDb_User_Name, rsDb_Password };
 	const wchar_t* config_param_name[param_count] = { rsDb_Host, rsDb_Provider, rsDb_Name, rsDb_User_Name, rsDb_Password };
 
