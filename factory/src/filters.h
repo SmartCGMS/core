@@ -1,10 +1,9 @@
 #pragma once
 
 #include "../../../common/iface/UIIface.h"
+#include "../../../common/rtl/CLibrary.h"
 
 #include <vector>
-#include <QtCore/QLibrary>
-#include <QtCore/QString>
 
 #include <vector>
 #include <memory>
@@ -13,7 +12,7 @@ namespace imported {
 	extern const char* rsCreate_Filter_Factory_Symbol;
 	
 	typedef struct {
-		std::unique_ptr<QLibrary> library;	//we hate this pointer, but we have to - otherwise Qt won't let us to use it
+		std::unique_ptr<CLibrary> library;	//we hate this pointer, but we have to - otherwise Qt won't let us to use it
 		glucose::TCreate_Filter create_filter;
 	} TLibraryInfo;
 }

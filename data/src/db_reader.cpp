@@ -14,11 +14,11 @@ namespace db_reader {
 	
 	const glucose::TFilter_Descriptor Db_Reader_Descriptor = {
 		{ 0xc0e942b9, 0x3928, 0x4b81,{ 0x9b, 0x43, 0xa3, 0x47, 0x66, 0x82, 0x0, 0x42 } },	//// {C0E942B9-3928-4B81-9B43-A34766820042}	
-		const_cast<wchar_t*>(dsDb_Reader),
+		dsDb_Reader,
 		param_count,
-		const_cast< glucose::NParameter_Type*> (param_type),
-		const_cast<wchar_t**>(ui_param_name),
-		const_cast<wchar_t**>(config_param_name),
+		param_type,
+		ui_param_name,
+		config_param_name,
 	};
 
 	

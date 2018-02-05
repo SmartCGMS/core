@@ -1,14 +1,14 @@
 #include "filters.h"
 
-#include <QtCore/QDir>
-#include <QtCore/QFileInfo>
+#include "../../../common/rtl/FilesystemLib.h"
+#include "../../../common/rtl/CLibrary.h"
 
 namespace imported {
 	const char* rsGet_Filter_Descriptors = "do_get_filter_descriptors";
 	const char* rsDo_Create_Filter = "do_create_filter";
 }
 
-const char* rsSolversDir = "filters";
+const wchar_t* rsSolversDir = L"filters";
 
 extern "C" char __ImageBase;
 
@@ -27,7 +27,7 @@ HRESULT IfaceCalling get_filter_descriptors(glucose::TFilter_Descriptor **begin,
 
 	
 
-	return S_OK;
+	return *begin != nullptr ? S_OK : S_FALSE;
 }
 
 HRESULT IfaceCalling create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter) {
@@ -35,48 +35,37 @@ HRESULT IfaceCalling create_filter(const GUID *id, glucose::IFilter_Pipe *input,
 }
 
 void CLoaded_Filters::load_libraries() {
+	const auto allFiles = List_Directory(Path_Append(Get_Application_Dir(), rsSolversDir));
 
-	const size_t bufsize = 1024;
-	char SolverFileName[bufsize];
-	GetModuleFileNameA(((HINSTANCE)&__ImageBase), SolverFileName, bufsize);
-	QString SolverQFileName(SolverFileName);
-
-	QFileInfo solver_path(SolverQFileName);
-	
-	QString filepath = solver_path.absoluteDir().absolutePath() + QDir::separator() + QString(rsSolversDir);
-
-	QDir dlldir(filepath);
-	QStringList allFiles = dlldir.entryList(QDir::NoDotAndDotDot | QDir::System | QDir::Hidden | QDir::Files, QDir::NoSort);
-
-	foreach(const QString &filename, allFiles) {
-		if (QLibrary::isLibrary(filename)) {				//just checks the extension
+	for (const auto& filepath : allFiles) {
+		if (CLibrary::Is_Library(filepath)) {				//just checks the extension
 			imported::TLibraryInfo lib;
 
-			QString fullpath = filepath + QDir::separator() + filename;
-			QFileInfo fileInfo(fullpath);
-			lib.library = std::make_unique<QLibrary>(); // (new QLibrary()); //QDir::toNativeSeparators(fileInfo.absoluteFilePath());			
-			lib.library->setFileName(fileInfo.canonicalFilePath());	//will not work without this
+			lib.library = std::make_unique<CLibrary>();
+			lib.library->Set_Filename(filepath);
 
-			if (lib.library->load()) {
-				lib.create_filter = reinterpret_cast<decltype(lib.create_filter)> (lib.library->resolve(imported::rsDo_Create_Filter));
+			if (lib.library->Load()) {
+				lib.create_filter = reinterpret_cast<decltype(lib.create_filter)> (lib.library->Resolve(imported::rsDo_Create_Filter));
 
 				bool lib_used = lib.create_filter != nullptr;
 
 				{
 					//try to load filter descriptions just once
-					const glucose::TGet_Filter_Descriptors desc_func = reinterpret_cast<decltype(desc_func)> (lib.library->resolve(imported::rsGet_Filter_Descriptors));
+					const glucose::TGet_Filter_Descriptors desc_func = reinterpret_cast<decltype(desc_func)> (lib.library->Resolve(imported::rsGet_Filter_Descriptors));
 
 					glucose::TFilter_Descriptor *desc_begin, *desc_end;
 
 					if ((desc_func) && (desc_func(&desc_begin, &desc_end) == S_OK)) {
 						lib_used |= desc_begin != desc_end;
-						std::copy(desc_begin, desc_end, std::back_inserter(*this));
+						std::copy(desc_begin, desc_end, std::back_inserter(*this));						
 					}
 				}
 
 			
-				if (lib_used) mLibraries.push_back(std::move(lib));
-					else lib.library->unload();
+				if (lib_used)
+					mLibraries.push_back(std::move(lib));
+				else
+					lib.library->Unload();
 
 			}
 		}
