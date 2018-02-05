@@ -1,0 +1,7 @@
+LIBRARY metric.dll
+
+
+EXPORTS
+  
+	do_create_metric
+	do_get_metric_descriptors
