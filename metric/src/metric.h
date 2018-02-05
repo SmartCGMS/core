@@ -13,41 +13,41 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CAbsDiffAvgMetric : public CCommonDiffMetric, public virtual CReferenced {
+class CAbsDiffAvgMetric : public CCommon_Metric {
 protected:
-  virtual floattype DoCalculateMetric();
+  virtual double Do_Calculate_Metric();
 public:
-	CAbsDiffAvgMetric(TMetricParameters params) : CCommonDiffMetric(params) {};
+	CAbsDiffAvgMetric(glucose::TMetric_Parameters params) : CCommon_Metric(params) {};
 };
 
-class CAbsDiffMaxMetric : public CCommonDiffMetric, public virtual CReferenced {
+class CAbsDiffMaxMetric : public CCommon_Metric {
 protected:
-	virtual floattype DoCalculateMetric();
+	virtual double Do_Calculate_Metric();
 public:
-	CAbsDiffMaxMetric(TMetricParameters params) : CCommonDiffMetric(params) {};
+	CAbsDiffMaxMetric(glucose::TMetric_Parameters params) : CCommon_Metric(params) {};
 };
 
-class CAbsDiffPercentilMetric : public CCommonDiffMetric, public virtual CReferenced {		
+class CAbsDiffPercentilMetric : public CCommon_Metric {
 private:
-	floattype mInvThreshold;
+	double mInvThreshold;
 protected:
-	virtual floattype DoCalculateMetric();
-	//Returns the metric at percentil given by mParameters
+	virtual double Do_Calculate_Metric();
+		//Returns the metric at percentil given by mParameters
 public:
-	CAbsDiffPercentilMetric(TMetricParameters params);
+	CAbsDiffPercentilMetric(glucose::TMetric_Parameters params);
 };
 
 
-class CAbsDiffThresholdMetric : public CCommonDiffMetric, public virtual CReferenced {
+class CAbsDiffThresholdMetric : public CCommon_Metric {
 protected:
-	virtual floattype DoCalculateMetric();
+	virtual double Do_Calculate_Metric();
 		//returns the number of levels which have error greater than mParameters.Threshold
 public:
-	CAbsDiffThresholdMetric(TMetricParameters params) : CCommonDiffMetric(params) {};
+	CAbsDiffThresholdMetric(glucose::TMetric_Parameters params) : CCommon_Metric(params) {};
 };
 
 
-class CLeal2010Metric : public CCommonDiffMetric, public virtual CReferenced {
+class CLeal2010Metric : public CCommon_Metric {
 		/* See BestFit from http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2864176/?report=classic
 			Yenny Leal at al. Real-Time Glucose Estimation Algorithm for Continuous Glucose Monitoring Using Autoregressive Models
 			Best Fit=(1−|BGN−GE||BGN−BGNMMean|)*100%.
@@ -57,57 +57,57 @@ class CLeal2010Metric : public CCommonDiffMetric, public virtual CReferenced {
 			|vector| - || stands for operator of vector lenght aka Euclidean norm
 		*/
 protected:		
-	virtual floattype DoCalculateMetric();	
+	virtual double Do_Calculate_Metric();	
 public:
-	CLeal2010Metric(TMetricParameters params);
+	CLeal2010Metric(glucose::TMetric_Parameters params);
 };
 
 
-class CAICMetric : public CAbsDiffAvgMetric, public virtual CReferenced {
+class CAICMetric : public CAbsDiffAvgMetric {
 protected:
-	virtual floattype DoCalculateMetric();
+	virtual double Do_Calculate_Metric();
 public:
-	CAICMetric(TMetricParameters params);	
+	CAICMetric(glucose::TMetric_Parameters params);
 };
 
-class CStdDevMetric : public CAbsDiffPercentilMetric, public virtual CReferenced {
+class CStdDevMetric : public CAbsDiffPercentilMetric {
 protected:
-	floattype mLastCalculatedAvg;			//stores the average calculated with the last call to DoCalculateMetric()
-	bool mDoBesselCorrection;
-	virtual floattype DoCalculateMetric();
+	double mLast_Calculated_Avg;			//stores the average calculated with the last call to DoCalculateMetric()
+	bool mDo_Bessel_Correction;
+	virtual double Do_Calculate_Metric();
 public:
-	CStdDevMetric(TMetricParameters params) : CAbsDiffPercentilMetric(params), mDoBesselCorrection(false) {};
+	CStdDevMetric(glucose::TMetric_Parameters params) : CAbsDiffPercentilMetric(params), mDo_Bessel_Correction(false) {};
 };
 
-class CAvgPlusBesselStdDevMetric : public CStdDevMetric, public virtual CReferenced {
-	virtual floattype DoCalculateMetric();
+class CAvgPlusBesselStdDevMetric : public CStdDevMetric {
+	virtual double Do_Calculate_Metric();
 public:
-	CAvgPlusBesselStdDevMetric(TMetricParameters params) : CStdDevMetric(params) { mDoBesselCorrection = true; };
+	CAvgPlusBesselStdDevMetric(glucose::TMetric_Parameters params) : CStdDevMetric(params) { mDo_Bessel_Correction = true; };
 };
 
 
-class CCrossWalkMetric : public CCommonDiffMetric, public virtual CReferenced {
+class CCrossWalkMetric : public CCommon_Metric {
 protected:
-	const bool mCrossMeasuredWithCalculatedOnly = true;
+	const bool mCross_Measured_With_Calculated_Only = true;
 	const bool mCrosswalk4 = false;
 	const bool mCompare_To_Measured_Path = true;
 	const bool mCalculate_Real_Relative_Difference = false;
-	virtual floattype DoCalculateMetric();
+	virtual double Do_Calculate_Metric();
 public:
-	CCrossWalkMetric(TMetricParameters params);
+	CCrossWalkMetric(glucose::TMetric_Parameters params);
 };
 
-class CPath_Difference : public CCommonDiffMetric, public virtual CReferenced {
+class CPath_Difference : public CCommon_Metric {
 protected:
-	virtual floattype DoCalculateMetric();
+	virtual double Do_Calculate_Metric();
 public:
-	CPath_Difference(TMetricParameters params) : CCommonDiffMetric(params) {};
+	CPath_Difference(glucose::TMetric_Parameters params) : CCommon_Metric(params) {};
 };
 
-class CIntegralCDFMetric : public CAbsDiffPercentilMetric, public virtual CReferenced {
-	virtual floattype DoCalculateMetric();
+class CIntegralCDFMetric : public CAbsDiffPercentilMetric {
+	virtual double Do_Calculate_Metric();
 public:
-	CIntegralCDFMetric(TMetricParameters params) : CAbsDiffPercentilMetric(params) {};
+	CIntegralCDFMetric(glucose::TMetric_Parameters params) : CAbsDiffPercentilMetric(params) {};
 };
 
 

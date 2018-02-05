@@ -8,8 +8,6 @@
 
 #include "metric.h"
 
-#include "../../../common/rtl/manufactory.h"
-
 #include <algorithm>
 #include <math.h>
 #include <limits>
@@ -18,60 +16,56 @@
 #undef min
 
 
-floattype CAbsDiffAvgMetric::DoCalculateMetric() {
+double CAbsDiffAvgMetric::Do_Calculate_Metric() {
 	/*
 	//Kahan sum: http://msdn.microsoft.com/en-us/library/aa289157%28v=vs.71%29.aspx
 
-	floattype C = 0.0;
-	floattype accumulator 0.0;
+	double C = 0.0;
+	double accumulator 0.0;
 
 
 	for (size_t i=0; i<count; i++) {
-		floattype Y = diffs[i].difference - C;
-		floattype T = accumulator + Y;
+		double Y = diffs[i].difference - C;
+		double T = accumulator + Y;
 		C = T - accumulator - Y;
 		accumulator = T;		
 	}
 	*/
 
-	floattype accumulator = 0.0;
-	size_t count = mDifferences.size();
-	TProcessedDifference *diffs = &mDifferences[0];
-
-	for (size_t i = 0; i < count; i++) {
-		accumulator += diffs[i].difference;
+	double accumulator = 0.0;
+	
+	for (const auto &diff : mDifferences) {
+		accumulator += diffs.difference;
 	}
 
-	return accumulator / (floattype)count;	
+	return accumulator / static_cast<double>(mDifferences.size());
 }
 
 
-floattype CAbsDiffMaxMetric::DoCalculateMetric() {
-	size_t count = mDifferences.size();
-	TProcessedDifference *diffs = &mDifferences[0];
+double CAbsDiffMaxMetric::Do_Calculate_Metric() {
 	
-	floattype maximum = diffs[0].difference;
-	for (size_t i = 1; i < count; i++) {
-		maximum = std::max(diffs[i].difference, maximum);
+	double maximum = -std::numeric_limits<double>::max();
+	for (const auto &diff : mDifferences) {
+		maximum = std::max(diffs.difference, maximum);
 	}
 
 	return maximum;
 }
 
-CAbsDiffPercentilMetric::CAbsDiffPercentilMetric(TMetricParameters params) : CCommonDiffMetric(params) {
-	mInvThreshold = 0.01 * params.Threshold;	
+CAbsDiffPercentilMetric::CAbsDiffPercentilMetric(glucose::TMetric_Parameters params) : CCommon_Metric(params) {
+	mInvThreshold = 0.01 * params.threshold;	
 };
 
-floattype CAbsDiffPercentilMetric::DoCalculateMetric() {
+double CAbsDiffPercentilMetric::Do_Calculate_Metric() {
 	size_t count = mDifferences.size();
-	size_t offset = (size_t)round(((floattype)(count))*mInvThreshold);
+	size_t offset = (size_t)round(((double)(count))*mInvThreshold);
 	offset = std::min(offset, count - 1);//handles negative value as well
 
 	std::partial_sort(mDifferences.begin(),
 		mDifferences.begin()+offset, //middle
 		mDifferences.end(),
-		[](const TProcessedDifference &a, const TProcessedDifference &b)->bool {
-		return a.difference < b.difference;
+		[](const TProcessed_Difference &a, const TProcessed_Difference &b)->bool {
+			return a.difference < b.difference;
 	}
 	);
 
@@ -82,50 +76,49 @@ floattype CAbsDiffPercentilMetric::DoCalculateMetric() {
 
 
 
-floattype CAbsDiffThresholdMetric::DoCalculateMetric() {
+double CAbsDiffThresholdMetric::Do_Calculate_Metric() {
 	sort(mDifferences.begin(), mDifferences.end(), 
-		[](const TProcessedDifference &a, const TProcessedDifference &b)->bool {
-		return a.difference < b.difference; }
+		[](const TProcessed_Difference &a, const TProcessed_Difference &b)->bool {
+			return a.difference < b.difference; }
 	);
 	//we need to determine how many levels were calculated until the desired threshold 
 	//out of all values that could be calculated
 	auto thebegin = mDifferences.begin();
 
-	const TProcessedDifference thresh = { { 0.0, 0.0, 0.0 }, mParameters.Threshold*0.01 };
+	const TProcessed_Difference thresh = { { 0.0, 0.0, 0.0 }, mParameters.threshold*0.01 };
 
 	auto iter = std::upper_bound(thebegin, mDifferences.end(), thresh,
-		[](const TProcessedDifference &a, const TProcessedDifference &b)->bool {
-		return a.difference < b.difference; }	//a always equal to thresh
+		[](const TProcessed_Difference &a, const TProcessed_Difference &b)->bool {
+			return a.difference < b.difference; }	//a always equal to thresh
 		);
 
 	//return 1.0 / std::distance(thebegin, iter);
 	size_t thresholdcount = std::distance(thebegin, iter);
 	
-	return (floattype) (mAllLevelsCount - thresholdcount);
+	return (double) (mAll_Levels_Count - thresholdcount);
 }
 
 
-CLeal2010Metric::CLeal2010Metric(TMetricParameters params) : CCommonDiffMetric(params) {
-	mParameters.UseRelativeValues = false;
-	mParameters.UseSquaredDifferences = true;
-	mParameters.DifferenceProcessing = pdaDifferences;
+CLeal2010Metric::CLeal2010Metric(glucose::TMetric_Parameters params) : CCommon_Metric(params) {
+	mParameters.use_relative_error = false;
+	mParameters.use_squared_differences = true;
 }
 
-floattype CLeal2010Metric::DoCalculateMetric() {
+double CLeal2010Metric::Do_Calculate_Metric() {
 	
 	size_t cnt = mDifferences.size();
-	floattype diffsqsum = 0.0;
-	floattype avgedsqsum = 0.0;
+	double diffsqsum = 0.0;
+	double avgedsqsum = 0.0;
 
-	floattype expectedsum = 0.0;
+	double expectedsum = 0.0;
 	for (size_t i = 0; i < cnt; i++) {
 		expectedsum += mDifferences[i].raw.expected;
 	}
 
-	floattype avg = expectedsum / (floattype)cnt;
+	double avg = expectedsum / static_cast<double>(cnt);
 
 	for (size_t i = 0; i < cnt; i++) {
-		floattype tmp = mDifferences[i].difference;		
+		double tmp = mDifferences[i].difference;		
 		diffsqsum += tmp*tmp;
 
 		tmp = mDifferences[i].raw.expected - avg;		
@@ -146,18 +139,18 @@ floattype CLeal2010Metric::DoCalculateMetric() {
 	return diffsqsum / avgedsqsum;
 }
 
-CAICMetric::CAICMetric(TMetricParameters params) : CAbsDiffAvgMetric(params){
+CAICMetric::CAICMetric(glucose::TMetric_Parameters params) : CAbsDiffAvgMetric(params){
 	mParameters.UseRelativeValues = false;
 	mParameters.UseSquaredDifferences = true;	
 };
 
 
-floattype CAICMetric::DoCalculateMetric() {
-	floattype n = (floattype) mDifferences.size();
-	return n*log(CAbsDiffAvgMetric::DoCalculateMetric()); 
+double CAICMetric::Do_Calculate_Metric() {
+	double n = (double) mDifferences.size();
+	return n*log(CAbsDiffAvgMetric::Do_Calculate_Metric()); 
 }
 
-floattype CStdDevMetric::DoCalculateMetric() {
+double CStdDevMetric::Do_Calculate_Metric() {
 
 	//threshold holds margins to cut off, so we have to sort first
 	sort(mDifferences.begin(), mDifferences.end(), 
@@ -167,25 +160,25 @@ floattype CStdDevMetric::DoCalculateMetric() {
 
 	size_t lowbound, highbound;
 	{
-		floattype n = (floattype)mDifferences.size();
-		floattype margin = n*0.01*mParameters.Threshold;
+		double n = (double)mDifferences.size();
+		double margin = n*0.01*mParameters.threshold;
 		lowbound = (size_t)floor(margin);
 		highbound = (size_t)ceil(n - margin);
 
 	}
 
 	if (lowbound >= highbound)
-		return std::numeric_limits<floattype>::quiet_NaN();
+		return std::numeric_limits<double>::quiet_NaN();
 
 
-	floattype sum = 0.0;
+	double sum = 0.0;
 	auto diffs = &mDifferences[0];
 	for (auto i = lowbound; i != highbound; i++) {
 		sum += diffs[i].difference;
 	}
 
 
-	floattype invn = (floattype)mDifferences.size();
+	double invn = (double)mDifferences.size();
 	if (mDoBesselCorrection) {
 		//first, try Unbiased estimation of standard deviation
 		if (invn > 1.5) invn -= 1.5; 
@@ -197,7 +190,7 @@ floattype CStdDevMetric::DoCalculateMetric() {
 
 	sum = 0.0;
 	for (auto i = lowbound; i != highbound; i++) {
-		floattype tmp = diffs[i].difference - mLastCalculatedAvg;
+		double tmp = diffs[i].difference - mLastCalculatedAvg;
 		sum += tmp*tmp;
 	}
 
@@ -205,8 +198,8 @@ floattype CStdDevMetric::DoCalculateMetric() {
 						//so that we in-fact calculate variance
 }
 
-floattype CAvgPlusBesselStdDevMetric::DoCalculateMetric() {
-	floattype variance = CStdDevMetric::DoCalculateMetric();
+double CAvgPlusBesselStdDevMetric::Do_Calculate_Metric() {
+	double variance = CStdDevMetric::Do_Calculate_Metric();
 			//also calculates mLastCalculatedAvg
 	return mLastCalculatedAvg + sqrt(variance);
 }
@@ -216,7 +209,7 @@ CCrossWalkMetric::CCrossWalkMetric(TMetricParameters params) : CCommonDiffMetric
 		mParameters.DifferenceProcessing = pdaDifferences;	
 }
 
-floattype CCrossWalkMetric::DoCalculateMetric() {
+double CCrossWalkMetric::Do_Calculate_Metric() {
 	/*
 		We will calculate path from first measured to second calculated, then to third measured, until we reach the last difference.
 		Then, we will do the same, but starting with calculated level. As a result we get a length of pass that we would
@@ -235,20 +228,20 @@ floattype CCrossWalkMetric::DoCalculateMetric() {
 	//2. for the first differences, the path-length cannot be calculated at all => set it to zero
 	diffs[0].difference = 0.0;
 
-	floattype pathlength = 0.0;
-	floattype measured_path_length = 0.0;	//ideal path through the measured points only
+	double pathlength = 0.0;
+	double measured_path_length = 0.0;	//ideal path through the measured points only
 
 	TProcessedDifference& previousdiff = diffs[0];
 
 	for (size_t i = 1; i < count; i++) {
-		floattype timedelta = diffs[i].raw.datetime - previousdiff.raw.datetime;
+		double timedelta = diffs[i].raw.datetime - previousdiff.raw.datetime;
 		timedelta *= timedelta;
 
-		floattype mesA = previousdiff.raw.expected;
-		floattype calcA = previousdiff.raw.calculated;
+		double mesA = previousdiff.raw.expected;
+		double calcA = previousdiff.raw.calculated;
 
-		floattype mesB = diffs[i].raw.expected;
-		floattype calcB = diffs[i].raw.calculated;
+		double mesB = diffs[i].raw.expected;
+		double calcB = diffs[i].raw.calculated;
 
 
 		if (mParameters.UseRelativeValues) {
@@ -277,7 +270,7 @@ floattype CCrossWalkMetric::DoCalculateMetric() {
 		if (mestocalccross) {
 
 			//Measured-to-calculated and calculated-to-measured
-			floattype height = mesA - calcB;	//do not forget fabs when experimenting with odd-powers
+			double height = mesA - calcB;	//do not forget fabs when experimenting with odd-powers
 			height *= height;
 			if (mCrosswalk4) height *= height;
 
@@ -291,7 +284,7 @@ floattype CCrossWalkMetric::DoCalculateMetric() {
 		}
 		else {
 			//Measured-to-measured and calculated-to-calculated
-			floattype height = mesA - mesB;		
+			double height = mesA - mesB;		
 			height *= height;
 			if (mCrosswalk4) height *= height;
 			pathlength += sqrt(timedelta + height);
@@ -304,7 +297,7 @@ floattype CCrossWalkMetric::DoCalculateMetric() {
 		}
 
 		if (mCompare_To_Measured_Path) {
-			floattype mes_height = mesA - mesB;
+			double mes_height = mesA - mesB;
 			mes_height *= mes_height;
 			if (mCrosswalk4) mes_height *= mes_height;
 			measured_path_length += sqrt(timedelta + mes_height);
@@ -315,75 +308,13 @@ floattype CCrossWalkMetric::DoCalculateMetric() {
 	
 	if (mCompare_To_Measured_Path)	pathlength = abs(pathlength - measured_path_length);
 
-	return pathlength / (floattype) count;
+	return pathlength / (double) count;
 }
 
 
 
-floattype CPath_Difference::DoCalculateMetric() {
-	//1. we have to sort differences accordingly to the time
-	sort(mDifferences.begin(), mDifferences.end(),
-		[](const TProcessedDifference &a, const TProcessedDifference &b)->bool {
-		return a.raw.datetime < b.raw.datetime; }
-	);
 
-	//2. and calculate path lengths
-
-	floattype calc_path = 0.0;// fabs(mDifferences[0].raw.expected - mDifferences[0].raw.calculated);
-	floattype mes_path = 0.0;
-
-	for (size_t i = 1; i < mDifferences.size(); i++) {
-
-		const auto &prev = mDifferences[i-1].raw;
-		const auto &curr = mDifferences[i].raw;
-
-		floattype prev_mes = prev.expected;
-		floattype prev_calc = prev.calculated;
-
-		floattype curr_mes = curr.expected;
-		floattype curr_calc = curr.calculated;
-
-
-		if (mParameters.UseRelativeValues) {
-			/*prev_calc = fabs(prev_mes-prev_calc)/prev_mes;
-			prev_mes = 0.0;
-
-			curr_calc = fabs(curr_calc - curr_mes)/curr_mes;
-			curr_mes = 0.0;
-			*/
-
-			prev_calc /= prev_mes;
-			prev_mes = 1.0;
-
-			curr_calc /= curr_mes;
-			curr_mes = 1.0;
-		}
-
-		//actually, we calculate a saw - respective only the upper par of the length(hypotenuses)
-		//
-		//
-		//         ... c
-		//     ....
-		// m...        m............c
-		//                          m
-		//
-		//
-
-
-		const floattype time_delta = curr.datetime - prev.datetime;
-		const floattype time_delta_sq = time_delta*time_delta;
-			
-		const floattype calc_diff =  curr_calc - prev_mes;
-		const floattype mes_diff = curr_mes - prev_mes;
-
-		calc_path += sqrt(time_delta_sq + calc_diff*calc_diff);// +fabs(curr.expected - curr.expected);
-		mes_path += sqrt(time_delta_sq + mes_diff*mes_diff);
-	}
-
-	return fabs(mes_path - calc_path);
-}
-
-floattype CIntegralCDFMetric::DoCalculateMetric() {
+double CIntegralCDFMetric::Do_Calculate_Metric() {
 
 	/*
 		Note that empirical cumulative distribution function will have relative error
@@ -404,19 +335,19 @@ floattype CIntegralCDFMetric::DoCalculateMetric() {
 
 	size_t lowbound, highbound;
 	{
-		floattype n = (floattype)mDifferences.size();
-		floattype margin = n*0.01*mParameters.Threshold;
+		double n = (double)mDifferences.size();
+		double margin = n*0.01*mParameters.Threshold;
 		lowbound = (size_t)floor(margin);
 		highbound = (size_t)ceil(n - margin);
 
 	}
 
 	if (lowbound >= highbound)
-		return std::numeric_limits<floattype>::quiet_NaN();
+		return std::numeric_limits<double>::quiet_NaN();
 
 
-	floattype area = 0.0;
-	floattype step = 1.0 / (floattype)mDifferences.size();
+	double area = 0.0;
+	double step = 1.0 / (double)mDifferences.size();
 
 	auto diffs = &mDifferences[0];
 	auto previous = lowbound;
@@ -426,9 +357,6 @@ floattype CIntegralCDFMetric::DoCalculateMetric() {
 		area += step*(std::min(diffs[previous].difference, diffs[i].difference) + fabs(diffs[previous].difference - diffs[i].difference)*0.5);
 	}
 
-	
-
-	
 
 	return area*step;	
 }
