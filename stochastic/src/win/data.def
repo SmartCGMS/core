@@ -1,0 +1,7 @@
+LIBRARY stochastic.dll
+
+
+EXPORTS
+  
+	do_solve_model_parameters
+	do_get_solver_descriptors	
