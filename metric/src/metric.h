@@ -17,14 +17,14 @@ class CAbsDiffAvgMetric : public CCommon_Metric {
 protected:
   virtual double Do_Calculate_Metric();
 public:
-	CAbsDiffAvgMetric(glucose::TMetric_Parameters params) : CCommon_Metric(params) {};
+	CAbsDiffAvgMetric(const glucose::TMetric_Parameters &params) : CCommon_Metric(params) {};
 };
 
 class CAbsDiffMaxMetric : public CCommon_Metric {
 protected:
 	virtual double Do_Calculate_Metric();
 public:
-	CAbsDiffMaxMetric(glucose::TMetric_Parameters params) : CCommon_Metric(params) {};
+	CAbsDiffMaxMetric(const glucose::TMetric_Parameters &params) : CCommon_Metric(params) {};
 };
 
 class CAbsDiffPercentilMetric : public CCommon_Metric {
@@ -94,7 +94,7 @@ protected:
 	const bool mCalculate_Real_Relative_Difference = false;
 	virtual double Do_Calculate_Metric();
 public:
-	CCrossWalkMetric(glucose::TMetric_Parameters params);
+	CCrossWalkMetric(glucose::TMetric_Parameters params) : CCommon_Metric(params) {};
 };
 
 class CPath_Difference : public CCommon_Metric {

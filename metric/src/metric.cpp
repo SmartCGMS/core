@@ -35,7 +35,7 @@ double CAbsDiffAvgMetric::Do_Calculate_Metric() {
 	double accumulator = 0.0;
 	
 	for (const auto &diff : mDifferences) {
-		accumulator += diffs.difference;
+		accumulator += diff.difference;
 	}
 
 	return accumulator / static_cast<double>(mDifferences.size());
@@ -46,7 +46,7 @@ double CAbsDiffMaxMetric::Do_Calculate_Metric() {
 	
 	double maximum = -std::numeric_limits<double>::max();
 	for (const auto &diff : mDifferences) {
-		maximum = std::max(diffs.difference, maximum);
+		maximum = std::max(diff.difference, maximum);
 	}
 
 	return maximum;
@@ -99,29 +99,28 @@ double CAbsDiffThresholdMetric::Do_Calculate_Metric() {
 }
 
 
-CLeal2010Metric::CLeal2010Metric(glucose::TMetric_Parameters params) : CCommon_Metric(params) {
-	mParameters.use_relative_error = false;
-	mParameters.use_squared_differences = true;
+CLeal2010Metric::CLeal2010Metric(glucose::TMetric_Parameters params) : CCommon_Metric({params.metric_id, false, true, params.prefer_more_levels, params.threshold}) {
+	//mParameters.use_relative_error = false;
+	//mParameters.use_squared_differences = true;
 }
 
 double CLeal2010Metric::Do_Calculate_Metric() {
-	
-	size_t cnt = mDifferences.size();
+		
 	double diffsqsum = 0.0;
 	double avgedsqsum = 0.0;
 
-	double expectedsum = 0.0;
-	for (size_t i = 0; i < cnt; i++) {
-		expectedsum += mDifferences[i].raw.expected;
+	double expectedsum = 0.0;	
+	for (const auto &diff : mDifferences) {
+		expectedsum += diff.raw.expected;
 	}
 
-	double avg = expectedsum / static_cast<double>(cnt);
-
-	for (size_t i = 0; i < cnt; i++) {
-		double tmp = mDifferences[i].difference;		
+	const double avg = expectedsum / static_cast<double>(mDifferences.size());
+	
+	for (const auto &diff : mDifferences) {
+		double tmp = diff.difference;		
 		diffsqsum += tmp*tmp;
 
-		tmp = mDifferences[i].raw.expected - avg;		
+		tmp = diff.raw.expected - avg;		
 
 		avgedsqsum += tmp*tmp;
 	}
@@ -139,9 +138,9 @@ double CLeal2010Metric::Do_Calculate_Metric() {
 	return diffsqsum / avgedsqsum;
 }
 
-CAICMetric::CAICMetric(glucose::TMetric_Parameters params) : CAbsDiffAvgMetric(params){
-	mParameters.UseRelativeValues = false;
-	mParameters.UseSquaredDifferences = true;	
+CAICMetric::CAICMetric(glucose::TMetric_Parameters params) : CAbsDiffAvgMetric({ params.metric_id, false, true, params.prefer_more_levels, params.threshold }){
+	//mParameters.UseRelativeValues = false;
+	//mParameters.UseSquaredDifferences = true;	
 };
 
 
@@ -154,7 +153,7 @@ double CStdDevMetric::Do_Calculate_Metric() {
 
 	//threshold holds margins to cut off, so we have to sort first
 	sort(mDifferences.begin(), mDifferences.end(), 
-		[](const TProcessedDifference &a, const TProcessedDifference &b)->bool {
+		[](const TProcessed_Difference &a, const TProcessed_Difference &b)->bool {
 		return a.difference < b.difference; }
 	);
 
@@ -179,18 +178,18 @@ double CStdDevMetric::Do_Calculate_Metric() {
 
 
 	double invn = (double)mDifferences.size();
-	if (mDoBesselCorrection) {
+	if (mDo_Bessel_Correction) {
 		//first, try Unbiased estimation of standard deviation
 		if (invn > 1.5) invn -= 1.5; 
 		else if (invn > 1.0) invn -= 1.0;	//if not, try to fall back to Bessel's Correction at least
 	}
 	invn = 1.0 / invn;
 
-	mLastCalculatedAvg = sum*invn;
+	mLast_Calculated_Avg = sum*invn;
 
 	sum = 0.0;
 	for (auto i = lowbound; i != highbound; i++) {
-		double tmp = diffs[i].difference - mLastCalculatedAvg;
+		double tmp = diffs[i].difference - mLast_Calculated_Avg;
 		sum += tmp*tmp;
 	}
 
@@ -201,12 +200,7 @@ double CStdDevMetric::Do_Calculate_Metric() {
 double CAvgPlusBesselStdDevMetric::Do_Calculate_Metric() {
 	double variance = CStdDevMetric::Do_Calculate_Metric();
 			//also calculates mLastCalculatedAvg
-	return mLastCalculatedAvg + sqrt(variance);
-}
-
-CCrossWalkMetric::CCrossWalkMetric(TMetricParameters params) : CCommonDiffMetric(params) { 
-	if (mParameters.DifferenceProcessing == pdaSlopes)	//take out invalid option
-		mParameters.DifferenceProcessing = pdaDifferences;	
+	return mLast_Calculated_Avg + sqrt(variance);
 }
 
 double CCrossWalkMetric::Do_Calculate_Metric() {
@@ -216,35 +210,35 @@ double CCrossWalkMetric::Do_Calculate_Metric() {
 		have to traverse and which will equal to double length of the measured curve, if both curves would be identical.
 		*/
 
-	size_t count = mDifferences.size();
-	TProcessedDifference *diffs = &mDifferences[0];	//this method will not be called with count<1
-
 	//1. we have to sort differences accordingly to the time
 	sort(mDifferences.begin(), mDifferences.end(),
-		[](const TProcessedDifference &a, const TProcessedDifference &b)->bool {
+		[](const TProcessed_Difference &a, const TProcessed_Difference &b)->bool {
 		return a.raw.datetime < b.raw.datetime; }
 	);
 
 	//2. for the first differences, the path-length cannot be calculated at all => set it to zero
-	diffs[0].difference = 0.0;
+	mDifferences[0].difference = 0.0; //this method will not be called with count<1
 
-	double pathlength = 0.0;
+	double path_length = 0.0;
 	double measured_path_length = 0.0;	//ideal path through the measured points only
 
-	TProcessedDifference& previousdiff = diffs[0];
+	
 
-	for (size_t i = 1; i < count; i++) {
-		double timedelta = diffs[i].raw.datetime - previousdiff.raw.datetime;
+	for (size_t i = 1; i < mDifferences.size(); i++) {
+		const TProcessed_Difference& previous_diff = mDifferences[i-1];
+		const TProcessed_Difference& current_diff = mDifferences[i - 1];
+
+		double timedelta = current_diff.raw.datetime - previous_diff.raw.datetime;
 		timedelta *= timedelta;
 
-		double mesA = previousdiff.raw.expected;
-		double calcA = previousdiff.raw.calculated;
+		double mesA = previous_diff.raw.expected;
+		double calcA = previous_diff.raw.calculated;
 
-		double mesB = diffs[i].raw.expected;
-		double calcB = diffs[i].raw.calculated;
+		double mesB = current_diff.raw.expected;
+		double calcB = current_diff.raw.calculated;
 
 
-		if (mParameters.UseRelativeValues) {
+		if (mParameters.use_relative_error) {
 			if (mCalculate_Real_Relative_Difference) {
 				calcA = fabs(mesA - calcA) / mesA;
 				mesA = 0.0;
@@ -264,7 +258,7 @@ double CCrossWalkMetric::Do_Calculate_Metric() {
 		}		
 
 
-		bool mestocalccross = mCrossMeasuredWithCalculatedOnly || ((mesA>calcA) & (mesB > calcB)) || ((mesA < calcA) & (mesB < calcB));
+		bool mestocalccross = mCross_Measured_With_Calculated_Only || ((mesA>calcA) & (mesB > calcB)) || ((mesA < calcA) & (mesB < calcB));
 
 		
 		if (mestocalccross) {
@@ -274,12 +268,12 @@ double CCrossWalkMetric::Do_Calculate_Metric() {
 			height *= height;
 			if (mCrosswalk4) height *= height;
 
-			pathlength += sqrt(timedelta + height);
+			path_length += sqrt(timedelta + height);
 
 			height = calcA - mesB;				//do not forget fabs when experimenting with odd-powers
 			height *= height;
 			if (mCrosswalk4) height *= height;
-			pathlength += sqrt(timedelta + height);
+			path_length += sqrt(timedelta + height);
 
 		}
 		else {
@@ -287,13 +281,13 @@ double CCrossWalkMetric::Do_Calculate_Metric() {
 			double height = mesA - mesB;		
 			height *= height;
 			if (mCrosswalk4) height *= height;
-			pathlength += sqrt(timedelta + height);
+			path_length += sqrt(timedelta + height);
 
 
 			height = calcA - calcB;
 			height *= height;
 			if (mCrosswalk4) height *= height;
-			pathlength += sqrt(timedelta + height);
+			path_length += sqrt(timedelta + height);
 		}
 
 		if (mCompare_To_Measured_Path) {
@@ -301,14 +295,12 @@ double CCrossWalkMetric::Do_Calculate_Metric() {
 			mes_height *= mes_height;
 			if (mCrosswalk4) mes_height *= mes_height;
 			measured_path_length += sqrt(timedelta + mes_height);
-		}
-
-		previousdiff = diffs[i];
+		}		
 	}
 	
-	if (mCompare_To_Measured_Path)	pathlength = abs(pathlength - measured_path_length);
+	if (mCompare_To_Measured_Path)	path_length = abs(path_length - measured_path_length);
 
-	return pathlength / (double) count;
+	return path_length / static_cast<double>(mDifferences.size());
 }
 
 
@@ -329,14 +321,14 @@ double CIntegralCDFMetric::Do_Calculate_Metric() {
 
 	//threshold holds margins to cut off, so we have to sort first
 	sort(mDifferences.begin(), mDifferences.end(),
-		[](const TProcessedDifference &a, const TProcessedDifference &b)->bool {
+		[](const TProcessed_Difference &a, const TProcessed_Difference &b)->bool {
 		return a.difference < b.difference; }
 	);
 
 	size_t lowbound, highbound;
 	{
 		double n = (double)mDifferences.size();
-		double margin = n*0.01*mParameters.Threshold;
+		double margin = n*0.01*mParameters.threshold;
 		lowbound = (size_t)floor(margin);
 		highbound = (size_t)ceil(n - margin);
 

@@ -34,7 +34,7 @@ public:
 	CCommon_Metric(const glucose::TMetric_Parameters &params);
 	virtual ~CCommon_Metric() {};
 
-	virtual HRESULT IfaceCalling Accumulate(glucose::TDifference_Point *differences, size_t count, size_t all_levels_count) final;
+	virtual HRESULT IfaceCalling Accumulate(const glucose::TDifference_Point *begin, const glucose::TDifference_Point *end, size_t all_levels_count) final;
 	virtual HRESULT IfaceCalling Reset() final;
 	virtual HRESULT IfaceCalling Calculate(double *metric, size_t *levels_accumulated, size_t levels_required) final;
 	virtual HRESULT IfaceCalling Get_Parameters(glucose::TMetric_Parameters *parameters) final;

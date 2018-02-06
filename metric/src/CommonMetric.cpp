@@ -30,12 +30,11 @@ void CCommon_Metric::Process_Differences() {
 }
 
 
-HRESULT IfaceCalling CCommon_Metric::Accumulate(glucose::TDifference_Point *differences, size_t count, size_t all_levels_count) {
-	mDifferences.reserve(mDifferences.size() + count);
+HRESULT IfaceCalling CCommon_Metric::Accumulate(const glucose::TDifference_Point *begin, const glucose::TDifference_Point *end, size_t all_levels_count) {	
 
-	for (size_t i = 0; i < count; i++) {
+	for (auto iter = begin; iter < end; iter++) {
 		TProcessed_Difference tmp;
-		tmp.raw = differences[i];
+		tmp.raw = *iter;
 		mDifferences.push_back(tmp);
 	}
 
@@ -75,6 +74,7 @@ HRESULT IfaceCalling CCommon_Metric::Calculate(double *metric, size_t *levels_ac
 }
 
 HRESULT IfaceCalling CCommon_Metric::Get_Parameters(glucose::TMetric_Parameters *parameters) {
-	*parameters = mParameters;
+	//*parameters = mParameters ; 
+	memcpy(parameters, &mParameters, sizeof(mParameters));
 	return S_OK;
 }
