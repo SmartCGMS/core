@@ -5,28 +5,23 @@
 
 #include <vector>
 
-#pragma warning( push )
-#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
-
 template <typename TSolver, typename TSolution, typename TFitness>
-class CSolver_Skeleton : public ISolver, public virtual CReferenced {
+class CSolver_Skeleton {
 protected:
 	TFitness mFitness;
-	SMetricFactory mMetric_Factory;
+	glucose::SFactory mMetric;
 protected:
-	const size_t mSegmentCount;
+	const std::vector<glucose::STime_Segment> mSegments;
 	const size_t mSuggested_Max_Count = 20;
 	std::vector<TSolution> mInitial_Solutions;
 public:
-	CSolver_Skeleton(ITimeSegment **segments, size_t segmentcount, IMetricFactory *metricfactory, size_t calculation_id) :	
-		mMetric_Factory(make_shared_reference_ext<SMetricFactory, IMetricFactory>(metricfactory, true)),
-		mFitness(segments, segmentcount, calculation_id),
-		mSegmentCount(segmentcount) { 
+	CSolver_Skeleton(std::vector<glucose::STime_Segment> &segments, glucose::SMetric &metric, const GUID &signal_id) :
+		mSegments{ segments }, mMetric{ metric }, mFitness{segments, signal_id } {
+
 
 		//Try to load any previously stored parameters
 		size_t suggested_count = 0;
-		std::vector<TSolvedParams> suggestions(mSuggested_Max_Count);		
-		suggestions[0].SolvingMethod = Calculation_Id_to_Base_Solving_Method(calculation_id);
+		std::vector<glucose::IModel_Parameter_Vector> suggestions(mSuggested_Max_Count);		
 		if (SUCCEEDED(segments[0]->SuggestParams(suggestions.data(), suggestions.size(), &suggested_count,
 			calculation_id, metricfactory))) {
 			//S_OK means loaded stored parameters
@@ -40,10 +35,9 @@ public:
 			}
 			
 		}
-	};
-	virtual ~CSolver_Skeleton() {};
+	};	
 
-	virtual HRESULT IfaceCalling Solve(TSolvingParams solving, TSolvedParams *solved, TSolverProgress *progress) {		
+	HRESULT Solve(TSolvingParams solving, TSolvedParams *solved, TSolverProgress *progress) {		
 		try {
 			TSolution lower_bound, upper_bound;
 			TSolution::Convert_Bounds(solving, lower_bound, upper_bound, mSegmentCount);
@@ -75,5 +69,3 @@ public:
 	}
 	
 };
-
-#pragma warning( pop )
