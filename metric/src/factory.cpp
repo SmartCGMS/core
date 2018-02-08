@@ -46,6 +46,6 @@ public:
 static CId_Dispatcher Id_Dispatcher;
 
 
-extern "C" HRESULT IfaceCalling do_create_metric(const GUID *metric_id, const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric) {
+HRESULT IfaceCalling do_create_metric(const GUID *metric_id, const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric) {
 	return Id_Dispatcher.Create_Metric(metric_id, parameters, metric);
 }

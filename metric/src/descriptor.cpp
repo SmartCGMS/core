@@ -1,7 +1,7 @@
 #include "descriptor.h"
 
 #include "../../../common/lang/dstrings.h"
-
+#include "../../../common/rtl/descriptor_utils.h"
 
 const std::vector < glucose::TMetric_Descriptor > metric_descriptor {
 	{ mtrAvg_Abs, dsAvg_Abs },
@@ -17,7 +17,5 @@ const std::vector < glucose::TMetric_Descriptor > metric_descriptor {
 };
 
 HRESULT IfaceCalling do_get_metric_descriptors(glucose::TMetric_Descriptor **begin, glucose::TMetric_Descriptor **end) {
-	*begin = const_cast<glucose::TMetric_Descriptor*>(metric_descriptor.data());
-	*end = *begin + metric_descriptor.size();
-	return S_OK;
+	return do_get_descriptors(metric_descriptor, begin, end);
 }
