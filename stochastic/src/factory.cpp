@@ -43,12 +43,9 @@ vector->set(data(), data+cols()); \
 
 
 
-
 class CGeneral_Id_Dispatcher {
 public:
-	virtual HRESULT Solve_Model_Parameters(const GUID &solver_id, const GUID &signal_id, const std::vector<glucose::STime_Segment> &segments, glucose::SMetric metric,
-		const glucose::SModel_Parameter_Vector &lower_bound, const glucose::SModel_Parameter_Vector &upper_bound, glucose::SModel_Parameter_Vector &solved_parameters,
-		const std::vector<glucose::SModel_Parameter_Vector> &solution_hints, glucose::TSolver_Progress &progress) = 0;
+	virtual HRESULT Solve_Model_Parameters(TShared_Solver_Setup &setup) = 0;
 };
 
 
@@ -56,25 +53,21 @@ template <typename TSolution>
 class CSpecilized_Id_Dispatcher : public CGeneral_Id_Dispatcher {
 
 protected:
-	std::map <const GUID, std::function<HRESULT(const GUID &signal_id, const std::vector<glucose::STime_Segment> &segments, glucose::SMetric metric,
-		const glucose::SModel_Parameter_Vector &lower_bound, const glucose::SModel_Parameter_Vector &upper_bound, glucose::SModel_Parameter_Vector &solved_parameters,
-		const std::vector<glucose::SModel_Parameter_Vector> &solution_hints, glucose::TSolver_Progress &progress)>> mSolver_Id_Map;
+	std::map <const GUID, std::function<HRESULT(TShared_Solver_Setup &setup)>> mSolver_Id_Map;
 	
 	template <typename  nlopt::algorithm algorithm_id>
 	void add_NLOpt(const GUID &id) {
-		mSolver_Id_Map[id] = std::bind(&CId_Dispatcher::Solve_NLOptalgorithm_id>, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7, std::placeholders::_8);
+		mSolver_Id_Map[id] = std::bind(&CId_Dispatcher::Solve_NLOptalgorithm_id>, this, std::placeholders::_1);
 	};
 
 protected:
 	template <typename  nlopt::algorithm algorithm_id>
-	HRESULT Solve_NLOpt(const GUID &signal_id, const std::vector<glucose::STime_Segment> &segments, glucose::SMetric metric,
-		const glucose::SModel_Parameter_Vector &lower_bound, const glucose::SModel_Parameter_Vector &upper_bound, glucose::SModel_Parameter_Vector &solved_parameters,
-		const std::vector<glucose::SModel_Parameter_Vector> &solution_hints, glucose::TSolver_Progress &progress) const {
+	HRESULT Solve_NLOpt(TShared_Solver_Setup &setup) const {
 		
 		using TFitness = CFitness<TSolution>;
 		using TNLOpt_Specialized_Solver = CNLOpt<TSolution, TFitness, algorithm_id>;
 		TFitness fitness;
-		TNLOpt_Specialized_Solver solver(solution_hints, lower_bound, upper_bound, fitness, metric);
+		TNLOpt_Specialized_Solver solver(setup.solution_hints, setup.lower_bound, setup.upper_bound, fitness, setup.metric, setup.progress);
 		return solver.solve(progress);
 	}
 
@@ -84,13 +77,11 @@ public:
 		
 	}
 
-	virtual HRESULT Solve_Model_Parameters(const GUID &solver_id, const GUID &signal_id, const std::vector<glucose::STime_Segment> &segments, glucose::SMetric metric,
-		const glucose::SModel_Parameter_Vector &lower_bound, const glucose::SModel_Parameter_Vector &upper_bound, glucose::SModel_Parameter_Vector &solved_parameters,
-		const std::vector<glucose::SModel_Parameter_Vector> &solution_hints, glucose::TSolver_Progress &progress) final {
+	virtual HRESULT Solve_Model_Parameters(TShared_Solver_Setup &setup) final {
 
-		const auto iter = mSolver_Id_Map.find(solver_id);
+		const auto iter = mSolver_Id_Map.find(setup.solver_id);
 		if (iter != mSolver_Id_Map.end())
-			return iter->second(signal_id, segments, metric, lower_bound, upper_bound, solved_parameters, solution_hints, progress);
+			return iter->second(setup);
 			else return E_NOTIMPL;
 	}
 };
@@ -111,15 +102,13 @@ public:
 		mSignal_Id_map[glucose::signal_Steil_Rebrin_Blood] = &mSteil_Rebrin_Dispatcher;
 	}
 
-	HRESULT Solve_Model_Parameters(const GUID &solver_id, const GUID &signal_id, const std::vector<glucose::STime_Segment> &segments, glucose::SMetric metric,
-		const glucose::SModel_Parameter_Vector &lower_bound, const glucose::SModel_Parameter_Vector &upper_bound, glucose::SModel_Parameter_Vector &solved_parameters,
-		const std::vector<glucose::SModel_Parameter_Vector> &solution_hints, glucose::TSolver_Progress &progress) {
+	HRESULT Solve_Model_Parameters(TShared_Solver_Setup &setup) {
 
 
 		HRESULT rc;
-		const auto iter = mSignal_Id_map.find(solver_id);
-		if (iter != mSignal_Id_map.end()) rc = iter->second->Solve_Model_Parameters(solver_id, signal_id, segments, metric, lower_bound, upper_bound, solved_parameters, solution_hints, progress);
-			else rc = mGeneric_Dispatcher.Solve_Model_Parameters(solver_id, signal_id, segments, metric, lower_bound, upper_bound, solved_parameters, solution_hints, progress);
+		const auto iter = mSignal_Id_map.find(setup.solver_id);
+		if (iter != mSignal_Id_map.end()) rc = iter->second->Solve_Model_Parameters(setup);
+			else rc = mGeneric_Dispatcher.Solve_Model_Parameters(setup);
 		
 		return rc;
 	}
@@ -128,25 +117,23 @@ public:
 static CId_Dispatcher Id_Dispatcher;
 
 
-HRESULT IfaceCalling do_solve_model_parameters(const GUID *solver_id, const GUID *signal_id, glucose::ITime_Segment **segments, const size_t segment_count, glucose::IMetric *metric,
-											   glucose::IModel_Parameter_Vector *lower_bound, glucose::IModel_Parameter_Vector *upper_bound, glucose::IModel_Parameter_Vector **solved_parameters,
-											   glucose::IModel_Parameter_Vector **solution_hints, const size_t hint_count, glucose::TSolver_Progress *progress) {
+HRESULT IfaceCalling do_solve_model_parameters(const glucose::TSolver_Setup *setup) {
 	
-	if (segment_count == 0) return E_INVALIDARG;
+	if (setup->segment_count == 0) return E_INVALIDARG;
 
 	try {	//COM like steps do not throw Exceptions
-		auto shared_segments = refcnt::Referenced_To_Vector<glucose::STime_Segment, glucose::ITime_Segment>(segments, segment_count);
-		const auto shared_metric = refcnt::make_shared_reference<glucose::IMetric>(metric, true);
-		const auto shared_lower = refcnt::make_shared_reference<glucose::IModel_Parameter_Vector>(lower_bound, true);
-		const auto shared_upper = refcnt::make_shared_reference<glucose::IModel_Parameter_Vector>(upper_bound, true);
-		auto shared_solved = refcnt::make_shared_reference<glucose::IModel_Parameter_Vector>(*solved_parameters, true);
-		auto shared_hints = refcnt::Referenced_To_Vector<glucose::SModel_Parameter_Vector, glucose::IModel_Parameter_Vector>(solution_hints, hint_count);
+		auto shared_segments = refcnt::Referenced_To_Vector<glucose::STime_Segment, glucose::ITime_Segment>(setup->segments, setup->segment_count);
+		const auto shared_metric = refcnt::make_shared_reference<glucose::IMetric>(setup->metric, true);
+		const auto shared_lower = refcnt::make_shared_reference<glucose::IModel_Parameter_Vector>(setup->lower_bound, true);
+		const auto shared_upper = refcnt::make_shared_reference<glucose::IModel_Parameter_Vector>(setup->upper_bound, true);
+		auto shared_solved = refcnt::make_shared_reference<glucose::IModel_Parameter_Vector>(*(setup->solved_parameters), true);
+		auto shared_hints = refcnt::Referenced_To_Vector<glucose::SModel_Parameter_Vector, glucose::IModel_Parameter_Vector>(setup->solution_hints, setup->hint_count);
 
 		//make sure that we do our best to supply at least one hint for local and evolutionary solvers
 		auto default_parameters = refcnt::Create_Container_shared<double>(nullptr, nullptr);
 		if (shared_hints.empty()) {
 			//we need to try to obtain the default parameter at least
-			auto signal = shared_segments[0].Get_Signal(*signal_id);
+			auto signal = shared_segments[0].Get_Signal(*(setup->signal_id));
 			if (signal) {
 				if (signal->Get_Default_Parameters(default_parameters.get()) == S_OK)
 					shared_hints.push_back(default_parameters);
@@ -154,9 +141,23 @@ HRESULT IfaceCalling do_solve_model_parameters(const GUID *solver_id, const GUID
 		}
 
 		glucose::TSolver_Progress dummy_progress;
-		if (progress == nullptr) progress = &dummy_progress;
+		glucose::TSolver_Progress* local_progress = setup->progress;
+		if (local_progress == nullptr) local_progress = &dummy_progress;
 
-		return Id_Dispatcher.Solve_Model_Parameters(*solver_id, *signal_id, shared_segments, shared_metric, shared_lower, shared_upper, shared_solved, shared_hints, *progress);
+
+		const auto const_hints{ shared_hints };
+
+		TShared_Solver_Setup shared_setup {
+			setup->solver_id, setup->signal_id,
+			shared_segments,
+			shared_metric, setup->levels_required, setup->use_measured_levels,
+			shared_lower, shared_upper,
+			const_hints,
+			shared_solved,
+			*local_progress
+		};
+		
+		return Id_Dispatcher.Solve_Model_Parameters(shared_setup);
 	}
 	catch (...) {
 		return E_FAIL;
