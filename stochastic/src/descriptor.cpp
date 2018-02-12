@@ -66,25 +66,14 @@ namespace steil_rebrin {
 
 }
 
+
 namespace newuoa {
-	const glucose::TSolver_Descriptor desc{
-			id, 
-			dsNewUOA,
-			false,
-			0,
-			nullptr
-	};
+	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsNewUOA);
 }
 
 
 namespace metade {
-	const glucose::TSolver_Descriptor desc{
-		id,
-		dsMetaDE,
-		false,
-		0,
-		nullptr
-	};
+	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsMetaDE);
 }
 
 
