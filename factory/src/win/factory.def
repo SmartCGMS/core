@@ -9,3 +9,4 @@ EXPORTS
   
 	get_filter_descriptors
 	
+	create_metric

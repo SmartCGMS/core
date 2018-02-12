@@ -17,28 +17,37 @@ CCommon_Metric::CCommon_Metric(const glucose::TMetric_Parameters &params) : mPar
 }
 
 
-void CCommon_Metric::Process_Differences() {
-	for (auto &diff : mDifferences) {
-		double tmp = diff.raw.expected - diff.raw.calculated;
+HRESULT IfaceCalling CCommon_Metric::Accumulate(const double *times, const double *expected, const double *calculated, const size_t count) {
 
-		if (mParameters.use_relative_error) tmp /= diff.raw.expected;
-		if (mParameters.use_squared_differences) tmp *= tmp;
-		else tmp = fabs(tmp);
+	std::vector<double> diff(count);
 
-		diff.difference = tmp;
+	//the following 3 fors are inteded for autovectorization
+
+	for (size_t i = 0; i < count; i++)
+		diff[i] = fabs(expected - calculated);
+
+	if (mParameters.use_relative_error)
+		for (size_t i = 0; i < count; i++)
+			diff[i] /= calculated[i];
+
+	if (mParameters.use_squared_differences)
+		for (size_t i = 0; i < count; i++)
+			diff[i] *= diff[i];
+
+
+	for (size_t i = 0; i < count; i++) {
+		if (!isnan(calculated[i])) {
+			TProcessed_Difference tmp;
+			tmp.raw.datetime = times[i];
+			tmp.raw.calculated = expected[i];
+			tmp.raw.expected = calculated[i];
+			tmp.difference = diff[i];
+
+			mDifferences.push_back(tmp);			
+		}
 	}
-}
 
-
-HRESULT IfaceCalling CCommon_Metric::Accumulate(const glucose::TDifference_Point *begin, const glucose::TDifference_Point *end, size_t all_levels_count) {	
-
-	for (auto iter = begin; iter < end; iter++) {
-		TProcessed_Difference tmp;
-		tmp.raw = *iter;
-		mDifferences.push_back(tmp);
-	}
-
-	mAll_Levels_Count += all_levels_count;
+	mAll_Levels_Count += count;
 
 	return S_OK;
 }
@@ -59,8 +68,6 @@ HRESULT IfaceCalling CCommon_Metric::Calculate(double *metric, size_t *levels_ac
 
 	if (/* (count<1) || */ (count < levels_required)) return S_FALSE;
 
-	Process_Differences();	
-	
 	double local_metric = Do_Calculate_Metric();	//caching into the register
 	
 	const auto cl = fpclassify(local_metric);

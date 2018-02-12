@@ -14,6 +14,9 @@
 #include "solution.h"
 #include "NullMethod.h"
 
+#include "..\..\..\common\DebugHelper.h"
+
+#undef min
 
 namespace nlopt_tx {
 	constexpr bool print_statistics = false;
@@ -34,15 +37,14 @@ template <typename TResult_Solution, typename TBottom_Solution, typename TFitnes
 struct TNLOpt_Objective_Function_Data {
 
 	TResult_Solution best_solution;
-	floattype best_solution_fitness;
+	double best_solution_fitness;
 
 	TFitness &fitness;
 	TBottom_Solution& lower_bottom_bound, upper_bottom_bound;
 	std::vector<TBottom_Solution> initial_bottom_solution;
-	SMetricCalculator metric_calculator; //don't make this a reference!	
-	SMetricFactory &metric_factory;
+	glucose::SMetric metric; //don't make this a reference!	
 
-	volatile TSolverProgress *progress;
+	volatile glucose::TSolver_Progress *progress;
 	nlopt::opt &options;
 };
 
@@ -55,7 +57,7 @@ public:
 	CNLOpt_Fitness_Proxy(TFitness &original_fitness, const TTop_Solution &top_solution) :
 		mOriginal_Fitness(original_fitness), mTop_Solution(top_solution) {};
 
-	floattype Calculate_Fitness(const TBottom_Solution &bottom_solution, SMetricCalculator &metric) const {
+	double Calculate_Fitness(const TBottom_Solution &bottom_solution, glucose::SMetric &metric) const {
 
 		return mOriginal_Fitness.Calculate_Fitness(mTop_Solution.Compose(bottom_solution), metric);
 	};
@@ -65,31 +67,32 @@ template <typename TResult_Solution, typename TTop_Solution, typename TBottom_So
 double NLOpt_Top_Solution_Objective_Function(const std::vector<double> &x, std::vector<double> &grad, void *my_func_data) {
 	TNLOpt_Objective_Function_Data<TResult_Solution, TBottom_Solution, TFitness> * data = (TNLOpt_Objective_Function_Data<TResult_Solution, TBottom_Solution, TFitness>*)my_func_data;
 
-	TTop_Solution top_result = TTop_Solution::From_Vector(x);
+	TTop_Solution top_result;// = TTop_Solution::From_Vector(x);
+	top_result.set(x.data(), x.data()+x.size());
 
 	CNLOpt_Fitness_Proxy<TFitness, TTop_Solution, TBottom_Solution> fitness_proxy{ data->fitness, top_result };
-	TBottom_Solver bottom_solver(data->initial_bottom_solution, data->lower_bottom_bound, data->upper_bottom_bound, fitness_proxy, data->metric_factory);
-	TSolverProgress tmp_progress = { 0 };
+	TBottom_Solver bottom_solver(data->initial_bottom_solution, data->lower_bottom_bound, data->upper_bottom_bound, fitness_proxy, data->metric);
+	glucose::TSolver_Progress tmp_progress = { 0 };
 	TBottom_Solution bottom_result = bottom_solver.Solve(tmp_progress);
 
 	TResult_Solution composed_result = top_result.Compose(bottom_result);
 	
 
-	double fitness = data->fitness.Calculate_Fitness(composed_result, data->metric_calculator);
+	double fitness = data->fitness.Calculate_Fitness(composed_result, data->metric);
 
 
 	if (fitness < data->best_solution_fitness) {
 		data->best_solution_fitness = fitness;
 		data->best_solution = composed_result;
 
-		data->progress->BestMetric = fitness;
+		data->progress->best_metric = fitness;
 	}
 
-	data->progress->CurrentProgress++;	
+	data->progress->current_progress++;	
 
 	if (nlopt_tx::print_statistics)	nlopt_tx::eval_counter++;
 
-	if (data->progress->Cancelled) data->options.set_force_stop(true);
+	if (data->progress->cancelled) data->options.set_force_stop(true);
 
 	return fitness;
 }
@@ -102,12 +105,17 @@ protected:
 	TBottom_Solution mInitial_Bottom_Solution;
 protected:
 	TFitness &mFitness;
-	SMetricFactory &mMetric_Factory;
+	glucose::SMetric &mMetric;
 	TTop_Solution mLower_Top_Bound, mUpper_Top_Bound;
 	TBottom_Solution mLower_Bottom_Bound, mUpper_Bottom_Bound;
+
+	std::vector<double> Top_Solution_As_Vector(const TTop_Solution& solution) {
+		std::vector<double> result(solution.data(), solution.data() + solution.cols()*solution.rows()); 
+		return result; 
+	}
 public:
-	CNLOpt(const std::vector<TResult_Solution> &initial_solutions, const TResult_Solution &lower_bound, const TResult_Solution &upper_bound, TFitness &fitness, SMetricFactory &metric_factory) :
-		mFitness(fitness), mMetric_Factory(metric_factory) {
+	CNLOpt(const std::vector<TResult_Solution> &initial_solutions, const TResult_Solution &lower_bound, const TResult_Solution &upper_bound, TFitness &fitness, glucose::SMetric &metric) :
+		mFitness(fitness), mMetric(metric) {
 		
 		TResult_Solution tmp_init;
 
@@ -120,7 +128,7 @@ public:
 	}
 
 
-	TResult_Solution Solve(volatile TSolverProgress &progress) {
+	TResult_Solution Solve(volatile glucose::TSolver_Progress &progress) {
 
 		if (nlopt_tx::print_statistics) nlopt_tx::eval_counter = 0;
 
@@ -129,14 +137,14 @@ public:
 
 
 		
-		progress.MaxProgress = opt.get_maxeval();
-		if (progress.MaxProgress == 0) progress.MaxProgress = 100;
-		progress.CurrentProgress = 0;
-		progress.BestMetric = std::numeric_limits<decltype(progress.BestMetric)>::max();
+		progress.max_progress = opt.get_maxeval();
+		if (progress.max_progress == 0) progress.max_progress = 100;
+		progress.current_progress = 0;
+		progress.best_metric = std::numeric_limits<decltype(progress.best_metric)>::max();
 
 		const std::vector<TBottom_Solution> initial_bottom_solution = { mInitial_Bottom_Solution };
-		const auto init_solution = mInitial_Top_Solution.Compose(mInitial_Bottom_Solution);
-		auto metric_calculator = mMetric_Factory.CreateCalculator();
+		auto init_solution = mInitial_Top_Solution.Compose(mInitial_Bottom_Solution);
+		auto metric_calculator = mMetric.Clone();					
 
 		TNLOpt_Objective_Function_Data<TResult_Solution, TBottom_Solution, TFitness> data =
 		{
@@ -147,7 +155,6 @@ public:
 			mLower_Bottom_Bound, mUpper_Bottom_Bound,				//TBottom_Solution& lower_bottom_bound, upper_bottom_bound;
 			initial_bottom_solution,								//std::vector<TBottom_Solution> initial_solution;
 			metric_calculator,										//SMetricCalculator metric_calculator; //don't make this a reference!	
-			mMetric_Factory,										//SMetricFactory &metric_factory
 			&progress,												//volatile TSolverProgress *progress;
 			opt														//nlopt::opt &options;
 		};
@@ -155,21 +162,21 @@ public:
 				
 		opt.set_min_objective(NLOpt_Top_Solution_Objective_Function<TResult_Solution, TTop_Solution, TBottom_Solution, TBottom_Solver, TFitness>, &data);
 
-		opt.set_lower_bounds(mLower_Top_Bound.As_Vector());
-		opt.set_upper_bounds(mUpper_Top_Bound.As_Vector());
+		opt.set_lower_bounds(Top_Solution_As_Vector(mLower_Top_Bound));
+		opt.set_upper_bounds(Top_Solution_As_Vector(mUpper_Top_Bound));
 		
 
 		//opt.set_xtol_rel(1e-4);
 		opt.set_xtol_rel(1e-10);
 		if (max_eval>0) opt.set_maxeval(max_eval);
 
-		std::vector<double> x = mInitial_Top_Solution.As_Vector();
+		std::vector<double> x = Top_Solution_As_Vector(mInitial_Top_Solution);
 		double minf = std::numeric_limits<double>::max();
 		nlopt::result result = opt.optimize(x, minf); //note that x contains only the top-level parameters, but we need full, composed result
 		
 		if (nlopt_tx::print_statistics) {
 			const size_t count = nlopt_tx::eval_counter;	//https://stackoverflow.com/questions/27314485/use-of-deleted-function-error-with-stdatomic-int
-			dprintf("%d; %g\n", count, data.best_solution_fitness);
+			dprintf((wchar_t*) L"%d; %g\n", (const size_t) count, (double) data.best_solution_fitness); //https://docs.microsoft.com/en-us/cpp/error-messages/compiler-errors-2/compiler-error-c2665?f1url=https%3A%2F%2Fmsdn.microsoft.com%2Fquery%2Fdev15.query%3FappId%3DDev15IDEF1%26l%3DEN-US%26k%3Dk(C2665)%3Bk(vs.output)%26rd%3Dtrue
 		}
 
 		return data.best_solution;

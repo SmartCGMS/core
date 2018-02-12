@@ -15,12 +15,12 @@ CFilter_Pipe::~CFilter_Pipe() {
 	//just empty to call all the dctors correctly
 }
 
-HRESULT CFilter_Pipe::send(const glucose::TSensor_Event *event) {
-	mQueue.push(*event); 
+HRESULT CFilter_Pipe::send(const glucose::TDevice_Event *event) {	
+	mQueue.push(*event);
 	return S_OK;
 }
 
-HRESULT CFilter_Pipe::receive(glucose::TSensor_Event *event) {
+HRESULT CFilter_Pipe::receive(glucose::TDevice_Event *event) {
 	mQueue.pop(*event);
 	return S_OK;
 }

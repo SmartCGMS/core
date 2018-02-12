@@ -12,11 +12,11 @@
 
 class CId_Dispatcher {
 protected:
-	std::map <const GUID, std::function<HRESULT(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric)>> id_map;
+	std::map <const GUID, std::function<HRESULT(const glucose::TMetric_Parameters &parameters, glucose::IMetric **metric)>> id_map;
 
 	template <typename T>
-	HRESULT Create_X(const glucose::TMetric_Parameters *params, glucose::IMetric **metric) const {
-		return Manufacture_Object<T, glucose::IMetric>(metric, *params);
+	HRESULT Create_X(const glucose::TMetric_Parameters &params, glucose::IMetric **metric) const {
+		return Manufacture_Object<T, glucose::IMetric>(metric, params);
 	}
 
 public:
@@ -33,8 +33,8 @@ public:
 		id_map[mtrAvg_Plus_Bessel_Std_Dev] = std::bind(&CId_Dispatcher::Create_X<CAvgPlusBesselStdDevMetric>, this, std::placeholders::_1, std::placeholders::_2);
 	}
 
-	HRESULT Create_Metric(const GUID *metric_id, const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric) const {
-		const auto iter = id_map.find(*metric_id);
+	HRESULT Create_Metric(const glucose::TMetric_Parameters &parameters, glucose::IMetric **metric) const {
+		const auto iter = id_map.find(parameters.metric_id);
 		if (iter != id_map.end())
 			return iter->second(parameters, metric);
 		else return E_NOTIMPL;
@@ -46,6 +46,7 @@ public:
 static CId_Dispatcher Id_Dispatcher;
 
 
-HRESULT IfaceCalling do_create_metric(const GUID *metric_id, const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric) {
-	return Id_Dispatcher.Create_Metric(metric_id, parameters, metric);
+HRESULT IfaceCalling do_create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric) {
+	if (parameters == nullptr) return E_INVALIDARG;
+	return Id_Dispatcher.Create_Metric(*parameters, metric);
 }

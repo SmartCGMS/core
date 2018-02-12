@@ -6,6 +6,7 @@
 namespace imported {
 	const char* rsGet_Filter_Descriptors = "do_get_filter_descriptors";
 	const char* rsDo_Create_Filter = "do_create_filter";
+	const char* rsDo_Create_Metric = "do_create_metric";
 }
 
 const wchar_t* rsSolversDir = L"filters";
@@ -34,6 +35,10 @@ HRESULT IfaceCalling create_filter(const GUID *id, glucose::IFilter_Pipe *input,
 	return loaded_filters.create_filter(id, input, output, filter);
 }
 
+HRESULT IfaceCalling create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric) {
+	return loaded_filters.create_metric(parameters, metric);
+}
+
 void CLoaded_Filters::load_libraries() {
 	const auto allFiles = List_Directory(Path_Append(Get_Application_Dir(), rsSolversDir));
 
@@ -46,8 +51,9 @@ void CLoaded_Filters::load_libraries() {
 
 			if (lib.library->Load()) {
 				lib.create_filter = reinterpret_cast<decltype(lib.create_filter)> (lib.library->Resolve(imported::rsDo_Create_Filter));
+				lib.create_metric = reinterpret_cast<decltype(lib.create_metric)> (lib.library->Resolve(imported::rsDo_Create_Metric));
 
-				bool lib_used = lib.create_filter != nullptr;
+				bool lib_used = (lib.create_filter != nullptr) || (lib.create_metric != nullptr);
 
 				{
 					//try to load filter descriptions just once
