@@ -5,9 +5,6 @@
 
 #include "solution.h"
 #include "fitness.h"
-#include "composite_fitness.h"
-
-#include "../..\..\common\rtl\cfixes.h"
 
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_reduce.h>
@@ -17,7 +14,7 @@
 template <typename TSolution>
 struct TLCCandidate_Solution {
 	TSolution solution;
-	floattype fitness;
+	double fitness;
 };
 
 
@@ -34,18 +31,18 @@ protected:
 	std::vector<TSolution> mStepping;
 protected:
 	TFitness &mFitness;
-	SMetricFactory &mMetric_Factory;
+	glucose::SMetric &mMetric;
 public:
-	CLocalSearch(const std::vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, SMetricFactory &metric_factory) :
+	CLocalSearch(const std::vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, glucose::SMetric &metricy) :
 
-		mStepping(initial_solutions), mLower_Bound(lower_bound), mUpper_Bound(upper_bound), mFitness(fitness), mMetric_Factory(metric_factory) {
+		mStepping(initial_solutions), mLower_Bound(lower_bound), mUpper_Bound(upper_bound), mFitness(fitness), mMetric(metric) {
 		//keep the initial solutions as first as the Solve relies on it
 		//mStepping.insert(mStepping.end(), initial_solutions.begin(), initial_solutions.end()); - copy constructor
 
 		TSolution stepping;
 		stepping.resize(mUpper_Bound.cols());
 		for (auto i = 0; i < mUpper_Bound.cols(); i++) {
-			stepping(i) = (mUpper_Bound(i) - mLower_Bound(i)) / (floattype)_Stepping_Granularity;
+			stepping(i) = (mUpper_Bound(i) - mLower_Bound(i)) / static_cast<double>(_Stepping_Granularity);
 		}
 
 		TSolution step = mLower_Bound;
@@ -58,7 +55,7 @@ public:
 
 	
 
-	TSolution Solve(volatile TSolverProgress &progress) {
+	TSolution Solve(volatile glucose::TSolver_Progress &progress) {
 
 		const TLCCandidate_Solution<TSolution> init_solution { mStepping[0],
 															   mFitness.Calculate_Fitness(init_solution.solution, mMetric_Factory.CreateCalculator()) };
@@ -76,7 +73,7 @@ public:
 				if (progress.Cancelled != 0) return init_solution;
 
 				const auto param_count = mLower_Bound.cols();
-				SMetricCalculator metric_calculator = mMetric_Factory.CreateCalculator();
+				glucose::SMetric metric_calculator = mMetric.Clone();
 
 				TLCCandidate_Solution<TSolution> local_solution, best_solution;
 				local_solution.solution.resize(param_count);

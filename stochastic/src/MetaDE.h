@@ -18,7 +18,6 @@
 
 #include "solution.h"
 #include "fitness.h"
-#include "composite_fitness.h"
 
 #undef max
 #undef min
@@ -36,7 +35,7 @@ namespace metade {
 
 	enum class NStrategy : size_t { desCurrentToPBest = 0, desCurrentToUmPBest, desBest2Bin, desUmBest1, desCurrentToRand1, count };
 
-	const std::map<NStrategy, char*> strategy_name = {	{ NStrategy::desCurrentToPBest,		"CurToPBest" },
+	const std::map<NStrategy, const char*> strategy_name = {	{ NStrategy::desCurrentToPBest,		"CurToPBest" },
 														{ NStrategy::desCurrentToUmPBest,	"CurToUmPBest" },
 														{ NStrategy::desBest2Bin,			"Best2Bin" },
 														{ NStrategy::desUmBest1,			"UmBest1" },
@@ -50,14 +49,14 @@ namespace metade {
 	template <typename TSolution>
 	struct TMetaDE_Candidate_Solution {
 		NStrategy strategy;
-		floattype CR, F;
+		double CR, F;
 		TSolution current, next;
-		floattype current_fitness, next_fitness;
+		double current_fitness, next_fitness;
 	};
 
 	struct TMetaDE_Stats {
-		floattype best_fitness;
-		floattype strategy_fitness[static_cast<size_t>(NStrategy::count)];
+		double best_fitness;
+		double strategy_fitness[static_cast<size_t>(NStrategy::count)];
 		size_t strategy_counter[static_cast<size_t>(NStrategy::count)];
 	};
 
@@ -79,10 +78,10 @@ protected:
 	//const size_t mPopulation_Size = 100;
 	//const size_t mGeneration_Count = 10000;
 	const size_t mPBest_Count = 5;
-	const floattype mCR_min = 0.0;
-	const floattype mCR_range = 1.0;
-	const floattype mF_min = 0.0;
-	const floattype mF_range = 2.0;
+	const double mCR_min = 0.0;
+	const double mCR_range = 1.0;
+	const double mF_min = 0.0;
+	const double mF_range = 2.0;
 	const size_t mStrategy_min = 0;
 	const size_t mStrategy_range = 4;	
 protected:
@@ -124,7 +123,7 @@ protected:
 	 const double secs = secs_duration.count()*0.001;
 	 const double secs_per_iter = secs / static_cast<double>(mGeneration_Count);
 
-	 dprintf("%g; %d; %f; %f\n", best_fitness_iter->best_fitness, best_fitness_dist, secs, secs_per_iter);
+	 dprintf((char*)"%g; %d; %f; %f\n", best_fitness_iter->best_fitness, best_fitness_dist, secs, secs_per_iter);
   }
 
 	void Print_Statistics_Full() {
@@ -132,21 +131,21 @@ protected:
                                          
 		dprintf("Iteration; best");
 		for (auto i = static_cast<metade::NStrategy>(0); i < metade::NStrategy::count; metade::increment(i))
-			dprintf("; %s_fit", metade::strategy_name.find(i)->second);
+			dprintf((char*)"; %s_fit", (char*) metade::strategy_name.find(i)->second);
 
 
 		for (auto i = static_cast<metade::NStrategy>(0); i < metade::NStrategy::count; metade::increment(i))
-			dprintf("; %s_cnt", metade::strategy_name.find(i)->second);
+			dprintf((char*)"; %s_cnt", (char*) metade::strategy_name.find(i)->second);
 
 
 		for (size_t i = 0; i < mStatistics.size(); i++) {
-			dprintf("\n%d; %g", i, mStatistics[i].best_fitness);
+			dprintf((char*)"\n%d; %g", i, mStatistics[i].best_fitness);
 
 			for (size_t j = 0; j < static_cast<size_t>(metade::NStrategy::count); j++)
-				dprintf("; %g", mStatistics[i].strategy_fitness[j]);
+				dprintf((char*)"; %g", mStatistics[i].strategy_fitness[j]);
 
 			for (size_t j = 0; j < static_cast<size_t>(metade::NStrategy::count); j++)
-				dprintf("; %d", mStatistics[i].strategy_counter[j]);
+				dprintf((char*)"; %d", mStatistics[i].strategy_counter[j]);
 
 		}
     
@@ -178,15 +177,16 @@ protected:
 		//solution.strategy = metade::NStrategy::desCurrentToRand1;
 	}
 protected:
+	//not used in a thread-safe way but does not seem to be a problem so far
 	std::random_device mRandom_Device;
 	std::mt19937 mRandom_Generator{ mRandom_Device() };
-	std::uniform_real_distribution<floattype> mUniform_Distribution{ 0.0, 1.0 };
+	std::uniform_real_distribution<double> mUniform_Distribution{ 0.0, 1.0 };
 protected:
 	TFitness &mFitness;
-	SMetricFactory &mMetric_Factory;
+	glucose::SMetric &mMetric;
 public:
-	CMetaDE(const std::vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, SMetricFactory &metric_factory) :
-		mLower_Bound(lower_bound), mUpper_Bound(upper_bound), mFitness(fitness), mMetric_Factory(metric_factory), mPopulation(mPopulation_Size), mPopulation_Best(mPopulation_Size) {
+	CMetaDE(const std::vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, glucose::SMetric &metric) :
+		mLower_Bound(lower_bound), mUpper_Bound(upper_bound), mFitness(fitness), mMetric(metric), mPopulation(mPopulation_Size), mPopulation_Best(mPopulation_Size) {
 
 
 		//1. create the initial population
@@ -200,10 +200,8 @@ public:
 		const auto bounds_range = mUpper_Bound - mLower_Bound;
 		for (size_t i = initialized_count; i < mPopulation_Size; i++) {
 			TSolution tmp;
-			const size_t col_count = bounds_range.cols();
-			if (is_composite_solution<TSolution>::value) tmp.resize(Eigen::NoChange, col_count);	//no reason to do so for non-composite code
-																									//generate random numbers using a better generator than srand & rand
-			for (size_t j = 0; j < col_count; j++)
+
+			for (auto j = 0; j < bounds_range.cols(); j++)
 				tmp[j] = mUniform_Distribution(mRandom_Generator);
 
 			mPopulation[i].current = mLower_Bound + tmp.cwiseProduct(bounds_range);
@@ -213,7 +211,7 @@ public:
 		std::shuffle(mPopulation.begin(), mPopulation.end(), mRandom_Generator);
 
 		//2. set cr and f parameters, and calculate the metrics
-		SMetricCalculator metric_calculator = mMetric_Factory.CreateCalculator();
+		glucose::SMetric metric_calculator = mMetric.Clone();
 		for (auto &solution : mPopulation) {
 			//Do not do this parallel as the metric_calculator would have to be created many times
 			Generate_Meta_Params(solution);
@@ -224,24 +222,24 @@ public:
 		std::iota(mPopulation_Best.begin(), mPopulation_Best.end(), 0);
 	}
 
-	TSolution Solve(volatile TSolverProgress &progress)	{
+	TSolution Solve(volatile glucose::TSolver_Progress &progress)	{
 
 		if (mCollect_Statistics) {
 			Take_Statistics_Snapshot();
 			mSolve_Start_Time = std::chrono::high_resolution_clock::now();
 		}
 
-		progress.CurrentProgress = 0;
-		progress.MaxProgress = mGeneration_Count;
+		progress.current_progress = 0;
+		progress.max_progress = mGeneration_Count;
 
-		while ((progress.CurrentProgress++ < mGeneration_Count) && (progress.Cancelled == 0)) {
+		while ((progress.current_progress++ < mGeneration_Count) && (progress.cancelled == 0)) {
 			//1. determine the best p-count parameters, without actually re-ordering the population
 			//we want to avoid of getting all params close together and likely loosing the population diversity
 			std::partial_sort(mPopulation_Best.begin(), mPopulation_Best.begin() + mPBest_Count, mPopulation_Best.end(),
 				[&](const size_t &a, const size_t &b) {return mPopulation[a].current_fitness < mPopulation[b].current_fitness; });
 
 			//update the progress
-			progress.BestMetric = mPopulation[mPopulation_Best[0]].current_fitness;
+			progress.best_metric = mPopulation[mPopulation_Best[0]].current_fitness;
 
 			//2. Calculate the next vectors and their fitness 
 			//In this step, current is read-only and next is write-only => no locking is needed
@@ -249,14 +247,14 @@ public:
 			//We assume that parallelization cost will get amortized
 			tbb::parallel_for(tbb::blocked_range<size_t>(size_t(0), mPopulation_Size), [=, &progress](const tbb::blocked_range<size_t> &r) {
 
-				SMetricCalculator metric_calculator = mMetric_Factory.CreateCalculator();
+				glucose::SMetric metric_calculator = mMetric.Clone();
 				//for (size_t iter = 0; iter<mPopulation_Size; iter++) {
 
 				const size_t rend = r.end();
 				for (size_t iter = r.begin(); iter != rend; iter++) {
 
 					auto generate_random_index = [&]()->size_t {
-						const floattype fl_population_high = static_cast<floattype>(mPopulation_Size - 1);
+						const double fl_population_high = static_cast<double>(mPopulation_Size - 1);
 						return static_cast<size_t>(round(mUniform_Distribution(mRandom_Generator)*fl_population_high));
 					};
 
@@ -271,7 +269,7 @@ public:
 					switch (candidate_solution.strategy) {
 					case metade::NStrategy::desCurrentToPBest:
 					{
-						const size_t p_index = static_cast<size_t>(round(mUniform_Distribution(mRandom_Generator)*static_cast<floattype>(mPBest_Count - 1)));
+						const size_t p_index = static_cast<size_t>(round(mUniform_Distribution(mRandom_Generator)*static_cast<double>(mPBest_Count - 1)));
 						candidate_solution.next = candidate_solution.current +
 							candidate_solution.F*(mPopulation[mPopulation_Best[p_index]].current - candidate_solution.current) +
 							candidate_solution.F*random_difference_vector();
@@ -280,7 +278,7 @@ public:
 
 					case metade::NStrategy::desCurrentToUmPBest:
 					{
-						const size_t p_index = static_cast<size_t>(round(mUniform_Distribution(mRandom_Generator)*static_cast<floattype>(mPBest_Count - 1)));
+						const size_t p_index = static_cast<size_t>(round(mUniform_Distribution(mRandom_Generator)*static_cast<double>(mPBest_Count - 1)));
 						candidate_solution.next = candidate_solution.current +
 							candidate_solution.F*(mPopulation[mPopulation_Best[p_index]].current - candidate_solution.current) +
 							mUniform_Distribution(mRandom_Generator)*random_difference_vector();
@@ -319,7 +317,7 @@ public:
 						}
 
 						//and, we alway have to keep at least one original/current element
-						const size_t element_to_replace = static_cast<size_t>(round(mUniform_Distribution(mRandom_Generator)*static_cast<floattype>(element_count - 1)));
+						const size_t element_to_replace = static_cast<size_t>(round(mUniform_Distribution(mRandom_Generator)*static_cast<double>(element_count - 1)));
 						candidate_solution.next[element_to_replace] = candidate_solution.current[element_to_replace];
 					}
 

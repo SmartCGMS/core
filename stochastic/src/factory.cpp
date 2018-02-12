@@ -4,6 +4,9 @@
 #include "../../../common/rtl/referencedImpl.h"
 
 #include "NLOpt.h"
+#include "MetaDE.h"
+#include "NullMethod.h"
+
 #include "descriptor.h"
 #include "fitness.h"
 #include "solution.h"
@@ -11,46 +14,13 @@
 #include <map>
 #include <functional>
 
-/*
-
-virtual HRESULT set(const double *begin, const double *end) final { \
-for (size_t i=0; i<cols(); i++) { \
-operator[](i) = *begin; \
-begin++; \
-} \
-return S_OK; \
-} \
-\
-virtual HRESULT get(double **begin, double **end) const final { \
-*begin = data(); \
-*end = *begin+cols(); \
-return S_OK; \
-} \
-\
-static derived_type From_Parameter_Vector(glucose::SModel_Parameter_Vector &vector) const { \
-derived_type result; \
-double *begin, *end; \
-if (ColsAtCompileTime() == Eigen::Dynamic) result.resize(Eigen::NoChange, std::distance(begin, end)); \
-if (vector->get(&begin, &end) == S_OK) \
-result.set(begin, end); \
-return result; \
-} \
-\
-void Set_To_Vector(glucose::SModel_Parameter_Vector &vector) const { \
-vector->set(data(), data+cols()); \
-}
-
-*/
-
-
-
 class CGeneral_Id_Dispatcher {
 public:
 	virtual HRESULT Solve_Model_Parameters(TShared_Solver_Setup &setup) = 0;
 };
 
 
-template <typename TSolution>
+template <typename TSolution, typename TFitness = CFitness<TSolution>>
 class CSpecialized_Id_Dispatcher : public CGeneral_Id_Dispatcher {
 protected:
 	TSolution Parameters_To_Solution(const glucose::SModel_Parameter_Vector &parameters) const {
@@ -84,7 +54,7 @@ protected:
 protected:
 	template <typename  nlopt::algorithm algorithm_id>
 	HRESULT Solve_NLOpt(TShared_Solver_Setup &setup, std::vector<TSolution>& hints, const TSolution& lower_bound, const TSolution& upper_bound) const {
-
+		
 		using TFitness = CFitness<TSolution>;
 		using TNLOpt_Specialized_Solver = CNLOpt<TSolution, TFitness, algorithm_id>;
 		TFitness fitness{setup};
@@ -97,9 +67,23 @@ protected:
 	}
 
 
+	template <typename TSolver>
+	HRESULT Solve_By_Class(TShared_Solver_Setup &setup, std::vector<TSolution>& hints, const TSolution& lower_bound, const TSolution& upper_bound) const {
+		
+		TFitness fitness{ setup };
+		TSolver  solver{ hints, lower_bound, upper_bound, fitness, setup.metric };
+
+		TSolution solved = solver.Solve(setup.progress);
+		Solution_To_Parameters(solved, setup.solved_parameters);
+
+		return S_OK;
+	}
 public:
 	CSpecialized_Id_Dispatcher() {	
 		add_NLOpt<nlopt::LN_NEWUOA>(newuoa::id);		
+
+		using TPure_MetaDE = CMetaDE<TSolution, TFitness, CNullMethod<TSolution, TFitness>>;
+		mSolver_Id_Map[metade::id] = std::bind(&CSpecialized_Id_Dispatcher<TSolution>::Solve_By_Class<TPure_MetaDE>, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 		
 	}
 

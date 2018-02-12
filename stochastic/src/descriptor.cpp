@@ -77,8 +77,20 @@ namespace newuoa {
 }
 
 
+namespace metade {
+	const glucose::TSolver_Descriptor desc{
+		id,
+		dsMetaDE,
+		false,
+		0,
+		nullptr
+	};
+}
+
+
+
 const std::vector<glucose::TModel_Descriptor> model_descriptions = { diffusion_v2_model::desc, steil_rebrin::desc };
-const std::vector<glucose::TSolver_Descriptor> solver_descriptions = { newuoa::desc };
+const std::vector<glucose::TSolver_Descriptor> solver_descriptions = { newuoa::desc, metade::desc };
 
 
 

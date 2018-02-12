@@ -6,11 +6,9 @@
 
 #include "solution.h"
 #include "fitness.h"
-#include "composite_fitness.h"
 #include "nlopt.h"
 #include "LocalSearch.h"
 
-#include "../..\..\common\rtl\cfixes.h"
 
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_reduce.h>
