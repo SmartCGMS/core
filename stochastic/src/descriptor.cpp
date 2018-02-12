@@ -16,9 +16,8 @@ namespace diffusion_v2_model {
 	const double upper_bound[param_count] = { 2.0, 0.0, 10.0, glucose::One_Hour, 0.0, glucose::One_Hour };
 
 	const size_t signal_count = 2;
-	const GUID diff2_blood = { 0xd96a559b, 0xe247, 0x41e0,{ 0xbd, 0x8e, 0x78, 0x8d, 0x20, 0xdb, 0x9a, 0x70 } }; // {D96A559B-E247-41E0-BD8E-788D20DB9A70}																							
-	const GUID diff2_ist = { 0x870ddbd6, 0xdaf1, 0x4877,{ 0xa8, 0x9e, 0x5e, 0x7b, 0x2, 0x8d, 0xa6, 0xc7 } };  // {870DDBD6-DAF1-4877-A89E-5E7B028DA6C7}
-	const GUID signal_ids[signal_count] = { diff2_blood , diff2_ist };
+	
+	const GUID signal_ids[signal_count] = { glucose::signal_Diffusion_v2_Blood, glucose::signal_Diffusion_v2_Ist };
 	const wchar_t *signal_names[signal_count] = { dsBlood, dsInterstitial };
 
 	glucose::TModel_Descriptor desc = {
@@ -47,9 +46,8 @@ namespace steil_rebrin {
 	const double default_values[param_count] = { 0.00576459, 1.0/ 1.02164072, 0.0, 0.0};
 	const double upper_bound[param_count] = { 1000.0, 1000.0, 1000.0, 1000.0 };
 
-	const size_t signal_count = 1;
-	const GUID sr_blood = { 0x287b9bb8, 0xb73b, 0x4485,{ 0xbe, 0x20, 0x2c, 0x8c, 0x40, 0x98, 0x3b, 0x16 } }; // {287B9BB8-B73B-4485-BE20-2C8C40983B16}
-	const GUID signal_ids[signal_count] = { sr_blood };
+	const size_t signal_count = 1;	
+	const GUID signal_ids[signal_count] = { glucose::signal_Steil_Rebrin_Blood };
 	const wchar_t *signal_names[signal_count] = { dsBlood};
 
 	const glucose::TModel_Descriptor desc = {
