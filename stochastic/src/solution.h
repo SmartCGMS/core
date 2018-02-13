@@ -10,6 +10,7 @@
 #include "../../../common/rtl/hresult.h"
 #include "../../../common/rtl/DeviceLib.h"
 #include "../../../common/rtl/referencedImpl.h"
+#include "../../../common/rtl/ModelsLib.h"
 
 #include "descriptor.h"
 
