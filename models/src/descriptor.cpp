@@ -4,7 +4,6 @@
 #include "../../../common/iface/DeviceIface.h"
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/descriptor_utils.h"
-#include "../../../common/rtl/ModelsLib.h"
 #include <vector>
 
 namespace diffusion_v2_model {
@@ -13,7 +12,6 @@ namespace diffusion_v2_model {
 	const wchar_t *param_names[param_count] = {dsP, dsCg, dsC, dsDt, dsK, dsH};
 
 	const double lower_bound[param_count] = {0.0, -0.5, -10.0, 0.0, -1.0, 0.0};
-	const double default_values[param_count] = { 1.091213, -0.015811, -0.174114, 0.0233101854166667, -2.6E-6, 0.0185995368055556 };
 	const double upper_bound[param_count] = { 2.0, 0.0, 10.0, glucose::One_Hour, 0.0, glucose::One_Hour };
 
 	const size_t signal_count = 2;
@@ -28,7 +26,7 @@ namespace diffusion_v2_model {
 		param_types,
 		param_names,
 		lower_bound,
-		default_values,
+		default_parameters,
 		upper_bound,
 		signal_count,
 		signal_ids,

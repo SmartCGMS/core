@@ -1,7 +1,6 @@
 #include "filters.h"
 
 #include "../../../common/rtl/FilesystemLib.h"
-#include "../../../common/rtl/CLibrary.h"
 
 namespace imported {
 	const char* rsGet_Filter_Descriptors = "do_get_filter_descriptors";
@@ -43,10 +42,10 @@ void CLoaded_Filters::load_libraries() {
 	const auto allFiles = List_Directory(Path_Append(Get_Application_Dir(), rsSolversDir));
 
 	for (const auto& filepath : allFiles) {
-		if (CLibrary::Is_Library(filepath)) {				//just checks the extension
+		if (CDynamic_Library::Is_Library(filepath)) {				//just checks the extension
 			imported::TLibraryInfo lib;
 
-			lib.library = std::make_unique<CLibrary>();
+			lib.library = std::make_unique<CDynamic_Library>();
 			lib.library->Set_Filename(filepath);
 
 			if (lib.library->Load()) {

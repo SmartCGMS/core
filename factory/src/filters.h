@@ -2,7 +2,7 @@
 
 #include "../../../common/iface/SolverIface.h"
 #include "../../../common/iface/UIIface.h"
-#include "../../../common/rtl/CLibrary.h"
+#include "../../../common/rtl/Dynamic_Library.h"
 
 #include <vector>
 
@@ -13,7 +13,7 @@ namespace imported {
 	extern const char* rsCreate_Filter_Factory_Symbol;
 	
 	typedef struct {
-		std::unique_ptr<CLibrary> library;	//we hate this pointer, but we have to - otherwise Qt won't let us to use it
+		std::unique_ptr<CDynamic_Library> library;	//we hate this pointer, but we have to - otherwise Qt won't let us to use it
 		glucose::TCreate_Filter create_filter;
 		glucose::TCreate_Metric create_metric;
 	} TLibraryInfo;

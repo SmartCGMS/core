@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../..\..\common\rtl\SolverLib.h"
+#include "../..\..\common\rtl\Buffer_Pool.h"
 
-#include <tbb/concurrent_queue.h>
 #include <vector>
 
 #undef max
@@ -52,7 +52,9 @@ protected:
 	std::vector<TSegment_Info> mSegment_Info;	
 	size_t mLevels_Required;
 	size_t mMax_Levels_Per_Segment;	//to avoid multiple resize of memory block when calculating the error
-	tbb::concurrent_queue<std::vector<double>> mTemporal_Levels;
+	CBuffer_Pool<std::vector<double>> mTemporal_Levels{ [](auto &container, auto minimum_size) {		
+		if (container.size() < minimum_size) container.resize(minimum_size);
+	} };
 public:
 	CFitness(TShared_Solver_Setup &setup) : mLevels_Required (setup.levels_required) {
 
@@ -107,21 +109,15 @@ public:
 		metric->Reset();
 
 		//let's pick a memory block for calculated
-		std::vector<double> tmp_levels;
-		if (!mTemporal_Levels.try_pop(tmp_levels))	//does std::move
-			tmp_levels = std::vector<double>(mMax_Levels_Per_Segment);	//create one if there is none left	
-
+		CPooled_Buffer<std::vector<double>> tmp_levels{ mTemporal_Levels, mMax_Levels_Per_Segment };
 
 		for (auto &info : mSegment_Info) {			
-			if (info.signal->Get_Continuous_Levels(&solution, info.reference_time.data(), tmp_levels.data(), info.reference_time.size(), glucose::apxNo_Derivation) == S_OK) {
+			if (info.signal->Get_Continuous_Levels(&solution, info.reference_time.data(), tmp_levels.element.data(), info.reference_time.size(), glucose::apxNo_Derivation) == S_OK) {
 				//levels got, calculate the metric
-				metric->Accumulate(info.reference_time.data(), info.reference_level.data(), tmp_levels.data(), info.reference_time.size());
+				metric->Accumulate(info.reference_time.data(), info.reference_level.data(), tmp_levels.element.data(), info.reference_time.size());
 			}
 		}
 
-
-		//once finished, return the used tmp_levels back into the pool
-		mTemporal_Levels.push(std::move(tmp_levels));
 
 		//eventually, calculate the metric number
 		double result;
