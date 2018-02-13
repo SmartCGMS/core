@@ -66,14 +66,13 @@ public:
 			if (info.signal) {
 				size_t levels_count;
 				if (info.signal->Get_Discrete_Bounds(nullptr, &levels_count) == S_OK) {
-					std::vector<glucose::TLevel> reference_levels (levels_count);
+					info.reference_time.resize(levels_count);
+					info.reference_level.resize(levels_count);					
 					
 					//prepare arrays with reference levels and their times
-					if (info.signal->Get_Discrete_Levels(reference_levels.data(), reference_levels.size(), &levels_count) == S_OK) {
-						for (const auto &reference_level : reference_levels) {
-							info.reference_time.push_back(reference_level.date_time);
-							info.reference_level.push_back(reference_level.level);
-						}
+					if (info.signal->Get_Discrete_Levels(info.reference_time.data(), info.reference_level.data(), info.reference_time.size(), &levels_count) == S_OK) {
+						info.reference_time.resize(levels_count);
+						info.reference_level.resize(levels_count);
 					}
 					
 
