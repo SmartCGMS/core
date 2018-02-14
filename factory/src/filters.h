@@ -10,23 +10,49 @@
 #include <memory>
 
 namespace imported {
-	extern const char* rsCreate_Filter_Factory_Symbol;
-	
 	typedef struct {
 		std::unique_ptr<CDynamic_Library> library;	//we hate this pointer, but we have to - otherwise Qt won't let us to use it
 		glucose::TCreate_Filter create_filter;
 		glucose::TCreate_Metric create_metric;
+		glucose::TCreate_Calculated_Signal create_calculated_signal;
+		glucose::TSolve_Model_Parameters solve_model_parameters;
 	} TLibraryInfo;
 }
 
-class CLoaded_Filters : public std::vector<glucose::TFilter_Descriptor> {
+class CLoaded_Filters {
 protected:
+	std::vector<glucose::TFilter_Descriptor> mFilter_Descriptors;
+	std::vector<glucose::TMetric_Descriptor> mMetric_Descriptors;
+	std::vector<glucose::TModel_Descriptor> mModel_Descriptors;
+	std::vector<glucose::TSolver_Descriptor> mSolver_Descriptors;
+
+	template <typename TDesc_Func, typename TDesc_Item>
+	bool Load_Descriptors(std::vector<TDesc_Item> &dst, const std::unique_ptr<CDynamic_Library> &lib, const char *func_name)  {
+		bool result = false;
+		//try to load filter descriptions just once
+		TDesc_Func desc_func = reinterpret_cast<decltype(desc_func)> (lib->Resolve(func_name));
+
+		TDesc_Item *desc_begin, *desc_end;
+
+		if ((desc_func) && (desc_func(&desc_begin, &desc_end) == S_OK)) {
+			result = desc_begin != desc_end;
+			std::copy(desc_begin, desc_end, std::back_inserter(dst));
+		}
+
+		return result;
+	}
 protected:
 	std::vector<imported::TLibraryInfo> mLibraries;
 
+	template <typename TFunc>
+	bool Resolve_Func(TFunc &ptr, const std::unique_ptr<CDynamic_Library> &lib, const char* name) {
+		ptr = reinterpret_cast<TFunc> (lib->Resolve(name));
+		return ptr != nullptr;
+	}
+
 
 	template <typename functype, typename... Args>
-	HRESULT CallFunc(functype funcegetter, Args... args) const {
+	HRESULT Call_Func(functype funcegetter, Args... args) const {
 		for (auto &iter : mLibraries) {
 			auto funcptr = funcegetter(iter);
 			if (funcptr != nullptr) {
@@ -39,21 +65,27 @@ protected:
 public:	
 	void load_libraries();
 
-	HRESULT create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter) {
-		auto call_create_filter = [](const imported::TLibraryInfo &info) { return info.create_filter; }; //actually, we do offsetof & co., but in a much cleaner and in-lineable way
-		return CallFunc(call_create_filter, id, input, output, filter);
-	}
+	HRESULT create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter);
+	HRESULT create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric);
+	HRESULT create_calculated_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
+	HRESULT solve_model_parameters(const glucose::TSolver_Setup *setup);
 
-	HRESULT create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric) {
-		auto call_create_filter = [](const imported::TLibraryInfo &info) { return info.create_metric  ; }; //actually, we do offsetof & co., but in a much cleaner and in-lineable way
-		return CallFunc(call_create_filter, parameters, metric);
-	}
+	HRESULT get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end);
+	HRESULT get_metric_descriptors(glucose::TMetric_Descriptor **begin, glucose::TMetric_Descriptor **end);
+	HRESULT get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end);
+	HRESULT get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end);
 };
 
 extern CLoaded_Filters loaded_filters;
 
-#ifdef _WIN32
-	extern "C" __declspec(dllexport)  HRESULT IfaceCalling get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end);
+#ifdef _WIN32	
 	extern "C" __declspec(dllexport)  HRESULT IfaceCalling create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter);	
 	extern "C" __declspec(dllexport)  HRESULT IfaceCalling create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric);
+	extern "C" __declspec(dllexport)  HRESULT IfaceCalling create_calculated_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
+	extern "C" __declspec(dllexport)  HRESULT IfaceCalling solve_model_parameters(const glucose::TSolver_Setup *setup);
+
+	extern "C" __declspec(dllexport)  HRESULT IfaceCalling get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end);
+	extern "C" __declspec(dllexport)  HRESULT IfaceCalling get_metric_descriptors(glucose::TMetric_Descriptor **begin, glucose::TMetric_Descriptor **end);
+	extern "C" __declspec(dllexport)  HRESULT IfaceCalling get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end);
+	extern "C" __declspec(dllexport)  HRESULT IfaceCalling get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end);
 #endif

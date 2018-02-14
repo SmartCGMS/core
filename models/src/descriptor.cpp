@@ -42,7 +42,6 @@ namespace steil_rebrin {
 	const wchar_t *param_names[param_count] = { dsTau, dsAlpha, dsBeta, dsGamma};
 
 	const double lower_bound[param_count] = { -1000.0, -1000.0, -1000.0, -1000.0 };
-	const double default_values[param_count] = { 0.00576459, 1.0/ 1.02164072, 0.0, 0.0};
 	const double upper_bound[param_count] = { 1000.0, 1000.0, 1000.0, 1000.0 };
 
 	const size_t signal_count = 1;	
@@ -56,7 +55,7 @@ namespace steil_rebrin {
 		param_types,
 		param_names,
 		lower_bound,
-		default_values,
+		default_parameters,
 		upper_bound,
 		signal_count,
 		signal_ids,

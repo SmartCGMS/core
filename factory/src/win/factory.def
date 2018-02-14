@@ -1,12 +1,12 @@
 LIBRARY factory.dll
 
-
 EXPORTS
-  
-	create_filter  
-  
-	create_filter_pipe
-  
-	get_filter_descriptors
-	
+ 	create_filter   
+	create_filter_pipe  
 	create_metric
+	create_calculated_signal
+	solve_model_parameters
+	get_filter_descriptors
+	get_metric_descriptors
+	get_model_descriptors
+	get_solver_descriptors
