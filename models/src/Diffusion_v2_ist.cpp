@@ -3,7 +3,15 @@
 #include "descriptor.h"
 #include "pool.h"
 
+#include <nlopt.hpp>
+
 #undef max
+
+namespace internal {
+	double NLOpt_Objective_Function(unsigned, const double *estimated_time, double *, void *reference_time) {
+		return fabs(*(static_cast<double*>(reference_time)) - *estimated_time);
+	}
+}
 
 CDiffusion_v2_ist::CDiffusion_v2_ist(glucose::WTime_Segment segment) :CDiffusion_v2_blood(segment), mBlood(segment.Get_Signal(glucose::signal_BG)) {
 	if (refcnt::Shared_Valid_All(mBlood)) throw std::exception{};
@@ -31,7 +39,11 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Pa
 		//current value of dt = present_time + kh*(present_ist - h_back_ist)
 
 		//we give up the SIMD optimization due to unkown memory requirements
-		for (size_t i = 0; i < count; i++) {
+		for (size_t i = 0; i < count; i++) {			
+			//This for cycle could be paralelized with threads, but...
+			//	..if called by solver, then may threads are already executing this function thus making this idea pointless - just increasing the scheduling overhead
+			//	..if called just to calculate the levels, then single core is fast enough for the end user not to notice the difference
+
 			auto estimate_future_time = [times, kh, this, &parameters](const double present_time)->double {
 				const double ist_times[2] = { present_time - parameters.h, present_time };
 				double ist_levels[2];
@@ -42,10 +54,24 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Pa
 				return present_time + parameters.dt + kh*ist_levels[0];
 			};
 
-			//we need to minimize the difference between times[i] and estimate_future_time(estimated_time), whereas estimated_time we try to determine using some other algorithm
+			//we need to minimize the difference between times[i] and estimate_future_time(estimated_present_time), whereas estimated_present_time we try to determine using some other algorithm
+			//we could either try to (recursively with increasing detail) step through all the combinations, or try more sophisticated algoritm - e.g., NewUOA
+			//we chose NewUOA as the number of instruction could be approximately the same and NewUOA is more intelligent approach than brute force search, even recursive one
+
+			double minf;			
+			std::vector<double> estimated_present_time(1);
+
+			nlopt::opt opt(nlopt::LN_NEWUOA, 1); //just one double
+			opt.set_min_objective(&internal::NLOpt_Objective_Function, const_cast<double*>(&times[i]));
+			opt.set_lower_bounds(dt.element()[i] - glucose::One_Hour);
+			opt.set_upper_bounds(dt.element()[i] + glucose::One_Hour);
+			opt.set_xtol_rel(0.1*glucose::One_Second);
+			nlopt::result result = opt.optimize(estimated_present_time, minf); 
+
+			dt.element()[i] = estimated_present_time[0];
 		}
 
-		return E_NOTIMPL;	//so far, we do know how to do it
+		//by now, all dt elements should be estimated
 	}
 
 
