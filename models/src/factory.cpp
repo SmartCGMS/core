@@ -36,7 +36,7 @@ public:
 		
 	}
 
-	HRESULT Create_Metric(const GUID &calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) const {
+	HRESULT Create_Calculated_Signal(const GUID &calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) const {
 		const auto iter = id_map.find(calc_id);
 		if (iter != id_map.end())
 			return iter->second(segment, signal);
@@ -51,5 +51,5 @@ static CId_Dispatcher Id_Dispatcher;
 
 HRESULT IfaceCalling do_create_calculated_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
 	if ((calc_id ==nullptr) || (segment == nullptr)) return E_INVALIDARG;
-	return Id_Dispatcher.Create_Metric(*calc_id, segment, signal);
+	return Id_Dispatcher.Create_Calculated_Signal(*calc_id, segment, signal);
 }
