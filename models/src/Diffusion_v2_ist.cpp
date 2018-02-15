@@ -39,7 +39,7 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Pa
 		//current value of dt = present_time + kh*(present_ist - h_back_ist)
 
 		//we give up the SIMD optimization due to unkown memory requirements
-		for (size_t i = 0; i < count; i++) {			
+		for (size_t i = 0; i < count; i++) {
 			//This for cycle could be paralelized with threads, but...
 			//	..if called by solver, then may threads are already executing this function thus making this idea pointless - just increasing the scheduling overhead
 			//	..if called just to calculate the levels, then single core is fast enough for the end user not to notice the difference
@@ -48,10 +48,9 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Pa
 				const double ist_times[2] = { present_time - parameters.h, present_time };
 				double ist_levels[2];
 				if (mIst->Get_Continuous_Levels(nullptr, ist_times, ist_levels, 2, glucose::apxNo_Derivation) != S_OK) return std::numeric_limits<double>::quiet_NaN();
-				ist_levels[0] = ist_levels[1] - ist_levels[0];	//calculate the difference to spare one isnan test
-				if (isnan(ist_levels[0])) return std::numeric_limits<double>::quiet_NaN();
+				if (isnan(ist_levels[0]) || isnan(ist_levels[1])) return std::numeric_limits<double>::quiet_NaN();
 
-				return present_time + parameters.dt + kh*ist_levels[0];
+				return present_time + parameters.dt + kh*ist_levels[1]*(ist_levels[1] - ist_levels[0]);
 			};
 
 			//we need to minimize the difference between times[i] and estimate_future_time(estimated_present_time), whereas estimated_present_time we try to determine using some other algorithm
