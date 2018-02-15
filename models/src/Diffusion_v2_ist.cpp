@@ -23,6 +23,28 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Pa
 	dt.element() = converted_times - parameters.dt;
 	if ((parameters.k != 0.0) && (parameters.h != 0.0)) {
 		//here comes the tricky part that the future distances will vary in the dt vector
+
+		const double kh = parameters.k / parameters.h;
+		
+		//future_time = present_time + delta + kh*(present_ist - h_back_ist)
+		//future_time, dt and kh are known => we need to solve this
+		//current value of dt = present_time + kh*(present_ist - h_back_ist)
+
+		//we give up the SIMD optimization due to unkown memory requirements
+		for (size_t i = 0; i < count; i++) {
+			auto estimate_future_time = [times, kh, this, &parameters](const double present_time)->double {
+				const double ist_times[2] = { present_time - parameters.h, present_time };
+				double ist_levels[2];
+				if (mIst->Get_Continuous_Levels(nullptr, ist_times, ist_levels, 2, glucose::apxNo_Derivation) != S_OK) return std::numeric_limits<double>::quiet_NaN();
+				ist_levels[0] = ist_levels[1] - ist_levels[0];	//calculate the difference to spare one isnan test
+				if (isnan(ist_levels[0])) return std::numeric_limits<double>::quiet_NaN();
+
+				return present_time + parameters.dt + kh*ist_levels[0];
+			};
+
+			//we need to minimize the difference between times[i] and estimate_future_time(estimated_time), whereas estimated_time we try to determine using some other algorithm
+		}
+
 		return E_NOTIMPL;	//so far, we do know how to do it
 	}
 
