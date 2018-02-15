@@ -7,12 +7,6 @@
 
 #undef max
 
-namespace internal {
-	double NLOpt_Objective_Function(unsigned, const double *estimated_time, double *, void *reference_time) {
-		return fabs(*(static_cast<double*>(reference_time)) - *estimated_time);
-	}
-}
-
 CDiffusion_v2_ist::CDiffusion_v2_ist(glucose::WTime_Segment segment) :CDiffusion_v2_blood(segment), mBlood(segment.Get_Signal(glucose::signal_BG)) {
 	if (refcnt::Shared_Valid_All(mBlood)) throw std::exception{};
 }
@@ -61,7 +55,9 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Pa
 			std::vector<double> estimated_present_time(1);
 
 			nlopt::opt opt(nlopt::LN_NEWUOA, 1); //just one double
-			opt.set_min_objective(&internal::NLOpt_Objective_Function, const_cast<double*>(&times[i]));
+			opt.set_min_objective([](unsigned, const double *estimated_time, double *, void *reference_time) {
+				                     return fabs(*(static_cast<double*>(reference_time)) - *estimated_time); }, 
+				                  const_cast<double*>(&times[i]));		//i.e. the reference_time
 			opt.set_lower_bounds(dt.element()[i] - glucose::One_Hour);
 			opt.set_upper_bounds(dt.element()[i] + glucose::One_Hour);
 			opt.set_xtol_rel(0.1*glucose::One_Second);
