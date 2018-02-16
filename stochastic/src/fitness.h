@@ -109,12 +109,12 @@ public:
 		metric->Reset();
 
 		//let's pick a memory block for calculated
-		CPooled_Buffer<std::vector<double>> tmp_levels{ mTemporal_Levels, mMax_Levels_Per_Segment };
+		CPooled_Buffer<std::vector<double>> tmp_levels = mTemporal_Levels.pop( mMax_Levels_Per_Segment );
 
 		for (auto &info : mSegment_Info) {			
-			if (info.signal->Get_Continuous_Levels(&solution, info.reference_time.data(), tmp_levels.element.data(), info.reference_time.size(), glucose::apxNo_Derivation) == S_OK) {
+			if (info.signal->Get_Continuous_Levels(&solution, info.reference_time.data(), tmp_levels.element().data(), info.reference_time.size(), glucose::apxNo_Derivation) == S_OK) {
 				//levels got, calculate the metric
-				metric->Accumulate(info.reference_time.data(), info.reference_level.data(), tmp_levels.element.data(), info.reference_time.size());
+				metric->Accumulate(info.reference_time.data(), info.reference_level.data(), tmp_levels.element().data(), info.reference_time.size());
 			}
 		}
 
