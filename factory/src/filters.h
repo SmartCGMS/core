@@ -53,14 +53,19 @@ protected:
 
 	template <typename functype, typename... Args>
 	HRESULT Call_Func(functype funcegetter, Args... args) const {
+		HRESULT rc = E_NOTIMPL;	//not found
+
 		for (auto &iter : mLibraries) {
 			auto funcptr = funcegetter(iter);
 			if (funcptr != nullptr) {
-				if ((funcptr)(args...) == S_OK)
-					return S_OK;
+				HRESULT local_rc = ((funcptr)(args...);
+				if (local_rc == S_OK) return S_OK;
+					//else carries remembers the failure code, we so far keep trying to find another library
+					//for which the call may succeed, thus eventually seting rc to S_OK
+				if (local_rc != E_NOTIMPL) rc = local_rc;	//no need to replace possibly meaningful rc with E_NOTIMPL
 			}
 		}
-		return E_NOTIMPL;
+		return rc;
 	}
 public:	
 	void load_libraries();
