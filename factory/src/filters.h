@@ -60,7 +60,7 @@ protected:
 			if (funcptr != nullptr) {
 				HRESULT local_rc = ((funcptr)(args...);
 				if (local_rc == S_OK) return S_OK;
-					//else carries remembers the failure code, we so far keep trying to find another library
+					//else rc remembers the failure code, we so far keep trying to find another library
 					//for which the call may succeed, thus eventually seting rc to S_OK
 				if (local_rc != E_NOTIMPL) rc = local_rc;	//no need to replace possibly meaningful rc with E_NOTIMPL
 			}
