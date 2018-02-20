@@ -55,7 +55,7 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Pa
 			double minf;			
 			std::vector<double> estimated_present_time(1);
 
-			nlopt::opt opt(nlopt::LN_NEWUOA, 1); //just one double
+			nlopt::opt opt(nlopt::LN_BOBYQA, 1); //just one double - NewUOA requires at least 2 parameters, may be Simplex/Nelder-Mead would do the job as well?
 			opt.set_min_objective([](unsigned, const double *estimated_time, double *, void *reference_time) {
 				                     return fabs(*(static_cast<double*>(reference_time)) - *estimated_time); }, 
 				                  const_cast<double*>(&times[i]));		//i.e. the reference_time
