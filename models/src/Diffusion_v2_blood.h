@@ -17,7 +17,7 @@ public:
 
 	//glucose::ISignal iface
 	virtual HRESULT IfaceCalling Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
-		const double *times, const double *levels, const size_t count, const size_t derivation_order) const;
+		const double* times, double* const levels, const size_t count, const size_t derivation_order) const;
 	virtual HRESULT IfaceCalling Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const final;
 };
 

@@ -123,7 +123,7 @@ public:
 
 	HRESULT Solve_Model_Parameters(TShared_Solver_Setup &setup) {
 		HRESULT rc;
-		const auto iter = mSignal_Id_map.find(setup.solver_id);
+		const auto iter = mSignal_Id_map.find(setup.signal_id);
 		if (iter != mSignal_Id_map.end()) rc = iter->second->Solve_Model_Parameters(setup);
 			else rc = mGeneric_Dispatcher.Solve_Model_Parameters(setup);
 		

@@ -4,14 +4,14 @@
 #include "pool.h"
 
 
-CSteil_Rebrin_blood::CSteil_Rebrin_blood(glucose::WTime_Segment segment) : mIst(segment.Get_Signal(glucose::signal_IG)), mCalibration(segment.Get_Signal(glucose::signal_Calibration)) {
-	if (refcnt::Shared_Valid_All(mIst, mCalibration)) throw std::exception{};
+CSteil_Rebrin_blood::CSteil_Rebrin_blood(glucose::WTime_Segment segment) : CCommon_Calculation(segment, glucose::signal_BG), mIst(segment.Get_Signal(glucose::signal_IG)), mCalibration(segment.Get_Signal(glucose::signal_Calibration)) {
+	if (!refcnt::Shared_Valid_All(mIst, mCalibration)) throw std::exception{};
 }
 
 
 
 HRESULT IfaceCalling CSteil_Rebrin_blood::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
-	const double *times, const double *levels, const size_t count, const size_t derivation_order) const {
+	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 
 	
 	steil_rebrin::TParameters &parameters = Convert_Parameters<steil_rebrin::TParameters>(params, steil_rebrin::default_parameters);
@@ -48,7 +48,7 @@ HRESULT IfaceCalling CSteil_Rebrin_blood::Get_Continuous_Levels(glucose::IModel_
 
 
 	//we have all the signals, let's calculate blood
-	Eigen::Map<TVector1D> converted_levels{ const_cast<double*>(levels), Eigen::NoChange, static_cast<Eigen::Index>(count) };
+	Eigen::Map<TVector1D> converted_levels{ Map_Double_To_Eigen(levels, count) };
 	converted_levels = (parameters.tau*derived_ist.element() + ist.element() - (parameters.beta + parameters.tau*parameters.gamma )- parameters.gamma*calibration_offsets.element()) / parameters.alpha;
 	
 	return S_OK;

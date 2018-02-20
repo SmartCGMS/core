@@ -7,18 +7,19 @@
 
 #undef max
 
-CDiffusion_v2_ist::CDiffusion_v2_ist(glucose::WTime_Segment segment) :CDiffusion_v2_blood(segment), mBlood(segment.Get_Signal(glucose::signal_BG)) {
-	if (refcnt::Shared_Valid_All(mBlood)) throw std::exception{};
+CDiffusion_v2_ist::CDiffusion_v2_ist(glucose::WTime_Segment segment) : CDiffusion_v2_blood(segment), mBlood(segment.Get_Signal(glucose::signal_BG)) {
+	mReference_Signal = segment.Get_Signal(glucose::signal_IG);
+	if (!refcnt::Shared_Valid_All(mBlood, mReference_Signal)) throw std::exception{};
 }
 
 
 HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
-	const double *times, const double *levels, const size_t count, const size_t derivation_order) const {
-
+	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
+	 
 	diffusion_v2_model::TParameters &parameters = Convert_Parameters<diffusion_v2_model::TParameters>(params, diffusion_v2_model::default_parameters);
 
-	Eigen::Map<TVector1D> converted_times{ const_cast<double*>(times), Eigen::NoChange, static_cast<Eigen::Index>(count) };
-	Eigen::Map<TVector1D> converted_levels{ const_cast<double*>(levels), Eigen::NoChange, static_cast<Eigen::Index>(count) };
+	Eigen::Map<TVector1D> converted_times{ Map_Double_To_Eigen(times, count) };
+	Eigen::Map<TVector1D> converted_levels{ Map_Double_To_Eigen(levels, count) };
 	CPooled_Buffer<TVector1D> dt = Vector1D_Pool.pop( count );
 
 	//into the dt vector, we put times to get blood and ist to calculate future ist aka levels at the future times
