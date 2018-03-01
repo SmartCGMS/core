@@ -24,7 +24,7 @@ HRESULT IfaceCalling CCommon_Metric::Accumulate(const double *times, const doubl
 	//the following 3 fors are inteded for autovectorization
 
 	for (size_t i = 0; i < count; i++)
-		diff[i] = fabs(expected - calculated);
+		diff[i] = fabs(expected[i] - calculated[i]);
 
 	if (mParameters.use_relative_error)
 		for (size_t i = 0; i < count; i++)
