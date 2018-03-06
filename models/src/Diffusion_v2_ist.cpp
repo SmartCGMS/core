@@ -1,7 +1,6 @@
 #include "Diffusion_v2_ist.h"
 
 #include "descriptor.h"
-#include "pool.h"
 
 #include <nlopt.hpp>
 
@@ -18,9 +17,9 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Pa
 	 
 	diffusion_v2_model::TParameters &parameters = Convert_Parameters<diffusion_v2_model::TParameters>(params, diffusion_v2_model::default_parameters);
 
-	Eigen::Map<TVector1D> converted_times{ Map_Double_To_Eigen(times, count) };
-	Eigen::Map<TVector1D> converted_levels{ Map_Double_To_Eigen(levels, count) };
-	CPooled_Buffer<TVector1D> dt = Vector1D_Pool.pop( count );
+	Eigen::Map<TVector1D> converted_times{ Map_Double_To_Eigen<TVector1D>(times, count) };
+	Eigen::Map<TVector1D> converted_levels{ Map_Double_To_Eigen<TVector1D>(levels, count) };
+	CPooled_Buffer<TVector1D> dt = mVector1D_Pool.pop( count );
 
 	//into the dt vector, we put times to get blood and ist to calculate future ist aka levels at the future times
 	dt.element() = converted_times - parameters.dt;
@@ -71,11 +70,11 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Pa
 	}
 
 
-	CPooled_Buffer<TVector1D> present_blood = Vector1D_Pool.pop(count );
+	CPooled_Buffer<TVector1D> present_blood = mVector1D_Pool.pop(count );
 	HRESULT rc = mBlood->Get_Continuous_Levels(nullptr, dt.element().data(), present_blood.element().data(), count, glucose::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 
-	CPooled_Buffer<TVector1D> present_ist = Vector1D_Pool.pop ( count );
+	CPooled_Buffer<TVector1D> present_ist = mVector1D_Pool.pop ( count );
 	rc = mIst->Get_Continuous_Levels(nullptr, dt.element().data(), present_ist.element().data(), count, glucose::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 

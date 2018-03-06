@@ -2,8 +2,6 @@
 
 #include "descriptor.h"
 
-#include "pool.h"
-
 #undef max
 
 CDiffusion_v2_blood::CDiffusion_v2_blood(glucose::WTime_Segment segment) : CCommon_Calculation(segment, glucose::signal_BG), mIst(segment.Get_Signal(glucose::signal_IG)) {
@@ -16,15 +14,15 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 
 	diffusion_v2_model::TParameters &parameters = Convert_Parameters<diffusion_v2_model::TParameters>(params, diffusion_v2_model::default_parameters);
 	
-	CPooled_Buffer<TVector1D> present_ist = Vector1D_Pool.pop( count );
+	CPooled_Buffer<TVector1D> present_ist = mVector1D_Pool.pop( count );
 	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, times, present_ist.element().data(), count, glucose::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 
 
-	CPooled_Buffer<TVector1D> future_ist = Vector1D_Pool.pop( count );
-	CPooled_Buffer<TVector1D> dt = Vector1D_Pool.pop( count );
-	Eigen::Map<TVector1D> converted_times{ Map_Double_To_Eigen(times, count) };
-	Eigen::Map<TVector1D> converted_levels{ Map_Double_To_Eigen(levels, count) };
+	CPooled_Buffer<TVector1D> future_ist = mVector1D_Pool.pop( count );
+	CPooled_Buffer<TVector1D> dt = mVector1D_Pool.pop( count );
+	Eigen::Map<TVector1D> converted_times{ Map_Double_To_Eigen<TVector1D>(times, count) };
+	Eigen::Map<TVector1D> converted_levels{ Map_Double_To_Eigen<TVector1D>(levels, count) };
 
 
 	

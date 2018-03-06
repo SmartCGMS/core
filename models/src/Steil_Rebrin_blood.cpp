@@ -1,8 +1,6 @@
 #include "Steil_Rebrin_blood.h"
 
 #include "descriptor.h"
-#include "pool.h"
-
 
 CSteil_Rebrin_blood::CSteil_Rebrin_blood(glucose::WTime_Segment segment) : CCommon_Calculation(segment, glucose::signal_BG), mIst(segment.Get_Signal(glucose::signal_IG)), mCalibration(segment.Get_Signal(glucose::signal_Calibration)) {
 	if (!refcnt::Shared_Valid_All(mIst, mCalibration)) throw std::exception{};
@@ -18,15 +16,15 @@ HRESULT IfaceCalling CSteil_Rebrin_blood::Get_Continuous_Levels(glucose::IModel_
 	if (parameters.alpha == 0.0) return E_INVALIDARG;	//this parameter cannot be zero
 		
 
-	CPooled_Buffer<TVector1D> ist = Vector1D_Pool.pop( count );
+	CPooled_Buffer<TVector1D> ist = mVector1D_Pool.pop( count );
 	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, times, ist.element().data(), count, glucose::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 
-	CPooled_Buffer<TVector1D> derived_ist = Vector1D_Pool.pop( count );
+	CPooled_Buffer<TVector1D> derived_ist = mVector1D_Pool.pop( count );
 	rc = mIst->Get_Continuous_Levels(nullptr, times, derived_ist.element().data(), count, glucose::apxFirst_Order_Derivation);
 	if (rc != S_OK) return rc;
 
-	CPooled_Buffer<TVector1D> calibration_offsets = Vector1D_Pool.pop( count );
+	CPooled_Buffer<TVector1D> calibration_offsets = mVector1D_Pool.pop( count );
 	//we need to go through the calibration vector and convert it to the time offset of the first calibrations
 	//and for that we need to consider the very first BG measurement as calibration
 	glucose::TBounds bounds;
@@ -48,7 +46,7 @@ HRESULT IfaceCalling CSteil_Rebrin_blood::Get_Continuous_Levels(glucose::IModel_
 
 
 	//we have all the signals, let's calculate blood
-	Eigen::Map<TVector1D> converted_levels{ Map_Double_To_Eigen(levels, count) };
+	Eigen::Map<TVector1D> converted_levels{ Map_Double_To_Eigen<TVector1D>(levels, count) };
 	converted_levels = (parameters.tau*derived_ist.element() + ist.element() - (parameters.beta + parameters.tau*parameters.gamma )- parameters.gamma*calibration_offsets.element()) / parameters.alpha;
 	
 	return S_OK;
