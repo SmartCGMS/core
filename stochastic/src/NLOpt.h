@@ -136,12 +136,6 @@ public:
 		nlopt::opt opt(mTop_Algorithm, static_cast<unsigned int>(mInitial_Top_Solution.cols()));
 
 
-		
-		progress.max_progress = opt.get_maxeval();
-		if (progress.max_progress == 0) progress.max_progress = 100;
-		progress.current_progress = 0;
-		progress.best_metric = std::numeric_limits<decltype(progress.best_metric)>::max();
-
 		const std::vector<TBottom_Solution> initial_bottom_solution = { mInitial_Bottom_Solution };
 		auto init_solution = mInitial_Top_Solution.Compose(mInitial_Bottom_Solution);
 		auto metric_calculator = mMetric.Clone();					
@@ -169,6 +163,12 @@ public:
 		//opt.set_xtol_rel(1e-4);
 		opt.set_xtol_rel(1e-10);
 		if (max_eval>0) opt.set_maxeval(max_eval);
+
+
+		progress.max_progress = opt.get_maxeval();
+		if (progress.max_progress == 0) progress.max_progress = 100;
+		progress.current_progress = 0;
+		progress.best_metric = std::numeric_limits<decltype(progress.best_metric)>::max();
 
 		std::vector<double> x = Top_Solution_As_Vector(mInitial_Top_Solution);
 		double minf = std::numeric_limits<double>::max();
