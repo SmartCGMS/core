@@ -2,6 +2,7 @@
 
 #include "../../../common/iface/SolverIface.h"
 #include "../../../common/iface/UIIface.h"
+#include "../../../common/iface/ApproxIface.h"
 #include "../../../common/rtl/Dynamic_Library.h"
 
 #include <vector>
@@ -15,7 +16,9 @@ namespace imported {
 		glucose::TCreate_Filter create_filter;
 		glucose::TCreate_Metric create_metric;
 		glucose::TCreate_Calculated_Signal create_calculated_signal;
+		glucose::TCreate_Measured_Signal create_measured_signal;
 		glucose::TSolve_Model_Parameters solve_model_parameters;
+		glucose::TCreate_Approximator create_approximator;
 	} TLibraryInfo;
 }
 
@@ -25,6 +28,7 @@ protected:
 	std::vector<glucose::TMetric_Descriptor> mMetric_Descriptors;
 	std::vector<glucose::TModel_Descriptor> mModel_Descriptors;
 	std::vector<glucose::TSolver_Descriptor> mSolver_Descriptors;
+	std::vector<glucose::TApprox_Descriptor> mApprox_Descriptors;
 
 	template <typename TDesc_Func, typename TDesc_Item>
 	bool Load_Descriptors(std::vector<TDesc_Item> &dst, const std::unique_ptr<CDynamic_Library> &lib, const char *func_name)  {
@@ -58,7 +62,7 @@ protected:
 		for (auto &iter : mLibraries) {
 			auto funcptr = funcegetter(iter);
 			if (funcptr != nullptr) {
-				HRESULT local_rc = ((funcptr)(args...);
+				HRESULT local_rc = (funcptr)(args...);
 				if (local_rc == S_OK) return S_OK;
 					//else rc remembers the failure code, we so far keep trying to find another library
 					//for which the call may succeed, thus eventually seting rc to S_OK
@@ -73,12 +77,15 @@ public:
 	HRESULT create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter);
 	HRESULT create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric);
 	HRESULT create_calculated_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
+	HRESULT create_measured_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
 	HRESULT solve_model_parameters(const glucose::TSolver_Setup *setup);
+	HRESULT create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApproximator **approx, glucose::IApprox_Parameters_Vector* configuration);
 
 	HRESULT get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end);
 	HRESULT get_metric_descriptors(glucose::TMetric_Descriptor **begin, glucose::TMetric_Descriptor **end);
 	HRESULT get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end);
 	HRESULT get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end);
+	HRESULT get_approx_descriptors(glucose::TApprox_Descriptor **begin, glucose::TApprox_Descriptor **end);
 };
 
 extern CLoaded_Filters loaded_filters;
@@ -87,10 +94,13 @@ extern CLoaded_Filters loaded_filters;
 	extern "C" __declspec(dllexport)  HRESULT IfaceCalling create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter);	
 	extern "C" __declspec(dllexport)  HRESULT IfaceCalling create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric);
 	extern "C" __declspec(dllexport)  HRESULT IfaceCalling create_calculated_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
+	extern "C" __declspec(dllexport)  HRESULT IfaceCalling create_measured_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
 	extern "C" __declspec(dllexport)  HRESULT IfaceCalling solve_model_parameters(const glucose::TSolver_Setup *setup);
+	extern "C" __declspec(dllexport)  HRESULT IfaceCalling create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApproximator **approx, glucose::IApprox_Parameters_Vector* configuration);
 
 	extern "C" __declspec(dllexport)  HRESULT IfaceCalling get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end);
 	extern "C" __declspec(dllexport)  HRESULT IfaceCalling get_metric_descriptors(glucose::TMetric_Descriptor **begin, glucose::TMetric_Descriptor **end);
 	extern "C" __declspec(dllexport)  HRESULT IfaceCalling get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end);
 	extern "C" __declspec(dllexport)  HRESULT IfaceCalling get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end);
+	extern "C" __declspec(dllexport)  HRESULT IfaceCalling get_approx_descriptors(glucose::TApprox_Descriptor **begin, glucose::TApprox_Descriptor **end);
 #endif

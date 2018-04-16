@@ -1,0 +1,5 @@
+LIBRARY measured.dll
+
+
+EXPORTS
+	do_create_measured_signal

@@ -28,7 +28,7 @@ protected:
 
 		double *begin, *end;				
 		if (parameters->get(&begin, &end) == S_OK) 
-			solution.resize(Eigen::NoChange, std::distance(begin, end));
+			solution.resize(solution.rows(), std::distance(begin, end));
 
 			for (auto i = 0; i<solution.cols(); i++) {
 				solution[i] = *begin; 

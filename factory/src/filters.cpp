@@ -2,21 +2,22 @@
 
 #include "../../../common/rtl/FilesystemLib.h"
 #include "../../../common/rtl/descriptor_utils.h"
+#include "../../../common/rtl/winapi_mapping.h"
+#include "../../../common/lang/dstrings.h"
 
 namespace imported {
 	const char* rsGet_Filter_Descriptors = "do_get_filter_descriptors";
 	const char* rsGet_Metric_Descriptors = "do_get_metric_descriptors";
 	const char* rsGet_Model_Descriptors = "do_get_model_descriptors";
-	const char* rsGet_Solvers_Descriptors = "do_get_solvers_descriptors";
+	const char* rsGet_Solvers_Descriptors = "do_get_solver_descriptors";
+	const char* rsGet_Approx_Descriptors = "do_get_approximator_descriptors";
 	const char* rsDo_Create_Filter = "do_create_filter";
 	const char* rsDo_Create_Metric = "do_create_metric";
 	const char* rsDo_Create_Calculated_Signal = "do_create_calculated_signal";
+	const char* rsDo_Create_Measured_Signal = "do_create_measured_signal";
 	const char* rsDo_Solve_Model_Parameters = "do_solve_model_parameters";
+	const char* rsDo_Create_Approximator = "do_create_approximator";
 }
-
-const wchar_t* rsSolversDir = L"filters";
-
-extern "C" char __ImageBase;
 
 
 CLoaded_Filters loaded_filters;
@@ -39,6 +40,10 @@ HRESULT get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSo
 	return loaded_filters.get_solver_descriptors(begin, end);
 }
 
+HRESULT get_approx_descriptors(glucose::TApprox_Descriptor **begin, glucose::TApprox_Descriptor **end) {
+	return loaded_filters.get_approx_descriptors(begin, end);
+}
+
 HRESULT IfaceCalling create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter) {
 	return loaded_filters.create_filter(id, input, output, filter);
 }
@@ -51,12 +56,21 @@ HRESULT IfaceCalling create_calculated_signal(const GUID *calc_id, glucose::ITim
 	return loaded_filters.create_calculated_signal(calc_id, segment, signal);
 }
 
+HRESULT IfaceCalling create_measured_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
+	return loaded_filters.create_measured_signal(calc_id, segment, signal);
+}
+
 HRESULT IfaceCalling solve_model_parameters(const glucose::TSolver_Setup *setup) {
 	return loaded_filters.solve_model_parameters(setup);
 }
 
+HRESULT IfaceCalling create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApproximator **approx, glucose::IApprox_Parameters_Vector* configuration) {
+	return loaded_filters.create_approximator(approx_id, signal, approx, configuration);
+}
+
 void CLoaded_Filters::load_libraries() {
-	const auto allFiles = List_Directory(Path_Append(Get_Application_Dir(), rsSolversDir));
+	auto appdir = Get_Application_Dir();
+	const auto allFiles = List_Directory(Path_Append(appdir, rsSolversDir));
 
 	for (const auto& filepath : allFiles) {
 		if (CDynamic_Library::Is_Library(filepath)) {				//just checks the extension
@@ -69,20 +83,20 @@ void CLoaded_Filters::load_libraries() {
 				bool lib_used = Resolve_Func<glucose::TCreate_Filter>(lib.create_filter, lib.library, imported::rsDo_Create_Filter);
 				lib_used |= Resolve_Func<glucose::TCreate_Metric>(lib.create_metric, lib.library, imported::rsDo_Create_Metric);
 				lib_used |= Resolve_Func<glucose::TCreate_Calculated_Signal>(lib.create_calculated_signal, lib.library, imported::rsDo_Create_Calculated_Signal);
-				lib_used |= Resolve_Func<glucose::TSolve_Model_Parameters>(lib.solve_model_parameters, lib.library, imported::rsDo_Solve_Model_Parameters);								
+				lib_used |= Resolve_Func<glucose::TCreate_Measured_Signal>(lib.create_measured_signal, lib.library, imported::rsDo_Create_Measured_Signal);
+				lib_used |= Resolve_Func<glucose::TSolve_Model_Parameters>(lib.solve_model_parameters, lib.library, imported::rsDo_Solve_Model_Parameters);
+				lib_used |= Resolve_Func<glucose::TCreate_Approximator>(lib.create_approximator, lib.library, imported::rsDo_Create_Approximator);
 
 				lib_used |= Load_Descriptors<glucose::TGet_Filter_Descriptors, glucose::TFilter_Descriptor>(mFilter_Descriptors, lib.library, imported::rsGet_Filter_Descriptors);
 				lib_used |= Load_Descriptors<glucose::TGet_Metric_Descriptors, glucose::TMetric_Descriptor>(mMetric_Descriptors, lib.library, imported::rsGet_Metric_Descriptors);
 				lib_used |= Load_Descriptors<glucose::TGet_Model_Descriptors, glucose::TModel_Descriptor>(mModel_Descriptors, lib.library, imported::rsGet_Model_Descriptors);
 				lib_used |= Load_Descriptors<glucose::TGet_Solver_Descriptors, glucose::TSolver_Descriptor>(mSolver_Descriptors, lib.library, imported::rsGet_Solvers_Descriptors);
+				lib_used |= Load_Descriptors<glucose::TGet_Approx_Descriptors, glucose::TApprox_Descriptor>(mApprox_Descriptors, lib.library, imported::rsGet_Approx_Descriptors);
 
-		
-			
 				if (lib_used)
 					mLibraries.push_back(std::move(lib));
 				else
 					lib.library->Unload();
-
 			}
 		}
 	}
@@ -101,13 +115,23 @@ HRESULT CLoaded_Filters::create_metric(const glucose::TMetric_Parameters *parame
 }
 
 HRESULT CLoaded_Filters::create_calculated_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
-	auto call_create_filter = [](const imported::TLibraryInfo &info) { return info.create_calculated_signal; };
-	return Call_Func(call_create_filter, calc_id, segment, signal);
+	auto call_create_signal = [](const imported::TLibraryInfo &info) { return info.create_calculated_signal; };
+	return Call_Func(call_create_signal, calc_id, segment, signal);
+}
+
+HRESULT CLoaded_Filters::create_measured_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
+	auto call_create_signal = [](const imported::TLibraryInfo &info) { return info.create_measured_signal; };
+	return Call_Func(call_create_signal, calc_id, segment, signal);
 }
 
 HRESULT CLoaded_Filters::solve_model_parameters(const glucose::TSolver_Setup *setup) {
 	auto call_solve_filter = [](const imported::TLibraryInfo &info) { return info.solve_model_parameters; }; 
 	return Call_Func(call_solve_filter, setup);
+}
+
+HRESULT CLoaded_Filters::create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApproximator **approx, glucose::IApprox_Parameters_Vector* configuration) {
+	auto call_create_approx = [](const imported::TLibraryInfo &info) { return info.create_approximator; };
+	return Call_Func(call_create_approx, approx_id, signal, approx, configuration);
 }
 
 HRESULT IfaceCalling CLoaded_Filters::get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
@@ -127,3 +151,6 @@ HRESULT IfaceCalling CLoaded_Filters::get_solver_descriptors(glucose::TSolver_De
 	return do_get_descriptors<glucose::TSolver_Descriptor>(mSolver_Descriptors, begin, end);
 }
 
+HRESULT IfaceCalling CLoaded_Filters::get_approx_descriptors(glucose::TApprox_Descriptor **begin, glucose::TApprox_Descriptor **end) {
+	return do_get_descriptors<glucose::TApprox_Descriptor>(mApprox_Descriptors, begin, end);
+}

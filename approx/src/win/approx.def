@@ -1,0 +1,6 @@
+LIBRARY approx.dll
+
+
+EXPORTS
+	do_get_approximator_descriptors
+	do_create_approximator
