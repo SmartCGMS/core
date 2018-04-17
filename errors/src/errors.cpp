@@ -63,7 +63,7 @@ void CErrors_Filter::Run_Main()
 			errEvt.event_code = glucose::NDevice_Event_Code::Information;
 			errEvt.device_time = Unix_Time_To_Rat_Time(time(nullptr));
 			errEvt.info = refcnt::WString_To_WChar_Container(rsInfo_Error_Metrics_Ready);
-			errEvt.logical_time = 0;
+			//errEvt.logical_time = 0;
 			errEvt.signal_id = { 0 };
 			errEvt.device_id = { 0 };
 

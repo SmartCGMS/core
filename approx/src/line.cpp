@@ -50,7 +50,7 @@ HRESULT IfaceCalling CLine_Approximator::GetLevels(const double* times, double* 
 	for (size_t outIter = 0; outIter < count; outIter++)
 	{
 		// find first feasible index for approximation
-		while (i < mSlopes.size() && times[outIter] > mInputTimes[i + 1])
+		while ((i < static_cast<size_t>(mSlopes.size())) && (times[outIter] > mInputTimes[i + 1]))
 			i++;
 
 		// if the requested time is out of bounds, use constant "extrapolation" for now (constant level, zero derivation)

@@ -6,6 +6,27 @@
 
 #undef max
 
+struct TIst_Estimate_Data {
+	glucose::SSignal ist;
+	const double reference_present_time;
+	const double kh, h, dt;
+	const double *times;
+};
+
+
+double present_time_objective(unsigned, const double *present_time, double *, void *estimation_data_ptr) {
+	const TIst_Estimate_Data &estimation_data = *static_cast<TIst_Estimate_Data*>(estimation_data_ptr);
+
+	const double ist_times[2] = { *present_time - estimation_data.h, *present_time };
+	double ist_levels[2];
+	if (estimation_data.ist->Get_Continuous_Levels(nullptr, ist_times, ist_levels, 2, glucose::apxNo_Derivation) != S_OK) return std::numeric_limits<double>::max();
+	if (isnan(ist_levels[0]) || isnan(ist_levels[1])) return std::numeric_limits<double>::max();
+
+	double estimated_present_time = *present_time + estimation_data.dt + estimation_data.kh * ist_levels[1] * (ist_levels[1] - ist_levels[0]);
+
+	return fabs(estimated_present_time - estimation_data.reference_present_time);
+};
+
 CDiffusion_v2_ist::CDiffusion_v2_ist(glucose::WTime_Segment segment) : CDiffusion_v2_blood(segment), mBlood(segment.Get_Signal(glucose::signal_BG)) {
 	mReference_Signal = segment.Get_Signal(glucose::signal_IG);
 	if (!refcnt::Shared_Valid_All(mBlood, mReference_Signal)) throw std::exception{};
@@ -38,26 +59,17 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Pa
 			//	..if called by solver, then may threads are already executing this function thus making this idea pointless - just increasing the scheduling overhead
 			//	..if called just to calculate the levels, then single core is fast enough for the end user not to notice the difference
 
-			auto estimate_future_time = [times, kh, this, &parameters](const double present_time)->double {
-				const double ist_times[2] = { present_time - parameters.h, present_time };
-				double ist_levels[2];
-				if (mIst->Get_Continuous_Levels(nullptr, ist_times, ist_levels, 2, glucose::apxNo_Derivation) != S_OK) return std::numeric_limits<double>::quiet_NaN();
-				if (isnan(ist_levels[0]) || isnan(ist_levels[1])) return std::numeric_limits<double>::quiet_NaN();
-
-				return present_time + parameters.dt + kh*ist_levels[1]*(ist_levels[1] - ist_levels[0]);
-			};
-
 			//we need to minimize the difference between times[i] and estimate_future_time(estimated_present_time), whereas estimated_present_time we try to determine using some other algorithm
 			//we could either try to (recursively with increasing detail) step through all the combinations, or try more sophisticated algoritm - e.g., NewUOA
 			//we chose NewUOA as the number of instruction could be approximately the same and NewUOA is more intelligent approach than brute force search, even recursive one
 
 			double minf;			
 			std::vector<double> estimated_present_time(1);
+			TIst_Estimate_Data estimatation_data{ mIst, times[i], kh, parameters.h, parameters.dt, times };
 
 			nlopt::opt opt(nlopt::LN_BOBYQA, 1); //just one double - NewUOA requires at least 2 parameters, may be Simplex/Nelder-Mead would do the job as well?
-			opt.set_min_objective([](unsigned, const double *estimated_time, double *, void *reference_time) {
-				                     return fabs(*(static_cast<double*>(reference_time)) - *estimated_time); }, 
-				                  const_cast<double*>(&times[i]));		//i.e. the reference_time
+			opt.set_min_objective(present_time_objective, &estimatation_data);
+
 			opt.set_lower_bounds(dt.element()[i] - glucose::One_Hour);
 			opt.set_upper_bounds(dt.element()[i] + glucose::One_Hour);
 			opt.set_xtol_rel(0.1*glucose::One_Second);

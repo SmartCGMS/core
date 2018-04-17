@@ -37,7 +37,7 @@ void CCalculate_Filter::Run_Main()
 						calcEvt.device_time = evt.device_time;
 						calcEvt.event_code = glucose::NDevice_Event_Code::Level;
 						calcEvt.level = level;
-						calcEvt.logical_time = 0; // asynchronnous events always have logical time equal to 0 at this time
+						//calcEvt.logical_time = 0; // asynchronnous events always have logical time equal to 0 at this time
 						calcEvt.device_id = GUID{ 0 }; // TODO: fix this (retain from segments?)
 						calcEvt.signal_id = mSignalId;
 						calcEvt.segment_id = evt.segment_id;
@@ -80,7 +80,7 @@ void CCalculate_Filter::Run_Main()
 			if (hldr.Calculate_All_Values(segmentToReset, times, levels))
 			{
 				calcEvt.event_code = glucose::NDevice_Event_Code::Level;
-				calcEvt.logical_time = 0; // asynchronnous events always have logical time equal to 0 at this time
+				//calcEvt.logical_time = 0; // asynchronnous events always have logical time equal to 0 at this time
 				calcEvt.device_id = GUID{ 0 }; // TODO: fix this (retain from segments?)
 				calcEvt.signal_id = mSignalId;
 				calcEvt.segment_id = segmentToReset;

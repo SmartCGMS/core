@@ -4,7 +4,8 @@ EXPORTS
  	create_filter   
 	create_filter_pipe  
 	create_metric
-	create_signal
+	create_measured_signal
+	create_calculated_signal
 	solve_model_parameters
     create_approximator
 	get_filter_descriptors

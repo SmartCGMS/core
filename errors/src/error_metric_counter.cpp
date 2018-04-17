@@ -66,7 +66,7 @@ HRESULT CError_Metric_Counter::Get_Errors(const GUID* signal_id, glucose::TError
 	if (mErrors.find(*signal_id) == mErrors.end())
 		return ENOENT;
 
-	*target = mErrors[*signal_id][(size_t)type];
+	*target = mErrors[*signal_id][static_cast<size_t>(type)];
 
 	return S_OK;
 }

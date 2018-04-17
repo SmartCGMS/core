@@ -353,7 +353,7 @@ void CDrawing_Filter::Generate_Graphs(DataMap& valueMap, double maxValue, Locali
 	drawEvt.event_code = glucose::NDevice_Event_Code::Information;
 	drawEvt.device_time = Unix_Time_To_Rat_Time(time(nullptr));
 	drawEvt.info = refcnt::WString_To_WChar_Container(rsInfo_Redraw_Complete);
-	drawEvt.logical_time = 0; // asynchronnous event time
+	//drawEvt.logical_time = 0; // asynchronnous event time
 	mOutput->send(&drawEvt);
 }
 

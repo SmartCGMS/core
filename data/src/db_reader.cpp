@@ -127,7 +127,7 @@ void CDb_Reader::Send_Segment_Marker(glucose::NDevice_Event_Code code, double de
 	evt.device_id = db_reader::Db_Reader_Device_GUID;
 	evt.device_time = device_time;
 	evt.event_code = code;
-	evt.logical_time = logical_time;
+	//evt.logical_time = logical_time;
 	evt.segment_id = segment_id;
 
 	mOutput->send(&evt);
@@ -185,7 +185,7 @@ void CDb_Reader::Run_Reader()
 
 			evt.signal_id = paramset.model_id;
 			evt.event_code = glucose::NDevice_Event_Code::Parameters_Hint;
-			evt.logical_time = logicalTime;
+			//evt.logical_time = logicalTime;
 			evt.parameters = paramset.params;
 			evt.segment_id = currentSegmentId;
 
@@ -224,7 +224,7 @@ void CDb_Reader::Run_Reader()
 				evt.signal_id = ColumnSignalMap[i];
 				evt.device_time = jdate + dateCorrection; // apply base correction
 				evt.event_code = (i == NColumn_Pos::Calibration) ? glucose::NDevice_Event_Code::Calibrated : glucose::NDevice_Event_Code::Level;
-				evt.logical_time = logicalTime;
+				//evt.logical_time = logicalTime;
 				evt.segment_id = currentSegmentId;
 
 				logicalTime++;

@@ -7,3 +7,8 @@
 /metric/msvc
 /stochastic/msvc
 /models/msvc
+/approx/msvc
+/calculate/msvc
+/consume/msvc
+/drawing/msvc
+/errors/msvc

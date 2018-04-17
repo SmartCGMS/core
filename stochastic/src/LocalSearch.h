@@ -33,7 +33,7 @@ protected:
 	TFitness &mFitness;
 	glucose::SMetric &mMetric;
 public:
-	CLocalSearch(const std::vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, glucose::SMetric &metricy) :
+	CLocalSearch(const std::vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, glucose::SMetric &metric) :
 
 		mStepping(initial_solutions), mLower_Bound(lower_bound), mUpper_Bound(upper_bound), mFitness(fitness), mMetric(metric) {
 		//keep the initial solutions as first as the Solve relies on it
@@ -58,26 +58,26 @@ public:
 	TSolution Solve(volatile glucose::TSolver_Progress &progress) {
 
 		const TLCCandidate_Solution<TSolution> init_solution { mStepping[0],
-															   mFitness.Calculate_Fitness(init_solution.solution, mMetric_Factory.CreateCalculator()) };
+															   mFitness.Calculate_Fitness(init_solution.solution, mMetric) };
 
 		const size_t steps_to_go = mStepping.size();
 		
-		progress.CurrentProgress = 0;
-		progress.MaxProgress = steps_to_go;
-		progress.BestMetric = init_solution.fitness;
+		progress.current_progress = 0;
+		progress.max_progress = steps_to_go;
+		progress.best_metric = init_solution.fitness;
 
 		auto result = tbb::parallel_reduce(tbb::blocked_range<size_t>(size_t(0), steps_to_go),
 			init_solution,
 
 			[=, &progress](const tbb::blocked_range<size_t> &r, TLCCandidate_Solution<TSolution> other)->TLCCandidate_Solution<TSolution> {
-				if (progress.Cancelled != 0) return init_solution;
+				if (progress.cancelled != 0) return init_solution;
 
 				const auto param_count = mLower_Bound.cols();
 				glucose::SMetric metric_calculator = mMetric.Clone();
 
 				TLCCandidate_Solution<TSolution> local_solution, best_solution;
 				local_solution.solution.resize(param_count);
-				best_solution.fitness = std::numeric_limits<floattype>::max();
+				best_solution.fitness = std::numeric_limits<double>::max();
 				if (other.fitness < best_solution.fitness)
 					best_solution = other;
 
@@ -125,18 +125,18 @@ if (_Preserve_Combination_Order) {
 }	//if (_Preserve_Combination_Order)
 				}
 
-				progress.CurrentProgress++;
+				progress.current_progress++;
 
 				return best_solution;
 		},
 
 			[&progress](TLCCandidate_Solution<TSolution> a, TLCCandidate_Solution<TSolution> b)->TLCCandidate_Solution<TSolution> {				
 				if (a.fitness < b.fitness) {
-					progress.BestMetric = a.fitness;
+					progress.best_metric = a.fitness;
 					return a;
 				}
 				else {
-					progress.BestMetric = b.fitness;
+					progress.best_metric = b.fitness;
 					return b;
 				}
 		}

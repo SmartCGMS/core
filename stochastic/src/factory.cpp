@@ -20,6 +20,39 @@ public:
 };
 
 
+template <typename TSolution>
+void Solution_To_Parameters(TSolution &src, glucose::SModel_Parameter_Vector dst) {
+	double *begin = src.data();
+	double *end = begin + src.cols();
+	dst->set(begin, end);
+}
+
+template <typename TSolver, typename TSolution, typename TFitness>
+HRESULT Solve_By_Class(TShared_Solver_Setup &setup, std::vector<TSolution>& hints, const TSolution& lower_bound, const TSolution& upper_bound) /*const */{
+
+	TFitness fitness{ setup };
+	TSolver  solver{ hints, lower_bound, upper_bound, fitness, setup.metric };
+
+	TSolution solved = solver.Solve(setup.progress);
+	Solution_To_Parameters(solved, setup.solved_parameters);
+
+	return S_OK;
+}
+
+template <typename TSolution, nlopt::algorithm algorithm_id>
+HRESULT Solve_NLOpt(TShared_Solver_Setup &setup, std::vector<TSolution>& hints, const TSolution& lower_bound, const TSolution& upper_bound)  {
+
+	using TFitness = CFitness<TSolution>;
+	using TNLOpt_Specialized_Solver = CNLOpt<TSolution, TFitness, algorithm_id>;
+	TFitness fitness{ setup };
+	TNLOpt_Specialized_Solver solver{ hints, lower_bound, upper_bound, fitness, setup.metric };
+
+	TSolution solved = solver.Solve(setup.progress);
+	Solution_To_Parameters(solved, setup.solved_parameters);
+
+	return S_OK;
+}
+
 template <typename TSolution, typename TFitness = CFitness<TSolution>>
 class CSpecialized_Id_Dispatcher : public CGeneral_Id_Dispatcher {
 protected:
@@ -37,53 +70,27 @@ protected:
 
 		return solution;
 	}
-
-	void Solution_To_Parameters(TSolution &src, glucose::SModel_Parameter_Vector dst) const {
-		double *begin = src.data();
-		double *end = begin + src.cols();
-		dst->set(begin, end);
-	}
+	
 protected:
 	std::map <const GUID, std::function<HRESULT(TShared_Solver_Setup &, std::vector<TSolution>&, const TSolution&, const TSolution&)>> mSolver_Id_Map;
 
-	template <typename  nlopt::algorithm algorithm_id>
-	void add_NLOpt(const GUID &id) {
-		mSolver_Id_Map[id] = std::bind(&CSpecialized_Id_Dispatcher<TSolution>::Solve_NLOpt<algorithm_id>, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+	template <nlopt::algorithm algorithm_id>
+	void add_NLOpt(const GUID &id) {		
+		mSolver_Id_Map[id] = std::bind(&Solve_NLOpt<TSolution, algorithm_id>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 	}
 
 protected:
-	template <typename  nlopt::algorithm algorithm_id>
-	HRESULT Solve_NLOpt(TShared_Solver_Setup &setup, std::vector<TSolution>& hints, const TSolution& lower_bound, const TSolution& upper_bound) const {
-		
-		using TFitness = CFitness<TSolution>;
-		using TNLOpt_Specialized_Solver = CNLOpt<TSolution, TFitness, algorithm_id>;
-		TFitness fitness{setup};
-		TNLOpt_Specialized_Solver solver{ hints, lower_bound, upper_bound, fitness, setup.metric };
+	//Here, we used to have Solution_To_Parameters, Solve_By_Class, and Solve_NLOpt.
+	//They used to compile fine with MSVC'17, ICC'18 but got broken with ICC'19.
+	//Template at the method level was the problem. So, not to throw away the benefit of ICC optimizations, we rather took those const methods outside the class.
 
-		TSolution solved = solver.Solve(setup.progress);
-		Solution_To_Parameters(solved, setup.solved_parameters);
-
-		return S_OK;
-	}
-
-
-	template <typename TSolver>
-	HRESULT Solve_By_Class(TShared_Solver_Setup &setup, std::vector<TSolution>& hints, const TSolution& lower_bound, const TSolution& upper_bound) const {
-		
-		TFitness fitness{ setup };
-		TSolver  solver{ hints, lower_bound, upper_bound, fitness, setup.metric };
-
-		TSolution solved = solver.Solve(setup.progress);
-		Solution_To_Parameters(solved, setup.solved_parameters);
-
-		return S_OK;
-	}
+	
 public:
 	CSpecialized_Id_Dispatcher() {	
 		add_NLOpt<nlopt::LN_NEWUOA>(newuoa::id);		
 
-		using TPure_MetaDE = CMetaDE<TSolution, TFitness, CNullMethod<TSolution, TFitness>>;
-		mSolver_Id_Map[metade::id] = std::bind(&CSpecialized_Id_Dispatcher<TSolution>::Solve_By_Class<TPure_MetaDE>, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+		using TPure_MetaDE = CMetaDE<TSolution, TFitness, CNullMethod<TSolution, TFitness>>;		
+		mSolver_Id_Map[metade::id] = std::bind(&Solve_By_Class<TPure_MetaDE, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 		
 	}
 
