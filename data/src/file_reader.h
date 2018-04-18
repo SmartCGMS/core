@@ -4,9 +4,9 @@
 #include "../../../common/iface/UIIface.h"
 #include "../../../common/rtl/referencedImpl.h"
 
-#include "loader/Structures.h"
-#include "loader/FormatAdapter.h"
-#include "loader/Extractor.h"
+#include "fileloader/Structures.h"
+#include "fileloader/FormatAdapter.h"
+#include "fileloader/Extractor.h"
 
 #include <memory>
 #include <thread>

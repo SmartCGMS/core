@@ -16,64 +16,8 @@
 #include <QtCore/QDebug>
 #include <QtSql/QSqlError>
 
-namespace db_reader {
-
-	constexpr size_t param_count = 7;
-
-	constexpr glucose::NParameter_Type param_type[param_count] = {
-		glucose::NParameter_Type::ptWChar_Container,
-		glucose::NParameter_Type::ptInt64,
-		glucose::NParameter_Type::ptWChar_Container,
-		glucose::NParameter_Type::ptWChar_Container,
-		glucose::NParameter_Type::ptWChar_Container,
-		glucose::NParameter_Type::ptWChar_Container,
-		glucose::NParameter_Type::ptSelect_Time_Segment_ID
-	};
-
-	const wchar_t* ui_param_name[param_count] = {
-		dsDb_Host,
-		dsDb_Port,
-		dsDb_Provider,
-		dsDb_Name,
-		dsDb_User_Name,
-		dsDb_Password,
-		dsTime_Segment_ID
-	};
-
-	const wchar_t* config_param_name[param_count] = {
-		rsDb_Host,
-		rsDb_Port,
-		rsDb_Provider,
-		rsDb_Name,
-		rsDb_User_Name,
-		rsDb_Password,
-		rsTime_Segment_ID
-	};
-
-	const wchar_t* ui_param_tooltips[param_count] = {
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr
-	};
-
-	const glucose::TFilter_Descriptor Db_Reader_Descriptor = {
-		{ 0xc0e942b9, 0x3928, 0x4b81, { 0x9b, 0x43, 0xa3, 0x47, 0x66, 0x82, 0x0, 0x42 } }, //// {C0E942B9-3928-4B81-9B43-A34766820042}
-		dsDb_Reader,
-		param_count,
-		param_type,
-		ui_param_name,
-		config_param_name,
-		ui_param_tooltips
-	};
-
-	// dummy device GUID
-	const GUID Db_Reader_Device_GUID = { 0x00000001, 0x0001, 0x0001, { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
-
-}
+// dummy device GUID
+const GUID Db_Reader_Device_GUID = { 0x00000001, 0x0001, 0x0001,{ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
 
 // enumerator of known column indexes
 enum class NColumn_Pos : int
@@ -124,7 +68,7 @@ void CDb_Reader::Send_Segment_Marker(glucose::NDevice_Event_Code code, double de
 {
 	glucose::TDevice_Event evt;
 
-	evt.device_id = db_reader::Db_Reader_Device_GUID;
+	evt.device_id = Db_Reader_Device_GUID;
 	evt.device_time = device_time;
 	evt.event_code = code;
 	//evt.logical_time = logical_time;
@@ -220,7 +164,7 @@ void CDb_Reader::Run_Reader()
 				if (!ok)
 					continue;
 
-				evt.device_id = db_reader::Db_Reader_Device_GUID;
+				evt.device_id = Db_Reader_Device_GUID;
 				evt.signal_id = ColumnSignalMap[i];
 				evt.device_time = jdate + dateCorrection; // apply base correction
 				evt.event_code = (i == NColumn_Pos::Calibration) ? glucose::NDevice_Event_Code::Calibrated : glucose::NDevice_Event_Code::Level;

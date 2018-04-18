@@ -1,9 +1,0 @@
-LIBRARY errors.dll
-
-
-EXPORTS
-
-	do_get_filter_descriptors
-	do_create_filter
-
-	get_error_metrics

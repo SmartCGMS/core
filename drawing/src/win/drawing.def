@@ -11,3 +11,4 @@ EXPORTS
 	get_svg_day
 	get_svg_graph
 	get_svg_parkes
+	get_svg_parkes_type2

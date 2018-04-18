@@ -64,7 +64,7 @@ HRESULT IfaceCalling solve_model_parameters(const glucose::TSolver_Setup *setup)
 	return loaded_filters.solve_model_parameters(setup);
 }
 
-HRESULT IfaceCalling create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApproximator **approx, glucose::IApprox_Parameters_Vector* configuration) {
+HRESULT IfaceCalling create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApprox_Parameters_Vector* configuration, glucose::IApproximator **approx) {
 	return loaded_filters.create_approximator(approx_id, signal, approx, configuration);
 }
 

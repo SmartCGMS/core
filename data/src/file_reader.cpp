@@ -4,9 +4,9 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/rattime.h"
 
-#include "loader/FormatRuleLoader.h"
-#include "loader/FormatRecognizer.h"
-#include "loader/Extractor.h"
+#include "fileloader/FormatRuleLoader.h"
+#include "fileloader/FormatRecognizer.h"
+#include "fileloader/Extractor.h"
 
 #include <iostream>
 #include <chrono>
@@ -42,7 +42,7 @@ HRESULT CFile_Reader::Send_Event(glucose::NDevice_Event_Code code, double device
 	evt.device_id = file_reader::File_Reader_Device_GUID;
 	evt.device_time = device_time;
 	evt.event_code = code;
-	evt.logical_time = logical_time;
+	//evt.logical_time = logical_time;
 	evt.level = value;
 	evt.segment_id = segment_id;
 	if (signalId)

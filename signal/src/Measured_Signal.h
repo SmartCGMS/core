@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../../common/rtl/Common_Calculation.h"
-#include "../../../common/iface/ApproxIface.h"
+#include "../../../common/rtl/ApproxLib.h"
+#include "../../../common/rtl/referencedImpl.h"
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
@@ -12,7 +12,7 @@ class CMeasured_Signal : public virtual glucose::ISignal, public virtual refcnt:
 		std::vector<double> mTimes;
 		std::vector<double> mLevels;
 
-		glucose::IApproximator* mApprox;
+		glucose::SApproximator mApprox;
 
 	public:
 		CMeasured_Signal();

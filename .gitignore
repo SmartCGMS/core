@@ -8,7 +8,7 @@
 /stochastic/msvc
 /models/msvc
 /approx/msvc
-/calculate/msvc
 /consume/msvc
 /drawing/msvc
-/errors/msvc
+/signal/msvc
+/log/msvc

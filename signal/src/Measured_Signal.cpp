@@ -1,27 +1,23 @@
 #include "Measured_Signal.h"
 #include "descriptor.h"
-#include "../../factory/src/filters.h"
 
-#ifdef min
+
+
 #undef min
-#endif
 
 #include <algorithm>
 
-CMeasured_Signal::CMeasured_Signal()
-	: mApprox(nullptr)
-{
+CMeasured_Signal::CMeasured_Signal(): mApprox(nullptr) {
 	// TODO: proper approximator configuration
 	//		 now we just pick the first one, which is obviously wrong
-
-	glucose::TApprox_Descriptor *begin, *end;
-	get_approx_descriptors(&begin, &end);
+	
+	const auto approx_descriptors = glucose::get_approx_descriptors();
 
 	// TODO: passing approximation parameters through architecture to Approximate method
 	//		 for now, we just send nullptr so the approximation method uses default parameters
 
-	if (begin != end)
-		create_approximator(&begin->id, this, &mApprox, nullptr);
+	if (!approx_descriptors.empty())
+		mApprox = glucose::Create_Approximator(approx_descriptors[0].id, refcnt::make_shared_reference_ext<glucose::SSignal, glucose::ISignal>(static_cast<glucose::ISignal*>(this), true),  glucose::SApprox_Parameters_Vector{});	
 }
 
 HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Levels(double* const times, double* const levels, const size_t count, size_t *filled) const

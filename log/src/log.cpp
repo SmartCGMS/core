@@ -82,7 +82,8 @@ void CLog_Filter::Run_Main()
 		logLine << std::put_time(&tm, L"%Y-%m-%d %H:%M:%S ");
 
 		// always put logical and device time
-		logLine << "logicalTime=" << evt.logical_time << ",deviceTime=" << std::setprecision(logger::DefaultLogPrecision_DeviceTime) << evt.device_time << ",";
+        //logLine << "logicalTime=" << evt.logical_time;
+        logLine << ",deviceTime=" << std::setprecision(logger::DefaultLogPrecision_DeviceTime) << evt.device_time << ",";
 
 		// if it is the diagnostic event, prepare log message
 		if (evt.event_code == glucose::NDevice_Event_Code::Information || evt.event_code == glucose::NDevice_Event_Code::Warning || evt.event_code == glucose::NDevice_Event_Code::Error)

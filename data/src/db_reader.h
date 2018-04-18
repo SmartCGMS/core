@@ -12,10 +12,6 @@
 #include <QtSql/QSqlQuery>
 #include <QtSql/QSqlQueryModel>
 
-namespace db_reader {
-	extern const glucose::TFilter_Descriptor Db_Reader_Descriptor;
-}
-
 struct StoredModelParams
 {
 	const GUID model_id;

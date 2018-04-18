@@ -372,9 +372,9 @@ std::string CXlsx_File::Read(int row, int col)
 
 		xlnt::cell const& cl = ws.cell(col + 1, row + 1);
 
-		if (cl.data_type() == xlnt::cell_type::string)
+		if (cl.data_type() == xlnt::cell_type::formula_string)
 			return cl.value<std::string>();
-		else if (cl.data_type() == xlnt::cell_type::numeric)
+		else if (cl.data_type() == xlnt::cell_type::number)
 			return cl.to_string();
 		else if (cl.data_type() == xlnt::cell_type::error)
 		{
@@ -413,7 +413,7 @@ std::string CXlsx_File::Read_Date(int row, int col)
 		xlnt::worksheet ws = mFile->sheet_by_index(mSelectedSheetIndex);
 		xlnt::cell const& cl = ws.cell(col + 1, row + 1);
 
-		if (cl.data_type() == xlnt::cell_type::error || cl.data_type() == xlnt::cell_type::null)
+		if (cl.data_type() == xlnt::cell_type::error || cl.data_type() == xlnt::cell_type::empty)
 		{
 			mEOF = true;
 			return "";
@@ -439,7 +439,7 @@ std::string CXlsx_File::Read_Time(int row, int col)
 		xlnt::worksheet ws = mFile->sheet_by_index(mSelectedSheetIndex);
 		xlnt::cell const& cl = ws.cell(col + 1, row + 1);
 
-		if (cl.data_type() == xlnt::cell_type::error || cl.data_type() == xlnt::cell_type::null)
+		if (cl.data_type() == xlnt::cell_type::error || cl.data_type() == xlnt::cell_type::empty)
 		{
 			mEOF = true;
 			return "";
@@ -465,7 +465,7 @@ std::string CXlsx_File::Read_Datetime(int row, int col)
 		xlnt::worksheet ws = mFile->sheet_by_index(mSelectedSheetIndex);
 		xlnt::cell const& cl = ws.cell(col + 1, row + 1);
 
-		if (cl.data_type() == xlnt::cell_type::error || cl.data_type() == xlnt::cell_type::null)
+		if (cl.data_type() == xlnt::cell_type::error || cl.data_type() == xlnt::cell_type::empty)
 		{
 			mEOF = true;
 			return "";

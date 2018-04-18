@@ -12,8 +12,8 @@
 #include "CSVFormat.h"
 #include "XMLFormat.h"
 
-#include "../../../../../Third Party/xlnt/include/xlnt/xlnt.hpp"
-#include "../../../../../Third Party/ExcelFormat/include/ExcelFormat/ExcelFormat.h"
+#include <xlnt/xlnt.hpp>
+#include <ExcelFormat/ExcelFormat.h>
 
 // all known file formats
 enum class KnownFileFormats

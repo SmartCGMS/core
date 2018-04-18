@@ -326,14 +326,14 @@ void CDrawing_Filter::Generate_Graphs(DataMap& valueMap, double maxValue, Locali
 		// parkes grid generator scope (type 1)
 		{
 			Set_Locale_Title(locales, dsDrawingLocaleTitleParkes);
-			CParkes_Generator graph(valueMap, maxValue, locales, 1, 1);
+			CParkes_Generator graph(valueMap, maxValue, locales, 1, true);
 			mParkes_type1_SVG = graph.Build_SVG();
 		}
 
-		// parkes grid generator scope (type 1)
+		// parkes grid generator scope (type 2)
 		{
 			Set_Locale_Title(locales, dsDrawingLocaleTitleParkes);
-			CParkes_Generator graph(valueMap, maxValue, locales, 1, 2);
+			CParkes_Generator graph(valueMap, maxValue, locales, 1, false);
 			mParkes_type2_SVG = graph.Build_SVG();
 		}
 	}
@@ -389,9 +389,10 @@ const char* CDrawing_Filter::Get_SVG_Parkes(bool type1) const
 {
 	std::unique_lock<std::mutex> lck(mRetrieveMtx);
 
-	// TODO: get parkes type 2 grid
-
-	return mParkes_type1_SVG.c_str();
+	if (type1)
+		return mParkes_type1_SVG.c_str();
+	else
+		return mParkes_type2_SVG.c_str();
 }
 
 extern "C" HRESULT IfaceCalling get_svg_agp(refcnt::wstr_container* target)
@@ -454,7 +455,21 @@ extern "C" HRESULT IfaceCalling get_svg_parkes(refcnt::wstr_container* target)
 {
 	if (auto filter = CDrawing_Filter::Get_Instance())
 	{
-		const char* pdata = filter->Get_SVG_Parkes();
+		const char* pdata = filter->Get_SVG_Parkes(true);
+
+		std::wstring image{ pdata, pdata + strlen(pdata) }; // this step won't be necessary after drawing module rework to wchar_t
+		target->set(image.data(), image.data() + image.size());
+
+		return S_OK;
+	}
+	return E_FAIL;
+}
+
+extern "C" HRESULT IfaceCalling get_svg_parkes_type2(refcnt::wstr_container* target)
+{
+	if (auto filter = CDrawing_Filter::Get_Instance())
+	{
+		const char* pdata = filter->Get_SVG_Parkes(false);
 
 		std::wstring image{ pdata, pdata + strlen(pdata) }; // this step won't be necessary after drawing module rework to wchar_t
 		target->set(image.data(), image.data() + image.size());
