@@ -3,12 +3,13 @@
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/ModelsLib.h"
 #include "../../../common/rtl/SolverLib.h"
+#include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/referencedImpl.h"
 #include "../../factory/src/filters.h"
 
-CCompute_Holder::CCompute_Holder(const GUID* solver_id, const GUID* signal_id, const glucose::TMetric_Parameters metric_parameters, const size_t metric_levels_required, const char use_measured_levels,
+CCompute_Holder::CCompute_Holder(const GUID &solver_id, const GUID &signal_id, const glucose::TMetric_Parameters &metric_parameters, const size_t metric_levels_required, const char use_measured_levels,
 	bool use_just_opened_segments)
-	: mSolverId(*solver_id), mSignalId(*signal_id), mMetricParams(metric_parameters), mMetricLevelsRequired(metric_levels_required), mUseMeasuredLevels(use_measured_levels),
+	: mSolverId(solver_id), mSignalId(signal_id), mMetricParams(metric_parameters), mMetricLevelsRequired(metric_levels_required), mUseMeasuredLevels(use_measured_levels),
 	  mLowBounds(nullptr), mHighBounds(nullptr), mSolveInProgress(false), mMaxTime(0.0), mLastStoppedSegment(0), mUseJustOpenedSegments(use_just_opened_segments)
 {
 	//
@@ -16,12 +17,7 @@ CCompute_Holder::CCompute_Holder(const GUID* solver_id, const GUID* signal_id, c
 
 CCompute_Holder::~CCompute_Holder()
 {
-	if (mLowBounds)
-		mLowBounds->Release();
-	if (mHighBounds)
-		mHighBounds->Release();
-	if (mDefaultParameters)
-		mDefaultParameters->Release();
+	//
 }
 
 void CCompute_Holder::Start_Segment(uint64_t segment_id)
@@ -30,39 +26,26 @@ void CCompute_Holder::Start_Segment(uint64_t segment_id)
 	glucose::CTime_Segment *a;
 	Manufacture_Object<glucose::CTime_Segment>(&a);
 
-	glucose::IModel_Parameter_Vector* params = nullptr;
+	glucose::SModel_Parameter_Vector params;
 	if (mLastStoppedSegment && mSegments[mLastStoppedSegment].parameters)
 	{
 		params = mSegments[mLastStoppedSegment].parameters;
-		params->AddRef();
 	}
 	else if (mDefaultParameters) // fill user-defined default parameters
 	{
-		params = mDefaultParameters;
-		params->AddRef();
+		params = mDefaultParameters;	
 	}
 	else // fill default model parameters
 	{
-		glucose::TModel_Descriptor *begin, *end;
-		HRESULT hr = get_model_descriptors(&begin, &end);
+		
 		bool outerBreak = false;
 
-		for (glucose::TModel_Descriptor* itr = begin; itr != end; itr += 1)
-		{
-			for (size_t i = 0; i < itr->number_of_calculated_signals; i++)
-			{
-				if (itr->calculated_signal_ids[i] == mSignalId)
-				{
-					params = refcnt::Create_Container<double>(itr->default_values, itr->default_values + itr->number_of_parameters);
-
-					outerBreak = true;
-					break;
-				}
-			}
-
-			if (outerBreak)
-				break;
+		
+		glucose::TModel_Descriptor desc{ 0 };
+		if (glucose::get_model_descriptors_by_id(mSignalId, desc)) {
+			params = refcnt::Create_Container_shared<double>(desc.default_values, desc.default_values + desc.number_of_parameters);
 		}
+
 	}
 
 	mSegments[segment_id] = {
@@ -108,78 +91,40 @@ double CCompute_Holder::Get_Max_Time() const
 	return mMaxTime;
 }
 
-void CCompute_Holder::Add_Solution_Hint(glucose::IModel_Parameter_Vector* parameters)
+void CCompute_Holder::Add_Solution_Hint(glucose::SModel_Parameter_Vector parameters)
 {
 	// copy parameter hint to internal vector
-	double *begin, *end;
-	parameters->get(&begin, &end);
-
-	mSolutionHints.push_back(refcnt::Create_Container<double>(begin, end));
+	mSolutionHints.push_back(refcnt::Copy_Container<double>(parameters));		
 }
 
-void CCompute_Holder::Set_Bounds(glucose::IModel_Parameter_Vector *low, glucose::IModel_Parameter_Vector *high)
-{
-	// release old low bounds if any
-	if (mLowBounds && low != mLowBounds)
-		mLowBounds->Release();
-
+void CCompute_Holder::Set_Bounds(glucose::SModel_Parameter_Vector low, glucose::SModel_Parameter_Vector high) {
 	mLowBounds = low;
-
-	// release old high bounds if any
-	if (mHighBounds && high != mHighBounds)
-		mHighBounds->Release();
-
 	mHighBounds = high;
 }
 
-void CCompute_Holder::Set_Defaults(glucose::IModel_Parameter_Vector* defaults)
-{
-	if (mDefaultParameters && mDefaultParameters != defaults)
-		mDefaultParameters->Release();
-
+void CCompute_Holder::Set_Defaults(glucose::SModel_Parameter_Vector defaults) {
 	mDefaultParameters = defaults;
 }
 
-bool CCompute_Holder::Fill_Default_Model_Bounds(const GUID* signal_id, glucose::IModel_Parameter_Vector** low, glucose::IModel_Parameter_Vector** defaults, glucose::IModel_Parameter_Vector** high)
-{
-	glucose::TModel_Descriptor *begin, *end;
+bool CCompute_Holder::Fill_Default_Model_Bounds(const GUID &signal_id, glucose::SModel_Parameter_Vector &low, glucose::SModel_Parameter_Vector &defaults, glucose::SModel_Parameter_Vector &high) {
 
-	// get all model descriptors and select the one containing given signal GUID
-	HRESULT hr = get_model_descriptors(&begin, &end);
-
-	for (glucose::TModel_Descriptor* itr = begin; itr != end; itr += 1)
-	{
-		for (size_t i = 0; i < itr->number_of_calculated_signals; i++)
-		{
-			if (itr->calculated_signal_ids[i] == *signal_id)
-			{
-				if (low)
-					*low = refcnt::Create_Container<double>(itr->lower_bound, itr->lower_bound + itr->number_of_parameters);
-				if (high)
-					*high = refcnt::Create_Container<double>(itr->upper_bound, itr->upper_bound + itr->number_of_parameters);
-				if (defaults)
-					*defaults = refcnt::Create_Container<double>(itr->default_values, itr->default_values + itr->number_of_parameters);
-
-				return true;
-			}
-		}
+	glucose::TModel_Descriptor desc{ 0 };
+	const bool result = glucose::get_model_descriptors_by_id(signal_id, desc);
+	if (result) {
+		low = refcnt::Create_Container_shared<double>(desc.lower_bound, desc.lower_bound + desc.number_of_parameters);
+		high = refcnt::Create_Container_shared<double>(desc.upper_bound, desc.upper_bound + desc.number_of_parameters);
+		defaults = refcnt::Create_Container_shared<double>(desc.default_values, desc.default_values + desc.number_of_parameters);
 	}
 
-	return false;
+	return result;
 }
 
 glucose::TSolver_Setup CCompute_Holder::Prepare_Solver_Setup()
 {
 	// prepare metric
-	glucose::IMetric* metric;
-	create_metric(&mMetricParams, &metric);
+	glucose::SMetric metric{ mMetricParams };	
 
-	// prepare target container for solved parameters
-	mTempModelParams = refcnt::Create_Container<double>(nullptr, nullptr);
-
-	// fill low and high bound, if not present, request filling with default parameters
-	if (mLowBounds == nullptr || mHighBounds == nullptr || mDefaultParameters == nullptr)
-		Fill_Default_Model_Bounds(&mSignalId, mLowBounds ? nullptr : &mLowBounds, mDefaultParameters ? nullptr : &mDefaultParameters, mHighBounds ? nullptr : &mHighBounds);
+	Fill_Default_Model_Bounds(mSignalId, mLowBounds, mDefaultParameters, mHighBounds);
 
 	mClonedSegmentIds.clear();
 	// create ITime_Segment pointer to stored segments since double indirection is not polymorphic in standard way
@@ -217,25 +162,25 @@ glucose::TSolver_Setup CCompute_Holder::Prepare_Solver_Setup()
 		mSolverId,																// solver_id
 		mSignalId,																// signal_id
 		mClonedSegments.data(), mClonedSegments.size(),							// segments, segment_count
-		metric, mMetricLevelsRequired, mUseMeasuredLevels,						// metric, levels_required, use_measured_levels
-		mLowBounds, mHighBounds,												// lower_bound, upper_bound
+		metric.get(), mMetricLevelsRequired, mUseMeasuredLevels,				// metric, levels_required, use_measured_levels
+		mLowBounds.get(), mHighBounds.get(),									// lower_bound, upper_bound
 		mSolutionHints.data(), mSolutionHints.size(),							// solution_hints, hint_count
-		&mTempModelParams,														// solved_parameters
+		mTempModelParams.get(),													// solved_parameters
 		&mSolverProgress														// progress
 	};
 }
 
-HRESULT CCompute_Holder::Solve(const glucose::TSolver_Setup* solverSetup)
+HRESULT CCompute_Holder::Solve(const glucose::TSolver_Setup &solverSetup)
 {
 	// start the solver
-	HRESULT rc = solve_model_parameters(solverSetup);
+	HRESULT rc = solve_model_parameters(&solverSetup);
 
 	if (rc == S_OK)
 	{
 		mImprovedSegmentIds.clear();
 
 		// compare solutions using metric on current (cloned) dataset
-		if (Compare_Solutions(solverSetup->metric))
+		if (Compare_Solutions(solverSetup.metric))
 		{
 			for (uint64_t segId : mClonedSegmentIds)
 			{
@@ -268,10 +213,7 @@ HRESULT CCompute_Holder::Solve(const glucose::TSolver_Setup* solverSetup)
 		seg->Release();
 
 	mClonedSegments.clear();
-	mClonedSegmentIds.clear();
-
-	// release metric; we will create another one for next solver
-	solverSetup->metric->Release();
+	mClonedSegmentIds.clear();	
 
 	mSolveInProgress = false;
 

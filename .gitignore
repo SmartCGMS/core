@@ -6,9 +6,10 @@
 /data/msvc
 /metric/msvc
 /stochastic/msvc
-/models/msvc
+/model/msvc
 /approx/msvc
 /consume/msvc
 /drawing/msvc
 /signal/msvc
 /log/msvc
+/solver/msvc

@@ -6,8 +6,6 @@
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/rattime.h"
 
-#include "../../models/src/descriptor.h"
-
 #include "drawing/Generators/IGenerator.h"
 #include "drawing/Generators/GraphGenerator.h"
 #include "drawing/Generators/ClarkGenerator.h"

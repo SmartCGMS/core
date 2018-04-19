@@ -5,9 +5,9 @@
 #include "../../../common/iface/DeviceIface.h"
 #include "../../../common/rtl/referencedImpl.h"
 #include "../../../common/rtl/ModelsLib.h"
+#include "../../../common/rtl/UILib.h"
 
 #include "../../../common/lang/dstrings.h"
-#include "../../factory/src/filters.h"
 
 #include <map>
 
@@ -15,6 +15,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QDebug>
 #include <QtSql/QSqlError>
+#include <QtCore/QCoreApplication>
 
 // dummy device GUID
 const GUID Db_Reader_Device_GUID = { 0x00000001, 0x0001, 0x0001,{ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
@@ -54,6 +55,7 @@ CDb_Reader::CDb_Reader(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* out
 	: mInput(inpipe), mOutput(outpipe), mDbPort(0), mCurrentSegmentIdx(-1)
 {
 	//
+	QCoreApplication::addLibraryPath("c:\\programy\\glucose3\\compiled\\sqldrivers");
 }
 
 CDb_Reader::~CDb_Reader()
@@ -303,29 +305,25 @@ HRESULT CDb_Reader::Run(const refcnt::IVector_Container<glucose::TFilter_Paramet
 	return S_OK;
 }
 
-void CDb_Reader::Prepare_Model_Parameters()
-{
-	glucose::TModel_Descriptor *begin, *end;
+void CDb_Reader::Prepare_Model_Parameters() {
 
-	get_model_descriptors(&begin, &end);
-	for (glucose::TModel_Descriptor* cur = begin; cur != end; cur += 1)
-	{
+	for (const auto &descriptor : glucose::get_model_descriptors()) {
 		std::string qry = rsSelect_Params_Base;
 
 		bool first = true;
-		for (size_t i = 0; i < cur->number_of_parameters; i++)
+		for (size_t i = 0; i < descriptor.number_of_parameters; i++)
 		{
 			if (first)
 				first = false;
 			else
 				qry += ", ";
 
-			qry += std::string(cur->parameter_db_column_names[i], cur->parameter_db_column_names[i] + wcslen(cur->parameter_db_column_names[i]));
+			qry += std::string(descriptor.parameter_db_column_names[i], descriptor.parameter_db_column_names[i] + wcslen(descriptor.parameter_db_column_names[i]));
 		}
 
 		qry += " ";
 		qry += rsSelect_Params_From;
-		qry += std::string(cur->db_table_name, cur->db_table_name + wcslen(cur->db_table_name)) + " ";
+		qry += std::string(descriptor.db_table_name, descriptor.db_table_name + wcslen(descriptor.db_table_name)) + " ";
 		qry += rsSelect_Params_Condition;
 
 		for (int64_t segId : mDbTimeSegmentIds)
@@ -338,11 +336,11 @@ void CDb_Reader::Prepare_Model_Parameters()
 			{
 				qr->seek(0);
 
-				std::vector<double> arr(cur->number_of_parameters);
-				for (size_t i = 0; i < cur->number_of_parameters; i++)
+				std::vector<double> arr(descriptor.number_of_parameters);
+				for (size_t i = 0; i < descriptor.number_of_parameters; i++)
 					arr[i] = qr->value((int)i).toDouble();
 
-				mModelParams[segId].push_back({ cur->id, (glucose::IModel_Parameter_Vector*)refcnt::Create_Container<double>(arr.data(), arr.data() + arr.size()) });
+				mModelParams[segId].push_back({ descriptor.id, (glucose::IModel_Parameter_Vector*)refcnt::Create_Container<double>(arr.data(), arr.data() + arr.size()) });
 			}
 		}
 	}

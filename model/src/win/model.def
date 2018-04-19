@@ -1,0 +1,5 @@
+LIBRARY model.dll
+
+
+EXPORTS
+  	do_get_model_descriptors

@@ -13,7 +13,7 @@
 #include <thread>
 #include <future>
 
-using TSolution_Hint_Vector = std::vector<glucose::IModel_Parameter_Vector*>;
+using TSolution_Hint_Vector = std::vector<glucose::SModel_Parameter_Vector>;
 
 /*
  * Class used as container for calculation and solving, holds results and all input parameters
@@ -24,7 +24,7 @@ class CCompute_Holder final
 		struct TSegment_State
 		{
 			glucose::STime_Segment segment;
-			glucose::IModel_Parameter_Vector* parameters;
+			glucose::SModel_Parameter_Vector parameters;
 			bool opened;
 		};
 
@@ -49,18 +49,18 @@ class CCompute_Holder final
 		const char mUseMeasuredLevels;
 
 		// lower bound of model parameters; may be nullptr, in this case default lower bounds are used
-		glucose::IModel_Parameter_Vector *mLowBounds;
+		glucose::SModel_Parameter_Vector mLowBounds;
 		// higher bound of model parameters; may be nullptr, in this case default higher bounds are used
-		glucose::IModel_Parameter_Vector *mHighBounds;
+		glucose::SModel_Parameter_Vector mHighBounds;
 		// default parameters used when no hint available; may be nullptr, in this case, model descriptor defaults are used
-		glucose::IModel_Parameter_Vector *mDefaultParameters;
+		glucose::SModel_Parameter_Vector mDefaultParameters;
 
 		// cloned segments for solver instance
-		std::vector<glucose::ITime_Segment*> mClonedSegments;
+		std::vector<glucose::STime_Segment> mClonedSegments;
 		// IDs of cloned segments
 		std::vector<uint64_t> mClonedSegmentIds;
 		// temporary model parameters, here we store parameters before comparing them with old and setting them as new solution
-		glucose::IModel_Parameter_Vector* mTempModelParams;
+		glucose::SModel_Parameter_Vector mTempModelParams;
 
 		// IDs of segments, which had their parameters improved in last solve
 		std::vector<uint64_t> mImprovedSegmentIds;
@@ -75,19 +75,19 @@ class CCompute_Holder final
 
 	protected:
 		// fills supplied pointers with pointer to default model bounds
-		bool Fill_Default_Model_Bounds(const GUID* signal_id, glucose::IModel_Parameter_Vector** low, glucose::IModel_Parameter_Vector** defaults, glucose::IModel_Parameter_Vector** high);
+		bool Fill_Default_Model_Bounds(const GUID &signal_id, glucose::SModel_Parameter_Vector &low, glucose::SModel_Parameter_Vector &defaults, glucose::SModel_Parameter_Vector &high);
 
 		// fills solver setup structure
 		glucose::TSolver_Setup Prepare_Solver_Setup();
 
 		// solves for given setup
-		HRESULT Solve(const glucose::TSolver_Setup* solverSetup);
+		HRESULT Solve(const glucose::TSolver_Setup &solverSetup);
 
 		// compares mTempModelParams (new) and mModelParams (old) on cloned segments and returns, if it's better solution than the old one
 		bool Compare_Solutions(glucose::IMetric* metric);
 
 	public:
-		CCompute_Holder(const GUID* solver_id, const GUID* signal_id, const glucose::TMetric_Parameters metric_parameters,
+		CCompute_Holder(const GUID& solver_id, const GUID& signal_id, const glucose::TMetric_Parameters &metric_parameters,
 			const size_t metric_levels_required, const char use_measured_levels = 1, bool use_just_opened_segments = false);
 		virtual ~CCompute_Holder();
 
@@ -98,7 +98,7 @@ class CCompute_Holder final
 		// adds level to segment
 		bool Add_Level(uint64_t segment_id, const GUID& signal_id, double time, double level);
 		// adds a solution hint to given signal id (model)
-		void Add_Solution_Hint(glucose::IModel_Parameter_Vector* parameters);
+		void Add_Solution_Hint(glucose::SModel_Parameter_Vector parameters);
 
 		// retrieves maximum time acquired
 		double Get_Max_Time() const;
@@ -116,14 +116,14 @@ class CCompute_Holder final
 		double Get_Solve_Solution_Metric_Value() const;
 
 		// sets bounds (low/high); nullptr means "use default"
-		void Set_Bounds(glucose::IModel_Parameter_Vector *low = nullptr, glucose::IModel_Parameter_Vector *high = nullptr);
+		void Set_Bounds(glucose::SModel_Parameter_Vector low, glucose::SModel_Parameter_Vector high);
 		// sets defaults (when no hint is available)
-		void Set_Defaults(glucose::IModel_Parameter_Vector* defaults);
+		void Set_Defaults(glucose::SModel_Parameter_Vector defaults);
 		// retrieves signal ID used for calculations
 		GUID Get_Signal_Id() const;
 
 		// retrieves model parameter vector; may be nullptr if no calculation issued
-		glucose::IModel_Parameter_Vector* Get_Model_Parameters(uint64_t segment_id) const;
+		glucose::SModel_Parameter_Vector Get_Model_Parameters(uint64_t segment_id) const;
 		// retrieves vector of improved segments (segments with better solution than in last run)
 		void Get_Improved_Segments(std::vector<uint64_t>& target) const;
 		// retrieves vector of all segments

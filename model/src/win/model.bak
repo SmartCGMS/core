@@ -1,4 +1,4 @@
-LIBRARY models.dll
+LIBRARY model.dll
 
 
 EXPORTS

@@ -2,8 +2,6 @@
 
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/rattime.h"
-#include "../../models/src/Diffusion_v2_blood.h"
-#include "../../factory/src/filters.h"
 #include "../../../common/lang/dstrings.h"
 
 #include "Compute_Holder.h"
@@ -71,7 +69,7 @@ void CCompute_Filter::Run_Main()
 					// modify the event that will be sent through pipe
 					evt.event_code = glucose::NDevice_Event_Code::Parameters;
 					evt.device_time = mComputeHolder->Get_Max_Time();
-					evt.logical_time = 0; // asynchronnous events always have logical time equal to 0 at this time
+//					evt.logical_time = 0; // asynchronnous events always have logical time equal to 0 at this time
 					evt.device_id = GUID{ 0 }; // TODO: fix this (retain from segments?) 
 					evt.signal_id = mComputeHolder->Get_Signal_Id();
 					evt.parameters = params;
@@ -192,7 +190,7 @@ void CCompute_Filter::Run_Scheduler()
 						glucose::TDevice_Event evt;
 						evt.device_time = Unix_Time_To_Rat_Time(time(nullptr));
 						evt.event_code = glucose::NDevice_Event_Code::Information;
-						evt.logical_time = 0;
+//						evt.logical_time = 0;
 						evt.device_id = { 0 };
 						evt.signal_id = mComputeHolder->Get_Signal_Id();
 
@@ -222,7 +220,7 @@ void CCompute_Filter::Run_Scheduler()
 
 					glucose::TDevice_Event evt;
 					evt.device_time = mComputeHolder->Get_Max_Time();
-					evt.logical_time = 0; // asynchronnous events always have logical time equal to 0 at this time
+//					evt.logical_time = 0; // asynchronnous events always have logical time equal to 0 at this time
 					evt.device_id = GUID{ 0 }; // TODO: fix this (retain from segments?) 
 					evt.signal_id = mComputeHolder->Get_Signal_Id();
 
