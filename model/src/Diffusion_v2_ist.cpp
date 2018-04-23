@@ -35,7 +35,7 @@ CDiffusion_v2_ist::CDiffusion_v2_ist(glucose::WTime_Segment segment) : CDiffusio
 
 HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
-	 
+
 	diffusion_v2_model::TParameters &parameters = Convert_Parameters<diffusion_v2_model::TParameters>(params, diffusion_v2_model::default_parameters);
 
 	Eigen::Map<TVector1D> converted_times{ Map_Double_To_Eigen<TVector1D>(times, count) };
@@ -66,6 +66,9 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Pa
 			double minf;			
 			std::vector<double> estimated_present_time(1);
 			TIst_Estimate_Data estimatation_data{ mIst, times[i], kh, parameters.h, parameters.dt, times };
+
+			// we need initial estimate to fit lower and upper bounds passed to nlopt
+			estimated_present_time[0] = dt.element()[i];
 
 			nlopt::opt opt(nlopt::LN_BOBYQA, 1); //just one double - NewUOA requires at least 2 parameters, may be Simplex/Nelder-Mead would do the job as well?
 			opt.set_min_objective(present_time_objective, &estimatation_data);

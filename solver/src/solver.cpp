@@ -55,12 +55,12 @@ void CCompute_Filter::Run_Main()
 			// parameters hint - incoming hints for solution, store to compute holder
 			case glucose::NDevice_Event_Code::Parameters_Hint:
 				if (evt.signal_id == mComputeHolder->Get_Signal_Id())
-					mComputeHolder->Add_Solution_Hint(evt.parameters);
+					mComputeHolder->Add_Solution_Hint(refcnt::make_shared_reference_ext<glucose::SModel_Parameter_Vector, glucose::IModel_Parameter_Vector>(evt.parameters, true));
 				break;
 			// time segment start - create a new segment
 			case glucose::NDevice_Event_Code::Time_Segment_Start:
 				mComputeHolder->Start_Segment(evt.segment_id);
-				if (glucose::IModel_Parameter_Vector* params = mComputeHolder->Get_Model_Parameters(evt.segment_id))
+				if (glucose::SModel_Parameter_Vector params = mComputeHolder->Get_Model_Parameters(evt.segment_id))
 				{
 					// send current event through pipe
 					if (mOutput->send(&evt) != S_OK)
@@ -69,10 +69,10 @@ void CCompute_Filter::Run_Main()
 					// modify the event that will be sent through pipe
 					evt.event_code = glucose::NDevice_Event_Code::Parameters;
 					evt.device_time = mComputeHolder->Get_Max_Time();
-//					evt.logical_time = 0; // asynchronnous events always have logical time equal to 0 at this time
+					//evt.logical_time = 0; // asynchronnous events always have logical time equal to 0 at this time
 					evt.device_id = GUID{ 0 }; // TODO: fix this (retain from segments?) 
 					evt.signal_id = mComputeHolder->Get_Signal_Id();
-					evt.parameters = params;
+					evt.parameters = params.get();
 				}
 				break;
 			// time segment stop - force buffered values to be written to signals
@@ -190,7 +190,7 @@ void CCompute_Filter::Run_Scheduler()
 						glucose::TDevice_Event evt;
 						evt.device_time = Unix_Time_To_Rat_Time(time(nullptr));
 						evt.event_code = glucose::NDevice_Event_Code::Information;
-//						evt.logical_time = 0;
+						//evt.logical_time = 0;
 						evt.device_id = { 0 };
 						evt.signal_id = mComputeHolder->Get_Signal_Id();
 
@@ -220,7 +220,7 @@ void CCompute_Filter::Run_Scheduler()
 
 					glucose::TDevice_Event evt;
 					evt.device_time = mComputeHolder->Get_Max_Time();
-//					evt.logical_time = 0; // asynchronnous events always have logical time equal to 0 at this time
+					//evt.logical_time = 0; // asynchronnous events always have logical time equal to 0 at this time
 					evt.device_id = GUID{ 0 }; // TODO: fix this (retain from segments?) 
 					evt.signal_id = mComputeHolder->Get_Signal_Id();
 
@@ -235,7 +235,7 @@ void CCompute_Filter::Run_Scheduler()
 
 						// send also parameters reset information message
 						evt.event_code = glucose::NDevice_Event_Code::Parameters;
-						evt.parameters = mComputeHolder->Get_Model_Parameters(segId);
+						evt.parameters = mComputeHolder->Get_Model_Parameters(segId).get();
 						if (mOutput->send(&evt) != S_OK)
 						{
 							error = true;
@@ -279,7 +279,7 @@ HRESULT CCompute_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Pa
 	bool use_just_opened;
 	size_t levels_required;
 
-	glucose::IModel_Parameter_Vector *lowBound = nullptr, *defParams = nullptr, *highBound = nullptr;
+	glucose::SModel_Parameter_Vector lowBound, defParams, highBound;
 
 	glucose::TFilter_Parameter *cbegin, *cend;
 	if (configuration->get(&cbegin, &cend) != S_OK)
@@ -329,9 +329,9 @@ HRESULT CCompute_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Pa
 			if (cur->parameters->get(&pb, &pe) == S_OK)
 			{
 				size_t paramcnt = std::distance(pb, pe) / 3; // lower, defaults, upper
-				lowBound = refcnt::Create_Container<double>(pb, pb + paramcnt);
-				defParams = refcnt::Create_Container<double>(pb + paramcnt, pb + 2* paramcnt);
-				highBound = refcnt::Create_Container<double>(pb + 2*paramcnt, pe);
+				lowBound = refcnt::Create_Container_shared<double>(pb, pb + paramcnt);
+				defParams = refcnt::Create_Container_shared<double>(pb + paramcnt, pb + 2* paramcnt);
+				highBound = refcnt::Create_Container_shared<double>(pb + 2*paramcnt, pe);
 			}
 		}
 	}
@@ -340,7 +340,7 @@ HRESULT CCompute_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Pa
 
 	mRunning = true;
 
-	mComputeHolder = std::make_unique<CCompute_Holder>(&solver_id, &signal_id, metric_params, levels_required, use_measured, use_just_opened);
+	mComputeHolder = std::make_unique<CCompute_Holder>(solver_id, signal_id, metric_params, levels_required, use_measured, use_just_opened);
 	mComputeHolder->Set_Bounds(lowBound, highBound);
 	mComputeHolder->Set_Defaults(defParams);
 

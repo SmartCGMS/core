@@ -41,7 +41,6 @@ namespace diffusion_v2_model {
 		signal_names,
 		reference_signal_ids
 	};
-		
 
 }
 
@@ -57,7 +56,7 @@ namespace steil_rebrin {
 	const size_t signal_count = 1;	
 	const GUID signal_ids[signal_count] = { glucose::signal_Steil_Rebrin_Blood };
 	const wchar_t *signal_names[signal_count] = { dsBlood };
-	const GUID reference_signal_ids[signal_count] = { glucose::signal_IG };
+	const GUID reference_signal_ids[signal_count] = { glucose::signal_BG };
 
 	const glucose::TModel_Descriptor desc = {
 		id,

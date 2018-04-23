@@ -55,30 +55,26 @@ bool CSegment_Holder::Has_Parameters(uint64_t segmentId) const
 	return (itr->second.parameters != nullptr);
 }
 
-void CSegment_Holder::Set_Parameters(uint64_t segmentId, glucose::IModel_Parameter_Vector* params)
+void CSegment_Holder::Set_Parameters(uint64_t segmentId, glucose::SModel_Parameter_Vector params)
 {
 	auto itr = mSegments.find(segmentId);
 	if (itr == mSegments.end())
 		return;
 
-	if (itr->second.parameters)
-		itr->second.parameters->Release();
-
-	params->AddRef();
 	itr->second.parameters = params;
 }
 
 bool CSegment_Holder::Get_Calculated_At_Time(uint64_t segmentId, double time, double& target)
 {
 	auto itr = mSegments.find(segmentId);
-	if (itr == mSegments.end() || itr->second.parameters == nullptr)
+	if (itr == mSegments.end() || !itr->second.parameters)
 		return false;
 
 	auto signal = itr->second.segment.Get_Signal(mSignalId);
 	if (!signal)
 		return false;
 
-	if (signal->Get_Continuous_Levels(itr->second.parameters, &time, &target, 1, glucose::apxNo_Derivation) != S_OK)
+	if (signal->Get_Continuous_Levels(itr->second.parameters.get(), &time, &target, 1, glucose::apxNo_Derivation) != S_OK)
 		return false;
 
 	return true;
@@ -118,7 +114,7 @@ bool CSegment_Holder::Calculate_All_Values(uint64_t segmentId, std::vector<doubl
 		levels.resize(cnt);
 	}
 
-	if (signal->Get_Continuous_Levels(itr->second.parameters, times.data(), levels.data(), cnt, glucose::apxNo_Derivation) != S_OK)
+	if (signal->Get_Continuous_Levels(itr->second.parameters.get(), times.data(), levels.data(), cnt, glucose::apxNo_Derivation) != S_OK)
 		return false;
 
 	return true;

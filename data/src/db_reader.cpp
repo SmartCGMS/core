@@ -60,10 +60,7 @@ CDb_Reader::CDb_Reader(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* out
 
 CDb_Reader::~CDb_Reader()
 {
-	// release model parameter hints
-	for (auto& vec : mModelParams)
-		for (auto params : vec.second)
-			params.params->Release();
+	//
 }
 
 void CDb_Reader::Send_Segment_Marker(glucose::NDevice_Event_Code code, double device_time, int64_t logical_time, uint64_t segment_id)
@@ -127,12 +124,10 @@ void CDb_Reader::Run_Reader()
 		// this serves as initial estimation for models in chain
 		for (auto& paramset : mModelParams[currentSegmentId])
 		{
-			paramset.params->AddRef();
-
 			evt.signal_id = paramset.model_id;
 			evt.event_code = glucose::NDevice_Event_Code::Parameters_Hint;
 			//evt.logical_time = logicalTime;
-			evt.parameters = paramset.params;
+			evt.parameters = paramset.params.get();
 			evt.segment_id = currentSegmentId;
 
 			if (mOutput->send(&evt) != S_OK)
@@ -340,7 +335,7 @@ void CDb_Reader::Prepare_Model_Parameters() {
 				for (size_t i = 0; i < descriptor.number_of_parameters; i++)
 					arr[i] = qr->value((int)i).toDouble();
 
-				mModelParams[segId].push_back({ descriptor.id, (glucose::IModel_Parameter_Vector*)refcnt::Create_Container<double>(arr.data(), arr.data() + arr.size()) });
+				mModelParams[segId].push_back({ descriptor.id, refcnt::Create_Container_shared<double>(arr.data(), arr.data() + arr.size()) });
 			}
 		}
 	}

@@ -3,6 +3,7 @@
 #include "../../../common/iface/FilterIface.h"
 #include "../../../common/iface/UIIface.h"
 #include "../../../common/rtl/referencedImpl.h"
+#include "../../../common/rtl/DeviceLib.h"
 
 #include <memory>
 #include <thread>
@@ -15,7 +16,7 @@
 struct StoredModelParams
 {
 	const GUID model_id;
-	glucose::IModel_Parameter_Vector* params;
+	glucose::SModel_Parameter_Vector params;
 };
 
 #pragma warning( push )

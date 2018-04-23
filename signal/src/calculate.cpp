@@ -59,7 +59,7 @@ void CCalculate_Filter::Run_Main()
 					// if the segment doesn't have parameters yet, recalculate whole segment with given parameters (if the flag is set)
 					if (!hldr.Has_Parameters(evt.segment_id) && mCalc_Past_With_First_Params)
 						segmentToReset = evt.segment_id;
-					hldr.Set_Parameters(evt.segment_id, evt.parameters);
+					hldr.Set_Parameters(evt.segment_id, refcnt::make_shared_reference_ext<glucose::SModel_Parameter_Vector, glucose::IModel_Parameter_Vector>(evt.parameters, true));
 				}
 				break;
 			case glucose::NDevice_Event_Code::Information:

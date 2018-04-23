@@ -9,7 +9,7 @@ class CSegment_Holder
 		struct TSegment_State
 		{
 			glucose::STime_Segment segment;
-			glucose::IModel_Parameter_Vector* parameters;
+			glucose::SModel_Parameter_Vector parameters;
 			bool opened;
 		};
 
@@ -30,7 +30,7 @@ class CSegment_Holder
 		// does the segment have parameters set?
 		bool Has_Parameters(uint64_t segmentId) const;
 		// sets model parameters to segment
-		void Set_Parameters(uint64_t segmentId, glucose::IModel_Parameter_Vector* params);
+		void Set_Parameters(uint64_t segmentId, glucose::SModel_Parameter_Vector params);
 		// retrieves calculated value at specified time
 		bool Get_Calculated_At_Time(uint64_t segmentId, double time, double& target);
 		// retrieves calculated values of given segment (all of them)

@@ -6,6 +6,7 @@
 #include "../../../common/iface/UIIface.h"
 #include "../../../common/rtl/referencedImpl.h"
 #include "../../../common/rtl/DeviceLib.h"
+#include "../../../common/rtl/SolverLib.h"
 
 #include <vector>
 #include <map>
@@ -41,8 +42,8 @@ class CCompute_Holder final
 		const GUID mSolverId;
 		// solver parameter - signal GUID
 		const GUID mSignalId;
-		// solver parameter - metric parameters used
-		const glucose::TMetric_Parameters mMetricParams;
+		// instantiated metric
+		glucose::SMetric mMetric;
 		// solver parameter - levels required for metric
 		const size_t mMetricLevelsRequired;
 		// solver parameter - use measured levels
@@ -68,7 +69,14 @@ class CCompute_Holder final
 		uint64_t mLastStoppedSegment;
 
 		// use just opened segments to solve parameters
-		bool mUseJustOpenedSegments;
+		bool mDetermine_Parameters_Using_All_Known_Segments;
+
+		struct
+		{
+			std::vector<glucose::ITime_Segment*> clonedSegments;
+			std::vector<glucose::IModel_Parameter_Vector*> solutionHints;
+			glucose::IModel_Parameter_Vector* paramsTarget;
+		} mTmpSolverContainer;
 
 		// maximum time acquired through pipe
 		double mMaxTime;
@@ -84,7 +92,7 @@ class CCompute_Holder final
 		HRESULT Solve(const glucose::TSolver_Setup &solverSetup);
 
 		// compares mTempModelParams (new) and mModelParams (old) on cloned segments and returns, if it's better solution than the old one
-		bool Compare_Solutions(glucose::IMetric* metric);
+		bool Compare_Solutions(glucose::SMetric metric);
 
 	public:
 		CCompute_Holder(const GUID& solver_id, const GUID& signal_id, const glucose::TMetric_Parameters &metric_parameters,
