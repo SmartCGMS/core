@@ -120,14 +120,17 @@ void CDb_Reader::Run_Reader()
 
 		evt.device_time = begindate;
 
+		std::vector<StoredModelParams> paramHints;
+		Prepare_Model_Parameters_For(currentSegmentId, paramHints);
+
 		// at the beginning of the segment, send model parameters hint to chain
 		// this serves as initial estimation for models in chain
-		for (auto& paramset : mModelParams[currentSegmentId])
+		for (auto& paramset : paramHints)
 		{
 			evt.signal_id = paramset.model_id;
 			evt.event_code = glucose::NDevice_Event_Code::Parameters_Hint;
 			//evt.logical_time = logicalTime;
-			evt.parameters = paramset.params.get();
+			evt.parameters = paramset.params;
 			evt.segment_id = currentSegmentId;
 
 			if (mOutput->send(&evt) != S_OK)
@@ -285,8 +288,6 @@ HRESULT CDb_Reader::Run(const refcnt::IVector_Container<glucose::TFilter_Paramet
 			segIdx++;
 		}
 
-		Prepare_Model_Parameters();
-
 		mReaderThread = std::make_unique<std::thread>(&CDb_Reader::Run_Reader, this);
 		Run_Main();
 	}
@@ -300,7 +301,7 @@ HRESULT CDb_Reader::Run(const refcnt::IVector_Container<glucose::TFilter_Paramet
 	return S_OK;
 }
 
-void CDb_Reader::Prepare_Model_Parameters() {
+void CDb_Reader::Prepare_Model_Parameters_For(int64_t segmentId, std::vector<StoredModelParams> &paramsTarget) {
 
 	for (const auto &descriptor : glucose::get_model_descriptors()) {
 		std::string qry = rsSelect_Params_Base;
@@ -321,22 +322,19 @@ void CDb_Reader::Prepare_Model_Parameters() {
 		qry += std::string(descriptor.db_table_name, descriptor.db_table_name + wcslen(descriptor.db_table_name)) + " ";
 		qry += rsSelect_Params_Condition;
 
-		for (int64_t segId : mDbTimeSegmentIds)
+		auto qr = std::make_unique<QSqlQuery>(*mDb.get());
+
+		qr->prepare(qry.c_str());
+		qr->bindValue(0, segmentId);
+		if (qr->exec() && qr->size() != 0)
 		{
-			auto qr = std::make_unique<QSqlQuery>(*mDb.get());
+			qr->seek(0);
 
-			qr->prepare(qry.c_str());
-			qr->bindValue(0, segId);
-			if (qr->exec() && qr->size() != 0)
-			{
-				qr->seek(0);
+			std::vector<double> arr(descriptor.number_of_parameters);
+			for (size_t i = 0; i < descriptor.number_of_parameters; i++)
+				arr[i] = qr->value((int)i).toDouble();
 
-				std::vector<double> arr(descriptor.number_of_parameters);
-				for (size_t i = 0; i < descriptor.number_of_parameters; i++)
-					arr[i] = qr->value((int)i).toDouble();
-
-				mModelParams[segId].push_back({ descriptor.id, refcnt::Create_Container_shared<double>(arr.data(), arr.data() + arr.size()) });
-			}
+			paramsTarget.push_back({ descriptor.id, refcnt::Create_Container<double>(arr.data(), arr.data() + arr.size()) });
 		}
 	}
 }

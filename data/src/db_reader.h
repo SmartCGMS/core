@@ -16,7 +16,7 @@
 struct StoredModelParams
 {
 	const GUID model_id;
-	glucose::SModel_Parameter_Vector params;
+	glucose::IModel_Parameter_Vector* params;
 };
 
 #pragma warning( push )
@@ -62,7 +62,7 @@ class CDb_Reader : public glucose::IFilter, public virtual refcnt::CReferenced
 		std::vector<std::unique_ptr<QSqlQuery>> mValueQuery;
 
 		// prepare model parameters (load from DB) to be sent through output pipe
-		void Prepare_Model_Parameters();
+		void Prepare_Model_Parameters_For(int64_t segmentId, std::vector<StoredModelParams> &paramsTarget);
 
 		// reader thread
 		std::unique_ptr<std::thread> mReaderThread;
