@@ -19,7 +19,7 @@
 /*
  * Filter class for calculating error metrics
  */
-class CErrors_Filter : public glucose::IErrors_Filter, public virtual refcnt::CReferenced
+class CErrors_Filter : public glucose::IFilter, public glucose::IError_Filter_Inspection, public virtual refcnt::CReferenced
 {
 	protected:
 		// input pipe
@@ -27,24 +27,18 @@ class CErrors_Filter : public glucose::IErrors_Filter, public virtual refcnt::CR
 		// output pipe
 		glucose::IFilter_Pipe* mOutput;
 
-		// single static instance of errors filter
-		static std::atomic<CErrors_Filter*> mInstance;
-
 		// currently used error counter instance; TODO: in future, we need to consider more segments at once
-		std::unique_ptr<CError_Metric_Counter> mErrorCounter;
-
-		// thread function
-		void Run_Main();
-
+		std::unique_ptr<CError_Marker_Counter> mErrorCounter;
 	public:
 		CErrors_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe);
+		virtual ~CErrors_Filter() {};
+		
+		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj);
 
-		virtual HRESULT Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;
+		virtual HRESULT IfaceCalling Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;
 
 		// retrieves the only instance of errors filter
-		static CErrors_Filter* Get_Instance();
-		// retrieves error container for given signal and error type
-		HRESULT Get_Errors(const GUID& signal_id, glucose::TError_Container& target, glucose::NError_Type type);
+		virtual HRESULT IfaceCalling Get_Errors(const GUID *signal_id, const glucose::NError_Type type, glucose::TError_Markers *markers);
 };
 
 

@@ -1,12 +1,7 @@
 LIBRARY metric.dll
 
-
 EXPORTS
-  
-	do_create_metric
 	do_get_metric_descriptors
 	do_get_filter_descriptors
-
+	do_create_metric
 	do_create_filter
-
-	get_error_metrics 

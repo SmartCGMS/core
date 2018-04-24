@@ -5,10 +5,3 @@ EXPORTS
 
 	do_get_filter_descriptors
 	do_create_filter
-
-	get_svg_agp
-	get_svg_clark
-	get_svg_day
-	get_svg_graph
-	get_svg_parkes
-	get_svg_parkes_type2

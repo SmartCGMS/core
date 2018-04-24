@@ -1,17 +1,12 @@
 #include "error_metric_counter.h"
 
-#ifdef min
 #undef min
-#endif
-
-#ifdef max
 #undef max
-#endif
 
 // mapping of calculated-reference signal (the errors are calculated against reference signals)
 static std::map<GUID, GUID> Reference_For_Calculated_Signal;
 
-CError_Metric_Counter::CError_Metric_Counter()
+CError_Marker_Counter::CError_Marker_Counter()
 {
 	auto models = glucose::get_model_descriptors();
 	for (auto model : models)
@@ -24,12 +19,12 @@ CError_Metric_Counter::CError_Metric_Counter()
 	}
 }
 
-CError_Metric_Counter::~CError_Metric_Counter()
+CError_Marker_Counter::~CError_Marker_Counter()
 {
 	//
 }
 
-bool CError_Metric_Counter::Add_Level(uint64_t segment_id, const GUID& signal_id, double time, double level)
+bool CError_Marker_Counter::Add_Level(uint64_t segment_id, const GUID& signal_id, double time, double level)
 {
 	TSegmentSignalMap& target = (Reference_For_Calculated_Signal.find(signal_id) != Reference_For_Calculated_Signal.end()) ? mCalculatedValues : mReferenceValues;
 
@@ -42,7 +37,7 @@ bool CError_Metric_Counter::Add_Level(uint64_t segment_id, const GUID& signal_id
 	return (Reference_For_Calculated_Signal.find(signal_id) == Reference_For_Calculated_Signal.end());
 }
 
-bool CError_Metric_Counter::Recalculate_Errors()
+bool CError_Marker_Counter::Recalculate_Errors()
 {
 	if (mCalculatedValues.empty())
 		return false;
@@ -54,27 +49,25 @@ bool CError_Metric_Counter::Recalculate_Errors()
 	return result;
 }
 
-void CError_Metric_Counter::Reset_Segment(uint64_t segment_id, const GUID& signal_id)
+void CError_Marker_Counter::Reset_Segment(uint64_t segment_id, const GUID& signal_id)
 {
 	// reset calculated values only
 	if (Reference_For_Calculated_Signal.find(signal_id) != Reference_For_Calculated_Signal.end())
 		mCalculatedValues[segment_id][signal_id].clear();
 }
 
-HRESULT CError_Metric_Counter::Get_Errors(const GUID& signal_id, glucose::TError_Container& target, glucose::NError_Type type)
-{
+HRESULT CError_Marker_Counter::Get_Errors(const GUID &signal_id, const glucose::NError_Type type, glucose::TError_Markers &markers) {
 	if (mErrors.find(signal_id) == mErrors.end())
 		return ENOENT;
 	
-	target = mErrors[signal_id][static_cast<size_t>(type)];
+	markers = mErrors[signal_id][static_cast<size_t>(type)];
 
 	return S_OK;
 }
 
 static void Get_Quantiles(const std::vector<double>& data, const std::vector<double>& percents, double* const target)
 {
-	if (data.size() <= 1)
-		return;
+	if (data.empty()) return;
 
 	for (size_t i = 0; i < percents.size(); i++)
 	{
@@ -107,7 +100,7 @@ static const double Get_AIC(const double& mean, size_t parameter_count)
 	return 2.0*cnt - 2.0*log(mean);
 }
 
-bool CError_Metric_Counter::Recalculate_Errors_For(const GUID& signal_id)
+bool CError_Marker_Counter::Recalculate_Errors_For(const GUID& signal_id)
 {
 	auto const itr = Reference_For_Calculated_Signal.find(signal_id);
 	if (itr == Reference_For_Calculated_Signal.end())
@@ -157,8 +150,8 @@ bool CError_Metric_Counter::Recalculate_Errors_For(const GUID& signal_id)
 
 	const size_t cnt = refValues.size();
 
-	glucose::TError_Container& absErr = mErrors[signal_id][(size_t)glucose::NError_Type::Absolute];
-	glucose::TError_Container& relErr = mErrors[signal_id][(size_t)glucose::NError_Type::Relative];
+	glucose::TError_Markers& absErr = mErrors[signal_id][(size_t)glucose::NError_Type::Absolute];
+	glucose::TError_Markers& relErr = mErrors[signal_id][(size_t)glucose::NError_Type::Relative];
 
 	if (cnt == 0)
 	{
@@ -192,7 +185,7 @@ bool CError_Metric_Counter::Recalculate_Errors_For(const GUID& signal_id)
 
 	// fill absolute error container
 	absErr.avg = absoluteAvg;
-	Get_Quantiles(absolute, { 0.25, 0.5, 0.75, 0.95, 0.99 }, &absErr.q[1] );
+	Get_Quantiles(absolute, { 0.25, 0.5, 0.75, 0.95, 0.99 }, &absErr.percentile[1] );
 	absErr.minval = absolute[0];
 	absErr.maxval = absolute[cnt - 1];
 	absErr.stddev = Get_Standard_Deviation(absolute, absoluteAvg);
@@ -200,7 +193,7 @@ bool CError_Metric_Counter::Recalculate_Errors_For(const GUID& signal_id)
 
 	// fill relative error container
 	relErr.avg = relativeAvg;
-	Get_Quantiles(relative, { 0.25, 0.5, 0.75, 0.95, 0.99 }, &relErr.q[1]);
+	Get_Quantiles(relative, { 0.25, 0.5, 0.75, 0.95, 0.99 }, &relErr.percentile[1]);
 	relErr.minval = relative[0];
 	relErr.maxval = relative[cnt - 1];
 	relErr.stddev = Get_Standard_Deviation(relative, relativeAvg);

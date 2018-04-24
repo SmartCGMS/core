@@ -110,11 +110,7 @@ class CDrawing_Filter : public glucose::IFilter, public virtual refcnt::CReferen
 		void Store_To_File(std::string& str, std::wstring& filePath);
 
 		// prepares data map for drawing
-		void Prepare_Drawing_Map();
-
-		// there should be only one instance of drawing filter
-		static std::atomic<CDrawing_Filter*> mInstance;
-
+		void Prepare_Drawing_Map();		
 	public:
 		CDrawing_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe);
 
@@ -130,10 +126,6 @@ class CDrawing_Filter : public glucose::IFilter, public virtual refcnt::CReferen
 		const char* Get_SVG_Parkes(bool type1 = true) const;
 
 		virtual HRESULT Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;
-
-		static CDrawing_Filter* Get_Instance();
 };
-
-using TGet_SVG = HRESULT(IfaceCalling*)(refcnt::wstr_container*);
 
 #pragma warning( pop )

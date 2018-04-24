@@ -12,7 +12,6 @@
 #include <iostream>
 #include <chrono>
 
-std::atomic<CErrors_Filter*> CErrors_Filter::mInstance = nullptr;
 
 CErrors_Filter::CErrors_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe)
 	: mInput(inpipe), mOutput(outpipe)
@@ -20,11 +19,22 @@ CErrors_Filter::CErrors_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_P
 	//
 }
 
-void CErrors_Filter::Run_Main()
-{
+HRESULT IfaceCalling CErrors_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
+	if (*riid == glucose::Error_Filter) {
+		*ppvObj = static_cast<glucose::IFilter*>(this);
+		return S_OK;
+	}
+	else if (*riid == glucose::Error_Filter_Inspection) {
+		*ppvObj = static_cast<glucose::IError_Filter_Inspection*>(this);
+		return S_OK;
+	}
+		else return E_INVALIDARG;
+}
+
+HRESULT CErrors_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) {
 	glucose::TDevice_Event evt;
 
-	mErrorCounter = std::make_unique<CError_Metric_Counter>();
+	mErrorCounter = std::make_unique<CError_Marker_Counter>();
 	
 	bool updated = false;
 
@@ -72,42 +82,13 @@ void CErrors_Filter::Run_Main()
 		}
 	}
 
-	// release instance
-	mInstance = nullptr;
-}
-
-CErrors_Filter* CErrors_Filter::Get_Instance()
-{
-	return mInstance;
-}
-
-HRESULT CErrors_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration)
-{
-	CErrors_Filter* instance = nullptr;
-	if (!mInstance.compare_exchange_strong(instance, this))
-	{
-		std::wcerr << L"More than one instance of error metrics filter initialized!" << std::endl;
-		return E_FAIL;
-	}
-
-	Run_Main();
-
 	return S_OK;
 }
 
-HRESULT CErrors_Filter::Get_Errors(const GUID& signal_id, glucose::TError_Container& target, glucose::NError_Type type)
-{
+
+HRESULT IfaceCalling CErrors_Filter::Get_Errors(const GUID *signal_id, const glucose::NError_Type type, glucose::TError_Markers *markers) {
 	if (!mErrorCounter)
 		return E_FAIL;
 
-	return mErrorCounter->Get_Errors(signal_id, target, type);
-}
-
-extern "C" HRESULT IfaceCalling get_error_metrics(const GUID* signal_id, glucose::TError_Container* target, glucose::NError_Type type)
-{
-	CErrors_Filter* flt = CErrors_Filter::Get_Instance();
-	if (!flt)
-		return E_FAIL;
-
-	return flt->Get_Errors(*signal_id, *target, type);
+	return mErrorCounter->Get_Errors(*signal_id, type, *markers);
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../../common/iface/FilterIface.h"
 #include "../../../common/rtl/DeviceLib.h"
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/rattime.h"
@@ -13,9 +14,9 @@
  * Standalone class for calculating error metrics
  */
 
-using TError_Array = std::array<glucose::TError_Container, glucose::Error_Type_Count>;	//without this, ICC 18 Update 2 won't compile the project
+using TError_Array = std::array<glucose::TError_Markers, static_cast<size_t>(glucose::NError_Type::count)>;	//without this, ICC 18 Update 2 won't compile the project
 
-class CError_Metric_Counter
+class CError_Marker_Counter
 {
 	private:
 
@@ -44,8 +45,8 @@ class CError_Metric_Counter
 		std::map<GUID, size_t> mSignalModelParamCount;
 
 	public:
-		CError_Metric_Counter();
-		virtual ~CError_Metric_Counter();
+		CError_Marker_Counter();
+		virtual ~CError_Marker_Counter();
 
 		// adds level to segment
 		bool Add_Level(uint64_t segment_id, const GUID& signal_id, double time, double level);
@@ -55,6 +56,7 @@ class CError_Metric_Counter
 		bool Recalculate_Errors_For(const GUID& signal_id);
 		// updates parameters of given signal (model)
 		void Reset_Segment(uint64_t segment_id, const GUID& signal_id);
+		
 		// retrieves error record
-		HRESULT Get_Errors(const GUID& signal_id, glucose::TError_Container& target, glucose::NError_Type type);
+		HRESULT Get_Errors(const GUID &signal_id, const glucose::NError_Type type, glucose::TError_Markers &markers);
 };
