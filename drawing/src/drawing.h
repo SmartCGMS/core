@@ -20,7 +20,7 @@
 /*
  * Drawing filter class utilizing the code for generating SVGs based on input data
  */
-class CDrawing_Filter : public glucose::IFilter, public virtual refcnt::CReferenced
+class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose::IDrawing_Filter_Inspection, public virtual refcnt::CReferenced
 {
 	protected:
 		// input pipe
@@ -111,21 +111,21 @@ class CDrawing_Filter : public glucose::IFilter, public virtual refcnt::CReferen
 
 		// prepares data map for drawing
 		void Prepare_Drawing_Map();		
+
+		HRESULT Get_Plot(const std::string &plot, refcnt::IVector_Container<char> *svg) const;
 	public:
 		CDrawing_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe);
+		virtual ~CDrawing_Filter() {};
 
-		// retrieves generated AGP SVG
-		const char* Get_SVG_AGP() const;
-		// retrieves generated Clark SVG
-		const char* Get_SVG_Clark() const;
-		// retrieves generated day SVG
-		const char* Get_SVG_Day() const;
-		// retrieves generated graph SVG
-		const char* Get_SVG_Graph() const;
-		// retrieves generated Parkes SVG
-		const char* Get_SVG_Parkes(bool type1 = true) const;
+		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
 
 		virtual HRESULT Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;
+
+		virtual HRESULT IfaceCalling Draw_APG(refcnt::IVector_Container<char> *svg) const override final;
+		virtual HRESULT IfaceCalling Draw_Clarke(refcnt::IVector_Container<char> *svg) const override final;
+		virtual HRESULT IfaceCalling Draw_Day(refcnt::IVector_Container<char> *svg) const override final;
+		virtual HRESULT IfaceCalling Draw_Graph(refcnt::IVector_Container<char> *svg) const override final;
+		virtual HRESULT IfaceCalling Draw_Parkes(refcnt::IVector_Container<char> *svg, bool type1) const override final;
 };
 
 #pragma warning( pop )

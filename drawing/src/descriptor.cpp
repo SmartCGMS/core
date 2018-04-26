@@ -61,7 +61,7 @@ namespace drawing
 	};
 
 	const glucose::TFilter_Descriptor Drawing_Descriptor = {
-		{ 0x850a122c, 0x8943, 0xa211, { 0xc5, 0x14, 0x25, 0xba, 0xa9, 0x14, 0x35, 0x74 } }, //// {850A122C-8943-A211-C514-25BAA9143574}
+		glucose::Drawing_Filter,
 		dsDrawing_Filter,
 		param_count,
 		param_type,

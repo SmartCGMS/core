@@ -27,7 +27,7 @@ namespace errors
 	constexpr size_t param_count = 0;
 
 	const glucose::TFilter_Descriptor Errors_Descriptor = {
-		{ 0x4a125499, 0x5dc8, 0x128e,{ 0xa5, 0x5c, 0x14, 0x22, 0xbc, 0xac, 0x10, 0x74 } }, //// {4A125499-5DC8-128E-A55C-1422BCAC1074}
+		glucose::Error_Filter,
 		dsErrors_Filter,
 		param_count,
 		nullptr,

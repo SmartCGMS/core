@@ -19,12 +19,14 @@
 #include <algorithm>
 #include <set>
 
-std::atomic<CDrawing_Filter*> CDrawing_Filter::mInstance = nullptr;
-
 CDrawing_Filter::CDrawing_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe)
-	: mInput(inpipe), mOutput(outpipe), mRedrawPeriod(500), mGraphMaxValue(-1), mDiagnosis(1)
-{
-	//
+	: mInput(inpipe), mOutput(outpipe), mRedrawPeriod(500), mGraphMaxValue(-1), mDiagnosis(1) {}
+
+HRESULT IfaceCalling CDrawing_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
+	if (Internal_Query_Interface<glucose::IFilter>(glucose::Drawing_Filter, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<glucose::IDrawing_Filter_Inspection>(glucose::Drawing_Filter_Inspection, *riid, ppvObj)) return S_OK;
+
+	return E_INVALIDARG;
 }
 
 void CDrawing_Filter::Run_Main()
@@ -113,8 +115,6 @@ void CDrawing_Filter::Run_Main()
 	if (mSchedulerThread->joinable())
 		mSchedulerThread->join();
 
-	// clear instance
-	mInstance = nullptr;
 }
 
 void CDrawing_Filter::Run_Scheduler()
@@ -271,11 +271,6 @@ HRESULT CDrawing_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Pa
 	return S_OK;
 }
 
-CDrawing_Filter* CDrawing_Filter::Get_Instance()
-{
-	return mInstance;
-}
-
 inline std::string WToMB(std::wstring in)
 {
 	return std::string(in.begin(), in.end());
@@ -355,126 +350,30 @@ void CDrawing_Filter::Generate_Graphs(DataMap& valueMap, double maxValue, Locali
 	mOutput->send(&drawEvt);
 }
 
-const char* CDrawing_Filter::Get_SVG_AGP() const
-{
+HRESULT CDrawing_Filter::Get_Plot(const std::string &plot, refcnt::IVector_Container<char> *svg) const {
 	std::unique_lock<std::mutex> lck(mRetrieveMtx);
-
-	return mAGP_SVG.c_str();
+	svg->set(plot.data(), plot.data() + plot.size());
+	return S_OK;
 }
 
-const char* CDrawing_Filter::Get_SVG_Clark() const
-{
-	std::unique_lock<std::mutex> lck(mRetrieveMtx);
-
-	return mClark_SVG.c_str();
+HRESULT IfaceCalling CDrawing_Filter::Draw_APG(refcnt::IVector_Container<char> *svg) const {
+	return Get_Plot(mAGP_SVG, svg);	
 }
 
-const char* CDrawing_Filter::Get_SVG_Day() const
-{
-	std::unique_lock<std::mutex> lck(mRetrieveMtx);
-
-	return mDay_SVG.c_str();
+HRESULT IfaceCalling CDrawing_Filter::Draw_Clarke(refcnt::IVector_Container<char> *svg) const {
+	return Get_Plot(mClark_SVG, svg);
 }
 
-const char* CDrawing_Filter::Get_SVG_Graph() const
-{
-	std::unique_lock<std::mutex> lck(mRetrieveMtx);
-
-	return mGraph_SVG.c_str();
+HRESULT IfaceCalling CDrawing_Filter::Draw_Day(refcnt::IVector_Container<char> *svg) const {
+	return Get_Plot(mDay_SVG, svg);
 }
 
-const char* CDrawing_Filter::Get_SVG_Parkes(bool type1) const
-{
-	std::unique_lock<std::mutex> lck(mRetrieveMtx);
-
-	if (type1)
-		return mParkes_type1_SVG.c_str();
-	else
-		return mParkes_type2_SVG.c_str();
+HRESULT IfaceCalling CDrawing_Filter::Draw_Graph(refcnt::IVector_Container<char> *svg) const {
+	return Get_Plot(mGraph_SVG, svg);
 }
 
-extern "C" HRESULT IfaceCalling get_svg_agp(refcnt::wstr_container* target)
-{
-	if (auto filter = CDrawing_Filter::Get_Instance())
-	{
-		const char* pdata = filter->Get_SVG_AGP();
-
-		std::wstring image{ pdata, pdata + strlen(pdata) }; // this step won't be necessary after drawing module rework to wchar_t
-		target->set(image.data(), image.data() + image.size());
-
-		return S_OK;
-	}
-	return E_FAIL;
-}
-
-extern "C" HRESULT IfaceCalling get_svg_clark(refcnt::wstr_container* target)
-{
-	if (auto filter = CDrawing_Filter::Get_Instance())
-	{
-		const char* pdata = filter->Get_SVG_Clark();
-
-		std::wstring image{ pdata, pdata + strlen(pdata) }; // this step won't be necessary after drawing module rework to wchar_t
-		target->set(image.data(), image.data() + image.size());
-
-		return S_OK;
-	}
-	return E_FAIL;
-}
-
-extern "C" HRESULT IfaceCalling get_svg_day(refcnt::wstr_container* target)
-{
-	if (auto filter = CDrawing_Filter::Get_Instance())
-	{
-		const char* pdata = filter->Get_SVG_Day();
-
-		std::wstring image{ pdata, pdata + strlen(pdata) }; // this step won't be necessary after drawing module rework to wchar_t
-		target->set(image.data(), image.data() + image.size());
-
-		return S_OK;
-	}
-	return E_FAIL;
-}
-
-extern "C" HRESULT IfaceCalling get_svg_graph(refcnt::wstr_container* target)
-{
-	if (auto filter = CDrawing_Filter::Get_Instance())
-	{
-		const char* pdata = filter->Get_SVG_Graph();
-
-		std::wstring image{ pdata, pdata + strlen(pdata) }; // this step won't be necessary after drawing module rework to wchar_t
-		target->set(image.data(), image.data() + image.size());
-
-		return S_OK;
-	}
-	return E_FAIL;
-}
-
-extern "C" HRESULT IfaceCalling get_svg_parkes(refcnt::wstr_container* target)
-{
-	if (auto filter = CDrawing_Filter::Get_Instance())
-	{
-		const char* pdata = filter->Get_SVG_Parkes(true);
-
-		std::wstring image{ pdata, pdata + strlen(pdata) }; // this step won't be necessary after drawing module rework to wchar_t
-		target->set(image.data(), image.data() + image.size());
-
-		return S_OK;
-	}
-	return E_FAIL;
-}
-
-extern "C" HRESULT IfaceCalling get_svg_parkes_type2(refcnt::wstr_container* target)
-{
-	if (auto filter = CDrawing_Filter::Get_Instance())
-	{
-		const char* pdata = filter->Get_SVG_Parkes(false);
-
-		std::wstring image{ pdata, pdata + strlen(pdata) }; // this step won't be necessary after drawing module rework to wchar_t
-		target->set(image.data(), image.data() + image.size());
-
-		return S_OK;
-	}
-	return E_FAIL;
+HRESULT IfaceCalling CDrawing_Filter::Draw_Parkes(refcnt::IVector_Container<char> *svg, bool type1) const {
+	return Get_Plot(type1 ? mParkes_type1_SVG : mParkes_type2_SVG, svg);
 }
 
 void CDrawing_Filter::Set_Locale_Title(LocalizationMap& locales, std::wstring title) const

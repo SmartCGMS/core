@@ -20,14 +20,11 @@ CErrors_Filter::CErrors_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_P
 }
 
 HRESULT IfaceCalling CErrors_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
-	HRESULT result = S_OK;
-
-	if (*riid == glucose::Error_Filter) *ppvObj = static_cast<glucose::IFilter*>(this);		
-		else if (*riid == glucose::Error_Filter_Inspection) *ppvObj = static_cast<glucose::IError_Filter_Inspection*>(this);
-			else result = E_INVALIDARG;
-
-	if (result == S_OK)
-		reinterpret_cast<refcnt::IReferenced*>(*ppvObj)->AddRef();
+	
+	if (Internal_Query_Interface<glucose::IFilter>(glucose::Error_Filter, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<glucose::IError_Filter_Inspection>(glucose::Error_Filter_Inspection, *riid, ppvObj)) return S_OK;
+	
+	return E_INVALIDARG;
 }
 
 HRESULT CErrors_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) {
