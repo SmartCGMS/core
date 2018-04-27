@@ -188,15 +188,7 @@ void CDrawing_Filter::Prepare_Drawing_Map()
 	mDataMap = vectorsMap;
 }
 
-HRESULT CDrawing_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration)
-{
-	CDrawing_Filter* trg = nullptr;
-	if (!mInstance.compare_exchange_strong(trg, this))
-	{
-		std::wcerr << L"More than one instance of drawing filter initialized!" << std::endl;
-		return E_FAIL;
-	}
-
+HRESULT CDrawing_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) {
 	mCanvasWidth = 0;
 	mCanvasHeight = 0;
 

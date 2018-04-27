@@ -19,6 +19,7 @@ struct StoredModelParams
 	glucose::IModel_Parameter_Vector* params;
 };
 
+
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
@@ -57,9 +58,9 @@ class CDb_Reader : public glucose::IFilter, public virtual refcnt::CReferenced
 		std::map<int64_t, std::vector<StoredModelParams>> mModelParams;
 
 		// database connection instance
-		std::unique_ptr<QSqlDatabase> mDb;
+		QSqlDatabase mDb;
 		// stored query for selecting segment values
-		std::vector<std::unique_ptr<QSqlQuery>> mValueQuery;
+		std::vector<QSqlQuery> mValueQuery;
 
 		// prepare model parameters (load from DB) to be sent through output pipe
 		void Prepare_Model_Parameters_For(int64_t segmentId, std::vector<StoredModelParams> &paramsTarget);

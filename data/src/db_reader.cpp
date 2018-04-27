@@ -6,7 +6,7 @@
 #include "../../../common/rtl/referencedImpl.h"
 #include "../../../common/rtl/ModelsLib.h"
 #include "../../../common/rtl/UILib.h"
-
+#include "../../../common/rtl/FilesystemLib.h"
 #include "../../../common/lang/dstrings.h"
 
 #include <map>
@@ -15,7 +15,28 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QDebug>
 #include <QtSql/QSqlError>
+
 #include <QtCore/QCoreApplication>
+
+class CQApp_Init {
+protected:
+	std::unique_ptr<QCoreApplication> mApp;
+public:
+	CQApp_Init() {
+		if (QCoreApplication::instance() == nullptr) {
+			//let's create our one
+
+			const std::wstring wide_path = Get_Application_Dir();
+			const std::string exe_path = std::string{ wide_path.begin(), wide_path.end() };
+			const char* argv = exe_path.c_str();
+			int argc = 1;
+			mApp = std::make_unique<QCoreApplication>(argc, const_cast<char**>(&argv));
+		}
+	}
+};
+
+CQApp_Init qapp_init;	//we need to ensure that QCoreApplication is created in the main thread
+
 
 // dummy device GUID
 const GUID Db_Reader_Device_GUID = { 0x00000001, 0x0001, 0x0001,{ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
@@ -55,8 +76,7 @@ CDb_Reader::CDb_Reader(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* out
 	: mInput(inpipe), mOutput(outpipe), mDbPort(0), mCurrentSegmentIdx(-1)
 {
 	//
-	QCoreApplication::addLibraryPath("c:\\programy\\glucose3\\compiled\\sqldrivers");
-}
+	}
 
 CDb_Reader::~CDb_Reader()
 {
@@ -83,9 +103,9 @@ void CDb_Reader::Run_Reader()
 	int64_t logicalTime = 1;
 	uint64_t currentSegmentId;
 
-	mValueQuery[0]->seek(0);
+	mValueQuery[0].seek(0);
 
-	double begindate = Unix_Time_To_Rat_Time(mValueQuery[0]->value(0).toDateTime().toSecsSinceEpoch());
+	double begindate = Unix_Time_To_Rat_Time(mValueQuery[0].value(0).toDateTime().toSecsSinceEpoch());
 	double nowdate = Unix_Time_To_Rat_Time(QDateTime::currentDateTime().toSecsSinceEpoch());
 
 	// base correction is used as value for shifting the time segment (its values) from past to present
@@ -101,9 +121,9 @@ void CDb_Reader::Run_Reader()
 		currentSegmentId = (uint64_t)mDbTimeSegmentIds[idx];
 
 		// seek to first record in result set
-		mValueQuery[idx]->seek(0);
+		mValueQuery[idx].seek(0);
 
-		begindate = Unix_Time_To_Rat_Time(mValueQuery[idx]->value(0).toDateTime().toSecsSinceEpoch()) + dateCorrection;
+		begindate = Unix_Time_To_Rat_Time(mValueQuery[idx].value(0).toDateTime().toSecsSinceEpoch()) + dateCorrection;
 
 		// if the spacing is greated than 1 day, condense it
 		if (abs(begindate - lastDate) > 1.0)
@@ -112,7 +132,7 @@ void CDb_Reader::Run_Reader()
 			dateCorrection -= ceil(begindate - lastDate);
 			dateCorrection += 1.0;
 
-			begindate = Unix_Time_To_Rat_Time(mValueQuery[idx]->value(0).toDateTime().toSecsSinceEpoch()) + dateCorrection;
+			begindate = Unix_Time_To_Rat_Time(mValueQuery[idx].value(0).toDateTime().toSecsSinceEpoch()) + dateCorrection;
 		}
 
 		Send_Segment_Marker(glucose::NDevice_Event_Code::Time_Segment_Start, begindate, logicalTime, currentSegmentId);
@@ -147,14 +167,14 @@ void CDb_Reader::Run_Reader()
 			// "select measuredat, blood, ist, isig, insulin, carbohydrates, calibration from measuredvalue where segmentid = ? order by measuredat asc"
 			//         0           1      2    3     4        5              6
 
-			auto dt = mValueQuery[idx]->value(0).toDateTime();
+			auto dt = mValueQuery[idx].value(0).toDateTime();
 
 			double jdate = Unix_Time_To_Rat_Time(dt.toSecsSinceEpoch());
 
 			// go through all value columns
 			for (NColumn_Pos i = NColumn_Pos::_Begin; i < NColumn_Pos::_End; ++i)
 			{
-				auto column = mValueQuery[idx]->value(static_cast<int>(i));
+				auto column = mValueQuery[idx].value(static_cast<int>(i));
 
 				// if no value is present, skip
 				if (column.isNull())
@@ -180,7 +200,7 @@ void CDb_Reader::Run_Reader()
 					break;
 				}
 			}
-		} while (!isError && mValueQuery[idx]->next());
+		} while (!isError && mValueQuery[idx].next());
 
 		// evt.device_time is now guaranteed to have valid time of last sent event
 
@@ -191,8 +211,7 @@ void CDb_Reader::Run_Reader()
 	}
 }
 
-void CDb_Reader::Run_Main()
-{
+void CDb_Reader::Run_Main() {
 	glucose::TDevice_Event evt;
 
 	while (mInput->receive(&evt) == S_OK)
@@ -257,35 +276,25 @@ HRESULT CDb_Reader::Run(const refcnt::IVector_Container<glucose::TFilter_Paramet
 		}
 	}
 
+
 	// we need at least these parameters
 	if (mDbHost.empty() || mDbProvider.empty() || mDbTimeSegmentIds.empty())
-		return E_FAIL;
+		return E_INVALIDARG;
 
-	mDb = std::make_unique<QSqlDatabase>(QSqlDatabase::addDatabase(QString::fromStdWString(mDbProvider), mDb_Connection_Name));
-	mDb->setHostName(QString::fromStdWString(mDbHost));
+	mDb = QSqlDatabase::addDatabase(QString::fromStdWString(mDbProvider)/*, mDb_Connection_Name*/);
+	mDb.setHostName(QString::fromStdWString(mDbHost));
 	if (mDbPort != 0)
-		mDb->setPort(mDbPort);
-	mDb->setDatabaseName(QString::fromStdWString(mDbDatabaseName));
-	mDb->setUserName(QString::fromStdWString(mDbUsername));
-	mDb->setPassword(QString::fromStdWString(mDbPassword));
+		mDb.setPort(mDbPort);
+	mDb.setDatabaseName(QString::fromStdWString(mDbDatabaseName));
+	mDb.setUserName(QString::fromStdWString(mDbUsername));
+	mDb.setPassword(QString::fromStdWString(mDbPassword));
 
-	if (mDb->open())
-	{
-		size_t segIdx = 0;
-		mValueQuery.resize(mDbTimeSegmentIds.size());
-
-		for (int64_t segId : mDbTimeSegmentIds)
-		{
-			mValueQuery[segIdx] = std::make_unique<QSqlQuery>(*mDb.get());
-			mValueQuery[segIdx]->prepare(rsSelect_Timesegment_Values_Filter);
-			mValueQuery[segIdx]->bindValue(0, mDbTimeSegmentIds[segIdx]);
-			if (!mValueQuery[segIdx]->exec() || mValueQuery[segIdx]->size() == 0)
-			{
-				qDebug() << mValueQuery[segIdx]->lastError();
-				return E_FAIL;
-			}
-
-			segIdx++;
+	if (mDb.open()) {
+		for (const auto segment_id : mDbTimeSegmentIds)	{
+			QSqlQuery query{ mDb };			
+			query.prepare(rsSelect_Timesegment_Values_Filter);
+			query.bindValue(0, segment_id);
+			if (query.exec()) mValueQuery.push_back(query);
 		}
 
 		mReaderThread = std::make_unique<std::thread>(&CDb_Reader::Run_Reader, this);
@@ -293,7 +302,7 @@ HRESULT CDb_Reader::Run(const refcnt::IVector_Container<glucose::TFilter_Paramet
 	}
 	else
 	{
-		qDebug() << mDb->lastError();
+		qDebug() << mDb.lastError();
 
 		return E_FAIL;
 	}
@@ -322,7 +331,7 @@ void CDb_Reader::Prepare_Model_Parameters_For(int64_t segmentId, std::vector<Sto
 		qry += std::string(descriptor.db_table_name, descriptor.db_table_name + wcslen(descriptor.db_table_name)) + " ";
 		qry += rsSelect_Params_Condition;
 
-		auto qr = std::make_unique<QSqlQuery>(*mDb.get());
+		auto qr = std::make_unique<QSqlQuery>(mDb);
 
 		qr->prepare(qry.c_str());
 		qr->bindValue(0, segmentId);
