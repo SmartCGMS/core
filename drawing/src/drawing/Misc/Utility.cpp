@@ -55,7 +55,7 @@ namespace Utility
     std::vector<time_t> Get_Times(time_t minDate, time_t maxDate)
     {
         // midnight before first date
-#ifdef WIN32
+#ifdef _WIN32
         tm tim;
         _localtime(&tim, minDate);
         tm* midnight_before = &tim;
@@ -69,7 +69,7 @@ namespace Utility
         time_t before = mktime(midnight_before);
 
         // midnight after last date
-#ifdef WIN32
+#ifdef _WIN32
         _localtime(&tim, maxDate);
         tm* midnight_after = &tim;
 #else
@@ -208,7 +208,7 @@ namespace Utility
 
     std::string Format_Date(time_t t)
     {
-#ifdef WIN32
+#ifdef _WIN32
         tm tim;
         _localtime(&tim, t);
         tm* timeinfo = &tim;
@@ -229,7 +229,7 @@ namespace Utility
 
     std::string Format_Date_CSV(time_t t)
     {
-#ifdef WIN32
+#ifdef _WIN32
         tm tim;
         _localtime(&tim, t);
         tm* timeinfo = &tim;

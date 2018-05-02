@@ -59,7 +59,7 @@ class CDb_Reader : public virtual glucose::IFilter, public virtual db::IDb_Sink,
 		std::map<int64_t, std::vector<StoredModelParams>> mModelParams;
 
 		// database connection instance
-		QSqlDatabase mDb;
+		QSqlDatabase *mDb;
 
 		// prepare model parameters (load from DB) to be sent through output pipe
 		void Prepare_Model_Parameters_For(int64_t segmentId, std::vector<StoredModelParams> &paramsTarget);
@@ -73,7 +73,7 @@ class CDb_Reader : public virtual glucose::IFilter, public virtual db::IDb_Sink,
 		void Run_Main();
 
 		// sends segment marker through output pipe
-		void Send_Segment_Marker(glucose::NDevice_Event_Code code, double device_time, int64_t logical_time, uint64_t segment_id);
+		void Send_Segment_Marker(glucose::NDevice_Event_Code code, double device_time, uint64_t segment_id);
 	protected:
 		db::SDb_Connector mDb_Connector;
 		db::SDb_Connection mDb_Connection;

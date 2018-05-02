@@ -63,26 +63,38 @@ CDb_Reader::~CDb_Reader()
 	//
 }
 
-void CDb_Reader::Send_Segment_Marker(glucose::NDevice_Event_Code code, double device_time, int64_t logical_time, uint64_t segment_id)
+void CDb_Reader::Send_Segment_Marker(glucose::NDevice_Event_Code code, double device_time, uint64_t segment_id)
 {
 	glucose::TDevice_Event evt;
 
 	evt.device_id = Db_Reader_Device_GUID;
 	evt.device_time = device_time;
 	evt.event_code = code;
-	//evt.logical_time = logical_time;
 	evt.segment_id = segment_id;
 
 	mOutput->send(&evt);
 }
 
-void CDb_Reader::Run_Reader()
-{
+void CDb_Reader::Run_Reader() {
+
+	//by consulting
+	//https://stackoverflow.com/questions/47457478/using-qsqlquery-from-multiple-threads?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+	//https://doc.qt.io/qt-5/threads-modules.html
+
+	//we must open the db connection from exactly that thread, that is about to use it
+
+	HRESULT rc = E_FAIL;
+	if (mDb_Connector) mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
+	if (mDb_Connection) rc = mDb_Connection->Get_Raw((void**)&mDb);
+	if (rc == S_OK) rc = mDb->open() ? S_OK : E_FAIL;
+	if (rc != S_OK) return;
+
+
+	
 	bool ok;
 	glucose::TDevice_Event evt;
-	int64_t logicalTime = 1;
 	uint64_t currentSegmentId;
-
+	
 	double nowdate = Unix_Time_To_Rat_Time(QDateTime::currentDateTime().toSecsSinceEpoch());
 	double begindate = nowdate;
 
@@ -90,8 +102,9 @@ void CDb_Reader::Run_Reader()
 	{
 		QSqlQuery valueQuery = Get_Segment_Query(mDbTimeSegmentIds[0]);
 
-		if (valueQuery.next())
-			begindate = Unix_Time_To_Rat_Time(valueQuery.value(0).toDateTime().toSecsSinceEpoch());
+		if (valueQuery.next()) 
+			begindate = Unix_Time_To_Rat_Time(valueQuery.value(0).toDateTime().toSecsSinceEpoch());		
+
 	}
 
 	// base correction is used as value for shifting the time segment (its values) from past to present
@@ -122,8 +135,7 @@ void CDb_Reader::Run_Reader()
 			begindate = Unix_Time_To_Rat_Time(valueQuery.value(0).toDateTime().toSecsSinceEpoch()) + dateCorrection;
 		}
 
-		Send_Segment_Marker(glucose::NDevice_Event_Code::Time_Segment_Start, begindate, logicalTime, currentSegmentId);
-		logicalTime++;
+		Send_Segment_Marker(glucose::NDevice_Event_Code::Time_Segment_Start, begindate, currentSegmentId);		
 
 		evt.device_time = begindate;
 
@@ -136,14 +148,11 @@ void CDb_Reader::Run_Reader()
 		{
 			evt.signal_id = paramset.model_id;
 			evt.event_code = glucose::NDevice_Event_Code::Parameters_Hint;
-			//evt.logical_time = logicalTime;
 			evt.parameters = paramset.params;
 			evt.segment_id = currentSegmentId;
 
 			if (mOutput->send(&evt) != S_OK)
 				break;
-
-			logicalTime++;
 		}
 
 		bool isError = false;
@@ -174,11 +183,8 @@ void CDb_Reader::Run_Reader()
 				evt.device_id = Db_Reader_Device_GUID;
 				evt.signal_id = ColumnSignalMap[i];
 				evt.device_time = jdate + dateCorrection; // apply base correction
-				evt.event_code = (i == NColumn_Pos::Calibration) ? glucose::NDevice_Event_Code::Calibrated : glucose::NDevice_Event_Code::Level;
-				//evt.logical_time = logicalTime;
+				evt.event_code = (i == NColumn_Pos::Calibration) ? glucose::NDevice_Event_Code::Calibrated : glucose::NDevice_Event_Code::Level;				
 				evt.segment_id = currentSegmentId;
-
-				logicalTime++;
 
 				// this may block if the pipe is full (i.e. due to artificial slowdown filter, simulation stepping, etc.)
 				if (mOutput->send(&evt) != S_OK)
@@ -191,14 +197,14 @@ void CDb_Reader::Run_Reader()
 
 		// evt.device_time is now guaranteed to have valid time of last sent event
 
-		Send_Segment_Marker(glucose::NDevice_Event_Code::Time_Segment_Stop, evt.device_time, logicalTime, currentSegmentId);
-		logicalTime++;
+		Send_Segment_Marker(glucose::NDevice_Event_Code::Time_Segment_Stop, evt.device_time, currentSegmentId);		
 
 		lastDate = evt.device_time;
 	}
 }
 
 void CDb_Reader::Run_Main() {
+
 	glucose::TDevice_Event evt;
 
 	while (mInput->receive(&evt) == S_OK)
@@ -268,24 +274,16 @@ HRESULT CDb_Reader::Run(const refcnt::IVector_Container<glucose::TFilter_Paramet
 	if (mDbHost.empty() || mDbProvider.empty() || mDbTimeSegmentIds.empty())
 		return E_INVALIDARG;
 
-	HRESULT rc = E_FAIL;
-	if (mDb_Connector) mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
-	if (mDb_Connection) rc = mDb_Connection->Get_Raw((void*)&mDb);
+	//as we have to open the db from the reader thread, we have no other way than to assume that everything goes fine
+	mReaderThread = std::make_unique<std::thread>(&CDb_Reader::Run_Reader, this);
+	Run_Main();
 
-	if (rc == S_OK) {
-		if (mDb.open()) {
-			mReaderThread = std::make_unique<std::thread>(&CDb_Reader::Run_Reader, this);
-			Run_Main();
-		}
-		else rc = E_FAIL;
-	}
-
-	return rc;
+	return S_OK;
 }
 
 QSqlQuery CDb_Reader::Get_Segment_Query(int64_t segmentId)
 {
-	QSqlQuery query{ mDb };
+	QSqlQuery query{ *mDb };
 
 	query.prepare(rsSelect_Timesegment_Values_Filter);
 	query.bindValue(0, segmentId);
@@ -312,22 +310,22 @@ void CDb_Reader::Prepare_Model_Parameters_For(int64_t segmentId, std::vector<Sto
 
 		qry += " ";
 		qry += rsSelect_Params_From;
-		qry += std::string(descriptor.db_table_name, descriptor.db_table_name + wcslen(descriptor.db_table_name)) + " ";
+		qry += std::string(descriptor.db_table_name, descriptor.db_table_name + wcslen(descriptor.db_table_name));
 		qry += rsSelect_Params_Condition;
 
-		QSqlQuery qr(mDb);
+		QSqlQuery qr(*mDb);
 
 		qr.prepare(qry.c_str());
 		qr.bindValue(0, segmentId);
 		//if (qr.exec() && qr.size() != 0 && qr.next())
-		if (qr.exec())
-			if (qr.next())
-		{
-			std::vector<double> arr(descriptor.number_of_parameters);
-			for (size_t i = 0; i < descriptor.number_of_parameters; i++)
-				arr[i] = qr.value(static_cast<int>(i)).toDouble();
+		if (qr.exec()) {
+			if (qr.next()) {
+				std::vector<double> arr;
+				for (size_t i = 0; i < descriptor.number_of_parameters; i++)
+					arr.push_back(qr.value(static_cast<int>(i)).toDouble());
 
-			paramsTarget.push_back({ descriptor.id, refcnt::Create_Container<double>(arr.data(), arr.data() + arr.size()) });
+				paramsTarget.push_back({ descriptor.id, refcnt::Create_Container<double>(arr.data(), arr.data() + arr.size()) });
+			}
 		}
 	}
 }

@@ -230,7 +230,7 @@ double CDay_Generator::Normalize_X(int hour, int minute) const
 
 double CDay_Generator::Normalize_Time_X(time_t date) const
 {
-#ifdef WIN32
+#ifdef _WIN32
     tm tim;
     _localtime(&tim, date);
     tm* timeinfo = &tim;

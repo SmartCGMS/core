@@ -27,7 +27,7 @@ class CGraph_Generator : public IGenerator
         // maximum value on Y axis
         double mMaxValueY;
         // time limits
-        time_t mMinD, mMaxD, mDifD;
+		time_t mMinD{ 0 }, mMaxD{ 0 }, mDifD{ 0 };
 
         // writes plot body
         void Write_Body();

@@ -33,7 +33,7 @@ void CAGP_Generator::Set_Canvas_Size(int width, int height)
 
 static void Set_Hour_Min(time_t minD, time_t &start_date, int hour, int min)
 {
-#ifdef WIN32
+#ifdef _WIN32
     tm tim;
     _localtime(&tim, minD);
     tm* start_time_tm = &tim;
@@ -360,7 +360,7 @@ double CAGP_Generator::Normalize_X(int hour, int minute) const
 
 double CAGP_Generator::Normalize_Time_X(time_t x) const
 {
-#ifdef WIN32
+#ifdef _WIN32
     tm tim;
     _localtime(&tim, x);
     tm* timeinfo = &tim;
