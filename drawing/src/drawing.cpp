@@ -26,7 +26,7 @@ HRESULT IfaceCalling CDrawing_Filter::QueryInterface(const GUID*  riid, void ** 
 	if (Internal_Query_Interface<glucose::IFilter>(glucose::Drawing_Filter, *riid, ppvObj)) return S_OK;
 	if (Internal_Query_Interface<glucose::IDrawing_Filter_Inspection>(glucose::Drawing_Filter_Inspection, *riid, ppvObj)) return S_OK;
 
-	return E_INVALIDARG;
+	return E_NOINTERFACE;
 }
 
 void CDrawing_Filter::Run_Main()
@@ -348,24 +348,33 @@ HRESULT CDrawing_Filter::Get_Plot(const std::string &plot, refcnt::IVector_Conta
 	return S_OK;
 }
 
-HRESULT IfaceCalling CDrawing_Filter::Draw_APG(refcnt::IVector_Container<char> *svg) const {
-	return Get_Plot(mAGP_SVG, svg);	
-}
+HRESULT IfaceCalling CDrawing_Filter::Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg) const
+{
+	switch (type)
+	{
+		case glucose::TDrawing_Image_Type::Agp:
+			return Get_Plot(mAGP_SVG, svg);
+		case glucose::TDrawing_Image_Type::Day:
+			return Get_Plot(mDay_SVG, svg);
+		case glucose::TDrawing_Image_Type::Graph:
+			return Get_Plot(mGraph_SVG, svg);
+		case glucose::TDrawing_Image_Type::Clark:
+			return Get_Plot(mClark_SVG, svg);
+		case glucose::TDrawing_Image_Type::Parkes:
+		{
+			switch (diagnosis)
+			{
+				case glucose::TDiagnosis::Type1:
+					return Get_Plot(mParkes_type1_SVG, svg);
+				case glucose::TDiagnosis::Type2:
+				case glucose::TDiagnosis::Gestational:
+					return Get_Plot(mParkes_type2_SVG, svg);
+					// TODO: Parkes error grid for gestational diabetes
+			}
+		}
+	}
 
-HRESULT IfaceCalling CDrawing_Filter::Draw_Clarke(refcnt::IVector_Container<char> *svg) const {
-	return Get_Plot(mClark_SVG, svg);
-}
-
-HRESULT IfaceCalling CDrawing_Filter::Draw_Day(refcnt::IVector_Container<char> *svg) const {
-	return Get_Plot(mDay_SVG, svg);
-}
-
-HRESULT IfaceCalling CDrawing_Filter::Draw_Graph(refcnt::IVector_Container<char> *svg) const {
-	return Get_Plot(mGraph_SVG, svg);
-}
-
-HRESULT IfaceCalling CDrawing_Filter::Draw_Parkes(refcnt::IVector_Container<char> *svg, bool type1) const {
-	return Get_Plot(type1 ? mParkes_type1_SVG : mParkes_type2_SVG, svg);
+	return E_INVALIDARG;
 }
 
 void CDrawing_Filter::Set_Locale_Title(LocalizationMap& locales, std::wstring title) const

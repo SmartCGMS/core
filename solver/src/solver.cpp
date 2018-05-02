@@ -73,6 +73,7 @@ void CCompute_Filter::Run_Main()
 					evt.device_id = GUID{ 0 }; // TODO: fix this (retain from segments?) 
 					evt.signal_id = mComputeHolder->Get_Signal_Id();
 					evt.parameters = params.get();
+					glucose::AddRef_Event(evt);
 				}
 				break;
 			// time segment stop - force buffered values to be written to signals
@@ -200,6 +201,7 @@ void CCompute_Filter::Run_Scheduler()
 
 						evt.info = refcnt::WString_To_WChar_Container(progMsg.c_str());
 						evt.signal_id = mComputeHolder->Get_Signal_Id();
+						glucose::AddRef_Event(evt);
 						mOutput->send(&evt);
 
 						lastProgress = newProgress;
@@ -236,6 +238,7 @@ void CCompute_Filter::Run_Scheduler()
 						// send also parameters reset information message
 						evt.event_code = glucose::NDevice_Event_Code::Parameters;
 						evt.parameters = mComputeHolder->Get_Model_Parameters(segId).get();
+						glucose::AddRef_Event(evt);
 						if (mOutput->send(&evt) != S_OK)
 						{
 							error = true;

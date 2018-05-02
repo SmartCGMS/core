@@ -67,7 +67,8 @@ HRESULT CError_Marker_Counter::Get_Errors(const GUID &signal_id, const glucose::
 
 static void Get_Quantiles(const std::vector<double>& data, const std::vector<double>& percents, double* const target)
 {
-	if (data.empty()) return;
+	if (data.size() < 2)
+		return;
 
 	for (size_t i = 0; i < percents.size(); i++)
 	{

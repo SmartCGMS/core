@@ -24,7 +24,7 @@ HRESULT IfaceCalling CErrors_Filter::QueryInterface(const GUID*  riid, void ** p
 	if (Internal_Query_Interface<glucose::IFilter>(glucose::Error_Filter, *riid, ppvObj)) return S_OK;
 	if (Internal_Query_Interface<glucose::IError_Filter_Inspection>(glucose::Error_Filter_Inspection, *riid, ppvObj)) return S_OK;
 	
-	return E_INVALIDARG;
+	return E_NOINTERFACE;
 }
 
 HRESULT CErrors_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) {

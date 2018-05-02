@@ -82,18 +82,12 @@ void CLog_Filter::Run_Main()
 		logLine << std::put_time(&tm, L"%Y-%m-%d %H:%M:%S ");
 
 		// always put logical and device time
-        //logLine << "logicalTime=" << evt.logical_time;
-        logLine << ",deviceTime=" << std::setprecision(logger::DefaultLogPrecision_DeviceTime) << evt.device_time << ",";
+        //logLine << "logicalTime=" << evt.logical_time << ",";
+        logLine << "deviceTime=" << std::setprecision(logger::DefaultLogPrecision_DeviceTime) << evt.device_time << ",";
 
 		// if it is the diagnostic event, prepare log message
 		if (evt.event_code == glucose::NDevice_Event_Code::Information || evt.event_code == glucose::NDevice_Event_Code::Warning || evt.event_code == glucose::NDevice_Event_Code::Error)
-		{
-			wchar_t *begin, *end;
-			if (evt.info->get(&begin, &end) == S_OK)
-				logMsg = std::wstring(begin, end);
-			else
-				logMsg = L"<ERROR>";
-		}
+			logMsg = refcnt::WChar_Container_To_WString(evt.info);
 
 		// output may differ with each event type
 		switch (evt.event_code)

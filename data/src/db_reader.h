@@ -4,6 +4,7 @@
 #include "../../../common/iface/UIIface.h"
 #include "../../../common/rtl/referencedImpl.h"
 #include "../../../common/rtl/DeviceLib.h"
+#include "../../../common/rtl/DbLib.h"
 
 #include <memory>
 #include <thread>
@@ -27,7 +28,7 @@ struct StoredModelParams
  * Class that reads selected segments from the db produces the events
  * i.e., it mimicks CGMS
  */
-class CDb_Reader : public glucose::IFilter, public virtual refcnt::CReferenced
+class CDb_Reader : public virtual glucose::IFilter, public virtual db::IDb_Sink, public virtual refcnt::CReferenced
 {
 	protected:
 		const QString mDb_Connection_Name = "CDb_Reader_Connection";
@@ -59,8 +60,6 @@ class CDb_Reader : public glucose::IFilter, public virtual refcnt::CReferenced
 
 		// database connection instance
 		QSqlDatabase mDb;
-		// stored query for selecting segment values
-		std::vector<QSqlQuery> mValueQuery;
 
 		// prepare model parameters (load from DB) to be sent through output pipe
 		void Prepare_Model_Parameters_For(int64_t segmentId, std::vector<StoredModelParams> &paramsTarget);
@@ -75,12 +74,20 @@ class CDb_Reader : public glucose::IFilter, public virtual refcnt::CReferenced
 
 		// sends segment marker through output pipe
 		void Send_Segment_Marker(glucose::NDevice_Event_Code code, double device_time, int64_t logical_time, uint64_t segment_id);
+	protected:
+		db::SDb_Connector mDb_Connector;
+		db::SDb_Connection mDb_Connection;
+
+		// performs database query
+		QSqlQuery Get_Segment_Query(int64_t segmentId);
 
 	public:
 		CDb_Reader(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe);
 		virtual ~CDb_Reader();
 
-		virtual HRESULT Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;
+		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
+		virtual HRESULT IfaceCalling Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;
+		virtual HRESULT IfaceCalling Set_Connector(db::IDb_Connector *connector) override final;
 };
 
 #pragma warning( pop )

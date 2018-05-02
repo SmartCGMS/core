@@ -121,11 +121,7 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 
 		virtual HRESULT Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;
 
-		virtual HRESULT IfaceCalling Draw_APG(refcnt::IVector_Container<char> *svg) const override final;
-		virtual HRESULT IfaceCalling Draw_Clarke(refcnt::IVector_Container<char> *svg) const override final;
-		virtual HRESULT IfaceCalling Draw_Day(refcnt::IVector_Container<char> *svg) const override final;
-		virtual HRESULT IfaceCalling Draw_Graph(refcnt::IVector_Container<char> *svg) const override final;
-		virtual HRESULT IfaceCalling Draw_Parkes(refcnt::IVector_Container<char> *svg, bool type1) const override final;
+		virtual HRESULT IfaceCalling Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg) const override final;
 };
 
 #pragma warning( pop )
