@@ -261,6 +261,7 @@ bool CCompute_Holder::Compare_Solutions(glucose::SMetric metric)
 
 		// get level count
 		size_t levels_count;
+		if (!calcSignal) return false;
 		if (calcSignal->Get_Discrete_Bounds(nullptr, &levels_count) != S_OK)
 			return false;
 

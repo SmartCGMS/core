@@ -204,34 +204,34 @@ HRESULT CDrawing_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Pa
 	};
 
 	glucose::TFilter_Parameter *cbegin, *cend;
-	if (configuration->get(&cbegin, &cend) != S_OK)
-		return E_FAIL;
+	if ((configuration != nullptr) && (configuration->get(&cbegin, &cend) == S_OK)) {
 
-	for (glucose::TFilter_Parameter* cur = cbegin; cur < cend; cur += 1)
-	{
-		if (cur->config_name->get(&begin, &end) != S_OK)
-			continue;
+		for (glucose::TFilter_Parameter* cur = cbegin; cur < cend; cur += 1)
+		{
+			if (cur->config_name->get(&begin, &end) != S_OK)
+				continue;
 
-		std::wstring confname{ begin, end };
+			std::wstring confname{ begin, end };
 
-		if (confname == rsDrawing_Filter_Period)
-			mRedrawPeriod = cur->int64;
-		else if (confname == rsDiagnosis_Is_Type2)
-			mDiagnosis = cur->boolean ? 2 : 1;
-		else if (confname == rsDrawing_Filter_Canvas_Width)
-			mCanvasWidth = static_cast<int>(cur->int64);
-		else if (confname == rsDrawing_Filter_Canvas_Height)
-			mCanvasHeight = static_cast<int>(cur->int64);
-		else if (confname == rsDrawing_Filter_Filename_AGP)
-			mAGP_FilePath = wstrConv(cur);
-		else if (confname == rsDrawing_Filter_Filename_Clark)
-			mClark_FilePath = wstrConv(cur);
-		else if (confname == rsDrawing_Filter_Filename_Day)
-			mDay_FilePath = wstrConv(cur);
-		else if (confname == rsDrawing_Filter_Filename_Graph)
-			mGraph_FilePath = wstrConv(cur);
-		else if (confname == rsDrawing_Filter_Filename_Parkes)
-			mParkes_FilePath = wstrConv(cur);
+			if (confname == rsDrawing_Filter_Period)
+				mRedrawPeriod = cur->int64;
+			else if (confname == rsDiagnosis_Is_Type2)
+				mDiagnosis = cur->boolean ? 2 : 1;
+			else if (confname == rsDrawing_Filter_Canvas_Width)
+				mCanvasWidth = static_cast<int>(cur->int64);
+			else if (confname == rsDrawing_Filter_Canvas_Height)
+				mCanvasHeight = static_cast<int>(cur->int64);
+			else if (confname == rsDrawing_Filter_Filename_AGP)
+				mAGP_FilePath = wstrConv(cur);
+			else if (confname == rsDrawing_Filter_Filename_Clark)
+				mClark_FilePath = wstrConv(cur);
+			else if (confname == rsDrawing_Filter_Filename_Day)
+				mDay_FilePath = wstrConv(cur);
+			else if (confname == rsDrawing_Filter_Filename_Graph)
+				mGraph_FilePath = wstrConv(cur);
+			else if (confname == rsDrawing_Filter_Filename_Parkes)
+				mParkes_FilePath = wstrConv(cur);
+		}
 	}
 
 	if (mCanvasWidth != 0 && mCanvasHeight != 0)

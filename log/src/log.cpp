@@ -140,43 +140,44 @@ void CLog_Filter::Run_Main()
 				break;
 		}
 
-		mLog << logLine.str().c_str() << std::endl; // this also performs flush
+		if (mLog.is_open())
+			mLog << logLine.str().c_str() << std::endl; // this also performs flush
 
 		if (mOutput->send(&evt) != S_OK)
 			break;
 	}
 }
 
-HRESULT CLog_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration)
-{
+HRESULT CLog_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) {
+
 	wchar_t *begin, *end;
 
 	glucose::TFilter_Parameter *cbegin, *cend;
-	if (configuration->get(&cbegin, &cend) != S_OK)
-		return E_FAIL;
+	if ((configuration != nullptr) && (configuration->get(&cbegin, &cend) == S_OK)) {
 
-	for (glucose::TFilter_Parameter* cur = cbegin; cur < cend; cur += 1)
-	{
-		if (cur->config_name->get(&begin, &end) != S_OK)
-			continue;
 
-		std::wstring confname{ begin, end };
-
-		if (confname == rsLog_Output_File)
+		for (glucose::TFilter_Parameter* cur = cbegin; cur < cend; cur += 1)
 		{
-			if (cur->wstr->get(&begin, &end) == S_OK)
-				mLogFileName = std::wstring(begin, end);
+			if (cur->config_name->get(&begin, &end) != S_OK)
+				continue;
+
+			std::wstring confname{ begin, end };
+
+			if (confname == rsLog_Output_File)
+			{
+				if (cur->wstr->get(&begin, &end) == S_OK)
+					mLogFileName = std::wstring(begin, end);
+			}
+		}
+
+		// if have output file name
+		if (!mLogFileName.empty()) {
+			// try to open output file
+			mLog.open(mLogFileName);
+			if (!mLog.is_open())
+				return ENOENT;
 		}
 	}
-
-	// we need at least output file name
-	if (mLogFileName.empty())
-		return E_FAIL;
-
-	// try to open output file
-	mLog.open(mLogFileName);
-	if (!mLog.is_open())
-		return ENOENT;
 
 	Run_Main();
 

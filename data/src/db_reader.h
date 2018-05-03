@@ -31,8 +31,6 @@ struct StoredModelParams
 class CDb_Reader : public virtual glucose::IFilter, public virtual db::IDb_Sink, public virtual refcnt::CReferenced
 {
 	protected:
-		const QString mDb_Connection_Name = "CDb_Reader_Connection";
-
 		// input pipe instance
 		glucose::IFilter_Pipe* mInput;
 		// output pipe instance
@@ -58,9 +56,6 @@ class CDb_Reader : public virtual glucose::IFilter, public virtual db::IDb_Sink,
 		// loaded model parameters of segment currently being sent
 		std::map<int64_t, std::vector<StoredModelParams>> mModelParams;
 
-		// database connection instance
-		QSqlDatabase *mDb;
-
 		// prepare model parameters (load from DB) to be sent through output pipe
 		void Prepare_Model_Parameters_For(int64_t segmentId, std::vector<StoredModelParams> &paramsTarget);
 
@@ -79,7 +74,7 @@ class CDb_Reader : public virtual glucose::IFilter, public virtual db::IDb_Sink,
 		db::SDb_Connection mDb_Connection;
 
 		// performs database query
-		QSqlQuery Get_Segment_Query(int64_t segmentId);
+		QSqlQuery* Get_Segment_Query(db::SDb_Query squery, int64_t segmentId);
 
 	public:
 		CDb_Reader(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe);

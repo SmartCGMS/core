@@ -11,7 +11,7 @@ namespace consume
 	constexpr size_t param_count = 0;
 
 	const glucose::TFilter_Descriptor Consume_Descriptor = {
-		{ 0xc0e942b9, 0x3928, 0x4b81, { 0x9b, 0x43, 0xa3, 0x47, 0x66, 0x82, 0x0, 0xCC } },	//// {C0E942B9-3928-4B81-9B43-A347668200CC}
+		glucose::Dev_NULL_Filter,
 		dsConsume_Filter,
 		param_count,
 		nullptr,

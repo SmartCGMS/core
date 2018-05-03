@@ -85,9 +85,7 @@ void CDb_Reader::Run_Reader() {
 
 	HRESULT rc = E_FAIL;
 	if (mDb_Connector) mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
-	if (mDb_Connection) rc = mDb_Connection->Get_Raw((void**)&mDb);
-	if (rc == S_OK) rc = mDb->open() ? S_OK : E_FAIL;
-	if (rc != S_OK) return;
+	if (!mDb_Connection) return;	
 
 
 	
@@ -100,10 +98,11 @@ void CDb_Reader::Run_Reader() {
 
 	// initial setting query
 	{
-		QSqlQuery valueQuery = Get_Segment_Query(mDbTimeSegmentIds[0]);
+		db::SDb_Query squery = mDb_Connection.Query(L"");
+		QSqlQuery* valueQuery = Get_Segment_Query(squery, mDbTimeSegmentIds[0]);
 
-		if (valueQuery.next()) 
-			begindate = Unix_Time_To_Rat_Time(valueQuery.value(0).toDateTime().toSecsSinceEpoch());		
+		if (valueQuery->next()) 
+			begindate = Unix_Time_To_Rat_Time(valueQuery->value(0).toDateTime().toSecsSinceEpoch());		
 
 	}
 
@@ -119,11 +118,12 @@ void CDb_Reader::Run_Reader() {
 	{
 		currentSegmentId = (uint64_t)mDbTimeSegmentIds[idx];
 
-		QSqlQuery valueQuery = Get_Segment_Query(currentSegmentId);
-		if (!valueQuery.next())
+		db::SDb_Query squery = mDb_Connection.Query(L"");
+		QSqlQuery* valueQuery = Get_Segment_Query(squery, currentSegmentId);
+		if (!valueQuery->next())
 			continue;
 
-		begindate = Unix_Time_To_Rat_Time(valueQuery.value(0).toDateTime().toSecsSinceEpoch()) + dateCorrection;
+		begindate = Unix_Time_To_Rat_Time(valueQuery->value(0).toDateTime().toSecsSinceEpoch()) + dateCorrection;
 
 		// if the spacing is greated than 1 day, condense it
 		if (abs(begindate - lastDate) > 1.0)
@@ -132,7 +132,7 @@ void CDb_Reader::Run_Reader() {
 			dateCorrection -= ceil(begindate - lastDate);
 			dateCorrection += 1.0;
 
-			begindate = Unix_Time_To_Rat_Time(valueQuery.value(0).toDateTime().toSecsSinceEpoch()) + dateCorrection;
+			begindate = Unix_Time_To_Rat_Time(valueQuery->value(0).toDateTime().toSecsSinceEpoch()) + dateCorrection;
 		}
 
 		Send_Segment_Marker(glucose::NDevice_Event_Code::Time_Segment_Start, begindate, currentSegmentId);		
@@ -163,14 +163,14 @@ void CDb_Reader::Run_Reader() {
 			// "select measuredat, blood, ist, isig, insulin, carbohydrates, calibration from measuredvalue where segmentid = ? order by measuredat asc"
 			//         0           1      2    3     4        5              6
 
-			auto dt = valueQuery.value(0).toDateTime();
+			auto dt = valueQuery->value(0).toDateTime();
 
 			double jdate = Unix_Time_To_Rat_Time(dt.toSecsSinceEpoch());
 
 			// go through all value columns
 			for (NColumn_Pos i = NColumn_Pos::_Begin; i < NColumn_Pos::_End; ++i)
 			{
-				auto column = valueQuery.value(static_cast<int>(i));
+				auto column = valueQuery->value(static_cast<int>(i));
 
 				// if no value is present, skip
 				if (column.isNull())
@@ -193,7 +193,7 @@ void CDb_Reader::Run_Reader() {
 					break;
 				}
 			}
-		} while (!isError && valueQuery.next());
+		} while (!isError && valueQuery->next());
 
 		// evt.device_time is now guaranteed to have valid time of last sent event
 
@@ -281,13 +281,14 @@ HRESULT CDb_Reader::Run(const refcnt::IVector_Container<glucose::TFilter_Paramet
 	return S_OK;
 }
 
-QSqlQuery CDb_Reader::Get_Segment_Query(int64_t segmentId)
-{
-	QSqlQuery query{ *mDb };
+QSqlQuery* CDb_Reader::Get_Segment_Query(db::SDb_Query squery, int64_t segmentId) {	
 
-	query.prepare(rsSelect_Timesegment_Values_Filter);
-	query.bindValue(0, segmentId);
-	query.exec();
+	QSqlQuery* query;// { *mDb };
+	squery->Get_Raw((void**)&query);
+
+	query->prepare(rsSelect_Timesegment_Values_Filter);
+	query->bindValue(0, segmentId);
+	query->exec();
 
 	return query;
 }
@@ -313,16 +314,18 @@ void CDb_Reader::Prepare_Model_Parameters_For(int64_t segmentId, std::vector<Sto
 		qry += std::string(descriptor.db_table_name, descriptor.db_table_name + wcslen(descriptor.db_table_name));
 		qry += rsSelect_Params_Condition;
 
-		QSqlQuery qr(*mDb);
+		QSqlQuery* qr; // (*mDb);
+		db::SDb_Query squery = mDb_Connection.Query(L"");
+		squery->Get_Raw((void**)&qr);
 
-		qr.prepare(qry.c_str());
-		qr.bindValue(0, segmentId);
+		qr->prepare(qry.c_str());
+		qr->bindValue(0, segmentId);
 		//if (qr.exec() && qr.size() != 0 && qr.next())
-		if (qr.exec()) {
-			if (qr.next()) {
+		if (qr->exec()) {
+			if (qr->next()) {
 				std::vector<double> arr;
 				for (size_t i = 0; i < descriptor.number_of_parameters; i++)
-					arr.push_back(qr.value(static_cast<int>(i)).toDouble());
+					arr.push_back(qr->value(static_cast<int>(i)).toDouble());
 
 				paramsTarget.push_back({ descriptor.id, refcnt::Create_Container<double>(arr.data(), arr.data() + arr.size()) });
 			}

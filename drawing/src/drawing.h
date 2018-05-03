@@ -56,10 +56,10 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 		std::wstring mParkes_FilePath;
 
 		// diagnosis flag
-		uint8_t mDiagnosis;
+		uint8_t mDiagnosis = 0; //type 1?
 
 		// redraw period [ms]
-		int64_t mRedrawPeriod;
+		int64_t mRedrawPeriod = 250;
 		// input data changed
 		bool mChanged;
 		// mutex guard for changed variable
@@ -87,9 +87,9 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 		std::map<GUID, ValueVector> mParameterChanges;
 
 		// configured canvas width
-		int mCanvasWidth;
+		int mCanvasWidth = 1024;
 		// configured canvas height
-		int mCanvasHeight;
+		int mCanvasHeight = 768;
 
 		// internal running indicator
 		bool mRunning;

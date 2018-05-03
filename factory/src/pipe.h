@@ -12,7 +12,9 @@ class CFilter_Pipe :  public glucose::IFilter_Pipe, public virtual refcnt::CRefe
 protected:
 	tbb::concurrent_bounded_queue<glucose::TDevice_Event> mQueue;
 	const std::ptrdiff_t mDefault_Capacity = 64;
-	bool mAborted = false;
+	bool mShutting_Down_Send = false;
+	bool mShutting_Down_Receive = false;
+		//we need two flags to let the last shutdown event to fall through
 public:
 	CFilter_Pipe();
 	virtual ~CFilter_Pipe();
