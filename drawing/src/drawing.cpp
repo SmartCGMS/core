@@ -344,8 +344,7 @@ void CDrawing_Filter::Generate_Graphs(DataMap& valueMap, double maxValue, Locali
 
 HRESULT CDrawing_Filter::Get_Plot(const std::string &plot, refcnt::IVector_Container<char> *svg) const {
 	std::unique_lock<std::mutex> lck(mRetrieveMtx);
-	svg->set(plot.data(), plot.data() + plot.size());
-	return S_OK;
+	return svg->set(plot.data(), plot.data() + plot.size());
 }
 
 HRESULT IfaceCalling CDrawing_Filter::Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg) const
