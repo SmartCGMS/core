@@ -32,7 +32,7 @@ extern "C" HRESULT IfaceCalling do_get_approximator_descriptors(glucose::TApprox
 extern "C" HRESULT IfaceCalling do_create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApproximator **approx, glucose::IApprox_Parameters_Vector* configuration)
 {
 	if (*approx_id == line::LineApprox_Descriptor.id)
-		return Manufacture_Object<CLine_Approximator>(approx, refcnt::make_shared_reference(signal, true), configuration);
+		return Manufacture_Object<CLine_Approximator>(approx, glucose::WSignal{ signal }, configuration);
 
 	return ENOENT;
 }

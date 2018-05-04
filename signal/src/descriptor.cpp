@@ -115,8 +115,8 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilte
 	return ENOENT;
 }
 
-HRESULT IfaceCalling do_create_measured_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal)
-{
+HRESULT IfaceCalling do_create_measured_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {	
+
 	if ((calc_id == nullptr) || (segment == nullptr))
 		return E_INVALIDARG;
 

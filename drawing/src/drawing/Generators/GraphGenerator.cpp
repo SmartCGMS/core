@@ -11,7 +11,6 @@
 #include "GraphGenerator.h"
 
 #include "../SVGBuilder.h"
-#include "../Method.h"
 #include "../Misc/Utility.h"
 
 #include <algorithm>

@@ -4,8 +4,6 @@
 #include "../../../common/iface/UIIface.h"
 #include "../../../common/rtl/referencedImpl.h"
 
-#include "drawing/Containers/Diff2.h"
-#include "drawing/Containers/Diff3.h"
 #include "drawing/Containers/Value.h"
 
 #include <memory>

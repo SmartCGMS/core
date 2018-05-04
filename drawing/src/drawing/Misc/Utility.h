@@ -13,8 +13,6 @@
 #include <ctime>
 #include <map>
 #include "../Containers/Value.h"
-#include "../Containers/Diff2.h"
-#include "../Containers/Diff3.h"
 
 // utility namespace, to better recognize generic methods from the rest
 namespace Utility

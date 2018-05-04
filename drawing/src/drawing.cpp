@@ -19,6 +19,8 @@
 #include <algorithm>
 #include <set>
 
+#undef min
+
 CDrawing_Filter::CDrawing_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe)
 	: mInput(inpipe), mOutput(outpipe), mRedrawPeriod(500), mGraphMaxValue(-1), mDiagnosis(1) {}
 
@@ -40,62 +42,67 @@ void CDrawing_Filter::Run_Main()
 
 	// TODO: get rid of excessive locking (mutexes)
 
-	while (mInput->receive(&evt) == S_OK)
-	{
-		// incoming level or calibration - store to appropriate vector
-		if (evt.event_code == glucose::NDevice_Event_Code::Level || evt.event_code == glucose::NDevice_Event_Code::Calibrated)
+	while (mInput->receive(&evt) == S_OK) {
+
 		{
 			std::unique_lock<std::mutex> lck(mChangedMtx);
 
-			mInputData[evt.signal_id].push_back(Value(evt.level, Rat_Time_To_Unix_Time(evt.device_time), evt.segment_id));
-			// signal is not being reset (recalculated and resent) right now - set changed flag
-			if (signalsBeingReset.find(evt.signal_id) == signalsBeingReset.end())
-				mChanged = true;
 
-			// for now, update maximum value just from these signals
-			if (evt.signal_id == glucose::signal_IG || evt.signal_id == glucose::signal_BG)
+			// incoming level or calibration - store to appropriate vector
+			if (evt.event_code == glucose::NDevice_Event_Code::Level || evt.event_code == glucose::NDevice_Event_Code::Calibrated)
 			{
-				if (evt.level > mGraphMaxValue)
-					mGraphMaxValue = evt.level;
-			}
-		}
-		// incoming new parameters
-		else if (evt.event_code == glucose::NDevice_Event_Code::Parameters)
-		{
-			mParameterChanges[evt.signal_id].push_back(Value((double)Rat_Time_To_Unix_Time(evt.device_time), Rat_Time_To_Unix_Time(evt.device_time), evt.segment_id));
-		}
-		// incoming parameters reset information message
-		else if (evt.event_code == glucose::NDevice_Event_Code::Information)
-		{
-			// we catch parameter reset information message
-			if (refcnt::WChar_Container_Equals_WString(evt.info, rsParameters_Reset))
-			{
-				// TODO: verify, if parameter reset came for signal, that is really a calculated signal (not measured)
+				//std::unique_lock<std::mutex> lck(mChangedMtx);
 
-				// incoming parameters just erases the signals, because a new set of calculated levels comes through the pipe
-				std::unique_lock<std::mutex> lck(mChangedMtx);
-				// remove just segment, for which the reset was issued
-				mInputData[evt.signal_id].erase(
-					std::remove_if(mInputData[evt.signal_id].begin(), mInputData[evt.signal_id].end(), [evt](Value const& a) { return a.segment_id == evt.segment_id; }),
-					mInputData[evt.signal_id].end()
-				);
-				// remove also markers
-				mParameterChanges[evt.signal_id].erase(
-					std::remove_if(mParameterChanges[evt.signal_id].begin(), mParameterChanges[evt.signal_id].end(), [evt](Value const& a) { return a.segment_id == evt.segment_id; }),
-					mParameterChanges[evt.signal_id].end()
-				);
+				mInputData[evt.signal_id].push_back(Value(evt.level, Rat_Time_To_Unix_Time(evt.device_time), evt.segment_id));
+				// signal is not being reset (recalculated and resent) right now - set changed flag
+				if (signalsBeingReset.find(evt.signal_id) == signalsBeingReset.end())
+					mChanged = true;
 
-				signalsBeingReset.insert(evt.signal_id);
+				// for now, update maximum value just from these signals
+				//if (evt.signal_id == glucose::signal_IG || evt.signal_id == glucose::signal_BG)
+				{
+					if (evt.level > mGraphMaxValue)
+						mGraphMaxValue = std::min(evt.level, 150.0); //http://www.guinnessworldrecords.com/world-records/highest-blood-sugar-level/
+				}
 			}
-			else if (refcnt::WChar_Container_Equals_WString(evt.info, rsSegment_Recalculate_Complete))
+			// incoming new parameters
+			else if (evt.event_code == glucose::NDevice_Event_Code::Parameters)
 			{
-				signalsBeingReset.erase(evt.signal_id);
-				mChanged = true;
+				mParameterChanges[evt.signal_id].push_back(Value((double)Rat_Time_To_Unix_Time(evt.device_time), Rat_Time_To_Unix_Time(evt.device_time), evt.segment_id));
 			}
-		}
-		else if (evt.event_code == glucose::NDevice_Event_Code::Time_Segment_Start || evt.event_code == glucose::NDevice_Event_Code::Time_Segment_Stop)
-		{
-			mSegmentMarkers.push_back(Value(0, Rat_Time_To_Unix_Time(evt.device_time), evt.segment_id));
+			// incoming parameters reset information message
+			else if (evt.event_code == glucose::NDevice_Event_Code::Information)
+			{
+				// we catch parameter reset information message
+				if (refcnt::WChar_Container_Equals_WString(evt.info, rsParameters_Reset))
+				{
+					// TODO: verify, if parameter reset came for signal, that is really a calculated signal (not measured)
+
+					// incoming parameters just erases the signals, because a new set of calculated levels comes through the pipe
+	//				std::unique_lock<std::mutex> lck(mChangedMtx);
+					// remove just segment, for which the reset was issued
+					mInputData[evt.signal_id].erase(
+						std::remove_if(mInputData[evt.signal_id].begin(), mInputData[evt.signal_id].end(), [evt](Value const& a) { return a.segment_id == evt.segment_id; }),
+						mInputData[evt.signal_id].end()
+					);
+					// remove also markers
+					mParameterChanges[evt.signal_id].erase(
+						std::remove_if(mParameterChanges[evt.signal_id].begin(), mParameterChanges[evt.signal_id].end(), [evt](Value const& a) { return a.segment_id == evt.segment_id; }),
+						mParameterChanges[evt.signal_id].end()
+					);
+
+					signalsBeingReset.insert(evt.signal_id);
+				}
+				else if (refcnt::WChar_Container_Equals_WString(evt.info, rsSegment_Recalculate_Complete))
+				{
+					signalsBeingReset.erase(evt.signal_id);
+					mChanged = true;
+				}
+			}
+			else if (evt.event_code == glucose::NDevice_Event_Code::Time_Segment_Start || evt.event_code == glucose::NDevice_Event_Code::Time_Segment_Stop)
+			{
+				mSegmentMarkers.push_back(Value(0, Rat_Time_To_Unix_Time(evt.device_time), evt.segment_id));
+			}
 		}
 
 		if (mOutput->send(&evt) != S_OK)

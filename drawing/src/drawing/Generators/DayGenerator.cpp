@@ -11,7 +11,6 @@
 #include "DayGenerator.h"
 
 #include "../SVGBuilder.h"
-#include "../Method.h"
 #include "../Containers/Value.h"
 #include "../Containers/Day.h"
 #include "../Misc/Utility.h"

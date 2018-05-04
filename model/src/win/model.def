@@ -3,3 +3,4 @@ LIBRARY model.dll
 
 EXPORTS
   	do_get_model_descriptors
+	do_create_calculated_signal

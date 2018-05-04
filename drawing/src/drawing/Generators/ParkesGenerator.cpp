@@ -11,7 +11,6 @@
 #include "ParkesGenerator.h"
 
 #include "../SVGBuilder.h"
-#include "../Method.h"
 #include "../Misc/PlotBackgroundMap.h"
 #include "../Misc/Utility.h"
 

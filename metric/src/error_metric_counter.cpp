@@ -142,7 +142,7 @@ bool CError_Marker_Counter::Recalculate_Errors_For(const GUID& signal_id)
 
 			refValues.push_back(refVec[refIdx].value);
 
-			if (fabs(calcVec[calcIdx - 1].time - refVec[refIdx].time) < fabs(calcVec[calcIdx].time - refVec[refIdx].time))
+			if ((calcIdx>0) && (fabs(calcVec[calcIdx - 1].time - refVec[refIdx].time) < fabs(calcVec[calcIdx].time - refVec[refIdx].time)))
 				calcValues.push_back(calcVec[calcIdx - 1].value);
 			else
 				calcValues.push_back(calcVec[calcIdx].value);

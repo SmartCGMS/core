@@ -75,7 +75,11 @@ public: \
 		*begin = const_cast<double*>(data()); \
 		*end = *begin + cols(); \
 		return S_OK; \
-	} 
+	} \
+    \
+	virtual HRESULT empty() const override final { \
+		return cols()>0 ? S_OK : S_FALSE; \
+	}
 
 
 #pragma warning( push )

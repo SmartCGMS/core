@@ -7,6 +7,8 @@
 
 #include <algorithm>
 
+
+
 CMeasured_Signal::CMeasured_Signal(): mApprox(nullptr) {
 	// TODO: proper approximator configuration
 	//		 now we just pick the first one, which is obviously wrong
@@ -15,13 +17,18 @@ CMeasured_Signal::CMeasured_Signal(): mApprox(nullptr) {
 
 	// TODO: passing approximation parameters through architecture to Approximate method
 	//		 for now, we just send nullptr so the approximation method uses default parameters
+	
+	if (!approx_descriptors.empty()) {
 
-	if (!approx_descriptors.empty())
-		mApprox = glucose::Create_Approximator(approx_descriptors[0].id, refcnt::make_shared_reference_ext<glucose::SSignal, glucose::ISignal>(static_cast<glucose::ISignal*>(this), true),  glucose::SApprox_Parameters_Vector{});	
+		glucose::ISignal* self_signal = static_cast<glucose::ISignal*>(this);
+		glucose::SApprox_Parameters_Vector params;
+
+		mApprox = glucose::Create_Approximator(approx_descriptors[0].id, self_signal, params);		
+	}
 }
 
-HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Levels(double* const times, double* const levels, const size_t count, size_t *filled) const
-{
+HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Levels(double* const times, double* const levels, const size_t count, size_t *filled) const {
+
 	*filled = std::min(count, mTimes.size());
 
 	for (size_t i = 0; i < *filled; i++)
@@ -35,6 +42,7 @@ HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Levels(double* const times, 
 
 HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Bounds(glucose::TBounds *bounds, size_t *level_count) const
 {
+
 	if (level_count)
 		*level_count = mLevels.size();
 
@@ -56,6 +64,7 @@ HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Bounds(glucose::TBounds *bou
 
 HRESULT IfaceCalling CMeasured_Signal::Add_Levels(const double *times, const double *levels, const size_t count)
 {
+
 	// reserve size, so the capacity suffices for newly inserted values
 	mTimes.reserve(mTimes.size() + count);
 	mLevels.reserve(mLevels.size() + count);
@@ -67,12 +76,11 @@ HRESULT IfaceCalling CMeasured_Signal::Add_Levels(const double *times, const dou
 	return S_OK;
 }
 
-HRESULT IfaceCalling CMeasured_Signal::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params, const double* times, double* const levels, const size_t count, const size_t derivation_order) const
-{
-	return mApprox->GetLevels(times, levels, count, derivation_order);
+HRESULT IfaceCalling CMeasured_Signal::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params, const double* times, double* const levels, const size_t count, const size_t derivation_order) const {	
+	return mApprox ? mApprox->GetLevels(times, levels, count, derivation_order) : E_FAIL;
 }
 
 HRESULT IfaceCalling CMeasured_Signal::Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const
 {
-	return S_OK;
+	return E_NOTIMPL;
 }

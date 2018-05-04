@@ -60,13 +60,14 @@ protected:
 		TSolution solution;
 
 		double *begin, *end;				
-		if (parameters->get(&begin, &end) == S_OK) 
+		if (parameters->get(&begin, &end) == S_OK) {
 			solution.resize(solution.rows(), std::distance(begin, end));
 
-			for (auto i = 0; i<solution.cols(); i++) {
-				solution[i] = *begin; 
-				begin++; 
-			} 
+			for (auto i = 0; i < solution.cols(); i++) {
+				solution[i] = *begin;
+				begin++;
+			}
+		} 
 
 		return solution;
 	}
@@ -98,8 +99,10 @@ public:
 
 		std::vector<TSolution> converted_hints;
 		for (auto &hint : setup.solution_hints) {
-			auto converted = Parameters_To_Solution(hint);
-			converted_hints.push_back(converted);
+			if (hint->empty() != S_OK) {
+				auto converted = Parameters_To_Solution(hint);
+				converted_hints.push_back(converted);
+			}
 		}
 
 		TSolution convert_lower_bound = Parameters_To_Solution(setup.lower_bound);

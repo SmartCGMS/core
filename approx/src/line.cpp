@@ -1,35 +1,30 @@
 #include "line.h"
 
-#include <iostream>
-#include <chrono>
 
-CLine_Approximator::CLine_Approximator(glucose::SSignal signal, glucose::IApprox_Parameters_Vector* configuration)
+CLine_Approximator::CLine_Approximator(glucose::WSignal signal, glucose::IApprox_Parameters_Vector* configuration)
 	: mSignal(signal)
 {
 	Update();
 }
 
-void CLine_Approximator::Update()
-{
-	size_t oldCount = mInputTimes.cols();
+void CLine_Approximator::Update() {
+	size_t oldCount = mInputTimes.size();
 
 	size_t valCount;
-	if (mSignal->Get_Discrete_Bounds(nullptr, &valCount) != S_OK)
+	if (mSignal.Get_Discrete_Bounds(nullptr, &valCount) != S_OK)
 		return;
 
 	if (oldCount != valCount)
 	{
-		mInputTimes.resize(Eigen::NoChange, valCount);
-		mInputLevels.resize(Eigen::NoChange, valCount);
+		mInputTimes.resize(valCount);
+		mInputLevels.resize(valCount);
+		mSlopes.resize(valCount - 1);
 	}
 	else // valCount == oldCount, no need to update
 		return;
 
-	size_t filled = valCount;
-	mSignal->Get_Discrete_Levels(mInputTimes.data(), mInputLevels.data(), valCount, &filled);
-
-	if (mSlopes.cols() != valCount - 1)
-		mSlopes.resize(Eigen::NoChange, valCount - 1);
+	size_t filled;
+	mSignal.Get_Discrete_Levels(mInputTimes.data(), mInputLevels.data(), valCount, &filled);
 
 	// calculate slopes
 	for (size_t i = 0; i < valCount - 1; i++)
@@ -41,38 +36,47 @@ HRESULT IfaceCalling CLine_Approximator::GetLevels(const double* times, double* 
 	Update();
 
 	// needs to call Approximate first
-	if (mSlopes.cols() == 0)
-		return E_FAIL;
-
-	size_t i = 0;
+	if (mSlopes.empty() )
+		return E_FAIL;	
 
 	// size of mSlopes is lower by 1 than mInputTimes/Levels, and we know how to approximate just in this range
-	for (size_t outIter = 0; outIter < count; outIter++)
-	{
-		// find first feasible index for approximation
-		while ((i < static_cast<size_t>(mSlopes.size())) && (times[outIter] > mInputTimes[i + 1]))
-			i++;
+	for (size_t i = 0; i< count; i++) {
 
-		// if the requested time is out of bounds, use constant "extrapolation" for now (constant level, zero derivation)
+		auto iter = std::upper_bound(mInputTimes.begin(), mInputTimes.end(), times[i]);
+		size_t knotIndex = std::distance(mInputTimes.begin(), iter) - 1;
 
-		switch (derivation_order)
-		{
-			case glucose::apxNo_Derivation:
-				if (i == mSlopes.size())
-					levels[outIter] = mInputLevels[i];
-				else
-					levels[outIter] = mInputLevels[i] + mSlopes[i] * (times[outIter] - mInputTimes[i]);
-				break;
-			case glucose::apxFirst_Order_Derivation:
-				if (i == mSlopes.size())
-					levels[outIter] = 0.0;
-				else
-					levels[outIter] = mSlopes[i];
-				break;
-			default:
-				// unknown parameter value
-				break;
+		if (knotIndex < mSlopes.size()) {
+
+			switch (derivation_order) {
+				case glucose::apxNo_Derivation:
+						levels[i] = mSlopes[knotIndex]*(times[i] - mInputTimes[knotIndex]) + mInputLevels[knotIndex];
+						break;
+
+				case glucose::apxFirst_Order_Derivation:
+						levels[i] = mSlopes[knotIndex];
+						break;
+
+				default: levels[i] = 0.0;
+						break;
+			}
 		}
+
+		else if (knotIndex == mSlopes.size()) {
+			switch (derivation_order) {
+				case glucose::apxNo_Derivation:
+					levels[i] = mInputLevels[knotIndex];
+					break;
+
+				case glucose::apxFirst_Order_Derivation:
+					levels[i] = mSlopes[knotIndex-1];
+					break;
+
+				default: levels[i] = 0.0;
+					break;
+			}
+		}
+		else
+			levels[i] = std::numeric_limits<double>::quiet_NaN();
 	}
 
 	return S_OK;
