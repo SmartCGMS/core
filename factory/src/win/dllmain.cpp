@@ -13,8 +13,9 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 					 )
 {
 	switch (ul_reason_for_call)	{
-	case DLL_PROCESS_ATTACH:		loaded_filters.load_libraries();
-										break;
+	case DLL_PROCESS_ATTACH:	Load_Libraries();
+								break;
+
 	case DLL_THREAD_ATTACH:
 	case DLL_THREAD_DETACH:	
 	case DLL_PROCESS_DETACH: 

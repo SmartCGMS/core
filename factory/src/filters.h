@@ -5,13 +5,11 @@
 #include "../../../common/iface/ApproxIface.h"
 #include "../../../common/rtl/Dynamic_Library.h"
 
-#include <vector>
-
-#include <vector>
-#include <memory>
+#include <tbb/concurrent_vector.h>
+#include <tbb/tbb_allocator.h>
 
 namespace imported {
-	typedef struct {
+	struct TLibraryInfo {
 		std::unique_ptr<CDynamic_Library> library;	//we hate this pointer, but we have to - otherwise Qt won't let us to use it
 		glucose::TCreate_Filter create_filter;
 		glucose::TCreate_Metric create_metric;
@@ -19,19 +17,20 @@ namespace imported {
 		glucose::TCreate_Measured_Signal create_measured_signal;
 		glucose::TSolve_Model_Parameters solve_model_parameters;
 		glucose::TCreate_Approximator create_approximator;
-	} TLibraryInfo;
+	};
 }
 
 class CLoaded_Filters {
 protected:
-	std::vector<glucose::TFilter_Descriptor> mFilter_Descriptors;
-	std::vector<glucose::TMetric_Descriptor> mMetric_Descriptors;
-	std::vector<glucose::TModel_Descriptor> mModel_Descriptors;
-	std::vector<glucose::TSolver_Descriptor> mSolver_Descriptors;
-	std::vector<glucose::TApprox_Descriptor> mApprox_Descriptors;
-
+	//on tbb_allocator, see comment at mLibraries declaration
+	std::vector<glucose::TFilter_Descriptor, tbb::tbb_allocator<glucose::TFilter_Descriptor>> mFilter_Descriptors;
+	std::vector<glucose::TMetric_Descriptor, tbb::tbb_allocator<glucose::TMetric_Descriptor>> mMetric_Descriptors;
+	std::vector<glucose::TModel_Descriptor, tbb::tbb_allocator<glucose::TModel_Descriptor>> mModel_Descriptors;
+	std::vector<glucose::TSolver_Descriptor, tbb::tbb_allocator<glucose::TSolver_Descriptor>> mSolver_Descriptors;
+	std::vector<glucose::TApprox_Descriptor, tbb::tbb_allocator<glucose::TApprox_Descriptor>> mApprox_Descriptors;
+	
 	template <typename TDesc_Func, typename TDesc_Item>
-	bool Load_Descriptors(std::vector<TDesc_Item> &dst, const std::unique_ptr<CDynamic_Library> &lib, const char *func_name)  {
+	bool Load_Descriptors(std::vector<TDesc_Item, tbb::tbb_allocator<TDesc_Item>> &dst, const std::unique_ptr<CDynamic_Library> &lib, const char *func_name)  {
 		bool result = false;
 		//try to load filter descriptions just once
 		TDesc_Func desc_func = reinterpret_cast<decltype(desc_func)> (lib->Resolve(func_name));
@@ -46,7 +45,8 @@ protected:
 		return result;
 	}
 protected:
-	std::vector<imported::TLibraryInfo> mLibraries;
+	//std::vector<imported::TLibraryInfo> mLibraries; - we need to uses tbb allocator due to the pipe's implementation that uses tbb::concurrent_queue
+	std::vector<imported::TLibraryInfo, tbb::tbb_allocator<imported::TLibraryInfo>> mLibraries;	
 
 	template <typename TFunc>
 	bool Resolve_Func(TFunc &ptr, const std::unique_ptr<CDynamic_Library> &lib, const char* name) {
@@ -88,7 +88,7 @@ public:
 	HRESULT get_approx_descriptors(glucose::TApprox_Descriptor **begin, glucose::TApprox_Descriptor **end);
 };
 
-extern CLoaded_Filters loaded_filters;
+void Load_Libraries();
 
 #ifdef _WIN32	
 	extern "C" __declspec(dllexport)  HRESULT IfaceCalling create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter);	
