@@ -40,22 +40,25 @@ enum class ExtractionIterationType
 };
 
 // enumerator of known datetime formats
-enum class KnownDateFormat
+enum class NKnownDateFormat
 {
-	DATEFORMAT_DDMMYYYY,
+	DATEFORMAT_DDMMYYYY = 0,
 	DATEFORMAT_YYYYMMDD,
 	DATEFORMAT_CZ,
 	DATEFORMAT_DB_YYYYMMDD,
-	UNKNOWN_DATEFORMAT
+	UNKNOWN_DATEFORMAT	
 };
 
 // recognized datetime format formatter strings
-const std::string KnownDateFormatFmtStrings[] = {
+extern const std::array<const char*, static_cast<size_t>(NKnownDateFormat::UNKNOWN_DATEFORMAT)> KnownDateFormatFmtStrings;
+
+/*const std::string KnownDateFormatFmtStrings[] = {
 	"%d/%m/%Y %H:%M",        // DATEFORMAT_DDMMYYYY
 	"%Y/%m/%d %H:%M",        // DATEFORMAT_YYYYMMDD
 	"%d.%m.%Y %H:%M",        // DATEFORMAT_CZ
 	"%Y-%m-%d %H:%M:%S",     // DATEFORMAT_DB_YYYYMMDD
 };
+*/
 
 /*
  * Structure used as result of extraction

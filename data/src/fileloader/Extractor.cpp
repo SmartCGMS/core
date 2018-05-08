@@ -28,8 +28,17 @@ const char* rsExtractorColumnCondition = "event-condition";
 
 const char* dsDatabaseTimestampFormatShort = "%FT%T";
 
+// recognized datetime format formatter strings
+const std::array<const char*, static_cast<size_t>(NKnownDateFormat::UNKNOWN_DATEFORMAT)> KnownDateFormatFmtStrings {
+	"%d/%m/%Y %H:%M",        // DATEFORMAT_DDMMYYYY
+	"%Y/%m/%d %H:%M",        // DATEFORMAT_YYYYMMDD
+	"%d.%m.%Y %H:%M",        // DATEFORMAT_CZ
+	"%Y-%m-%d %H:%M:%S",     // DATEFORMAT_DB_YYYYMMDD
+};
+
+
 // Recognizes date format from supplied string representation
-KnownDateFormat Recognize_Date_Format(std::string& str)
+NKnownDateFormat Recognize_Date_Format(std::string& str)
 {
 	size_t i;
 	std::tm temp;
@@ -37,12 +46,12 @@ KnownDateFormat Recognize_Date_Format(std::string& str)
 
 	// TODO: slightly rework this method to safely check for parse failure even in debug mode
 
-	for (i = 0; i < (size_t)KnownDateFormat::UNKNOWN_DATEFORMAT; i++)
+	for (i = 0; i < (size_t)NKnownDateFormat::UNKNOWN_DATEFORMAT; i++)
 	{
 		std::istringstream ss(str);
 		try
 		{
-			ss >> std::get_time(&temp, KnownDateFormatFmtStrings[i].c_str());
+			ss >> std::get_time(&temp, KnownDateFormatFmtStrings[i]);
 		}
 		catch (...)
 		{
@@ -56,7 +65,7 @@ KnownDateFormat Recognize_Date_Format(std::string& str)
 		break;
 	}
 
-	return (KnownDateFormat)i;
+	return static_cast<NKnownDateFormat>(i);
 }
 
 CExtractor::CExtractor()
@@ -468,7 +477,7 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 
 	std::string tmp;
 	CMeasured_Value* mval = nullptr;
-	KnownDateFormat dateformat = KnownDateFormat::UNKNOWN_DATEFORMAT; // will be recognized after first date read
+	NKnownDateFormat dateformat = NKnownDateFormat::UNKNOWN_DATEFORMAT; // will be recognized after first date read
 	time_t curTime;
 
 	std::string sval;
@@ -585,10 +594,10 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 		}
 
 		// recognize date format if not already known
-		if (dateformat == KnownDateFormat::UNKNOWN_DATEFORMAT)
+		if (dateformat == NKnownDateFormat::UNKNOWN_DATEFORMAT)
 		{
 			dateformat = Recognize_Date_Format(tmp);
-			if (dateformat == KnownDateFormat::UNKNOWN_DATEFORMAT)
+			if (dateformat == NKnownDateFormat::UNKNOWN_DATEFORMAT)
 			{
 				posInc();
 				continue;
@@ -597,7 +606,7 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 
 		std::string dst;
 		// is conversion result valid? if not, try next line
-		if (!Convert_Timestamp(tmp, KnownDateFormatFmtStrings[(size_t)dateformat].c_str(), dst, dsDatabaseTimestampFormatShort, &curTime))
+		if (!Convert_Timestamp(tmp, KnownDateFormatFmtStrings[static_cast<size_t>(dateformat)], dst, dsDatabaseTimestampFormatShort, &curTime))
 		{
 			posInc();
 			continue;
@@ -712,7 +721,7 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 
 	std::string tmp;
 	CMeasured_Value* mval = nullptr;
-	KnownDateFormat dateformat = KnownDateFormat::UNKNOWN_DATEFORMAT; // will be recognized after first date read
+	NKnownDateFormat dateformat = NKnownDateFormat::UNKNOWN_DATEFORMAT; // will be recognized after first date read
 	time_t curTime;
 
 	bool validValue;
@@ -896,10 +905,10 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 		}
 
 		// recognize date format if not already known
-		if (dateformat == KnownDateFormat::UNKNOWN_DATEFORMAT)
+		if (dateformat == NKnownDateFormat::UNKNOWN_DATEFORMAT)
 		{
 			dateformat = Recognize_Date_Format(tmp);
-			if (dateformat == KnownDateFormat::UNKNOWN_DATEFORMAT)
+			if (dateformat == NKnownDateFormat::UNKNOWN_DATEFORMAT)
 			{
 				posInc();
 				continue;
@@ -908,7 +917,7 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 
 		std::string dst;
 		// is conversion result valid? if not, try next line
-		if (!Convert_Timestamp(tmp, KnownDateFormatFmtStrings[(size_t)dateformat].c_str(), dst, dsDatabaseTimestampFormatShort, &curTime))
+		if (!Convert_Timestamp(tmp, KnownDateFormatFmtStrings[static_cast<size_t>(dateformat)], dst, dsDatabaseTimestampFormatShort, &curTime))
 		{
 			posInc();
 			continue;

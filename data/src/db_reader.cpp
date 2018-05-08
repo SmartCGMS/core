@@ -9,6 +9,8 @@
 #include "../../../common/rtl/FilesystemLib.h"
 #include "../../../common/lang/dstrings.h"
 
+#include <tbb/tbb_allocator.h>
+
 #include <map>
 
 #include <QtCore/QDate>
@@ -43,7 +45,7 @@ NColumn_Pos& operator++(NColumn_Pos& ref)
 }
 
 // map of DB columns to signal GUIDs used
-std::map<NColumn_Pos, GUID> ColumnSignalMap = {
+std::map<NColumn_Pos, GUID, std::less<NColumn_Pos>, tbb::tbb_allocator<std::pair<NColumn_Pos, GUID>>> ColumnSignalMap = {
 	{ NColumn_Pos::Blood, glucose::signal_BG },
 	{ NColumn_Pos::Ist, glucose::signal_IG },
 	{ NColumn_Pos::Isig, glucose::signal_ISIG },
