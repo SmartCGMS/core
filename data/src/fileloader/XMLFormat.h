@@ -8,7 +8,7 @@
  */
 struct TreeLevelSpec
 {
-	TreeLevelSpec(std::string _tagName = "", size_t _position = 0) : tagName(_tagName), position(_position) { }
+	TreeLevelSpec(std::string _tagName = "", size_t _position = 0) noexcept : tagName(_tagName), position(_position) { }
 
 	// tag (or pathspec) name
 	std::string tagName;

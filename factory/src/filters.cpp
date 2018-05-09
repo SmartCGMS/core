@@ -71,17 +71,17 @@ HRESULT IfaceCalling create_approximator(const GUID *approx_id, glucose::ISignal
 }
 
 void CLoaded_Filters::load_libraries() {
-	auto appdir = Get_Application_Dir();
-	const auto allFiles = List_Directory(Path_Append(appdir, rsSolversDir));
+	auto appdir = Get_Application_Dir();	
+	auto allFiles = List_Directory/*<tbb::tbb_allocator<std::wstring>>*/(Path_Append(appdir, rsSolversDir));
 
-	for (const auto& filepath : allFiles) {
+	for (const auto& filepath : allFiles) {	
+
 		if (CDynamic_Library::Is_Library(filepath)) {				//just checks the extension
 			imported::TLibraryInfo lib;
 
-			lib.library = std::make_unique<CDynamic_Library>();
-			lib.library->Set_Filename(filepath);
+			lib.library = std::make_unique<CDynamic_Library>();			
 
-			if (lib.library->Load()) {
+			if (lib.library->Load(filepath.c_str())) {
 				bool lib_used = Resolve_Func<glucose::TCreate_Filter>(lib.create_filter, lib.library, imported::rsDo_Create_Filter);
 				lib_used |= Resolve_Func<glucose::TCreate_Metric>(lib.create_metric, lib.library, imported::rsDo_Create_Metric);
 				lib_used |= Resolve_Func<glucose::TCreate_Calculated_Signal>(lib.create_calculated_signal, lib.library, imported::rsDo_Create_Calculated_Signal);
@@ -95,14 +95,13 @@ void CLoaded_Filters::load_libraries() {
 				lib_used |= Load_Descriptors<glucose::TGet_Solver_Descriptors, glucose::TSolver_Descriptor>(mSolver_Descriptors, lib.library, imported::rsGet_Solvers_Descriptors);
 				lib_used |= Load_Descriptors<glucose::TGet_Approx_Descriptors, glucose::TApprox_Descriptor>(mApprox_Descriptors, lib.library, imported::rsGet_Approx_Descriptors);
 
-				if (lib_used)
+			if (lib_used)
 					mLibraries.push_back(std::move(lib));
 				else
 					lib.library->Unload();
 			}
 		}
-	}
-
+	}	
 }
 
 

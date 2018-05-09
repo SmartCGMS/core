@@ -11,6 +11,7 @@ CDiffusion_v2_blood::CDiffusion_v2_blood(glucose::WTime_Segment segment) : CComm
 
 HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
 																const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
+	assert((times != nullptr) && (levels != nullptr) && (count>0));
 
 	diffusion_v2_model::TParameters &parameters = Convert_Parameters<diffusion_v2_model::TParameters>(params, diffusion_v2_model::default_parameters);
 	

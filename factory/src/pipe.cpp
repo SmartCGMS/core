@@ -6,7 +6,7 @@ HRESULT IfaceCalling create_filter_pipe(glucose::IFilter_Pipe **pipe) {
 	return Manufacture_Object<CFilter_Pipe, glucose::IFilter_Pipe>(pipe);
 }
 
-CFilter_Pipe::CFilter_Pipe() {
+CFilter_Pipe::CFilter_Pipe() noexcept {
 	mQueue.set_capacity(mDefault_Capacity);
 }
 

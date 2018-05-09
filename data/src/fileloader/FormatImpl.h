@@ -43,7 +43,7 @@ struct SheetPosition
 	int sheetIndex;
 
 	// default constructor
-	SheetPosition() : sheetIndex(-1) { };
+	SheetPosition() noexcept : sheetIndex(-1) { };
 	// copy constructor
 	SheetPosition(const SheetPosition& other) : row(other.row), column(other.column), sheetIndex(other.sheetIndex) { };
 	// is sheet position valid?

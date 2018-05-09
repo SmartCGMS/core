@@ -110,7 +110,7 @@ std::wstring CodePageToUnicode(int codePage, const char *src)
 	int requiredSize = MultiByteToWideChar(codePage, 0, src, srcLen, 0, 0);
 
 	if (!requiredSize)
-		return 0;
+		return L"";
 
 	std::wstring w(requiredSize, L' ');
 

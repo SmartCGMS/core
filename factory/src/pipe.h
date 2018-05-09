@@ -16,7 +16,7 @@ protected:
 	bool mShutting_Down_Receive = false;
 		//we need two flags to let the last shutdown event to fall through
 public:
-	CFilter_Pipe();
+	CFilter_Pipe() noexcept;
 	virtual ~CFilter_Pipe();
 
 	virtual HRESULT send(const glucose::TDevice_Event* event);

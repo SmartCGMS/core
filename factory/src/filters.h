@@ -9,7 +9,7 @@
 #include <tbb/tbb_allocator.h>
 
 namespace imported {
-	struct TLibraryInfo {
+	struct TLibraryInfo {	
 		std::unique_ptr<CDynamic_Library> library;	//we hate this pointer, but we have to - otherwise Qt won't let us to use it
 		glucose::TCreate_Filter create_filter;
 		glucose::TCreate_Metric create_metric;
@@ -30,7 +30,7 @@ protected:
 	std::vector<glucose::TApprox_Descriptor, tbb::tbb_allocator<glucose::TApprox_Descriptor>> mApprox_Descriptors;
 	
 	template <typename TDesc_Func, typename TDesc_Item>
-	bool Load_Descriptors(std::vector<TDesc_Item, tbb::tbb_allocator<TDesc_Item>> &dst, const std::unique_ptr<CDynamic_Library> &lib, const char *func_name)  {
+	bool Load_Descriptors(std::vector<TDesc_Item, tbb::tbb_allocator<TDesc_Item>> &dst,  const std::unique_ptr<CDynamic_Library> &lib, const char *func_name)  {
 		bool result = false;
 		//try to load filter descriptions just once
 		TDesc_Func desc_func = reinterpret_cast<decltype(desc_func)> (lib->Resolve(func_name));
@@ -49,7 +49,7 @@ protected:
 	std::vector<imported::TLibraryInfo, tbb::tbb_allocator<imported::TLibraryInfo>> mLibraries;	
 
 	template <typename TFunc>
-	bool Resolve_Func(TFunc &ptr, const std::unique_ptr<CDynamic_Library> &lib, const char* name) {
+	bool Resolve_Func(TFunc &ptr, std::unique_ptr<CDynamic_Library> &lib, const char* name) {
 		ptr = reinterpret_cast<TFunc> (lib->Resolve(name));
 		return ptr != nullptr;
 	}
@@ -71,7 +71,7 @@ protected:
 		}
 		return rc;
 	}
-public:	
+public:		
 	void load_libraries();
 
 	HRESULT create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter);

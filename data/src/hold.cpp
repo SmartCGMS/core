@@ -8,7 +8,7 @@
 #include <chrono>
 
 CHold_Filter::CHold_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe)
-	: mInput(inpipe), mOutput(outpipe), mSimulationOffset(0.0), mNotified(0)
+	: mInput(inpipe), mOutput(outpipe), mSimulationOffset(0.0), mNotified(0), mMsWait(0)
 {
 	//
 }
