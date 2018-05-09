@@ -79,9 +79,7 @@ void CLoaded_Filters::load_libraries() {
 		if (CDynamic_Library::Is_Library(filepath)) {				//just checks the extension
 			imported::TLibraryInfo lib;
 
-			lib.library = std::make_unique<CDynamic_Library>();			
-
-			if (lib.library->Load(filepath.c_str())) {
+			if (lib.library.Load(filepath.c_str())) {
 				bool lib_used = Resolve_Func<glucose::TCreate_Filter>(lib.create_filter, lib.library, imported::rsDo_Create_Filter);
 				lib_used |= Resolve_Func<glucose::TCreate_Metric>(lib.create_metric, lib.library, imported::rsDo_Create_Metric);
 				lib_used |= Resolve_Func<glucose::TCreate_Calculated_Signal>(lib.create_calculated_signal, lib.library, imported::rsDo_Create_Calculated_Signal);
@@ -98,7 +96,7 @@ void CLoaded_Filters::load_libraries() {
 			if (lib_used)
 					mLibraries.push_back(std::move(lib));
 				else
-					lib.library->Unload();
+					lib.library.Unload();
 			}
 		}
 	}	

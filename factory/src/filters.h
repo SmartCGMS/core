@@ -10,7 +10,7 @@
 
 namespace imported {
 	struct TLibraryInfo {	
-		std::unique_ptr<CDynamic_Library> library;	//we hate this pointer, but we have to - otherwise Qt won't let us to use it
+		CDynamic_Library library;	
 		glucose::TCreate_Filter create_filter;
 		glucose::TCreate_Metric create_metric;
 		glucose::TCreate_Calculated_Signal create_calculated_signal;
@@ -30,10 +30,10 @@ protected:
 	std::vector<glucose::TApprox_Descriptor, tbb::tbb_allocator<glucose::TApprox_Descriptor>> mApprox_Descriptors;
 	
 	template <typename TDesc_Func, typename TDesc_Item>
-	bool Load_Descriptors(std::vector<TDesc_Item, tbb::tbb_allocator<TDesc_Item>> &dst,  const std::unique_ptr<CDynamic_Library> &lib, const char *func_name)  {
+	bool Load_Descriptors(std::vector<TDesc_Item, tbb::tbb_allocator<TDesc_Item>> &dst, CDynamic_Library &lib, const char *func_name)  {
 		bool result = false;
 		//try to load filter descriptions just once
-		TDesc_Func desc_func = reinterpret_cast<decltype(desc_func)> (lib->Resolve(func_name));
+		TDesc_Func desc_func = reinterpret_cast<decltype(desc_func)> (lib.Resolve(func_name));
 
 		TDesc_Item *desc_begin, *desc_end;
 
@@ -46,11 +46,11 @@ protected:
 	}
 protected:
 	//std::vector<imported::TLibraryInfo> mLibraries; - we need to uses tbb allocator due to the pipe's implementation that uses tbb::concurrent_queue
-	std::vector<imported::TLibraryInfo, tbb::tbb_allocator<imported::TLibraryInfo>> mLibraries;	
+	std::vector<imported::TLibraryInfo, tbb::tbb_allocator<imported::TLibraryInfo>> mLibraries;		
 
 	template <typename TFunc>
-	bool Resolve_Func(TFunc &ptr, std::unique_ptr<CDynamic_Library> &lib, const char* name) {
-		ptr = reinterpret_cast<TFunc> (lib->Resolve(name));
+	bool Resolve_Func(TFunc &ptr, CDynamic_Library &lib, const char* name) {
+		ptr = reinterpret_cast<TFunc> (lib.Resolve(name));
 		return ptr != nullptr;
 	}
 
