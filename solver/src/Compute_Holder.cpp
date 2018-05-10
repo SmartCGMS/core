@@ -1,11 +1,9 @@
 #include "Compute_Holder.h"
 
-#include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/ModelsLib.h"
 #include "../../../common/rtl/SolverLib.h"
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/referencedImpl.h"
-#include "../../factory/src/filters.h"
 
 CCompute_Holder::CCompute_Holder(const GUID &solver_id, const GUID &signal_id, const glucose::TMetric_Parameters &metric_parameters, const size_t metric_levels_required, const char use_measured_levels,
 	bool use_just_opened_segments)
@@ -184,7 +182,7 @@ glucose::TSolver_Setup CCompute_Holder::Prepare_Solver_Setup()
 HRESULT CCompute_Holder::Solve(const glucose::TSolver_Setup &solverSetup)
 {
 	// start the solver
-	HRESULT rc = solve_model_parameters(&solverSetup);
+	HRESULT rc = glucose::Solve_Model_Parameters(solverSetup);
 
 	if (rc == S_OK)
 	{
