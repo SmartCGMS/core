@@ -97,7 +97,7 @@ namespace measured_signal
 	};
 }
 
-static const std::vector<glucose::TFilter_Descriptor> filter_descriptions = { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor };
+const std::array<glucose::TFilter_Descriptor, 2> filter_descriptions = { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
 	*begin = const_cast<glucose::TFilter_Descriptor*>(filter_descriptions.data());
