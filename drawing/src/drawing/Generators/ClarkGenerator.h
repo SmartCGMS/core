@@ -11,7 +11,7 @@
 
 #include "../Generators/IGenerator.h"
 
-struct Coordinate;
+struct TCoordinate;
 
 /*
  * Clark generator class
@@ -31,7 +31,18 @@ class CClark_Generator : public IGenerator
         // writes plot background map
         void Write_Plot_Map();
         // writes path normalized using local normalize methods
-        void Write_Normalized_Path(std::vector<Coordinate> const& values);
+		template <typename T>
+		void Write_Normalized_Path(T const& values) {
+			auto const& start = values[0];
+
+			mSvg << "<path d =\"M " << Normalize_X(start.x) << " " << Normalize_Y(start.y);
+
+			for (size_t i = 1; i < values.size(); i++)
+				mSvg << " L " << Normalize_X(values[i].x) << " " << Normalize_Y(values[i].y);
+
+			mSvg << "\"/>" << std::endl;
+		}
+
 
         virtual double Normalize_X(double x) const override;
         virtual double Normalize_Y(double y) const override;

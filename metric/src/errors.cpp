@@ -5,9 +5,7 @@
 #include "../../../common/rtl/FilterLib.h"
 
 #include "../../../common/lang/dstrings.h"
-#include "../../factory/src/filters.h"
-
-#include "../../metric/src/descriptor.h"
+#include "descriptor.h"
 
 #include <iostream>
 #include <chrono>

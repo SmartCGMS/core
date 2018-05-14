@@ -143,36 +143,36 @@ void CAGP_Generator::Write_Legend(Data istData, Data bloodData)
     }
 }
 
-void CAGP_Generator::Write_QuadraticBezirCurve_1(std::vector<Coordinate> &values, std::vector<Coordinate> &back)
+void CAGP_Generator::Write_QuadraticBezirCurve_1(std::vector<TCoordinate> &values, std::vector<TCoordinate> &back)
 {
     if (values.empty() || back.empty())
         return;
 
     size_t i;
 
-    Coordinate& start = values[0];
+    TCoordinate& start = values[0];
     mSvg << "<path d =\"M " << Normalize_X(0,0) << " " << Normalize_Y(0) << " L " << start.x << " " << start.y;
 
     for (i = 0; i < values.size() - 1; i += 2)
     {
-        Coordinate& control = values[i];
-        Coordinate& end = values[i + 1];
+        TCoordinate& control = values[i];
+        TCoordinate& end = values[i + 1];
 
         mSvg << " Q " << control.x << " " << control.y << " " << end.x << " " << end.y;
     }
 
-    Coordinate& end = *(values.end() - 1);
-    Coordinate& end2 = *(back.end() - 1);
+    TCoordinate& end = *(values.end() - 1);
+    TCoordinate& end2 = *(back.end() - 1);
 
     mSvg << " L " << Normalize_X(24, 0) << " " << end.y << " L " << Normalize_X(24, 0) << " " << Normalize_Y(0.0);
 
-    Coordinate& start2 = back[0];
+    TCoordinate& start2 = back[0];
     mSvg << " M " << Normalize_X(0, 0) << " " << Normalize_Y(maxY) << " L " << start2.x << " "<< start2.y;
 
     for (i = 0; i < back.size() - 1; i += 2)
     {
-        Coordinate& control = back[i];
-        Coordinate& end = back[i + 1];
+        TCoordinate& control = back[i];
+        TCoordinate& end = back[i + 1];
 
         mSvg << " Q " << control.x << " " << control.y << " " << end.x << " " << end.y;
     }
@@ -181,25 +181,25 @@ void CAGP_Generator::Write_QuadraticBezirCurve_1(std::vector<Coordinate> &values
     mSvg << "\"/>" << std::endl;
 }
 
-void CAGP_Generator::Write_QuadraticBezirCurve_2(std::vector<Coordinate> &values)
+void CAGP_Generator::Write_QuadraticBezirCurve_2(std::vector<TCoordinate> &values)
 {
     if (values.empty())
         return;
 
     size_t i;
 
-    Coordinate& start = values[0];
+    TCoordinate& start = values[0];
     mSvg << "<path d=\"M " << Normalize_X(0, 0) << " " << start.y << " L " << start.x << " " << start.y;
 
     for (i = 0; i < values.size() - 1; i += 2)
     {
-        Coordinate& control = values[i];
-        Coordinate& end = values[i + 1];
+        TCoordinate& control = values[i];
+        TCoordinate& end = values[i + 1];
 
         mSvg << " Q " << control.x << " " << control.y << " " << end.x << " " << end.y;
     }
 
-    Coordinate& end = *(values.end() - 1);
+    TCoordinate& end = *(values.end() - 1);
     mSvg << " L " << Normalize_X(24, 0) << " " << end.y;
     mSvg << "\"/>" << std::endl;
 }
@@ -208,7 +208,7 @@ void CAGP_Generator::Write_Content(Day day, Data bloodData)
 {
     if (!day.Is_Empty())
     {
-        std::vector<Coordinate> q0, q1, q2, q3, q4;
+        std::vector<TCoordinate> q0, q1, q2, q3, q4;
         day.Quartile(q0, q1, q2, q3, q4);
 
         double x_rect = Normalize_X(0, 0);

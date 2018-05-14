@@ -13,3 +13,4 @@ EXPORTS
 	get_model_descriptors
 	get_solver_descriptors
     get_approx_descriptors
+	add_filters

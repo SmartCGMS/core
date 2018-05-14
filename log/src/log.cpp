@@ -4,8 +4,6 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/UILib.h"
 
-#include "../../factory/src/filters.h"
-
 #include <iostream>
 #include <iomanip>
 #include <chrono>
@@ -181,10 +179,8 @@ HRESULT CLog_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Parame
 
 	Run_Main();
 
-	// load model descriptors to be able to properly format log outputs of parameters
-	glucose::TModel_Descriptor *mbegin, *mend;
-	if (get_model_descriptors(&mbegin, &mend) == S_OK)
-		std::copy(mbegin, mend, std::back_inserter(mModelDescriptors));
+	// load model descriptors to be able to properly format log outputs of parameters	
+	mModelDescriptors = glucose::get_model_descriptors();
 
 	return S_OK;
 };

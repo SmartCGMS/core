@@ -14,7 +14,7 @@
 
 namespace Utility
 {
-    const std::vector<std::string> Curve_Colors = { "orange", "green", "cyan", "magenta", "purple" };
+    const std::array<const char*, 5> Curve_Colors = { "orange", "green", "cyan", "magenta", "purple" };
 
     double Time_To_Double(time_t time)
     {

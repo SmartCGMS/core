@@ -13,7 +13,7 @@
 #include "Day.h"
 #include "../Misc/Utility.h"
 
-static bool compare_function(Coordinate c1, Coordinate c2) 
+static bool compare_function(TCoordinate c1, TCoordinate c2) 
 {
     return (c1.x < c2.x); 
 }
@@ -39,7 +39,7 @@ bool Day::Contains(double key) const
     return (mMap.find(key) != mMap.end());
 }
 
-void Day::Quartile(std::vector<Coordinate> &q0, std::vector<Coordinate> &q1, std::vector<Coordinate> &q2, std::vector<Coordinate> &q3, std::vector<Coordinate> &q4)
+void Day::Quartile(std::vector<TCoordinate> &q0, std::vector<TCoordinate> &q1, std::vector<TCoordinate> &q2, std::vector<TCoordinate> &q3, std::vector<TCoordinate> &q4)
 {
     if (!mMap.empty())
     {
@@ -50,11 +50,11 @@ void Day::Quartile(std::vector<Coordinate> &q0, std::vector<Coordinate> &q1, std
             double y0, y1, y2, y3, y4;
 
             Quartile_X(vector, y0, y1, y2, y3, y4);
-            q0.push_back(Coordinate(key, y0));
-            q1.push_back(Coordinate(key, y1));
-            q2.push_back(Coordinate(key, y2));
-            q3.push_back(Coordinate(key, y3));
-            q4.push_back(Coordinate(key, y4));
+			q0.push_back(TCoordinate{ key, y0 });
+			q1.push_back(TCoordinate{ key, y1 });
+			q2.push_back(TCoordinate{ key, y2 });
+			q3.push_back(TCoordinate{ key, y3 });
+			q4.push_back(TCoordinate{ key, y4 });
         }
     }
 

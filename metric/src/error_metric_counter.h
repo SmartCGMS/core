@@ -44,9 +44,10 @@ class CError_Marker_Counter
 		// map of signals and their models parameter counts (used for i.e. AIC)
 		std::map<GUID, size_t> mSignalModelParamCount;
 
+		// mapping of calculated-reference signal (the errors are calculated against reference signals)
+		std::map<GUID, GUID> Reference_For_Calculated_Signal;
 	public:
 		CError_Marker_Counter();
-		virtual ~CError_Marker_Counter();
 
 		// adds level to segment
 		bool Add_Level(uint64_t segment_id, const GUID& signal_id, double time, double level);

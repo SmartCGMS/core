@@ -145,17 +145,17 @@ void CDrawing_Filter::Run_Scheduler()
 	}
 }
 
-const std::map<GUID, std::string> Signal_Mapping = {
-	{ glucose::signal_IG, "ist" },
-	{ glucose::signal_BG, "blood" },
-	{ glucose::signal_Calibration, "bloodCalibration" },
-	{ glucose::signal_ISIG, "isig" },
-	{ glucose::signal_Insulin, "insulin" },
-	{ glucose::signal_Carb_Intake, "carbs" },
-};
+void CDrawing_Filter::Prepare_Drawing_Map() {
 
-void CDrawing_Filter::Prepare_Drawing_Map()
-{
+	const std::map<GUID, const char*> Signal_Mapping = {
+		{ glucose::signal_IG, "ist" },
+		{ glucose::signal_BG, "blood" },
+		{ glucose::signal_Calibration, "bloodCalibration" },
+		{ glucose::signal_ISIG, "isig" },
+		{ glucose::signal_Insulin, "insulin" },
+		{ glucose::signal_Carb_Intake, "carbs" },
+		};
+
 	DataMap vectorsMap;
 
 	for (auto const& mapping : Signal_Mapping)

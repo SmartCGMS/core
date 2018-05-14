@@ -39,7 +39,7 @@ namespace logger
 	};
 }
 
-static const std::vector<glucose::TFilter_Descriptor> filter_descriptions = { logger::Log_Descriptor };
+const std::array<glucose::TFilter_Descriptor, 1> filter_descriptions = { logger::Log_Descriptor };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
 	*begin = const_cast<glucose::TFilter_Descriptor*>(filter_descriptions.data());

@@ -19,8 +19,7 @@ using TSolution_Hint_Vector = std::vector<glucose::SModel_Parameter_Vector>;
 /*
  * Class used as container for calculation and solving, holds results and all input parameters
  */
-class CCompute_Holder final
-{
+class CCompute_Holder {
 	private:
 		struct TSegment_State
 		{
@@ -96,8 +95,7 @@ class CCompute_Holder final
 
 	public:
 		CCompute_Holder(const GUID& solver_id, const GUID& signal_id, const glucose::TMetric_Parameters &metric_parameters,
-			const size_t metric_levels_required, const char use_measured_levels = 1, bool use_just_opened_segments = false);
-		virtual ~CCompute_Holder();
+			const size_t metric_levels_required, const char use_measured_levels = 1, bool use_just_opened_segments = false);		
 
 		// starts a new segment
 		void Start_Segment(uint64_t segment_id);

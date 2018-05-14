@@ -6,6 +6,7 @@
 #include "../../../common/rtl/descriptor_utils.h"
 #include <vector>
 
+#include <tbb/tbb_allocator.h>
 
 namespace newuoa {
 	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsNewUOA);
@@ -18,7 +19,7 @@ namespace metade {
 
 
 
-const std::vector<glucose::TSolver_Descriptor> solver_descriptions = { newuoa::desc, metade::desc };
+const std::vector<glucose::TSolver_Descriptor, tbb::tbb_allocator<glucose::TSolver_Descriptor>> solver_descriptions = { newuoa::desc, metade::desc };
 
 
 

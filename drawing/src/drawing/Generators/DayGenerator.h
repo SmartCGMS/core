@@ -11,7 +11,7 @@
 
 #include "IGenerator.h"
 
-struct Coordinate;
+struct TCoordinate;
 struct Value;
 
 /*
@@ -28,7 +28,7 @@ class CDay_Generator : public IGenerator
         // writes set of normalized lines into group
         void Write_Normalized_Lines(ValueVector &values, std::string nameGroup, std::string color);
         // writes quadratic beziere curve
-        void Write_QuadraticBezireCurve(std::vector<Coordinate> values);
+        void Write_QuadraticBezireCurve(std::vector<TCoordinate> values);
         // writes plot legent
         void Write_Legend();
         // writes plot description

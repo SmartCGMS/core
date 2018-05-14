@@ -38,18 +38,6 @@ void CParkes_Generator::Set_Canvas_Size(int width, int height)
 	maxY = height;
 }
 
-void CParkes_Generator::Write_Normalized_Lines(std::vector<Coordinate> values)
-{
-    Coordinate& start = values[0];
-
-    mSvg << "<path d =\"M " << Normalize_X(start.x) << " " << Normalize_Y(start.y);
-
-    for (unsigned int i = 1; i < values.size(); i++)
-        mSvg << " L " << Normalize_X(values[i].x) << " " << Normalize_Y(values[i].y);
-
-    mSvg << "\"/>" << std::endl;
-}
-
 void CParkes_Generator::Write_Background_Map_Type1()
 {
     mSvg.Set_Stroke(1, "grey", "none");

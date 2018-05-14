@@ -77,9 +77,11 @@ namespace steil_rebrin {
 
 }
 
-const std::vector<glucose::TModel_Descriptor> model_descriptions = { diffusion_v2_model::desc, steil_rebrin::desc };
+const std::array<glucose::TModel_Descriptor, 2> model_descriptions = { diffusion_v2_model::desc, steil_rebrin::desc };
 
 
 HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end) {
-	return do_get_descriptors(model_descriptions, begin, end);
+	*begin = const_cast<glucose::TModel_Descriptor*>(model_descriptions.data());
+	*end = *begin + model_descriptions.size();
+	return S_OK;
 }

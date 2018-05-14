@@ -70,6 +70,10 @@ HRESULT IfaceCalling create_approximator(const GUID *approx_id, glucose::ISignal
 	return loaded_filters.create_approximator(approx_id, signal, approx, configuration);
 }
 
+HRESULT IfaceCalling add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Filter create_filter) {
+	return loaded_filters.add_filters(begin, end, create_filter);
+}
+
 void CLoaded_Filters::load_libraries() {
 	auto appdir = Get_Application_Dir();	
 	auto allFiles = List_Directory/*<tbb::tbb_allocator<std::wstring>>*/(Path_Append(appdir, rsSolversDir));
@@ -100,6 +104,23 @@ void CLoaded_Filters::load_libraries() {
 			}
 		}
 	}	
+}
+
+HRESULT CLoaded_Filters::add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Filter create_filter) {
+	if ((begin == end) || (begin == nullptr) || (end == nullptr) || (create_filter == nullptr)) return E_INVALIDARG;
+	imported::TLibraryInfo lib;
+	lib.create_approximator = nullptr;
+	lib.create_calculated_signal = lib.create_measured_signal = nullptr;
+	lib.create_metric = nullptr;
+	lib.solve_model_parameters = nullptr;
+
+	lib.create_filter = create_filter;
+
+	mLibraries.push_back(std::move(lib));
+
+	std::copy(begin, end, std::back_inserter(mFilter_Descriptors));
+
+	return S_OK;
 }
 
 

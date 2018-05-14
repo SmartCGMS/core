@@ -11,7 +11,7 @@
 
 #include "IGenerator.h"
 
-struct Coordinate;
+struct TCoordinate;
 
 /*
  * AGP generator class
@@ -35,9 +35,9 @@ class CAGP_Generator : public IGenerator
         void Write_Description();
 
         // draws bezier curve
-        void Write_QuadraticBezirCurve_1(std::vector<Coordinate> &values, std::vector<Coordinate> &back);
+        void Write_QuadraticBezirCurve_1(std::vector<TCoordinate> &values, std::vector<TCoordinate> &back);
         // draws bezier curve
-        void Write_QuadraticBezirCurve_2(std::vector<Coordinate> &values);
+        void Write_QuadraticBezirCurve_2(std::vector<TCoordinate> &values);
 
         virtual double Normalize_X(int hour, int minute) const override;
         virtual double Normalize_Time_X(time_t x) const override;

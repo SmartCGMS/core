@@ -105,8 +105,7 @@ void CCompute_Filter::Run_Main()
 				break;
 			// force parameters solve
 			case glucose::NDevice_Event_Code::Solve_Parameters:
-				if (evt.signal_id == GUID{ 0 } || evt.signal_id == mComputeHolder->Get_Signal_Id())
-				{
+				if ((evt.signal_id == Invalid_GUID) || (evt.signal_id == mComputeHolder->Get_Signal_Id())) {
 					std::unique_lock<std::mutex> lck(mScheduleMtx);
 					mCalculationScheduled = true;
 					mCalculationForced = true;
@@ -214,7 +213,7 @@ void CCompute_Filter::Run_Scheduler()
 				// new or better parameters available
 				if (result == S_OK)
 				{
-					std::vector<uint64_t> updatedSegments;
+					std::vector<size_t> updatedSegments;
 					if (resetForcedFlag || mRecalc_With_Every_Params)
 						mComputeHolder->Get_All_Segment_Ids(updatedSegments);
 					else

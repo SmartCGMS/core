@@ -11,7 +11,7 @@
 
 #include "IGenerator.h"
 
-struct Coordinate;
+struct TCoordinate;
 struct Value;
 class Stats;
 

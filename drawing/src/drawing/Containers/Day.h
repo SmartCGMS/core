@@ -27,7 +27,7 @@ class Day
         ~Day();
         void Insert(double key, std::vector<double> value);
         bool Contains(double key) const;
-        void Quartile(std::vector<Coordinate> &q0, std::vector<Coordinate> &q1, std::vector<Coordinate> &q2, std::vector<Coordinate> &q3, std::vector<Coordinate> &q4);
+        void Quartile(std::vector<TCoordinate> &q0, std::vector<TCoordinate> &q1, std::vector<TCoordinate> &q2, std::vector<TCoordinate> &q3, std::vector<TCoordinate> &q4);
         bool Is_Empty() const;
         void Set_Empty(bool state);
 };

@@ -31,11 +31,7 @@ struct Value
 
 typedef std::vector<Value> ValueVector;
 
-struct Coordinate
-{
-    Coordinate(double _x, double _y);
-    ~Coordinate();
-
+struct TCoordinate {
     double x, y;
 };
 

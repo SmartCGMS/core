@@ -14,6 +14,8 @@
 #include <map>
 #include <functional>
 
+#include <tbb/tbb_allocator.h>
+
 class CGeneral_Id_Dispatcher {
 public:
 	virtual HRESULT Solve_Model_Parameters(TShared_Solver_Setup &setup) = 0;
@@ -53,6 +55,9 @@ HRESULT Solve_NLOpt(TShared_Solver_Setup &setup, std::vector<TSolution>& hints, 
 	return S_OK;
 }
 
+template <typename TSolution>
+using  TSolve = std::function<HRESULT(TShared_Solver_Setup &, std::vector<TSolution>&, const TSolution&, const TSolution&)>;
+
 template <typename TSolution, typename TFitness = CFitness<TSolution>>
 class CSpecialized_Id_Dispatcher : public CGeneral_Id_Dispatcher {
 protected:
@@ -73,7 +78,7 @@ protected:
 	}
 	
 protected:
-	std::map <const GUID, std::function<HRESULT(TShared_Solver_Setup &, std::vector<TSolution>&, const TSolution&, const TSolution&)>> mSolver_Id_Map;
+	std::map <const GUID, TSolve<TSolution>, std::less<GUID>, tbb::tbb_allocator<std::pair<const GUID, TSolve<TSolution>>>> mSolver_Id_Map;
 
 	template <nlopt::algorithm algorithm_id>
 	void add_NLOpt(const GUID &id) {		
@@ -121,7 +126,7 @@ protected:
 	CSpecialized_Id_Dispatcher<CDiffusion_v2_Solution> mDiffusion_v2_Dispatcher;
 	CSpecialized_Id_Dispatcher<CSteil_Rebrin_Solution> mSteil_Rebrin_Dispatcher;
 	CSpecialized_Id_Dispatcher<CGeneric_Solution> mGeneric_Dispatcher;
-	std::map<const GUID, CGeneral_Id_Dispatcher*> mSignal_Id_map;
+	std::map<const GUID, CGeneral_Id_Dispatcher*, std::less<GUID>, tbb::tbb_allocator<std::pair<const GUID, CGeneral_Id_Dispatcher*>>> mSignal_Id_map;
 public:
 	CId_Dispatcher() {
 		//alternatively, we could call factory.dll and enumerate signals for known models

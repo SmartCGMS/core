@@ -30,14 +30,6 @@ void Value::Set_Value(double _value)
     value = _value;
 }
 
-Coordinate::Coordinate(double _x, double _y) : x(_x), y(_y)
-{
-}
-
-Coordinate::~Coordinate()
-{
-}
-
 Stats::Stats()
 {
     mSumAbsolute = 0;

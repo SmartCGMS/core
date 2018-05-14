@@ -10,6 +10,7 @@
 #pragma once
 
 #include <vector>
+#include <array>
 #include <ctime>
 #include <map>
 #include "../Containers/Value.h"
@@ -17,7 +18,7 @@
 // utility namespace, to better recognize generic methods from the rest
 namespace Utility
 {
-    extern const std::vector<std::string> Curve_Colors;
+    extern const std::array<const char*, 5> Curve_Colors;
 
     // finds index of IST value in vector on date supplied
     int Find_Ist_Index(double date, ValueVector &ist);

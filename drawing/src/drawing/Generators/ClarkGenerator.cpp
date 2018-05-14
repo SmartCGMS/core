@@ -236,17 +236,6 @@ double CClark_Generator::Normalize_Y(double val) const
     return maxY - v - 0.15*sizeY;
 }
 
-void CClark_Generator::Write_Normalized_Path(std::vector<Coordinate> const& values)
-{
-    Coordinate const& start = values[0];
-
-    mSvg << "<path d =\"M " << Normalize_X(start.x) << " " << Normalize_Y(start.y);
-
-    for (size_t i = 1; i < values.size(); i++)
-        mSvg << " L " << Normalize_X(values[i].x) << " " << Normalize_Y(values[i].y);
-
-    mSvg << "\"/>" << std::endl;
-}
 
 std::string CClark_Generator::Build_SVG()
 {

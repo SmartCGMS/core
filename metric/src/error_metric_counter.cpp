@@ -3,13 +3,11 @@
 #undef min
 #undef max
 
-// mapping of calculated-reference signal (the errors are calculated against reference signals)
-static std::map<GUID, GUID> Reference_For_Calculated_Signal;
 
 CError_Marker_Counter::CError_Marker_Counter()
 {
 	auto models = glucose::get_model_descriptors();
-	for (auto model : models)
+	for (const auto &model : models)
 	{
 		for (size_t i = 0; i < model.number_of_calculated_signals; i++)
 		{
@@ -17,11 +15,6 @@ CError_Marker_Counter::CError_Marker_Counter()
 			Reference_For_Calculated_Signal[model.calculated_signal_ids[i]] = model.reference_signal_ids[i];
 		}
 	}
-}
-
-CError_Marker_Counter::~CError_Marker_Counter()
-{
-	//
 }
 
 bool CError_Marker_Counter::Add_Level(uint64_t segment_id, const GUID& signal_id, double time, double level)

@@ -123,20 +123,20 @@ void CDay_Generator::Write_Legend()
     }
 }
 
-void CDay_Generator::Write_QuadraticBezireCurve(std::vector<Coordinate> values)
+void CDay_Generator::Write_QuadraticBezireCurve(std::vector<TCoordinate> values)
 {
     if (values.empty())
         return;
 
     size_t i;
 
-    Coordinate& start = values[0];
+    TCoordinate& start = values[0];
     mSvg << "<path d=\"M " << start.x << " " << start.y;
 
     for (i = 0; i < values.size() - 1; i += 2)
     {
-        Coordinate& control = values[i];
-        Coordinate& end = values[i + 1];
+        TCoordinate& control = values[i];
+        TCoordinate& end = values[i + 1];
 
         mSvg << " Q " << control.x << " " << control.y << " " << end.x << " " << end.y;
     }
@@ -158,7 +158,7 @@ void CDay_Generator::Write_Normalized_Lines(ValueVector &values, std::string nam
     {
         SVG::GroupGuard grp(mSvg, nameGroup, true);
 
-        std::vector<Coordinate> coordinates;
+        std::vector<TCoordinate> coordinates;
 
         double last_x = -1, x, y;
         uint64_t last_segment = 0;
@@ -176,7 +176,7 @@ void CDay_Generator::Write_Normalized_Lines(ValueVector &values, std::string nam
                 coordinates.clear();
             }
 
-            coordinates.push_back(Coordinate(x, y));
+			coordinates.push_back(TCoordinate{ x, y });
             last_x = x;
             last_segment = val.segment_id;
         }

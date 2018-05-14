@@ -5,21 +5,23 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/descriptor_utils.h"
 
-const std::vector < glucose::TMetric_Descriptor > metric_descriptor {
-	{ mtrAvg_Abs, dsAvg_Abs },
-	{ mtrMax_Abs, dsMax_Abs },
-	{ mtrPerc_Abs, dsPerc_Abs },
-	{ mtrThresh_Abs, dsThresh_Abs },
-	{ mtrLeal_2010, dsLeal_2010 },
-	{ mtrAIC, dsAIC },
-	{ mtrStd_Dev, dsStd_Dev },
-	{ mtrCrosswalk, dsCrosswalk },
-	{ mtrIntegral_CDF, dsIntegral_CDF },
-	{ mtrAvg_Plus_Bessel_Std_Dev, dsAvg_Plus_Bessel_Std_Dev }
+const std::array < glucose::TMetric_Descriptor, 10 > metric_descriptor {
+	 glucose::TMetric_Descriptor {mtrAvg_Abs, dsAvg_Abs } ,
+	 glucose::TMetric_Descriptor{ mtrMax_Abs, dsMax_Abs },
+	 glucose::TMetric_Descriptor{ mtrPerc_Abs, dsPerc_Abs },
+	 glucose::TMetric_Descriptor{ mtrThresh_Abs, dsThresh_Abs },
+	 glucose::TMetric_Descriptor{ mtrLeal_2010, dsLeal_2010 },
+	 glucose::TMetric_Descriptor{ mtrAIC, dsAIC },
+	 glucose::TMetric_Descriptor{ mtrStd_Dev, dsStd_Dev },
+	 glucose::TMetric_Descriptor{ mtrCrosswalk, dsCrosswalk },
+	 glucose::TMetric_Descriptor{ mtrIntegral_CDF, dsIntegral_CDF },
+	 glucose::TMetric_Descriptor{ mtrAvg_Plus_Bessel_Std_Dev, dsAvg_Plus_Bessel_Std_Dev }
 };
 
 HRESULT IfaceCalling do_get_metric_descriptors(glucose::TMetric_Descriptor **begin, glucose::TMetric_Descriptor **end) {
-	return do_get_descriptors(metric_descriptor, begin, end);
+	*begin = const_cast<glucose::TMetric_Descriptor*>(metric_descriptor.data());
+	*end = *begin + metric_descriptor.size();
+	return S_OK;
 }
 
 namespace errors
@@ -37,7 +39,7 @@ namespace errors
 	};
 }
 
-static const std::vector<glucose::TFilter_Descriptor> filter_descriptions = { errors::Errors_Descriptor };
+static const std::array<glucose::TFilter_Descriptor, 1> filter_descriptions = { errors::Errors_Descriptor };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
 	*begin = const_cast<glucose::TFilter_Descriptor*>(filter_descriptions.data());

@@ -9,12 +9,7 @@ CCompute_Holder::CCompute_Holder(const GUID &solver_id, const GUID &signal_id, c
 	bool use_just_opened_segments)
 	: mSolverId(solver_id), mSignalId(signal_id), mMetricLevelsRequired(metric_levels_required), mUseMeasuredLevels(use_measured_levels),
 	  mLowBounds(nullptr), mHighBounds(nullptr), mSolveInProgress(false), mMaxTime(0.0), mLastStoppedSegment(0), mDetermine_Parameters_Using_All_Known_Segments(use_just_opened_segments),
-	  mMetric(metric_parameters)
-{
-	//
-}
-
-CCompute_Holder::~CCompute_Holder()
+	  mMetric{ metric_parameters }
 {
 	//
 }

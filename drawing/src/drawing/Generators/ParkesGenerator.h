@@ -11,7 +11,9 @@
 
 #include "IGenerator.h"
 
-struct Coordinate;
+#include <array>
+
+struct TCoordinate;
 
 /*
  * Parkes generator class
@@ -36,7 +38,17 @@ class CParkes_Generator : public IGenerator
         // writes background map for diabetes type 2
         void Write_Background_Map_Type2();
         // writes normalized set of lines
-        void Write_Normalized_Lines(std::vector<Coordinate> values);
+		template <typename T>
+		void Write_Normalized_Lines(const T &values) 		{
+			auto &start = values[0];
+
+			mSvg << "<path d =\"M " << Normalize_X(start.x) << " " << Normalize_Y(start.y);
+
+			for (unsigned int i = 1; i < values.size(); i++)
+				mSvg << " L " << Normalize_X(values[i].x) << " " << Normalize_Y(values[i].y);
+
+			mSvg << "\"/>" << std::endl;
+		}
 
         virtual double Normalize_X(double x) const override;
         virtual double Normalize_Y(double y) const override;

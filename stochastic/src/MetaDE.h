@@ -35,7 +35,8 @@ namespace metade {
 
 	enum class NStrategy : size_t { desCurrentToPBest = 0, desCurrentToUmPBest, desBest2Bin, desUmBest1, desCurrentToRand1, count };
 
-	const std::map<NStrategy, const char*> strategy_name = {	{ NStrategy::desCurrentToPBest,		"CurToPBest" },
+	const std::map<NStrategy, const char*, std::less<NStrategy>, tbb::tbb_allocator<std::pair<NStrategy, const char*>>> strategy_name = {
+														{ NStrategy::desCurrentToPBest,		"CurToPBest" },
 														{ NStrategy::desCurrentToUmPBest,	"CurToUmPBest" },
 														{ NStrategy::desBest2Bin,			"Best2Bin" },
 														{ NStrategy::desUmBest1,			"UmBest1" },
