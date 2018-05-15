@@ -63,8 +63,10 @@ void CCompute_Filter::Run_Main()
 				if (glucose::SModel_Parameter_Vector params = mComputeHolder->Get_Model_Parameters(evt.segment_id))
 				{
 					// send current event through pipe
-					if (mOutput->send(&evt) != S_OK)
+					if (mOutput->send(&evt) != S_OK) {
+						glucose::Release_Event(evt);
 						break;
+					}
 
 					// modify the event that will be sent through pipe
 					evt.event_code = glucose::NDevice_Event_Code::Parameters;
@@ -73,7 +75,7 @@ void CCompute_Filter::Run_Main()
 					evt.device_id = GUID{ 0 }; // TODO: fix this (retain from segments?) 
 					evt.signal_id = mComputeHolder->Get_Signal_Id();
 					evt.parameters = params.get();
-					glucose::AddRef_Event(evt);
+					evt.parameters->AddRef();
 				}
 				break;
 			// time segment stop - force buffered values to be written to signals
@@ -123,8 +125,10 @@ void CCompute_Filter::Run_Main()
 				break;
 		}
 
-		if (mOutput->send(&evt) != S_OK)
+		if (mOutput->send(&evt) != S_OK) {
+			glucose::Release_Event(evt);
 			break;
+		}
 	}
 
 	mRunning = false;
@@ -201,7 +205,9 @@ void CCompute_Filter::Run_Scheduler()
 						evt.info = refcnt::WString_To_WChar_Container(progMsg.c_str());
 						evt.signal_id = mComputeHolder->Get_Signal_Id();
 						glucose::AddRef_Event(evt);
-						mOutput->send(&evt);
+						if (mOutput->send(&evt) != S_OK) {
+							glucose::Release_Event(evt);
+						}
 
 						lastProgress = newProgress;
 					}
@@ -237,9 +243,9 @@ void CCompute_Filter::Run_Scheduler()
 						// send also parameters reset information message
 						evt.event_code = glucose::NDevice_Event_Code::Parameters;
 						evt.parameters = mComputeHolder->Get_Model_Parameters(segId).get();
-						glucose::AddRef_Event(evt);
-						if (mOutput->send(&evt) != S_OK)
-						{
+						evt.parameters->AddRef();						
+						if (mOutput->send(&evt) != S_OK) {
+							glucose::Release_Event(evt);
 							error = true;
 							break;
 						}
@@ -256,8 +262,10 @@ void CCompute_Filter::Run_Scheduler()
 
 							evt.event_code = glucose::NDevice_Event_Code::Information;
 							evt.info = refcnt::WString_To_WChar_Container(rsParameters_Reset);
-							if (mOutput->send(&evt) != S_OK)
+							if (mOutput->send(&evt) != S_OK) {
+								glucose::Release_Event(evt);
 								break;
+							}
 						}
 					}
 				}
