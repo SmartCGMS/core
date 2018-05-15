@@ -67,14 +67,13 @@ CDb_Reader::~CDb_Reader()
 
 void CDb_Reader::Send_Segment_Marker(glucose::NDevice_Event_Code code, double device_time, uint64_t segment_id)
 {
-	glucose::TDevice_Event evt;
+	glucose::SDevice_Event evt{ code };
 
 	evt.device_id = Db_Reader_Device_GUID;
-	evt.device_time = device_time;
-	evt.event_code = code;
+	evt.device_time = device_time;	
 	evt.segment_id = segment_id;
 
-	mOutput->send(&evt);
+	mOutput.Send(evt);
 }
 
 void CDb_Reader::Run_Reader() {
@@ -92,7 +91,7 @@ void CDb_Reader::Run_Reader() {
 
 	
 	bool ok;
-	glucose::TDevice_Event evt;
+	glucose::SDevice_Event evt;
 	uint64_t currentSegmentId;
 	
 	double nowdate = Unix_Time_To_Rat_Time(QDateTime::currentDateTime().toSecsSinceEpoch());
