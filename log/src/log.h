@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../../../common/iface/FilterIface.h"
-#include "../../../common/iface/UIIface.h"
+#include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
 
 #include <memory>
@@ -19,9 +18,9 @@ class CLog_Filter : public glucose::IFilter, public virtual refcnt::CReferenced
 {
 	protected:
 		// input pipe
-		glucose::IFilter_Pipe* mInput;
+		glucose::SFilter_Pipe mInput;
 		// output pipe
-		glucose::IFilter_Pipe* mOutput;
+		glucose::SFilter_Pipe mOutput;
 
 		// output file name
 		std::wstring mLogFileName;
@@ -35,10 +34,10 @@ class CLog_Filter : public glucose::IFilter, public virtual refcnt::CReferenced
 		void Run_Main();
 
 		// writes model parameters to file stream
-		void Write_Model_Parameters(std::wostream& stream, glucose::TDevice_Event& evt);
+		void Write_Model_Parameters(std::wostream& stream, const glucose::SDevice_Event& evt);
 
 	public:
-		CLog_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe);
+		CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
 		virtual ~CLog_Filter();
 
 		virtual HRESULT Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;

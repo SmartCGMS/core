@@ -211,8 +211,7 @@ HRESULT CCompute_Holder::Solve(const glucose::TSolver_Setup &solverSetup)
 	return rc;
 }
 
-std::future<HRESULT> CCompute_Holder::Solve_Async()
-{
+std::future<HRESULT> CCompute_Holder::Solve_Async() {
 	if (mSolveInProgress)
 		return std::future<HRESULT>();
 

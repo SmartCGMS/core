@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../../../common/iface/FilterIface.h"
-#include "../../../common/iface/UIIface.h"
+#include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
 
 #include <memory>
@@ -19,9 +18,9 @@ class CCalculate_Filter : public glucose::IFilter, public virtual refcnt::CRefer
 {
 	protected:
 		// input pipe
-		glucose::IFilter_Pipe* mInput;
+		glucose::SFilter_Pipe mInput;
 		// output pipe
-		glucose::IFilter_Pipe* mOutput;
+		glucose::SFilter_Pipe mOutput;
 
 		// calculated signal ID
 		GUID mSignalId;
@@ -33,7 +32,7 @@ class CCalculate_Filter : public glucose::IFilter, public virtual refcnt::CRefer
 		void Run_Main();
 
 	public:
-		CCalculate_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe);
+		CCalculate_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
 
 		virtual HRESULT Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;
 };

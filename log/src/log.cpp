@@ -21,8 +21,8 @@ namespace logger
 	constexpr std::streamsize DefaultLogPrecision_ModelParam = 8;
 }
 
-CLog_Filter::CLog_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe)
-	: mInput(inpipe), mOutput(outpipe)
+CLog_Filter::CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
+	: mInput{inpipe}, mOutput{outpipe}
 {
 	//
 }
@@ -32,7 +32,7 @@ CLog_Filter::~CLog_Filter()
 	//
 }
 
-void CLog_Filter::Write_Model_Parameters(std::wostream& stream, glucose::TDevice_Event& evt)
+void CLog_Filter::Write_Model_Parameters(std::wostream& stream, const glucose::SDevice_Event& evt)
 {
 	// find appropriate model descriptor by id
 	glucose::TModel_Descriptor* modelDesc = nullptr;
@@ -66,10 +66,10 @@ void CLog_Filter::Write_Model_Parameters(std::wostream& stream, glucose::TDevice
 
 void CLog_Filter::Run_Main()
 {
-	glucose::TDevice_Event evt;
+	glucose::SDevice_Event evt;
 	std::wstring logMsg;
 
-	while (mInput->receive(&evt) == S_OK)
+	while (mInput.Receive(evt))
 	{
 		std::wostringstream logLine;
 
@@ -85,7 +85,7 @@ void CLog_Filter::Run_Main()
 
 		// if it is the diagnostic event, prepare log message
 		if (evt.event_code == glucose::NDevice_Event_Code::Information || evt.event_code == glucose::NDevice_Event_Code::Warning || evt.event_code == glucose::NDevice_Event_Code::Error)
-			logMsg = refcnt::WChar_Container_To_WString(evt.info);
+			logMsg = refcnt::WChar_Container_To_WString(evt.info.get());
 
 		// output may differ with each event type
 		switch (evt.event_code)
@@ -141,7 +141,7 @@ void CLog_Filter::Run_Main()
 		if (mLog.is_open())
 			mLog << logLine.str().c_str() << std::endl; // this also performs flush
 
-		if (mOutput->send(&evt) != S_OK)
+		if (!mOutput.Send(evt))
 			break;
 	}
 }

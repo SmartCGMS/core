@@ -7,17 +7,17 @@
 #include <iostream>
 #include <chrono>
 
-CMapping_Filter::CMapping_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe)
-	: mInput(inpipe), mOutput(outpipe)
+CMapping_Filter::CMapping_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
+	: mInput{ inpipe }, mOutput{ outpipe }
 {
 	//
 }
 
 void CMapping_Filter::Run_Main()
 {
-	glucose::TDevice_Event evt;
+	glucose::SDevice_Event evt;
 
-	while (mInput->receive(&evt) == S_OK)
+	while (mInput.Receive(evt))
 	{
 		// remap only "Level" signals
 		if (evt.event_code == glucose::NDevice_Event_Code::Level)
@@ -29,11 +29,11 @@ void CMapping_Filter::Run_Main()
 		// remap parameters reset information message (this message serves i.e. for drawing filter to reset signal values)
 		else if (evt.event_code == glucose::NDevice_Event_Code::Information)
 		{
-			if (evt.signal_id == mSourceId && refcnt::WChar_Container_Equals_WString(evt.info, rsParameters_Reset))
+			if (evt.signal_id == mSourceId && refcnt::WChar_Container_Equals_WString(evt.info.get(), rsParameters_Reset))
 				evt.signal_id = mDestinationId;
 		}
 
-		if (mOutput->send(&evt) != S_OK)
+		if (!mOutput.Send(evt))
 			break;
 	}
 }

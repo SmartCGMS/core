@@ -138,7 +138,7 @@ void CCompute_Filter::Run_Main()
 	}
 
 	// join scheduler thread until it's finished
-	if (mSchedulerThread->joinable())
+	if (mSchedulerThread && mSchedulerThread->joinable())
 		mSchedulerThread->join();
 }
 
@@ -230,8 +230,7 @@ void CCompute_Filter::Run_Scheduler()
 
 						// send also parameters reset information message
 						evt.event_code = glucose::NDevice_Event_Code::Parameters;
-						evt.parameters = mComputeHolder->Get_Model_Parameters(segId);
-						evt.parameters->AddRef();						
+						evt.parameters = mComputeHolder->Get_Model_Parameters(segId);									
 						error = !mOutput.Send(evt);
 						if (error) break;
 					}
@@ -337,7 +336,7 @@ HRESULT CCompute_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Pa
 	mComputeHolder->Set_Defaults(defParams);
 
 	mSchedulerThread = std::make_unique<std::thread>(&CCompute_Filter::Run_Scheduler, this);
-
+	
 	Run_Main();
 
 	return S_OK;

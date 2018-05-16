@@ -1,6 +1,6 @@
 #include "calculate.h"
 
-#include "../../../common/rtl/FilterLib.h"
+
 #include "../../../common/rtl/rattime.h"
 #include "../../../common/lang/dstrings.h"
 
@@ -8,21 +8,21 @@
 
 #include <iostream>
 
-CCalculate_Filter::CCalculate_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe)
-	: mInput(inpipe), mOutput(outpipe), mSignalId{0}, mCalc_Past_With_First_Params(false)
+CCalculate_Filter::CCalculate_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
+	: mInput{ inpipe }, mOutput{ outpipe }, mSignalId{ 0 }, mCalc_Past_With_First_Params(false)
 {
 	//
 }
 
 void CCalculate_Filter::Run_Main()
 {
-	glucose::TDevice_Event evt, calcEvt;
+	glucose::SDevice_Event evt, calcEvt;
 	uint64_t segmentToReset = 0;
 	bool error = false;
 
 	CSegment_Holder hldr(mSignalId);
 
-	while (mInput->receive(&evt) == S_OK && !error)
+	while (mInput.Receive(evt)  && !error)
 	{
 		switch (evt.event_code)
 		{
@@ -37,11 +37,10 @@ void CCalculate_Filter::Run_Main()
 						calcEvt.device_time = evt.device_time;
 						calcEvt.event_code = glucose::NDevice_Event_Code::Level;
 						calcEvt.level = level;
-						//calcEvt.logical_time = 0; // asynchronnous events always have logical time equal to 0 at this time
-						calcEvt.device_id = GUID{ 0 }; // TODO: fix this (retain from segments?)
+						calcEvt.device_id = Invalid_GUID; // TODO: fix this (retain from segments?)
 						calcEvt.signal_id = mSignalId;
 						calcEvt.segment_id = evt.segment_id;
-						mOutput->send(&calcEvt);
+						mOutput.Send(calcEvt);
 					}
 				}
 
@@ -59,19 +58,19 @@ void CCalculate_Filter::Run_Main()
 					// if the segment doesn't have parameters yet, recalculate whole segment with given parameters (if the flag is set)
 					if (!hldr.Has_Parameters(evt.segment_id) && mCalc_Past_With_First_Params)
 						segmentToReset = evt.segment_id;
-					hldr.Set_Parameters(evt.segment_id, refcnt::make_shared_reference_ext<glucose::SModel_Parameter_Vector, glucose::IModel_Parameter_Vector>(evt.parameters, true));
+					hldr.Set_Parameters(evt.segment_id, evt.parameters);
 				}
 				break;
 			case glucose::NDevice_Event_Code::Information:
 				// if the reset is requested, defer sending levels AFTER propagating reset message
-				if (refcnt::WChar_Container_Equals_WString(evt.info, rsParameters_Reset) && evt.signal_id == mSignalId)
+				if (refcnt::WChar_Container_Equals_WString(evt.info.get(), rsParameters_Reset) && evt.signal_id == mSignalId)
 					segmentToReset = evt.segment_id;
 				break;
 			default:
 				break;
 		}
 
-		if (mOutput->send(&evt) != S_OK)
+		if (!mOutput.Send(evt))
 			break;
 
 		if (segmentToReset)
@@ -90,7 +89,7 @@ void CCalculate_Filter::Run_Main()
 					calcEvt.device_time = times[i];
 					calcEvt.level = levels[i];
 
-					if (mOutput->send(&calcEvt) != S_OK)
+					if (!mOutput.Send(calcEvt))
 					{
 						// to properly break outer loop and avoid deadlock
 						error = true;
@@ -101,9 +100,9 @@ void CCalculate_Filter::Run_Main()
 				if (!error)
 				{
 					calcEvt.event_code = glucose::NDevice_Event_Code::Information;
-					calcEvt.info = refcnt::WString_To_WChar_Container(rsSegment_Recalculate_Complete);
+					calcEvt.info = refcnt::WString_To_WChar_Container_shared(rsSegment_Recalculate_Complete);
 
-					if (mOutput->send(&calcEvt) != S_OK)
+					if (!mOutput.Send(calcEvt))
 						break;
 				}
 			}
