@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <iomanip>
 
-CCompute_Filter::CCompute_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe)
+CCompute_Filter::CCompute_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
 	: mInput(inpipe), mOutput(outpipe), mTotalLevelCount(0), mLastCalculationLevelsCount(0), mCalculationScheduled(false),
 	  mRecalcLevelsCount(0), mRecalcSegmentEnd(false), mRecalcOnCalibration(false), mSuspended(false), mCalculationForced(false),
 	  mParamsResetForced(false)
@@ -21,14 +21,14 @@ CCompute_Filter::CCompute_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter
 
 void CCompute_Filter::Run_Main()
 {
-	glucose::TDevice_Event evt, calcEvt;
+	glucose::SDevice_Event evt, calcEvt;
 
 	calcEvt.event_code = glucose::NDevice_Event_Code::Nothing;
 
 	double maxTime = 0.0;
 	bool resetFlag = false;
 
-	while (mInput->receive(&evt) == S_OK)
+	while (mInput.Receive(evt))
 	{
 		switch (evt.event_code)
 		{
@@ -55,7 +55,7 @@ void CCompute_Filter::Run_Main()
 			// parameters hint - incoming hints for solution, store to compute holder
 			case glucose::NDevice_Event_Code::Parameters_Hint:
 				if (evt.signal_id == mComputeHolder->Get_Signal_Id())
-					mComputeHolder->Add_Solution_Hint(refcnt::make_shared_reference_ext<glucose::SModel_Parameter_Vector, glucose::IModel_Parameter_Vector>(evt.parameters, true));
+					mComputeHolder->Add_Solution_Hint(evt.parameters);
 				break;
 			// time segment start - create a new segment
 			case glucose::NDevice_Event_Code::Time_Segment_Start:
@@ -63,10 +63,7 @@ void CCompute_Filter::Run_Main()
 				if (glucose::SModel_Parameter_Vector params = mComputeHolder->Get_Model_Parameters(evt.segment_id))
 				{
 					// send current event through pipe
-					if (mOutput->send(&evt) != S_OK) {
-						glucose::Release_Event(evt);
-						break;
-					}
+					if (!mOutput.Send(evt)) break;					
 
 					// modify the event that will be sent through pipe
 					evt.event_code = glucose::NDevice_Event_Code::Parameters;
@@ -74,8 +71,7 @@ void CCompute_Filter::Run_Main()
 					//evt.logical_time = 0; // asynchronnous events always have logical time equal to 0 at this time
 					evt.device_id = GUID{ 0 }; // TODO: fix this (retain from segments?) 
 					evt.signal_id = mComputeHolder->Get_Signal_Id();
-					evt.parameters = params.get();
-					evt.parameters->AddRef();
+					evt.parameters = params;
 				}
 				break;
 			// time segment stop - force buffered values to be written to signals
@@ -118,17 +114,14 @@ void CCompute_Filter::Run_Main()
 				break;
 			// information messages (misc)
 			case glucose::NDevice_Event_Code::Information:
-				if (refcnt::WChar_Container_Equals_WString(evt.info, rsParameters_Reset_Request))
+				if (refcnt::WChar_Container_Equals_WString(evt.info.get(), rsParameters_Reset_Request))
 					resetFlag = true;
 				break;
 			default:
 				break;
 		}
 
-		if (mOutput->send(&evt) != S_OK) {
-			glucose::Release_Event(evt);
-			break;
-		}
+		if (!mOutput.Send(evt) ) break;		
 	}
 
 	mRunning = false;
@@ -191,9 +184,7 @@ void CCompute_Filter::Run_Scheduler()
 					// if the progress value changed, update
 					if (lastProgress != newProgress)
 					{
-						glucose::TDevice_Event evt;
-						evt.device_time = Unix_Time_To_Rat_Time(time(nullptr));
-						evt.event_code = glucose::NDevice_Event_Code::Information;
+						glucose::SDevice_Event evt{ glucose::NDevice_Event_Code::Information };
 						//evt.logical_time = 0;
 						evt.device_id = { 0 };
 						evt.signal_id = mComputeHolder->Get_Signal_Id();
@@ -202,12 +193,9 @@ void CCompute_Filter::Run_Scheduler()
 						progMsg += L"=";
 						progMsg += std::to_wstring(mComputeHolder->Get_Solve_Percent_Complete());
 
-						evt.info = refcnt::WString_To_WChar_Container(progMsg.c_str());
+						evt.info = refcnt::WString_To_WChar_Container_shared(progMsg.c_str());							
 						evt.signal_id = mComputeHolder->Get_Signal_Id();
-						glucose::AddRef_Event(evt);
-						if (mOutput->send(&evt) != S_OK) {
-							glucose::Release_Event(evt);
-						}
+						mOutput.Send(evt);
 
 						lastProgress = newProgress;
 					}
@@ -225,7 +213,7 @@ void CCompute_Filter::Run_Scheduler()
 					else
 						mComputeHolder->Get_Improved_Segments(updatedSegments);
 
-					glucose::TDevice_Event evt;
+					glucose::SDevice_Event evt;
 					evt.device_time = mComputeHolder->Get_Max_Time();
 					//evt.logical_time = 0; // asynchronnous events always have logical time equal to 0 at this time
 					evt.device_id = GUID{ 0 }; // TODO: fix this (retain from segments?) 
@@ -242,13 +230,10 @@ void CCompute_Filter::Run_Scheduler()
 
 						// send also parameters reset information message
 						evt.event_code = glucose::NDevice_Event_Code::Parameters;
-						evt.parameters = mComputeHolder->Get_Model_Parameters(segId).get();
+						evt.parameters = mComputeHolder->Get_Model_Parameters(segId);
 						evt.parameters->AddRef();						
-						if (mOutput->send(&evt) != S_OK) {
-							glucose::Release_Event(evt);
-							error = true;
-							break;
-						}
+						error = !mOutput.Send(evt);
+						if (error) break;
 					}
 
 					if ((resetForcedFlag || mRecalc_With_Every_Params) && !error)
@@ -261,11 +246,8 @@ void CCompute_Filter::Run_Scheduler()
 							evt.segment_id = segId;
 
 							evt.event_code = glucose::NDevice_Event_Code::Information;
-							evt.info = refcnt::WString_To_WChar_Container(rsParameters_Reset);
-							if (mOutput->send(&evt) != S_OK) {
-								glucose::Release_Event(evt);
-								break;
-							}
+							evt.info = refcnt::WString_To_WChar_Container_shared(rsParameters_Reset);
+							if (!mOutput.Send(evt))  break;
 						}
 					}
 				}

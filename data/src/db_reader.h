@@ -1,9 +1,7 @@
 #pragma once
 
-#include "../../../common/iface/FilterIface.h"
-#include "../../../common/iface/UIIface.h"
+#include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
-#include "../../../common/rtl/DeviceLib.h"
 #include "../../../common/rtl/DbLib.h"
 
 #include <memory>
@@ -14,10 +12,9 @@
 #include <QtSql/QSqlQuery>
 #include <QtSql/QSqlQueryModel>
 
-struct StoredModelParams
-{
+struct TStored_Model_Params {
 	const GUID model_id;
-	glucose::IModel_Parameter_Vector* params;
+	glucose::SModel_Parameter_Vector params;
 };
 
 
@@ -28,13 +25,12 @@ struct StoredModelParams
  * Class that reads selected segments from the db produces the events
  * i.e., it mimicks CGMS
  */
-class CDb_Reader : public virtual glucose::IFilter, public virtual db::IDb_Sink, public virtual refcnt::CReferenced
-{
+class CDb_Reader : public virtual glucose::IFilter, public virtual db::IDb_Sink, public virtual refcnt::CReferenced {
 	protected:
 		// input pipe instance
-		glucose::IFilter_Pipe* mInput;
+		glucose::SFilter_Pipe mInput;
 		// output pipe instance
-		glucose::IFilter_Pipe* mOutput;
+		glucose::SFilter_Pipe mOutput;
 
 		// database host configured
 		std::wstring mDbHost;
@@ -54,10 +50,10 @@ class CDb_Reader : public virtual glucose::IFilter, public virtual db::IDb_Sink,
 		int64_t mCurrentSegmentIdx;
 
 		// loaded model parameters of segment currently being sent
-		std::map<int64_t, std::vector<StoredModelParams>> mModelParams;
+		std::map<int64_t, std::vector<TStored_Model_Params>> mModelParams;
 
 		// prepare model parameters (load from DB) to be sent through output pipe
-		void Prepare_Model_Parameters_For(int64_t segmentId, std::vector<StoredModelParams> &paramsTarget);
+		void Prepare_Model_Parameters_For(int64_t segmentId, std::vector<TStored_Model_Params> &paramsTarget);
 
 		// reader thread
 		std::unique_ptr<std::thread> mReaderThread;
@@ -77,7 +73,7 @@ class CDb_Reader : public virtual glucose::IFilter, public virtual db::IDb_Sink,
 		QSqlQuery* Get_Segment_Query(db::SDb_Query squery, int64_t segmentId);
 
 	public:
-		CDb_Reader(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe);
+		CDb_Reader(glucose::SFilter_Pipe in_pipe, glucose::SFilter_Pipe out_pipe);
 		virtual ~CDb_Reader();
 
 		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;

@@ -7,7 +7,7 @@
 #include <iostream>
 #include <chrono>
 
-CHold_Filter::CHold_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe)
+CHold_Filter::CHold_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
 	: mInput(inpipe), mOutput(outpipe), mSimulationOffset(0.0), mNotified(0), mMsWait(0)
 {
 	//
@@ -15,10 +15,10 @@ CHold_Filter::CHold_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe*
 
 void CHold_Filter::Run_Main()
 {
-	glucose::TDevice_Event evt;
+	glucose::SDevice_Event evt;
 	bool hold;
 
-	while (mInput->receive(&evt) == S_OK)
+	while (mInput.Receive(evt))
 	{
 		hold = true;
 		switch (evt.event_code)
@@ -43,7 +43,7 @@ void CHold_Filter::Run_Main()
 		}
 		else
 		{
-			if (mOutput->send(&evt) != S_OK)
+			if (!mOutput.Send(evt) )
 				break;
 		}
 	}
@@ -59,7 +59,7 @@ void CHold_Filter::Run_Main()
 
 void CHold_Filter::Run_Hold()
 {
-	glucose::TDevice_Event evt;
+	glucose::SDevice_Event evt;
 	time_t t_now;
 	double j_now;
 
@@ -112,7 +112,7 @@ void CHold_Filter::Run_Hold()
 			}
 		}
 
-		if (mOutput->send(&evt) != S_OK)
+		if (!mOutput.Send(evt) )
 			break;
 	}
 }

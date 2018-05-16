@@ -113,7 +113,7 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter)
 {
 	if (*id == compute::Compute_Descriptor.id)
-		return Manufacture_Object<CCompute_Filter>(filter, input, output);
+		return Manufacture_Object<CCompute_Filter>(filter, refcnt::make_shared_reference_ext<glucose::SFilter_Pipe, glucose::IFilter_Pipe>(input, true), refcnt::make_shared_reference_ext<glucose::SFilter_Pipe, glucose::IFilter_Pipe>(output, true));
 
 	return ENOENT;
 }

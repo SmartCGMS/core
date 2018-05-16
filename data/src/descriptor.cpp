@@ -141,14 +141,17 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter)
-{
+extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter) {
+
+	glucose::SFilter_Pipe shared_in = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe, glucose::IFilter_Pipe>(input, true);
+	glucose::SFilter_Pipe shared_out = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe, glucose::IFilter_Pipe>(output, true);
+
 	if (*id == db_reader::Db_Reader_Descriptor.id)
-		return Manufacture_Object<CDb_Reader>(filter, input, output);
+		return Manufacture_Object<CDb_Reader>(filter, shared_in, shared_out);
 	else if (*id == file_reader::File_Reader_Descriptor.id)
-		return Manufacture_Object<CFile_Reader>(filter, input, output);
+		return Manufacture_Object<CFile_Reader>(filter, shared_in, shared_out);
 	else if (*id == hold::Hold_Descriptor.id)
-		return Manufacture_Object<CHold_Filter>(filter, input, output);
+		return Manufacture_Object<CHold_Filter>(filter, shared_in, shared_out);
 
 	return ENOENT;
 }

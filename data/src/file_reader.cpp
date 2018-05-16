@@ -19,7 +19,7 @@ namespace file_reader
 	constexpr double Default_Segment_Spacing = 600.0 * 1000.0 * InvMSecsPerDay;
 }
 
-CFile_Reader::CFile_Reader(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe)
+CFile_Reader::CFile_Reader(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
 	: mInput(inpipe), mOutput(outpipe), mSegmentSpacing(file_reader::Default_Segment_Spacing)
 {
 	//
@@ -37,18 +37,17 @@ CFile_Reader::~CFile_Reader()
 
 HRESULT CFile_Reader::Send_Event(glucose::NDevice_Event_Code code, double device_time, int64_t logical_time, uint64_t segment_id, const GUID* signalId, double value)
 {
-	glucose::TDevice_Event evt;
+	glucose::SDevice_Event evt{ code };
 
 	evt.device_id = file_reader::File_Reader_Device_GUID;
-	evt.device_time = device_time;
-	evt.event_code = code;
+	evt.device_time = device_time;	
 	//evt.logical_time = logical_time;
 	evt.level = value;
 	evt.segment_id = segment_id;
 	if (signalId)
 		evt.signal_id = *signalId;
 
-	return mOutput->send(&evt);
+	return mOutput.Send(evt);
 }
 
 void CFile_Reader::Run_Reader()
@@ -137,14 +136,14 @@ void CFile_Reader::Run_Reader()
 
 void CFile_Reader::Run_Main()
 {
-	glucose::TDevice_Event evt;
+	glucose::SDevice_Event evt;
 
-	while (mInput->receive(&evt) == S_OK)
+	while (mInput.Receive(evt))
 	{
 		// just fall through in main filter thread
 		// there also may be some control code handling (i.e. pausing value sending, etc.)
 
-		if (mOutput->send(&evt) != S_OK)
+		if (!mOutput.Send(evt))
 			break;
 	}
 

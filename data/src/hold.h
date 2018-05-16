@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../../../common/iface/FilterIface.h"
-#include "../../../common/iface/UIIface.h"
+#include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
 
 #include <memory>
@@ -18,13 +17,12 @@
 /*
  * Filter class for holding input events until the real time matches the event device time
  */
-class CHold_Filter : public glucose::IFilter, public virtual refcnt::CReferenced
-{
+class CHold_Filter : public glucose::IFilter, public virtual refcnt::CReferenced {
 	protected:
 		// input pipe
-		glucose::IFilter_Pipe* mInput;
+		glucose::SFilter_Pipe mInput;
 		// output pipe
-		glucose::IFilter_Pipe* mOutput;
+		glucose::SFilter_Pipe mOutput;
 
 		// mutex for waiting on CV
 		std::mutex mHoldMtx;
@@ -43,7 +41,7 @@ class CHold_Filter : public glucose::IFilter, public virtual refcnt::CReferenced
 		// thread for holding events
 		std::unique_ptr<std::thread> mHoldThread;
 		// queue of events being held
-		tbb::concurrent_bounded_queue<glucose::TDevice_Event> mQueue;
+		tbb::concurrent_bounded_queue<glucose::SDevice_Event> mQueue;
 
 		// thread function
 		void Run_Main();
@@ -52,7 +50,7 @@ class CHold_Filter : public glucose::IFilter, public virtual refcnt::CReferenced
 		void Run_Hold();
 
 	public:
-		CHold_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe);
+		CHold_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
 
 		// method for notifying condition variable and performing simulation step
 		void Simulation_Step(size_t stepcount);

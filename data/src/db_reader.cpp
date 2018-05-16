@@ -54,9 +54,7 @@ std::map<NColumn_Pos, GUID, std::less<NColumn_Pos>, tbb::tbb_allocator<std::pair
 	{ NColumn_Pos::Calibration, glucose::signal_Calibration }
 };
 
-CDb_Reader::CDb_Reader(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe)
-	: mInput(inpipe), mOutput(outpipe), mDbPort(0), mCurrentSegmentIdx(-1)
-{
+CDb_Reader::CDb_Reader(glucose::SFilter_Pipe in_pipe, glucose::SFilter_Pipe out_pipe) : mInput(in_pipe), mOutput(out_pipe), mDbPort(0), mCurrentSegmentIdx(glucose::Invalid_Segment_Id) {
 	//
 	}
 
@@ -140,7 +138,7 @@ void CDb_Reader::Run_Reader() {
 
 		evt.device_time = begindate;
 
-		std::vector<StoredModelParams> paramHints;
+		std::vector<TStored_Model_Params> paramHints;
 		Prepare_Model_Parameters_For(currentSegmentId, paramHints);
 
 		// at the beginning of the segment, send model parameters hint to chain
@@ -152,11 +150,9 @@ void CDb_Reader::Run_Reader() {
 			evt.parameters = paramset.params;
 			evt.segment_id = currentSegmentId;
 
-			if (mOutput->send(&evt) != S_OK)
+			if (!mOutput.Send(evt))
 				break;
 		}
-
-		bool isError = false;
 
 		do
 		{
@@ -188,13 +184,9 @@ void CDb_Reader::Run_Reader() {
 				evt.segment_id = currentSegmentId;
 
 				// this may block if the pipe is full (i.e. due to artificial slowdown filter, simulation stepping, etc.)
-				if (mOutput->send(&evt) != S_OK)
-				{
-					isError = true;
-					break;
-				}
+				if (!mOutput.Send(evt)) break;
 			}
-		} while (!isError && valueQuery->next());
+		} while (valueQuery->next());
 
 		// evt.device_time is now guaranteed to have valid time of last sent event
 
@@ -206,14 +198,14 @@ void CDb_Reader::Run_Reader() {
 
 void CDb_Reader::Run_Main() {
 
-	glucose::TDevice_Event evt;
+	glucose::SDevice_Event evt;
 
-	while (mInput->receive(&evt) == S_OK)
+	while (mInput.Receive(evt))
 	{
 		// just fall through in main filter thread
 		// there also may be some control code handling (i.e. pausing value sending, etc.)
 
-		if (mOutput->send(&evt) != S_OK)
+		if (!mOutput.Send(evt))
 			break;
 	}
 
@@ -294,7 +286,7 @@ QSqlQuery* CDb_Reader::Get_Segment_Query(db::SDb_Query squery, int64_t segmentId
 	return query;
 }
 
-void CDb_Reader::Prepare_Model_Parameters_For(int64_t segmentId, std::vector<StoredModelParams> &paramsTarget) {
+void CDb_Reader::Prepare_Model_Parameters_For(int64_t segmentId, std::vector<TStored_Model_Params> &paramsTarget) {
 
 	for (const auto &descriptor : glucose::get_model_descriptors()) {
 		std::string qry = rsSelect_Params_Base;
@@ -328,7 +320,7 @@ void CDb_Reader::Prepare_Model_Parameters_For(int64_t segmentId, std::vector<Sto
 				for (size_t i = 0; i < descriptor.number_of_parameters; i++)
 					arr.push_back(qr->value(static_cast<int>(i)).toDouble());
 
-				paramsTarget.push_back({ descriptor.id, refcnt::Create_Container<double>(arr.data(), arr.data() + arr.size()) });
+				paramsTarget.push_back({ descriptor.id, refcnt::Create_Container_shared<double>(arr.data(), arr.data() + arr.size()) });
 			}
 		}
 	}

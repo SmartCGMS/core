@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../../../common/iface/FilterIface.h"
-#include "../../../common/iface/UIIface.h"
+#include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
 
 #include <memory>
@@ -23,9 +22,9 @@ class CCompute_Filter : public glucose::IFilter, public virtual refcnt::CReferen
 {
 	protected:
 		// input pipe
-		glucose::IFilter_Pipe* mInput;
+		glucose::SFilter_Pipe mInput;
 		// output pipe
-		glucose::IFilter_Pipe* mOutput;
+		glucose::SFilter_Pipe mOutput;
 
 		// amount of levels to trigger automatic recalculation
 		int64_t mRecalcLevelsCount;
@@ -70,7 +69,7 @@ class CCompute_Filter : public glucose::IFilter, public virtual refcnt::CReferen
 		void Run_Scheduler();
 
 	public:
-		CCompute_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe);
+		CCompute_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
 
 		virtual HRESULT Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;
 };

@@ -152,6 +152,7 @@ static CId_Dispatcher Id_Dispatcher;
 HRESULT IfaceCalling do_solve_model_parameters(const glucose::TSolver_Setup *setup) {
 	
 	if (setup->segment_count == 0) return E_INVALIDARG;
+	if (setup->metric == nullptr) return E_INVALIDARG;
 
 	try {	//COM like steps do not throw Exceptions
 		auto shared_segments = refcnt::Referenced_To_Vector<glucose::STime_Segment, glucose::ITime_Segment>(setup->segments, setup->segment_count);

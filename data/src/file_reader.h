@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../../../common/iface/FilterIface.h"
-#include "../../../common/iface/UIIface.h"
+#include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
 
 #include "fileloader/Structures.h"
@@ -19,13 +18,12 @@ using TValue_Vector = std::vector<CMeasured_Value*>;
 /*
  * Filter class for loading and extracting file, and sending values to chain
  */
-class CFile_Reader : public glucose::IFilter, public virtual refcnt::CReferenced
-{
+class CFile_Reader : public glucose::IFilter, public virtual refcnt::CReferenced {
 	protected:
 		// input pipe
-		glucose::IFilter_Pipe* mInput;
+		glucose::SFilter_Pipe mInput;
 		// output pipe
-		glucose::IFilter_Pipe* mOutput;
+		glucose::SFilter_Pipe mOutput;
 
 		// original filename from configuration
 		std::wstring mFileName;
@@ -48,7 +46,7 @@ class CFile_Reader : public glucose::IFilter, public virtual refcnt::CReferenced
 		void Merge_Values(ExtractionResult& result);
 
 	public:
-		CFile_Reader(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe);
+		CFile_Reader(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
 		virtual ~CFile_Reader();
 
 		virtual HRESULT Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;
