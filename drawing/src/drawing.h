@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../../../common/iface/FilterIface.h"
-#include "../../../common/iface/UIIface.h"
+#include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
 
 #include "drawing/Containers/Value.h"
@@ -18,13 +17,12 @@
 /*
  * Drawing filter class utilizing the code for generating SVGs based on input data
  */
-class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose::IDrawing_Filter_Inspection, public virtual refcnt::CReferenced
-{
+class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose::IDrawing_Filter_Inspection, public virtual refcnt::CReferenced {
 	protected:
 		// input pipe
-		glucose::IFilter_Pipe* mInput;
+		glucose::SFilter_Pipe mInput;
 		// output pipe
-		glucose::IFilter_Pipe* mOutput;
+		glucose::SFilter_Pipe mOutput;
 
 		// scheduler thread
 		std::unique_ptr<std::thread> mSchedulerThread;
@@ -112,7 +110,7 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 
 		HRESULT Get_Plot(const std::string &plot, refcnt::IVector_Container<char> *svg) const;
 	public:
-		CDrawing_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe);
+		CDrawing_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
 		virtual ~CDrawing_Filter() {};
 
 		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;

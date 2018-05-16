@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../../../common/iface/FilterIface.h"
-#include "../../../common/iface/UIIface.h"
+#include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
 #include "../../../common/rtl/SolverLib.h"
 
@@ -23,14 +22,14 @@ class CErrors_Filter : public glucose::IFilter, public glucose::IError_Filter_In
 {
 	protected:
 		// input pipe
-		glucose::IFilter_Pipe* mInput;
+		glucose::SFilter_Pipe mInput;
 		// output pipe
-		glucose::IFilter_Pipe* mOutput;
+		glucose::SFilter_Pipe mOutput;
 
 		// currently used error counter instance; TODO: in future, we need to consider more segments at once
 		std::unique_ptr<CError_Marker_Counter> mErrorCounter;
 	public:
-		CErrors_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe);
+		CErrors_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
 		virtual ~CErrors_Filter() {};
 		
 		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj);

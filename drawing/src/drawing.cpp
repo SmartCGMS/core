@@ -21,8 +21,8 @@
 
 #undef min
 
-CDrawing_Filter::CDrawing_Filter(glucose::IFilter_Pipe* inpipe, glucose::IFilter_Pipe* outpipe)
-	: mInput(inpipe), mOutput(outpipe), mRedrawPeriod(500), mGraphMaxValue(-1), mDiagnosis(1) {}
+CDrawing_Filter::CDrawing_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
+	: mInput{ inpipe }, mOutput{ outpipe }, mRedrawPeriod(500), mGraphMaxValue(-1), mDiagnosis(1) {}
 
 HRESULT IfaceCalling CDrawing_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
 	if (Internal_Query_Interface<glucose::IFilter>(glucose::Drawing_Filter, *riid, ppvObj)) return S_OK;
@@ -33,7 +33,7 @@ HRESULT IfaceCalling CDrawing_Filter::QueryInterface(const GUID*  riid, void ** 
 
 void CDrawing_Filter::Run_Main()
 {
-	glucose::TDevice_Event evt;
+	glucose::SDevice_Event evt;
 
 	std::set<GUID> signalsBeingReset;
 
@@ -42,7 +42,7 @@ void CDrawing_Filter::Run_Main()
 
 	// TODO: get rid of excessive locking (mutexes)
 
-	while (mInput->receive(&evt) == S_OK) {
+	while (mInput.Receive(evt)) {
 
 		{
 			std::unique_lock<std::mutex> lck(mChangedMtx);
@@ -74,7 +74,7 @@ void CDrawing_Filter::Run_Main()
 			else if (evt.event_code == glucose::NDevice_Event_Code::Information)
 			{
 				// we catch parameter reset information message
-				if (refcnt::WChar_Container_Equals_WString(evt.info, rsParameters_Reset))
+				if (refcnt::WChar_Container_Equals_WString(evt.info.get(), rsParameters_Reset))
 				{
 					// TODO: verify, if parameter reset came for signal, that is really a calculated signal (not measured)
 
@@ -93,7 +93,7 @@ void CDrawing_Filter::Run_Main()
 
 					signalsBeingReset.insert(evt.signal_id);
 				}
-				else if (refcnt::WChar_Container_Equals_WString(evt.info, rsSegment_Recalculate_Complete))
+				else if (refcnt::WChar_Container_Equals_WString(evt.info.get(), rsSegment_Recalculate_Complete))
 				{
 					signalsBeingReset.erase(evt.signal_id);
 					mChanged = true;
@@ -105,7 +105,7 @@ void CDrawing_Filter::Run_Main()
 			}
 		}
 
-		if (mOutput->send(&evt) != S_OK)
+		if (!mOutput.Send(evt))
 			break;
 	}
 
@@ -341,12 +341,9 @@ void CDrawing_Filter::Generate_Graphs(DataMap& valueMap, double maxValue, Locali
 	if (!mParkes_FilePath.empty())
 		Store_To_File(mParkes_type1_SVG, mParkes_FilePath);
 
-	glucose::TDevice_Event drawEvt;
-	drawEvt.event_code = glucose::NDevice_Event_Code::Information;
-	drawEvt.device_time = Unix_Time_To_Rat_Time(time(nullptr));
-	drawEvt.info = refcnt::WString_To_WChar_Container(rsInfo_Redraw_Complete);
-	//drawEvt.logical_time = 0; // asynchronnous event time
-	mOutput->send(&drawEvt);
+	glucose::SDevice_Event drawEvt{ glucose::NDevice_Event_Code::Information };	
+	drawEvt.info = refcnt::WString_To_WChar_Container_shared(rsInfo_Redraw_Complete);
+	mOutput.Send(drawEvt);
 }
 
 HRESULT CDrawing_Filter::Get_Plot(const std::string &plot, refcnt::IVector_Container<char> *svg) const {
