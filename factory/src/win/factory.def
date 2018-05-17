@@ -14,3 +14,4 @@ EXPORTS
 	get_solver_descriptors
     get_approx_descriptors
 	add_filters
+  create_device_event

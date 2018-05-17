@@ -41,7 +41,7 @@ class CHold_Filter : public glucose::IFilter, public virtual refcnt::CReferenced
 		// thread for holding events
 		std::unique_ptr<std::thread> mHoldThread;
 		// queue of events being held
-		tbb::concurrent_bounded_queue<glucose::SDevice_Event> mQueue;
+		tbb::concurrent_bounded_queue<glucose::IDevice_Event*> mQueue;
 
 		// thread function
 		void Run_Main();

@@ -25,7 +25,7 @@ HRESULT IfaceCalling CErrors_Filter::QueryInterface(const GUID*  riid, void ** p
 }
 
 HRESULT CErrors_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) {
-	glucose::SDevice_Event evt;
+	glucose::UDevice_Event evt;
 
 	mErrorCounter = std::make_unique<CError_Marker_Counter>();
 	
@@ -49,9 +49,9 @@ HRESULT CErrors_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Par
 				updated = mErrorCounter->Recalculate_Errors();
 				break;
 			case glucose::NDevice_Event_Code::Information:
-				if (refcnt::WChar_Container_Equals_WString(evt.info.get(), rsSegment_Recalculate_Complete))
+				if (evt.info == rsSegment_Recalculate_Complete)
 					updated = mErrorCounter->Recalculate_Errors_For(evt.signal_id);
-				else if (refcnt::WChar_Container_Equals_WString(evt.info.get(), rsParameters_Reset))
+				else if (evt.info == rsParameters_Reset)
 					mErrorCounter->Reset_Segment(evt.segment_id, evt.signal_id);
 				break;
 		}
@@ -61,8 +61,8 @@ HRESULT CErrors_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Par
 
 		if (updated)
 		{
-			glucose::SDevice_Event errEvt{ glucose::NDevice_Event_Code::Information };
-			errEvt.info = refcnt::WString_To_WChar_Container_shared(rsInfo_Error_Metrics_Ready);
+			glucose::UDevice_Event errEvt{ glucose::NDevice_Event_Code::Information };
+			errEvt.info.set(rsInfo_Error_Metrics_Ready);
 			mOutput.Send(errEvt);
 			updated = false;
 		}

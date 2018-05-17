@@ -65,7 +65,7 @@ CDb_Reader::~CDb_Reader()
 
 void CDb_Reader::Send_Segment_Marker(glucose::NDevice_Event_Code code, double device_time, uint64_t segment_id)
 {
-	glucose::SDevice_Event evt{ code };
+	glucose::UDevice_Event evt{ code };
 
 	evt.device_id = Db_Reader_Device_GUID;
 	evt.device_time = device_time;	
@@ -89,7 +89,7 @@ void CDb_Reader::Run_Reader() {
 
 	
 	bool ok;
-	glucose::SDevice_Event evt;
+
 	uint64_t currentSegmentId;
 	
 	double nowdate = Unix_Time_To_Rat_Time(QDateTime::currentDateTime().toSecsSinceEpoch());
@@ -135,8 +135,7 @@ void CDb_Reader::Run_Reader() {
 		}
 
 		Send_Segment_Marker(glucose::NDevice_Event_Code::Time_Segment_Start, begindate, currentSegmentId);		
-
-		evt.device_time = begindate;
+		
 
 		std::vector<TStored_Model_Params> paramHints;
 		Prepare_Model_Parameters_For(currentSegmentId, paramHints);
@@ -145,8 +144,9 @@ void CDb_Reader::Run_Reader() {
 		// this serves as initial estimation for models in chain
 		for (auto& paramset : paramHints)
 		{
-			evt.signal_id = paramset.model_id;
-			evt.event_code = glucose::NDevice_Event_Code::Parameters_Hint;
+			glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Parameters_Hint };
+			evt.device_time = begindate;
+			evt.signal_id = paramset.model_id;			
 			evt.parameters = paramset.params;
 			evt.segment_id = currentSegmentId;
 
@@ -173,16 +173,16 @@ void CDb_Reader::Run_Reader() {
 				if (column.isNull())
 					continue;
 
+				glucose::UDevice_Event evt{ (i == NColumn_Pos::Calibration) ? glucose::NDevice_Event_Code::Calibrated : glucose::NDevice_Event_Code::Level };
 				evt.level = column.toDouble(&ok);
 				if (!ok)
 					continue;
 
 				evt.device_id = Db_Reader_Device_GUID;
 				evt.signal_id = ColumnSignalMap[i];
-				evt.device_time = jdate + dateCorrection; // apply base correction
-				evt.event_code = (i == NColumn_Pos::Calibration) ? glucose::NDevice_Event_Code::Calibrated : glucose::NDevice_Event_Code::Level;				
+				evt.device_time = lastDate = jdate + dateCorrection; // apply base correction				
 				evt.segment_id = currentSegmentId;
-
+				 
 				// this may block if the pipe is full (i.e. due to artificial slowdown filter, simulation stepping, etc.)
 				if (!mOutput.Send(evt)) break;
 			}
@@ -190,15 +190,15 @@ void CDb_Reader::Run_Reader() {
 
 		// evt.device_time is now guaranteed to have valid time of last sent event
 
-		Send_Segment_Marker(glucose::NDevice_Event_Code::Time_Segment_Stop, evt.device_time, currentSegmentId);		
+		Send_Segment_Marker(glucose::NDevice_Event_Code::Time_Segment_Stop, lastDate, currentSegmentId);
 
-		lastDate = evt.device_time;
+		
 	}
 }
 
 void CDb_Reader::Run_Main() {
 
-	glucose::SDevice_Event evt;
+	glucose::UDevice_Event evt;
 
 	while (mInput.Receive(evt))
 	{

@@ -33,7 +33,7 @@ HRESULT IfaceCalling CDrawing_Filter::QueryInterface(const GUID*  riid, void ** 
 
 void CDrawing_Filter::Run_Main()
 {
-	glucose::SDevice_Event evt;
+	glucose::UDevice_Event evt;
 
 	std::set<GUID> signalsBeingReset;
 
@@ -74,7 +74,7 @@ void CDrawing_Filter::Run_Main()
 			else if (evt.event_code == glucose::NDevice_Event_Code::Information)
 			{
 				// we catch parameter reset information message
-				if (refcnt::WChar_Container_Equals_WString(evt.info.get(), rsParameters_Reset))
+				if (evt.info == rsParameters_Reset)
 				{
 					// TODO: verify, if parameter reset came for signal, that is really a calculated signal (not measured)
 
@@ -82,18 +82,18 @@ void CDrawing_Filter::Run_Main()
 	//				std::unique_lock<std::mutex> lck(mChangedMtx);
 					// remove just segment, for which the reset was issued
 					mInputData[evt.signal_id].erase(
-						std::remove_if(mInputData[evt.signal_id].begin(), mInputData[evt.signal_id].end(), [evt](Value const& a) { return a.segment_id == evt.segment_id; }),
+						std::remove_if(mInputData[evt.signal_id].begin(), mInputData[evt.signal_id].end(), [&evt](Value const& a) { return a.segment_id == evt.segment_id; }),
 						mInputData[evt.signal_id].end()
 					);
 					// remove also markers
 					mParameterChanges[evt.signal_id].erase(
-						std::remove_if(mParameterChanges[evt.signal_id].begin(), mParameterChanges[evt.signal_id].end(), [evt](Value const& a) { return a.segment_id == evt.segment_id; }),
+						std::remove_if(mParameterChanges[evt.signal_id].begin(), mParameterChanges[evt.signal_id].end(), [&evt](Value const& a) { return a.segment_id == evt.segment_id; }),
 						mParameterChanges[evt.signal_id].end()
 					);
 
 					signalsBeingReset.insert(evt.signal_id);
 				}
-				else if (refcnt::WChar_Container_Equals_WString(evt.info.get(), rsSegment_Recalculate_Complete))
+				else if (evt.info == rsSegment_Recalculate_Complete)
 				{
 					signalsBeingReset.erase(evt.signal_id);
 					mChanged = true;
@@ -341,8 +341,8 @@ void CDrawing_Filter::Generate_Graphs(DataMap& valueMap, double maxValue, Locali
 	if (!mParkes_FilePath.empty())
 		Store_To_File(mParkes_type1_SVG, mParkes_FilePath);
 
-	glucose::SDevice_Event drawEvt{ glucose::NDevice_Event_Code::Information };	
-	drawEvt.info = refcnt::WString_To_WChar_Container_shared(rsInfo_Redraw_Complete);
+	glucose::UDevice_Event drawEvt{ glucose::NDevice_Event_Code::Information };	
+	drawEvt.info.set(rsInfo_Redraw_Complete);
 	mOutput.Send(drawEvt);
 }
 

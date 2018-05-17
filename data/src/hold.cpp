@@ -15,7 +15,7 @@ CHold_Filter::CHold_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe o
 
 void CHold_Filter::Run_Main()
 {
-	glucose::SDevice_Event evt;
+	glucose::UDevice_Event evt;
 	bool hold;
 
 	while (mInput.Receive(evt))
@@ -39,7 +39,7 @@ void CHold_Filter::Run_Main()
 
 		if (hold)
 		{
-			mQueue.push(evt);
+			mQueue.push(evt.release());
 		}
 		else
 		{
@@ -59,7 +59,7 @@ void CHold_Filter::Run_Main()
 
 void CHold_Filter::Run_Hold()
 {
-	glucose::SDevice_Event evt;
+	glucose::UDevice_Event evt;
 	time_t t_now;
 	double j_now;
 
@@ -67,7 +67,9 @@ void CHold_Filter::Run_Hold()
 	{
 		try
 		{
-			mQueue.pop(evt);
+			glucose::IDevice_Event *raw_event;
+			mQueue.pop(raw_event);
+			evt.reset(raw_event);
 		}
 		catch (tbb::user_abort &)
 		{

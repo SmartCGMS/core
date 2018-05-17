@@ -10,7 +10,7 @@
 
 class CFilter_Pipe :  public glucose::IFilter_Pipe, public virtual refcnt::CReferenced {
 protected:
-	tbb::concurrent_bounded_queue<glucose::TDevice_Event> mQueue;
+	tbb::concurrent_bounded_queue<glucose::IDevice_Event*> mQueue;
 	const std::ptrdiff_t mDefault_Capacity = 64;
 	bool mShutting_Down_Send = false;
 	bool mShutting_Down_Receive = false;
@@ -19,8 +19,8 @@ public:
 	CFilter_Pipe() noexcept;
 	virtual ~CFilter_Pipe();
 
-	virtual HRESULT send(const glucose::TDevice_Event* event);
-	virtual HRESULT receive(glucose::TDevice_Event* const event);
+	virtual HRESULT send(glucose::IDevice_Event* event) override final;
+	virtual HRESULT receive(glucose::IDevice_Event** event) override final;
 	virtual HRESULT abort() final;
 };
 

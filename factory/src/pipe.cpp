@@ -14,16 +14,19 @@ CFilter_Pipe::~CFilter_Pipe() {
 	//just empty to call all the dctors correctly
 }
 
-HRESULT CFilter_Pipe::send(const glucose::TDevice_Event* event) {
-
+HRESULT CFilter_Pipe::send(glucose::IDevice_Event* event) {
 	if (mShutting_Down_Send)
 		return S_FALSE;
 
-	if (event->event_code == glucose::NDevice_Event_Code::Shut_Down)
+	glucose::TDevice_Event *raw_event;
+	HRESULT rc = event->Raw(&raw_event);
+	if (rc != S_OK) return rc;
+	
+	if (raw_event->event_code == glucose::NDevice_Event_Code::Shut_Down)
 		mShutting_Down_Send = true;
 
 	try {
-		mQueue.push(*event);
+		mQueue.push(event);
 	}
 	catch (tbb::user_abort &) {
 		mShutting_Down_Send = true;
@@ -32,7 +35,7 @@ HRESULT CFilter_Pipe::send(const glucose::TDevice_Event* event) {
 	return S_OK;
 }
 
-HRESULT CFilter_Pipe::receive(glucose::TDevice_Event* const event) {
+HRESULT CFilter_Pipe::receive(glucose::IDevice_Event** event) {
 
 	if (mShutting_Down_Receive)
 		return S_FALSE;
@@ -40,10 +43,11 @@ HRESULT CFilter_Pipe::receive(glucose::TDevice_Event* const event) {
 	try {
 		mQueue.pop(*event);
 
-		if (event->event_code == glucose::NDevice_Event_Code::Shut_Down)
-			mShutting_Down_Receive = true;
-
+		glucose::TDevice_Event *raw_event;
+		if ((*event)->Raw(&raw_event) == S_OK)	//should be OK since we call it in ::send
+			mShutting_Down_Receive = raw_event->event_code == glucose::NDevice_Event_Code::Shut_Down;
 	}
+
 	catch (tbb::user_abort &) {
 		mShutting_Down_Receive = true;
 		return S_FALSE;

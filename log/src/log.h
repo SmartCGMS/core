@@ -34,7 +34,7 @@ class CLog_Filter : public glucose::IFilter, public virtual refcnt::CReferenced
 		void Run_Main();
 
 		// writes model parameters to file stream
-		void Write_Model_Parameters(std::wostream& stream, const glucose::SDevice_Event& evt);
+		void Write_Model_Parameters(std::wostream& stream, const glucose::UDevice_Event& evt);
 
 	public:
 		CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);

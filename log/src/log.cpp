@@ -32,7 +32,7 @@ CLog_Filter::~CLog_Filter()
 	//
 }
 
-void CLog_Filter::Write_Model_Parameters(std::wostream& stream, const glucose::SDevice_Event& evt)
+void CLog_Filter::Write_Model_Parameters(std::wostream& stream, const glucose::UDevice_Event& evt)
 {
 	// find appropriate model descriptor by id
 	glucose::TModel_Descriptor* modelDesc = nullptr;
@@ -66,7 +66,7 @@ void CLog_Filter::Write_Model_Parameters(std::wostream& stream, const glucose::S
 
 void CLog_Filter::Run_Main()
 {
-	glucose::SDevice_Event evt;
+	glucose::UDevice_Event evt;
 	std::wstring logMsg;
 
 	while (mInput.Receive(evt))

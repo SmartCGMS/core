@@ -41,7 +41,7 @@ class CFile_Reader : public glucose::IFilter, public virtual refcnt::CReferenced
 		void Run_Main();
 
 		// send event to filter chain
-		HRESULT Send_Event(glucose::NDevice_Event_Code code, double device_time, int64_t logical_time, uint64_t segment_id, const GUID* signalId = nullptr, double value = 0.0);
+		HRESULT Send_Event(glucose::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID* signalId = nullptr, double value = 0.0);
 		// merge values from extraction result to internal vector
 		void Merge_Values(ExtractionResult& result);
 

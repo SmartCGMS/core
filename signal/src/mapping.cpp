@@ -15,7 +15,7 @@ CMapping_Filter::CMapping_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_
 
 void CMapping_Filter::Run_Main()
 {
-	glucose::SDevice_Event evt;
+	glucose::UDevice_Event evt;
 
 	while (mInput.Receive(evt))
 	{
@@ -29,7 +29,7 @@ void CMapping_Filter::Run_Main()
 		// remap parameters reset information message (this message serves i.e. for drawing filter to reset signal values)
 		else if (evt.event_code == glucose::NDevice_Event_Code::Information)
 		{
-			if (evt.signal_id == mSourceId && refcnt::WChar_Container_Equals_WString(evt.info.get(), rsParameters_Reset))
+			if (evt.signal_id == mSourceId && evt.info == rsParameters_Reset)
 				evt.signal_id = mDestinationId;
 		}
 

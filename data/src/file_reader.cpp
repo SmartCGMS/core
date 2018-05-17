@@ -35,13 +35,12 @@ CFile_Reader::~CFile_Reader()
 	}
 }
 
-HRESULT CFile_Reader::Send_Event(glucose::NDevice_Event_Code code, double device_time, int64_t logical_time, uint64_t segment_id, const GUID* signalId, double value)
+HRESULT CFile_Reader::Send_Event(glucose::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID* signalId, double value)
 {
-	glucose::SDevice_Event evt{ code };
+	glucose::UDevice_Event evt{ code };
 
 	evt.device_id = file_reader::File_Reader_Device_GUID;
 	evt.device_time = device_time;	
-	//evt.logical_time = logical_time;
 	evt.level = value;
 	evt.segment_id = segment_id;
 	if (signalId)
@@ -53,8 +52,7 @@ HRESULT CFile_Reader::Send_Event(glucose::NDevice_Event_Code code, double device
 void CFile_Reader::Run_Reader()
 {
 	CMeasured_Value* last = nullptr;
-	bool segmentStarted = false;
-	int64_t logicalTime = 0;
+	bool segmentStarted = false;	
 
 	time_t t_now;
 	double valDate;
@@ -79,7 +77,7 @@ void CFile_Reader::Run_Reader()
 			{
 				// end previous segment, if started
 				if (segmentStarted && last)
-					Send_Event(glucose::NDevice_Event_Code::Time_Segment_Stop, last->mMeasuredAt + dateCorrection, logicalTime++, currentSegmentId);
+					Send_Event(glucose::NDevice_Event_Code::Time_Segment_Stop, last->mMeasuredAt + dateCorrection,  currentSegmentId);
 
 				// base correction is used as value for shifting the time segment (its values) from past to present
 				// adding this to every value will cause the segment to begin with the first value as if it was measured just now
@@ -91,8 +89,7 @@ void CFile_Reader::Run_Reader()
 				dateCorrection = Unix_Time_To_Rat_Time(t_now) - cur->mMeasuredAt;
 				currentSegmentId++;
 
-				Send_Event(glucose::NDevice_Event_Code::Time_Segment_Start, cur->mMeasuredAt + dateCorrection, logicalTime, currentSegmentId);
-				logicalTime++;
+				Send_Event(glucose::NDevice_Event_Code::Time_Segment_Start, cur->mMeasuredAt + dateCorrection, currentSegmentId);				
 				segmentStarted = true;
 			}
 
@@ -103,17 +100,17 @@ void CFile_Reader::Run_Reader()
 			bool errorRes = false;
 
 			if (cur->mIst.has_value())
-				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Level, valDate, logicalTime++, currentSegmentId, &glucose::signal_IG, cur->mIst.value()) != S_OK);
+				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_IG, cur->mIst.value()) != S_OK);
 			if (cur->mIsig.has_value())
-				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Level, valDate, logicalTime++, currentSegmentId, &glucose::signal_ISIG, cur->mIsig.value()) != S_OK);
+				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_ISIG, cur->mIsig.value()) != S_OK);
 			if (cur->mBlood.has_value())
-				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Level, valDate, logicalTime++, currentSegmentId, &glucose::signal_BG, cur->mBlood.value()) != S_OK);
+				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_BG, cur->mBlood.value()) != S_OK);
 			if (cur->mInsulin.has_value())
-				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Level, valDate, logicalTime++, currentSegmentId, &glucose::signal_Insulin, cur->mInsulin.value()) != S_OK);
+				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Insulin, cur->mInsulin.value()) != S_OK);
 			if (cur->mCarbohydrates.has_value())
-				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Level, valDate, logicalTime++, currentSegmentId, &glucose::signal_Carb_Intake, cur->mCarbohydrates.value()) != S_OK);
+				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Carb_Intake, cur->mCarbohydrates.value()) != S_OK);
 			if (cur->mCalibration.has_value())
-				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Calibrated, valDate, logicalTime++, currentSegmentId, &glucose::signal_Calibration, cur->mCalibration.value()) != S_OK);
+				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Calibrated, valDate, currentSegmentId, &glucose::signal_Calibration, cur->mCalibration.value()) != S_OK);
 
 			if (errorRes)
 			{
@@ -127,7 +124,7 @@ void CFile_Reader::Run_Reader()
 		// end segment if it was previously started
 		if (segmentStarted && last)
 		{
-			if (Send_Event(glucose::NDevice_Event_Code::Time_Segment_Stop, last->mMeasuredAt + dateCorrection, logicalTime++, currentSegmentId) != S_OK)
+			if (Send_Event(glucose::NDevice_Event_Code::Time_Segment_Stop, last->mMeasuredAt + dateCorrection, currentSegmentId) != S_OK)
 				isError = true;
 			segmentStarted = false;
 		}
@@ -136,7 +133,7 @@ void CFile_Reader::Run_Reader()
 
 void CFile_Reader::Run_Main()
 {
-	glucose::SDevice_Event evt;
+	glucose::UDevice_Event evt;
 
 	while (mInput.Receive(evt))
 	{

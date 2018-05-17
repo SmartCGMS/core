@@ -16,7 +16,7 @@ CCalculate_Filter::CCalculate_Filter(glucose::SFilter_Pipe inpipe, glucose::SFil
 
 void CCalculate_Filter::Run_Main()
 {
-	glucose::SDevice_Event evt, calcEvt;
+	glucose::UDevice_Event evt;
 	uint64_t segmentToReset = 0;
 	bool error = false;
 
@@ -34,8 +34,8 @@ void CCalculate_Filter::Run_Main()
 					double level;
 					if (hldr.Get_Calculated_At_Time(evt.segment_id, evt.device_time, level))
 					{
-						calcEvt.device_time = evt.device_time;
-						calcEvt.event_code = glucose::NDevice_Event_Code::Level;
+						glucose::UDevice_Event calcEvt{ glucose::NDevice_Event_Code::Level };
+						calcEvt.device_time = evt.device_time;						
 						calcEvt.level = level;
 						calcEvt.device_id = Invalid_GUID; // TODO: fix this (retain from segments?)
 						calcEvt.signal_id = mSignalId;
@@ -63,7 +63,7 @@ void CCalculate_Filter::Run_Main()
 				break;
 			case glucose::NDevice_Event_Code::Information:
 				// if the reset is requested, defer sending levels AFTER propagating reset message
-				if (refcnt::WChar_Container_Equals_WString(evt.info.get(), rsParameters_Reset) && evt.signal_id == mSignalId)
+				if ((evt.info == rsParameters_Reset) && evt.signal_id == mSignalId)
 					segmentToReset = evt.segment_id;
 				break;
 			default:
@@ -78,7 +78,7 @@ void CCalculate_Filter::Run_Main()
 			std::vector<double> times, levels;
 			if (hldr.Calculate_All_Values(segmentToReset, times, levels))
 			{
-				calcEvt.event_code = glucose::NDevice_Event_Code::Level;
+				glucose::UDevice_Event calcEvt{ glucose::NDevice_Event_Code::Level };
 				//calcEvt.logical_time = 0; // asynchronnous events always have logical time equal to 0 at this time
 				calcEvt.device_id = GUID{ 0 }; // TODO: fix this (retain from segments?)
 				calcEvt.signal_id = mSignalId;
@@ -99,10 +99,10 @@ void CCalculate_Filter::Run_Main()
 
 				if (!error)
 				{
-					calcEvt.event_code = glucose::NDevice_Event_Code::Information;
-					calcEvt.info = refcnt::WString_To_WChar_Container_shared(rsSegment_Recalculate_Complete);
+					glucose::UDevice_Event error_evt{ glucose::NDevice_Event_Code::Information };
+					error_evt.info.set(rsSegment_Recalculate_Complete);
 
-					if (!mOutput.Send(calcEvt))
+					if (!mOutput.Send(error_evt))
 						break;
 				}
 			}
@@ -132,7 +132,7 @@ HRESULT CCalculate_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_
 			mCalc_Past_With_First_Params = cur->boolean;
 	}
 
-	if (mSignalId == GUID{ 0 })
+	if (mSignalId == Invalid_GUID)
 		return E_FAIL;
 
 	Run_Main();
