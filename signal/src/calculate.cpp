@@ -14,16 +14,13 @@ CCalculate_Filter::CCalculate_Filter(glucose::SFilter_Pipe inpipe, glucose::SFil
 	//
 }
 
-void CCalculate_Filter::Run_Main()
-{
-	glucose::UDevice_Event evt;
+void CCalculate_Filter::Run_Main() {
 	uint64_t segmentToReset = 0;
 	bool error = false;
 
 	CSegment_Holder hldr(mSignalId);
 
-	while (mInput.Receive(evt)  && !error)
-	{
+	for (glucose::UDevice_Event evt = mInput.Receive(); ; evt && !error) {
 		switch (evt.event_code)
 		{
 			case glucose::NDevice_Event_Code::Level:

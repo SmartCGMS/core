@@ -25,14 +25,13 @@ HRESULT IfaceCalling CErrors_Filter::QueryInterface(const GUID*  riid, void ** p
 }
 
 HRESULT CErrors_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) {
-	glucose::UDevice_Event evt;
-
+	
 	mErrorCounter = std::make_unique<CError_Marker_Counter>();
 	
 	bool updated = false;
 
-	while (mInput.Receive(evt))
-	{
+	for (glucose::UDevice_Event evt = mInput.Receive(); ; evt) {
+	
 		// TODO: set updated flag after bunch of levels came, etc.
 		//		 for now, we update error metrics just with segment end
 

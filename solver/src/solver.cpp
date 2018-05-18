@@ -21,14 +21,13 @@ CCompute_Filter::CCompute_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_
 
 void CCompute_Filter::Run_Main()
 {
-	glucose::UDevice_Event evt;
 	
 
 	double maxTime = 0.0;
 	bool resetFlag = false;
 
-	while (mInput.Receive(evt))
-	{
+	for (glucose::UDevice_Event evt = mInput.Receive(); ; evt) {
+	
 		switch (evt.event_code)
 		{
 			// incoming level or calibration - find appropriate signal and add new level

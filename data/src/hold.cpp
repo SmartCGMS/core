@@ -13,13 +13,10 @@ CHold_Filter::CHold_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe o
 	//
 }
 
-void CHold_Filter::Run_Main()
-{
-	glucose::UDevice_Event evt;
+void CHold_Filter::Run_Main() {	
 	bool hold;
 
-	while (mInput.Receive(evt))
-	{
+	for (glucose::UDevice_Event evt = mInput.Receive(); ; evt) {	
 		hold = true;
 		switch (evt.event_code)
 		{
@@ -59,7 +56,7 @@ void CHold_Filter::Run_Main()
 
 void CHold_Filter::Run_Hold()
 {
-	glucose::UDevice_Event evt;
+	
 	time_t t_now;
 	double j_now;
 
@@ -69,53 +66,55 @@ void CHold_Filter::Run_Hold()
 		{
 			glucose::IDevice_Event *raw_event;
 			mQueue.pop(raw_event);
-			evt.reset(raw_event);
+			glucose::UDevice_Event evt{ raw_event };
+		
+
+			t_now = static_cast<time_t>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+			j_now = Unix_Time_To_Rat_Time(t_now) + mSimulationOffset;
+
+			std::unique_lock<std::mutex> lck(mHoldMtx);
+
+			if (mMsWait)
+			{
+				if (mNotified == 0)
+					mHoldCv.wait_for(lck, std::chrono::milliseconds(mMsWait));
+			
+				// check again - the state may have changed during wait
+				if (mNotified != 0)
+					mNotified--;
+			}
+			else
+			{
+				// if the device time is in future, wait for this amount of time to simulate real-time measurement
+				while (mNotified == 0 && evt.device_time > j_now)
+				{
+					time_t tdiff = static_cast<time_t>(round((evt.device_time - j_now) * MSecsPerDay / 1000.0));
+					mHoldCv.wait_for(lck, std::chrono::seconds(tdiff));
+
+					t_now = static_cast<time_t>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+					j_now = Unix_Time_To_Rat_Time(t_now) + mSimulationOffset;
+				}
+
+				// accumulate simulation offset, if notified and the time is still lower than desired device time
+				if (mNotified != 0 && evt.device_time > j_now)
+				{
+					// accumulate simulation offset, so the next value will come with spacing relevant to current value,
+					// not the actual time (so if the spacing is 5 minutes and somebody notifies 2 minutes before current value
+					// time, simulation offset increases by 2 minutes and the next value will fire in 5 minutes instead of 7)
+					mSimulationOffset += evt.device_time - j_now;
+
+					mNotified--;
+				}
+			}
+
+			if (!mOutput.Send(evt) )
+				break;
+
 		}
 		catch (tbb::user_abort &)
 		{
 			break;
 		}
-
-		t_now = static_cast<time_t>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-		j_now = Unix_Time_To_Rat_Time(t_now) + mSimulationOffset;
-
-		std::unique_lock<std::mutex> lck(mHoldMtx);
-
-		if (mMsWait)
-		{
-			if (mNotified == 0)
-				mHoldCv.wait_for(lck, std::chrono::milliseconds(mMsWait));
-			
-			// check again - the state may have changed during wait
-			if (mNotified != 0)
-				mNotified--;
-		}
-		else
-		{
-			// if the device time is in future, wait for this amount of time to simulate real-time measurement
-			while (mNotified == 0 && evt.device_time > j_now)
-			{
-				time_t tdiff = static_cast<time_t>(round((evt.device_time - j_now) * MSecsPerDay / 1000.0));
-				mHoldCv.wait_for(lck, std::chrono::seconds(tdiff));
-
-				t_now = static_cast<time_t>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-				j_now = Unix_Time_To_Rat_Time(t_now) + mSimulationOffset;
-			}
-
-			// accumulate simulation offset, if notified and the time is still lower than desired device time
-			if (mNotified != 0 && evt.device_time > j_now)
-			{
-				// accumulate simulation offset, so the next value will come with spacing relevant to current value,
-				// not the actual time (so if the spacing is 5 minutes and somebody notifies 2 minutes before current value
-				// time, simulation offset increases by 2 minutes and the next value will fire in 5 minutes instead of 7)
-				mSimulationOffset += evt.device_time - j_now;
-
-				mNotified--;
-			}
-		}
-
-		if (!mOutput.Send(evt) )
-			break;
 	}
 }
 

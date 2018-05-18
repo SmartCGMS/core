@@ -13,12 +13,10 @@ CMapping_Filter::CMapping_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_
 	//
 }
 
-void CMapping_Filter::Run_Main()
-{
-	glucose::UDevice_Event evt;
+void CMapping_Filter::Run_Main() {
 
-	while (mInput.Receive(evt))
-	{
+	for (glucose::UDevice_Event evt = mInput.Receive(); ; evt) {
+
 		// remap only "Level" signals
 		if (evt.event_code == glucose::NDevice_Event_Code::Level)
 		{

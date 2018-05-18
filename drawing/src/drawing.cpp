@@ -31,10 +31,7 @@ HRESULT IfaceCalling CDrawing_Filter::QueryInterface(const GUID*  riid, void ** 
 	return E_NOINTERFACE;
 }
 
-void CDrawing_Filter::Run_Main()
-{
-	glucose::UDevice_Event evt;
-
+void CDrawing_Filter::Run_Main() {
 	std::set<GUID> signalsBeingReset;
 
 	mInputData.clear();
@@ -42,7 +39,7 @@ void CDrawing_Filter::Run_Main()
 
 	// TODO: get rid of excessive locking (mutexes)
 
-	while (mInput.Receive(evt)) {
+	for (glucose::UDevice_Event evt = mInput.Receive(); ; evt) {
 
 		{
 			std::unique_lock<std::mutex> lck(mChangedMtx);
