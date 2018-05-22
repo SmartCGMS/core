@@ -30,7 +30,7 @@ HRESULT CErrors_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Par
 	
 	bool updated = false;
 
-	for (glucose::UDevice_Event evt = mInput.Receive(); ; evt) {
+	for (;  glucose::UDevice_Event evt = mInput.Receive(); evt) {
 	
 		// TODO: set updated flag after bunch of levels came, etc.
 		//		 for now, we update error metrics just with segment end

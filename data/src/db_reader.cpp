@@ -198,7 +198,7 @@ void CDb_Reader::Run_Reader() {
 
 void CDb_Reader::Run_Main() {
 	
-	for (glucose::UDevice_Event evt = mInput.Receive(); ; evt) 	{
+	for (; glucose::UDevice_Event evt = mInput.Receive(); evt) {
 		// just fall through in main filter thread
 		// there also may be some control code handling (i.e. pausing value sending, etc.)
 

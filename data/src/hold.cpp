@@ -16,7 +16,7 @@ CHold_Filter::CHold_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe o
 void CHold_Filter::Run_Main() {	
 	bool hold;
 
-	for (glucose::UDevice_Event evt = mInput.Receive(); ; evt) {	
+	for (; glucose::UDevice_Event evt = mInput.Receive(); evt) {
 		hold = true;
 		switch (evt.event_code)
 		{

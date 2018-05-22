@@ -39,7 +39,7 @@ void CDrawing_Filter::Run_Main() {
 
 	// TODO: get rid of excessive locking (mutexes)
 
-	for (glucose::UDevice_Event evt = mInput.Receive(); ; evt) {
+	for (;  glucose::UDevice_Event evt = mInput.Receive(); evt) {
 
 		{
 			std::unique_lock<std::mutex> lck(mChangedMtx);

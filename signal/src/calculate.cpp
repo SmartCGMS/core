@@ -20,7 +20,7 @@ void CCalculate_Filter::Run_Main() {
 
 	CSegment_Holder hldr(mSignalId);
 
-	for (glucose::UDevice_Event evt = mInput.Receive(); ; evt && !error) {
+	for (;  glucose::UDevice_Event evt = mInput.Receive(); evt && !error) {
 		switch (evt.event_code)
 		{
 			case glucose::NDevice_Event_Code::Level:

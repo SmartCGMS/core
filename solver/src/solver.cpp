@@ -26,7 +26,7 @@ void CCompute_Filter::Run_Main()
 	double maxTime = 0.0;
 	bool resetFlag = false;
 
-	for (glucose::UDevice_Event evt = mInput.Receive(); ; evt) {
+	for (; glucose::UDevice_Event evt = mInput.Receive(); evt) {
 	
 		switch (evt.event_code)
 		{

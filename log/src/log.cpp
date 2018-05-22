@@ -67,7 +67,7 @@ void CLog_Filter::Write_Model_Parameters(std::wostream& stream, const glucose::U
 void CLog_Filter::Run_Main() {
 	std::wstring logMsg;
 
-	for (glucose::UDevice_Event evt = mInput.Receive(); ; evt) {
+	for (;  glucose::UDevice_Event evt = mInput.Receive(); evt) {
 	
 		std::wostringstream logLine;
 
