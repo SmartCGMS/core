@@ -35,7 +35,7 @@ void CLine_Approximator::Update() {
 
 HRESULT IfaceCalling CLine_Approximator::GetLevels(const double* times, double* const levels, const size_t count, size_t derivation_order) {
 
-	assert((times != nullptr) && (levels != nullptr) && (count > 0));
+	//assert((times != nullptr) && (levels != nullptr) && (count > 0));
 	if ((times == nullptr) || (levels == nullptr)) return E_INVALIDARG;
 
 	Update();
