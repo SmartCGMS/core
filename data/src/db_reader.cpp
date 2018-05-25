@@ -98,12 +98,12 @@ void CDb_Reader::Run_Reader() {
 	// initial setting query
 	{
 		db::SDb_Query query = mDb_Connection.Query(rsSelect_Timesegment_Values_Filter, mDbTimeSegmentIds[0]);
-
-		db::TParameter dt;
-		dt.type = db::NParameter_Type::ptWChar;
-		if (query->Get_Next(&dt, 1) == S_OK) {
-			begindate = Str_To_Rat_Time(dt.str);
+		wchar_t *dt_str = nullptr;
+		
+		if (query.Get_Next(dt_str)) {
+			begindate = Str_To_Rat_Time(dt_str);
 		}
+		
 	}
 
 	// base correction is used as value for shifting the time segment (its values) from past to present
