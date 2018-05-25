@@ -97,12 +97,13 @@ void CDb_Reader::Run_Reader() {
 
 	// initial setting query
 	{
-		db::SDb_Query squery = mDb_Connection.Query(L"");
-		QSqlQuery* valueQuery = Get_Segment_Query(squery, mDbTimeSegmentIds[0]);
-
-		if (valueQuery->next()) 
-			begindate = Unix_Time_To_Rat_Time(valueQuery->value(0).toDateTime().toSecsSinceEpoch());		
-
+		db::SDb_Query query = Get_Segment_Query(mDbTimeSegmentIds[0]);
+		
+		db::TParameter dt;
+		dt.type = db::NParameter_Type::ptWChar;
+		if (query->Get_Next(&dt, 1) == S_OK) {
+			begindate = Str_To_Rat_Time(dt.str);
+		}
 	}
 
 	// base correction is used as value for shifting the time segment (its values) from past to present
@@ -117,9 +118,9 @@ void CDb_Reader::Run_Reader() {
 	{
 		currentSegmentId = (uint64_t)mDbTimeSegmentIds[idx];
 
-		db::SDb_Query squery = mDb_Connection.Query(L"");
-		QSqlQuery* valueQuery = Get_Segment_Query(squery, currentSegmentId);
-		if (!valueQuery->next())
+		db::SDb_Query query = Get_Segment_Query(currentSegmentId);
+		
+		if (valueQuery->next())
 			continue;
 
 		begindate = Unix_Time_To_Rat_Time(valueQuery->value(0).toDateTime().toSecsSinceEpoch()) + dateCorrection;
@@ -271,22 +272,21 @@ HRESULT CDb_Reader::Run(const refcnt::IVector_Container<glucose::TFilter_Paramet
 	return S_OK;
 }
 
-QSqlQuery* CDb_Reader::Get_Segment_Query(db::SDb_Query squery, int64_t segmentId) {	
+db::SDb_Query CDb_Reader::Get_Segment_Query(int64_t segmentId) {
 
-	QSqlQuery* query;// { *mDb };
-	squery->Get_Raw((void**)&query);
-
-	query->prepare(rsSelect_Timesegment_Values_Filter);
-	query->bindValue(0, segmentId);
-	query->exec();
+	db::TParameter id = { db::NParameter_Type::ptInt64, segmentId };
+	db::SDb_Query query = mDb_Connection.Query(rsSelect_Timesegment_Values_Filter);
+	if (!query.Bind_Parameters(std::vector<db::TParameter> {id}))
+		query.reset();
 
 	return query;
+
 }
 
 void CDb_Reader::Prepare_Model_Parameters_For(int64_t segmentId, std::vector<TStored_Model_Params> &paramsTarget) {
 
 	for (const auto &descriptor : glucose::get_model_descriptors()) {
-		std::string qry = rsSelect_Params_Base;
+		std::wstring qry = rsSelect_Params_Base;
 
 		bool first = true;
 		for (size_t i = 0; i < descriptor.number_of_parameters; i++)
@@ -294,14 +294,14 @@ void CDb_Reader::Prepare_Model_Parameters_For(int64_t segmentId, std::vector<TSt
 			if (first)
 				first = false;
 			else
-				qry += ", ";
+				qry += L", ";
 
-			qry += std::string(descriptor.parameter_db_column_names[i], descriptor.parameter_db_column_names[i] + wcslen(descriptor.parameter_db_column_names[i]));
+			qry += std::wstring(descriptor.parameter_db_column_names[i], descriptor.parameter_db_column_names[i] + wcslen(descriptor.parameter_db_column_names[i]));
 		}
 
-		qry += " ";
+		qry += L" ";
 		qry += rsSelect_Params_From;
-		qry += std::string(descriptor.db_table_name, descriptor.db_table_name + wcslen(descriptor.db_table_name));
+		qry += std::wstring(descriptor.db_table_name, descriptor.db_table_name + wcslen(descriptor.db_table_name));
 		qry += rsSelect_Params_Condition;
 
 		QSqlQuery* qr; // (*mDb);

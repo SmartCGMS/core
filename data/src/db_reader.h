@@ -70,7 +70,7 @@ class CDb_Reader : public virtual glucose::IFilter, public virtual db::IDb_Sink,
 		db::SDb_Connection mDb_Connection;
 
 		// performs database query
-		QSqlQuery* Get_Segment_Query(db::SDb_Query squery, int64_t segmentId);
+		db::SDb_Query Get_Segment_Query(int64_t segment_id);
 
 	public:
 		CDb_Reader(glucose::SFilter_Pipe in_pipe, glucose::SFilter_Pipe out_pipe);
