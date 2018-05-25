@@ -97,8 +97,8 @@ void CDb_Reader::Run_Reader() {
 
 	// initial setting query
 	{
-		db::SDb_Query query = Get_Segment_Query(mDbTimeSegmentIds[0]);
-		
+		db::SDb_Query query = mDb_Connection.Query(rsSelect_Timesegment_Values_Filter, mDbTimeSegmentIds[0]);
+
 		db::TParameter dt;
 		dt.type = db::NParameter_Type::ptWChar;
 		if (query->Get_Next(&dt, 1) == S_OK) {
@@ -118,7 +118,7 @@ void CDb_Reader::Run_Reader() {
 	{
 		currentSegmentId = (uint64_t)mDbTimeSegmentIds[idx];
 
-		db::SDb_Query query = Get_Segment_Query(currentSegmentId);
+		db::SDb_Query query = mDb_Connection.Query(rsSelect_Timesegment_Values_Filter, currentSegmentId);
 		
 		if (valueQuery->next())
 			continue;
@@ -272,16 +272,6 @@ HRESULT CDb_Reader::Run(const refcnt::IVector_Container<glucose::TFilter_Paramet
 	return S_OK;
 }
 
-db::SDb_Query CDb_Reader::Get_Segment_Query(int64_t segmentId) {
-
-	db::TParameter id = { db::NParameter_Type::ptInt64, segmentId };
-	db::SDb_Query query = mDb_Connection.Query(rsSelect_Timesegment_Values_Filter);
-	if (!query.Bind_Parameters(std::vector<db::TParameter> {id}))
-		query.reset();
-
-	return query;
-
-}
 
 void CDb_Reader::Prepare_Model_Parameters_For(int64_t segmentId, std::vector<TStored_Model_Params> &paramsTarget) {
 

@@ -68,10 +68,6 @@ class CDb_Reader : public virtual glucose::IFilter, public virtual db::IDb_Sink,
 	protected:
 		db::SDb_Connector mDb_Connector;
 		db::SDb_Connection mDb_Connection;
-
-		// performs database query
-		db::SDb_Query Get_Segment_Query(int64_t segment_id);
-
 	public:
 		CDb_Reader(glucose::SFilter_Pipe in_pipe, glucose::SFilter_Pipe out_pipe);
 		virtual ~CDb_Reader();
