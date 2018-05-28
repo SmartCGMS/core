@@ -1,5 +1,3 @@
-#pragma once
-
 #include "descriptor.h"
 #include "drawing.h"
 
@@ -10,13 +8,14 @@
 
 namespace drawing
 {
-	constexpr size_t param_count = 9;
+	constexpr size_t param_count = 10;
 
 	constexpr glucose::NParameter_Type param_type[param_count] = {
 		glucose::NParameter_Type::ptInt64,
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptInt64,
 		glucose::NParameter_Type::ptInt64,
+		glucose::NParameter_Type::ptWChar_Container,
 		glucose::NParameter_Type::ptWChar_Container,
 		glucose::NParameter_Type::ptWChar_Container,
 		glucose::NParameter_Type::ptWChar_Container,
@@ -33,7 +32,8 @@ namespace drawing
 		dsDrawing_Filter_Filename_Day,
 		dsDrawing_Filter_Filename_AGP,
 		dsDrawing_Filter_Filename_Parkes,
-		dsDrawing_Filter_Filename_Clark
+		dsDrawing_Filter_Filename_Clark,
+		dsDrawing_Filter_Filename_ECDF
 	};
 
 	const wchar_t* config_param_name[param_count] = {
@@ -45,10 +45,12 @@ namespace drawing
 		rsDrawing_Filter_Filename_Day,
 		rsDrawing_Filter_Filename_AGP,
 		rsDrawing_Filter_Filename_Parkes,
-		rsDrawing_Filter_Filename_Clark
+		rsDrawing_Filter_Filename_Clark,
+		rsDrawing_Filter_Filename_ECDF
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
+		nullptr,
 		nullptr,
 		nullptr,
 		nullptr,

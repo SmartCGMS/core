@@ -45,20 +45,18 @@ enum class NKnownDateFormat
 	DATEFORMAT_DDMMYYYY = 0,
 	DATEFORMAT_YYYYMMDD,
 	DATEFORMAT_CZ,
+	DATEFORMAT_DB_YYYYMMDD_T,
 	DATEFORMAT_DB_YYYYMMDD,
-	UNKNOWN_DATEFORMAT	
+	UNKNOWN_DATEFORMAT
 };
 
 // recognized datetime format formatter strings
 extern const std::array<const char*, static_cast<size_t>(NKnownDateFormat::UNKNOWN_DATEFORMAT)> KnownDateFormatFmtStrings;
 
-/*const std::string KnownDateFormatFmtStrings[] = {
-	"%d/%m/%Y %H:%M",        // DATEFORMAT_DDMMYYYY
-	"%Y/%m/%d %H:%M",        // DATEFORMAT_YYYYMMDD
-	"%d.%m.%Y %H:%M",        // DATEFORMAT_CZ
-	"%Y-%m-%d %H:%M:%S",     // DATEFORMAT_DB_YYYYMMDD
-};
-*/
+NKnownDateFormat Recognize_Date_Format(std::string& str);
+NKnownDateFormat Recognize_Date_Format(const wchar_t *str);
+bool Str_Time_To_Unix_Time(const wchar_t *src, NKnownDateFormat fmtIdx, std::string outFormatStr, const char* outFormat, time_t& target);
+bool Str_Time_To_Unix_Time(const std::string& src, NKnownDateFormat fmtIdx, std::string outFormatStr, const char* outFormat, time_t& target);
 
 /*
  * Structure used as result of extraction

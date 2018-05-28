@@ -163,7 +163,7 @@ std::string SVG::Dump() const
     return mSvgStream.str();
 }
 
-SVG::SVG() : mVisible(true), mStrokeOpacity(-1), mFillOpacity(-1)
+SVG::SVG() : mFillOpacity(-1), mStrokeOpacity(-1), mVisible(true)
 {
 }
 

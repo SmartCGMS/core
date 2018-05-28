@@ -75,22 +75,24 @@ void CCalculate_Filter::Run_Main() {
 			std::vector<double> times, levels;
 			if (hldr.Calculate_All_Values(segmentToReset, times, levels))
 			{
-				glucose::UDevice_Event calcEvt{ glucose::NDevice_Event_Code::Level };
-				//calcEvt.logical_time = 0; // asynchronnous events always have logical time equal to 0 at this time
-				calcEvt.device_id = GUID{ 0 }; // TODO: fix this (retain from segments?)
-				calcEvt.signal_id = mSignalId;
-				calcEvt.segment_id = segmentToReset;
+				for (size_t i = 0; i < times.size(); i++) {
+					//UDevice_Event is unique ptr, so we have to allocate it multiple times!
+					if (!isnan(levels[i])) {
 
-				for (size_t i = 0; i < times.size(); i++)
-				{
-					calcEvt.device_time = times[i];
-					calcEvt.level = levels[i];
+						glucose::UDevice_Event calcEvt{ glucose::NDevice_Event_Code::Level };
+						calcEvt.device_id = GUID{ 0 }; // TODO: fix this (retain from segments?)
+						calcEvt.signal_id = mSignalId;
+						calcEvt.segment_id = segmentToReset;
 
-					if (!mOutput.Send(calcEvt))
-					{
-						// to properly break outer loop and avoid deadlock
-						error = true;
-						break;
+						calcEvt.device_time = times[i];
+						calcEvt.level = levels[i];
+
+						if (!mOutput.Send(calcEvt))
+						{
+							// to properly break outer loop and avoid deadlock
+							error = true;
+							break;
+						}
 					}
 				}
 

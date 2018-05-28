@@ -12,6 +12,7 @@
 #include "drawing/Generators/ParkesGenerator.h"
 #include "drawing/Generators/AGPGenerator.h"
 #include "drawing/Generators/DayGenerator.h"
+#include "drawing/Generators/ECDFGenerator.h"
 
 #include <iostream>
 #include <chrono>
@@ -22,7 +23,7 @@
 #undef min
 
 CDrawing_Filter::CDrawing_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
-	: mInput{ inpipe }, mOutput{ outpipe }, mRedrawPeriod(500), mGraphMaxValue(-1), mDiagnosis(1) {}
+	: mInput{ inpipe }, mOutput{ outpipe }, mDiagnosis(1), mRedrawPeriod(500), mGraphMaxValue(-1) {}
 
 HRESULT IfaceCalling CDrawing_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
 	if (Internal_Query_Interface<glucose::IFilter>(glucose::Drawing_Filter, *riid, ppvObj)) return S_OK;
@@ -35,15 +36,14 @@ void CDrawing_Filter::Run_Main() {
 	std::set<GUID> signalsBeingReset;
 
 	mInputData.clear();
-	size_t i = 0;
 
 	// TODO: get rid of excessive locking (mutexes)
 
 	for (;  glucose::UDevice_Event evt = mInput.Receive(); evt) {
 
+		// explicit "changed lock" scope; unblocked right before pipe operation to avoid deadlock
 		{
 			std::unique_lock<std::mutex> lck(mChangedMtx);
-
 
 			// incoming level or calibration - store to appropriate vector
 			if (evt.event_code == glucose::NDevice_Event_Code::Level || evt.event_code == glucose::NDevice_Event_Code::Calibrated)
@@ -76,7 +76,6 @@ void CDrawing_Filter::Run_Main() {
 					// TODO: verify, if parameter reset came for signal, that is really a calculated signal (not measured)
 
 					// incoming parameters just erases the signals, because a new set of calculated levels comes through the pipe
-	//				std::unique_lock<std::mutex> lck(mChangedMtx);
 					// remove just segment, for which the reset was issued
 					mInputData[evt.signal_id].erase(
 						std::remove_if(mInputData[evt.signal_id].begin(), mInputData[evt.signal_id].end(), [&evt](Value const& a) { return a.segment_id == evt.segment_id; }),
@@ -118,7 +117,6 @@ void CDrawing_Filter::Run_Main() {
 	// join until the thread ends
 	if (mSchedulerThread->joinable())
 		mSchedulerThread->join();
-
 }
 
 void CDrawing_Filter::Run_Scheduler()
@@ -156,7 +154,12 @@ void CDrawing_Filter::Prepare_Drawing_Map() {
 	DataMap vectorsMap;
 
 	for (auto const& mapping : Signal_Mapping)
+	{
+		std::sort(mInputData[mapping.first].begin(), mInputData[mapping.first].end(), [](Value& a, Value& b) {
+			return a.date < b.date;
+		});
 		vectorsMap[mapping.second] = Data(mInputData[mapping.first], true, mInputData[mapping.first].empty(), false);
+	}
 
 	vectorsMap["segment_markers"] = Data(mSegmentMarkers, true, mSegmentMarkers.empty(), false);
 
@@ -168,6 +171,10 @@ void CDrawing_Filter::Prepare_Drawing_Map() {
 		if (Signal_Mapping.find(presentData.first) == Signal_Mapping.end())
 		{
 			std::string key = base + std::to_string(curIdx);
+
+			std::sort(mInputData[presentData.first].begin(), mInputData[presentData.first].end(), [](Value& a, Value& b) {
+				return a.date < b.date;
+			});
 
 			vectorsMap[key] = Data(mInputData[presentData.first], true, false, true);
 			vectorsMap[key].identifier = key;
@@ -209,7 +216,6 @@ HRESULT CDrawing_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Pa
 
 	glucose::TFilter_Parameter *cbegin, *cend;
 	if ((configuration != nullptr) && (configuration->get(&cbegin, &cend) == S_OK)) {
-
 		for (glucose::TFilter_Parameter* cur = cbegin; cur < cend; cur += 1)
 		{
 			if (cur->config_name->get(&begin, &end) != S_OK)
@@ -235,6 +241,8 @@ HRESULT CDrawing_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Pa
 				mGraph_FilePath = wstrConv(cur);
 			else if (confname == rsDrawing_Filter_Filename_Parkes)
 				mParkes_FilePath = wstrConv(cur);
+			else if (confname == rsDrawing_Filter_Filename_ECDF)
+				mECDF_FilePath = wstrConv(cur);
 		}
 	}
 
@@ -245,6 +253,7 @@ HRESULT CDrawing_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Pa
 		CDay_Generator::Set_Canvas_Size(mCanvasWidth, mCanvasHeight);
 		CGraph_Generator::Set_Canvas_Size(mCanvasWidth, mCanvasHeight);
 		CParkes_Generator::Set_Canvas_Size(mCanvasWidth, mCanvasHeight);
+		CECDF_Generator::Set_Canvas_Size(mCanvasWidth, mCanvasHeight);
 	}
 
 	// cache model signal names
@@ -257,6 +266,9 @@ HRESULT CDrawing_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Pa
 			mCalcSignalNameMap[model.calculated_signal_ids[i]] = std::string{wname.begin(), wname.end()};
 		}
 	}
+
+	for (size_t i = 0; i < glucose::signal_Virtual.size(); i++)
+		mCalcSignalNameMap[glucose::signal_Virtual[i]] = std::string("virtual ") + std::to_string(i);
 
 	mRunning = true;
 
@@ -274,7 +286,9 @@ inline std::string WToMB(std::wstring in)
 
 void CDrawing_Filter::Store_To_File(std::string& str, std::wstring& filePath)
 {
-	std::ofstream ofs(filePath);
+	std::string sbase(filePath.begin(), filePath.end());
+
+	std::ofstream ofs(sbase);
 	ofs << str;
 }
 
@@ -325,6 +339,13 @@ void CDrawing_Filter::Generate_Graphs(DataMap& valueMap, double maxValue, Locali
 			CParkes_Generator graph(valueMap, maxValue, locales, 1, false);
 			mParkes_type2_SVG = graph.Build_SVG();
 		}
+
+		// ECDF generator scope
+		{
+			Set_Locale_Title(locales, dsDrawingLocaleTitleParkes);
+			CECDF_Generator graph(valueMap, maxValue, locales, 1);
+			mECDF_SVG = graph.Build_SVG();
+		}
 	}
 
 	if (!mGraph_FilePath.empty())
@@ -337,6 +358,8 @@ void CDrawing_Filter::Generate_Graphs(DataMap& valueMap, double maxValue, Locali
 		Store_To_File(mAGP_SVG, mAGP_FilePath);
 	if (!mParkes_FilePath.empty())
 		Store_To_File(mParkes_type1_SVG, mParkes_FilePath);
+	if (!mECDF_FilePath.empty())
+		Store_To_File(mECDF_SVG, mECDF_FilePath);
 
 	glucose::UDevice_Event drawEvt{ glucose::NDevice_Event_Code::Information };	
 	drawEvt.info.set(rsInfo_Redraw_Complete);
@@ -344,15 +367,16 @@ void CDrawing_Filter::Generate_Graphs(DataMap& valueMap, double maxValue, Locali
 }
 
 HRESULT CDrawing_Filter::Get_Plot(const std::string &plot, refcnt::IVector_Container<char> *svg) const {
-	std::unique_lock<std::mutex> lck(mRetrieveMtx);
 	return svg->set(plot.data(), plot.data() + plot.size());
 }
 
 HRESULT IfaceCalling CDrawing_Filter::Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg) const
 {
+	std::unique_lock<std::mutex> lck(mRetrieveMtx);
+
 	switch (type)
 	{
-		case glucose::TDrawing_Image_Type::Agp:
+		case glucose::TDrawing_Image_Type::AGP:
 			return Get_Plot(mAGP_SVG, svg);
 		case glucose::TDrawing_Image_Type::Day:
 			return Get_Plot(mDay_SVG, svg);
@@ -370,8 +394,14 @@ HRESULT IfaceCalling CDrawing_Filter::Draw(glucose::TDrawing_Image_Type type, gl
 				case glucose::TDiagnosis::Gestational:
 					return Get_Plot(mParkes_type2_SVG, svg);
 					// TODO: Parkes error grid for gestational diabetes
+				default:
+					break;
 			}
 		}
+		case glucose::TDrawing_Image_Type::ECDF:
+			return Get_Plot(mECDF_SVG, svg);
+		default:
+			break;
 	}
 
 	return E_INVALIDARG;
@@ -420,4 +450,6 @@ void CDrawing_Filter::Fill_Localization_Map(LocalizationMap& locales)
 	locales[WToMB(rsDrawingLocaleSvgISIGTitle)] = WToMB(dsDrawingLocaleSvgISIGTitle);
 	locales[WToMB(rsDrawingLocaleSvgDiff2Title)] = WToMB(dsDrawingLocaleSvgDiff2Title);
 	locales[WToMB(rsDrawingLocaleSvgDiff3Title)] = WToMB(dsDrawingLocaleSvgDiff3Title);
+	locales[WToMB(rsDrawingLocaleRelativeError)] = WToMB(dsDrawingLocaleRelativeError);
+	locales[WToMB(rsDrawingLocaleCummulativeProbability)] = WToMB(dsDrawingLocaleCummulativeProbability);
 }

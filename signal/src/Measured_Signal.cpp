@@ -31,11 +31,10 @@ HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Levels(double* const times, 
 
 	*filled = std::min(count, mTimes.size());
 
-	for (size_t i = 0; i < *filled; i++)
-		times[i] = mTimes[i];
-
-	for (size_t i = 0; i < *filled; i++)
-		levels[i] = mLevels[i];
+	if (*filled) {
+		memcpy(times, mTimes.data(), *filled);
+		memcpy(levels, mLevels.data(), *filled);
+	}
 
 	return S_OK;
 }
@@ -62,13 +61,7 @@ HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Bounds(glucose::TBounds *bou
 	return S_OK;
 }
 
-HRESULT IfaceCalling CMeasured_Signal::Add_Levels(const double *times, const double *levels, const size_t count)
-{
-
-	// reserve size, so the capacity suffices for newly inserted values
-	mTimes.reserve(mTimes.size() + count);
-	mLevels.reserve(mLevels.size() + count);
-
+HRESULT IfaceCalling CMeasured_Signal::Add_Levels(const double *times, const double *levels, const size_t count) {
 	// copy given values to internal vectors
 	std::copy(times, times + count, std::back_inserter(mTimes));
 	std::copy(levels, levels + count, std::back_inserter(mLevels));

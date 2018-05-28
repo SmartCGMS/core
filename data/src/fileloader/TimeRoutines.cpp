@@ -20,10 +20,13 @@ bool Convert_Timestamp(std::string source, const char* sourceFormat, std::string
 		if (!Is_Valid_Tm(convtime))
 			return false;
 
-		std::stringstream timestr;
-		timestr << std::put_time(&convtime, destFormat);
+		if (destFormat)
+		{
+			std::stringstream timestr;
+			timestr << std::put_time(&convtime, destFormat);
 
-		dest = timestr.str();
+			dest = timestr.str();
+		}
 
 		if (unixTimeDst)
 			*unixTimeDst = mktime(&convtime);

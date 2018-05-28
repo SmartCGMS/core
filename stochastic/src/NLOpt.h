@@ -148,7 +148,7 @@ public:
 			if (mUpper_Top_Bound[i] != mLower_Top_Bound[i]) {
 				mDimension_Remap.push_back(i);
 				mRemapped_Upper_Top_Bound.push_back(mUpper_Top_Bound[i]);
-				mRemapped_Lower_Top_Bound.push_back(mRemapped_Lower_Top_Bound[i]);
+				mRemapped_Lower_Top_Bound.push_back(mLower_Top_Bound[i]);
 			} 
 				
 		}

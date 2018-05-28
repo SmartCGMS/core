@@ -12,6 +12,7 @@
 #include <ctime>
 #include <map>
 #include <vector>
+#include <string>
 
 typedef std::map<std::string, std::string> LocalizationMap;
 

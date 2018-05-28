@@ -39,6 +39,8 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 		std::string mParkes_type1_SVG;
 		// stored parkes grid SVG for type 2
 		std::string mParkes_type2_SVG;
+		// stored ECDF SVG
+		std::string mECDF_SVG;
 
 		// AGP file path
 		std::wstring mAGP_FilePath;
@@ -50,6 +52,8 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 		std::wstring mGraph_FilePath;
 		// Parkes file path
 		std::wstring mParkes_FilePath;
+		// ECDF file path
+		std::wstring mECDF_FilePath;
 
 		// diagnosis flag
 		uint8_t mDiagnosis = 0; //type 1?

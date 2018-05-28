@@ -33,9 +33,16 @@ const std::array<const char*, static_cast<size_t>(NKnownDateFormat::UNKNOWN_DATE
 	"%d/%m/%Y %H:%M",        // DATEFORMAT_DDMMYYYY
 	"%Y/%m/%d %H:%M",        // DATEFORMAT_YYYYMMDD
 	"%d.%m.%Y %H:%M",        // DATEFORMAT_CZ
+	"%Y-%m-%dT%H:%M:%S",     // DATEFORMAT_DB_YYYYMMDD_T
 	"%Y-%m-%d %H:%M:%S",     // DATEFORMAT_DB_YYYYMMDD
 };
 
+
+NKnownDateFormat Recognize_Date_Format(const wchar_t *str) {
+	if (str == nullptr) return NKnownDateFormat::UNKNOWN_DATEFORMAT;
+	std::string date_time_str{ str, str + wcslen(str) };
+	return Recognize_Date_Format(date_time_str);
+};
 
 // Recognizes date format from supplied string representation
 NKnownDateFormat Recognize_Date_Format(std::string& str)
@@ -66,6 +73,17 @@ NKnownDateFormat Recognize_Date_Format(std::string& str)
 	}
 
 	return static_cast<NKnownDateFormat>(i);
+}
+
+bool Str_Time_To_Unix_Time(const wchar_t *src, NKnownDateFormat fmtIdx, std::string outFormatStr, const char* outFormat, time_t& target) {
+	if (src == nullptr) return false;
+	std::string tmp{ src, src + wcslen(src) };
+	return Str_Time_To_Unix_Time(tmp, fmtIdx, outFormatStr, outFormat, target);
+}
+
+bool Str_Time_To_Unix_Time(const std::string& src, NKnownDateFormat fmtIdx, std::string outFormatStr, const char* outFormat, time_t& target)
+{
+	return Convert_Timestamp(src, KnownDateFormatFmtStrings[static_cast<size_t>(fmtIdx)], outFormatStr, outFormat, &target);
 }
 
 CExtractor::CExtractor()
@@ -606,7 +624,7 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 
 		std::string dst;
 		// is conversion result valid? if not, try next line
-		if (!Convert_Timestamp(tmp, KnownDateFormatFmtStrings[static_cast<size_t>(dateformat)], dst, dsDatabaseTimestampFormatShort, &curTime))
+		if (!Str_Time_To_Unix_Time(tmp, dateformat, dst, dsDatabaseTimestampFormatShort, curTime))
 		{
 			posInc();
 			continue;
@@ -917,7 +935,7 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 
 		std::string dst;
 		// is conversion result valid? if not, try next line
-		if (!Convert_Timestamp(tmp, KnownDateFormatFmtStrings[static_cast<size_t>(dateformat)], dst, dsDatabaseTimestampFormatShort, &curTime))
+		if (!Str_Time_To_Unix_Time(tmp, dateformat, dst, dsDatabaseTimestampFormatShort, curTime))
 		{
 			posInc();
 			continue;

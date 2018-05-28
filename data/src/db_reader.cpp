@@ -9,16 +9,15 @@
 #include "../../../common/rtl/FilesystemLib.h"
 #include "../../../common/lang/dstrings.h"
 
+#include "fileloader/Extractor.h"
+
 #include <tbb/tbb_allocator.h>
 
 #include <map>
 
 #include <QtCore/QDate>
 #include <QtCore/QDateTime>
-#include <QtCore/QDebug>
-#include <QtSql/QSqlError>
 
-#include <QtCore/QCoreApplication>
 
 // dummy device GUID
 const GUID Db_Reader_Device_GUID = { 0x00000001, 0x0001, 0x0001,{ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
@@ -26,7 +25,7 @@ const GUID Db_Reader_Device_GUID = { 0x00000001, 0x0001, 0x0001,{ 0x01, 0x00, 0x
 // enumerator of known column indexes
 enum class NColumn_Pos : int
 {
-	Blood = 1,
+	Blood = 0,
 	Ist,
 	Isig,
 	Insulin,
@@ -34,7 +33,8 @@ enum class NColumn_Pos : int
 	Calibration,
 	_End,
 
-	_Begin = Blood
+	_Begin = Blood,
+	_Count = _End
 };
 
 // increment operator to allow using for loop
@@ -56,7 +56,7 @@ std::map<NColumn_Pos, GUID, std::less<NColumn_Pos>, tbb::tbb_allocator<std::pair
 
 CDb_Reader::CDb_Reader(glucose::SFilter_Pipe in_pipe, glucose::SFilter_Pipe out_pipe) : mInput(in_pipe), mOutput(out_pipe), mDbPort(0), mCurrentSegmentIdx(glucose::Invalid_Segment_Id) {
 	//
-	}
+}
 
 CDb_Reader::~CDb_Reader()
 {
@@ -83,27 +83,43 @@ void CDb_Reader::Run_Reader() {
 	//we must open the db connection from exactly that thread, that is about to use it
 
 	HRESULT rc = E_FAIL;
-	if (mDb_Connector) mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
-	if (!mDb_Connection) return;	
+	if (mDb_Connector)
+		mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
+	if (!mDb_Connection)
+		return;
 
+	time_t unixts;
 
-	
-	bool ok;
-
-	uint64_t currentSegmentId;
+	int64_t currentSegmentId;
 	
 	double nowdate = Unix_Time_To_Rat_Time(QDateTime::currentDateTime().toSecsSinceEpoch());
 	double begindate = nowdate;
 
+	NKnownDateFormat dateFmt = NKnownDateFormat::UNKNOWN_DATEFORMAT;
+
 	// initial setting query
 	{
-		db::SDb_Query query = mDb_Connection.Query(rsSelect_Timesegment_Values_Filter, mDbTimeSegmentIds[0]);
+		std::wstring qstr = rsSelect_Timesegment_Values_Filter;
+
+		db::SDb_Query query = mDb_Connection.Query(qstr, mDbTimeSegmentIds[0]);
 		wchar_t *dt_str = nullptr;
-		
+
 		if (query.Get_Next(dt_str)) {
-			begindate = Str_To_Rat_Time(dt_str);
+			
+			dateFmt = Recognize_Date_Format(dt_str);
+
+			// this needs to be resolved!
+			if (dateFmt == NKnownDateFormat::UNKNOWN_DATEFORMAT)
+				return;
+
+			std::string tmp;
+			if (!Str_Time_To_Unix_Time(dt_str, dateFmt, tmp, nullptr, unixts))
+				return;
+
+			begindate = Unix_Time_To_Rat_Time(unixts);
 		}
-		
+		else
+			return;
 	}
 
 	// base correction is used as value for shifting the time segment (its values) from past to present
@@ -114,16 +130,28 @@ void CDb_Reader::Run_Reader() {
 
 	double lastDate = begindate + dateCorrection;
 
-	for (size_t idx = 0; idx < mDbTimeSegmentIds.size(); idx++)
-	{
-		currentSegmentId = (uint64_t)mDbTimeSegmentIds[idx];
+	bool isAborted = false;
 
-		db::SDb_Query query = mDb_Connection.Query(rsSelect_Timesegment_Values_Filter, currentSegmentId);
+
+	for (size_t idx = 0; idx < mDbTimeSegmentIds.size(); idx++) {
+		currentSegmentId = (int64_t)mDbTimeSegmentIds[idx];
+
+		wchar_t* target;
+		std::vector<double> bBound(static_cast<size_t>(NColumn_Pos::_Count));
+
+		db::SDb_Query query = mDb_Connection.Query(rsSelect_Timesegment_Values_Filter, currentSegmentId);		
+		if (!query.Bind_Result(target, bBound)) continue;
 		
-		if (valueQuery->next())
+		if (!query.Get_Next())
 			continue;
 
-		begindate = Unix_Time_To_Rat_Time(valueQuery->value(0).toDateTime().toSecsSinceEpoch()) + dateCorrection;
+
+		std::string bDate;
+
+		if (!Str_Time_To_Unix_Time(target, dateFmt, bDate, nullptr, unixts))
+			continue;
+
+		begindate = Unix_Time_To_Rat_Time(unixts) + dateCorrection;
 
 		// if the spacing is greated than 1 day, condense it
 		if (abs(begindate - lastDate) > 1.0)
@@ -132,11 +160,10 @@ void CDb_Reader::Run_Reader() {
 			dateCorrection -= ceil(begindate - lastDate);
 			dateCorrection += 1.0;
 
-			begindate = Unix_Time_To_Rat_Time(valueQuery->value(0).toDateTime().toSecsSinceEpoch()) + dateCorrection;
+			begindate = Unix_Time_To_Rat_Time(unixts) + dateCorrection;
 		}
 
 		Send_Segment_Marker(glucose::NDevice_Event_Code::Time_Segment_Start, begindate, currentSegmentId);		
-		
 
 		std::vector<TStored_Model_Params> paramHints;
 		Prepare_Model_Parameters_For(currentSegmentId, paramHints);
@@ -147,12 +174,15 @@ void CDb_Reader::Run_Reader() {
 		{
 			glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Parameters_Hint };
 			evt.device_time = begindate;
-			evt.signal_id = paramset.model_id;			
+			evt.signal_id = paramset.model_id;
 			evt.parameters = paramset.params;
 			evt.segment_id = currentSegmentId;
 
 			if (!mOutput.Send(evt))
+			{
+				isAborted = true;
 				break;
+			}
 		}
 
 		do
@@ -161,39 +191,42 @@ void CDb_Reader::Run_Reader() {
 			// "select measuredat, blood, ist, isig, insulin, carbohydrates, calibration from measuredvalue where segmentid = ? order by measuredat asc"
 			//         0           1      2    3     4        5              6
 
-			auto dt = valueQuery->value(0).toDateTime();
+			
+			if (!Str_Time_To_Unix_Time(target , dateFmt, bDate, nullptr, unixts))
+				continue;
 
-			double jdate = Unix_Time_To_Rat_Time(dt.toSecsSinceEpoch());
+			double jdate = Unix_Time_To_Rat_Time(unixts) + dateCorrection;
 
 			// go through all value columns
 			for (NColumn_Pos i = NColumn_Pos::_Begin; i < NColumn_Pos::_End; ++i)
 			{
-				auto column = valueQuery->value(static_cast<int>(i));
+				auto column = bBound[static_cast<size_t>(i)];
 
 				// if no value is present, skip
-				if (column.isNull())
+				auto fpcl = fpclassify(column);
+				if (fpcl == FP_NAN || fpcl == FP_INFINITE)
 					continue;
 
 				glucose::UDevice_Event evt{ (i == NColumn_Pos::Calibration) ? glucose::NDevice_Event_Code::Calibrated : glucose::NDevice_Event_Code::Level };
-				evt.level = column.toDouble(&ok);
-				if (!ok)
-					continue;
 
+				evt.level = column;
 				evt.device_id = Db_Reader_Device_GUID;
 				evt.signal_id = ColumnSignalMap[i];
-				evt.device_time = lastDate = jdate + dateCorrection; // apply base correction				
+				evt.device_time = lastDate = jdate + dateCorrection; // apply base correction
 				evt.segment_id = currentSegmentId;
 				 
 				// this may block if the pipe is full (i.e. due to artificial slowdown filter, simulation stepping, etc.)
-				if (!mOutput.Send(evt)) break;
+				if (!mOutput.Send(evt))
+				{
+					isAborted = true;
+					break;
+				}
 			}
-		} while (valueQuery->next());
+		} while (!isAborted && query.Get_Next());
 
 		// evt.device_time is now guaranteed to have valid time of last sent event
 
 		Send_Segment_Marker(glucose::NDevice_Event_Code::Time_Segment_Stop, lastDate, currentSegmentId);
-
-		
 	}
 }
 
@@ -272,7 +305,6 @@ HRESULT CDb_Reader::Run(const refcnt::IVector_Container<glucose::TFilter_Paramet
 	return S_OK;
 }
 
-
 void CDb_Reader::Prepare_Model_Parameters_For(int64_t segmentId, std::vector<TStored_Model_Params> &paramsTarget) {
 
 	for (const auto &descriptor : glucose::get_model_descriptors()) {
@@ -293,21 +325,12 @@ void CDb_Reader::Prepare_Model_Parameters_For(int64_t segmentId, std::vector<TSt
 		qry += rsSelect_Params_From;
 		qry += std::wstring(descriptor.db_table_name, descriptor.db_table_name + wcslen(descriptor.db_table_name));
 		qry += rsSelect_Params_Condition;
+		db::SDb_Query squery = mDb_Connection.Query(qry, segmentId);
 
-		QSqlQuery* qr; // (*mDb);
-		db::SDb_Query squery = mDb_Connection.Query(L"");
-		squery->Get_Raw((void**)&qr);
-
-		qr->prepare(qry.c_str());
-		qr->bindValue(0, segmentId);
-		//if (qr.exec() && qr.size() != 0 && qr.next())
-		if (qr->exec()) {
-			if (qr->next()) {
-				std::vector<double> arr;
-				for (size_t i = 0; i < descriptor.number_of_parameters; i++)
-					arr.push_back(qr->value(static_cast<int>(i)).toDouble());
-
-				paramsTarget.push_back({ descriptor.id, refcnt::Create_Container_shared<double>(arr.data(), arr.data() + arr.size()) });
+		std::vector<double> sql_result (descriptor.number_of_parameters);
+		if (squery.Bind_Result(sql_result)) {
+			if (squery.Get_Next()) {
+				paramsTarget.push_back({ descriptor.id, refcnt::Create_Container_shared<double>(sql_result.data(), sql_result.data() + sql_result.size()) });
 			}
 		}
 	}
