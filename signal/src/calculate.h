@@ -14,8 +14,7 @@
 /*
  * Filter class for calculating signals from incoming parameters
  */
-class CCalculate_Filter : public glucose::IFilter, public virtual refcnt::CReferenced
-{
+class CCalculate_Filter : public glucose::IFilter, public virtual refcnt::CReferenced {
 	protected:
 		// input pipe
 		glucose::SFilter_Pipe mInput;
@@ -27,7 +26,9 @@ class CCalculate_Filter : public glucose::IFilter, public virtual refcnt::CRefer
 
 		// calculate past values when first parameter set came
 		bool mCalc_Past_With_First_Params;
-
+	protected:
+		std::vector<double> mPending_Times;		//times, for which we have not calculated the levels yet
+	protected:
 		// main method
 		void Run_Main();
 

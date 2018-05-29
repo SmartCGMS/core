@@ -28,11 +28,9 @@ class CSegment_Holder
 		// adds level to segment
 		bool Add_Level(uint64_t segmentId, const GUID& signal_id, double time, double level);
 		// does the segment have parameters set?
-		bool Has_Parameters(uint64_t segmentId) const;
-		// sets model parameters to segment
 		void Set_Parameters(uint64_t segmentId, glucose::SModel_Parameter_Vector params);
 		// retrieves calculated value at specified time
-		bool Get_Calculated_At_Time(uint64_t segmentId, double time, double& target);
+		bool Get_Calculated_At_Time(uint64_t segmentId, const std::vector<double> &time, std::vector<double> &target);
 		// retrieves calculated values of given segment (all of them)
 		bool Calculate_All_Values(uint64_t segmentId, std::vector<double>& times, std::vector<double>& levels);
 };

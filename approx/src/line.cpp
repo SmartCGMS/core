@@ -8,41 +8,42 @@ CLine_Approximator::CLine_Approximator(glucose::WSignal signal, glucose::IApprox
 	Update();
 }
 
-void CLine_Approximator::Update() {
-	size_t oldCount = mInputTimes.size();
+bool CLine_Approximator::Update() {
+	size_t known_count = mInputTimes.size();
 
-	size_t valCount;
-	if (mSignal.Get_Discrete_Bounds(nullptr, &valCount) != S_OK)
-		return;
+	size_t update_count;
+	if (mSignal.Get_Discrete_Bounds(nullptr, &update_count) != S_OK)
+		return false;
 
-	if (oldCount != valCount)
-	{
-		mInputTimes.resize(valCount);
-		mInputLevels.resize(valCount);
-		mSlopes.resize(valCount);
+	if (known_count != update_count) {
+		mInputTimes.resize(update_count);
+		mInputLevels.resize(update_count);
+		mSlopes.resize(update_count);
 	}
 	else // valCount == oldCount, no need to update
-		return;
+		return true;
 
 	size_t filled;
-	mSignal.Get_Discrete_Levels(mInputTimes.data(), mInputLevels.data(), valCount, &filled);
+	if (mSignal.Get_Discrete_Levels(mInputTimes.data(), mInputLevels.data(), update_count, &filled) != S_OK) {
+		mInputTimes.clear();			//error, we need to recalculat everything
+		return false;
+	}
 
 	// calculate slopes
-	for (size_t i = 0; i < valCount - 1; i++)
+	for (size_t i = 0; i < update_count - 1; i++)
 		mSlopes[i] = (mInputLevels[i + 1] - mInputLevels[i]) / (mInputTimes[i + 1] - mInputTimes[i]);
-	if (valCount > 1) mSlopes[valCount - 1] = mSlopes[valCount - 2];	//special case that will reduxe GetLevels' complexity
+	if (update_count > 1) mSlopes[update_count - 1] = mSlopes[update_count - 2];	//special case that will reduxe GetLevels' complexity
+
+	return true;
 }
 
 HRESULT IfaceCalling CLine_Approximator::GetLevels(const double* times, double* const levels, const size_t count, size_t derivation_order) {
 
-	//assert((times != nullptr) && (levels != nullptr) && (count > 0));
+	assert((times != nullptr) && (levels != nullptr) && (count > 0));
 	if ((times == nullptr) || (levels == nullptr)) return E_INVALIDARG;
 
-	Update();
+	if (!Update() || mSlopes.empty()) return E_FAIL;
 
-	// needs to call Approximate first
-	if (mSlopes.empty() )
-		return E_FAIL;	
 
 	// size of mSlopes is lower by 1 than mInputTimes/Levels, and we know how to approximate just in this range
 	for (size_t i = 0; i< count; i++) {

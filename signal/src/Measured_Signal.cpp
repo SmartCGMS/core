@@ -32,8 +32,9 @@ HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Levels(double* const times, 
 	*filled = std::min(count, mTimes.size());
 
 	if (*filled) {
-		memcpy(times, mTimes.data(), *filled);
-		memcpy(levels, mLevels.data(), *filled);
+		const size_t bytes_to_copy = (*filled) * sizeof(double);
+		memcpy(times, mTimes.data(), bytes_to_copy);
+		memcpy(levels, mLevels.data(), bytes_to_copy);
 	}
 
 	return S_OK;

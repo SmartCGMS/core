@@ -27,6 +27,47 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 
 
 	
+	auto SolveBloodLevelDiffusion2 = [&parameters](double presentist, double futureist) {
+		if (isnan(presentist) || isnan(futureist)) return std::numeric_limits<double>::quiet_NaN();
+		double blood;
+
+		double alpha = parameters.cg;
+		double beta = parameters.p - alpha * presentist;
+		double gamma = parameters.c - futureist;
+
+		double D = beta * beta - 4.0*alpha*gamma;
+
+
+		bool nzalpha = alpha != 0.0;
+		if ((D >= 0) && (nzalpha)) {
+			blood = (-beta + sqrt(D))*0.5 / alpha;
+		}
+		else {
+			if (nzalpha)
+				blood = -beta * 0.5 / alpha;
+			//OK, we should set this to NaN, but let's rather try to ignore
+			//the imaginary part of the result. It is as best as it would
+			//be if we would step through all possible levels.
+			else {
+				if (beta != 0.0)
+					blood = -gamma / beta;
+				else
+					//blood = std::numeric_limits<floattype>::quiet_NaN();
+					/* In this case, alpha is zero, beta is zero => there's nothing more we could do.
+					By all means, of the orignal equation, the glucose level is constant,
+					thus the subject is dead => thus NaN, in-fact, would be the correct value.
+					However, let us return the constat glucose level instead.
+					*/
+					blood = parameters.c;
+			}	 // if (nzalpha)									
+		}			 //if D>=0 & alpha != 0
+
+		
+		return blood;
+	};
+
+
+
 	
 	if ((parameters.k != 0.0) && (parameters.h != 0.0)) {
 		//reuse dt to obtain h_back_ist		
@@ -47,6 +88,16 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 
 	
 	
+	auto pres = present_ist.element();
+	auto fut = future_ist.element();
+		
+	for (size_t i = 0; i < count; i++) {
+		levels[i] = SolveBloodLevelDiffusion2(pres[i], fut[i]);
+	}
+
+	return S_OK;
+
+
 	
 	
 	//floattype alpha = params.cg;

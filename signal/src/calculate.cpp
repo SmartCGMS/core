@@ -14,9 +14,12 @@ CCalculate_Filter::CCalculate_Filter(glucose::SFilter_Pipe inpipe, glucose::SFil
 	//
 }
 
+
 void CCalculate_Filter::Run_Main() {
 	uint64_t segmentToReset = 0;
 	bool error = false;
+
+	double last_pending_time = std::numeric_limits<double>::quiet_NaN();
 
 	CSegment_Holder hldr(mSignalId);
 
@@ -26,18 +29,35 @@ void CCalculate_Filter::Run_Main() {
 			case glucose::NDevice_Event_Code::Level:
 			case glucose::NDevice_Event_Code::Calibrated:
 			{
-				if (hldr.Add_Level(evt.segment_id, evt.signal_id, evt.device_time, evt.level))
-				{
-					double level;
-					if (hldr.Get_Calculated_At_Time(evt.segment_id, evt.device_time, level))
-					{
-						glucose::UDevice_Event calcEvt{ glucose::NDevice_Event_Code::Level };
-						calcEvt.device_time = evt.device_time;						
-						calcEvt.level = level;
-						calcEvt.device_id = Invalid_GUID; // TODO: fix this (retain from segments?)
-						calcEvt.signal_id = mSignalId;
-						calcEvt.segment_id = evt.segment_id;
-						mOutput.Send(calcEvt);
+				if (hldr.Add_Level(evt.segment_id, evt.signal_id, evt.device_time, evt.level)) {
+					if (evt.device_time != last_pending_time) {
+						mPending_Times.push_back(evt.device_time);	//this possibly create duplicities in the vector as it does not differentiate between measured signal - e.g. BG and IG measured at the very same time in animal experiment
+						last_pending_time = evt.device_time;		//so we do this simple trick to avoid trivial repetitions, at least
+					}
+
+
+					std::vector<double> level;
+					if (hldr.Get_Calculated_At_Time(evt.segment_id, mPending_Times, level)) {
+						std::vector<double> repeatedly_pending_times(0);
+
+						//send non-NaN values
+						for (size_t i = 0; i < level.size(); i++) {
+							if (!isnan(level[i])) {
+								glucose::UDevice_Event calcEvt{ glucose::NDevice_Event_Code::Level };
+								calcEvt.device_time = mPending_Times[i];
+								calcEvt.level = level[i];
+								calcEvt.device_id = Invalid_GUID; // TODO: fix this (retain from segments?)
+								calcEvt.signal_id = mSignalId;
+								calcEvt.segment_id = evt.segment_id;
+								mOutput.Send(calcEvt);								
+							} else
+								repeatedly_pending_times.push_back(mPending_Times[i]);
+						}
+
+						mPending_Times = repeatedly_pending_times;
+						if (mPending_Times.empty()) last_pending_time = std::numeric_limits<double>::quiet_NaN();
+							else last_pending_time = mPending_Times[mPending_Times.size() - 1];
+
 					}
 				}
 
@@ -53,7 +73,7 @@ void CCalculate_Filter::Run_Main() {
 				if (evt.signal_id == mSignalId)
 				{
 					// if the segment doesn't have parameters yet, recalculate whole segment with given parameters (if the flag is set)
-					if (!hldr.Has_Parameters(evt.segment_id) && mCalc_Past_With_First_Params)
+					if (mCalc_Past_With_First_Params)
 						segmentToReset = evt.segment_id;
 					hldr.Set_Parameters(evt.segment_id, evt.parameters);
 				}
@@ -75,6 +95,9 @@ void CCalculate_Filter::Run_Main() {
 			std::vector<double> times, levels;
 			if (hldr.Calculate_All_Values(segmentToReset, times, levels))
 			{
+				mPending_Times.clear();
+				last_pending_time = std::numeric_limits<double>::quiet_NaN();
+
 				for (size_t i = 0; i < times.size(); i++) {
 					//UDevice_Event is unique ptr, so we have to allocate it multiple times!
 					if (!isnan(levels[i])) {

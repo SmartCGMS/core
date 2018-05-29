@@ -18,7 +18,7 @@ class CLine_Approximator : public glucose::IApproximator, public virtual refcnt:
 
 		std::vector<double> mInputTimes, mInputLevels, mSlopes;
 
-		void Update();
+		bool Update();
 
 	public:
 		CLine_Approximator(glucose::WSignal signal, glucose::IApprox_Parameters_Vector* configuration);
