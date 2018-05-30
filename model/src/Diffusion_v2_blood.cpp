@@ -16,7 +16,7 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 	diffusion_v2_model::TParameters &parameters = Convert_Parameters<diffusion_v2_model::TParameters>(params, diffusion_v2_model::default_parameters);
 	
 	CPooled_Buffer<TVector1D> present_ist = mVector1D_Pool.pop( count );
-	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, times, present_ist.element().data(), count, glucose::apxNo_Derivation);
+		HRESULT rc = mIst->Get_Continuous_Levels(nullptr, times, present_ist.element().data(), count, glucose::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 
 
@@ -82,7 +82,9 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 		//converted_levels = (D.sqrt() - beta)*0.5 / alpha; -- will expand the final equation later, at the end
 
 		converted_levels = beta.square() - 4.0*parameters.cg*(parameters.c - future_ist.element());
-		converted_levels.max(0.0);	//max cannot be inlined to make a one large equation
+		//converted_levels.max(0.0);	//max cannot be inlined to make a one large equation
+		for (size_t i = 0; i < count; i++)
+			if (converted_levels[i] < 0.0) converted_levels[i] = 0.0;	//max would be nice solution, but it fails for some reason
 		converted_levels = (converted_levels.sqrt() - beta)*0.5 / parameters.cg;
 
 		return S_OK;		
