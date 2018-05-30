@@ -11,8 +11,27 @@
 #include <ctime>
 #include <vector>
 
-namespace logger
-{
+namespace logger {
+
+	template<typename CharT>
+	class DecimalSeparator : public std::numpunct<CharT>
+	{
+	public:
+		DecimalSeparator(CharT Separator)
+			: m_Separator(Separator)
+		{}
+
+	protected:
+		CharT do_decimal_point()const
+		{
+			return m_Separator;
+		}
+
+	private:
+		CharT m_Separator;
+	};
+
+
 	// log precision for device_time output
 	constexpr std::streamsize DefaultLogPrecision_DeviceTime = 12;
 	// log precise for level output
@@ -22,14 +41,8 @@ namespace logger
 }
 
 CLog_Filter::CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
-	: mInput{inpipe}, mOutput{outpipe}
-{
-	//
-}
-
-CLog_Filter::~CLog_Filter()
-{
-	//
+	: mInput{inpipe}, mOutput{outpipe} {
+	
 }
 
 void CLog_Filter::Write_Model_Parameters(std::wostream& stream, const glucose::UDevice_Event& evt)
@@ -144,41 +157,46 @@ void CLog_Filter::Run_Main() {
 	}
 }
 
-HRESULT CLog_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) {
+bool CLog_Filter::Open_Log(glucose::SFilter_Parameters configuration) {
 
-	wchar_t *begin, *end;
+	bool result = false;
+	std::wstring log_file_name = configuration.Read_String(rsLog_Output_File);
+	// if have output file name
+	if (!log_file_name.empty()) {
+		// try to open output file
+		mLog.open(log_file_name);
 
-	glucose::TFilter_Parameter *cbegin, *cend;
-	if ((configuration != nullptr) && (configuration->get(&cbegin, &cend) == S_OK)) {
-
-
-		for (glucose::TFilter_Parameter* cur = cbegin; cur < cend; cur += 1)
-		{
-			if (cur->config_name->get(&begin, &end) != S_OK)
-				continue;
-
-			std::wstring confname{ begin, end };
-
-			if (confname == rsLog_Output_File)
-			{
-				if (cur->wstr->get(&begin, &end) == S_OK)
-					mLogFileName = std::wstring(begin, end);
-			}
-		}
-
-		// if have output file name
-		if (!mLogFileName.empty()) {
-			// try to open output file
-			mLog.open(mLogFileName);
-			if (!mLog.is_open())
-				return ENOENT;
+		result = mLog.is_open();
+		if (result) {
+			//set decimal point and write the header
+			mLog.imbue(std::locale(std::cout.getloc(), new logger::DecimalSeparator<char>('.')));
+			mLog << dsLog_Header << std::endl;
 		}
 	}
 
-	Run_Main();
+	return result;
+}
+
+HRESULT CLog_Filter::Run(refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) {
+
+	
 
 	// load model descriptors to be able to properly format log outputs of parameters	
 	mModelDescriptors = glucose::get_model_descriptors();
+	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, refcnt::IVector_Container<glucose::TFilter_Parameter>>(configuration, true);
+	const bool log_opened = Open_Log(shared_configuration);
+
+	for (; glucose::UDevice_Event evt = mInput.Receive(); evt) {
+		if (log_opened)
+			Log_Event(evt);
+
+		if (!mOutput.Send(evt)) break;
+	}	
 
 	return S_OK;
 };
+
+
+void CLog_Filter::Log_Event(const glucose::UDevice_Event &evt) {
+
+}

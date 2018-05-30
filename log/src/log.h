@@ -14,18 +14,15 @@
 /*
  * Filter class for logging all incoming events and dropping them (terminating the chain)
  */
-class CLog_Filter : public glucose::IFilter, public virtual refcnt::CReferenced
-{
-	protected:
-		// input pipe
-		glucose::SFilter_Pipe mInput;
-		// output pipe
-		glucose::SFilter_Pipe mOutput;
+class CLog_Filter : public glucose::IFilter, public virtual refcnt::CReferenced {
+protected:
+	glucose::SFilter_Pipe mInput;
+	glucose::SFilter_Pipe mOutput;
+	std::wofstream mLog;
 
-		// output file name
-		std::wstring mLogFileName;
-		// output file stream
-		std::wofstream mLog;
+	bool Open_Log(glucose::SFilter_Parameters configuration);
+	void Log_Event(const glucose::UDevice_Event &evt);
+protected:		
 
 		// vector of model descriptors; stored for parameter formatting
 		std::vector<glucose::TModel_Descriptor> mModelDescriptors;
@@ -36,11 +33,12 @@ class CLog_Filter : public glucose::IFilter, public virtual refcnt::CReferenced
 		// writes model parameters to file stream
 		void Write_Model_Parameters(std::wostream& stream, const glucose::UDevice_Event& evt);
 
-	public:
-		CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
-		virtual ~CLog_Filter();
 
-		virtual HRESULT Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;
+public:
+	CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
+	virtual ~CLog_Filter() {};
+
+	virtual HRESULT Run(refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;
 };
 
 #pragma warning( pop )
