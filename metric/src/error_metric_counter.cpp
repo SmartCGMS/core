@@ -83,15 +83,30 @@ static const double Get_Standard_Deviation(const std::vector<double>& data, cons
 		accumulator += err * err;
 	}
 
-	const double besselCount = (double)(data.size() - 1);
+	double correction_count = static_cast<double>(data.size());
+	if (correction_count > 1.5) correction_count -= 1.5;
+		else if (correction_count > 1.0) correction_count -= 1.0;	//if not, try to fall back to Bessel's Correction at least
 
-	return sqrt(accumulator / besselCount);
+
+	return sqrt(accumulator / correction_count);
 }
 
-static const double Get_AIC(const double& mean, size_t parameter_count)
-{
-	double cnt = static_cast<double>(parameter_count);
-	return 2.0*cnt - 2.0*log(mean);
+static const double Get_AIC(const std::vector<double>& abs_diffs, size_t parameter_count) {
+
+	if (abs_diffs.empty()) return std::numeric_limits<double>::quiet_NaN();
+
+	double RSSum = 0.0;
+	for (const double &diff : abs_diffs) 
+		RSSum += diff * diff;
+	
+	
+	const double dbl_size = static_cast<double>(abs_diffs.size());
+	
+	return dbl_size * (log(RSSum) / dbl_size) + 2.0*static_cast<double>(parameter_count);
+
+
+//	double cnt = static_cast<double>(parameter_count);
+//	return 2.0*cnt - 2.0*log(mean);
 }
 
 bool CError_Marker_Counter::Recalculate_Errors_For(const GUID& signal_id)
@@ -183,7 +198,7 @@ bool CError_Marker_Counter::Recalculate_Errors_For(const GUID& signal_id)
 	absErr.minval = absolute[0];
 	absErr.maxval = absolute[cnt - 1];
 	absErr.stddev = Get_Standard_Deviation(absolute, absoluteAvg);
-	absErr.aic = Get_AIC(absoluteAvg, (mSignalModelParamCount.find(signal_id) == mSignalModelParamCount.end()) ? 1 : mSignalModelParamCount[signal_id]);
+	absErr.aic = Get_AIC(absolute, (mSignalModelParamCount.find(signal_id) == mSignalModelParamCount.end()) ? 1 : mSignalModelParamCount[signal_id]);
 
 	// fill relative error container
 	relErr.avg = relativeAvg;
