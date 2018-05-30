@@ -179,8 +179,6 @@ bool CLog_Filter::Open_Log(glucose::SFilter_Parameters configuration) {
 
 HRESULT CLog_Filter::Run(refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) {
 
-	
-
 	// load model descriptors to be able to properly format log outputs of parameters	
 	mModelDescriptors = glucose::get_model_descriptors();
 	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, refcnt::IVector_Container<glucose::TFilter_Parameter>>(configuration, true);
