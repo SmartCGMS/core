@@ -1,8 +1,10 @@
 #include "log.h"
 
+#include "../../../common/iface/DeviceIface.h"
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/UILib.h"
+#include "../../../common/rtl/rattime.h"
 
 #include <iostream>
 #include <iomanip>
@@ -33,11 +35,11 @@ namespace logger {
 
 
 	// log precision for device_time output
-	constexpr std::streamsize DefaultLogPrecision_DeviceTime = 12;
+	//constexpr std::streamsize DefaultLogPrecision_DeviceTime = 12;
 	// log precise for level output
-	constexpr std::streamsize DefaultLogPrecision_Level = 8;
+	//constexpr std::streamsize DefaultLogPrecision_Level = 8;
 	// log precise for model parameter output
-	constexpr std::streamsize DefaultLogPrecision_ModelParam = 8;
+	//constexpr std::streamsize DefaultLogPrecision_ModelParam = 8;
 }
 
 CLog_Filter::CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
@@ -45,8 +47,7 @@ CLog_Filter::CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe out
 	
 }
 
-void CLog_Filter::Write_Model_Parameters(std::wostream& stream, const glucose::UDevice_Event& evt)
-{
+std::wstring CLog_Filter::Parameters_To_WStr(const glucose::UDevice_Event& evt) {
 	// find appropriate model descriptor by id
 	glucose::TModel_Descriptor* modelDesc = nullptr;
 	for (auto& desc : mModelDescriptors)
@@ -65,96 +66,21 @@ void CLog_Filter::Write_Model_Parameters(std::wostream& stream, const glucose::U
 	}
 
 	if (!modelDesc)
-		return;
+		return rsCannot_Get_Parameters;
 
 	// retrieve params
 	double *begin, *end;
 	if (evt.parameters->get(&begin, &end) != S_OK)
-		return;
+		return rsCannot_Get_Parameters;
 
 	// format output
-	for (size_t i = 0; i < modelDesc->number_of_parameters; i++)
-		stream << "," << modelDesc->parameter_ui_names[i] << "=" << std::setprecision(logger::DefaultLogPrecision_ModelParam) << begin[i];
-}
-
-void CLog_Filter::Run_Main() {
-	std::wstring logMsg;
-
-	for (;  glucose::UDevice_Event evt = mInput.Receive(); evt) {
-	
-		std::wostringstream logLine;
-
-		// put time in sortable format
-		std::time_t t = std::time(nullptr);
-		std::tm tm;
-		localtime_s(&tm, &t);
-		logLine << std::put_time(&tm, L"%Y-%m-%d %H:%M:%S ");
-
-		// always put logical and device time
-        //logLine << "logicalTime=" << evt.logical_time << ",";
-        logLine << "deviceTime=" << std::setprecision(logger::DefaultLogPrecision_DeviceTime) << evt.device_time << ",";
-
-		// if it is the diagnostic event, prepare log message
-		if (evt.event_code == glucose::NDevice_Event_Code::Information || evt.event_code == glucose::NDevice_Event_Code::Warning || evt.event_code == glucose::NDevice_Event_Code::Error)
-			logMsg = refcnt::WChar_Container_To_WString(evt.info.get());
-
-		// output may differ with each event type
-		switch (evt.event_code)
-		{
-			case glucose::NDevice_Event_Code::Nothing:
-				logLine << "code=Nothing";
-				break;
-			case glucose::NDevice_Event_Code::Level:
-				logLine << "code=Level,deviceGuid=" << GUID_To_WString(evt.device_id) << ",signalGuid=" << GUID_To_WString(evt.signal_id) << ",level=" << std::setprecision(logger::DefaultLogPrecision_Level) << evt.level;
-				break;
-			case glucose::NDevice_Event_Code::Masked_Level:
-				logLine << "code=Masked_Level,deviceGuid=" << GUID_To_WString(evt.device_id) << ",signalGuid=" << GUID_To_WString(evt.signal_id) << ",level=" << std::setprecision(logger::DefaultLogPrecision_Level) << evt.level;
-				break;
-			case glucose::NDevice_Event_Code::Calibrated:
-				logLine << "code=Calibrated,deviceGuid=" << GUID_To_WString(evt.device_id) << ",signalGuid=" << GUID_To_WString(evt.signal_id) << ",level=" << std::setprecision(logger::DefaultLogPrecision_Level) << evt.level;
-				break;
-			case glucose::NDevice_Event_Code::Parameters:
-				logLine << "code=Parameters,signalGuid=" << GUID_To_WString(evt.signal_id);
-				Write_Model_Parameters(logLine, evt);
-				break;
-			case glucose::NDevice_Event_Code::Parameters_Hint:
-				logLine << "code=Parameters_Hint,signalGuid=" << GUID_To_WString(evt.signal_id);
-				Write_Model_Parameters(logLine, evt);
-				break;
-
-			case glucose::NDevice_Event_Code::Suspend_Parameter_Solving:
-				logLine << "code=Suspend_Parameter_Solving";
-				break;
-			case glucose::NDevice_Event_Code::Resume_Parameter_Solving:
-				logLine << "code=Resume_Parameter_Solving";
-				break;
-			case glucose::NDevice_Event_Code::Solve_Parameters:
-				logLine << "code=Solve_Parameters";
-				break;
-			case glucose::NDevice_Event_Code::Time_Segment_Start:
-				logLine << "code=Time_Segment_Start";
-				break;
-			case glucose::NDevice_Event_Code::Time_Segment_Stop:
-				logLine << "code=Time_Segment_Stop";
-				break;
-
-			case glucose::NDevice_Event_Code::Information:
-				logLine << "code=Information,message=" << logMsg;
-				break;
-			case glucose::NDevice_Event_Code::Warning:
-				logLine << "code=Warning,message=" << logMsg;
-				break;
-			case glucose::NDevice_Event_Code::Error:
-				logLine << "code=Error,message=" << logMsg;
-				break;
-		}
-
-		if (mLog.is_open())
-			mLog << logLine.str().c_str() << std::endl; // this also performs flush
-
-		if (!mOutput.Send(evt))
-			break;
+	std::wostringstream stream;
+	for (size_t i = 0; i < modelDesc->number_of_parameters; i++) {
+		if (i > 0) stream << L", ";
+		stream << modelDesc->parameter_ui_names[i] << "=" /*<< std::setprecision(logger::DefaultLogPrecision_ModelParam) */<< begin[i];
 	}
+
+	return stream.str();
 }
 
 bool CLog_Filter::Open_Log(glucose::SFilter_Parameters configuration) {
@@ -191,10 +117,25 @@ HRESULT CLog_Filter::Run(refcnt::IVector_Container<glucose::TFilter_Parameter> *
 		if (!mOutput.Send(evt)) break;
 	}	
 
+	if (log_opened)
+		mLog.close();
+
 	return S_OK;
 };
 
 
 void CLog_Filter::Log_Event(const glucose::UDevice_Event &evt) {
-
+	const wchar_t *delim = L"; ";
+		
+	mLog << evt.logical_time << delim;
+	mLog << Rat_Time_To_Local_Time_WStr(evt.device_time, rsLog_Date_Time_Format) << delim;
+	mLog << glucose::event_code_text[static_cast<size_t>(evt.event_code)] << delim;
+	mLog << glucose::Signal_Id_To_WStr(evt.signal_id) << delim;
+	if (evt.is_level_event()) mLog << evt.level; mLog << delim;
+	if (evt.is_info_event()) mLog << refcnt::WChar_Container_To_WString(evt.info.get()); mLog << delim;
+	if (evt.is_parameters_event()) mLog << Parameters_To_WStr(evt); mLog << delim;
+	mLog << evt.segment_id << delim;
+	mLog << static_cast<size_t>(evt.event_code) << delim;
+	mLog << GUID_To_WString(evt.device_id) << delim;
+	mLog << GUID_To_WString(evt.signal_id) << std::endl;
 }
