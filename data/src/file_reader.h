@@ -49,7 +49,7 @@ class CFile_Reader : public glucose::IFilter, public virtual refcnt::CReferenced
 		CFile_Reader(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
 		virtual ~CFile_Reader();
 
-		virtual HRESULT Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;
+		virtual HRESULT Run(refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override;
 };
 
 #pragma warning( pop )

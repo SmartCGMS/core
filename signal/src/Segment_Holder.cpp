@@ -15,7 +15,7 @@ void CSegment_Holder::Start_Segment(uint64_t segmentId)
 
 	mSegments[segmentId] = {
 		refcnt::make_shared_reference_ext<glucose::STime_Segment, glucose::CTime_Segment>(segment, false),
-		nullptr,	// this will be set to correct value upon receiving parameters through input pipe
+		glucose::SModel_Parameter_Vector{},	// this will be set to correct value upon receiving parameters through input pipe
 		true		// opened
 	};
 }

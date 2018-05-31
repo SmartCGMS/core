@@ -6,7 +6,7 @@
 
 #include <atomic>
 
-std::atomic<int64_t> global_logical_time{ 1 };
+std::atomic<int64_t> global_logical_time{ 0 };
 
 CDevice_Event::CDevice_Event(glucose::NDevice_Event_Code code) {
 	memset(&mRaw, 0, sizeof(mRaw));

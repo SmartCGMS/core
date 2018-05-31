@@ -39,7 +39,7 @@ public:
 	CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
 	virtual ~CLog_Filter() {};
 
-	virtual HRESULT Run(refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;
+	virtual HRESULT Run(refcnt::IVector_Container<glucose::TFilter_Parameter>* const configuration) override final;
 };
 
 #pragma warning( pop )

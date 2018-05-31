@@ -55,7 +55,7 @@ class CHold_Filter : public glucose::IFilter, public virtual refcnt::CReferenced
 		// method for notifying condition variable and performing simulation step
 		void Simulation_Step(size_t stepcount);
 
-		virtual HRESULT Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;
+		virtual HRESULT Run(refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override;
 };
 
 #pragma warning( pop )

@@ -52,10 +52,8 @@ std::wstring CLog_Filter::Parameters_To_WStr(const glucose::UDevice_Event& evt) 
 	glucose::TModel_Descriptor* modelDesc = nullptr;
 	for (auto& desc : mModelDescriptors)
 	{
-		for (size_t i = 0; i < desc.number_of_calculated_signals; i++)
-		{
-			if (evt.signal_id == desc.calculated_signal_ids[i])
-			{
+		for (size_t i = 0; i < desc.number_of_calculated_signals; i++) 	{
+			if (evt.signal_id == desc.calculated_signal_ids[i]) {
 				modelDesc = &desc;
 				break;
 			}
@@ -103,7 +101,7 @@ bool CLog_Filter::Open_Log(glucose::SFilter_Parameters configuration) {
 	return result;
 }
 
-HRESULT CLog_Filter::Run(refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) {
+HRESULT CLog_Filter::Run(refcnt::IVector_Container<glucose::TFilter_Parameter>* const configuration) {
 
 	// load model descriptors to be able to properly format log outputs of parameters	
 	mModelDescriptors = glucose::get_model_descriptors();
@@ -130,10 +128,11 @@ void CLog_Filter::Log_Event(const glucose::UDevice_Event &evt) {
 	mLog << evt.logical_time << delim;
 	mLog << Rat_Time_To_Local_Time_WStr(evt.device_time, rsLog_Date_Time_Format) << delim;
 	mLog << glucose::event_code_text[static_cast<size_t>(evt.event_code)] << delim;
-	mLog << glucose::Signal_Id_To_WStr(evt.signal_id) << delim;
-	if (evt.is_level_event()) mLog << evt.level; mLog << delim;
-	if (evt.is_info_event()) mLog << refcnt::WChar_Container_To_WString(evt.info.get()); mLog << delim;
-	if (evt.is_parameters_event()) mLog << Parameters_To_WStr(evt); mLog << delim;
+	if (evt.signal_id != Invalid_GUID) mLog << glucose::Signal_Id_To_WStr(evt.signal_id); mLog << delim;
+	if (evt.is_level_event()) mLog << evt.level; 
+		else if (evt.is_info_event()) mLog << refcnt::WChar_Container_To_WString(evt.info.get()); 
+			else if (evt.is_parameters_event()) mLog << Parameters_To_WStr(evt); 
+	mLog << delim;
 	mLog << evt.segment_id << delim;
 	mLog << static_cast<size_t>(evt.event_code) << delim;
 	mLog << GUID_To_WString(evt.device_id) << delim;

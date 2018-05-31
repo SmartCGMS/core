@@ -19,7 +19,7 @@ void CCalculate_Filter::Run_Main() {
 	uint64_t segmentToReset = 0;
 	bool error = false;
 
-	double last_pending_time = std::numeric_limits<double>::quiet_NaN();
+	double last_pending_time = std::numeric_limits<double>::quiet_NaN(); //TODO with more than one opened segment, this will fail
 
 	CSegment_Holder hldr(mSignalId);
 
@@ -103,7 +103,7 @@ void CCalculate_Filter::Run_Main() {
 					if (!isnan(levels[i])) {
 
 						glucose::UDevice_Event calcEvt{ glucose::NDevice_Event_Code::Level };
-						calcEvt.device_id = GUID{ 0 }; // TODO: fix this (retain from segments?)
+						calcEvt.device_id = GUID{ 0 }; // TODO: fix this (retain from segments?) - no, put there calc filter id
 						calcEvt.signal_id = mSignalId;
 						calcEvt.segment_id = segmentToReset;
 
@@ -134,7 +134,7 @@ void CCalculate_Filter::Run_Main() {
 	}
 }
 
-HRESULT CCalculate_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration)
+HRESULT CCalculate_Filter::Run(refcnt::IVector_Container<glucose::TFilter_Parameter>* const configuration)
 {
 	glucose::TFilter_Parameter *cbegin, *cend;
 	if (configuration->get(&cbegin, &cend) != S_OK)

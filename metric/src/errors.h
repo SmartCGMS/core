@@ -34,7 +34,7 @@ class CErrors_Filter : public glucose::IFilter, public glucose::IError_Filter_In
 		
 		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj);
 
-		virtual HRESULT IfaceCalling Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;
+		virtual HRESULT IfaceCalling Run(glucose::IFilter_Configuration* configuration) override;
 
 		// retrieves the only instance of errors filter
 		virtual HRESULT IfaceCalling Get_Errors(const GUID *signal_id, const glucose::NError_Type type, glucose::TError_Markers *markers);

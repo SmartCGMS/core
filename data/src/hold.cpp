@@ -126,7 +126,7 @@ void CHold_Filter::Simulation_Step(size_t stepcount)
 	mHoldCv.notify_all();
 }
 
-HRESULT CHold_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration)
+HRESULT CHold_Filter::Run(refcnt::IVector_Container<glucose::TFilter_Parameter>* const configuration)
 {
 	glucose::TFilter_Parameter *cbegin, *cend;
 	if (configuration->get(&cbegin, &cend) != S_OK)

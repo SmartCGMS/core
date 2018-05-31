@@ -199,7 +199,7 @@ void CDrawing_Filter::Prepare_Drawing_Map() {
 	mDataMap = vectorsMap;
 }
 
-HRESULT CDrawing_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) {
+HRESULT CDrawing_Filter::Run(glucose::IFilter_Configuration* const configuration) {
 	mCanvasWidth = 0;
 	mCanvasHeight = 0;
 

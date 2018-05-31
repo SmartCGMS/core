@@ -261,8 +261,7 @@ void CCompute_Filter::Run_Scheduler()
 	}
 }
 
-HRESULT CCompute_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration)
-{
+HRESULT CCompute_Filter::Run(glucose::IFilter_Configuration* configuration) {
 	// temporarily stored arguments due to need of constructing holder using const initializers
 	GUID solver_id, signal_id, metric_id, model_id;
 	unsigned char relative_error, squared_diff, prefer_more, use_measured;
@@ -320,9 +319,9 @@ HRESULT CCompute_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Pa
 			if (cur->parameters->get(&pb, &pe) == S_OK)
 			{
 				size_t paramcnt = std::distance(pb, pe) / 3; // lower, defaults, upper
-				lowBound = refcnt::Create_Container_shared<double>(pb, pb + paramcnt);
-				defParams = refcnt::Create_Container_shared<double>(pb + paramcnt, pb + 2* paramcnt);
-				highBound = refcnt::Create_Container_shared<double>(pb + 2*paramcnt, pe);
+				lowBound = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(pb, pb + paramcnt);
+				defParams = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(pb + paramcnt, pb + 2* paramcnt);
+				highBound = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(pb + 2*paramcnt, pe);
 			}
 		}
 	}

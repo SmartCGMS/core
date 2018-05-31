@@ -36,7 +36,7 @@ void CMapping_Filter::Run_Main() {
 	}
 }
 
-HRESULT CMapping_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration)
+HRESULT CMapping_Filter::Run(glucose::IFilter_Configuration* configuration)
 {
 	glucose::TFilter_Parameter *cbegin, *cend;
 	if (configuration->get(&cbegin, &cend) != S_OK)

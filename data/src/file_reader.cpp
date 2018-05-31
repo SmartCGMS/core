@@ -168,7 +168,7 @@ void CFile_Reader::Merge_Values(ExtractionResult& result)
 	}
 }
 
-HRESULT CFile_Reader::Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration)
+HRESULT CFile_Reader::Run(refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration)
 {
 	glucose::TFilter_Parameter *cbegin, *cend;
 	if (configuration->get(&cbegin, &cend) != S_OK)

@@ -33,7 +33,7 @@ class CMapping_Filter : public glucose::IFilter, public virtual refcnt::CReferen
 	public:
 		CMapping_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
 
-		virtual HRESULT Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;
+		virtual HRESULT Run(glucose::IFilter_Configuration* configuration) override;
 };
 
 #pragma warning( pop )

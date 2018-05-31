@@ -26,55 +26,44 @@ struct TStored_Model_Params {
  * i.e., it mimicks CGMS
  */
 class CDb_Reader : public virtual glucose::IFilter, public virtual db::IDb_Sink, public virtual refcnt::CReferenced {
-	protected:
-		// input pipe instance
-		glucose::SFilter_Pipe mInput;
-		// output pipe instance
-		glucose::SFilter_Pipe mOutput;
+protected:
+	glucose::SFilter_Pipe mInput;
+	glucose::SFilter_Pipe mOutput;
 
-		// database host configured
-		std::wstring mDbHost;
-		// configured DB port
-		uint16_t mDbPort;
-		// database provider string in Qt format
-		std::wstring mDbProvider;
-		// database name / filename
-		std::wstring mDbDatabaseName;
-		// username to be used
-		std::wstring mDbUsername;
-		// password to be used
-		std::wstring mDbPassword;
-		// loaded segments ID
-		std::vector<int64_t> mDbTimeSegmentIds;
-		// current segment
-		int64_t mCurrentSegmentIdx;
+	// database host configured
+	std::wstring mDbHost;
+	// configured DB port
+	uint16_t mDbPort;
+	// database provider string in Qt format
+	std::wstring mDbProvider;
+	// database name / filename
+	std::wstring mDbDatabaseName;
+	// username to be used
+	std::wstring mDbUsername;
+	// password to be used
+	std::wstring mDbPassword;
+	// loaded segments ID
+	std::vector<int64_t> mDbTimeSegmentIds;
 
-		// loaded model parameters of segment currently being sent
-		std::map<int64_t, std::vector<TStored_Model_Params>> mModelParams;
+protected:
+	// reader thread
+	std::unique_ptr<std::thread> mDb_Reader_Thread;
+	void Db_Reader();
+	bool Configure(glucose::SFilter_Parameters configuration);
+	
+	bool Emit_Segment_Marker(glucose::NDevice_Event_Code code, int64_t segment_id);
+	bool Emit_Segment_Parameters(int64_t segment_id);
+	bool Emit_Segment_Levels(int64_t segment_id);
+protected:
+	db::SDb_Connector mDb_Connector;
+	db::SDb_Connection mDb_Connection;
+public:
+	CDb_Reader(glucose::SFilter_Pipe in_pipe, glucose::SFilter_Pipe out_pipe);
+	virtual ~CDb_Reader() {};
 
-		// prepare model parameters (load from DB) to be sent through output pipe
-		void Prepare_Model_Parameters_For(int64_t segmentId, std::vector<TStored_Model_Params> &paramsTarget);
-
-		// reader thread
-		std::unique_ptr<std::thread> mReaderThread;
-
-		// reader thread main method - contains main logic
-		void Run_Reader();
-		// runs main filter logic (pipes and stuff)
-		void Run_Main();
-
-		// sends segment marker through output pipe
-		void Send_Segment_Marker(glucose::NDevice_Event_Code code, double device_time, uint64_t segment_id);
-	protected:
-		db::SDb_Connector mDb_Connector;
-		db::SDb_Connection mDb_Connection;
-	public:
-		CDb_Reader(glucose::SFilter_Pipe in_pipe, glucose::SFilter_Pipe out_pipe);
-		virtual ~CDb_Reader();
-
-		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
-		virtual HRESULT IfaceCalling Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override final;
-		virtual HRESULT IfaceCalling Set_Connector(db::IDb_Connector *connector) override final;
+	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
+	virtual HRESULT IfaceCalling Run(glucose::IFilter_Configuration *configuration) override;
+	virtual HRESULT IfaceCalling Set_Connector(db::IDb_Connector *connector) override;
 };
 
 #pragma warning( pop )

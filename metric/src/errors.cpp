@@ -24,7 +24,7 @@ HRESULT IfaceCalling CErrors_Filter::QueryInterface(const GUID*  riid, void ** p
 	return E_NOINTERFACE;
 }
 
-HRESULT CErrors_Filter::Run(const refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) {
+HRESULT CErrors_Filter::Run(glucose::IFilter_Configuration* configuration) {
 	
 	mErrorCounter = std::make_unique<CError_Marker_Counter>();
 	
