@@ -13,8 +13,7 @@ namespace imported {
 	const char* rsGet_Approx_Descriptors = "do_get_approximator_descriptors";
 	const char* rsDo_Create_Filter = "do_create_filter";
 	const char* rsDo_Create_Metric = "do_create_metric";
-	const char* rsDo_Create_Calculated_Signal = "do_create_calculated_signal";
-	const char* rsDo_Create_Measured_Signal = "do_create_measured_signal";
+	const char* rsDo_Create_Signal = "do_create_signal";
 	const char* rsDo_Solve_Model_Parameters = "do_solve_model_parameters";
 	const char* rsDo_Create_Approximator = "do_create_approximator";
 }
@@ -55,11 +54,7 @@ HRESULT IfaceCalling create_metric(const glucose::TMetric_Parameters *parameters
 }
 
 HRESULT IfaceCalling create_calculated_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
-	return loaded_filters.create_calculated_signal(calc_id, segment, signal);
-}
-
-HRESULT IfaceCalling create_measured_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
-	return loaded_filters.create_measured_signal(calc_id, segment, signal);
+	return loaded_filters.create_signal(calc_id, segment, signal);
 }
 
 HRESULT IfaceCalling solve_model_parameters(const glucose::TSolver_Setup *setup) {
@@ -86,8 +81,7 @@ void CLoaded_Filters::load_libraries() {
 			if (lib.library.Load(filepath.c_str())) {
 				bool lib_used = Resolve_Func<glucose::TCreate_Filter>(lib.create_filter, lib.library, imported::rsDo_Create_Filter);
 				lib_used |= Resolve_Func<glucose::TCreate_Metric>(lib.create_metric, lib.library, imported::rsDo_Create_Metric);
-				lib_used |= Resolve_Func<glucose::TCreate_Calculated_Signal>(lib.create_calculated_signal, lib.library, imported::rsDo_Create_Calculated_Signal);
-				lib_used |= Resolve_Func<glucose::TCreate_Measured_Signal>(lib.create_measured_signal, lib.library, imported::rsDo_Create_Measured_Signal);
+				lib_used |= Resolve_Func<glucose::TCreate_Signal>(lib.create_signal, lib.library, imported::rsDo_Create_Signal);
 				lib_used |= Resolve_Func<glucose::TSolve_Model_Parameters>(lib.solve_model_parameters, lib.library, imported::rsDo_Solve_Model_Parameters);
 				lib_used |= Resolve_Func<glucose::TCreate_Approximator>(lib.create_approximator, lib.library, imported::rsDo_Create_Approximator);
 
@@ -110,7 +104,7 @@ HRESULT CLoaded_Filters::add_filters(const glucose::TFilter_Descriptor *begin, c
 	if ((begin == end) || (begin == nullptr) || (end == nullptr) || (create_filter == nullptr)) return E_INVALIDARG;
 	imported::TLibraryInfo lib;
 	lib.create_approximator = nullptr;
-	lib.create_calculated_signal = lib.create_measured_signal = nullptr;
+	lib.create_signal = nullptr;
 	lib.create_metric = nullptr;
 	lib.solve_model_parameters = nullptr;
 
@@ -134,15 +128,11 @@ HRESULT CLoaded_Filters::create_metric(const glucose::TMetric_Parameters *parame
 	return Call_Func(call_create_filter, parameters, metric);
 }
 
-HRESULT CLoaded_Filters::create_calculated_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
-	auto call_create_signal = [](const imported::TLibraryInfo &info) { return info.create_calculated_signal; };
+HRESULT CLoaded_Filters::create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
+	auto call_create_signal = [](const imported::TLibraryInfo &info) { return info.create_signal; };
 	return Call_Func(call_create_signal, calc_id, segment, signal);
 }
 
-HRESULT CLoaded_Filters::create_measured_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
-	auto call_create_signal = [](const imported::TLibraryInfo &info) { return info.create_measured_signal; };
-	return Call_Func(call_create_signal, calc_id, segment, signal);
-}
 
 HRESULT CLoaded_Filters::solve_model_parameters(const glucose::TSolver_Setup *setup) {
 	auto call_solve_filter = [](const imported::TLibraryInfo &info) { return info.solve_model_parameters; }; 

@@ -5,4 +5,4 @@ EXPORTS
 
 	do_get_filter_descriptors
 	do_create_filter
-    do_create_measured_signal
+    do_create_signal

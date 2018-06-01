@@ -4,8 +4,7 @@ EXPORTS
  	create_filter   
 	create_filter_pipe  
 	create_metric
-	create_measured_signal
-	create_calculated_signal
+	create_signal	
 	solve_model_parameters
     create_approximator
 	get_filter_descriptors
@@ -14,4 +13,4 @@ EXPORTS
 	get_solver_descriptors
     get_approx_descriptors
 	add_filters
-  create_device_event
+	create_device_event

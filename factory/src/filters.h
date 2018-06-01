@@ -13,8 +13,7 @@ namespace imported {
 		CDynamic_Library library;	
 		glucose::TCreate_Filter create_filter;
 		glucose::TCreate_Metric create_metric;
-		glucose::TCreate_Calculated_Signal create_calculated_signal;
-		glucose::TCreate_Measured_Signal create_measured_signal;
+		glucose::TCreate_Signal create_signal;		
 		glucose::TSolve_Model_Parameters solve_model_parameters;
 		glucose::TCreate_Approximator create_approximator;
 	};
@@ -76,8 +75,7 @@ public:
 
 	HRESULT create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter);
 	HRESULT create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric);
-	HRESULT create_calculated_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
-	HRESULT create_measured_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
+	HRESULT create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
 	HRESULT solve_model_parameters(const glucose::TSolver_Setup *setup);
 	HRESULT create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApproximator **approx, glucose::IApprox_Parameters_Vector* configuration);
 
@@ -95,8 +93,7 @@ void Load_Libraries();
 #ifdef _WIN32	
 	extern "C" __declspec(dllexport)  HRESULT IfaceCalling create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter);	
 	extern "C" __declspec(dllexport)  HRESULT IfaceCalling create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric);
-	extern "C" __declspec(dllexport)  HRESULT IfaceCalling create_calculated_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
-	extern "C" __declspec(dllexport)  HRESULT IfaceCalling create_measured_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
+	extern "C" __declspec(dllexport)  HRESULT IfaceCalling create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
 	extern "C" __declspec(dllexport)  HRESULT IfaceCalling solve_model_parameters(const glucose::TSolver_Setup *setup);
 	extern "C" __declspec(dllexport)  HRESULT IfaceCalling create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApprox_Parameters_Vector* configuration, glucose::IApproximator **approx);
 
