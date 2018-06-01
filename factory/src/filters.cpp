@@ -53,7 +53,7 @@ HRESULT IfaceCalling create_metric(const glucose::TMetric_Parameters *parameters
 	return loaded_filters.create_metric(parameters, metric);
 }
 
-HRESULT IfaceCalling create_calculated_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
+HRESULT IfaceCalling create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
 	return loaded_filters.create_signal(calc_id, segment, signal);
 }
 

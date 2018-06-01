@@ -101,11 +101,11 @@ bool CLog_Filter::Open_Log(glucose::SFilter_Parameters configuration) {
 	return result;
 }
 
-HRESULT CLog_Filter::Run(refcnt::IVector_Container<glucose::TFilter_Parameter>* const configuration) {
+HRESULT CLog_Filter::Run(glucose::IFilter_Configuration* configuration) {
 
 	// load model descriptors to be able to properly format log outputs of parameters	
 	mModelDescriptors = glucose::get_model_descriptors();
-	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, refcnt::IVector_Container<glucose::TFilter_Parameter>>(configuration, true);
+	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
 	const bool log_opened = Open_Log(shared_configuration);
 
 	for (; glucose::UDevice_Event evt = mInput.Receive(); evt) {

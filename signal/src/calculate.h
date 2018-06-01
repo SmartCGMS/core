@@ -3,6 +3,8 @@
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
 
+#include "Segment_Holder.h"
+
 #include <memory>
 #include <thread>
 #include <mutex>
@@ -15,14 +17,23 @@
  * Filter class for calculating signals from incoming parameters
  */
 class CCalculate_Filter : public glucose::IFilter, public virtual refcnt::CReferenced {
-	protected:
-		// input pipe
-		glucose::SFilter_Pipe mInput;
-		// output pipe
-		glucose::SFilter_Pipe mOutput;
+protected:
+	glucose::SFilter_Pipe mInput;
+	glucose::SFilter_Pipe mOutput;
+protected:
+	// calculated signal ID
+	GUID mSignalId;
+	bool mRecalculate_Past_On_Params;
+	bool mRecalculate_Past_On_Segment_Stop;
+public:
+	CCalculate_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
+	virtual ~CCalculate_Filter() {};
 
-		// calculated signal ID
-		GUID mSignalId;
+	virtual HRESULT Run(glucose::IFilter_Configuration* configuration) override;
+
+
+protected:
+		
 
 		// calculate past values when first parameter set came
 		bool mCalc_Past_With_First_Params;
@@ -32,10 +43,6 @@ class CCalculate_Filter : public glucose::IFilter, public virtual refcnt::CRefer
 		// main method
 		void Run_Main();
 
-	public:
-		CCalculate_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
-
-		virtual HRESULT Run(refcnt::IVector_Container<glucose::TFilter_Parameter>* const configuration) override;
 };
 
 #pragma warning( pop )

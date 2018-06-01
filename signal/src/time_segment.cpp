@@ -5,19 +5,20 @@
 HRESULT IfaceCalling CTime_Segment::Get_Signal(const GUID *signal_id, glucose::ISignal **signal)  {
 	auto itr = mSignals.find(*signal_id);
 	if (itr != mSignals.end()) {
-		*signal = (*itr).second.get();
-		(*signal)->AddRef();
-		return S_OK;
+		//instance of the signal alread exists in this segment
+		*signal = (*itr).second.get();		
 	}
-
-	// prefer calculated signal, fall back to measured signal
-	if (imported::create_calculated_signal(signal_id, this, signal) != S_OK)
-	{
-		if (imported::create_measured_signal(signal_id, this, signal) != S_OK)
-			return E_NOTIMPL;
+	else {
+		//we have to create signal's instance for this object
+		glucose::STime_Segment shared_this = refcnt::make_shared_reference_ext<glucose::STime_Segment, glucose::ITime_Segment>(this, true);
+		glucose::SSignal new_signal{shared_this, *signal_id };
+		if (!new_signal) return E_FAIL;
+		mSignals[*signal_id] = new_signal;
 	}
-	mSignals[*signal_id] = refcnt::make_shared_reference_ext<glucose::SSignal, glucose::ISignal>(*signal, true);  // true due to creating "clone" of pointer with custom reference counter
+		
 
+	(*signal)->AddRef();
+	
 	return S_OK;
 
 }
