@@ -27,7 +27,14 @@ void CMapping_Filter::Run_Main() {
 		// remap parameters reset information message (this message serves i.e. for drawing filter to reset signal values)
 		else if (evt.event_code == glucose::NDevice_Event_Code::Information)
 		{
-			if (evt.signal_id == mSourceId && evt.info == rsParameters_Reset)
+			if (evt.signal_id == mSourceId &&
+				 (evt.info == rsParameters_Reset ||
+				  evt.info == rsSegment_Recalculate_Complete) )
+				evt.signal_id = mDestinationId;
+		}
+		else if (evt.event_code == glucose::NDevice_Event_Code::Parameters)
+		{
+			if (evt.signal_id == mSourceId)
 				evt.signal_id = mDestinationId;
 		}
 

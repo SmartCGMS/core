@@ -52,51 +52,49 @@ namespace Utility
         return a*date + b;
     }
 
-    std::vector<time_t> Get_Times(time_t minDate, time_t maxDate)
-    {
-        // midnight before first date
-#ifdef _WIN32
-        tm tim;
-        _localtime(&tim, minDate);
-        tm* midnight_before = &tim;
-#else
-        tm* midnight_before = nullptr;
-        _localtime(midnight_before, minDate);
-#endif
-        midnight_before->tm_hour = 0;
-        midnight_before->tm_min = 0;
-        midnight_before->tm_sec = 0;
-        time_t before = mktime(midnight_before);
+	std::vector<time_t> Get_Times(time_t minDate, time_t maxDate)
+	{
+		// an hour before first date
+	#ifdef _WIN32
+		tm tim;
+		_localtime(&tim, minDate);
+		tm* midnight_before = &tim;
+	#else
+		tm* midnight_before = nullptr;
+		_localtime(midnight_before, minDate);
+	#endif
+		midnight_before->tm_min = 0;
+		midnight_before->tm_sec = 0;
+		time_t before = mktime(midnight_before);
 
-        // midnight after last date
-#ifdef _WIN32
-        _localtime(&tim, maxDate);
-        tm* midnight_after = &tim;
-#else
-        tm* midnight_after = nullptr;
-        _localtime(midnight_after, maxDate);
-#endif
-        midnight_after->tm_hour = 0;
-        midnight_after->tm_min = 0;
-        midnight_after->tm_sec = 0;
-        time_t after = mktime(midnight_after);
+		// an hour before last date
+	#ifdef _WIN32
+		_localtime(&tim, maxDate);
+		tm* midnight_after = &tim;
+	#else
+		tm* midnight_after = nullptr;
+		_localtime(midnight_after, maxDate);
+	#endif
+		midnight_after->tm_min = 0;
+		midnight_after->tm_sec = 0;
+		time_t after = mktime(midnight_after);
 
-        std::vector<time_t> times;
-        time_t pom = before;
-        while (pom < after)
-        {
-            pom += (SECONDS_IN_DAY / 2);
+		time_t skip = 3600; // 1 hour is the minimal default skip
+		// maximum of 8 labels
+		if (after - before > 8*3600)
+		{
+			// ensure maximum of 8 labels
+			skip = ((after - before) / 8);
+			// round to whole hours
+			skip = skip - skip % 3600;
+		}
 
-            if (pom < minDate)
-                continue;
-            if (pom > maxDate)
-                break;
+		std::vector<time_t> times;
+		for (time_t cur = before; cur <= after; cur += skip)
+			times.push_back(cur);
 
-            times.push_back(pom);
-        }
-
-        return times;
-    }
+		return times;
+	}
 
     Value Get_Bezier_Value(Value& p0, Value& p1, Value& p2, Value& search)
     {

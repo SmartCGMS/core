@@ -1,5 +1,3 @@
-#pragma once
-
 #include "descriptor.h"
 #include "../../../common/iface/DeviceIface.h"
 #include "../../../common/lang/dstrings.h"

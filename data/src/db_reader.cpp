@@ -63,7 +63,7 @@ CDb_Reader::CDb_Reader(glucose::SFilter_Pipe in_pipe, glucose::SFilter_Pipe out_
 bool CDb_Reader::Emit_Segment_Marker(glucose::NDevice_Event_Code code, int64_t segment_id) {
 	glucose::UDevice_Event evt{ code };
 
-	evt.device_id = Db_Reader_Device_GUID;	
+	evt.device_id = Db_Reader_Device_GUID;
 	evt.segment_id = segment_id;
 
 	return mOutput.Send(evt);
@@ -72,9 +72,9 @@ bool CDb_Reader::Emit_Segment_Marker(glucose::NDevice_Event_Code code, int64_t s
 bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
 	for (const auto &descriptor : glucose::get_model_descriptors()) {
 		std::wstring query = rsSelect_Params_Base;
-		
+
 		for (size_t i = 0; i < descriptor.number_of_parameters; i++) {
-			
+
 			if (i>0) query += L", ";
 			query += std::wstring(descriptor.parameter_db_column_names[i], descriptor.parameter_db_column_names[i] + wcslen(descriptor.parameter_db_column_names[i]));
 		}
@@ -89,11 +89,16 @@ bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
 		std::vector<double> sql_result(descriptor.number_of_parameters);
 		if (squery.Bind_Result(sql_result)) {
 			if (squery.Get_Next()) {
-				glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Parameters };
-				evt.device_id = Db_Reader_Device_GUID;
-				evt.segment_id = segment_id;
-				if (evt.parameters.set(sql_result))
-					if (!mOutput.Send(evt)) return false;
+				// TODO: disambiguate stored parameters for different signals within one model! This i.e. mixes diffusion2 blood and ist parameters
+				for (size_t i = 0; i < descriptor.number_of_calculated_signals; i++)
+				{
+					glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Parameters };
+					evt.device_id = Db_Reader_Device_GUID;
+					evt.signal_id = descriptor.calculated_signal_ids[i];
+					evt.segment_id = segment_id;
+					if (evt.parameters.set(sql_result))
+						if (!mOutput.Send(evt)) return false;
+				}
 			}
 		}
 	}
@@ -105,7 +110,7 @@ bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
 
 bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 	wchar_t* measured_at_str;
-	
+
 
 	std::vector<double> levels(static_cast<size_t>(NColumn_Pos::_Count));
 
@@ -119,7 +124,7 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 
 		//assuming that subsequent datetime formats are identical, try to recognize the used date time format from the first line
 		const double measured_at = Unix_Time_To_Rat_Time(from_iso8601(measured_at_str));
-		if (measured_at == 0.0) continue;	//conversion did not succeed			
+		if (measured_at == 0.0) continue;	//conversion did not succeed
 
 		// go through all value columns
 		for (NColumn_Pos i = NColumn_Pos::_Begin; i < NColumn_Pos::_End; ++i) {
@@ -179,22 +184,22 @@ bool CDb_Reader::Configure(glucose::SFilter_Parameters configuration) {
 	mDbTimeSegmentIds = configuration.Read_Int_Array(rsTime_Segment_ID);
 
 	// we need at least these parameters
-	return !(mDbHost.empty() || mDbProvider.empty() || mDbTimeSegmentIds.empty());		
+	return !(mDbHost.empty() || mDbProvider.empty() || mDbTimeSegmentIds.empty());
 }
 
 HRESULT CDb_Reader::Run(glucose::IFilter_Configuration *configuration) {
 
 	if (!Configure(refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true))) return E_INVALIDARG;
-	
+
 	//run the db-reader thread and meanwhile jsut forward the messages as they come
-	mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);		
-	for (; glucose::UDevice_Event evt = mInput.Receive(); evt) 
+	mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
+	for (; glucose::UDevice_Event evt = mInput.Receive(); evt)
 		if (!mOutput.Send(evt))	break;	//passing the shutdown code will shutdown the outpipe and subsequently the db-reader thread as well
-	
-	
+
+
 	if (mDb_Reader_Thread->joinable())
 		mDb_Reader_Thread->join();
-	
+
 	return S_OK;
 }
 

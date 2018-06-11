@@ -32,12 +32,12 @@ class CErrors_Filter : public glucose::IFilter, public glucose::IError_Filter_In
 		CErrors_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
 		virtual ~CErrors_Filter() {};
 		
-		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj);
+		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
 
 		virtual HRESULT IfaceCalling Run(glucose::IFilter_Configuration* configuration) override;
 
 		// retrieves the only instance of errors filter
-		virtual HRESULT IfaceCalling Get_Errors(const GUID *signal_id, const glucose::NError_Type type, glucose::TError_Markers *markers);
+		virtual HRESULT IfaceCalling Get_Errors(const GUID *signal_id, const glucose::NError_Type type, glucose::TError_Markers *markers) override final;
 };
 
 

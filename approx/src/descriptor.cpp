@@ -1,5 +1,3 @@
-#pragma once
-
 #include "descriptor.h"
 #include "line.h"
 

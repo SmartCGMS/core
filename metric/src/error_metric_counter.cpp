@@ -1,5 +1,7 @@
 #include "error_metric_counter.h"
 
+#include <cmath>
+
 #undef min
 #undef max
 
@@ -15,6 +17,14 @@ CError_Marker_Counter::CError_Marker_Counter()
 			Reference_For_Calculated_Signal[model.calculated_signal_ids[i]] = model.reference_signal_ids[i];
 		}
 	}
+
+	for (size_t i = 0; i < 100; i++)
+	{
+		mSignalModelParamCount[glucose::signal_Virtual[i]] = 6;
+		Reference_For_Calculated_Signal[glucose::signal_Virtual[i]] = glucose::signal_BG;
+	}
+
+	// TODO: allow user-defined mapping for virtual signals
 }
 
 bool CError_Marker_Counter::Add_Level(uint64_t segment_id, const GUID& signal_id, double time, double level)
@@ -36,8 +46,13 @@ bool CError_Marker_Counter::Recalculate_Errors()
 		return false;
 
 	bool result = false;
-	for (auto const& signal_rec : mCalculatedValues.begin()->second)
+	for (auto& signal_rec : mCalculatedValues.begin()->second)
+	{
+		std::sort(signal_rec.second.begin(), signal_rec.second.end(), [](TValue& a, TValue& b) {
+			return a.time < b.time;
+		});
 		result |= Recalculate_Errors_For(signal_rec.first);
+	}
 
 	return result;
 }
@@ -177,7 +192,7 @@ bool CError_Marker_Counter::Recalculate_Errors_For(const GUID& signal_id)
 	// calculate absolute and relative errors
 	for (size_t i = 0; i < cnt; i++)
 	{
-		const double delta = abs(refValues[i] - calcValues[i]);
+		const double delta = fabs(refValues[i] - calcValues[i]);
 
 		absolute[i] = delta;
 		relative[i] += delta / refValues[i];

@@ -32,6 +32,8 @@ class CCompute_Filter : public glucose::IFilter, public virtual refcnt::CReferen
 		bool mRecalcSegmentEnd;
 		// trigger solver on calibration?
 		bool mRecalcOnCalibration;
+		// hold incoming messages during solving?
+		bool mHold_During_Solve;
 		// total acquired level count
 		int64_t mTotalLevelCount;
 

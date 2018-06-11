@@ -32,13 +32,12 @@ HRESULT CErrors_Filter::Run(glucose::IFilter_Configuration* configuration) {
 
 	for (;  glucose::UDevice_Event evt = mInput.Receive(); evt) {
 	
-		// TODO: set updated flag after bunch of levels came, etc.
-		//		 for now, we update error metrics just with segment end
-
 		switch (evt.event_code)
 		{
 			case glucose::NDevice_Event_Code::Level:
+			case glucose::NDevice_Event_Code::Masked_Level:
 			case glucose::NDevice_Event_Code::Calibrated:
+				// the internal logic will tell us, if the signal is reference signal, and therefore we need to recalculate errors
 				if (mErrorCounter->Add_Level(evt.segment_id, evt.signal_id, evt.device_time, evt.level))
 					updated = mErrorCounter->Recalculate_Errors();
 				break;
@@ -52,6 +51,8 @@ HRESULT CErrors_Filter::Run(glucose::IFilter_Configuration* configuration) {
 					updated = mErrorCounter->Recalculate_Errors_For(evt.signal_id);
 				else if (evt.info == rsParameters_Reset)
 					mErrorCounter->Reset_Segment(evt.segment_id, evt.signal_id);
+				break;
+			default:
 				break;
 		}
 

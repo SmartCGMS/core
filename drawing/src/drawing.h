@@ -109,8 +109,11 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 		// stores string to file path
 		void Store_To_File(std::string& str, std::wstring& filePath);
 
+		// resets stored values and parameter changes for given signal (must be valid signal id)
+		void Reset_Signal(const GUID& signal_id, const uint64_t segment_id);
+
 		// prepares data map for drawing
-		void Prepare_Drawing_Map();		
+		void Prepare_Drawing_Map();
 
 		HRESULT Get_Plot(const std::string &plot, refcnt::IVector_Container<char> *svg) const;
 	public:

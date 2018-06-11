@@ -4,6 +4,9 @@
 #include "../../../common/rtl/SolverLib.h"
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/referencedImpl.h"
+#include "../../../common/rtl/winapi_mapping.h"
+
+#include <cmath>
 
 CCompute_Holder::CCompute_Holder(const GUID &solver_id, const GUID &signal_id, const glucose::TMetric_Parameters &metric_parameters, const size_t metric_levels_required, const char use_measured_levels,
 	bool use_just_opened_segments)
@@ -31,7 +34,7 @@ void CCompute_Holder::Start_Segment(uint64_t segment_id)
 	}
 	else // fill default model parameters
 	{
-		glucose::TModel_Descriptor desc{ 0 };
+		glucose::TModel_Descriptor desc{ {0} };
 
 		if (glucose::get_model_descriptor_by_signal_id(mSignalId, desc))
 			params = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(desc.default_values, desc.default_values + desc.number_of_parameters);
@@ -99,7 +102,7 @@ void CCompute_Holder::Set_Defaults(glucose::SModel_Parameter_Vector defaults)
 
 bool CCompute_Holder::Fill_Default_Model_Bounds(const GUID &signal_id, glucose::SModel_Parameter_Vector &low, glucose::SModel_Parameter_Vector &defaults, glucose::SModel_Parameter_Vector &high)
 {
-	glucose::TModel_Descriptor desc{ 0 };
+	glucose::TModel_Descriptor desc{ {0} };
 	const bool result = glucose::get_model_descriptor_by_signal_id(signal_id, desc);
 
 	if (result)
@@ -160,6 +163,8 @@ glucose::TSolver_Setup CCompute_Holder::Prepare_Solver_Setup()
 
 	mTempModelParams = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(nullptr, nullptr);
 	mTmpSolverContainer.paramsTarget = mTempModelParams.get();
+
+	mSolverProgress.cancelled = 0;
 
 	// create solver setup structure
 	return {
@@ -246,6 +251,8 @@ bool CCompute_Holder::Compare_Solutions(glucose::SMetric metric)
 	std::vector<std::vector<double>> allRefLevels(mClonedSegmentIds.size());
 	std::vector<std::vector<double>> allCalcLevels(mClonedSegmentIds.size());
 
+	metric->Reset();
+
 	// accumulate metric across all cloned segments using old parameters
 	for (idx = 0; idx < mClonedSegmentIds.size(); idx++)
 	{
@@ -255,7 +262,7 @@ bool CCompute_Holder::Compare_Solutions(glucose::SMetric metric)
 		size_t levels_count;
 		if (!calcSignal) return false;
 		if (calcSignal->Get_Discrete_Bounds(nullptr, &levels_count) != S_OK)
-			return false;
+			continue;
 
 		auto& refTime = allRefTimes[idx];
 		auto& refLevels = allRefLevels[idx];
@@ -264,7 +271,7 @@ bool CCompute_Holder::Compare_Solutions(glucose::SMetric metric)
 
 		// retrieve measured signal (if it's calculated signal, it will fall through to reference signal, which is probably one of measured signals)
 		if (calcSignal->Get_Discrete_Levels(refTime.data(), refLevels.data(), refTime.size(), &levels_count) != S_OK)
-			return false;
+			continue;
 
 		// "final" resize according to real size
 		refTime.resize(levels_count);
@@ -275,12 +282,10 @@ bool CCompute_Holder::Compare_Solutions(glucose::SMetric metric)
 			calcSignal->Get_Continuous_Levels(nullptr, refTime.data(), refLevels.data(), refTime.size(), glucose::apxNo_Derivation);
 
 		if (refTime.empty())
-			return false;
+			continue;
 
 		auto& calcLevels = allCalcLevels[idx];
 		calcLevels.resize(refTime.size());
-
-		metric->Reset();
 
 		// repeat for new parameters
 		if (calcSignal->Get_Continuous_Levels(mTempModelParams.get(), refTime.data(), calcLevels.data(), refTime.size(), glucose::apxNo_Derivation) == S_OK)

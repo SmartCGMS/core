@@ -13,35 +13,6 @@
 #include <ctime>
 #include <vector>
 
-namespace logger {
-
-	template<typename CharT>
-	class DecimalSeparator : public std::numpunct<CharT>
-	{
-	public:
-		DecimalSeparator(CharT Separator)
-			: m_Separator(Separator)
-		{}
-
-	protected:
-		CharT do_decimal_point()const
-		{
-			return m_Separator;
-		}
-
-	private:
-		CharT m_Separator;
-	};
-
-
-	// log precision for device_time output
-	//constexpr std::streamsize DefaultLogPrecision_DeviceTime = 12;
-	// log precise for level output
-	//constexpr std::streamsize DefaultLogPrecision_Level = 8;
-	// log precise for model parameter output
-	//constexpr std::streamsize DefaultLogPrecision_ModelParam = 8;
-}
-
 CLog_Filter::CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
 	: mInput{inpipe}, mOutput{outpipe} {
 	

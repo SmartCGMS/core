@@ -22,6 +22,15 @@
 
 #undef min
 
+const std::map<GUID, const char*> Signal_Mapping = {
+	{ glucose::signal_IG, "ist" },
+	{ glucose::signal_BG, "blood" },
+	{ glucose::signal_Calibration, "bloodCalibration" },
+	{ glucose::signal_ISIG, "isig" },
+	{ glucose::signal_Insulin, "insulin" },
+	{ glucose::signal_Carb_Intake, "carbs" },
+};
+
 CDrawing_Filter::CDrawing_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
 	: mInput{ inpipe }, mOutput{ outpipe }, mDiagnosis(1), mRedrawPeriod(500), mGraphMaxValue(-1) {}
 
@@ -75,19 +84,23 @@ void CDrawing_Filter::Run_Main() {
 				{
 					// TODO: verify, if parameter reset came for signal, that is really a calculated signal (not measured)
 
-					// incoming parameters just erases the signals, because a new set of calculated levels comes through the pipe
-					// remove just segment, for which the reset was issued
-					mInputData[evt.signal_id].erase(
-						std::remove_if(mInputData[evt.signal_id].begin(), mInputData[evt.signal_id].end(), [&evt](Value const& a) { return a.segment_id == evt.segment_id; }),
-						mInputData[evt.signal_id].end()
-					);
-					// remove also markers
-					mParameterChanges[evt.signal_id].erase(
-						std::remove_if(mParameterChanges[evt.signal_id].begin(), mParameterChanges[evt.signal_id].end(), [&evt](Value const& a) { return a.segment_id == evt.segment_id; }),
-						mParameterChanges[evt.signal_id].end()
-					);
-
-					signalsBeingReset.insert(evt.signal_id);
+					// reset of specific signal
+					if (evt.signal_id != Invalid_GUID)
+					{
+						Reset_Signal(evt.signal_id, evt.segment_id);
+						signalsBeingReset.insert(evt.signal_id);
+					}
+					else // reset of all calculated signals (signal == Invalid_GUID)
+					{
+						for (auto& data : mInputData)
+						{
+							if (Signal_Mapping.find(data.first) == Signal_Mapping.end())
+							{
+								Reset_Signal(data.first, evt.segment_id);
+								signalsBeingReset.insert(evt.signal_id);
+							}
+						}
+					}
 				}
 				else if (evt.info == rsSegment_Recalculate_Complete)
 				{
@@ -140,16 +153,22 @@ void CDrawing_Filter::Run_Scheduler()
 	}
 }
 
-void CDrawing_Filter::Prepare_Drawing_Map() {
+void CDrawing_Filter::Reset_Signal(const GUID& signal_id, const uint64_t segment_id)
+{
+	// incoming parameters just erases the signals, because a new set of calculated levels comes through the pipe
+	// remove just segment, for which the reset was issued
+	mInputData[signal_id].erase(
+		std::remove_if(mInputData[signal_id].begin(), mInputData[signal_id].end(), [segment_id](Value const& a) { return a.segment_id == segment_id; }),
+		mInputData[signal_id].end()
+	);
+	// remove also markers
+	mParameterChanges[signal_id].erase(
+		std::remove_if(mParameterChanges[signal_id].begin(), mParameterChanges[signal_id].end(), [segment_id](Value const& a) { return a.segment_id == segment_id; }),
+		mParameterChanges[signal_id].end()
+	);
+}
 
-	const std::map<GUID, const char*> Signal_Mapping = {
-		{ glucose::signal_IG, "ist" },
-		{ glucose::signal_BG, "blood" },
-		{ glucose::signal_Calibration, "bloodCalibration" },
-		{ glucose::signal_ISIG, "isig" },
-		{ glucose::signal_Insulin, "insulin" },
-		{ glucose::signal_Carb_Intake, "carbs" },
-		};
+void CDrawing_Filter::Prepare_Drawing_Map() {
 
 	DataMap vectorsMap;
 
@@ -170,23 +189,25 @@ void CDrawing_Filter::Prepare_Drawing_Map() {
 	{
 		if (Signal_Mapping.find(presentData.first) == Signal_Mapping.end())
 		{
+			const GUID& signal_id = presentData.first;
+
 			std::string key = base + std::to_string(curIdx);
 
-			std::sort(mInputData[presentData.first].begin(), mInputData[presentData.first].end(), [](Value& a, Value& b) {
+			std::sort(mInputData[signal_id].begin(), mInputData[signal_id].end(), [](Value& a, Value& b) {
 				return a.date < b.date;
 			});
 
-			vectorsMap[key] = Data(mInputData[presentData.first], true, false, true);
+			vectorsMap[key] = Data(mInputData[signal_id], true, false, true);
 			vectorsMap[key].identifier = key;
 
-			if (mParameterChanges.find(presentData.first) != mParameterChanges.end())
+			if (mParameterChanges.find(signal_id) != mParameterChanges.end())
 			{
 				const std::string pkey = "param_" + key;
-				vectorsMap[pkey] = Data(mParameterChanges[presentData.first], true, false, false);
+				vectorsMap[pkey] = Data(mParameterChanges[signal_id], true, false, false);
 				vectorsMap[pkey].identifier = pkey;
 			}
 
-			auto itr = mCalcSignalNameMap.find(presentData.first);
+			auto itr = mCalcSignalNameMap.find(signal_id);
 			if (itr != mCalcSignalNameMap.end())
 				mLocaleMap[key] = itr->second;
 			else
@@ -452,4 +473,5 @@ void CDrawing_Filter::Fill_Localization_Map(LocalizationMap& locales)
 	locales[WToMB(rsDrawingLocaleSvgDiff3Title)] = WToMB(dsDrawingLocaleSvgDiff3Title);
 	locales[WToMB(rsDrawingLocaleRelativeError)] = WToMB(dsDrawingLocaleRelativeError);
 	locales[WToMB(rsDrawingLocaleCummulativeProbability)] = WToMB(dsDrawingLocaleCummulativeProbability);
+	locales[WToMB(rsDrawingLocaleElevatedGlucose)] = WToMB(dsDrawingLocaleElevatedGlucose);
 }

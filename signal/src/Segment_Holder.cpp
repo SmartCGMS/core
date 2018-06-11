@@ -32,7 +32,7 @@ void CSegment_Holder::Stop_Segment(uint64_t segmentId)
 bool CSegment_Holder::Add_Level(uint64_t segmentId, const GUID& signal_id, double time, double level)
 {
 	auto itr = mSegments.find(segmentId);
-	if (itr == mSegments.end() || !itr->second.opened)
+	if (itr == mSegments.end() /*|| !itr->second.opened*/)
 		return false;
 
 	auto& seg = itr->second.segment;
@@ -83,31 +83,57 @@ bool CSegment_Holder::Calculate_All_Values(uint64_t segmentId, std::vector<doubl
 	if (!seg)
 		return false;
 
+	std::vector<glucose::SSignal> refSignals;
+	const std::array<GUID, 3> refSignalGUIDs = { glucose::signal_IG, glucose::signal_BG, glucose::signal_Calibration };
+
 	auto signal = seg.Get_Signal(mSignalId);
-	auto igSignal = seg.Get_Signal(glucose::signal_IG);
-	if (!signal || !igSignal)
+
+	for (const GUID& refGuid : refSignalGUIDs)
+	{
+		auto sig = seg.Get_Signal(refGuid);
+		if (sig)
+			refSignals.push_back(sig);
+	}
+
+	if (!signal || refSignals.empty())
 		return false;
 
 	size_t cnt;
-
-	if (igSignal->Get_Discrete_Bounds(nullptr, &cnt) != S_OK)
-		return false;
-
-	times.resize(cnt);
-	levels.resize(cnt);
 	size_t filled;
+	size_t totalCnt = 0;
 
-	if (igSignal->Get_Discrete_Levels(times.data(), levels.data(), cnt, &filled) != S_OK)
-		return false;
+	times.clear();
 
-	if (filled < cnt)
+	for (auto refSignal : refSignals)
 	{
-		cnt = filled;
-		times.resize(cnt);
-		levels.resize(cnt);
+		if (refSignal->Get_Discrete_Bounds(nullptr, &cnt) != S_OK)
+			return false;
+
+		std::vector<double> tmp_times(cnt);
+		std::vector<double> tmp_levels(cnt);
+
+		if (refSignal->Get_Discrete_Levels(tmp_times.data(), tmp_levels.data(), cnt, &filled) == S_OK)
+		{
+			if (filled < cnt)
+			{
+				cnt = filled;
+				tmp_times.resize(cnt);
+				tmp_levels.resize(cnt);
+			}
+
+			std::copy(tmp_times.begin(), tmp_times.end(), std::back_inserter(times));
+			totalCnt += cnt;
+		}
 	}
 
-	if (signal->Get_Continuous_Levels(itr->second.parameters.get(), times.data(), levels.data(), cnt, glucose::apxNo_Derivation) != S_OK)
+	if (totalCnt == 0)
+		return false;
+
+	levels.resize(totalCnt);
+	// times needs to be sorted
+	std::sort(times.begin(), times.end());
+
+	if (signal->Get_Continuous_Levels(itr->second.parameters.get(), times.data(), levels.data(), totalCnt, glucose::apxNo_Derivation) != S_OK)
 		return false;
 
 	return true;

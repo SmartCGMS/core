@@ -10,23 +10,28 @@
 #include <chrono>
 #include <algorithm>
 #include <iomanip>
+#include <string>
 
 CCompute_Filter::CCompute_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
-	: mInput(inpipe), mOutput(outpipe), mTotalLevelCount(0), mLastCalculationLevelsCount(0), mCalculationScheduled(false),
-	  mRecalcLevelsCount(0), mRecalcSegmentEnd(false), mRecalcOnCalibration(false), mSuspended(false), mCalculationForced(false),
-	  mParamsResetForced(false)
+	: mInput(inpipe), mOutput(outpipe), mRecalcLevelsCount(0), mRecalcSegmentEnd(false), mRecalcOnCalibration(false), mHold_During_Solve(false), mTotalLevelCount(0),
+	  mLastCalculationLevelsCount(0), mCalculationScheduled(false), mCalculationForced(false), mParamsResetForced(false), mSuspended(false)
 {
 	//
 }
 
 void CCompute_Filter::Run_Main()
 {
-	
-
-	double maxTime = 0.0;
 	bool resetFlag = false;
+	bool preventSend = false;
 
 	for (; glucose::UDevice_Event evt = mInput.Receive(); evt) {
+
+		if (mHold_During_Solve)
+		{
+			std::unique_lock<std::mutex> lck(mScheduleMtx);
+
+			mScheduleCv.wait(lck, [this]() { return !mComputeHolder->Is_Solve_In_Progress(); });
+		}
 	
 		switch (evt.event_code)
 		{
@@ -61,15 +66,21 @@ void CCompute_Filter::Run_Main()
 				if (glucose::SModel_Parameter_Vector params = mComputeHolder->Get_Model_Parameters(evt.segment_id))
 				{
 					// send current event through pipe
-					//if (!mOutput.Send(evt)) break; - will be done later
+					if (!mOutput.Send(evt))
+						break;
+
+					// the order of these events is essential for segments to work - we need to propagate "segment start" first,
+					// and then send parameters - the segment needs to exist before anything else regarding its properties is sent
+					preventSend = true;
 
 					glucose::UDevice_Event modified_evt{ glucose::NDevice_Event_Code::Parameters };
 					modified_evt.device_time = mComputeHolder->Get_Max_Time();
+					modified_evt.device_id = GUID{ 0 }; // TODO: retain from segments?
 					modified_evt.signal_id = mComputeHolder->Get_Signal_Id();
-					modified_evt.parameters = params;
+					modified_evt.parameters.set(params);
 
-					// modify the event that will be sent through pipe
-					if (!mOutput.Send(modified_evt)) break;
+					if (!mOutput.Send(modified_evt))
+						break;
 				}
 				break;
 			// time segment stop - force buffered values to be written to signals
@@ -112,14 +123,17 @@ void CCompute_Filter::Run_Main()
 				break;
 			// information messages (misc)
 			case glucose::NDevice_Event_Code::Information:
-				if (evt.info == rsParameters_Reset_Request)
+				if (evt.info == rsParameters_Reset_Request && (evt.signal_id == mComputeHolder->Get_Signal_Id() || evt.signal_id == Invalid_GUID))
 					resetFlag = true;
 				break;
 			default:
 				break;
 		}
 
-		if (!mOutput.Send(evt) ) break;		
+		if (preventSend)
+			preventSend = false;
+		else if (!mOutput.Send(evt))
+			break;
 	}
 
 	mRunning = false;
@@ -153,12 +167,11 @@ void CCompute_Filter::Run_Scheduler()
 			{
 				mLastCalculationLevelsCount = mTotalLevelCount;
 
-				bool forcedFlag = mCalculationForced;
 				bool resetForcedFlag = mParamsResetForced;
 				mCalculationForced = false;
 
 				// reset parameters if requested
-				if (mParamsResetForced)
+				if (resetForcedFlag)
 				{
 					mComputeHolder->Reset_Model_Parameters();
 					mParamsResetForced = false;
@@ -189,7 +202,7 @@ void CCompute_Filter::Run_Scheduler()
 						progMsg += L"=";
 						progMsg += std::to_wstring(mComputeHolder->Get_Solve_Percent_Complete());
 
-						evt.info.set(progMsg.c_str());							
+						evt.info.set(progMsg.c_str());
 						evt.signal_id = mComputeHolder->Get_Signal_Id();
 						mOutput.Send(evt);
 
@@ -209,8 +222,6 @@ void CCompute_Filter::Run_Scheduler()
 					else
 						mComputeHolder->Get_Improved_Segments(updatedSegments);
 
-				
-
 					bool error = false;
 
 					for (auto& segId : updatedSegments)
@@ -225,12 +236,13 @@ void CCompute_Filter::Run_Scheduler()
 
 						evt.segment_id = segId;
 
-						// send also parameters reset information message						
-						evt.parameters = mComputeHolder->Get_Model_Parameters(segId);									
+						evt.parameters.set(mComputeHolder->Get_Model_Parameters(segId));
 						error = !mOutput.Send(evt);
-						if (error) break;
+						if (error)
+							break;
 					}
 
+					// send also parameters reset information message
 					if ((resetForcedFlag || mRecalc_With_Every_Params) && !error)
 					{
 						for (auto& segId : updatedSegments)
@@ -246,10 +258,28 @@ void CCompute_Filter::Run_Scheduler()
 							evt.segment_id = segId;
 
 							evt.info.set(rsParameters_Reset);
-							if (!mOutput.Send(evt))  break;
+							if (!mOutput.Send(evt))
+								break;
 						}
 					}
 				}
+				else // send solver failed message
+				{
+					glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Information };
+					evt.device_time = Unix_Time_To_Rat_Time(time(nullptr));
+					evt.device_id = Invalid_GUID;
+					evt.signal_id = mComputeHolder->Get_Signal_Id();
+
+					std::wstring progMsg = rsInfo_Solver_Failed;
+
+					evt.info = refcnt::make_shared_reference_ext<refcnt::Swstr_container, refcnt::wstr_container>(refcnt::WString_To_WChar_Container(progMsg.c_str()), true);
+					evt.signal_id = mComputeHolder->Get_Signal_Id();
+					mOutput.Send(evt);
+				}
+
+				// explicitly lock again, so we could notify main thread if needed
+				lck.lock();
+				mScheduleCv.notify_all();
 			}
 		}
 		else
@@ -264,10 +294,10 @@ void CCompute_Filter::Run_Scheduler()
 HRESULT CCompute_Filter::Run(glucose::IFilter_Configuration* configuration) {
 	// temporarily stored arguments due to need of constructing holder using const initializers
 	GUID solver_id, signal_id, metric_id, model_id;
-	unsigned char relative_error, squared_diff, prefer_more, use_measured;
-	double metric_threshold;
-	bool use_just_opened;
-	size_t levels_required;
+	unsigned char relative_error = false, squared_diff = true, prefer_more = false, use_measured = true;
+	double metric_threshold = 0.0;
+	bool use_just_opened = false;
+	size_t levels_required = 1;
 
 	glucose::SModel_Parameter_Vector lowBound, defParams, highBound;
 
@@ -313,6 +343,8 @@ HRESULT CCompute_Filter::Run(glucose::IFilter_Configuration* configuration) {
 			mRecalc_With_Every_Params = cur->boolean;
 		else if (confname == rsUse_Just_Opened_Segments)
 			use_just_opened = cur->boolean;
+		else if (confname == rsHold_During_Solve)
+			mHold_During_Solve = cur->boolean;
 		else if (confname == rsSelected_Model_Bounds)
 		{
 			double *pb, *pe;

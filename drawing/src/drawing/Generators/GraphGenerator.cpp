@@ -199,15 +199,15 @@ void CGraph_Generator::Write_Description()
         mSvg.Draw_Text(sizeX / 2, Normalize_Y(0) + 50, tr("time") + "[DD.MM.RRRR HH:mm]", "middle", "black", 14);
         mSvg.Line(startX, Normalize_Y(0), maxX, Normalize_Y(0));
 
-        // horizontal line - value 5
+        // horizontal line - step by 2
 
-        mSvg.Set_Stroke(1, "grey", "none");
+        mSvg.Set_Stroke(1, "#CCCCCC", "none");
 
-        for (int i = 5; i <= 20; i += 5)
+        for (int i = 2; i <= std::max(20, (int)mMaxValueY); i += 2)
         {
             double my_y = Normalize_Y(i);
             mSvg.Line(startX, my_y, maxX, my_y);
-            mSvg.Draw_Text(my_x, my_y, mMmolFlag ? std::to_string(i) : Utility::Format_Decimal(Utility::MmolL_To_MgDl(i), 3), "middle", "grey", 12);
+			mSvg.Draw_Text(my_x, my_y, mMmolFlag ? std::to_string(i) : Utility::Format_Decimal(Utility::MmolL_To_MgDl(i), 3), "middle", "grey", 12);
         }
     }
 
@@ -215,17 +215,31 @@ void CGraph_Generator::Write_Description()
     {
         SVG::GroupGuard grp(mSvg, "glycemyLine", false);
 
-        mSvg.Set_Stroke(1, "red", "none");
+        mSvg.Set_Stroke(1, "red", "none", 0.6, 0.6);
 
         // hyperglycemia
-        my_y = Normalize_Y(5.5);
-        mSvg.Draw_Text(startX + 10, my_y - 2, tr("hyperglycemy"), "start", "red", 12);
+        my_y = Normalize_Y(11.0);
+		mSvg.Draw_Text(startX + 5, my_y - 5, tr("hyperglycemia"), "start", "red", 12);
         mSvg.Line_Dash(startX, my_y, maxX, my_y);
 
+		mSvg.Draw_Text(my_x, my_y, mMmolFlag ? "11" : Utility::Format_Decimal(Utility::MmolL_To_MgDl(11.0), 3), "middle", "grey", 12);
+
         // hypoglycemia
-        my_y = Normalize_Y(3.9);
-        mSvg.Draw_Text(startX + 10, my_y - 2, tr("hypoglycemy"), "start", "red", 12);
+        my_y = Normalize_Y(3.5);
+        mSvg.Draw_Text(startX + 5, my_y + 13, tr("hypoglycemia"), "start", "red", 12);
         mSvg.Line_Dash(startX, my_y, maxX, my_y);
+
+		mSvg.Draw_Text(my_x, my_y, mMmolFlag ? "3.5" : Utility::Format_Decimal(Utility::MmolL_To_MgDl(3.5), 3), "middle", "grey", 12);
+
+		
+		mSvg.Set_Stroke(1, "#FF8888", "none", 0.6, 0.6);
+
+		// elevated glycemia
+		my_y = Normalize_Y(5.5);
+		mSvg.Draw_Text(startX + 5, my_y - 5, tr("elevatedglucose"), "start", "#FF8888", 12);
+		mSvg.Line_Dash(startX, my_y, maxX, my_y);
+
+		mSvg.Draw_Text(my_x, my_y, mMmolFlag ? "5.5" : Utility::Format_Decimal(Utility::MmolL_To_MgDl(5.5), 3), "middle", "grey", 12);
     }
 
     mSvg.Set_Default_Stroke();

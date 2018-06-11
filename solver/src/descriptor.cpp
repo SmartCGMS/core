@@ -1,5 +1,3 @@
-#pragma once
-
 #include "descriptor.h"
 #include "solver.h"
 
@@ -10,7 +8,7 @@
 
 namespace compute
 {
-	constexpr size_t param_count = 16;
+	constexpr size_t param_count = 17;
 
 	// TODO: add model bounds to parameters; this could be done quite easily here in backend by adding "model parameters vector" NParameter_Type and working with it just like that
 	//		 but in user interface, there needs to be dynamic widget which changes contents according to selected model; for now, use default model parameter bounds
@@ -28,6 +26,7 @@ namespace compute
 		glucose::NParameter_Type::ptInt64,
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptInt64,
+		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptBool,
@@ -50,7 +49,8 @@ namespace compute
 		dsRecalculate_On_Segment_End,
 		dsRecalculate_On_Calibration,
 		dsRecalculate_With_Every_Params,
-		dsUse_Just_Opened_Segments
+		dsUse_Just_Opened_Segments,
+		dsHold_During_Solve
 	};
 
 	const wchar_t* config_param_name[param_count] = {
@@ -69,7 +69,8 @@ namespace compute
 		rsRecalculate_On_Segment_End,
 		rsRecalculate_On_Calibration,
 		rsRecalculate_With_Every_Params,
-		rsUse_Just_Opened_Segments
+		rsUse_Just_Opened_Segments,
+		rsHold_During_Solve
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
@@ -88,7 +89,8 @@ namespace compute
 		nullptr,
 		nullptr,
 		nullptr,
-		nullptr
+		nullptr,
+		dsHold_During_Solve_Tooltip
 	};
 
 	const glucose::TFilter_Descriptor Compute_Descriptor = {

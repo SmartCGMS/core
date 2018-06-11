@@ -10,34 +10,37 @@
 
 namespace calculate
 {
-	constexpr size_t param_count = 3;
+	constexpr size_t param_count = 4;
 
 	constexpr glucose::NParameter_Type param_type[param_count] = {
 		glucose::NParameter_Type::ptModel_Id,
 		glucose::NParameter_Type::ptModel_Signal_Id,
+		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptBool
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
 		dsSelected_Model,
 		dsSelected_Signal,
-		dsRecalculate_Past_On_Params
+		dsCalculate_Past_New_Params
 	};
 
 	const wchar_t* config_param_name[param_count] = {
 		rsSelected_Model,
 		rsSelected_Signal,
-		rsRecalculate_Past_On_Params
+		rsRecalculate_Past_On_Params,
+		rsRecalculate_Past_On_Segment_Stop
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
+		nullptr,
 		nullptr,
 		nullptr,
 		nullptr
 	};
 
 	const glucose::TFilter_Descriptor Calculate_Descriptor = {
-		Calculate_Filter_GUID, //// {14A25F4C-E1B1-85C4-1274-9A0D11E09813}
+		{ 0x14a25f4c, 0xe1b1, 0x85c4, { 0x12, 0x74, 0x9a, 0x0d, 0x11, 0xe0, 0x98, 0x13 } }, //// {14A25F4C-E1B1-85C4-1274-9A0D11E09813}
 		dsCalculate_Filter,
 		param_count,
 		param_type,
@@ -113,13 +116,14 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilte
 	return ENOENT;
 }
 
-extern "C" HRESULT IfaceCalling do_create_signal(const GUID *signal_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
-	if ((signal_id == nullptr) || (segment == nullptr))
+HRESULT IfaceCalling do_create_measured_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {	
+
+	if ((calc_id == nullptr) || (segment == nullptr))
 		return E_INVALIDARG;
 
 	for (size_t i = 0; i < measured_signal::supported_count; i++)
 	{
-		if (measured_signal::supported_signal_ids[i] == *signal_id)
+		if (measured_signal::supported_signal_ids[i] == *calc_id)
 			return Manufacture_Object<CMeasured_Signal>(signal);
 	}
 
