@@ -14,6 +14,9 @@
 #include "drawing/Generators/DayGenerator.h"
 #include "drawing/Generators/ECDFGenerator.h"
 
+#include <map>
+#include <tbb/tbb_allocator.h>
+
 #include <iostream>
 #include <chrono>
 #include <fstream>
@@ -22,7 +25,7 @@
 
 #undef min
 
-const std::map<GUID, const char*> Signal_Mapping = {
+const std::map<GUID, const char*, std::less<GUID>, tbb::tbb_allocator<std::pair<GUID, const char*>>> Signal_Mapping = {
 	{ glucose::signal_IG, "ist" },
 	{ glucose::signal_BG, "blood" },
 	{ glucose::signal_Calibration, "bloodCalibration" },

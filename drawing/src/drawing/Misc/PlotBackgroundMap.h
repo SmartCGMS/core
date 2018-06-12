@@ -15,7 +15,6 @@
 #include <array>
 
 //The array declarations are needed to prevent memory leaks, which occur when combined with TBB due to use of different allocators simultaneously
-//TODO: convert all remaining vectors to arrays as well
 
 /** General **/
 

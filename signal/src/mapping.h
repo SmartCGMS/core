@@ -26,12 +26,9 @@ class CMapping_Filter : public glucose::IFilter, public virtual refcnt::CReferen
 		GUID mSourceId;
 		// destination signal ID (to what ID it will be mapped)
 		GUID mDestinationId;
-
-		// thread function
-		void Run_Main();
-
 	public:
 		CMapping_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
+		virtual ~CMapping_Filter() {};
 
 		virtual HRESULT Run(glucose::IFilter_Configuration* configuration) override;
 };
