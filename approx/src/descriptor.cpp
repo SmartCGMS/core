@@ -1,5 +1,6 @@
 #include "descriptor.h"
 #include "line.h"
+#include "Akima.h"
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
@@ -19,6 +20,18 @@ namespace line
 	};
 }
 
+namespace akima {
+	constexpr size_t param_count = 0;
+
+	const glucose::TApprox_Descriptor Akima_Descriptor = {		
+		{ 0xc3e9669d, 0x594a, 0x4fd4,{ 0xb0, 0xf4, 0x44, 0xab, 0x9d, 0x4e, 0x7, 0x39 } },		// {C3E9669D-594A-4FD4-B0F4-44AB9D4E0739}
+		dsAkima,
+		param_count,
+		nullptr,
+		nullptr
+	};
+}
+
 const std::array<glucose::TApprox_Descriptor, 1> approx_descriptions = { line::LineApprox_Descriptor };
 
 extern "C" HRESULT IfaceCalling do_get_approximator_descriptors(glucose::TApprox_Descriptor **begin, glucose::TApprox_Descriptor **end) {
@@ -27,10 +40,13 @@ extern "C" HRESULT IfaceCalling do_get_approximator_descriptors(glucose::TApprox
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApproximator **approx, glucose::IApprox_Parameters_Vector* configuration)
-{
+extern "C" HRESULT IfaceCalling do_create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApproximator **approx, glucose::IApprox_Parameters_Vector* configuration) {
+
+	return Manufacture_Object<CAkima>(approx, glucose::WSignal{ signal }, configuration);
+
 	if (*approx_id == line::LineApprox_Descriptor.id)
 		return Manufacture_Object<CLine_Approximator>(approx, glucose::WSignal{ signal }, configuration);
+		
 
 	return ENOENT;
 }

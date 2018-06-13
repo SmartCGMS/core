@@ -30,9 +30,9 @@ void CCalculate_Filter::Run_Main() {
 			case glucose::NDevice_Event_Code::Calibrated:
 			{
 				if (hldr.Add_Level(evt.segment_id, evt.signal_id, evt.device_time, evt.level)) {
-					if (evt.device_time != last_pending_time) {
-						mPending_Times.push_back(evt.device_time);	//this possibly create duplicities in the vector as it does not differentiate between measured signal - e.g. BG and IG measured at the very same time in animal experiment
-						last_pending_time = evt.device_time;		//so we do this simple trick to avoid trivial repetitions, at least
+					if (evt.device_time + mPrediction_Window != last_pending_time) {
+						last_pending_time = evt.device_time + mPrediction_Window;		//this possibly create duplicities in the vector as it does not differentiate between measured signal - e.g. BG and IG measured at the very same time in animal experiment
+						mPending_Times.push_back(last_pending_time);	//so we do this simple trick to avoid trivial repetitions, at least						
 					}
 
 
@@ -154,6 +154,8 @@ HRESULT CCalculate_Filter::Run(refcnt::IVector_Container<glucose::TFilter_Parame
 			mSignalId = cur->guid;
 		else if (confname == rsRecalculate_Past_On_Params)
 			mCalc_Past_With_First_Params = cur->boolean;
+		else if (confname == rsPrediction_Window)
+			mPrediction_Window = cur->dbl;
 	}
 
 	if (mSignalId == Invalid_GUID)

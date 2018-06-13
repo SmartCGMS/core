@@ -4,7 +4,7 @@
 
 #undef max
 
-CDiffusion_v2_blood::CDiffusion_v2_blood(glucose::WTime_Segment segment) : CCommon_Calculation(segment, glucose::signal_BG), mIst(segment.Get_Signal(glucose::signal_IG)) {
+CDiffusion_v2_blood::CDiffusion_v2_blood(glucose::WTime_Segment segment) : CCommon_Calculation(segment, glucose::signal_IG), mIst(segment.Get_Signal(glucose::signal_IG)) {
 	if (!refcnt::Shared_Valid_All(mIst)) throw std::exception{};
 }
 
@@ -16,7 +16,7 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 	diffusion_v2_model::TParameters &parameters = Convert_Parameters<diffusion_v2_model::TParameters>(params, diffusion_v2_model::default_parameters);
 	
 	CPooled_Buffer<TVector1D> present_ist = mVector1D_Pool.pop( count );
-		HRESULT rc = mIst->Get_Continuous_Levels(nullptr, times, present_ist.element().data(), count, glucose::apxNo_Derivation);
+	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, times, present_ist.element().data(), count, glucose::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 
 

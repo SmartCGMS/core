@@ -254,6 +254,17 @@ void CGraph_Generator::Write_Body()
     ValueVector bloodVector = Utility::Get_Value_Vector(mInputData, "blood");
     Utility::Get_Boundary_Dates(istVector, bloodVector, mMinD, mMaxD);
 
+	for (const auto &iter : mInputData) {
+		const auto &series = iter.second.values;
+		if (series.empty()) continue;
+		if (!iter.second.visible || !iter.second.calculated) continue;
+
+		if (mMinD > series[0].date) mMinD = series[0].date;		
+		if (mMaxD < series[series.size()-1].date) 
+			mMaxD = series[series.size()-1].date;
+	}
+	
+
     // x-axis description
     std::vector<time_t> times = Utility::Get_Times(mMinD, mMaxD);
 

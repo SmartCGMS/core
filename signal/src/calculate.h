@@ -26,6 +26,7 @@ class CCalculate_Filter : public glucose::IFilter, public virtual refcnt::CRefer
 
 		// calculate past values when first parameter set came
 		bool mCalc_Past_With_First_Params;
+		double mPrediction_Window = 0.0;
 	protected:
 		std::vector<double> mPending_Times;		//times, for which we have not calculated the levels yet
 	protected:
