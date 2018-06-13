@@ -21,7 +21,7 @@ void CCompute_Holder::Start_Segment(uint64_t segment_id)
 {
 	// manufacture a new object, add reference
 	glucose::CTime_Segment *a;
-	Manufacture_Object<glucose::CTime_Segment>(&a);
+	Manufacture_Object<glucose::CTime_Segment>(&a, mSignalId);
 
 	glucose::SModel_Parameter_Vector params;
 	if (mLastStoppedSegment && mSegments[mLastStoppedSegment].parameters)
