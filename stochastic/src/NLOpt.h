@@ -92,7 +92,6 @@ double NLOpt_Top_Solution_Objective_Function(const std::vector<double> &x, std::
 
 	double fitness = data->fitness.Calculate_Fitness(composed_result, data->metric);
 
-
 	if (fitness < data->best_solution_fitness) {
 		data->best_solution_fitness = fitness;
 		data->best_solution = composed_result;
@@ -126,7 +125,7 @@ protected:
 	TBottom_Solution mLower_Bottom_Bound, mUpper_Bottom_Bound;
 
 	std::vector<double> Top_Solution_As_Vector(const TTop_Solution& solution) {
-		std::vector<double> result(solution.data(), solution.data() + solution.cols()*solution.rows()); 
+		std::vector<double> result(solution.data(), solution.data() + solution.cols()*solution.rows());
 		return result; 
 	}
 public:

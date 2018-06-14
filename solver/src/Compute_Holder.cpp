@@ -100,13 +100,20 @@ void CCompute_Holder::Set_Defaults(glucose::SModel_Parameter_Vector defaults)
 	mDefaultParameters = defaults;
 }
 
-bool CCompute_Holder::Fill_Default_Model_Bounds(const GUID &signal_id, glucose::SModel_Parameter_Vector &low, glucose::SModel_Parameter_Vector &defaults, glucose::SModel_Parameter_Vector &high)
+bool CCompute_Holder::Fill_Default_Model_Bounds(const GUID &calculated_signal_id, GUID &reference_signal_id, glucose::SModel_Parameter_Vector &low, glucose::SModel_Parameter_Vector &defaults, glucose::SModel_Parameter_Vector &high)
 {
 	glucose::TModel_Descriptor desc{ {0} };
-	const bool result = glucose::get_model_descriptor_by_signal_id(signal_id, desc);
+	const bool result = glucose::get_model_descriptor_by_signal_id(calculated_signal_id, desc);
 
-	if (result)
-	{
+	if (result) {
+		//find the proper reference id
+		reference_signal_id = Invalid_GUID;	//sanity check
+		for (size_t i=0; i<desc.number_of_calculated_signals; i++)
+			if (desc.calculated_signal_ids[i] == calculated_signal_id) {
+				reference_signal_id = desc.reference_signal_ids[i];
+				break;
+			}
+
 		low = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(desc.lower_bound, desc.lower_bound + desc.number_of_parameters);
 		high = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(desc.upper_bound, desc.upper_bound + desc.number_of_parameters);
 		defaults = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(desc.default_values, desc.default_values + desc.number_of_parameters);
@@ -115,9 +122,9 @@ bool CCompute_Holder::Fill_Default_Model_Bounds(const GUID &signal_id, glucose::
 	return result;
 }
 
-glucose::TSolver_Setup CCompute_Holder::Prepare_Solver_Setup()
-{
-	Fill_Default_Model_Bounds(mSignalId, mLowBounds, mDefaultParameters, mHighBounds);
+glucose::TSolver_Setup CCompute_Holder::Prepare_Solver_Setup() {	
+	GUID reference_signal_id;
+	Fill_Default_Model_Bounds(mSignalId, reference_signal_id, mLowBounds, mDefaultParameters, mHighBounds);
 
 	mClonedSegmentIds.clear();
 	// create ITime_Segment pointer to stored segments since double indirection is not polymorphic in standard way
@@ -166,10 +173,12 @@ glucose::TSolver_Setup CCompute_Holder::Prepare_Solver_Setup()
 
 	mSolverProgress.cancelled = 0;
 
+
 	// create solver setup structure
 	return {
 		mSolverId,																// solver_id
-		mSignalId,																// signal_id
+		mSignalId,																// calculated signal_id
+		reference_signal_id,
 		mTmpSolverContainer.clonedSegments.data(), mTmpSolverContainer.clonedSegments.size(),	// segments, segment_count
 		mMetric.get(), mMetricLevelsRequired, mUseMeasuredLevels,				// metric, levels_required, use_measured_levels
 		mLowBounds.get(), mHighBounds.get(),									// lower_bound, upper_bound
@@ -229,23 +238,25 @@ std::future<HRESULT> CCompute_Holder::Solve_Async() {
 	});
 }
 
-bool CCompute_Holder::Compare_Solutions(glucose::SMetric metric)
-{
+bool CCompute_Holder::Compare_Solutions(glucose::SMetric metric) {
+
 	// no solution found - then it's not better
 	if (!mTempModelParams)
 		return false;
 
-	std::vector<glucose::SSignal> calcSignals;
+	glucose::TModel_Descriptor desc{0};
+	if (!glucose::get_model_descriptor_by_signal_id(mSignalId, desc)) return false;
+	GUID reference_signal_id = Invalid_GUID;	//sanity check
+	for (size_t i = 0; i<desc.number_of_calculated_signals; i++)
+		if (desc.calculated_signal_ids[i] == mSignalId) {
+			reference_signal_id = desc.reference_signal_ids[i];
+			break;
+		}
 
-	// resolve matching signals from all segments
-	size_t idx;
-	for (idx = 0; idx < mClonedSegmentIds.size(); idx++)
-	{
-		glucose::STime_Segment segment = mClonedSegments[idx];
 
-		calcSignals.push_back(segment.Get_Signal(mSignalId));
-	}
+	std::vector<glucose::SSignal> calcSignals, reference_signals;
 
+	
 	// all segments and their extracted times, levels and calculated levels
 	std::vector<std::vector<double>> allRefTimes(mClonedSegmentIds.size());
 	std::vector<std::vector<double>> allRefLevels(mClonedSegmentIds.size());
@@ -254,9 +265,12 @@ bool CCompute_Holder::Compare_Solutions(glucose::SMetric metric)
 	metric->Reset();
 
 	// accumulate metric across all cloned segments using old parameters
-	for (idx = 0; idx < mClonedSegmentIds.size(); idx++)
+	for (size_t idx = 0; idx < mClonedSegmentIds.size(); idx++)
 	{
-		auto& calcSignal = calcSignals[idx];
+		glucose::STime_Segment segment = mClonedSegments[idx];
+		auto calcSignal = segment.Get_Signal(mSignalId);
+		auto reference_signal = segment.Get_Signal(reference_signal_id);
+		
 
 		// get level count
 		size_t levels_count;
@@ -270,7 +284,7 @@ bool CCompute_Holder::Compare_Solutions(glucose::SMetric metric)
 		refLevels.resize(levels_count);
 
 		// retrieve measured signal (if it's calculated signal, it will fall through to reference signal, which is probably one of measured signals)
-		if (calcSignal->Get_Discrete_Levels(refTime.data(), refLevels.data(), refTime.size(), &levels_count) != S_OK)
+		if (reference_signal->Get_Discrete_Levels(refTime.data(), refLevels.data(), refTime.size(), &levels_count) != S_OK)
 			continue;
 
 		// "final" resize according to real size
@@ -279,7 +293,7 @@ bool CCompute_Holder::Compare_Solutions(glucose::SMetric metric)
 
 		// same as in fitness calculation - if requested, do not calculate with measured levels, get approximated calculated
 		if (mUseMeasuredLevels == 0)
-			calcSignal->Get_Continuous_Levels(nullptr, refTime.data(), refLevels.data(), refTime.size(), glucose::apxNo_Derivation);
+			reference_signal->Get_Continuous_Levels(nullptr, refTime.data(), refLevels.data(), refTime.size(), glucose::apxNo_Derivation);
 
 		if (refTime.empty())
 			continue;
@@ -287,7 +301,7 @@ bool CCompute_Holder::Compare_Solutions(glucose::SMetric metric)
 		auto& calcLevels = allCalcLevels[idx];
 		calcLevels.resize(refTime.size());
 
-		// repeat for new parameters
+		// repeat for new parameters 
 		if (calcSignal->Get_Continuous_Levels(mTempModelParams.get(), refTime.data(), calcLevels.data(), refTime.size(), glucose::apxNo_Derivation) == S_OK)
 			metric->Accumulate(refTime.data(), refLevels.data(), calcLevels.data(), refTime.size());
 	}
@@ -300,7 +314,7 @@ bool CCompute_Holder::Compare_Solutions(glucose::SMetric metric)
 		return false;
 
 	bool hasParams = false;
-	for (idx = 0; idx < mClonedSegmentIds.size(); idx++)
+	for (size_t idx = 0; idx < mClonedSegmentIds.size(); idx++)
 	{
 		hasParams |= (mSegments[mClonedSegmentIds[idx]].parameters != nullptr);
 	}
@@ -311,7 +325,7 @@ bool CCompute_Holder::Compare_Solutions(glucose::SMetric metric)
 	metric->Reset();
 
 	// accumulate metric across all segments using new parameters
-	for (idx = 0; idx < mClonedSegmentIds.size(); idx++)
+	for (size_t idx = 0; idx < mClonedSegmentIds.size(); idx++)
 	{
 		auto& calcSignal = calcSignals[idx];
 		auto& refTime = allRefTimes[idx];

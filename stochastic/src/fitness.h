@@ -2,6 +2,7 @@
 
 #include "../..\..\common\rtl\SolverLib.h"
 #include "../..\..\common\rtl\Buffer_Pool.h"
+#include "../..\..\common\rtl\AlignmentAllocator.h"
 
 #include <vector>
 
@@ -27,9 +28,10 @@ namespace stochastic_fitness {
 }
 #endif
 
+using aligned_double_vector = std::vector<double, AlignmentAllocator<double>>;	//Needed for Eigen and SIMD optimizations
 
 struct TShared_Solver_Setup {
-	const GUID solver_id; const GUID signal_id;
+	const GUID solver_id; const GUID calculated_signal_id; const GUID reference_signal_id;
 	std::vector<glucose::STime_Segment> segments;
 	glucose::SMetric metric;	const size_t levels_required; const char use_measured_levels;
 	const glucose::SModel_Parameter_Vector lower_bound, upper_bound;
@@ -41,9 +43,10 @@ struct TShared_Solver_Setup {
 
 struct TSegment_Info {
 	glucose::STime_Segment segment;
-	glucose::SSignal signal;
-	std::vector<double> reference_time;
-	std::vector<double> reference_level;
+	glucose::SSignal calculated_signal;
+	glucose::SSignal reference_signal;
+	aligned_double_vector reference_time;
+	aligned_double_vector reference_level;
 };
 
 template <typename TSolution>
@@ -52,7 +55,7 @@ protected:
 	std::vector<TSegment_Info> mSegment_Info;	
 	size_t mLevels_Required;
 	size_t mMax_Levels_Per_Segment;	//to avoid multiple resize of memory block when calculating the error
-	CBuffer_Pool<std::vector<double>> mTemporal_Levels{ [](auto &container, auto minimum_size) {		
+	CBuffer_Pool<aligned_double_vector> mTemporal_Levels{ [](auto &container, auto minimum_size) {
 		if (container.size() < minimum_size) container.resize(minimum_size);
 	} };
 public:
@@ -63,16 +66,18 @@ public:
 		for (auto &setup_segment : setup.segments) {
 			TSegment_Info info;
 			info.segment = setup_segment;
-			info.signal = setup_segment.Get_Signal(setup.signal_id);			
+			info.calculated_signal = setup_segment.Get_Signal(setup.calculated_signal_id);			
+			info.reference_signal = setup_segment.Get_Signal(setup.reference_signal_id);
 
-			if (info.signal) {
+			if (info.calculated_signal && info.reference_signal) {
+
 				size_t levels_count;
-				if (info.signal->Get_Discrete_Bounds(nullptr, &levels_count) == S_OK) {
+				if (info.reference_signal->Get_Discrete_Bounds(nullptr, &levels_count) == S_OK) {
 					info.reference_time.resize(levels_count);
 					info.reference_level.resize(levels_count);					
 					
 					//prepare arrays with reference levels and their times
-					if (info.signal->Get_Discrete_Levels(info.reference_time.data(), info.reference_level.data(), info.reference_time.size(), &levels_count) == S_OK) {
+					if (info.reference_signal->Get_Discrete_Levels(info.reference_time.data(), info.reference_level.data(), info.reference_time.size(), &levels_count) == S_OK) {
 						info.reference_time.resize(levels_count);
 						info.reference_level.resize(levels_count);
 					}
@@ -80,7 +85,7 @@ public:
 
 					//if desired, replace them continous signal approdximation
 					if (setup.use_measured_levels == 0) {
-						info.signal->Get_Continuous_Levels(nullptr, info.reference_time.data(), info.reference_level.data(), info.reference_time.size(), glucose::apxNo_Derivation);
+						info.reference_signal->Get_Continuous_Levels(nullptr, info.reference_time.data(), info.reference_level.data(), info.reference_time.size(), glucose::apxNo_Derivation);
 							//we are not interested in checking the possibly error, because we will be left with meeasured levels at least
 					}
 
@@ -109,10 +114,10 @@ public:
 		metric->Reset();
 
 		//let's pick a memory block for calculated
-		CPooled_Buffer<std::vector<double>> tmp_levels = mTemporal_Levels.pop( mMax_Levels_Per_Segment );
+		CPooled_Buffer<aligned_double_vector> tmp_levels = mTemporal_Levels.pop( mMax_Levels_Per_Segment );
 
 		for (auto &info : mSegment_Info) {			
-			if (info.signal->Get_Continuous_Levels(&solution, info.reference_time.data(), tmp_levels.element().data(), info.reference_time.size(), glucose::apxNo_Derivation) == S_OK) {
+			if (info.calculated_signal->Get_Continuous_Levels(&solution, info.reference_time.data(), tmp_levels.element().data(), info.reference_time.size(), glucose::apxNo_Derivation) == S_OK) {
 				//levels got, calculate the metric
 				metric->Accumulate(info.reference_time.data(), info.reference_level.data(), tmp_levels.element().data(), info.reference_time.size());
 			}

@@ -82,7 +82,7 @@ class CCompute_Holder {
 
 	protected:
 		// fills supplied pointers with pointer to default model bounds
-		bool Fill_Default_Model_Bounds(const GUID &signal_id, glucose::SModel_Parameter_Vector &low, glucose::SModel_Parameter_Vector &defaults, glucose::SModel_Parameter_Vector &high);
+		bool Fill_Default_Model_Bounds(const GUID &calculated_signal_id, GUID &reference_signal_id, glucose::SModel_Parameter_Vector &low, glucose::SModel_Parameter_Vector &defaults, glucose::SModel_Parameter_Vector &high);
 
 		// fills solver setup structure
 		glucose::TSolver_Setup Prepare_Solver_Setup();

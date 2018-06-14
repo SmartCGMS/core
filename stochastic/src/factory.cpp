@@ -94,6 +94,7 @@ protected:
 public:
 	CSpecialized_Id_Dispatcher() {	
 		add_NLOpt<nlopt::LN_NEWUOA>(newuoa::id);		
+		add_NLOpt<nlopt::LN_BOBYQA>(bobyqa::id);
 
 		using TPure_MetaDE = CMetaDE<TSolution, TFitness, CNullMethod<TSolution, TFitness>>;		
 		mSolver_Id_Map[metade::id] = std::bind(&Solve_By_Class<TPure_MetaDE, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
@@ -138,7 +139,7 @@ public:
 
 	HRESULT Solve_Model_Parameters(TShared_Solver_Setup &setup) {
 		HRESULT rc;
-		const auto iter = mSignal_Id_map.find(setup.signal_id);
+		const auto iter = mSignal_Id_map.find(setup.calculated_signal_id);
 		if (iter != mSignal_Id_map.end()) rc = iter->second->Solve_Model_Parameters(setup);
 			else rc = mGeneric_Dispatcher.Solve_Model_Parameters(setup);
 		
@@ -166,7 +167,7 @@ HRESULT IfaceCalling do_solve_model_parameters(const glucose::TSolver_Setup *set
 		auto default_parameters = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(nullptr, nullptr);
 		if (shared_hints.empty()) {
 			//we need to try to obtain the default parameter at least
-			auto signal = shared_segments[0].Get_Signal(setup->signal_id);
+			auto signal = shared_segments[0].Get_Signal(setup->calculated_signal_id);
 			if (signal) {
 				if (signal->Get_Default_Parameters(default_parameters.get()) == S_OK)
 					shared_hints.push_back(default_parameters);
@@ -181,7 +182,7 @@ HRESULT IfaceCalling do_solve_model_parameters(const glucose::TSolver_Setup *set
 		const auto const_hints{ shared_hints };
 
 		TShared_Solver_Setup shared_setup {
-			setup->solver_id, setup->signal_id,
+			setup->solver_id, setup->calculated_signal_id, setup->reference_signal_id,
 			shared_segments,
 			shared_metric, setup->levels_required, setup->use_measured_levels,
 			shared_lower, shared_upper,

@@ -12,15 +12,13 @@ CAkima::CAkima(glucose::WSignal signal, glucose::IApprox_Parameters_Vector* conf
 
 
 bool CAkima::Update() {
-	size_t known_count = mInputTimes.size();
-
 	size_t update_count;
 	if (mSignal.Get_Discrete_Bounds(nullptr, &update_count) != S_OK)
 		return false;
 
 	if (update_count < MINIMUM_NUMBER_POINTS) return S_FALSE;
 
-	if (known_count != update_count) {
+	if (mInputTimes.size() != update_count) {
 		mInputTimes.resize(update_count);
 		mInputLevels.resize(update_count);
 		mCoefficients.resize(update_count);
@@ -37,7 +35,7 @@ bool CAkima::Update() {
 	Compute_Coefficients();
 	
 
-	return S_OK;
+	return TRUE;
 }
 
 void CAkima::Compute_Coefficients() {

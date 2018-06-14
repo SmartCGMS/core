@@ -5,6 +5,7 @@
 #include "../../../common/lang/dstrings.h"
 
 #include "Compute_Holder.h"
+#include "descriptor.h"
 
 #include <iostream>
 #include <chrono>
@@ -22,7 +23,6 @@ CCompute_Filter::CCompute_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_
 void CCompute_Filter::Run_Main()
 {
 	bool resetFlag = false;
-	bool preventSend = false;
 
 	for (; glucose::UDevice_Event evt = mInput.Receive(); evt) {
 
@@ -63,25 +63,6 @@ void CCompute_Filter::Run_Main()
 			// time segment start - create a new segment
 			case glucose::NDevice_Event_Code::Time_Segment_Start:
 				mComputeHolder->Start_Segment(evt.segment_id);
-				if (glucose::SModel_Parameter_Vector params = mComputeHolder->Get_Model_Parameters(evt.segment_id))
-				{
-					// send current event through pipe
-					if (!mOutput.Send(evt))
-						break;
-
-					// the order of these events is essential for segments to work - we need to propagate "segment start" first,
-					// and then send parameters - the segment needs to exist before anything else regarding its properties is sent
-					preventSend = true;
-
-					glucose::UDevice_Event modified_evt{ glucose::NDevice_Event_Code::Parameters };
-					modified_evt.device_time = mComputeHolder->Get_Max_Time();
-					modified_evt.device_id = GUID{ 0 }; // TODO: retain from segments?
-					modified_evt.signal_id = mComputeHolder->Get_Signal_Id();
-					modified_evt.parameters.set(params);
-
-					if (!mOutput.Send(modified_evt))
-						break;
-				}
 				break;
 			// time segment stop - force buffered values to be written to signals
 			case glucose::NDevice_Event_Code::Time_Segment_Stop:
@@ -130,9 +111,7 @@ void CCompute_Filter::Run_Main()
 				break;
 		}
 
-		if (preventSend)
-			preventSend = false;
-		else if (!mOutput.Send(evt))
+		if (!mOutput.Send(evt))
 			break;
 	}
 
@@ -231,7 +210,7 @@ void CCompute_Filter::Run_Scheduler()
 
 						glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Parameters };
 						evt.device_time = mComputeHolder->Get_Max_Time();
-						evt.device_id = Invalid_GUID; // TODO: fix this (retain from segments?) 
+						evt.device_id = compute::solver_id;
 						evt.signal_id = mComputeHolder->Get_Signal_Id();
 
 						evt.segment_id = segId;
@@ -252,7 +231,7 @@ void CCompute_Filter::Run_Scheduler()
 
 							glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Information };
 							evt.device_time = mComputeHolder->Get_Max_Time();
-							evt.device_id = Invalid_GUID; // TODO: fix this (retain from segments?) 
+							evt.device_id = compute::solver_id;
 							evt.signal_id = mComputeHolder->Get_Signal_Id();
 
 							evt.segment_id = segId;
@@ -265,16 +244,16 @@ void CCompute_Filter::Run_Scheduler()
 				}
 				else // send solver failed message
 				{
-					glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Information };
-					evt.device_time = Unix_Time_To_Rat_Time(time(nullptr));
-					evt.device_id = Invalid_GUID;
-					evt.signal_id = mComputeHolder->Get_Signal_Id();
+					glucose::UDevice_Event failed_evt{ glucose::NDevice_Event_Code::Information };
+					failed_evt.device_time = Unix_Time_To_Rat_Time(time(nullptr));
+					failed_evt.device_id = compute::solver_id;
+					failed_evt.signal_id = mComputeHolder->Get_Signal_Id();
 
 					std::wstring progMsg = rsInfo_Solver_Failed;
 
-					evt.info = refcnt::make_shared_reference_ext<refcnt::Swstr_container, refcnt::wstr_container>(refcnt::WString_To_WChar_Container(progMsg.c_str()), true);
-					evt.signal_id = mComputeHolder->Get_Signal_Id();
-					mOutput.Send(evt);
+					failed_evt.info = refcnt::make_shared_reference_ext<refcnt::Swstr_container, refcnt::wstr_container>(refcnt::WString_To_WChar_Container(progMsg.c_str()), true);
+					failed_evt.signal_id = mComputeHolder->Get_Signal_Id();
+					mOutput.Send(failed_evt);
 				}
 
 				// explicitly lock again, so we could notify main thread if needed
