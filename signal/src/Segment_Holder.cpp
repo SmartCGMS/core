@@ -10,7 +10,7 @@ void CSegment_Holder::Start_Segment(uint64_t segmentId)
 {
 
 	glucose::CTime_Segment* segment;
-	if (Manufacture_Object<glucose::CTime_Segment>(&segment) != S_OK)
+	if (Manufacture_Object<glucose::CTime_Segment>(&segment, mSignalId) != S_OK)
 		return;
 
 	mSegments[segmentId] = {
