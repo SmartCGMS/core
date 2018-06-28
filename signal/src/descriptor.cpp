@@ -41,7 +41,7 @@ namespace calculate
 	};
 
 	const glucose::TFilter_Descriptor Calculate_Descriptor = {
-		Calculate_Filter_GUID, //// {14A25F4C-E1B1-85C4-1274-9A0D11E09813}
+		{ 0x14a25f4c, 0xe1b1, 0x85c4,{ 0x12, 0x74, 0x9a, 0x0d, 0x11, 0xe0, 0x98, 0x13 }},  // {14A25F4C-E1B1-85C4-1274-9A0D11E09813}
 		dsCalculate_Filter,
 		param_count,
 		param_type,

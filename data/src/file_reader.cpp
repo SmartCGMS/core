@@ -110,7 +110,7 @@ void CFile_Reader::Run_Reader()
 			if (cur->mCarbohydrates.has_value())
 				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Carb_Intake, cur->mCarbohydrates.value()) != S_OK);
 			if (cur->mCalibration.has_value())
-				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Calibrated, valDate, currentSegmentId, &glucose::signal_Calibration, cur->mCalibration.value()) != S_OK);
+				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Calibration, cur->mCalibration.value()) != S_OK);
 
 			if (errorRes)
 			{

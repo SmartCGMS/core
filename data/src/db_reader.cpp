@@ -135,7 +135,7 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 			if (fpcl == FP_NAN || fpcl == FP_INFINITE)
 				continue;
 
-			glucose::UDevice_Event evt{ (i == NColumn_Pos::Calibration) ? glucose::NDevice_Event_Code::Calibrated : glucose::NDevice_Event_Code::Level };
+			glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Level };
 
 			evt.level = column;
 			evt.device_id = Db_Reader_Device_GUID;
