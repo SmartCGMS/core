@@ -46,9 +46,11 @@ protected:
 	std::vector<int64_t> mDbTimeSegmentIds;
 
 protected:
+	std::atomic<bool> mQuit_Flag{ false };
 	// reader thread
 	std::unique_ptr<std::thread> mDb_Reader_Thread;
 	void Db_Reader();
+	void End_Db_Reader();
 	bool Configure(glucose::SFilter_Parameters configuration);
 	
 	bool Emit_Segment_Marker(glucose::NDevice_Event_Code code, int64_t segment_id);

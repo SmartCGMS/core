@@ -58,7 +58,7 @@ void CDrawing_Filter::Run_Main() {
 			std::unique_lock<std::mutex> lck(mChangedMtx);
 
 			// incoming level or calibration - store to appropriate vector
-			if (evt.event_code == glucose::NDevice_Event_Code::Level || evt.event_code == glucose::NDevice_Event_Code::Calibrated)
+			if (evt.event_code == glucose::NDevice_Event_Code::Level )
 			{
 				//std::unique_lock<std::mutex> lck(mChangedMtx);
 

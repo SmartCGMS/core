@@ -10,31 +10,27 @@
 
 namespace calculate
 {
-	constexpr size_t param_count = 4;
+	constexpr size_t param_count = 3;
 
 	constexpr glucose::NParameter_Type param_type[param_count] = {
 		glucose::NParameter_Type::ptModel_Id,
 		glucose::NParameter_Type::ptModel_Signal_Id,
-		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptRatTime
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
 		dsSelected_Model,
 		dsSelected_Signal,
-		dsRecalculate_Past_On_Params,
 		dsPrediction_Window
 	};
 
 	const wchar_t* config_param_name[param_count] = {
 		rsSelected_Model,
 		rsSelected_Signal,
-		rsRecalculate_Past_On_Params,
 		rsPrediction_Window
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
-		nullptr,
 		nullptr,
 		nullptr,
 		nullptr

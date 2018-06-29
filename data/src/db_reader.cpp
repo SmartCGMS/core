@@ -16,11 +16,6 @@
 
 #include <map>
 
-#include <QtCore/QDate>
-#include <QtCore/QDateTime>
-
-
-// dummy device GUID
 const GUID Db_Reader_Device_GUID = db_reader::filter_id;// { 0x00000001, 0x0001, 0x0001, { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
 
 // enumerator of known column indexes
@@ -117,7 +112,7 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 	db::SDb_Query query = mDb_Connection.Query(rsSelect_Timesegment_Values_Filter, segment_id);
 	if (!query.Bind_Result(measured_at_str, levels)) return false;
 
-	while (query.Get_Next()) {
+	while (query.Get_Next() && !mQuit_Flag) {
 
 		// "select measuredat, blood, ist, isig, insulin, carbohydrates, calibration from measuredvalue where segmentid = ? order by measuredat asc"
 		//         0           1      2    3     4        5              6
@@ -151,6 +146,7 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 }
 
 void CDb_Reader::Db_Reader() {
+	mQuit_Flag = false;
 
 	//by consulting
 	//https://stackoverflow.com/questions/47457478/using-qsqlquery-from-multiple-threads?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
@@ -191,18 +187,32 @@ HRESULT CDb_Reader::Run(glucose::IFilter_Configuration *configuration) {
 
 	if (!Configure(refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true))) return E_INVALIDARG;
 
-	//run the db-reader thread and meanwhile jsut forward the messages as they come
+	//run the db-reader thread and meanwhile jsut forward the messages as they come	
 	mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
-	for (; glucose::UDevice_Event evt = mInput.Receive(); evt)
+
+
+	for (; glucose::UDevice_Event evt = mInput.Receive(); evt) {
+		if (evt.event_code == glucose::NDevice_Event_Code::Warm_Reset) {
+			//recreate the reader thread
+			End_Db_Reader();						
+			mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
+		}
+
+
 		if (!mOutput.Send(evt))	break;	//passing the shutdown code will shutdown the outpipe and subsequently the db-reader thread as well
+	}
 
 
-	if (mDb_Reader_Thread->joinable())
-		mDb_Reader_Thread->join();
+	End_Db_Reader();
 
 	return S_OK;
 }
 
+void CDb_Reader::End_Db_Reader() {
+	mQuit_Flag = true;
+	if (mDb_Reader_Thread->joinable())
+		mDb_Reader_Thread->join();
+}
 
 HRESULT IfaceCalling CDb_Reader::QueryInterface(const GUID*  riid, void ** ppvObj) {
 	if (Internal_Query_Interface<db::IDb_Sink>(db::Db_Sink_Filter, *riid, ppvObj)) return S_OK;

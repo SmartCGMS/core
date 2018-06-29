@@ -35,8 +35,7 @@ HRESULT CErrors_Filter::Run(glucose::IFilter_Configuration* configuration) {
 		switch (evt.event_code)
 		{
 			case glucose::NDevice_Event_Code::Level:
-			case glucose::NDevice_Event_Code::Masked_Level:
-			case glucose::NDevice_Event_Code::Calibrated:
+			case glucose::NDevice_Event_Code::Masked_Level:			
 				// the internal logic will tell us, if the signal is reference signal, and therefore we need to recalculate errors
 				if (mErrorCounter->Add_Level(evt.segment_id, evt.signal_id, evt.device_time, evt.level))
 					updated = mErrorCounter->Recalculate_Errors();

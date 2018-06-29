@@ -24,15 +24,9 @@ protected:
 	double mPrediction_Window = 0.0;
 protected:
 	std::map<int64_t, std::unique_ptr<CTime_Segment>> mSegments;
-	double mLast_Pending_time;	//it is faster to query it rather than to query the vector correctly
-	std::set<double> mPending_Times;
-	glucose::SModel_Parameter_Vector mWorking_Parameters;
 	std::vector<glucose::SModel_Parameter_Vector> mParameter_Hints;
-
-	void Add_Level(const int64_t segment_id, const GUID &signal_id, const double level, const double time_stamp);
-	void Emit_Levels_At_Pending_Times(const int64_t segment_id);
-	void Reset_Segment(const int64_t segment_id);
-	void Set_Parameters(const int64_t segment_id, glucose::SModel_Parameter_Vector parameters);
+	std::unique_ptr<CTime_Segment>& Get_Segment(const int64_t segment_id);
+	bool Add_Level(const int64_t segment_id, const GUID &signal_id, const double level, const double time_stamp);	
 	void Add_Parameters_Hint(glucose::SModel_Parameter_Vector parameters);
 public:
 	CCalculate_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
