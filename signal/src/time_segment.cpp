@@ -4,14 +4,10 @@
 #include "descriptor.h" 
 
 CTime_Segment::CTime_Segment(const int64_t segment_id, const GUID &calculated_signal_id, const double prediction_window, glucose::SFilter_Pipe output) : mPrediction_Window(prediction_window), mOutput(output), mSegment_id(segment_id), mCalculated_Signal_Id(calculated_signal_id) {
-	
+	Clear_Data();
 }
 
 glucose::SSignal CTime_Segment::Get_Signal_Internal(const GUID &signal_id) {
-
-	if ((!mCalculated_Signal) && (signal_id == mCalculated_Signal_Id))
-		mCalculated_Signal = Get_Signal_Internal(mCalculated_Signal_Id);	//creates the calculated signal
-
 	auto itr = mSignals.find(signal_id);
 	if (itr != mSignals.end()) {
 		return itr->second;
@@ -63,10 +59,9 @@ bool CTime_Segment::Calculate(const std::vector<double> &times, std::vector<doub
 	return false;
 }
 
-bool CTime_Segment::Emit_Levels_At_Pending_Times() {
-	bool result = false;
+void CTime_Segment::Emit_Levels_At_Pending_Times() {
 	std::vector<double> levels(mPending_Times.size()), times{ mPending_Times.begin(), mPending_Times.end() };
-	if (levels.size() || times.size()) return result;
+	if (levels.size() != times.size()) return;	//allocation error!
 
 	if (mCalculated_Signal->Get_Continuous_Levels(mWorking_Parameters.get(), times.data(), levels.data(), levels.size(), glucose::apxNo_Derivation) == S_OK) {
 		mPending_Times.clear();
@@ -84,16 +79,13 @@ bool CTime_Segment::Emit_Levels_At_Pending_Times() {
 			}
 			else
 				mPending_Times.insert(times[i]);
-		}
-
-		result = true;
+		}		
 	}
-
-	return result;
 }
 
 void CTime_Segment::Clear_Data() {
 	mSignals.clear();
 	mPending_Times.clear();
 	mLast_Pending_time = std::numeric_limits<double>::quiet_NaN();
+	mCalculated_Signal = Get_Signal_Internal(mCalculated_Signal_Id);	//creates the calculated signal
 }

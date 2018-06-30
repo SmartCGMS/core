@@ -37,7 +37,6 @@ void CCompute_Filter::Run_Main()
 		{
 			// incoming level or calibration - find appropriate signal and add new level
 			case glucose::NDevice_Event_Code::Level:
-			case glucose::NDevice_Event_Code::Calibrated:
 			{
 				if (mComputeHolder->Add_Level(evt.segment_id, evt.signal_id, evt.device_time, evt.level))
 				{
@@ -45,7 +44,7 @@ void CCompute_Filter::Run_Main()
 
 					// recalculate when 1) configured level count has been reached or 2) calibration level came
 					if ((mRecalcLevelsCount > 0 && mTotalLevelCount >= mLastCalculationLevelsCount + mRecalcLevelsCount) ||
-						(evt.event_code == glucose::NDevice_Event_Code::Calibrated && mRecalcOnCalibration))
+						(evt.signal_id == glucose::signal_Calibration && mRecalcOnCalibration))
 					{
 						std::unique_lock<std::mutex> lck(mScheduleMtx);
 						mCalculationScheduled = true;

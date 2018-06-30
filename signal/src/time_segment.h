@@ -11,7 +11,7 @@
 
 
 
-class CTime_Segment : public glucose::ITime_Segment, public virtual refcnt::CReferenced {
+class CTime_Segment : public glucose::ITime_Segment, public virtual refcnt::CNotReferenced {
 protected:
 	glucose::SFilter_Pipe mOutput;
 	const GUID mCalculated_Signal_Id;
@@ -34,7 +34,7 @@ public:
 	bool Add_Level(const GUID &signal_id, const double level, const double time_stamp);
 	bool Set_Parameters(glucose::SModel_Parameter_Vector parameters);
 	bool Calculate(const std::vector<double> &times, std::vector<double> &levels);		//calculates using the working parameters
-	bool Emit_Levels_At_Pending_Times();
+	void Emit_Levels_At_Pending_Times();
 	void Clear_Data();	
 };
 

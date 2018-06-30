@@ -39,7 +39,8 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 					//send the original event before other events are emitted
 					if (mOutput.Send(evt)) {
 						//now, evt may be gone!
-						event_already_sent = Add_Level(segment_id, signal_id, level, device_time);
+						event_already_sent = true;
+						Add_Level(segment_id, signal_id, level, device_time);					
 					}
 					else
 						break;
@@ -75,17 +76,14 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 	return S_OK;
 }
 
-bool CCalculate_Filter::Add_Level(const int64_t segment_id, const GUID &signal_id, const double level, const double time_stamp) {
-	bool result = false;
-
-	if ((signal_id == Invalid_GUID) || (signal_id == mSignal_Id)) return result;	//cannot add what unknown signal and cannot add what we have to compute
+void CCalculate_Filter::Add_Level(const int64_t segment_id, const GUID &signal_id, const double level, const double time_stamp) {
+	
+	if ((signal_id == Invalid_GUID) || (signal_id == mSignal_Id)) return;	//cannot add what unknown signal and cannot add what we have to compute
 
 	const auto &segment = Get_Segment(segment_id);
 	if (segment)
 		if (segment->Add_Level(signal_id, level, time_stamp))
-			result = segment->Emit_Levels_At_Pending_Times();
-
-	return result;
+			segment->Emit_Levels_At_Pending_Times();
 }
 
 
