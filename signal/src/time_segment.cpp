@@ -1,10 +1,25 @@
 #pragma once
 
+#include "..\..\..\common\rtl\UILib.h"
+
 #include "time_segment.h"
 #include "descriptor.h" 
 
 CTime_Segment::CTime_Segment(const int64_t segment_id, const GUID &calculated_signal_id, const double prediction_window, glucose::SFilter_Pipe output) : mPrediction_Window(prediction_window), mOutput(output), mSegment_id(segment_id), mCalculated_Signal_Id(calculated_signal_id) {
 	Clear_Data();
+
+	glucose::TModel_Descriptor desc{ { 0 } };
+	const bool result = glucose::get_model_descriptor_by_signal_id(calculated_signal_id, desc);
+
+	if (result) {
+		//find the proper reference id
+		//mReference_Signal_Id = Invalid_GUID;	//sanity check  - already initiliazed at the variable declaration 
+		for (size_t i = 0; i < desc.number_of_calculated_signals; i++)
+			if (desc.calculated_signal_ids[i] == calculated_signal_id) {
+				mReference_Signal_Id = desc.reference_signal_ids[i];
+				break;
+			}
+	}
 }
 
 glucose::SSignal CTime_Segment::Get_Signal_Internal(const GUID &signal_id) {
@@ -38,7 +53,19 @@ bool CTime_Segment::Add_Level(const GUID &signal_id, const double level, const d
 	auto signal = Get_Signal_Internal(signal_id);
 	if (signal) {
 		if (signal->Add_Levels(&time_stamp, &level, 1) == S_OK) {
-			mPending_Times.insert(time_stamp + mPrediction_Window);
+
+			auto insert_the_time = [this](const double time_to_insert) {
+				if (mEmitted_Times.find(time_to_insert) == mEmitted_Times.end())
+					mPending_Times.insert(time_to_insert);
+			};
+
+			insert_the_time(time_stamp + mPrediction_Window);
+			if (signal_id == mReference_Signal_Id)
+				insert_the_time(time_stamp);		//for the reference signal, we also request calculation at the present time
+													//so that we can determine calculation errors easily and precisly with measured, 
+													//not interpolated levels => the metrics filter simply stores calculated-measured
+													//pair of levels with no need for another calculation nor interpolation/approximation
+			
 		}
 		return true;
 	}
@@ -75,7 +102,8 @@ void CTime_Segment::Emit_Levels_At_Pending_Times() {
 				calcEvt.device_id = calculate::Calculate_Filter_GUID;
 				calcEvt.signal_id = mCalculated_Signal_Id;
 				calcEvt.segment_id = mSegment_id;
-				mOutput.Send(calcEvt);
+				if (mOutput.Send(calcEvt))
+					mEmitted_Times.insert(times[i]);
 			}
 			else
 				mPending_Times.insert(times[i]);
@@ -86,6 +114,7 @@ void CTime_Segment::Emit_Levels_At_Pending_Times() {
 void CTime_Segment::Clear_Data() {
 	mSignals.clear();
 	mPending_Times.clear();
+	mEmitted_Times.clear();
 	mLast_Pending_time = std::numeric_limits<double>::quiet_NaN();
 	mCalculated_Signal = Get_Signal_Internal(mCalculated_Signal_Id);	//creates the calculated signal
 }

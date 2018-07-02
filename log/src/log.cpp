@@ -19,6 +19,12 @@ CLog_Filter::CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe out
 }
 
 std::wstring CLog_Filter::Parameters_To_WStr(const glucose::UDevice_Event& evt) {
+	// retrieve params
+	double *begin, *end;
+	if (evt.parameters->get(&begin, &end) != S_OK)
+		return rsCannot_Get_Parameters;
+
+
 	// find appropriate model descriptor by id
 	glucose::TModel_Descriptor* modelDesc = nullptr;
 	for (auto& desc : mModelDescriptors)
@@ -34,19 +40,20 @@ std::wstring CLog_Filter::Parameters_To_WStr(const glucose::UDevice_Event& evt) 
 			break;
 	}
 
-	if (!modelDesc)
-		return rsCannot_Get_Parameters;
-
-	// retrieve params
-	double *begin, *end;
-	if (evt.parameters->get(&begin, &end) != S_OK)
-		return rsCannot_Get_Parameters;
-
 	// format output
 	std::wostringstream stream;
-	for (size_t i = 0; i < modelDesc->number_of_parameters; i++) {
-		if (i > 0) stream << L", ";
-		stream << modelDesc->parameter_ui_names[i] << "=" /*<< std::setprecision(logger::DefaultLogPrecision_ModelParam) */<< begin[i];
+	if (modelDesc) {
+
+		for (size_t i = 0; i < modelDesc->number_of_parameters; i++) {
+			if (i > 0) stream << L", ";
+			stream << modelDesc->parameter_ui_names[i] << "=" /*<< std::setprecision(logger::DefaultLogPrecision_ModelParam) */ << begin[i];
+		}
+	}
+	else {
+		for (auto iter = begin; iter != end; iter++) {
+			if (iter != begin) stream << L", ";
+			stream << *begin;
+		}
 	}
 
 	return stream.str();

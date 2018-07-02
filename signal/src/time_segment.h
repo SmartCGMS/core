@@ -15,6 +15,7 @@ class CTime_Segment : public glucose::ITime_Segment, public virtual refcnt::CNot
 protected:
 	glucose::SFilter_Pipe mOutput;
 	const GUID mCalculated_Signal_Id;
+	GUID mReference_Signal_Id = Invalid_GUID;
 	const int64_t mSegment_id;
 protected:
 	glucose::SSignal mCalculated_Signal;
@@ -24,6 +25,7 @@ protected:
 	double mPrediction_Window;
 	double mLast_Pending_time = std::numeric_limits<double>::quiet_NaN();	//it is faster to query it rather than to query the vector correctly
 	std::set<double> mPending_Times;
+	std::set<double> mEmitted_Times;	//to avoid duplicities in the output
 	glucose::SModel_Parameter_Vector mWorking_Parameters;
 public:
 	CTime_Segment(const int64_t segment_id, const GUID &calculated_signal_id, const double prediction_window, glucose::SFilter_Pipe output);
