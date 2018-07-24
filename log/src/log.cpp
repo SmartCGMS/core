@@ -104,26 +104,36 @@ HRESULT CLog_Filter::Run(glucose::IFilter_Configuration* configuration) {
 void CLog_Filter::Log_Event(const glucose::UDevice_Event &evt) {
 	const wchar_t *delim = L"; ";
 		
-	mLog << evt.logical_time << delim;
-	mLog << Rat_Time_To_Local_Time_WStr(evt.device_time, rsLog_Date_Time_Format) << delim;
-	mLog << glucose::event_code_text[static_cast<size_t>(evt.event_code)] << delim;
-	if (evt.signal_id != Invalid_GUID) mLog << glucose::Signal_Id_To_WStr(evt.signal_id); mLog << delim;
-	if (evt.is_level_event()) mLog << evt.level; 
-		else if (evt.is_info_event()) mLog << refcnt::WChar_Container_To_WString(evt.info.get()); 
-			else if (evt.is_parameters_event()) mLog << Parameters_To_WStr(evt); 
-	mLog << delim;
-	mLog << evt.segment_id << delim;
-	mLog << static_cast<size_t>(evt.event_code) << delim;
-	mLog << GUID_To_WString(evt.device_id) << delim;
-	mLog << GUID_To_WString(evt.signal_id) << std::endl;
+	std::wostringstream log_line;
 
-	TODO vlozit do mNew_Log_Records instanci tridy, ktera pres move ctor bere wstring a implementuje wstr_cont
+
+	log_line << evt.logical_time << delim;
+	log_line << Rat_Time_To_Local_Time_WStr(evt.device_time, rsLog_Date_Time_Format) << delim;
+	log_line << glucose::event_code_text[static_cast<size_t>(evt.event_code)] << delim;
+	if (evt.signal_id != Invalid_GUID) log_line << glucose::Signal_Id_To_WStr(evt.signal_id); log_line << delim;
+	if (evt.is_level_event()) log_line << evt.level;
+		else if (evt.is_info_event()) log_line << refcnt::WChar_Container_To_WString(evt.info.get());
+			else if (evt.is_parameters_event()) log_line << Parameters_To_WStr(evt);
+	log_line << delim;
+	log_line << evt.segment_id << delim;
+	log_line << static_cast<size_t>(evt.event_code) << delim;
+	log_line << GUID_To_WString(evt.device_id) << delim;
+	log_line << GUID_To_WString(evt.signal_id) << std::endl;
+
+	const std::wstring log_line_str = log_line.str();
+	mLog << log_line_str;
+
+
+	auto container = refcnt::WString_To_WChar_Container(log_line_str.c_str());
+	mNew_Log_Records->add(&container, &container+1);
 }
 
-HRESULT IfaceCalling CLog_Filter::Pop(refcnt::IVector_Container<refcnt::wstr_container*> **str) {	
-	decltype(mNew_Log_Records.load()) old_records_holder = mNew_Log_Records.exchange(refcnt::Create_Container_shared<refcnt::wstr_container*>(nullptr, nullptr));
+HRESULT IfaceCalling CLog_Filter::Pop(refcnt::IVector_Container<refcnt::wstr_container*> **str) {
+
+	std::unique_lock<std::mutex> scoped_lock{ mLog_Records_Guard };
+
+	decltype(mNew_Log_Records) empty_records_holder = refcnt::Create_Container_shared<refcnt::wstr_container*>(nullptr, nullptr);
 	
-	*str = old_records_holder.get();
-	old_records_holder.reset(nullptr, [](refcnt::IVector_Container<refcnt::wstr_container*> *obj_to_release) {});	//do not actually delete this to retain the internal reference count!
-	
+	*str = mNew_Log_Records.get();
+	mNew_Log_Records.reset(empty_records_holder.get(), [](refcnt::IVector_Container<refcnt::wstr_container*> *obj_to_release) {});	//do not actually delete this to retain the internal reference count!	
 };

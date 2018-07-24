@@ -7,6 +7,7 @@
 #include <thread>
 #include <fstream>
 #include <vector>
+#include <mutex>
 
 namespace logger {
 
@@ -41,7 +42,9 @@ protected:
 	glucose::SFilter_Pipe mInput;
 	glucose::SFilter_Pipe mOutput;
 	std::wofstream mLog;
-	std::atomic<std::shared_ptr<refcnt::IVector_Container<refcnt::wstr_container*>>> mNew_Log_Records;
+	
+	std::mutex mLog_Records_Guard;
+	std::shared_ptr<refcnt::IVector_Container<refcnt::wstr_container*>> mNew_Log_Records;
 
 	bool Open_Log(glucose::SFilter_Parameters configuration);
 	void Log_Event(const glucose::UDevice_Event &evt);
