@@ -50,11 +50,20 @@ namespace Utility
     // retrieves value vector from data map by given key; returns empty vector if not found
     ValueVector Get_Value_Vector(DataMap &vectors, std::string key);
 
-    // converts glucose concentration from mmol/l to mg/dl
-    double MmolL_To_MgDl(double mmol);
+	constexpr double Mmoll_To_Mgdl_Const = 18.018;
+	constexpr double MgDl_To_Mmoll_Const = 1.0 / Mmoll_To_Mgdl_Const;
 
     // converts glucose concentration from mg/dl to mmol/l
-    double MgDl_To_MmolL(double mgdl);
+	constexpr double MgDl_To_MmolL(double mgdl)
+	{
+		return mgdl * MgDl_To_Mmoll_Const;
+	}
+
+	// converts glucose concentration from mmol/l to mg/dl
+	constexpr double MmolL_To_MgDl(double mmol)
+	{
+		return mmol * Mmoll_To_Mgdl_Const;
+	}
 
     // formats decimal number to string
     std::string Format_Decimal(double number, int precision);

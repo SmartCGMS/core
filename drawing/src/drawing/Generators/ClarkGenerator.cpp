@@ -109,14 +109,16 @@ void CClark_Generator::Write_Descripton()
     {
         SVG::GroupGuard grp(mSvg, "description", true);
 
-		const int step = (int)(Clark_Max_MgDl / 8.0);
+		// TODO: rewrite Clark and Parkes generators to use mmol/l and get rid of this conversion mess
+
+		const int step = (int)(Utility::MmolL_To_MgDl(2.0));
 
         // x-axis description
         for (int i = 0; i <= Clark_Norm_Limit; i += step)
         {
             double x_d = Normalize_X(i);
             mSvg.Line(x_d, Normalize_Y(0), x_d, Normalize_Y(0) + 10);
-            mSvg.Draw_Text(x_d, Normalize_Y(0) + 20, mMmolFlag ? Utility::Format_Decimal(Utility::MgDl_To_MmolL(i), 3) : Utility::Format_Decimal(i, 3), "middle", "black", 12);
+            mSvg.Draw_Text(x_d, Normalize_Y(0) + 20, mMmolFlag ? Utility::Format_Decimal(round(Utility::MgDl_To_MmolL(i)), 3) : Utility::Format_Decimal(i, 3), "middle", "black", 12);
         }
 
         // y-axis description
@@ -124,7 +126,7 @@ void CClark_Generator::Write_Descripton()
         {
             double y_d = Normalize_Y(i);
             mSvg.Line(startX - 10, y_d, startX, y_d);
-            mSvg.Draw_Text(startX - 25, y_d, mMmolFlag ? Utility::Format_Decimal(Utility::MgDl_To_MmolL(i), 3) : Utility::Format_Decimal(i, 3), "middle", "black", 12);
+            mSvg.Draw_Text(startX - 25, y_d, mMmolFlag ? Utility::Format_Decimal(round(Utility::MgDl_To_MmolL(i)), 3) : Utility::Format_Decimal(i, 3), "middle", "black", 12);
         }
     }
 

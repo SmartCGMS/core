@@ -16,6 +16,7 @@
 CLog_Filter::CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
 	: mInput{inpipe}, mOutput{outpipe} {
 	
+	mNew_Log_Records = refcnt::Create_Container_shared<refcnt::wstr_container*>(nullptr, nullptr);
 }
 
 std::wstring CLog_Filter::Parameters_To_WStr(const glucose::UDevice_Event& evt) {
@@ -115,4 +116,14 @@ void CLog_Filter::Log_Event(const glucose::UDevice_Event &evt) {
 	mLog << static_cast<size_t>(evt.event_code) << delim;
 	mLog << GUID_To_WString(evt.device_id) << delim;
 	mLog << GUID_To_WString(evt.signal_id) << std::endl;
+
+	TODO vlozit do mNew_Log_Records instanci tridy, ktera pres move ctor bere wstring a implementuje wstr_cont
 }
+
+HRESULT IfaceCalling CLog_Filter::Pop(refcnt::IVector_Container<refcnt::wstr_container*> **str) {	
+	decltype(mNew_Log_Records.load()) old_records_holder = mNew_Log_Records.exchange(refcnt::Create_Container_shared<refcnt::wstr_container*>(nullptr, nullptr));
+	
+	*str = old_records_holder.get();
+	old_records_holder.reset(nullptr, [](refcnt::IVector_Container<refcnt::wstr_container*> *obj_to_release) {});	//do not actually delete this to retain the internal reference count!
+	
+};

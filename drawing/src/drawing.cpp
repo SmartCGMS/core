@@ -35,7 +35,7 @@ const std::map<GUID, const char*, std::less<GUID>, tbb::tbb_allocator<std::pair<
 };
 
 CDrawing_Filter::CDrawing_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
-	: mInput{ inpipe }, mOutput{ outpipe }, mDiagnosis(1), mRedrawPeriod(500), mGraphMaxValue(-1) {}
+	: mInput{ inpipe }, mOutput{ outpipe }, mDiagnosis(1), mGraphMaxValue(-1) {}
 
 HRESULT IfaceCalling CDrawing_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
 	if (Internal_Query_Interface<glucose::IFilter>(glucose::Drawing_Filter, *riid, ppvObj)) return S_OK;
@@ -67,8 +67,9 @@ void CDrawing_Filter::Run_Main() {
 				if (signalsBeingReset.find(evt.signal_id) == signalsBeingReset.end())
 					mChanged = true;
 
-				// for now, update maximum value just from these signals
-				//if (evt.signal_id == glucose::signal_IG || evt.signal_id == glucose::signal_BG)
+				// several signals are excluded from maximum value determining, since their values are not in mmol/l, and are drawn in a different way
+				// TODO: more generic way to determine value units
+				if (evt.signal_id != glucose::signal_Carb_Intake && evt.signal_id != glucose::signal_Insulin && evt.signal_id != glucose::signal_Health_Stress)
 				{
 					if (evt.level > mGraphMaxValue)
 						mGraphMaxValue = std::min(evt.level, 150.0); //http://www.guinnessworldrecords.com/world-records/highest-blood-sugar-level/
@@ -120,40 +121,27 @@ void CDrawing_Filter::Run_Main() {
 		if (!mOutput.Send(evt))
 			break;
 	}
-
-	// set running flag to false and notify scheduler thread
-	mRunning = false;
-
-	// lock scope
-	{
-		std::unique_lock<std::mutex> lck(mChangedMtx);
-		mSchedCv.notify_all();
-	}
-
-	// join until the thread ends
-	if (mSchedulerThread->joinable())
-		mSchedulerThread->join();
 }
 
-void CDrawing_Filter::Run_Scheduler()
+bool CDrawing_Filter::Redraw_If_Changed()
 {
-	Fill_Localization_Map(mLocaleMap);
+	std::unique_lock<std::mutex> lck(mChangedMtx);
 
-	while (mRunning)
+	if (mChanged)
 	{
-		std::unique_lock<std::mutex> lck(mChangedMtx);
+		mChanged = false;
 
-		if (mChanged)
-		{
-			mChanged = false;
+		mDataMap.clear();
+		Prepare_Drawing_Map();
+		// we don't need that lock anymore
+		lck.unlock();
 
-			mDataMap.clear();
-			Prepare_Drawing_Map();
-			Generate_Graphs(mDataMap, mGraphMaxValue, mLocaleMap);
-		}
+		Generate_Graphs(mDataMap, mGraphMaxValue, mLocaleMap);
 
-		mSchedCv.wait_for(lck, std::chrono::milliseconds(mRedrawPeriod));
+		return true;
 	}
+
+	return false;
 }
 
 void CDrawing_Filter::Reset_Signal(const GUID& signal_id, const uint64_t segment_id)
@@ -247,9 +235,7 @@ HRESULT CDrawing_Filter::Run(glucose::IFilter_Configuration* const configuration
 
 			std::wstring confname{ begin, end };
 
-			if (confname == rsDrawing_Filter_Period)
-				mRedrawPeriod = cur->int64;
-			else if (confname == rsDiagnosis_Is_Type2)
+			if (confname == rsDiagnosis_Is_Type2)
 				mDiagnosis = cur->boolean ? 2 : 1;
 			else if (confname == rsDrawing_Filter_Canvas_Width)
 				mCanvasWidth = static_cast<int>(cur->int64);
@@ -294,9 +280,7 @@ HRESULT CDrawing_Filter::Run(glucose::IFilter_Configuration* const configuration
 	for (size_t i = 0; i < glucose::signal_Virtual.size(); i++)
 		mCalcSignalNameMap[glucose::signal_Virtual[i]] = std::string("virtual ") + std::to_string(i);
 
-	mRunning = true;
-
-	mSchedulerThread = std::make_unique<std::thread>(&CDrawing_Filter::Run_Scheduler, this);
+	Fill_Localization_Map(mLocaleMap);
 
 	Run_Main();
 
@@ -310,6 +294,9 @@ inline std::string WToMB(std::wstring in)
 
 void CDrawing_Filter::Store_To_File(std::string& str, std::wstring& filePath)
 {
+	if (filePath.empty())
+		return;
+
 	std::string sbase(filePath.begin(), filePath.end());
 
 	std::ofstream ofs(sbase);
@@ -372,30 +359,22 @@ void CDrawing_Filter::Generate_Graphs(DataMap& valueMap, double maxValue, Locali
 		}
 	}
 
-	if (!mGraph_FilePath.empty())
-		Store_To_File(mGraph_SVG, mGraph_FilePath);
-	if (!mClark_FilePath.empty())
-		Store_To_File(mClark_SVG, mClark_FilePath);
-	if (!mDay_FilePath.empty())
-		Store_To_File(mDay_SVG, mDay_FilePath);
-	if (!mAGP_FilePath.empty())
-		Store_To_File(mAGP_SVG, mAGP_FilePath);
-	if (!mParkes_FilePath.empty())
-		Store_To_File(mParkes_type1_SVG, mParkes_FilePath);
-	if (!mECDF_FilePath.empty())
-		Store_To_File(mECDF_SVG, mECDF_FilePath);
-
-	glucose::UDevice_Event drawEvt{ glucose::NDevice_Event_Code::Information };	
-	drawEvt.info.set(rsInfo_Redraw_Complete);
-	mOutput.Send(drawEvt);
+	Store_To_File(mGraph_SVG, mGraph_FilePath);
+	Store_To_File(mClark_SVG, mClark_FilePath);
+	Store_To_File(mDay_SVG, mDay_FilePath);
+	Store_To_File(mAGP_SVG, mAGP_FilePath);
+	Store_To_File(mParkes_type1_SVG, mParkes_FilePath);
+	Store_To_File(mECDF_SVG, mECDF_FilePath);
 }
 
 HRESULT CDrawing_Filter::Get_Plot(const std::string &plot, refcnt::IVector_Container<char> *svg) const {
 	return svg->set(plot.data(), plot.data() + plot.size());
 }
 
-HRESULT IfaceCalling CDrawing_Filter::Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg) const
+HRESULT IfaceCalling CDrawing_Filter::Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg)
 {
+	Redraw_If_Changed();
+
 	std::unique_lock<std::mutex> lck(mRetrieveMtx);
 
 	switch (type)

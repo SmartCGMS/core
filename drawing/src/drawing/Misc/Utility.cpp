@@ -187,16 +187,6 @@ namespace Utility
             return {};
     }
 
-    double MgDl_To_MmolL(double mgdl)
-    {
-        return mgdl / 18.0;
-    }
-
-    double MmolL_To_MgDl(double mmol)
-    {
-        return 18.0 * mmol;
-    }
-
     std::string Format_Decimal(double number, int precision)
     {
         std::stringstream str;

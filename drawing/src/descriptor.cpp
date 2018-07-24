@@ -8,10 +8,9 @@
 
 namespace drawing
 {
-	constexpr size_t param_count = 10;
+	constexpr size_t param_count = 9;
 
 	constexpr glucose::NParameter_Type param_type[param_count] = {
-		glucose::NParameter_Type::ptInt64,
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptInt64,
 		glucose::NParameter_Type::ptInt64,
@@ -24,7 +23,6 @@ namespace drawing
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
-		dsDrawing_Filter_Period,
 		dsDiagnosis_Is_Type2,
 		dsDrawing_Filter_Canvas_Width,
 		dsDrawing_Filter_Canvas_Height,
@@ -37,7 +35,6 @@ namespace drawing
 	};
 
 	const wchar_t* config_param_name[param_count] = {
-		rsDrawing_Filter_Period,
 		rsDiagnosis_Is_Type2,
 		rsDrawing_Filter_Canvas_Width,
 		rsDrawing_Filter_Canvas_Height,
@@ -50,7 +47,6 @@ namespace drawing
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
-		nullptr,
 		nullptr,
 		nullptr,
 		nullptr,

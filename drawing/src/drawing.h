@@ -24,9 +24,6 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 		// output pipe
 		glucose::SFilter_Pipe mOutput;
 
-		// scheduler thread
-		std::unique_ptr<std::thread> mSchedulerThread;
-
 		// stored AGP SVG
 		std::string mAGP_SVG;
 		// stored clark grid SVG
@@ -58,8 +55,6 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 		// diagnosis flag
 		uint8_t mDiagnosis = 0; //type 1?
 
-		// redraw period [ms]
-		int64_t mRedrawPeriod = 250;
 		// input data changed
 		bool mChanged;
 		// mutex guard for changed variable
@@ -91,13 +86,11 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 		// configured canvas height
 		int mCanvasHeight = 768;
 
-		// internal running indicator
-		bool mRunning;
-
 		// thread function
 		void Run_Main();
-		// scheduler thread function
-		void Run_Scheduler();
+
+		// if the inputs changed, redraw SVGs
+		bool Redraw_If_Changed();
 
 		// fills given localization map with translation constants
 		void Fill_Localization_Map(LocalizationMap& locales);
@@ -124,7 +117,7 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 
 		virtual HRESULT Run(glucose::IFilter_Configuration* configuration) override;
 
-		virtual HRESULT IfaceCalling Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg) const override;
+		virtual HRESULT IfaceCalling Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg) override;
 };
 
 #pragma warning( pop )

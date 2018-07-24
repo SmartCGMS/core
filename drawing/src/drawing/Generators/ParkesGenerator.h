@@ -20,9 +20,6 @@ struct TCoordinate;
  */
 class CParkes_Generator : public IGenerator
 {
-    private:
-        //
-
     protected:
         // is diabetes type 1? true = type 1, false = type 2
         bool mDiabetesType1;
@@ -39,7 +36,7 @@ class CParkes_Generator : public IGenerator
         void Write_Background_Map_Type2();
         // writes normalized set of lines
 		template <typename T>
-		void Write_Normalized_Lines(const T &values) 		{
+		void Write_Normalized_Lines(const T &values) {
 			auto &start = values[0];
 
 			mSvg << "<path d =\"M " << Normalize_X(start.x) << " " << Normalize_Y(start.y);

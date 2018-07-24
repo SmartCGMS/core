@@ -27,6 +27,7 @@ namespace logger {
 	private:
 		CharT m_Separator;
 	};
+
 }
 
 #pragma warning( push )
@@ -35,11 +36,12 @@ namespace logger {
 /*
  * Filter class for logging all incoming events and dropping them (terminating the chain)
  */
-class CLog_Filter : public glucose::IFilter, public virtual refcnt::CReferenced {
+class CLog_Filter : public glucose::IFilter, public glucose::ILog_Filter_Inspection, public virtual refcnt::CReferenced {
 protected:
 	glucose::SFilter_Pipe mInput;
 	glucose::SFilter_Pipe mOutput;
 	std::wofstream mLog;
+	std::atomic<std::shared_ptr<refcnt::IVector_Container<refcnt::wstr_container*>>> mNew_Log_Records;
 
 	bool Open_Log(glucose::SFilter_Parameters configuration);
 	void Log_Event(const glucose::UDevice_Event &evt);
@@ -51,7 +53,8 @@ public:
 	CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
 	virtual ~CLog_Filter() {};
 
-	virtual HRESULT Run(refcnt::IVector_Container<glucose::TFilter_Parameter>* const configuration) override final;
+	virtual HRESULT Run(glucose::IFilter_Configuration* configuration) override final;
+	virtual HRESULT IfaceCalling Pop(refcnt::IVector_Container<refcnt::wstr_container*> **str) override final;
 };
 
 #pragma warning( pop )

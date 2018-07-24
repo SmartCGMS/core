@@ -144,14 +144,14 @@ void CParkes_Generator::Write_Description()
         mSvg.Draw_Text(sizeX / 2, Normalize_Y(0) + 50, str.str(), "middle", "black", 14);
         mSvg.Line(startX, Normalize_Y(0), Normalize_X(Parkes_Max_MgDl), Normalize_Y(0));
 
-		const int step = (int)(Parkes_Max_MgDl / 11.0);
+		const int step = (int)(Utility::MmolL_To_MgDl(2.0));
 
         // x-axis description
         for (int i = 0; i <= Parkes_Max_MgDl; i += step)
         {
-            double x_d = Normalize_X(i);
+			double x_d = Normalize_X(i);
             mSvg.Line(x_d, Normalize_Y(0), x_d, Normalize_Y(0) + 10);
-            mSvg.Draw_Text(x_d, Normalize_Y(0) + 30, mMmolFlag ? Utility::Format_Decimal(Utility::MgDl_To_MmolL(i), 3) : Utility::Format_Decimal(i, 3), "middle", "black", 12);
+            mSvg.Draw_Text(x_d, Normalize_Y(0) + 30, mMmolFlag ? Utility::Format_Decimal(round(Utility::MgDl_To_MmolL(i)), 3) : Utility::Format_Decimal(i, 3), "middle", "black", 12);
         }
 
         // y-axis description
@@ -159,7 +159,7 @@ void CParkes_Generator::Write_Description()
         {
             double y_d = Normalize_Y(i);
             mSvg.Line(startX - 10, y_d, startX, y_d);
-            mSvg.Draw_Text(startX - 25, y_d, mMmolFlag ? Utility::Format_Decimal(Utility::MgDl_To_MmolL(i), 3) : Utility::Format_Decimal(i, 3), "middle", "black", 12);
+            mSvg.Draw_Text(startX - 25, y_d, mMmolFlag ? Utility::Format_Decimal(round(Utility::MgDl_To_MmolL(i)), 3) : Utility::Format_Decimal(i, 3), "middle", "black", 12);
         }
     }
 
