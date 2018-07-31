@@ -111,5 +111,6 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 }
 
 HRESULT IfaceCalling CDiffusion_v2_blood::Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const {
-	return parameters->set(diffusion_v2_model::default_parameters, diffusion_v2_model::default_parameters + diffusion_v2_model::param_count);
+	double *params = const_cast<double*>(diffusion_v2_model::default_parameters);
+	return parameters->set(params, params + diffusion_v2_model::param_count);
 }

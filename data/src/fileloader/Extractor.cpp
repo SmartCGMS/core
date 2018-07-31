@@ -259,6 +259,8 @@ void CExtractor::Fill_TreePosition_For(std::string& formatName, ExtractorColumns
 			case ExtractorColumns::COL_BLOOD_DATETIME:
 				Fill_TreePosition_For(formatName, ExtractorColumns::COL_DATETIME, target);
 				break;
+			default:
+				break;
 		}
 	}
 }
@@ -552,18 +554,20 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 
 			switch (ccol)
 			{
-			case ExtractorColumns::COL_INSULIN:
-			{
-				mval->mInsulin = dval;
-				validValue = true;
-				break;
-			}
-			case ExtractorColumns::COL_CARBOHYDRATES:
-			{
-				mval->mCarbohydrates = dval;
-				validValue = true;
-				break;
-			}
+				case ExtractorColumns::COL_INSULIN:
+				{
+					mval->mInsulin = dval;
+					validValue = true;
+					break;
+				}
+				case ExtractorColumns::COL_CARBOHYDRATES:
+				{
+					mval->mCarbohydrates = dval;
+					validValue = true;
+					break;
+				}
+				default:
+					break;
 			}
 
 			break;
@@ -866,18 +870,20 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 				{
 					switch (ccol)
 					{
-					case ExtractorColumns::COL_INSULIN:
-					{
-						mval->mInsulin = dval;
-						validValue = true;
-						break;
-					}
-					case ExtractorColumns::COL_CARBOHYDRATES:
-					{
-						mval->mCarbohydrates = dval;
-						validValue = true;
-						break;
-					}
+						case ExtractorColumns::COL_INSULIN:
+						{
+							mval->mInsulin = dval;
+							validValue = true;
+							break;
+						}
+						case ExtractorColumns::COL_CARBOHYDRATES:
+						{
+							mval->mCarbohydrates = dval;
+							validValue = true;
+							break;
+						}
+						default:
+							break;
 					}
 				}
 			}

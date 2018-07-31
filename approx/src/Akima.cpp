@@ -1,5 +1,6 @@
 #include "Akima.h"
 
+#include <cmath>
 #include <algorithm>
 #include <iterator>
 #include <assert.h>
@@ -64,7 +65,7 @@ void CAkima::Compute_Coefficients() {
 
 
 	auto computeFd = [&](size_t i) {
-		if (FP_ZERO == fpclassify(w3) && FP_ZERO == fpclassify(w1)) {
+		if (FP_ZERO == std::fpclassify(w3) && FP_ZERO == std::fpclassify(w1)) {
 			double xv = mInputTimes[i]; // no need to optimize this,
 			double xvP = mInputTimes[i + 1]; // expecting to be very rare case
 			double xvM = mInputTimes[i - 1];
@@ -165,7 +166,7 @@ std::vector<double> CAkima::Interpolate_Hermite_Scalar(std::vector<double> coefs
 		//we should not get here with count less than 5
 
 	size_t dimSize = count;
-	for (int i = 0; i < numberOfDiffAndWeightElements; i++) {
+	for (size_t i = 0; i < numberOfDiffAndWeightElements; i++) {
 		double w = mInputTimes[i + 1] - mInputTimes[i];
 		double w2 = w * w;
 
@@ -198,13 +199,13 @@ HRESULT IfaceCalling CAkima::GetLevels(const double* times, double* const levels
 	const size_t measured_size_mul3 = mInputLevels.size() * 3;
 	const size_t measured_size_mul2 = mInputLevels.size() * 2;
 	const size_t measured_size = mInputLevels.size();
-	const double max_time = mInputTimes[mInputTimes.size() - 1];
+	//const double max_time = mInputTimes[mInputTimes.size() - 1];
 
 	for (size_t i = 0; i< count; i++) {
 		size_t knot_index = std::numeric_limits<size_t>::max();
 		if (times[i] == mInputTimes[0]) knot_index = 0;
 		else if (times[i] == mInputTimes[mInputTimes.size() - 1]) knot_index = mInputTimes.size() - 1;
-		else if (!isnan(times[i])) {
+		else if (!std::isnan(times[i])) {
 			std::vector<double>::iterator knot_iter = std::upper_bound(mInputTimes.begin(), mInputTimes.end(), times[i]);
 			if (knot_iter != mInputTimes.end()) knot_index = std::distance(mInputTimes.begin(), knot_iter) - 1;
 		}

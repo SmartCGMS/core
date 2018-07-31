@@ -2,6 +2,7 @@
 
 #include "descriptor.h"
 
+#include <cmath>
 #include <nlopt.hpp>
 
 #undef max
@@ -20,7 +21,7 @@ double present_time_objective(unsigned, const double *present_time, double *, vo
 	const double ist_times[2] = { *present_time - estimation_data.h, *present_time };
 	double ist_levels[2];
 	if (estimation_data.ist->Get_Continuous_Levels(nullptr, ist_times, ist_levels, 2, glucose::apxNo_Derivation) != S_OK) return std::numeric_limits<double>::max();
-	if (isnan(ist_levels[0]) || isnan(ist_levels[1])) return std::numeric_limits<double>::max();
+	if (std::isnan(ist_levels[0]) || std::isnan(ist_levels[1])) return std::numeric_limits<double>::max();
 
 	double estimated_present_time = *present_time + estimation_data.dt + estimation_data.kh * ist_levels[1] * (ist_levels[1] - ist_levels[0]);
 
@@ -76,7 +77,7 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Pa
 			opt.set_lower_bounds(dt.element()[i] - glucose::One_Hour);
 			opt.set_upper_bounds(dt.element()[i] + glucose::One_Hour);
 			opt.set_xtol_rel(0.1*glucose::One_Second);
-			nlopt::result result = opt.optimize(estimated_present_time, minf); 
+			/*nlopt::result result = */opt.optimize(estimated_present_time, minf); 
 
 			dt.element()[i] = estimated_present_time[0];
 		}

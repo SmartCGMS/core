@@ -62,13 +62,17 @@ public: \
 		return derived_type(src); \
 	} \
 	\
-	virtual HRESULT set(const double *begin, const double *end) final { \
+	virtual HRESULT set(double *begin, double *end) final { \
 		size_t i=0; \
 		for (auto iter = begin; iter != end; iter++ ) {\
 			operator[](i) = *iter; \
 			i++; \
 	    }\
 		return S_OK; \
+	} \
+	\
+	virtual HRESULT add(double *begin, double *end) final { \
+		return E_NOTIMPL; \
 	} \
 	\
 	virtual HRESULT get(double **begin, double **end) const final { \

@@ -1,6 +1,7 @@
 #include "descriptor.h"
 #include "calculate.h"
 #include "mapping.h"
+#include "masking.h"
 #include "Measured_Signal.h"
 
 #include "../../../common/lang/dstrings.h"
@@ -82,6 +83,41 @@ namespace mapping
 	};
 }
 
+namespace masking
+{
+	constexpr size_t param_count = 2;
+
+	constexpr glucose::NParameter_Type param_type[param_count] = {
+		glucose::NParameter_Type::ptSignal_Id,
+		glucose::NParameter_Type::ptWChar_Container // TODO: some type for bitmask?
+	};
+
+	const wchar_t* ui_param_name[param_count] = {
+		dsSignal_Masked_Id,
+		dsSignal_Value_Bitmask
+	};
+
+	const wchar_t* config_param_name[param_count] = {
+		rsSignal_Masked_Id,
+		rsSignal_Value_Bitmask
+	};
+
+	const wchar_t* ui_param_tooltips[param_count] = {
+		nullptr,
+		nullptr
+	};
+
+	const glucose::TFilter_Descriptor Masking_Descriptor = {
+		{ 0xa1124c89, 0x18a4, 0xf4c1,{ 0x28, 0xe8, 0xa9, 0x47, 0x1a, 0x58, 0x02, 0x1e } }, //// {A1124C89-18A4-F4C1-28E8-A9471A58021Q}
+		dsMasking_Filter,
+		param_count,
+		param_type,
+		ui_param_name,
+		config_param_name,
+		ui_param_tooltips
+	};
+}
+
 namespace measured_signal
 {
 	constexpr size_t supported_count = 5;
@@ -95,7 +131,7 @@ namespace measured_signal
 	};
 }
 
-const std::array<glucose::TFilter_Descriptor, 2> filter_descriptions = { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor };
+const std::array<glucose::TFilter_Descriptor, 3> filter_descriptions = { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, masking::Masking_Descriptor };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
 	*begin = const_cast<glucose::TFilter_Descriptor*>(filter_descriptions.data());
@@ -109,6 +145,8 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilte
 		return Manufacture_Object<CCalculate_Filter>(filter, input, output);
 	else if (*id == mapping::Mapping_Descriptor.id)
 		return Manufacture_Object<CMapping_Filter>(filter, input, output);
+	else if (*id == masking::Masking_Descriptor.id)
+		return Manufacture_Object<CMasking_Filter>(filter, input, output);
 
 	return ENOENT;
 }

@@ -13,6 +13,7 @@
 #include "XMLFormat.h"
 
 #include <xlnt/xlnt.hpp>
+
 #include <ExcelFormat/ExcelFormat.h>
 
 // all known file formats
@@ -184,7 +185,7 @@ class CCsv_File : public ISpreadsheet_File
 class CXls_File : public ISpreadsheet_File
 {
 	private:
-		std::unique_ptr<YExcel::BasicExcel> mFile;
+		std::unique_ptr<ExcelFormat::BasicExcel> mFile;
 		int mSelectedSheetIndex;
 
 	public:

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../../../common/rtl/hresult.h"
 #include "FormatRecognizer.h"
 #include "Extractor.h"
 

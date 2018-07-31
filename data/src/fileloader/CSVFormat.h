@@ -30,7 +30,7 @@ class CCSV_Format
 
 	protected:
 		// lazyloading method; loads to supplied row number, if needed
-		void Load_To_Row(int row);
+		void Load_To_Row(size_t row);
 
 	public:
 		CCSV_Format(const wchar_t* path, char separator = 0);

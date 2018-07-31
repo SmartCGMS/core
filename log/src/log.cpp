@@ -16,7 +16,7 @@
 CLog_Filter::CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
 	: mInput{inpipe}, mOutput{outpipe} {
 	
-	mNew_Log_Records = refcnt::Create_Container_shared<refcnt::wstr_container*>(nullptr, nullptr);
+	mNew_Log_Records = refcnt::Create_Container_shared<refcnt::wstr_container>(nullptr, nullptr);
 }
 
 std::wstring CLog_Filter::Parameters_To_WStr(const glucose::UDevice_Event& evt) {
@@ -125,15 +125,17 @@ void CLog_Filter::Log_Event(const glucose::UDevice_Event &evt) {
 
 
 	auto container = refcnt::WString_To_WChar_Container(log_line_str.c_str());
-	mNew_Log_Records->add(&container, &container+1);
+	mNew_Log_Records->add(container, container+1);
 }
 
-HRESULT IfaceCalling CLog_Filter::Pop(refcnt::IVector_Container<refcnt::wstr_container*> **str) {
+HRESULT IfaceCalling CLog_Filter::Pop(refcnt::wstr_list **str) {
 
 	std::unique_lock<std::mutex> scoped_lock{ mLog_Records_Guard };
 
-	decltype(mNew_Log_Records) empty_records_holder = refcnt::Create_Container_shared<refcnt::wstr_container*>(nullptr, nullptr);
+	decltype(mNew_Log_Records) empty_records_holder = refcnt::Create_Container_shared<refcnt::wstr_container>(nullptr, nullptr);
 	
 	*str = mNew_Log_Records.get();
-	mNew_Log_Records.reset(empty_records_holder.get(), [](refcnt::IVector_Container<refcnt::wstr_container*> *obj_to_release) {});	//do not actually delete this to retain the internal reference count!	
+	mNew_Log_Records.reset(empty_records_holder.get(), [](refcnt::wstr_list *obj_to_release) {});	//do not actually delete this to retain the internal reference count!	
+
+	return S_OK;
 };

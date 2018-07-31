@@ -14,7 +14,7 @@
 #include "solution.h"
 #include "NullMethod.h"
 
-#include "..\..\..\common\DebugHelper.h"
+#include "../../../common/DebugHelper.h"
 
 #undef min
 
@@ -79,12 +79,12 @@ double NLOpt_Top_Solution_Objective_Function(const std::vector<double> &x, std::
 			top_result[data->dimension_remap[i]] = x[i];
 		}
 	} else
-		top_result.set(x.data(), x.data()+x.size());
+		top_result.set(const_cast<double*>(x.data()), const_cast<double*>(x.data())+x.size());
 	
 
 	CNLOpt_Fitness_Proxy<TFitness, TTop_Solution, TBottom_Solution> fitness_proxy{ data->fitness, top_result };
 	TBottom_Solver bottom_solver(data->initial_bottom_solution, data->lower_bottom_bound, data->upper_bottom_bound, fitness_proxy, data->metric);
-	glucose::TSolver_Progress tmp_progress = { 0 };
+	glucose::TSolver_Progress tmp_progress = { 0, 0, 0.0, 0 };
 	TBottom_Solution bottom_result = bottom_solver.Solve(tmp_progress);
 
 	TResult_Solution composed_result = top_result.Compose(bottom_result);
@@ -99,7 +99,7 @@ double NLOpt_Top_Solution_Objective_Function(const std::vector<double> &x, std::
 		data->progress->best_metric = fitness;
 	}
 
-	data->progress->current_progress++;	
+	data->progress->current_progress++;
 
 	if (nlopt_tx::print_statistics)	nlopt_tx::eval_counter++;
 
@@ -182,7 +182,7 @@ public:
 		};
 		
 		//we need expression templates to reduce the overhead of remapping
-		if (mDimension_Remap.size() == mUpper_Top_Bound.cols()) opt.set_min_objective(NLOpt_Top_Solution_Objective_Function<TResult_Solution, TTop_Solution, TBottom_Solution, TBottom_Solver, TFitness, false>, &data);
+		if (mDimension_Remap.size() == static_cast<size_t>(mUpper_Top_Bound.cols())) opt.set_min_objective(NLOpt_Top_Solution_Objective_Function<TResult_Solution, TTop_Solution, TBottom_Solution, TBottom_Solver, TFitness, false>, &data);
 			else opt.set_min_objective(NLOpt_Top_Solution_Objective_Function<TResult_Solution, TTop_Solution, TBottom_Solution, TBottom_Solver, TFitness, true>, &data);
 				
 		
@@ -203,7 +203,7 @@ public:
 
 		std::vector<double> x = Top_Solution_As_Vector(mInitial_Top_Solution);
 		double minf = std::numeric_limits<double>::max();
-		nlopt::result result = opt.optimize(x, minf); //note that x contains only the top-level parameters, but we need full, composed result
+		/*nlopt::result result = */opt.optimize(x, minf); //note that x contains only the top-level parameters, but we need full, composed result
 		
 		if (nlopt_tx::print_statistics) {
 			const size_t count = nlopt_tx::eval_counter;	//https://stackoverflow.com/questions/27314485/use-of-deleted-function-error-with-stdatomic-int

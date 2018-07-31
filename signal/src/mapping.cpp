@@ -18,7 +18,7 @@ HRESULT CMapping_Filter::Run(glucose::IFilter_Configuration* configuration) {
 	mSourceId = shared_configuration.Read_GUID(rsSignal_Source_Id);
 	mDestinationId = shared_configuration.Read_GUID(rsSignal_Destination_Id);
 
-	for (; glucose::UDevice_Event evt = mInput.Receive(); evt) {
+	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
 		if (evt.signal_id == mSourceId)
 			evt.signal_id = mDestinationId;
 

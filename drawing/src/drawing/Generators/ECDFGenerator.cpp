@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <set>
 #include <array>
+#include <cstring>
 
 int CECDF_Generator::startX = 50;
 int CECDF_Generator::maxX = 800;

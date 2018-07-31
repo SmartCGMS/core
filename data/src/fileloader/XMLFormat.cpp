@@ -3,6 +3,8 @@
 
 #include <fstream>
 #include <string>
+#include <locale>
+#include <codecvt>
 
 CXML_Format::CXML_Format(const wchar_t* path) : mFileName(path), mWriteFlag(false)
 {
@@ -138,7 +140,8 @@ bool CXML_Format::Is_Error() const
 
 bool CXML_Format::Load(const wchar_t* path)
 {
-	std::ifstream f(path);
+	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converterX;
+	std::ifstream f(converterX.to_bytes(path));
 
 	if (!f.is_open())
 		return false;

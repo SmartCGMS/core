@@ -1,14 +1,15 @@
-#pragma once
-
-#include "..\..\..\common\rtl\UILib.h"
+#include "../../../common/rtl/UILib.h"
 
 #include "time_segment.h"
-#include "descriptor.h" 
+#include "descriptor.h"
 
-CTime_Segment::CTime_Segment(const int64_t segment_id, const GUID &calculated_signal_id, const double prediction_window, glucose::SFilter_Pipe output) : mPrediction_Window(prediction_window), mOutput(output), mSegment_id(segment_id), mCalculated_Signal_Id(calculated_signal_id) {
+#include <cmath>
+
+CTime_Segment::CTime_Segment(const int64_t segment_id, const GUID &calculated_signal_id, const double prediction_window, glucose::SFilter_Pipe output)
+	: mOutput(output), mCalculated_Signal_Id(calculated_signal_id), mSegment_id(segment_id), mPrediction_Window(prediction_window) {
 	Clear_Data();
 
-	glucose::TModel_Descriptor desc{ { 0 } };
+	glucose::TModel_Descriptor desc = glucose::Null_Model_Descriptor;
 	const bool result = glucose::get_model_descriptor_by_signal_id(calculated_signal_id, desc);
 
 	if (result) {
@@ -95,7 +96,7 @@ void CTime_Segment::Emit_Levels_At_Pending_Times() {
 
 		//send non-NaN values
 		for (size_t i = 0; i < levels.size(); i++) {
-			if (!isnan(levels[i])) {
+			if (!std::isnan(levels[i])) {
 				glucose::UDevice_Event calcEvt{ glucose::NDevice_Event_Code::Level };
 				calcEvt.device_time = times[i];
 				calcEvt.level = levels[i];

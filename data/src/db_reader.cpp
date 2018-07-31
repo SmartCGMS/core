@@ -14,12 +14,13 @@
 
 #include <tbb/tbb_allocator.h>
 
+#include <cmath>
 #include <map>
 
 const GUID Db_Reader_Device_GUID = db_reader::filter_id;// { 0x00000001, 0x0001, 0x0001, { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
 
 // enumerator of known column indexes
-enum class NColumn_Pos : int
+enum class NColumn_Pos : size_t
 {
 	Blood = 0,
 	Ist,
@@ -40,20 +41,23 @@ NColumn_Pos& operator++(NColumn_Pos& ref)
 	return ref;
 }
 
-// map of DB columns to signal GUIDs used
-std::map<NColumn_Pos, GUID, std::less<NColumn_Pos>, tbb::tbb_allocator<std::pair<NColumn_Pos, GUID>>> ColumnSignalMap = {
-	{ NColumn_Pos::Blood, glucose::signal_BG },
-	{ NColumn_Pos::Ist, glucose::signal_IG },
-	{ NColumn_Pos::Isig, glucose::signal_ISIG },
-	{ NColumn_Pos::Insulin, glucose::signal_Insulin },
-	{ NColumn_Pos::Carbohydrates, glucose::signal_Carb_Intake },
-	{ NColumn_Pos::Calibration, glucose::signal_Calibration }
+// array of DB columns - signal GUIDs used
+std::array<GUID, static_cast<size_t>(NColumn_Pos::_Count)> ColumnSignalMap = {
+	glucose::signal_BG, glucose::signal_IG, glucose::signal_ISIG, glucose::signal_Insulin, glucose::signal_Carb_Intake, glucose::signal_Calibration
 };
 
 CDb_Reader::CDb_Reader(glucose::SFilter_Pipe in_pipe, glucose::SFilter_Pipe out_pipe) : mInput(in_pipe), mOutput(out_pipe), mDbPort(0) {
 	//
 }
 
+bool CDb_Reader::Emit_Shut_Down()
+{
+	glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Shut_Down };
+
+	evt.device_id = Db_Reader_Device_GUID;
+
+	return mOutput.Send(evt);
+}
 
 bool CDb_Reader::Emit_Segment_Marker(glucose::NDevice_Event_Code code, int64_t segment_id) {
 	glucose::UDevice_Event evt{ code };
@@ -126,7 +130,7 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 			auto column = levels[static_cast<size_t>(i)];
 
 			// if no value is present, skip
-			auto fpcl = fpclassify(column);
+			auto fpcl = std::fpclassify(column);
 			if (fpcl == FP_NAN || fpcl == FP_INFINITE)
 				continue;
 
@@ -134,7 +138,7 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 
 			evt.level = column;
 			evt.device_id = Db_Reader_Device_GUID;
-			evt.signal_id = ColumnSignalMap[i];
+			evt.signal_id = ColumnSignalMap[static_cast<size_t>(i)];
 			evt.device_time = measured_at;
 			evt.segment_id = segment_id;
 
@@ -154,7 +158,6 @@ void CDb_Reader::Db_Reader() {
 
 	//we must open the db connection from exactly that thread, that is about to use it
 
-	HRESULT rc = E_FAIL;
 	if (mDb_Connector)
 		mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
 	if (!mDb_Connection)
@@ -168,6 +171,9 @@ void CDb_Reader::Db_Reader() {
 		if (!Emit_Segment_Levels(segment_index)) break;
 		if (!Emit_Segment_Marker(glucose::NDevice_Event_Code::Time_Segment_Stop, segment_index)) break;
 	}
+
+	if (mShutdownAfterLast)
+		Emit_Shut_Down();
 }
 
 bool CDb_Reader::Configure(glucose::SFilter_Parameters configuration) {
@@ -178,6 +184,7 @@ bool CDb_Reader::Configure(glucose::SFilter_Parameters configuration) {
 	mDbUsername = configuration.Read_String(rsDb_User_Name);
 	mDbPassword = configuration.Read_String(rsDb_Password);
 	mDbTimeSegmentIds = configuration.Read_Int_Array(rsTime_Segment_ID);
+	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
 
 	// we need at least these parameters
 	return !(mDbHost.empty() || mDbProvider.empty() || mDbTimeSegmentIds.empty());
@@ -191,7 +198,7 @@ HRESULT CDb_Reader::Run(glucose::IFilter_Configuration *configuration) {
 	mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
 
 
-	for (; glucose::UDevice_Event evt = mInput.Receive(); evt) {
+	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
 		if (evt.event_code == glucose::NDevice_Event_Code::Warm_Reset) {
 			//recreate the reader thread
 			End_Db_Reader();						

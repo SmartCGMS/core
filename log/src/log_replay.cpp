@@ -17,6 +17,7 @@
 #include <vector>
 #include <algorithm> 
 #include <cctype>
+#include <codecvt>
 
 CLog_Replay_Filter::CLog_Replay_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
 	: mInput{ inpipe }, mOutput{ outpipe }
@@ -26,7 +27,6 @@ CLog_Replay_Filter::CLog_Replay_Filter(glucose::SFilter_Pipe inpipe, glucose::SF
 void CLog_Replay_Filter::Run_Main()
 {
 	std::wstring line;
-	size_t pos = 0;
 	std::wstring column;
 
 	// read header and validate
@@ -64,6 +64,7 @@ void CLog_Replay_Filter::Run_Main()
 
 			// specific column (titled "info", but contains parameters or level)
 			auto specificval = cut_column();
+
 			const size_t segment_id = std::stoull(cut_column());
 
 			glucose::UDevice_Event evt{ static_cast<glucose::NDevice_Event_Code>(std::stoull(cut_column())) };
@@ -107,7 +108,8 @@ bool CLog_Replay_Filter::Open_Log(glucose::SFilter_Parameters configuration)
 	if (!log_file_name.empty())
 	{
 		// try to open file for reading
-		mLog.open(log_file_name);
+		std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converterX;
+		mLog.open(converterX.to_bytes(log_file_name));
 
 		result = mLog.is_open();
 		// set decimal point separator
@@ -128,7 +130,7 @@ HRESULT CLog_Replay_Filter::Run(refcnt::IVector_Container<glucose::TFilter_Param
 
 	// main loop in log reader main thread - we still need to be able to pass events from input pipe to output, althought we are the source of messages (separate thread)
 	// the reason is the same as in any other "pure-input" filter like db reader - simulation commands comes through input pipe
-	for (; glucose::UDevice_Event evt = mInput.Receive(); evt) {
+	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
 		if (!mOutput.Send(evt))
 			break;
 	}

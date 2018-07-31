@@ -24,13 +24,15 @@ void CCompute_Filter::Run_Main()
 {
 	bool resetFlag = false;
 
-	for (; glucose::UDevice_Event evt = mInput.Receive(); evt) {
+	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
 
-		if (mHold_During_Solve)
+		// also do not shutdown during solve
+		if (mHold_During_Solve || evt.event_code == glucose::NDevice_Event_Code::Shut_Down)
 		{
 			std::unique_lock<std::mutex> lck(mScheduleMtx);
 
-			mScheduleCv.wait(lck, [this]() { return !mComputeHolder->Is_Solve_In_Progress(); });
+			if (mComputeHolder->Is_Solve_In_Progress())
+				mScheduleCv.wait(lck, [this]() { return !mComputeHolder->Is_Solve_In_Progress(); });
 		}
 	
 		switch (evt.event_code)
@@ -75,7 +77,7 @@ void CCompute_Filter::Run_Main()
 				break;
 			// suspend parameter solving - no solver thread will start until "resume" message
 			case glucose::NDevice_Event_Code::Suspend_Parameter_Solving:
-				if (evt.signal_id == GUID{ 0 } || evt.signal_id == mComputeHolder->Get_Signal_Id())
+				if (evt.signal_id == Invalid_GUID || evt.signal_id == mComputeHolder->Get_Signal_Id())
 				{
 					std::unique_lock<std::mutex> lck(mScheduleMtx);
 					mSuspended = true;
@@ -83,7 +85,7 @@ void CCompute_Filter::Run_Main()
 				break;
 			// resume parameter solving - solver threads will be started again; if there's some pending solve, start it immediatelly
 			case glucose::NDevice_Event_Code::Resume_Parameter_Solving:
-				if (evt.signal_id == GUID{ 0 } || evt.signal_id == mComputeHolder->Get_Signal_Id())
+				if (evt.signal_id == Invalid_GUID || evt.signal_id == mComputeHolder->Get_Signal_Id())
 				{
 					std::unique_lock<std::mutex> lck(mScheduleMtx);
 					mSuspended = false;
@@ -250,7 +252,7 @@ void CCompute_Filter::Run_Scheduler()
 
 					std::wstring progMsg = rsInfo_Solver_Failed;
 
-					failed_evt.info = refcnt::make_shared_reference_ext<refcnt::Swstr_container, refcnt::wstr_container>(refcnt::WString_To_WChar_Container(progMsg.c_str()), true);
+					failed_evt.info.set(progMsg.c_str());
 					failed_evt.signal_id = mComputeHolder->Get_Signal_Id();
 					mOutput.Send(failed_evt);
 				}

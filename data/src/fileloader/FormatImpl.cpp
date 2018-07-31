@@ -98,6 +98,10 @@ inline std::string WStringToUTF8(const std::wstring& str)
 // converts codepage encoded string to unicode; needed due to mixed mode XLS files
 std::wstring CodePageToUnicode(int codePage, const char *src)
 {
+#ifndef _WIN32
+	// we do not support codepages on non-Windows machine for now; we would need iconv or similar
+	return std::wstring{ src, src + strlen(src) };
+#else
 	if (!src)
 		return L"";
 
@@ -119,6 +123,7 @@ std::wstring CodePageToUnicode(int codePage, const char *src)
 		return L"";
 
 	return w;
+#endif
 }
 
 // custom function for parsing floating point values
@@ -241,7 +246,7 @@ void CXls_File::Init(std::wstring &path)
 {
 	mSelectedSheetIndex = 0;
 	mOriginalPath = path;
-	mFile = std::make_unique<YExcel::BasicExcel>();
+	mFile = std::make_unique<ExcelFormat::BasicExcel>();
 	mFile->Load(path.c_str());
 }
 
@@ -252,15 +257,15 @@ void CXls_File::Select_Worksheet(int sheetIndex)
 
 std::string CXls_File::Read(int row, int col)
 {
-	YExcel::BasicExcelWorksheet* ws = mFile->GetWorksheet(mSelectedSheetIndex);
+	ExcelFormat::BasicExcelWorksheet* ws = mFile->GetWorksheet(mSelectedSheetIndex);
 	if (!ws)
 	{
 		mEOF = true;
 		return std::string("");
 	}
 
-	YExcel::BasicExcelCell* cell = ws->Cell(row, col);
-	if (!cell || cell->Type() == YExcel::BasicExcelCell::UNDEFINED)
+	ExcelFormat::BasicExcelCell* cell = ws->Cell(row, col);
+	if (!cell || cell->Type() == ExcelFormat::BasicExcelCell::UNDEFINED)
 	{
 		mEOF = true;
 		return std::string("");
@@ -269,20 +274,20 @@ std::string CXls_File::Read(int row, int col)
 	// type disambiguation; convert if needed
 	switch (cell->Type())
 	{
-		case YExcel::BasicExcelCell::STRING:
+		case ExcelFormat::BasicExcelCell::STRING:
 		{
 			// unfortunatelly, Excel in XLS format saves several strings in codepage encoding
 			std::wstring tmp = CodePageToUnicode(assumedCodepage, cell->GetString());
 			return WStringToUTF8(tmp);
 		}
-		case YExcel::BasicExcelCell::WSTRING:
+		case ExcelFormat::BasicExcelCell::WSTRING:
 		{
 			std::wstring tmp = cell->GetWString();
 			return WStringToUTF8(tmp);
 		}
-		case YExcel::BasicExcelCell::DOUBLE:
+		case ExcelFormat::BasicExcelCell::DOUBLE:
 			return std::to_string(cell->GetDouble());
-		case YExcel::BasicExcelCell::INT:
+		case ExcelFormat::BasicExcelCell::INT:
 			return std::to_string(cell->GetInteger());
 	}
 
@@ -291,14 +296,14 @@ std::string CXls_File::Read(int row, int col)
 
 double CXls_File::Read_Double(int row, int col)
 {
-	YExcel::BasicExcelWorksheet* ws = mFile->GetWorksheet(mSelectedSheetIndex);
+	ExcelFormat::BasicExcelWorksheet* ws = mFile->GetWorksheet(mSelectedSheetIndex);
 	if (!ws)
 	{
 		mEOF = true;
 		return 0.0;
 	}
 
-	YExcel::BasicExcelCell* cell = ws->Cell(row, col);
+	ExcelFormat::BasicExcelCell* cell = ws->Cell(row, col);
 	if (!cell)
 	{
 		mEOF = true;
@@ -309,19 +314,19 @@ double CXls_File::Read_Double(int row, int col)
 	{
 		switch (cell->Type())
 		{
-			case YExcel::BasicExcelCell::STRING:
+			case ExcelFormat::BasicExcelCell::STRING:
 			{
 				std::string str(cell->GetString());
 				return stod_custom(str);
 			}
-			case YExcel::BasicExcelCell::WSTRING:
+			case ExcelFormat::BasicExcelCell::WSTRING:
 			{
 				std::string str(WStringToUTF8(std::wstring(cell->GetWString())));
 				return stod_custom(str);
 			}
-			case YExcel::BasicExcelCell::DOUBLE:
+			case ExcelFormat::BasicExcelCell::DOUBLE:
 				return cell->GetDouble();
-			case YExcel::BasicExcelCell::INT:
+			case ExcelFormat::BasicExcelCell::INT:
 				return (double)cell->GetInteger();
 		}
 	}
@@ -335,7 +340,7 @@ double CXls_File::Read_Double(int row, int col)
 
 void CXls_File::Write(int row, int col, std::string value)
 {
-	YExcel::BasicExcelWorksheet* ws = mFile->GetWorksheet(mSelectedSheetIndex);
+	ExcelFormat::BasicExcelWorksheet* ws = mFile->GetWorksheet(mSelectedSheetIndex);
 	if (!ws)
 		return;
 
@@ -356,7 +361,11 @@ void CXlsx_File::Init(std::wstring &path)
 	mOriginalPath = path;
 	mFile = std::make_unique<xlnt::workbook>();
 
-	mFile->load(path);
+	using convert_typeX = std::codecvt_utf8<wchar_t>;
+	std::wstring_convert<convert_typeX, wchar_t> converterX;
+	std::string spath = converterX.to_bytes(path);
+
+	mFile->load(spath);
 }
 
 void CXlsx_File::Select_Worksheet(int sheetIndex)
@@ -396,7 +405,6 @@ double CXlsx_File::Read_Double(int row, int col)
 	try
 	{
 		xlnt::worksheet ws = mFile->sheet_by_index(mSelectedSheetIndex);
-		xlnt::cell const& cl = ws.cell(col + 1, row + 1);
 		return ws.cell(col + 1, row + 1).value<double>();
 	}
 	catch (std::exception&)

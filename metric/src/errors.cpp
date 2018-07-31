@@ -30,7 +30,7 @@ HRESULT CErrors_Filter::Run(glucose::IFilter_Configuration* configuration) {
 	
 	bool updated = false;
 
-	for (;  glucose::UDevice_Event evt = mInput.Receive(); evt) {
+	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
 	
 		switch (evt.event_code)
 		{

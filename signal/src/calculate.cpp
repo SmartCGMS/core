@@ -25,7 +25,7 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 	mSignal_Id = shared_configuration.Read_GUID(rsSelected_Signal);
 	mPrediction_Window = shared_configuration.Read_Double(rsPrediction_Window);
 
-	for (; glucose::UDevice_Event evt = mInput.Receive(); evt) {
+	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
 
 		bool event_already_sent = false;
 

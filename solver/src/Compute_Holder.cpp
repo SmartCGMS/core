@@ -10,9 +10,8 @@
 
 CCompute_Holder::CCompute_Holder(const GUID &solver_id, const GUID &signal_id, const glucose::TMetric_Parameters &metric_parameters, const size_t metric_levels_required, const char use_measured_levels,
 	bool use_just_opened_segments)
-	: mSolverId(solver_id), mSignalId(signal_id), mMetricLevelsRequired(metric_levels_required), mUseMeasuredLevels(use_measured_levels),
-	  mLowBounds(), mHighBounds(), mSolveInProgress(false), mMaxTime(0.0), mLastStoppedSegment(0), mDetermine_Parameters_Using_All_Known_Segments(use_just_opened_segments),
-	  mMetric{ metric_parameters }
+	: mSolveInProgress(false), mSolverId(solver_id), mSignalId(signal_id), mMetric{ metric_parameters }, mMetricLevelsRequired(metric_levels_required), mUseMeasuredLevels(use_measured_levels),
+	  mLowBounds(), mHighBounds(), mLastStoppedSegment(0), mDetermine_Parameters_Using_All_Known_Segments(use_just_opened_segments), mMaxTime(0.0)
 {
 	//
 }
@@ -34,10 +33,12 @@ void CCompute_Holder::Start_Segment(uint64_t segment_id)
 	}
 	else // fill default model parameters
 	{
-		glucose::TModel_Descriptor desc{ {0} };
+		glucose::TModel_Descriptor desc = glucose::Null_Model_Descriptor;
 
-		if (glucose::get_model_descriptor_by_signal_id(mSignalId, desc))
-			params = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(desc.default_values, desc.default_values + desc.number_of_parameters);
+		if (glucose::get_model_descriptor_by_signal_id(mSignalId, desc)) {
+			double *default_params_ptr = const_cast<double*>(desc.default_values);
+			params = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(default_params_ptr, default_params_ptr + desc.number_of_parameters);
+		}
 	}
 
 	mSegments[segment_id] = {
@@ -102,7 +103,7 @@ void CCompute_Holder::Set_Defaults(glucose::SModel_Parameter_Vector defaults)
 
 bool CCompute_Holder::Fill_Default_Model_Bounds(const GUID &calculated_signal_id, GUID &reference_signal_id, glucose::SModel_Parameter_Vector &low, glucose::SModel_Parameter_Vector &defaults, glucose::SModel_Parameter_Vector &high)
 {
-	glucose::TModel_Descriptor desc{ {0} };
+	glucose::TModel_Descriptor desc = glucose::Null_Model_Descriptor;
 	const bool result = glucose::get_model_descriptor_by_signal_id(calculated_signal_id, desc);
 
 	if (result) {
@@ -114,9 +115,9 @@ bool CCompute_Holder::Fill_Default_Model_Bounds(const GUID &calculated_signal_id
 				break;
 			}
 
-		low = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(desc.lower_bound, desc.lower_bound + desc.number_of_parameters);
-		high = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(desc.upper_bound, desc.upper_bound + desc.number_of_parameters);
-		defaults = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(desc.default_values, desc.default_values + desc.number_of_parameters);
+		low = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(const_cast<double*>(desc.lower_bound), const_cast<double*>(desc.lower_bound) + desc.number_of_parameters);
+		high = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(const_cast<double*>(desc.upper_bound), const_cast<double*>(desc.upper_bound) + desc.number_of_parameters);
+		defaults = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(const_cast<double*>(desc.default_values), const_cast<double*>(desc.default_values) + desc.number_of_parameters);
 	}
 
 	return result;
@@ -244,7 +245,7 @@ bool CCompute_Holder::Compare_Solutions(glucose::SMetric metric) {
 	if (!mTempModelParams)
 		return false;
 
-	glucose::TModel_Descriptor desc{0};
+	glucose::TModel_Descriptor desc = glucose::Null_Model_Descriptor;
 	if (!glucose::get_model_descriptor_by_signal_id(mSignalId, desc)) return false;
 	GUID reference_signal_id = Invalid_GUID;	//sanity check
 	for (size_t i = 0; i<desc.number_of_calculated_signals; i++)

@@ -13,7 +13,7 @@ void CFormat_Recognizer::Add_Pattern(const char* formatName, const char* cellLoc
 	std::string istr(content);
 	size_t offset = 0, base;
 	// localized formats - pattern may contain "%%" string to delimit localizations
-	while (base = istr.find("%%", offset))
+	while ((base = istr.find("%%", offset)))
 	{
 		if (base == std::string::npos)
 		{

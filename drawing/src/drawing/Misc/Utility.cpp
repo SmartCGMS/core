@@ -121,7 +121,7 @@ namespace Utility
     {
         double intPart, fractpart;
         fractpart = modf(index, &intPart);
-        int in = (int)intPart;
+        size_t in = (size_t)intPart;
 
         if (fabs(fractpart) < std::numeric_limits<double>::epsilon())
             return vector.at(in);
@@ -143,25 +143,27 @@ namespace Utility
         if (index == -1)
             return false;
 
+		size_t s_index = static_cast<size_t>(index);
+
         int indexShift = 0;
 
-        Value& countedDiff = diffVal[index];
+        Value& countedDiff = diffVal[s_index];
         // exact match - no need to interpolate
         if (measuredBlood.date == countedDiff.date)
             searchValue = countedDiff;
         else // otherwise approximate
         {
             // border value - no data
-            if (index == 0 || index == diffVal.size())
+            if (s_index == 0 || s_index == diffVal.size())
                 return false;
 
             // even index - bezier curve passes through this point
-            if (index % 2 != 0)
+            if (s_index % 2 != 0)
                 indexShift = 1;
 
-            Value &p2 = diffVal[index + indexShift];
-            Value &p1 = diffVal[index + indexShift - 1];
-            Value &p0 = diffVal[index + indexShift - 2];
+            Value &p2 = diffVal[s_index + indexShift];
+            Value &p1 = diffVal[s_index + indexShift - 1];
+            Value &p0 = diffVal[s_index + indexShift - 2];
 
             searchValue = Get_Bezier_Value(p0, p1, p2, measuredBlood);
         }

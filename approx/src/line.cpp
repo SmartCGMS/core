@@ -48,7 +48,7 @@ HRESULT IfaceCalling CLine_Approximator::GetLevels(const double* times, double* 
 		size_t knot_index = std::numeric_limits<size_t>::max();
 		if (times[i] == mInputTimes[0]) knot_index = 0;
 			else if (times[i] == mInputTimes[mInputTimes.size() - 1]) knot_index = mInputTimes.size() - 1;
-			else if (!isnan(times[i])) {
+			else if (!std::isnan(times[i])) {
 				std::vector<double>::iterator knot_iter = std::upper_bound(mInputTimes.begin(), mInputTimes.end(), times[i]);	
 				if (knot_iter != mInputTimes.end()) knot_index = std::distance(mInputTimes.begin(), knot_iter) - 1;								
 			}

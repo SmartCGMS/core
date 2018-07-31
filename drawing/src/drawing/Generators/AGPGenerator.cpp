@@ -78,9 +78,9 @@ void CAGP_Generator::Write_Description()
         }
 
         // y-axis description
-        for (int i = 0; i <= AGP_Max_Mgdl; i += Utility::MmolL_To_MgDl(2.0))
+        for (double i = 0; i <= AGP_Max_Mgdl; i += Utility::MmolL_To_MgDl(2.0))
         {
-            double y_d = Normalize_Y(i);
+            double y_d = Normalize_Y(floor(i));
             mSvg.Line(startX - 10, y_d, startX, y_d);
             mSvg.Draw_Text(startX - 25, y_d, mMmolFlag ? Utility::Format_Decimal(round(Utility::MgDl_To_MmolL(i)), 3) : std::to_string(i), "middle", "black", 12);
             mSvg.Draw_Text(startX - 25, y_d, mMmolFlag ? Utility::Format_Decimal(round(Utility::MgDl_To_MmolL(i)), 3) : std::to_string(i), "middle", "black", 12);

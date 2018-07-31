@@ -25,7 +25,7 @@
 
 #undef min
 
-const std::map<GUID, const char*, std::less<GUID>, tbb::tbb_allocator<std::pair<GUID, const char*>>> Signal_Mapping = {
+const std::map<GUID, const char*, std::less<GUID>, tbb::tbb_allocator<std::pair<const GUID, const char*>>> Signal_Mapping = {
 	{ glucose::signal_IG, "ist" },
 	{ glucose::signal_BG, "blood" },
 	{ glucose::signal_Calibration, "bloodCalibration" },
@@ -51,7 +51,7 @@ void CDrawing_Filter::Run_Main() {
 
 	// TODO: get rid of excessive locking (mutexes)
 
-	for (;  glucose::UDevice_Event evt = mInput.Receive(); evt) {
+	for (;  glucose::UDevice_Event evt = mInput.Receive(); ) {
 
 		// explicit "changed lock" scope; unblocked right before pipe operation to avoid deadlock
 		{
@@ -368,11 +368,11 @@ void CDrawing_Filter::Generate_Graphs(DataMap& valueMap, double maxValue, Locali
 }
 
 HRESULT CDrawing_Filter::Get_Plot(const std::string &plot, refcnt::IVector_Container<char> *svg) const {
-	return svg->set(plot.data(), plot.data() + plot.size());
+	char* plot_ptr = const_cast<char*>(plot.data());
+	return svg->set(plot_ptr, plot_ptr + plot.size());
 }
 
-HRESULT IfaceCalling CDrawing_Filter::Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg)
-{
+HRESULT IfaceCalling CDrawing_Filter::Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg) {
 	Redraw_If_Changed();
 
 	std::unique_lock<std::mutex> lck(mRetrieveMtx);

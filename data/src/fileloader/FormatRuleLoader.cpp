@@ -24,7 +24,10 @@ bool CFormat_Rule_Loader::Load_Format_Pattern_Config()
 	SI_Error err;
 	ini.SetUnicode();
 
-	err = ini.LoadFile(Resolve_Config_File_Path(dsPatternConfigurationFileName).c_str());
+	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converterX;
+	std::string convPath = converterX.to_bytes(Resolve_Config_File_Path(dsPatternConfigurationFileName));
+
+	err = ini.LoadFile(convPath.c_str());
 
 	if (err < 0)
 		return false;
@@ -59,7 +62,10 @@ bool CFormat_Rule_Loader::Load_Format_Rule_Templates()
 	SI_Error err;
 	ini.SetUnicode();
 
-	err = ini.LoadFile(Resolve_Config_File_Path(dsFormatRuleTemplatesFileName).c_str());
+	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converterX;
+	std::string convPath = converterX.to_bytes(Resolve_Config_File_Path(dsFormatRuleTemplatesFileName));
+
+	err = ini.LoadFile(convPath.c_str());
 
 	if (err < 0)
 		return false;
@@ -115,7 +121,10 @@ bool CFormat_Rule_Loader::Load_Format_Rules()
 	SI_Error err;
 	ini.SetUnicode();
 
-	err = ini.LoadFile(Resolve_Config_File_Path(dsFormatRulesFileName).c_str());
+	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converterX;
+	std::string convPath = converterX.to_bytes(Resolve_Config_File_Path(dsFormatRulesFileName));
+
+	err = ini.LoadFile(convPath.c_str());
 
 	if (err < 0)
 		return false;

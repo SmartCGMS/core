@@ -10,7 +10,7 @@
 #include "nlopt.h"
 #include "LocalSearch.h"
 
-#include "../..\..\common\rtl\cfixes.h"
+//#include "../..\..\common\rtl\cfixes.h"
 
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_reduce.h>

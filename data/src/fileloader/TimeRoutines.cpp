@@ -1,8 +1,10 @@
 #include "TimeRoutines.h"
+#include "../../../../common/rtl/winapi_mapping.h"
 
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <ctime>
 
 bool Is_Valid_Tm(std::tm& v)
 {

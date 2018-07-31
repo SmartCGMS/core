@@ -2,6 +2,8 @@
 
 #include "descriptor.h"
 
+#include <cmath>
+
 CSteil_Rebrin_blood::CSteil_Rebrin_blood(glucose::WTime_Segment segment) : CCommon_Calculation(segment, glucose::signal_IG), mIst(segment.Get_Signal(glucose::signal_IG)), mCalibration(segment.Get_Signal(glucose::signal_Calibration)) {
 	if (!refcnt::Shared_Valid_All(mIst, mCalibration)) throw std::exception{};
 }
@@ -36,8 +38,8 @@ HRESULT IfaceCalling CSteil_Rebrin_blood::Get_Continuous_Levels(glucose::IModel_
 	rc = mCalibration->Get_Continuous_Levels(nullptr, times, calibration_offsets.element().data(), count, glucose::apxNo_Derivation);
 	if (rc != S_OK) calibration_offsets.element().setConstant(std::numeric_limits<double>::quiet_NaN());	//if failed, well, let's behave like if there was no calibration at all
 
-	for (auto i = 0; i < count; i++) {
-		if (isnan(calibration_offsets.element()[i])) calibration_offsets.element()[i] = times[i] - recent_calibration_time;
+	for (size_t i = 0; i < count; i++) {
+		if (std::isnan(calibration_offsets.element()[i])) calibration_offsets.element()[i] = times[i] - recent_calibration_time;
 			else {
 				calibration_offsets.element()[i] = 0.0;
 				recent_calibration_time = times[i];
@@ -53,5 +55,6 @@ HRESULT IfaceCalling CSteil_Rebrin_blood::Get_Continuous_Levels(glucose::IModel_
 }
 
 HRESULT IfaceCalling CSteil_Rebrin_blood::Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const {
-	return parameters->set(steil_rebrin::default_parameters, steil_rebrin::default_parameters + steil_rebrin::param_count);
+	double *params = const_cast<double*>(steil_rebrin::default_parameters);
+	return parameters->set(params, params + steil_rebrin::param_count);
 }

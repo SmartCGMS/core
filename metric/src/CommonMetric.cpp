@@ -9,6 +9,7 @@
 #include "CommonMetric.h"
 
 #include <algorithm>
+#include <cmath>
 
 #undef max
 
@@ -36,7 +37,7 @@ HRESULT IfaceCalling CCommon_Metric::Accumulate(const double *times, const doubl
 
 
 	for (size_t i = 0; i < count; i++) {
-		if (!isnan(calculated[i])) {
+		if (!std::isnan(calculated[i])) {
 			TProcessed_Difference tmp;
 			tmp.raw.datetime = times[i];
 			tmp.raw.calculated = expected[i];
@@ -70,7 +71,7 @@ HRESULT IfaceCalling CCommon_Metric::Calculate(double *metric, size_t *levels_ac
 
 	double local_metric = Do_Calculate_Metric();	//caching into the register
 	
-	const auto cl = fpclassify(local_metric);
+	const auto cl = std::fpclassify(local_metric);
 	if ((cl != FP_NORMAL) && (cl != FP_ZERO)) return S_FALSE;
 
 	if (mParameters.prefer_more_levels != 0) local_metric /= static_cast<double>(count);

@@ -62,7 +62,7 @@ HRESULT IfaceCalling solve_model_parameters(const glucose::TSolver_Setup *setup)
 }
 
 HRESULT IfaceCalling create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApprox_Parameters_Vector* configuration, glucose::IApproximator **approx) {
-	return loaded_filters.create_approximator(approx_id, signal, approx, configuration);
+	return loaded_filters.create_approximator(approx_id, signal, configuration, approx);
 }
 
 HRESULT IfaceCalling add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Filter create_filter) {
@@ -139,9 +139,9 @@ HRESULT CLoaded_Filters::solve_model_parameters(const glucose::TSolver_Setup *se
 	return Call_Func(call_solve_filter, setup);
 }
 
-HRESULT CLoaded_Filters::create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApproximator **approx, glucose::IApprox_Parameters_Vector* configuration) {
+HRESULT CLoaded_Filters::create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApprox_Parameters_Vector* configuration, glucose::IApproximator **approx) {
 	auto call_create_approx = [](const imported::TLibraryInfo &info) { return info.create_approximator; };
-	return Call_Func(call_create_approx, approx_id, signal, approx, configuration);
+	return Call_Func(call_create_approx, approx_id, signal, configuration, approx);
 }
 
 HRESULT IfaceCalling CLoaded_Filters::get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {

@@ -35,7 +35,7 @@ CFile_Reader::~CFile_Reader()
 	}
 }
 
-HRESULT CFile_Reader::Send_Event(glucose::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID* signalId, double value)
+bool CFile_Reader::Send_Event(glucose::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID* signalId, double value)
 {
 	glucose::UDevice_Event evt{ code };
 
@@ -100,17 +100,17 @@ void CFile_Reader::Run_Reader()
 			bool errorRes = false;
 
 			if (cur->mIst.has_value())
-				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_IG, cur->mIst.value()) != S_OK);
+				errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_IG, cur->mIst.value());
 			if (cur->mIsig.has_value())
-				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_ISIG, cur->mIsig.value()) != S_OK);
+				errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_ISIG, cur->mIsig.value());
 			if (cur->mBlood.has_value())
-				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_BG, cur->mBlood.value()) != S_OK);
+				errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_BG, cur->mBlood.value());
 			if (cur->mInsulin.has_value())
-				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Insulin, cur->mInsulin.value()) != S_OK);
+				errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Insulin, cur->mInsulin.value());
 			if (cur->mCarbohydrates.has_value())
-				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Carb_Intake, cur->mCarbohydrates.value()) != S_OK);
+				errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Carb_Intake, cur->mCarbohydrates.value());
 			if (cur->mCalibration.has_value())
-				errorRes |= (Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Calibration, cur->mCalibration.value()) != S_OK);
+				errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Calibration, cur->mCalibration.value());
 
 			if (errorRes)
 			{
@@ -129,11 +129,20 @@ void CFile_Reader::Run_Reader()
 			segmentStarted = false;
 		}
 	}
+
+	if (mShutdownAfterLast)
+	{
+		glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Shut_Down };
+
+		evt.device_id = file_reader::File_Reader_Device_GUID;
+		// send shutdown event to input pipe - this will deinitialize filter correctly and speed it up a bit
+		mInput.Send(evt);
+	}
 }
 
 void CFile_Reader::Run_Main() {		
 
-	for (; glucose::UDevice_Event evt = mInput.Receive(); evt) {
+	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
 	
 		// just fall through in main filter thread
 		// there also may be some control code handling (i.e. pausing value sending, etc.)
@@ -168,64 +177,52 @@ void CFile_Reader::Merge_Values(ExtractionResult& result)
 	}
 }
 
-HRESULT CFile_Reader::Run(refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration)
+HRESULT CFile_Reader::Extract(ExtractionResult &values)
 {
-	glucose::TFilter_Parameter *cbegin, *cend;
-	if (configuration->get(&cbegin, &cend) != S_OK)
+	CFormat_Recognizer recognizer;
+	CExtractor extractor;
+
+	CFormat_Rule_Loader loader(recognizer, extractor);
+	if (!loader.Load())
 		return E_FAIL;
 
-	for (glucose::TFilter_Parameter* cur = cbegin; cur < cend; cur += 1)
-	{
-		wchar_t *begin, *end;
-		if (cur->config_name->get(&begin, &end) != S_OK)
-			continue;
+	values.Value_Count = 0;
+	values.SegmentValues.clear();
 
-		std::wstring confname{ begin, end };
+	// TODO: support more files at once
+	values.SegmentValues.resize(1);
+	values.SegmentBloodValues.resize(1);
+	values.SegmentMiscValues.resize(1);
 
-		if (confname == rsInput_Values_File)
-		{
-			if (cur->wstr->get(&begin, &end) != S_OK)
-				continue;
+	CFormat_Adapter sfile;
+	std::string format = recognizer.Recognize_And_Open(mFileName, sfile);
 
-			mFileName = std::wstring{ begin, end };
-		}
-		else if (confname == rsInput_Segment_Spacing)
-			mSegmentSpacing = static_cast<double>(cur->int64) * 1000.0 * InvMSecsPerDay;
-	}
+	// unrecognized format or error loading file
+	if (format == "" || sfile.Get_Error())
+		return E_FAIL;
+
+	// extract data and fill extraction result
+	if (!extractor.Extract(format, sfile, values, 0))
+		return E_FAIL;
+
+	return S_OK;
+}
+
+HRESULT CFile_Reader::Run(refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration)
+{
+	auto conf = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
+
+	mFileName = conf.Read_String(rsInput_Values_File);
+	mSegmentSpacing = conf.Read_Int(rsInput_Segment_Spacing) * 1000.0 * InvMSecsPerDay;
+	mShutdownAfterLast = conf.Read_Bool(rsShutdown_After_Last);
 
 	if (mFileName.empty())
 		return ENOENT;
 
 	ExtractionResult values;
-
-	// loader scope
-	{
-		CFormat_Recognizer recognizer;
-		CExtractor extractor;
-
-		CFormat_Rule_Loader loader(recognizer, extractor);
-		if (!loader.Load())
-			return E_FAIL;
-
-		values.Value_Count = 0;
-		values.SegmentValues.clear();
-
-		// TODO: support more files at once
-		values.SegmentValues.resize(1);
-		values.SegmentBloodValues.resize(1);
-		values.SegmentMiscValues.resize(1);
-
-		CFormat_Adapter sfile;
-		std::string format = recognizer.Recognize_And_Open(mFileName, sfile);
-
-		// unrecognized format or error loading file
-		if (format == "" || sfile.Get_Error())
-			return E_FAIL;
-
-		// extract data and fill extraction result
-		if (!extractor.Extract(format, sfile, values, 0))
-			return E_FAIL;
-	}
+	HRESULT rc = Extract(values);
+	if (rc != S_OK)
+		return rc;
 
 	Merge_Values(values);
 

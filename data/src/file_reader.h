@@ -31,6 +31,8 @@ class CFile_Reader : public glucose::IFilter, public virtual refcnt::CReferenced
 		double mSegmentSpacing;
 		// merged extracted values from given file
 		std::vector<TValue_Vector> mMergedValues;
+		// do we need to send shutdown after last value?
+		bool mShutdownAfterLast;
 
 		// reader thread
 		std::unique_ptr<std::thread> mReaderThread;
@@ -41,7 +43,9 @@ class CFile_Reader : public glucose::IFilter, public virtual refcnt::CReferenced
 		void Run_Main();
 
 		// send event to filter chain
-		HRESULT Send_Event(glucose::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID* signalId = nullptr, double value = 0.0);
+		bool Send_Event(glucose::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID* signalId = nullptr, double value = 0.0);
+		// extracts file to value vector container
+		HRESULT Extract(ExtractionResult &values);
 		// merge values from extraction result to internal vector
 		void Merge_Values(ExtractionResult& result);
 

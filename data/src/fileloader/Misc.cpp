@@ -1,11 +1,12 @@
 #include "Misc.h"
 
 #include <sstream>
+#include <cstring>
 
 void Discard_BOM_If_Present(std::istream& is)
 {
 	uint8_t bom[4];
-	memset(bom, 0, 4);
+	std::memset(bom, 0, 4);
 
 	is.read((char*)bom, 4);
 

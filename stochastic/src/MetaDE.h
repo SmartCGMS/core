@@ -35,7 +35,7 @@ namespace metade {
 
 	enum class NStrategy : size_t { desCurrentToPBest = 0, desCurrentToUmPBest, desBest2Bin, desUmBest1, desCurrentToRand1, count };
 
-	const std::map<NStrategy, const char*, std::less<NStrategy>, tbb::tbb_allocator<std::pair<NStrategy, const char*>>> strategy_name = {
+	const std::map<NStrategy, const char*, std::less<NStrategy>, tbb::tbb_allocator<std::pair<const NStrategy, const char*>>> strategy_name = {
 														{ NStrategy::desCurrentToPBest,		"CurToPBest" },
 														{ NStrategy::desCurrentToUmPBest,	"CurToUmPBest" },
 														{ NStrategy::desBest2Bin,			"Best2Bin" },
@@ -187,7 +187,7 @@ protected:
 	glucose::SMetric &mMetric;
 public:
 	CMetaDE(const std::vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, glucose::SMetric &metric) :
-		mLower_Bound(lower_bound), mUpper_Bound(upper_bound), mFitness(fitness), mMetric(metric), mPopulation(mPopulation_Size), mPopulation_Best(mPopulation_Size) {
+		mLower_Bound(lower_bound), mUpper_Bound(upper_bound), mPopulation(mPopulation_Size), mPopulation_Best(mPopulation_Size), mFitness(fitness), mMetric(metric) {
 
 
 		//1. create the initial population
@@ -246,7 +246,7 @@ public:
 			//In this step, current is read-only and next is write-only => no locking is needed
 			//as each next will be written just once.
 			//We assume that parallelization cost will get amortized
-			tbb::parallel_for(tbb::blocked_range<size_t>(size_t(0), mPopulation_Size), [=, &progress](const tbb::blocked_range<size_t> &r) {
+			tbb::parallel_for(tbb::blocked_range<size_t>(size_t(0), mPopulation_Size), [=](const tbb::blocked_range<size_t> &r) {
 
 				glucose::SMetric metric_calculator = mMetric.Clone();
 				//for (size_t iter = 0; iter<mPopulation_Size; iter++) {
@@ -303,6 +303,7 @@ public:
 							candidate_solution.F*(mPopulation[mPopulation_Best[0]].current - candidate_solution.current) +
 							mUniform_Distribution(mRandom_Generator)*random_difference_vector();
 						break;
+
 					}
 
 					//ensure the bounds				
@@ -312,7 +313,7 @@ public:
 					//crossbreed
 					{
 						const size_t element_count = candidate_solution.next.cols();
-						for (auto element_iter = 0; element_iter < element_count; element_iter++) {
+						for (size_t element_iter = 0; element_iter < element_count; element_iter++) {
 							if (mUniform_Distribution(mRandom_Generator) > candidate_solution.CR)
 								candidate_solution.next[element_iter] = candidate_solution.current[element_iter];
 						}

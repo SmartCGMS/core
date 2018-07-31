@@ -1,4 +1,5 @@
 #include "iso8601.h"
+#include "../../../../common/rtl/winapi_mapping.h"
 
 //https://github.com/logandk/restful_mapper/blob/master/include/restful_mapper/internal/iso8601.h
 

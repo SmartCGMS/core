@@ -6,9 +6,10 @@
 
 #include <iostream>
 #include <chrono>
+#include <cmath>
 
 CHold_Filter::CHold_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
-	: mInput(inpipe), mOutput(outpipe), mSimulationOffset(0.0), mNotified(0), mMsWait(0)
+	: mInput(inpipe), mOutput(outpipe), mNotified(0), mSimulationOffset(0.0), mMsWait(0)
 {
 	//
 }
@@ -16,7 +17,7 @@ CHold_Filter::CHold_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe o
 void CHold_Filter::Run_Main() {	
 	bool hold;
 
-	for (; glucose::UDevice_Event evt = mInput.Receive(); evt) {
+	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
 		hold = true;
 		switch (evt.event_code)
 		{
@@ -32,14 +33,12 @@ void CHold_Filter::Run_Main() {
 			case glucose::NDevice_Event_Code::Error:
 				hold = false;
 				break;
+
 		}
 
-		if (hold)
-		{
+		if (hold) {
 			mQueue.push(evt.release());
-		}
-		else
-		{
+		} else {
 			if (!mOutput.Send(evt) )
 				break;
 		}
@@ -88,7 +87,7 @@ void CHold_Filter::Run_Hold()
 				// if the device time is in future, wait for this amount of time to simulate real-time measurement
 				while (mNotified == 0 && evt.device_time > j_now)
 				{
-					time_t tdiff = static_cast<time_t>(round((evt.device_time - j_now) * MSecsPerDay / 1000.0));
+					time_t tdiff = static_cast<time_t>(std::round((evt.device_time - j_now) * MSecsPerDay / 1000.0));
 					mHoldCv.wait_for(lck, std::chrono::seconds(tdiff));
 
 					t_now = static_cast<time_t>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
@@ -126,23 +125,9 @@ void CHold_Filter::Simulation_Step(size_t stepcount)
 	mHoldCv.notify_all();
 }
 
-HRESULT CHold_Filter::Run(refcnt::IVector_Container<glucose::TFilter_Parameter>* const configuration)
-{
-	glucose::TFilter_Parameter *cbegin, *cend;
-	if (configuration->get(&cbegin, &cend) != S_OK)
-		return E_FAIL;
-
-	for (glucose::TFilter_Parameter* cur = cbegin; cur < cend; cur += 1)
-	{
-		wchar_t *begin, *end;
-		if (cur->config_name->get(&begin, &end) != S_OK)
-			continue;
-
-		std::wstring confname{ begin, end };
-
-		if (confname == rsHold_Values_Delay)
-			mMsWait = static_cast<size_t>(cur->int64);
-	}
+HRESULT CHold_Filter::Run(refcnt::IVector_Container<glucose::TFilter_Parameter>* const configuration) {
+	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
+	mMsWait = shared_configuration.Read_Int(rsHold_Values_Delay);
 
 	mRunning = true;
 

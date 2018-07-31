@@ -117,7 +117,7 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 
 		virtual HRESULT Run(glucose::IFilter_Configuration* configuration) override;
 
-		virtual HRESULT IfaceCalling Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg) override;
+		virtual HRESULT IfaceCalling Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg) override;		
 };
 
 #pragma warning( pop )

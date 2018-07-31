@@ -44,8 +44,8 @@ protected:
 	std::wofstream mLog;
 	
 	std::mutex mLog_Records_Guard;
-	std::shared_ptr<refcnt::IVector_Container<refcnt::wstr_container*>> mNew_Log_Records;
-
+	std::shared_ptr<refcnt::wstr_list> mNew_Log_Records;
+	
 	bool Open_Log(glucose::SFilter_Parameters configuration);
 	void Log_Event(const glucose::UDevice_Event &evt);
 protected:
@@ -57,7 +57,7 @@ public:
 	virtual ~CLog_Filter() {};
 
 	virtual HRESULT Run(glucose::IFilter_Configuration* configuration) override final;
-	virtual HRESULT IfaceCalling Pop(refcnt::IVector_Container<refcnt::wstr_container*> **str) override final;
+	virtual HRESULT IfaceCalling Pop(refcnt::wstr_list **str) override final;
 };
 
 #pragma warning( pop )

@@ -1,5 +1,6 @@
 #include "CSVFormat.h"
 #include "Misc.h"
+#include "../../../../common/rtl/winapi_mapping.h"
 
 #include <map>
 #include <sstream>
@@ -13,8 +14,14 @@ enum class CSVState
 	QuotedQuote
 };
 
-CCSV_Format::CCSV_Format(const wchar_t* path, char separator) : mFile(path), mRowsLoaded(0), mError(0), mFileName(path), mWriteFlag(false), mMaxColumn(0)
+CCSV_Format::CCSV_Format(const wchar_t* path, char separator) : mRowsLoaded(0), mError(0), mFileName(path), mWriteFlag(false), mMaxColumn(0)
 {
+	std::string pathConv(wcslen(path)*sizeof(wchar_t), 0);
+
+	size_t cntconv;
+	wcstombs_s(&cntconv, (char*)pathConv.data(), wcslen(path) * sizeof(wchar_t), path, wcslen(path) * sizeof(wchar_t));
+
+	mFile.open(pathConv);
 	if (mFile.bad())
 	{
 		mError = 1;
@@ -78,13 +85,13 @@ std::string CCSV_Format::Read(int row, int column)
 
 	// if there are not enough rows / columns after lazyload, it means the cell does not exist
 	// note that we always consider maximum number of columns ever read; this is because of segmented CSVs, etc.
-	if (mContents.size() <= row || mMaxColumn <= column)
+	if (static_cast<int>(mContents.size()) <= row || static_cast<int>(mMaxColumn) <= column)
 	{
 		mUnkCell = true;
 		return "";
 	}
 
-	if (mContents[row].size() <= column)
+	if (static_cast<int>(mContents[row].size()) <= column)
 		return "";
 
 	mUnkCell = false;
@@ -93,16 +100,16 @@ std::string CCSV_Format::Read(int row, int column)
 
 void CCSV_Format::Write(int row, int column, std::string value)
 {
-	if (mError)
+	if (mError || row < 0)
 		return;
 
 	// lazyload if needed
-	Load_To_Row(row);
+	Load_To_Row(static_cast<size_t>(row));
 
 	// resize if needed
-	if (mContents.size() <= row)
+	if (static_cast<int>(mContents.size()) <= row)
 		mContents.resize(row + 1);
-	if (mContents[row].size() <= column)
+	if (static_cast<int>(mContents[row].size()) <= column)
 		mContents[row].resize(column + 1);
 
 	// write only if needed
@@ -113,7 +120,7 @@ void CCSV_Format::Write(int row, int column, std::string value)
 	}
 }
 
-void CCSV_Format::Load_To_Row(int row)
+void CCSV_Format::Load_To_Row(size_t row)
 {
 	// we load more rows only if needed
 	if (mRowsLoaded <= row)
