@@ -40,25 +40,22 @@ HRESULT IfaceCalling CDb_Writer::QueryInterface(const GUID*  riid, void ** ppvOb
 	return E_NOINTERFACE;
 }
 
-int64_t CDb_Writer::Create_Segment(std::wstring name, std::wstring comment) {
-	return db_writer::Error_Id;
+int64_t CDb_Writer::Create_Segment(std::wstring name, std::wstring comment) {	
+	auto qr = mDb_Connection.Query(rsFound_New_Segment, rsReserved_Segment_Name);
+	qr.Get_Next();	//no need to test the return value - shall it fail, we'll try to reuse previously founded new segment
 
-	/*
-	TODO: vkladani bez last insert id
-
-	// "INSERT INTO timesegment (name, comment, deleted, subjectid, parallel_id) VALUES (?, ?, ?, ?, ?)"
-	auto qr = mDb_Connection.Query(rsInsert_New_Segment,
-		name.c_str(), comment.c_str(), false, db_writer::Anonymous_Subject_Id, nullptr);
+	int64_t segment_id;
+	qr = mDb_Connection.Query(rsSelect_Founded_Segment, rsReserved_Segment_Name);
+	if (!qr || !qr.Get_Next(segment_id))
+		return db_writer::Error_Id;
 
 	// TODO: resolve parallel segments
 
-	if (!qr)
+	qr = mDb_Connection.Query(rsUpdate_Founded_Segment, rsReserved_Segment_Name, name.c_str(), comment.c_str(), false, db_writer::Anonymous_Subject_Id, nullptr, segment_id);
+	if (!qr || !qr.Get_Next(segment_id))
 		return db_writer::Error_Id;
 
-	qr.Execute();
-
-	return qr.Get_Insert_Id();
-	*/
+	return segment_id;
 }
 
 int64_t CDb_Writer::Get_Db_Segment_Id(int64_t segment_id) {

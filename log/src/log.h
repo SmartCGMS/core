@@ -42,6 +42,7 @@ protected:
 	glucose::SFilter_Pipe mInput;
 	glucose::SFilter_Pipe mOutput;
 	std::wofstream mLog;
+	bool mIs_Terminated;
 	
 	std::mutex mLog_Records_Guard;
 	std::shared_ptr<refcnt::wstr_list> mNew_Log_Records;
@@ -52,11 +53,14 @@ protected:
 	// vector of model descriptors; stored for parameter formatting
 	std::vector<glucose::TModel_Descriptor> mModelDescriptors;
 	std::wstring Parameters_To_WStr(const glucose::UDevice_Event& evt);
+	std::wstring Signal_Id_To_WStr(const GUID &signal_id);
 public:
 	CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
 	virtual ~CLog_Filter() {};
+	
+	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
 
-	virtual HRESULT Run(glucose::IFilter_Configuration* configuration) override final;
+	virtual HRESULT IfaceCalling Run(glucose::IFilter_Configuration* configuration) override final;
 	virtual HRESULT IfaceCalling Pop(refcnt::wstr_list **str) override final;
 };
 

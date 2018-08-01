@@ -88,10 +88,13 @@ bool CTime_Segment::Calculate(const std::vector<double> &times, std::vector<doub
 }
 
 void CTime_Segment::Emit_Levels_At_Pending_Times() {
+	if (mPending_Times.empty()) return;
+
 	std::vector<double> levels(mPending_Times.size()), times{ mPending_Times.begin(), mPending_Times.end() };
 	if (levels.size() != times.size()) return;	//allocation error!
 
-	if (mCalculated_Signal->Get_Continuous_Levels(mWorking_Parameters.get(), times.data(), levels.data(), levels.size(), glucose::apxNo_Derivation) == S_OK) {
+	auto params_ptr = mWorking_Parameters.operator bool() ? mWorking_Parameters.get() : nullptr;
+	if (mCalculated_Signal->Get_Continuous_Levels(params_ptr, times.data(), levels.data(), levels.size(), glucose::apxNo_Derivation) == S_OK) {
 		mPending_Times.clear();
 
 		//send non-NaN values

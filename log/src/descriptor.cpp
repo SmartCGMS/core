@@ -30,7 +30,7 @@ namespace logger
 	};
 
 	const glucose::TFilter_Descriptor Log_Descriptor = {
-		{ 0xc0e942b9, 0x3928, 0x4b81, { 0x9b, 0x43, 0xa3, 0x47, 0x66, 0x82, 0x0, 0xBA } }, //// {C0E942B9-3928-4B81-9B43-A347668200BA}
+		glucose::Log_Filter,
 		dsLog_Filter,
 		param_count,
 		param_type,

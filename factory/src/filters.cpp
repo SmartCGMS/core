@@ -19,10 +19,10 @@ namespace imported {
 }
 
 
-CLoaded_Filters loaded_filters;
+CLoaded_Filters loaded_filters{};
 
-void Load_Libraries() {
-	loaded_filters.load_libraries();
+CLoaded_Filters::CLoaded_Filters() {
+	load_libraries();
 }
 
 HRESULT get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {	

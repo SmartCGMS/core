@@ -12,11 +12,39 @@
 #include <sstream>
 #include <ctime>
 #include <vector>
+#include <string>
+#include <map>
 
 CLog_Filter::CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
 	: mInput{inpipe}, mOutput{outpipe} {
 	
 	mNew_Log_Records = refcnt::Create_Container_shared<refcnt::wstr_container*>(nullptr, nullptr);
+}
+
+HRESULT IfaceCalling CLog_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
+	if (Internal_Query_Interface<glucose::IFilter>(glucose::Log_Filter, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<glucose::ILog_Filter_Inspection>(glucose::Log_Filter_Inspection, *riid, ppvObj)) return S_OK;
+
+	return E_NOINTERFACE;
+}
+
+std::wstring CLog_Filter::Signal_Id_To_WStr(const GUID &signal_id) {
+	const std::map<GUID, const wchar_t*> signal_names = {	//don't make it static unless with TBB allocator, else the memory won't be freed
+		{ glucose::signal_BG, L"BG" },
+		{ glucose::signal_IG, L"IG" },
+		{ glucose::signal_ISIG, L"ISIG" },
+		{ glucose::signal_Calibration, L"Calibration" },
+		{ glucose::signal_Insulin, L"Insulin" },
+		{ glucose::signal_Carb_Intake, L"Carb" },
+		{ glucose::signal_Health_Stress, L"Stress" },
+		{ glucose::signal_Diffusion_v2_Blood, L"Diff2 BG" },
+		{ glucose::signal_Diffusion_v2_Ist, L"Diff2 IG" },
+		{ glucose::signal_Steil_Rebrin_Blood, L"SR BG" }
+	};
+
+	const auto resolved_name = signal_names.find(signal_id);
+	if (resolved_name != signal_names.end()) return resolved_name->second;
+	else return GUID_To_WString(signal_id);
 }
 
 std::wstring CLog_Filter::Parameters_To_WStr(const glucose::UDevice_Event& evt) {
@@ -80,7 +108,8 @@ bool CLog_Filter::Open_Log(glucose::SFilter_Parameters configuration) {
 	return result;
 }
 
-HRESULT CLog_Filter::Run(glucose::IFilter_Configuration* configuration) {
+HRESULT IfaceCalling CLog_Filter::Run(glucose::IFilter_Configuration* configuration) {
+	mIs_Terminated = false;
 
 	// load model descriptors to be able to properly format log outputs of parameters	
 	mModelDescriptors = glucose::get_model_descriptors();
@@ -93,6 +122,8 @@ HRESULT CLog_Filter::Run(glucose::IFilter_Configuration* configuration) {
 
 		if (!mOutput.Send(evt)) break;
 	}	
+
+	mIs_Terminated = true;
 
 	if (log_opened)
 		mLog.close();
@@ -110,7 +141,7 @@ void CLog_Filter::Log_Event(const glucose::UDevice_Event &evt) {
 	log_line << evt.logical_time << delim;
 	log_line << Rat_Time_To_Local_Time_WStr(evt.device_time, rsLog_Date_Time_Format) << delim;
 	log_line << glucose::event_code_text[static_cast<size_t>(evt.event_code)] << delim;
-	if (evt.signal_id != Invalid_GUID) log_line << glucose::Signal_Id_To_WStr(evt.signal_id); log_line << delim;
+	if (evt.signal_id != Invalid_GUID) log_line << Signal_Id_To_WStr(evt.signal_id); log_line << delim;
 	if (evt.is_level_event()) log_line << evt.level;
 		else if (evt.is_info_event()) log_line << refcnt::WChar_Container_To_WString(evt.info.get());
 			else if (evt.is_parameters_event()) log_line << Parameters_To_WStr(evt);
@@ -124,18 +155,26 @@ void CLog_Filter::Log_Event(const glucose::UDevice_Event &evt) {
 	mLog << log_line_str;
 
 
-	auto container = refcnt::WString_To_WChar_Container(log_line_str.c_str());
-	mNew_Log_Records->add(&container, &container+1);
+	refcnt::wstr_container* container = refcnt::WString_To_WChar_Container(log_line_str.c_str());
+	mNew_Log_Records->add(&container, &container +1);
+	container->Release();
 }
 
 HRESULT IfaceCalling CLog_Filter::Pop(refcnt::wstr_list **str) {
+	if (mIs_Terminated) return E_FAIL;
 
 	std::unique_lock<std::mutex> scoped_lock{ mLog_Records_Guard };
 
-	decltype(mNew_Log_Records) empty_records_holder = refcnt::Create_Container_shared<refcnt::wstr_container*>(nullptr, nullptr);
-	
-	*str = mNew_Log_Records.get();
-	mNew_Log_Records.reset(empty_records_holder.get(), [](refcnt::wstr_list *obj_to_release) {});	//do not actually delete this to retain the internal reference count!	
+	if (mNew_Log_Records->empty() == S_OK) {
+		*str = nullptr;
+		return S_FALSE;
+	}
+	else {
+		*str = mNew_Log_Records.get();
+		(*str)->AddRef();
 
-	return S_OK;
+		mNew_Log_Records = refcnt::Create_Container_shared<refcnt::wstr_container*>(nullptr, nullptr);
+
+		return S_OK;
+	}
 };

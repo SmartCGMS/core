@@ -53,6 +53,7 @@ namespace metade {
 		double CR, F;
 		TSolution current, next;
 		double current_fitness, next_fitness;
+		glucose::SMetric metric_calculator;	//de-facto, we create a pool of metrics so that we don't need to clone it for each thread or implement pushing and poping to and from the pool
 	};
 
 	struct TMetaDE_Stats {
@@ -212,11 +213,11 @@ public:
 		std::shuffle(mPopulation.begin(), mPopulation.end(), mRandom_Generator);
 
 		//2. set cr and f parameters, and calculate the metrics
-		glucose::SMetric metric_calculator = mMetric.Clone();
 		for (auto &solution : mPopulation) {
-			//Do not do this parallel as the metric_calculator would have to be created many times
 			Generate_Meta_Params(solution);
-			solution.current_fitness = mFitness.Calculate_Fitness(solution.current, metric_calculator);
+			solution.metric_calculator = mMetric.Clone(); //verify that clone is thread-safe if ever reworking this to parallel (but likely not needed for a performance reasons)
+			solution.current_fitness = mFitness.Calculate_Fitness(solution.current, solution.metric_calculator);
+			
 		}
 
 		//3. finally, create and fill mpopulation indexes
@@ -247,12 +248,12 @@ public:
 			//as each next will be written just once.
 			//We assume that parallelization cost will get amortized
 			tbb::parallel_for(tbb::blocked_range<size_t>(size_t(0), mPopulation_Size), [=](const tbb::blocked_range<size_t> &r) {
-
-				glucose::SMetric metric_calculator = mMetric.Clone();
+				
 				//for (size_t iter = 0; iter<mPopulation_Size; iter++) {
 
 				const size_t rend = r.end();
 				for (size_t iter = r.begin(); iter != rend; iter++) {
+
 
 					auto generate_random_index = [&]()->size_t {
 						const double fl_population_high = static_cast<double>(mPopulation_Size - 1);
@@ -326,12 +327,13 @@ public:
 /*
 					//apply additional local solver
 					const std::vector<TSolution> local_solution_candidate = { candidate_solution.next };
-					TLocalSolver local_solver { local_solution_candidate, mLower_Bound, mUpper_Bound, mFitness, mMetric_Factory };
+					TLocalSolver local_solver { local_solution_candidate, mLower_Bound, mUpper_Bound, mFitness, candidate_solution.metric_calculator };
 					TSolverProgress tmp_progress;
 					candidate_solution.next = local_solver.Solve(tmp_progress);
 */
 					//and evaluate
-					candidate_solution.next_fitness = mFitness.Calculate_Fitness(candidate_solution.next, metric_calculator);
+					candidate_solution.metric_calculator->Reset();
+					candidate_solution.next_fitness = mFitness.Calculate_Fitness(candidate_solution.next, candidate_solution.metric_calculator);
 				}
 			});
 
