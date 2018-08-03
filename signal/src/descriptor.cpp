@@ -9,29 +9,92 @@
 
 #include <vector>
 
-namespace calculate
-{
-	constexpr size_t param_count = 3;
+namespace calculate {
+
+	constexpr size_t param_count = 19;
 
 	constexpr glucose::NParameter_Type param_type[param_count] = {
+		glucose::NParameter_Type::ptNull,
 		glucose::NParameter_Type::ptModel_Id,
 		glucose::NParameter_Type::ptModel_Signal_Id,
-		glucose::NParameter_Type::ptRatTime
+		glucose::NParameter_Type::ptRatTime,
+		glucose::NParameter_Type::ptNull,
+		glucose::NParameter_Type::ptBool,
+		glucose::NParameter_Type::ptSolver_Id,
+		glucose::NParameter_Type::ptModel_Bounds,
+		glucose::NParameter_Type::ptInt64,		
+		glucose::NParameter_Type::ptBool,
+		glucose::NParameter_Type::ptBool,
+		glucose::NParameter_Type::ptNull,
+		glucose::NParameter_Type::ptMetric_Id,
+		glucose::NParameter_Type::ptInt64,
+		glucose::NParameter_Type::ptBool,
+		glucose::NParameter_Type::ptBool,
+		glucose::NParameter_Type::ptBool,
+		glucose::NParameter_Type::ptBool,
+		glucose::NParameter_Type::ptDouble
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
+		dsCalculation,
 		dsSelected_Model,
 		dsSelected_Signal,
-		dsPrediction_Window
+		dsPrediction_Window,
+		dsSolving_Parameters_Separator,
+		dsSolve_Parameters,
+		dsSelected_Solver,
+		dsSelected_Model_Bounds,		
+		dsSolve_On_Level_Count,
+		dsSolve_On_Calibration,
+		dsSolve_Using_All_Segments,
+		dsMetric_Separator,
+		dsSelected_Metric,
+		dsMetric_Levels_Required,
+		dsUse_Measured_Levels,
+		dsUse_Relative_Error,
+		dsUse_Squared_Diff,
+		dsUse_Prefer_More_Levels,
+		dsMetric_Threshold
 	};
 
 	const wchar_t* config_param_name[param_count] = {
+		nullptr,
 		rsSelected_Model,
 		rsSelected_Signal,
-		rsPrediction_Window
+		rsPrediction_Window,
+		nullptr,
+		rsSolve_Parameters,
+		rsSelected_Solver,
+		rsSelected_Model_Bounds,			
+		rsSolve_On_Level_Count,
+		dsSolve_On_Calibration,
+		rsSolve_Using_All_Segments,
+		nullptr,
+		rsSelected_Metric,
+		rsMetric_Levels_Required,
+		rsUse_Measured_Levels,
+		rsUse_Relative_Error,
+		rsUse_Squared_Diff,
+		rsUse_Prefer_More_Levels,
+		rsMetric_Threshold
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		dsMetric_Levels_Required_Hint,
+		nullptr,
+		nullptr,
 		nullptr,
 		nullptr,
 		nullptr

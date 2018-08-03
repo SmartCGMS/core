@@ -23,6 +23,14 @@ protected:
 	GUID mSignal_Id = Invalid_GUID;
 	double mPrediction_Window = 0.0;
 protected:
+	bool mSolver_Enabled;
+	bool mSolving_Scheduled;
+	bool mSolve_On_Calibration;
+	int64_t mReference_Level_Threshold_Count;
+	int64_t mReference_Level_Counter;
+	void Schedule_Solving(const GUID &level_signal_id);
+	void Run_Solver();
+protected:
 	std::map<int64_t, std::unique_ptr<CTime_Segment>> mSegments;
 	std::vector<glucose::SModel_Parameter_Vector> mParameter_Hints;
 	std::unique_ptr<CTime_Segment>& Get_Segment(const int64_t segment_id);
