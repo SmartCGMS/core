@@ -15,10 +15,11 @@
 #include <tbb/tbb_allocator.h>
 
 #include <map>
+#include <ctime>
 
 namespace db_writer
 {
-	// database ID of anonymous subject; TODO: select this from database, or allow the user to select it!
+	// database ID of anonymous subject; TODO: select this from database
 	constexpr int64_t Anonymous_Subject_Id = 1;
 
 	// errorneous ID
@@ -28,6 +29,9 @@ namespace db_writer
 	const wchar_t* Segment_Base_Name = L"Segment";
 	// inserted time segment comment
 	const wchar_t* Segment_Comment = L"";
+
+	// base for segment name
+	const wchar_t* Subject_Base_Name = L"Subject";
 }
 
 CDb_Writer::CDb_Writer(glucose::SFilter_Pipe in_pipe, glucose::SFilter_Pipe out_pipe) : mInput(in_pipe), mOutput(out_pipe) {
@@ -49,13 +53,27 @@ int64_t CDb_Writer::Create_Segment(std::wstring name, std::wstring comment) {
 	if (!qr || !qr.Get_Next(segment_id))
 		return db_writer::Error_Id;
 
-	// TODO: resolve parallel segments
-
-	qr = mDb_Connection.Query(rsUpdate_Founded_Segment, rsReserved_Segment_Name, name.c_str(), comment.c_str(), false, db_writer::Anonymous_Subject_Id, nullptr, segment_id);
-	if (!qr || !qr.Get_Next(segment_id))
+	qr = mDb_Connection.Query(rsUpdate_Founded_Segment, name.c_str(), comment.c_str(), false, mSubject_Id, nullptr, segment_id);
+	if (!qr || !qr.Get_Next())
 		return db_writer::Error_Id;
 
 	return segment_id;
+}
+
+int64_t CDb_Writer::Create_Subject(std::wstring name) {
+	auto qr = mDb_Connection.Query(rsFound_New_Subject, rsReserved_Subject_Name);
+	qr.Get_Next();
+
+	int64_t subject_id;
+	qr = mDb_Connection.Query(rsSelect_Founded_Subject, rsReserved_Subject_Name);
+	if (!qr || !qr.Get_Next(subject_id))
+		return db_writer::Error_Id;
+
+	qr = mDb_Connection.Query(rsUpdate_Founded_Subject, name.c_str(), L"", 0, 0, subject_id);
+	if (!qr || !qr.Get_Next())
+		return db_writer::Error_Id;
+
+	return subject_id;
 }
 
 int64_t CDb_Writer::Get_Db_Segment_Id(int64_t segment_id) {
@@ -118,10 +136,20 @@ bool CDb_Writer::Store_Parameters(const glucose::UDevice_Event& evt) {
 		for (size_t i = 0; i < model.number_of_calculated_signals; i++) {
 			if (evt.signal_id == model.calculated_signal_ids[i] && model.number_of_parameters == paramCnt) {
 
+				// delete old parameters
+				std::wstring query;
+				query = rsDelete_Parameters_Of_Segment_Base;
+				query += model.db_table_name;
+				query += rsDelete_Parameters_Of_Segment_Stmt;
+
+				auto qrDel = mDb_Connection.Query(query, id);
+				if (qrDel)
+					qrDel.Execute(); // TODO: error checking
+
 				// INSERT INTO model_db_table (segmentid, param_1, param_2, ..., param_N) VALUES (?, ?, ..., ?)
 
 				// INSERT INTO model_db_table
-				std::wstring query = rsInsert_Params_Base;
+				query = rsInsert_Params_Base;
 				query += std::wstring(model.db_table_name, model.db_table_name + wcslen(model.db_table_name));;
 
 				// (segmentid, param_1, param_2, ..., param_N)
@@ -161,6 +189,7 @@ bool CDb_Writer::Configure(glucose::SFilter_Parameters conf)
 	mDbDatabaseName = conf.Read_String(rsDb_Name);
 	mDbUsername = conf.Read_String(rsDb_User_Name);
 	mDbPassword = conf.Read_String(rsDb_Password);
+	mSubject_Id = conf.Read_Int(rsSubject_Id);
 
 	mGenerate_Primary_Keys = conf.Read_Bool(rsGenerate_Primary_Keys);
 	mStore_Data = conf.Read_Bool(rsStore_Data);
@@ -191,6 +220,20 @@ HRESULT IfaceCalling CDb_Writer::Run(glucose::IFilter_Configuration *configurati
 		mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
 	if (!mDb_Connection)
 		return E_FAIL;
+
+	switch (mSubject_Id)
+	{
+		case db::Anonymous_Subject_Identifier:
+			// TODO: select this from DB
+			mSubject_Id = db_writer::Anonymous_Subject_Id;
+			break;
+		case db::New_Subject_Identifier:
+			mSubject_Id = Create_Subject(db_writer::Subject_Base_Name);
+			break;
+		default:
+			// TODO: just verify, that the subject exists
+			break;
+	}
 
 	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
 

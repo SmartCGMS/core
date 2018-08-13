@@ -37,6 +37,8 @@ class CDb_Writer : public virtual glucose::IFilter, public virtual db::IDb_Sink,
 		std::wstring mDbUsername;
 		// password to be used
 		std::wstring mDbPassword;
+		// subject id to be used
+		int64_t mSubject_Id;
 
 		// generate new primary keys for all incoming data intended to be stored?
 		bool mGenerate_Primary_Keys;
@@ -60,6 +62,8 @@ class CDb_Writer : public virtual glucose::IFilter, public virtual db::IDb_Sink,
 
 		// generates a new timesegment, assigns a new id (primary key) and stores into database
 		int64_t Create_Segment(std::wstring name, std::wstring comment);
+		// generated a new subject
+		int64_t Create_Subject(std::wstring name);
 
 		// stores incoming level to database
 		bool Store_Level(const glucose::UDevice_Event& evt);

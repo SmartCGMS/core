@@ -16,7 +16,7 @@
 #include <algorithm>
 #include <set>
 
-constexpr size_t Invalid_Position = (size_t)-1;
+constexpr size_t Invalid_Position = std::numeric_limits<size_t>::max();
 
 int CGraph_Generator::startX = 50;
 int CGraph_Generator::maxX = 800;
@@ -252,6 +252,7 @@ void CGraph_Generator::Write_Body()
     Write_Description();
     ValueVector istVector = Utility::Get_Value_Vector(mInputData, "ist");
     ValueVector bloodVector = Utility::Get_Value_Vector(mInputData, "blood");
+	ValueVector bloodCalibrationVector = Utility::Get_Value_Vector(mInputData, "bloodCalibration");
     Utility::Get_Boundary_Dates(istVector, bloodVector, mMinD, mMaxD);
 
 	for (const auto &iter : mInputData) {
@@ -285,18 +286,30 @@ void CGraph_Generator::Write_Body()
         }
     }
 
-    // blood curve group scope
-    {
-        SVG::GroupGuard grp(mSvg, "bloodCurve", false);
-        for (i = 0; i < bloodVector.size(); i++)
-        {
-            Value& val = bloodVector[i];
-            mSvg.Set_Stroke(3, "red", "red");
-            mSvg.Point(Normalize_Time_X(val.date), Normalize_Y(val.value), 3);
-        }
-    }
+	// blood curve group scope
+	{
+		SVG::GroupGuard grp(mSvg, "bloodCurve", false);
+		for (i = 0; i < bloodVector.size(); i++)
+		{
+			Value& val = bloodVector[i];
+			mSvg.Set_Stroke(3, "red", "red");
+			mSvg.Point(Normalize_Time_X(val.date), Normalize_Y(val.value), 3);
+		}
+	}
 
-    Write_Normalized_Lines(istVector, bloodVector);
+	Write_Normalized_Lines(istVector, bloodVector);
+
+	// blood curve group scope
+	{
+		SVG::GroupGuard grp(mSvg, "bloodCalibrationCurve", false);
+		for (i = 0; i < bloodCalibrationVector.size(); i++)
+		{
+			Value& val = bloodCalibrationVector[i];
+			mSvg.Set_Stroke(3, "#EC80FF", "#EC80FF");
+			mSvg.Point(Normalize_Time_X(val.date), Normalize_Y(val.value), 3);
+		}
+	}
+
 
 	size_t curColorIdx = 0;
 	double y = 40;
@@ -328,9 +341,21 @@ void CGraph_Generator::Write_Body()
 	mSvg.Set_Stroke(1, "red", "red");
 
 	// blood group scope
+	if (!bloodVector.empty())
 	{
 		SVG::GroupGuard bloodGrp(mSvg, "blood", false);
 		mSvg.Link_Text_color(startX + 10, y, tr("blood"), "change_visibility_blood()", 12);
+
+		y += 20;
+	}
+
+	mSvg.Set_Stroke(1, "#EC80FF", "#EC80FF");
+
+	// blood calibration group scope
+	if (!bloodCalibrationVector.empty())
+	{
+		SVG::GroupGuard bloodCalibrationGrp(mSvg, "bloodCalibration", false);
+		mSvg.Link_Text_color(startX + 10, y, tr("bloodCalibration"), "change_visibility_bloodCalibration()", 12);
 	}
 }
 

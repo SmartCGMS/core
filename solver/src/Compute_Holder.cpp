@@ -255,7 +255,7 @@ bool CCompute_Holder::Compare_Solutions(glucose::SMetric metric) {
 		}
 
 
-	std::vector<glucose::SSignal> calcSignals, reference_signals;
+	std::vector<glucose::SSignal> calcSignals(mClonedSegmentIds.size());
 
 	
 	// all segments and their extracted times, levels and calculated levels
@@ -275,8 +275,9 @@ bool CCompute_Holder::Compare_Solutions(glucose::SMetric metric) {
 
 		// get level count
 		size_t levels_count;
-		if (!calcSignal) return false;
-		if (calcSignal->Get_Discrete_Bounds(nullptr, &levels_count) != S_OK)
+		if (!calcSignal)
+			return false;
+		if (reference_signal->Get_Discrete_Bounds(nullptr, &levels_count) != S_OK)
 			continue;
 
 		auto& refTime = allRefTimes[idx];
@@ -305,6 +306,8 @@ bool CCompute_Holder::Compare_Solutions(glucose::SMetric metric) {
 		// repeat for new parameters 
 		if (calcSignal->Get_Continuous_Levels(mTempModelParams.get(), refTime.data(), calcLevels.data(), refTime.size(), glucose::apxNo_Derivation) == S_OK)
 			metric->Accumulate(refTime.data(), refLevels.data(), calcLevels.data(), refTime.size());
+
+		calcSignals[idx] = calcSignal;
 	}
 
 	size_t tmp_size;

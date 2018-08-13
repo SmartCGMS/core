@@ -203,7 +203,7 @@ void CClark_Generator::Write_Body()
 
         double y = Normalize_Y(0) + 70;
         mSvg.Set_Stroke(1, "blue", "blue");
-        Write_Legend_Item("ist", tr("counted"), "change_visibility_ist()", y);
+        Write_Legend_Item("ist", tr("ist"), "change_visibility_ist()", y);
 
 		y += 20;
 

@@ -305,6 +305,8 @@ public:
 							mUniform_Distribution(mRandom_Generator)*random_difference_vector();
 						break;
 
+					default:
+						break;
 					}
 
 					//ensure the bounds				

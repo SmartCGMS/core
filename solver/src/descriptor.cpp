@@ -4,20 +4,19 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
 
+#include "../../../common/rtl/descriptor_utils.h"
+
 #include <vector>
 
 namespace compute
 {
 	constexpr size_t param_count = 17;
 
-	// TODO: add model bounds to parameters; this could be done quite easily here in backend by adding "model parameters vector" NParameter_Type and working with it just like that
-	//		 but in user interface, there needs to be dynamic widget which changes contents according to selected model; for now, use default model parameter bounds
-
 	constexpr glucose::NParameter_Type param_type[param_count] = {
 		glucose::NParameter_Type::ptModel_Id,
+		glucose::NParameter_Type::ptModel_Signal_Id,
 		glucose::NParameter_Type::ptMetric_Id,
 		glucose::NParameter_Type::ptSolver_Id,
-		glucose::NParameter_Type::ptModel_Signal_Id,
 		glucose::NParameter_Type::ptModel_Bounds,
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptBool,
@@ -35,9 +34,9 @@ namespace compute
 
 	const wchar_t* ui_param_name[param_count] = {
 		dsSelected_Model,
+		dsSelected_Signal,
 		dsSelected_Metric,
 		dsSelected_Solver,
-		dsSelected_Signal,
 		dsSelected_Model_Bounds,
 		dsUse_Relative_Error,
 		dsUse_Squared_Diff,
@@ -55,9 +54,9 @@ namespace compute
 
 	const wchar_t* config_param_name[param_count] = {
 		rsSelected_Model,
+		rsSelected_Signal,
 		rsSelected_Metric,
 		rsSelected_Solver,
-		rsSelected_Signal,
 		rsSelected_Model_Bounds,
 		rsUse_Relative_Error,
 		rsUse_Squared_Diff,
@@ -74,22 +73,22 @@ namespace compute
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
+		dsSelected_Model_Tooltip,
+		dsSelected_Signal_Tooltip,
+		dsSelected_Metric_Tooltip,
+		dsSelected_Solver_Tooltip,
 		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
+		dsUse_Relative_Error_Tooltip,
+		dsUse_Squared_Diff_Tooltip,
+		dsUse_Prefer_More_Levels_Tooltip,
+		dsMetric_Threshold_Tooltip,
+		dsMetric_Levels_Required_Hint,
+		dsUse_Measured_Levels_Tooltip,
+		dsRecalculate_On_Levels_Count_Tooltip,
+		dsRecalculate_On_Segment_End_Tooltip,
+		dsRecalculate_On_Calibration_Tooltip,
+		dsRecalculate_On_Parameters_Tooltip,
+		dsUse_Opened_Segments_Only_Tooltip,
 		dsHold_During_Solve_Tooltip
 	};
 
@@ -107,15 +106,18 @@ namespace compute
 const std::array<glucose::TFilter_Descriptor, 1> filter_descriptions = { compute::Compute_Descriptor };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
-	*begin = const_cast<glucose::TFilter_Descriptor*>(filter_descriptions.data());
-	*end = *begin + filter_descriptions.size();
-	return S_OK;
+	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
 extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter)
 {
 	if (*id == compute::Compute_Descriptor.id)
-		return Manufacture_Object<CCompute_Filter>(filter, refcnt::make_shared_reference_ext<glucose::SFilter_Pipe, glucose::IFilter_Pipe>(input, true), refcnt::make_shared_reference_ext<glucose::SFilter_Pipe, glucose::IFilter_Pipe>(output, true));
+	{
+		glucose::SFilter_Pipe shared_in = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe, glucose::IFilter_Pipe>(input, true);
+		glucose::SFilter_Pipe shared_out = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe, glucose::IFilter_Pipe>(output, true);
+
+		return Manufacture_Object<CCompute_Filter>(filter, shared_in, shared_out);
+	}
 
 	return ENOENT;
 }

@@ -10,6 +10,8 @@
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
+#include <unordered_set>
+#include <set>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
@@ -52,9 +54,6 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 		// ECDF file path
 		std::wstring mECDF_FilePath;
 
-		// diagnosis flag
-		uint8_t mDiagnosis = 0; //type 1?
-
 		// input data changed
 		bool mChanged;
 		// mutex guard for changed variable
@@ -72,14 +71,14 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 		double mGraphMaxValue;
 
 		// input data from pipe
-		std::map<GUID, ValueVector> mInputData;
+		std::map<GUID, std::map<uint64_t, ValueVector>> mInputData;
 		// calculated signal GUID-name map
 		std::map<GUID, std::string> mCalcSignalNameMap;
 
 		// markers for segment start/ends
 		ValueVector mSegmentMarkers;
 		// markes for parameters change
-		std::map<GUID, ValueVector> mParameterChanges;
+		std::map<GUID, std::map<uint64_t, ValueVector>> mParameterChanges;
 
 		// configured canvas width
 		int mCanvasWidth = 1024;
@@ -90,7 +89,7 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 		void Run_Main();
 
 		// if the inputs changed, redraw SVGs
-		bool Redraw_If_Changed();
+		bool Redraw_If_Changed(const std::unordered_set<uint64_t> &segmentIds = {}, const std::set<GUID> &signalIds = {});
 
 		// fills given localization map with translation constants
 		void Fill_Localization_Map(LocalizationMap& locales);
@@ -106,7 +105,7 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 		void Reset_Signal(const GUID& signal_id, const uint64_t segment_id);
 
 		// prepares data map for drawing
-		void Prepare_Drawing_Map();
+		void Prepare_Drawing_Map(const std::unordered_set<uint64_t> &segmentIds = {}, const std::set<GUID> &signalIds = {});
 
 		HRESULT Get_Plot(const std::string &plot, refcnt::IVector_Container<char> *svg) const;
 	public:
@@ -117,7 +116,7 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 
 		virtual HRESULT Run(glucose::IFilter_Configuration* configuration) override;
 
-		virtual HRESULT IfaceCalling Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg) override;		
+		virtual HRESULT IfaceCalling Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg, refcnt::IVector_Container<uint64_t> *segmentIds, refcnt::IVector_Container<GUID> *signalIds) override;
 };
 
 #pragma warning( pop )

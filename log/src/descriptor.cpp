@@ -6,6 +6,7 @@
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
+#include "../../../common/rtl/descriptor_utils.h"
 
 #include <vector>
 
@@ -26,7 +27,7 @@ namespace logger
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
-		nullptr
+		dsLog_File_Output_Tooltip
 	};
 
 	const glucose::TFilter_Descriptor Log_Descriptor = {
@@ -57,7 +58,7 @@ namespace log_replay
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
-		nullptr
+		dsLog_File_Input_Tooltip
 	};
 
 	const glucose::TFilter_Descriptor Log_Replay_Descriptor = {
@@ -74,9 +75,7 @@ namespace log_replay
 const std::array<glucose::TFilter_Descriptor, 2> filter_descriptions = { logger::Log_Descriptor, log_replay::Log_Replay_Descriptor };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
-	*begin = const_cast<glucose::TFilter_Descriptor*>(filter_descriptions.data());
-	*end = *begin + filter_descriptions.size();
-	return S_OK;
+	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
 extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter)

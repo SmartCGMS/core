@@ -90,7 +90,7 @@ void CAGP_Generator::Write_Description()
     mSvg.Set_Default_Stroke();
 }
 
-void CAGP_Generator::Write_Legend(Data istData, Data bloodData)
+void CAGP_Generator::Write_Legend(Data istData, Data bloodData, Data bloodCalibrationData)
 {
     mSvg.Set_Default_Stroke();
 
@@ -139,6 +139,17 @@ void CAGP_Generator::Write_Legend(Data istData, Data bloodData)
 
 			y += 20;
         }
+
+		if (bloodCalibrationData.Is_Visible_Legend())
+		{
+			std::string color = bloodCalibrationData.visible ? "#EC80FF" : "grey";
+			mSvg.Set_Stroke(1, color, color);
+
+			SVG::GroupGuard bloodGrp(mSvg, "bloodCalibration", true);
+			mSvg.Link_Text_color(startX + 10, y, tr("bloodCalibration"), "change_visibility_bloodCalibration()");
+
+			y += 20;
+		}
 
         mSvg.Set_Default_Stroke();
     }
@@ -205,7 +216,7 @@ void CAGP_Generator::Write_QuadraticBezirCurve_2(std::vector<TCoordinate> &value
     mSvg << "\"/>" << std::endl;
 }
 
-void CAGP_Generator::Write_Content(Day day, Data bloodData)
+void CAGP_Generator::Write_Content(Day day, Data bloodData, Data bloodCalibrationData)
 {
     if (!day.Is_Empty())
     {
@@ -262,15 +273,26 @@ void CAGP_Generator::Write_Content(Day day, Data bloodData)
         mSvg.Set_Stroke(3, "red", "red");
 
         SVG::GroupGuard grp(mSvg, "bloodCurve", true);
-
-        mSvg.Set_Stroke(3, "red", "red");
-        for (size_t i = 0; i < bloodData.values.size(); i++)
+		for (size_t i = 0; i < bloodData.values.size(); i++)
         {
             Value& val = bloodData.values[i];
 
             mSvg.Point(Normalize_Time_X(val.date), Normalize_Y(Utility::MmolL_To_MgDl(val.value)), 3);
         }
     }
+
+	if (bloodCalibrationData.Is_Visible())
+	{
+		mSvg.Set_Stroke(3, "#EC80FF", "#EC80FF");
+
+		SVG::GroupGuard grp(mSvg, "bloodCalibrationCurve", true);
+		for (size_t i = 0; i < bloodCalibrationData.values.size(); i++)
+		{
+			Value& val = bloodCalibrationData.values[i];
+
+			mSvg.Point(Normalize_Time_X(val.date), Normalize_Y(Utility::MmolL_To_MgDl(val.value)), 3);
+		}
+	}
 
     mSvg.Set_Default_Stroke();
 }
@@ -343,13 +365,12 @@ void CAGP_Generator::Write_Body()
 {
     Data istData = Utility::Get_Data_Item(mInputData, "ist");
     Data bloodData = Utility::Get_Data_Item(mInputData, "blood");
-    Data param2Data = Utility::Get_Data_Item(mInputData, "diff2");
-    Data param3Data = Utility::Get_Data_Item(mInputData, "diff3");
+	Data bloodCalibrationData = Utility::Get_Data_Item(mInputData, "bloodCalibration");
 
     Day day = Aggregate_X_Axis(istData, bloodData);
-    Write_Content(day, bloodData);
+    Write_Content(day, bloodData, bloodCalibrationData);
     Write_Description();
-    Write_Legend(istData, bloodData);
+    Write_Legend(istData, bloodData, bloodCalibrationData);
 }
 
 double CAGP_Generator::Normalize_X(int hour, int minute) const

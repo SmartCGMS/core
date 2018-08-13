@@ -41,6 +41,7 @@ CDevice_Event::~CDevice_Event() {
 		case glucose::NDevice_Event_Code::Parameters:
 		case glucose::NDevice_Event_Code::Parameters_Hint:	if (mRaw.parameters) mRaw.parameters->Release();
 															break;
+		default:	break;
 	}
 
 }

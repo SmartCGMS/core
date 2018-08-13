@@ -50,14 +50,14 @@ namespace db_reader {
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
+		dsDb_Host_Tooltip,
+		dsDb_Port_Tooltip,
+		dsDb_Provider_Tooltip,
+		dsDb_Name_Tooltip,
+		dsDb_Username_Tooltip,
+		dsDb_Password_Tooltip,
 		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr
+		dsShutdown_After_Last_Tooltip
 	};
 
 	const glucose::TFilter_Descriptor Db_Reader_Descriptor = {
@@ -74,7 +74,7 @@ namespace db_reader {
 
 namespace db_writer {
 
-	constexpr size_t param_count = 9;
+	constexpr size_t param_count = 10;
 
 	constexpr glucose::NParameter_Type param_type[param_count] = {
 		glucose::NParameter_Type::ptWChar_Container,
@@ -85,7 +85,8 @@ namespace db_writer {
 		glucose::NParameter_Type::ptWChar_Container,
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptBool,
-		glucose::NParameter_Type::ptBool
+		glucose::NParameter_Type::ptBool,
+		glucose::NParameter_Type::ptSubject_Id
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
@@ -97,7 +98,8 @@ namespace db_writer {
 		dsDb_Password,
 		dsGenerate_Primary_Keys,
 		dsStore_Data,
-		dsStore_Parameters
+		dsStore_Parameters,
+		dsSubject_Id
 	};
 
 	const wchar_t* config_param_name[param_count] = {
@@ -109,18 +111,20 @@ namespace db_writer {
 		rsDb_Password,
 		rsGenerate_Primary_Keys,
 		rsStore_Data,
-		rsStore_Parameters
+		rsStore_Parameters,
+		rsSubject_Id
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
+		dsDb_Host_Tooltip,
+		dsDb_Port_Tooltip,
+		dsDb_Provider_Tooltip,
+		dsDb_Name_Tooltip,
+		dsDb_Username_Tooltip,
+		dsDb_Password_Tooltip,
+		dsGenerate_Primary_Keys_Tooltip,
+		dsStore_Data_Tooltip,
+		dsStore_Parameters_Tooltip,
 		nullptr
 	};
 
@@ -160,9 +164,9 @@ namespace file_reader
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
-		nullptr,
-		nullptr,
-		nullptr
+		dsInput_Values_File_Tooltip,
+		dsInput_Segment_Spacing_Tooltip,
+		dsShutdown_After_Last_Tooltip
 	};
 
 	const glucose::TFilter_Descriptor File_Reader_Descriptor = {
@@ -193,7 +197,7 @@ namespace hold
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
-		nullptr
+		dsHold_Values_Delay_Tooltip
 	};
 
 	const glucose::TFilter_Descriptor Hold_Descriptor = {
@@ -216,7 +220,7 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter) {
 
 	glucose::SFilter_Pipe shared_in = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe, glucose::IFilter_Pipe>(input, true);
-	glucose::SFilter_Pipe shared_out = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe, glucose::IFilter_Pipe>(output, true);
+    glucose::SFilter_Pipe shared_out = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe, glucose::IFilter_Pipe>(output, true);
 
 	if (*id == db_reader::Db_Reader_Descriptor.id)
 		return Manufacture_Object<CDb_Reader>(filter, shared_in, shared_out);

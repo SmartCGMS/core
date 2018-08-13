@@ -22,7 +22,7 @@ namespace calculate {
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptSolver_Id,
 		glucose::NParameter_Type::ptModel_Bounds,
-		glucose::NParameter_Type::ptInt64,		
+		glucose::NParameter_Type::ptInt64,
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptNull,
@@ -43,7 +43,7 @@ namespace calculate {
 		dsSolving_Parameters_Separator,
 		dsSolve_Parameters,
 		dsSelected_Solver,
-		dsSelected_Model_Bounds,		
+		dsSelected_Model_Bounds,
 		dsSolve_On_Level_Count,
 		dsSolve_On_Calibration,
 		dsSolve_Using_All_Segments,
@@ -65,7 +65,7 @@ namespace calculate {
 		nullptr,
 		rsSolve_Parameters,
 		rsSelected_Solver,
-		rsSelected_Model_Bounds,			
+		rsSelected_Model_Bounds,
 		rsSolve_On_Level_Count,
 		dsSolve_On_Calibration,
 		rsSolve_Using_All_Segments,
@@ -81,8 +81,9 @@ namespace calculate {
 
 	const wchar_t* ui_param_tooltips[param_count] = {
 		nullptr,
-		nullptr,
-		nullptr,
+		dsSelected_Model_Tooltip,
+		dsSelected_Signal_Tooltip,
+		dsPrediction_Window_Tooltip,
 		nullptr,
 		nullptr,
 		nullptr,
@@ -101,7 +102,7 @@ namespace calculate {
 	};
 
 	const glucose::TFilter_Descriptor Calculate_Descriptor = {
-		{ 0x14a25f4c, 0xe1b1, 0x85c4,{ 0x12, 0x74, 0x9a, 0x0d, 0x11, 0xe0, 0x98, 0x13 }},  // {14A25F4C-E1B1-85C4-1274-9A0D11E09813}
+		{ 0x14a25f4c, 0xe1b1, 0x85c4,{ 0x12, 0x74, 0x9a, 0x0d, 0x11, 0xe0, 0x98, 0x13 } },  // {14A25F4C-E1B1-85C4-1274-9A0D11E09813}
 		dsCalculate_Filter,
 		param_count,
 		param_type,
@@ -131,8 +132,8 @@ namespace mapping
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
-		nullptr,
-		nullptr
+		dsMapping_Source_Signal_Tooltip,
+		dsMapping_Destination_Signal_Tooltip
 	};
 
 	const glucose::TFilter_Descriptor Mapping_Descriptor = {
@@ -166,8 +167,8 @@ namespace masking
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
-		nullptr,
-		nullptr
+		dsMasked_Signal_Tooltip,
+		dsSignal_Values_Mask_Tooltip
 	};
 
 	const glucose::TFilter_Descriptor Masking_Descriptor = {
@@ -193,7 +194,6 @@ namespace measured_signal
 		glucose::signal_Calibration
 	};
 }
-
 const std::array<glucose::TFilter_Descriptor, 3> filter_descriptions = { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, masking::Masking_Descriptor };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {

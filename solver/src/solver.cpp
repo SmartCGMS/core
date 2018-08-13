@@ -281,61 +281,34 @@ HRESULT CCompute_Filter::Run(glucose::IFilter_Configuration* configuration) {
 
 	glucose::SModel_Parameter_Vector lowBound, defParams, highBound;
 
-	glucose::TFilter_Parameter *cbegin, *cend;
-	if (configuration->get(&cbegin, &cend) != S_OK)
-		return E_FAIL;
+	auto conf = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
 
-	for (glucose::TFilter_Parameter* cur = cbegin; cur < cend; cur += 1)
+	solver_id = conf.Read_GUID(rsSelected_Solver);
+	model_id = conf.Read_GUID(rsSelected_Model);
+	signal_id = conf.Read_GUID(rsSelected_Signal);
+	metric_id = conf.Read_GUID(rsSelected_Metric);
+	relative_error = conf.Read_Bool(rsUse_Relative_Error);
+	squared_diff = conf.Read_Bool(rsUse_Squared_Diff);
+	prefer_more = conf.Read_Bool(rsUse_Prefer_More_Levels);
+	use_measured = conf.Read_Bool(rsUse_Measured_Levels);
+	metric_threshold = conf.Read_Double(rsMetric_Threshold);
+	levels_required = static_cast<size_t>(conf.Read_Int(rsMetric_Levels_Required));
+	mRecalcLevelsCount = conf.Read_Int(rsRecalculate_On_Levels_Count);
+	mRecalcSegmentEnd = conf.Read_Bool(rsRecalculate_On_Segment_End);
+	mRecalcOnCalibration = conf.Read_Bool(rsRecalculate_On_Calibration);
+	mRecalc_With_Every_Params = conf.Read_Bool(rsRecalculate_With_Every_Params);
+	use_just_opened = conf.Read_Bool(rsUse_Just_Opened_Segments);
+	mHold_During_Solve = conf.Read_Bool(rsHold_During_Solve);
+
+	std::vector<double> mergedBounds = conf.Read_Double_Array(rsSelected_Model_Bounds);
+	// valid bounds container element count is a multiple of 3
+	if (!mergedBounds.empty() && (mergedBounds.size() % 3) == 0)
 	{
-		wchar_t *begin, *end;
-		if (cur->config_name->get(&begin, &end) != S_OK)
-			continue;
-
-		std::wstring confname{ begin, end };
-
-		if (confname == rsSelected_Solver)
-			solver_id = cur->guid;
-		else if (confname == rsSelected_Model)
-			model_id = cur->guid;
-		else if (confname == rsSelected_Signal)
-			signal_id = cur->guid;
-		else if (confname == rsSelected_Metric)
-			metric_id = cur->guid;
-		else if (confname == rsUse_Relative_Error)
-			relative_error = cur->boolean;
-		else if (confname == rsUse_Squared_Diff)
-			squared_diff = cur->boolean;
-		else if (confname == rsUse_Prefer_More_Levels)
-			prefer_more = cur->boolean;
-		else if (confname == rsUse_Measured_Levels)
-			use_measured = cur->boolean;
-		else if (confname == rsMetric_Threshold)
-			metric_threshold = cur->dbl;
-		else if (confname == rsMetric_Levels_Required)
-			levels_required = static_cast<size_t>(cur->int64);
-		else if (confname == rsRecalculate_On_Levels_Count)
-			mRecalcLevelsCount = cur->int64;
-		else if (confname == rsRecalculate_On_Segment_End)
-			mRecalcSegmentEnd = cur->boolean;
-		else if (confname == rsRecalculate_On_Calibration)
-			mRecalcOnCalibration = cur->boolean;
-		else if (confname == rsRecalculate_With_Every_Params)
-			mRecalc_With_Every_Params = cur->boolean;
-		else if (confname == rsUse_Just_Opened_Segments)
-			use_just_opened = cur->boolean;
-		else if (confname == rsHold_During_Solve)
-			mHold_During_Solve = cur->boolean;
-		else if (confname == rsSelected_Model_Bounds)
-		{
-			double *pb, *pe;
-			if (cur->parameters->get(&pb, &pe) == S_OK)
-			{
-				size_t paramcnt = std::distance(pb, pe) / 3; // lower, defaults, upper
-				lowBound = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(pb, pb + paramcnt);
-				defParams = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(pb + paramcnt, pb + 2* paramcnt);
-				highBound = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(pb + 2*paramcnt, pe);
-			}
-		}
+		double* base = mergedBounds.data();
+		size_t paramcnt = mergedBounds.size() / 3; // lower, defaults, upper
+		lowBound = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(&base[0], &base[paramcnt]);
+		defParams = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(&base[paramcnt], &base[2 * paramcnt]);
+		highBound = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(&base[2 * paramcnt], &base[3 * paramcnt]);
 	}
 
 	glucose::TMetric_Parameters metric_params{ metric_id, relative_error, squared_diff, prefer_more, metric_threshold };

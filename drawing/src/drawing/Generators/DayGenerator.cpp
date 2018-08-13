@@ -111,13 +111,25 @@ void CDay_Generator::Write_Legend()
 			}
 		}
 
-        mSvg.Set_Stroke(1, "red", "red");
+		// blood group scope
+		if (!Utility::Get_Value_Vector(mInputData, "blood").empty())
+		{
+			mSvg.Set_Stroke(1, "red", "red");
 
-        // blood group scope
-        {
-            SVG::GroupGuard bloodGrp(mSvg, "blood", false);
-            mSvg.Link_Text_color(startX + 10, y, tr("blood"), "change_visibility_blood()", 12);
-        }
+			SVG::GroupGuard bloodGrp(mSvg, "blood", false);
+			mSvg.Link_Text_color(startX + 10, y, tr("blood"), "change_visibility_blood()", 12);
+
+			y += 20;
+		}
+
+		// blood calibration group scope
+		if (!Utility::Get_Value_Vector(mInputData, "bloodCalibration").empty())
+		{
+			mSvg.Set_Stroke(1, "#EC80FF", "#EC80FF");
+
+			SVG::GroupGuard bloodGrp(mSvg, "bloodCalibration", false);
+			mSvg.Link_Text_color(startX + 10, y, tr("bloodCalibration"), "change_visibility_bloodCalibration()", 12);
+		}
 
         mSvg.Set_Default_Stroke();
     }
@@ -189,6 +201,7 @@ void CDay_Generator::Write_Body()
 {
     ValueVector istVector = Utility::Get_Value_Vector(mInputData, "ist");
     ValueVector bloodVector = Utility::Get_Value_Vector(mInputData, "blood");
+	ValueVector bloodCalibrationVector = Utility::Get_Value_Vector(mInputData, "bloodCalibration");
 
     Write_Normalized_Lines(istVector, "istCurve", "blue");
 
@@ -204,17 +217,29 @@ void CDay_Generator::Write_Body()
 		}
 	}
 
-    // blood curve group scope
-    {
-        SVG::GroupGuard grp(mSvg, "bloodCurve", false);
+	// blood curve group scope
+	{
+		SVG::GroupGuard grp(mSvg, "bloodCurve", false);
 
-        for (size_t i = 0; i < bloodVector.size(); i++)
-        {
-            Value& val = bloodVector[i];
-            mSvg.Set_Stroke(3, "red", "red");
-            mSvg.Point(Normalize_Time_X(val.date), Normalize_Y(Utility::MmolL_To_MgDl(val.value)), 3);
-        }
-    }
+		for (size_t i = 0; i < bloodVector.size(); i++)
+		{
+			Value& val = bloodVector[i];
+			mSvg.Set_Stroke(3, "red", "red");
+			mSvg.Point(Normalize_Time_X(val.date), Normalize_Y(Utility::MmolL_To_MgDl(val.value)), 3);
+		}
+	}
+
+	// blood calibration curve group scope
+	{
+		SVG::GroupGuard grp(mSvg, "bloodCalibrationCurve", false);
+
+		for (size_t i = 0; i < bloodCalibrationVector.size(); i++)
+		{
+			Value& val = bloodCalibrationVector[i];
+			mSvg.Set_Stroke(3, "#EC80FF", "#EC80FF");
+			mSvg.Point(Normalize_Time_X(val.date), Normalize_Y(Utility::MmolL_To_MgDl(val.value)), 3);
+		}
+	}
 
     Write_Legend();
     Write_Description();

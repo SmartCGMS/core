@@ -78,6 +78,8 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 				for (const auto &segment : mSegments)
 					segment.second->Clear_Data();
 				break;				
+			default:
+				break;
 		}
 
 

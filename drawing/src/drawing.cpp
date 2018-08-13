@@ -35,7 +35,7 @@ const std::map<GUID, const char*, std::less<GUID>, tbb::tbb_allocator<std::pair<
 };
 
 CDrawing_Filter::CDrawing_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
-	: mInput{ inpipe }, mOutput{ outpipe }, mDiagnosis(1), mGraphMaxValue(-1) {}
+	: mInput{ inpipe }, mOutput{ outpipe }, mGraphMaxValue(-1) {}
 
 HRESULT IfaceCalling CDrawing_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
 	if (Internal_Query_Interface<glucose::IFilter>(glucose::Drawing_Filter, *riid, ppvObj)) return S_OK;
@@ -62,7 +62,7 @@ void CDrawing_Filter::Run_Main() {
 			{
 				//std::unique_lock<std::mutex> lck(mChangedMtx);
 
-				mInputData[evt.signal_id].push_back(Value(evt.level, Rat_Time_To_Unix_Time(evt.device_time), evt.segment_id));
+				mInputData[evt.signal_id][evt.segment_id].push_back(Value(evt.level, Rat_Time_To_Unix_Time(evt.device_time), evt.segment_id));
 				// signal is not being reset (recalculated and resent) right now - set changed flag
 				if (signalsBeingReset.find(evt.signal_id) == signalsBeingReset.end())
 					mChanged = true;
@@ -78,7 +78,7 @@ void CDrawing_Filter::Run_Main() {
 			// incoming new parameters
 			else if (evt.event_code == glucose::NDevice_Event_Code::Parameters)
 			{
-				mParameterChanges[evt.signal_id].push_back(Value((double)Rat_Time_To_Unix_Time(evt.device_time), Rat_Time_To_Unix_Time(evt.device_time), evt.segment_id));
+				mParameterChanges[evt.signal_id][evt.segment_id].push_back(Value((double)Rat_Time_To_Unix_Time(evt.device_time), Rat_Time_To_Unix_Time(evt.device_time), evt.segment_id));
 			}
 			// incoming parameters reset information message
 			else if (evt.event_code == glucose::NDevice_Event_Code::Information)
@@ -123,16 +123,16 @@ void CDrawing_Filter::Run_Main() {
 	}
 }
 
-bool CDrawing_Filter::Redraw_If_Changed()
+bool CDrawing_Filter::Redraw_If_Changed(const std::unordered_set<uint64_t> &segmentIds, const std::set<GUID> &signalIds)
 {
 	std::unique_lock<std::mutex> lck(mChangedMtx);
 
-	if (mChanged)
+	if (mChanged || !segmentIds.empty() || !signalIds.empty())
 	{
 		mChanged = false;
 
 		mDataMap.clear();
-		Prepare_Drawing_Map();
+		Prepare_Drawing_Map(segmentIds, signalIds);
 		// we don't need that lock anymore
 		lck.unlock();
 
@@ -148,27 +148,57 @@ void CDrawing_Filter::Reset_Signal(const GUID& signal_id, const uint64_t segment
 {
 	// incoming parameters just erases the signals, because a new set of calculated levels comes through the pipe
 	// remove just segment, for which the reset was issued
-	mInputData[signal_id].erase(
-		std::remove_if(mInputData[signal_id].begin(), mInputData[signal_id].end(), [segment_id](Value const& a) { return a.segment_id == segment_id; }),
-		mInputData[signal_id].end()
-	);
+	for (auto& dataPair : mInputData[signal_id])
+	{
+		auto& data = dataPair.second;
+		data.erase(
+			std::remove_if(data.begin(), data.end(), [segment_id](Value const& a) { return a.segment_id == segment_id; }),
+			data.end()
+		);
+	}
 	// remove also markers
-	mParameterChanges[signal_id].erase(
-		std::remove_if(mParameterChanges[signal_id].begin(), mParameterChanges[signal_id].end(), [segment_id](Value const& a) { return a.segment_id == segment_id; }),
-		mParameterChanges[signal_id].end()
-	);
+	for (auto& dataPair : mInputData[signal_id])
+	{
+		auto& data = dataPair.second;
+		data.erase(
+			std::remove_if(data.begin(), data.end(), [segment_id](Value const& a) { return a.segment_id == segment_id; }),
+			data.end()
+		);
+	}
 }
 
-void CDrawing_Filter::Prepare_Drawing_Map() {
+void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &segmentIds, const std::set<GUID> &signalIds) {
+
+	const bool allSegments = (segmentIds.empty());
+	const bool allSignals = (signalIds.empty());
 
 	DataMap vectorsMap;
 
 	for (auto const& mapping : Signal_Mapping)
 	{
-		std::sort(mInputData[mapping.first].begin(), mInputData[mapping.first].end(), [](Value& a, Value& b) {
-			return a.date < b.date;
-		});
-		vectorsMap[mapping.second] = Data(mInputData[mapping.first], true, mInputData[mapping.first].empty(), false);
+		// do not use signals we don't want to draw
+		if (!allSignals && signalIds.find(mapping.first) == signalIds.end())
+			continue;
+
+		for (auto& dataPair : mInputData[mapping.first])
+		{
+			auto& data = dataPair.second;
+			std::sort(data.begin(), data.end(), [](Value& a, Value& b) {
+				return a.date < b.date;
+			});
+		}
+
+		vectorsMap[mapping.second] = Data({}, true, mInputData[mapping.first].empty(), false);
+
+		for (auto& dataPair : mInputData[mapping.first])
+		{
+			if (allSegments || segmentIds.find(dataPair.first) != segmentIds.end())
+			{
+				const auto& data = dataPair.second;
+				vectorsMap[mapping.second].values.reserve(vectorsMap[mapping.second].values.size() + data.size());
+				std::copy(data.begin(), data.end(), std::back_inserter(vectorsMap[mapping.second].values));
+			}
+		}
 	}
 
 	vectorsMap["segment_markers"] = Data(mSegmentMarkers, true, mSegmentMarkers.empty(), false);
@@ -178,23 +208,51 @@ void CDrawing_Filter::Prepare_Drawing_Map() {
 
 	for (auto const& presentData : mInputData)
 	{
+		// do not use signals we don't want to draw
+		if (!allSignals && signalIds.find(presentData.first) == signalIds.end())
+			continue;
+
 		if (Signal_Mapping.find(presentData.first) == Signal_Mapping.end())
 		{
 			const GUID& signal_id = presentData.first;
 
 			std::string key = base + std::to_string(curIdx);
 
-			std::sort(mInputData[signal_id].begin(), mInputData[signal_id].end(), [](Value& a, Value& b) {
-				return a.date < b.date;
-			});
+			for (auto& dataPair : mInputData[signal_id])
+			{
+				auto& data = dataPair.second;
+				std::sort(data.begin(), data.end(), [](Value& a, Value& b) {
+					return a.date < b.date;
+				});
+			}
 
-			vectorsMap[key] = Data(mInputData[signal_id], true, false, true);
+			vectorsMap[key] = Data({}, true, false, true);
+			for (auto& dataPair : mInputData[signal_id])
+			{
+				if (allSegments || segmentIds.find(dataPair.first) != segmentIds.end())
+				{
+					const auto& data = dataPair.second;
+					vectorsMap[key].values.reserve(vectorsMap[key].values.size() + data.size());
+					std::copy(data.begin(), data.end(), std::back_inserter(vectorsMap[key].values));
+				}
+			}
+
 			vectorsMap[key].identifier = key;
 
 			if (mParameterChanges.find(signal_id) != mParameterChanges.end())
 			{
 				const std::string pkey = "param_" + key;
-				vectorsMap[pkey] = Data(mParameterChanges[signal_id], true, false, false);
+				vectorsMap[pkey] = Data({}, true, false, false);
+				for (auto& dataPair : mParameterChanges[signal_id])
+				{
+					if (allSegments || segmentIds.find(dataPair.first) != segmentIds.end())
+					{
+						const auto& data = dataPair.second;
+						vectorsMap[pkey].values.reserve(vectorsMap[pkey].values.size() + data.size());
+						std::copy(data.begin(), data.end(), std::back_inserter(vectorsMap[pkey].values));
+					}
+				}
+
 				vectorsMap[pkey].identifier = pkey;
 			}
 
@@ -215,46 +273,16 @@ HRESULT CDrawing_Filter::Run(glucose::IFilter_Configuration* const configuration
 	mCanvasWidth = 0;
 	mCanvasHeight = 0;
 
-	wchar_t *begin, *end;
+	auto conf = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
 
-	// lambda for common code (convert wstr_container to wstring)
-	auto wstrConv = [&begin, &end](glucose::TFilter_Parameter const* param) -> std::wstring {
-
-		if (param->wstr->get(&begin, &end) != S_OK)
-			return std::wstring();
-
-		return std::wstring(begin, end);
-	};
-
-	glucose::TFilter_Parameter *cbegin, *cend;
-	if ((configuration != nullptr) && (configuration->get(&cbegin, &cend) == S_OK)) {
-		for (glucose::TFilter_Parameter* cur = cbegin; cur < cend; cur += 1)
-		{
-			if (cur->config_name->get(&begin, &end) != S_OK)
-				continue;
-
-			std::wstring confname{ begin, end };
-
-			if (confname == rsDiagnosis_Is_Type2)
-				mDiagnosis = cur->boolean ? 2 : 1;
-			else if (confname == rsDrawing_Filter_Canvas_Width)
-				mCanvasWidth = static_cast<int>(cur->int64);
-			else if (confname == rsDrawing_Filter_Canvas_Height)
-				mCanvasHeight = static_cast<int>(cur->int64);
-			else if (confname == rsDrawing_Filter_Filename_AGP)
-				mAGP_FilePath = wstrConv(cur);
-			else if (confname == rsDrawing_Filter_Filename_Clark)
-				mClark_FilePath = wstrConv(cur);
-			else if (confname == rsDrawing_Filter_Filename_Day)
-				mDay_FilePath = wstrConv(cur);
-			else if (confname == rsDrawing_Filter_Filename_Graph)
-				mGraph_FilePath = wstrConv(cur);
-			else if (confname == rsDrawing_Filter_Filename_Parkes)
-				mParkes_FilePath = wstrConv(cur);
-			else if (confname == rsDrawing_Filter_Filename_ECDF)
-				mECDF_FilePath = wstrConv(cur);
-		}
-	}
+	mCanvasWidth = static_cast<int>(conf.Read_Int(rsDrawing_Filter_Canvas_Width));
+	mCanvasHeight = static_cast<int>(conf.Read_Int(rsDrawing_Filter_Canvas_Height));
+	mAGP_FilePath = conf.Read_String(rsDrawing_Filter_Filename_AGP);
+	mClark_FilePath = conf.Read_String(rsDrawing_Filter_Filename_Clark);
+	mDay_FilePath = conf.Read_String(rsDrawing_Filter_Filename_Day);
+	mGraph_FilePath = conf.Read_String(rsDrawing_Filter_Filename_Graph);
+	mParkes_FilePath = conf.Read_String(rsDrawing_Filter_Filename_Parkes);
+	mECDF_FilePath = conf.Read_String(rsDrawing_Filter_Filename_ECDF);
 
 	if (mCanvasWidth != 0 && mCanvasHeight != 0)
 	{
@@ -283,6 +311,16 @@ HRESULT CDrawing_Filter::Run(glucose::IFilter_Configuration* const configuration
 	Fill_Localization_Map(mLocaleMap);
 
 	Run_Main();
+
+	// when the filter shuts down, store drawings to files
+	Redraw_If_Changed();
+
+	Store_To_File(mGraph_SVG, mGraph_FilePath);
+	Store_To_File(mClark_SVG, mClark_FilePath);
+	Store_To_File(mDay_SVG, mDay_FilePath);
+	Store_To_File(mAGP_SVG, mAGP_FilePath);
+	Store_To_File(mParkes_type1_SVG, mParkes_FilePath);
+	Store_To_File(mECDF_SVG, mECDF_FilePath);
 
 	return S_OK;
 }
@@ -358,13 +396,6 @@ void CDrawing_Filter::Generate_Graphs(DataMap& valueMap, double maxValue, Locali
 			mECDF_SVG = graph.Build_SVG();
 		}
 	}
-
-	Store_To_File(mGraph_SVG, mGraph_FilePath);
-	Store_To_File(mClark_SVG, mClark_FilePath);
-	Store_To_File(mDay_SVG, mDay_FilePath);
-	Store_To_File(mAGP_SVG, mAGP_FilePath);
-	Store_To_File(mParkes_type1_SVG, mParkes_FilePath);
-	Store_To_File(mECDF_SVG, mECDF_FilePath);
 }
 
 HRESULT CDrawing_Filter::Get_Plot(const std::string &plot, refcnt::IVector_Container<char> *svg) const {
@@ -372,8 +403,25 @@ HRESULT CDrawing_Filter::Get_Plot(const std::string &plot, refcnt::IVector_Conta
 	return svg->set(plot_ptr, plot_ptr + plot.size());
 }
 
-HRESULT IfaceCalling CDrawing_Filter::Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg) {
-	Redraw_If_Changed();
+HRESULT IfaceCalling CDrawing_Filter::Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg, refcnt::IVector_Container<uint64_t> *segmentIds, refcnt::IVector_Container<GUID> *signalIds) {
+
+	std::unordered_set<uint64_t> segmentSet{};
+	std::set<GUID> signalSet{};
+
+	// draw only selected segments
+	if (segmentIds != nullptr)
+	{
+		auto vec = refcnt::Container_To_Vector(segmentIds);
+		segmentSet.insert(vec.begin(), vec.end());
+	}
+	// draw only selected signals
+	if (signalIds != nullptr)
+	{
+		auto vec = refcnt::Container_To_Vector(signalIds);
+		signalSet.insert(vec.begin(), vec.end());
+	}
+
+	Redraw_If_Changed(segmentSet, signalSet);
 
 	std::unique_lock<std::mutex> lck(mRetrieveMtx);
 
@@ -428,6 +476,7 @@ void CDrawing_Filter::Fill_Localization_Map(LocalizationMap& locales)
 	locales[WToMB(rsDrawingLocaleHypoglycemy)] = WToMB(dsDrawingLocaleHypoglycemy);
 	locales[WToMB(rsDrawingLocaleHyperglycemy)] = WToMB(dsDrawingLocaleHyperglycemy);
 	locales[WToMB(rsDrawingLocaleBlood)] = WToMB(dsDrawingLocaleBlood);
+	locales[WToMB(rsDrawingLocaleBloodCalibration)] = WToMB(dsDrawingLocaleBloodCalibration);
 	locales[WToMB(rsDrawingLocaleIst)] = WToMB(dsDrawingLocaleIst);
 	locales[WToMB(rsDrawingLocaleResults)] = WToMB(dsDrawingLocaleResults);
 	locales[WToMB(rsDrawingLocaleDiff2)] = WToMB(dsDrawingLocaleDiff2);

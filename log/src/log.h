@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <thread>
+#include <mutex>
 #include <fstream>
 #include <vector>
 #include <mutex>

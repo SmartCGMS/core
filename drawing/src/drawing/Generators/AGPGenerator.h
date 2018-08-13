@@ -28,9 +28,9 @@ class CAGP_Generator : public IGenerator
         // writes plot body
         void Write_Body();
         // writes bottom legend
-        void Write_Legend(Data istData, Data bloodData);
+        void Write_Legend(Data istData, Data bloodData, Data bloodCalibrationData);
         // writes main plot content - data and everything related
-        void Write_Content(Day day, Data bloodData);
+        void Write_Content(Day day, Data bloodData, Data bloodCalibrationData);
         // writes plot description (axis titles, ..)
         void Write_Description();
 

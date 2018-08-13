@@ -33,7 +33,8 @@ void CHold_Filter::Run_Main() {
 			case glucose::NDevice_Event_Code::Error:
 				hold = false;
 				break;
-
+			default:
+				break;
 		}
 
 		if (hold) {

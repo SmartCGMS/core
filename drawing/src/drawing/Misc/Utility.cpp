@@ -23,10 +23,10 @@ namespace Utility
 
     int Find_Ist_Index(double date, ValueVector &ist)
     {
-        for (size_t i = 0; i < ist.size() - 1; i++)
+        for (size_t i = 1; i < ist.size(); i++)
         {
-            Value& v = ist[i];
-            Value& next = ist[i + 1];
+            Value& v = ist[i-1];
+            Value& next = ist[i];
             if ((fabs(v.date - date) < std::numeric_limits<double>::epsilon()) || ((v.date < date) && (date < next.date)))
                 return (int)i;
         }

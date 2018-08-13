@@ -4,14 +4,16 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
 
+#include "../../../common/rtl/descriptor_utils.h"
+#include <tbb/tbb_allocator.h>
+
 #include <vector>
 
 namespace drawing
 {
-	constexpr size_t param_count = 9;
+	constexpr size_t param_count = 8;
 
 	constexpr glucose::NParameter_Type param_type[param_count] = {
-		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptInt64,
 		glucose::NParameter_Type::ptInt64,
 		glucose::NParameter_Type::ptWChar_Container,
@@ -23,7 +25,6 @@ namespace drawing
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
-		dsDiagnosis_Is_Type2,
 		dsDrawing_Filter_Canvas_Width,
 		dsDrawing_Filter_Canvas_Height,
 		dsDrawing_Filter_Filename_Graph,
@@ -35,7 +36,6 @@ namespace drawing
 	};
 
 	const wchar_t* config_param_name[param_count] = {
-		rsDiagnosis_Is_Type2,
 		rsDrawing_Filter_Canvas_Width,
 		rsDrawing_Filter_Canvas_Height,
 		rsDrawing_Filter_Filename_Graph,
@@ -47,15 +47,14 @@ namespace drawing
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr
+		dsCanvas_Width_Tooltip,
+		dsCanvas_Height_Tooltip,
+		dsFilename_Graph_Tooltip,
+		dsFilename_Day_Tooltip,
+		dsFilename_AGP_Tooltip,
+		dsFilename_Parkes_Tooltip,
+		dsFilename_Clark_Tooltip,
+		dsFilename_ECDF_Tooltip
 	};
 
 	const glucose::TFilter_Descriptor Drawing_Descriptor = {
@@ -69,18 +68,21 @@ namespace drawing
 	};
 }
 
-const std::array<glucose::TFilter_Descriptor, 1> filter_descriptions = { drawing::Drawing_Descriptor };
+static const std::vector<glucose::TFilter_Descriptor, tbb::tbb_allocator<glucose::TFilter_Descriptor>> filter_descriptions = { drawing::Drawing_Descriptor };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
-	*begin = const_cast<glucose::TFilter_Descriptor*>(filter_descriptions.data());
-	*end = *begin + filter_descriptions.size();
-	return S_OK;
+	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
 extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter)
 {
 	if (*id == drawing::Drawing_Descriptor.id)
-		return Manufacture_Object<CDrawing_Filter>(filter, input, output);
+	{
+		glucose::SFilter_Pipe shared_in = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe, glucose::IFilter_Pipe>(input, true);
+		glucose::SFilter_Pipe shared_out = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe, glucose::IFilter_Pipe>(output, true);
+
+		return Manufacture_Object<CDrawing_Filter>(filter, shared_in, shared_out);
+	}
 
 	return ENOENT;
 }

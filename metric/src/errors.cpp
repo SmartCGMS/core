@@ -28,26 +28,24 @@ HRESULT CErrors_Filter::Run(glucose::IFilter_Configuration* configuration) {
 	
 	mErrorCounter = std::make_unique<CError_Marker_Counter>();
 	
-	bool updated = false;
-
 	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
 	
 		switch (evt.event_code)
 		{
 			case glucose::NDevice_Event_Code::Level:
-			case glucose::NDevice_Event_Code::Masked_Level:			
+			case glucose::NDevice_Event_Code::Masked_Level:
 				// the internal logic will tell us, if the signal is reference signal, and therefore we need to recalculate errors
 				if (mErrorCounter->Add_Level(evt.segment_id, evt.signal_id, evt.device_time, evt.level))
-					updated = mErrorCounter->Recalculate_Errors();
+					mErrorCounter->Recalculate_Errors();
 				break;
 			case glucose::NDevice_Event_Code::Parameters:
 				break;
 			case glucose::NDevice_Event_Code::Time_Segment_Stop:
-				updated = mErrorCounter->Recalculate_Errors();
+				mErrorCounter->Recalculate_Errors();
 				break;
 			case glucose::NDevice_Event_Code::Information:
 				if (evt.info == rsSegment_Recalculate_Complete)
-					updated = mErrorCounter->Recalculate_Errors_For(evt.signal_id);
+					mErrorCounter->Recalculate_Errors_For(evt.signal_id);
 				else if (evt.info == rsParameters_Reset)
 					mErrorCounter->Reset_Segment(evt.segment_id, evt.signal_id);
 				break;
@@ -57,14 +55,6 @@ HRESULT CErrors_Filter::Run(glucose::IFilter_Configuration* configuration) {
 
 		if (!mOutput.Send(evt))
 			break;
-
-		if (updated)
-		{
-			glucose::UDevice_Event errEvt{ glucose::NDevice_Event_Code::Information };
-			errEvt.info.set(rsInfo_Error_Metrics_Ready);
-			mOutput.Send(errEvt);
-			updated = false;
-		}
 	}
 
 	return S_OK;

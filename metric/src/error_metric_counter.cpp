@@ -89,7 +89,7 @@ static void Get_Quantiles(const std::vector<double>& data, const std::vector<dou
 	}
 }
 
-static const double Get_Standard_Deviation(const std::vector<double>& data, const double& mean)
+static double Get_Standard_Deviation(const std::vector<double>& data, const double& mean)
 {
 	double accumulator = 0;
 	for (size_t i = 0; i < data.size(); i++)
@@ -106,7 +106,7 @@ static const double Get_Standard_Deviation(const std::vector<double>& data, cons
 	return sqrt(accumulator / correction_count);
 }
 
-static const double Get_AIC(const std::vector<double>& abs_diffs, size_t parameter_count) {
+static double Get_AIC(const std::vector<double>& abs_diffs, size_t parameter_count) {
 
 	if (abs_diffs.empty()) return std::numeric_limits<double>::quiet_NaN();
 

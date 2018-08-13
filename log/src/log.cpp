@@ -14,6 +14,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <codecvt>
 
 CLog_Filter::CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
 	: mInput{inpipe}, mOutput{outpipe} {
@@ -95,7 +96,8 @@ bool CLog_Filter::Open_Log(glucose::SFilter_Parameters configuration) {
 	// if have output file name
 	if (!log_file_name.empty()) {
 		// try to open output file
-		mLog.open(log_file_name);
+		std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converterX;
+		mLog.open(converterX.to_bytes(log_file_name));
 
 		result = mLog.is_open();
 		if (result) {
@@ -116,7 +118,7 @@ HRESULT IfaceCalling CLog_Filter::Run(glucose::IFilter_Configuration* configurat
 	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
 	const bool log_opened = Open_Log(shared_configuration);
 
-	for (; glucose::UDevice_Event evt = mInput.Receive(); evt) {
+	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
 		if (log_opened)
 			Log_Event(evt);
 
@@ -141,7 +143,8 @@ void CLog_Filter::Log_Event(const glucose::UDevice_Event &evt) {
 	log_line << evt.logical_time << delim;
 	log_line << Rat_Time_To_Local_Time_WStr(evt.device_time, rsLog_Date_Time_Format) << delim;
 	log_line << glucose::event_code_text[static_cast<size_t>(evt.event_code)] << delim;
-	if (evt.signal_id != Invalid_GUID) log_line << Signal_Id_To_WStr(evt.signal_id); log_line << delim;
+	if (evt.signal_id != Invalid_GUID) log_line << Signal_Id_To_WStr(evt.signal_id);
+		log_line << delim;
 	if (evt.is_level_event()) log_line << evt.level;
 		else if (evt.is_info_event()) log_line << refcnt::WChar_Container_To_WString(evt.info.get());
 			else if (evt.is_parameters_event()) log_line << Parameters_To_WStr(evt);
@@ -149,13 +152,15 @@ void CLog_Filter::Log_Event(const glucose::UDevice_Event &evt) {
 	log_line << evt.segment_id << delim;
 	log_line << static_cast<size_t>(evt.event_code) << delim;
 	log_line << GUID_To_WString(evt.device_id) << delim;
-	log_line << GUID_To_WString(evt.signal_id) << std::endl;
+	log_line << GUID_To_WString(evt.signal_id);
+	// note the absence of std::endl at the end of line - we include it in file output only (see below)
+	// but not in GUI output, since records in list are considered "lines" and external logic (e.g. GUI) maintains line endings by itself
 
 	const std::wstring log_line_str = log_line.str();
-	mLog << log_line_str;
-
+	mLog << log_line_str << std::endl;
 
 	refcnt::wstr_container* container = refcnt::WString_To_WChar_Container(log_line_str.c_str());
+	std::unique_lock<std::mutex> scoped_lock{ mLog_Records_Guard };
 	mNew_Log_Records->add(&container, &container +1);
 	container->Release();
 }
