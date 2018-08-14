@@ -5,9 +5,11 @@
 
 #include <cmath>
 
-CTime_Segment::CTime_Segment(const int64_t segment_id, const GUID &calculated_signal_id, const double prediction_window, glucose::SFilter_Pipe output)
+CTime_Segment::CTime_Segment(const int64_t segment_id, const GUID &calculated_signal_id, glucose::SModel_Parameter_Vector &working_parameters, const double prediction_window, glucose::SFilter_Pipe output)
 	: mOutput(output), mCalculated_Signal_Id(calculated_signal_id), mSegment_id(segment_id), mPrediction_Window(prediction_window) {
 	Clear_Data();
+
+	mWorking_Parameters.set(working_parameters);
 
 	glucose::TModel_Descriptor desc = glucose::Null_Model_Descriptor;
 	const bool result = glucose::get_model_descriptor_by_signal_id(calculated_signal_id, desc);

@@ -22,14 +22,17 @@ protected:
 	// calculated signal ID
 	GUID mSignal_Id = Invalid_GUID;
 	double mPrediction_Window = 0.0;
+	glucose::SModel_Parameter_Vector mDefault_Parameters, mLower_Bound, mUpper_Bound;
 protected:
 	bool mSolver_Enabled;
 	bool mSolving_Scheduled;
 	bool mSolve_On_Calibration;
+	bool mSolve_All_Segments;
 	int64_t mReference_Level_Threshold_Count;
 	int64_t mReference_Level_Counter;
 	void Schedule_Solving(const GUID &level_signal_id);
-	void Run_Solver();
+	void Run_Solver(const uint64_t segment_id);
+	double Calculate_Fitness(const uint64_t segment_id);
 protected:
 	std::map<int64_t, std::unique_ptr<CTime_Segment>> mSegments;
 	std::vector<glucose::SModel_Parameter_Vector> mParameter_Hints;

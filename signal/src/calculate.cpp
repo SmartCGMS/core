@@ -13,7 +13,7 @@ std::unique_ptr<CTime_Segment>& CCalculate_Filter::Get_Segment(const int64_t seg
 
 	if (iter != mSegments.end()) return iter->second;
 	else {
-		std::unique_ptr<CTime_Segment> segment = std::make_unique<CTime_Segment>(segment_id, mSignal_Id, mPrediction_Window, mOutput);		
+		std::unique_ptr<CTime_Segment> segment = std::make_unique<CTime_Segment>(segment_id, mSignal_Id, mDefault_Parameters, mPrediction_Window, mOutput);		
 		const auto ret = mSegments.insert(std::pair<int64_t, std::unique_ptr<CTime_Segment>>{segment_id, std::move(segment)});
 		return ret.first->second;
 	}
@@ -26,9 +26,16 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 	mPrediction_Window = shared_configuration.Read_Double(rsPrediction_Window);
 	mSolver_Enabled = shared_configuration.Read_Bool(rsSolve_Parameters);
 	mSolve_On_Calibration = shared_configuration.Read_Bool(rsSolve_On_Level_Count);
+	mSolve_All_Segments = shared_configuration.Read_Bool(rsSolve_Using_All_Segments);
 	mReference_Level_Threshold_Count = shared_configuration.Read_Int(rsSolve_On_Level_Count);
 	mSolving_Scheduled = false;
 	mReference_Level_Counter = 0;
+
+
+	//TODO: overit, jak se to vlastne uklada - jestli to neni jedno obrovske pole
+	mDefault_Parameters = shared_configuration.Read_Parameters(rsDefault_Parameters);
+	mLower_Bound = shared_configuration.Read_Parameters(rsLower_Bound);
+	mUpper_Bound = shared_configuration.Read_Parameters(rsUpper_Bound);
 
 	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
 
@@ -71,7 +78,7 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 				break;
 
 			case glucose::NDevice_Event_Code::Solve_Parameters:
-				Run_Solver();
+				Run_Solver(evt.segment_id);
 				break;
 
 			case glucose::NDevice_Event_Code::Warm_Reset:
@@ -98,7 +105,7 @@ void CCalculate_Filter::Add_Level(const int64_t segment_id, const GUID &signal_i
 	const auto &segment = Get_Segment(segment_id);
 	if (segment)
 		if (segment->Add_Level(signal_id, level, time_stamp)) {
-			if (mSolving_Scheduled) Run_Solver();	
+			if (mSolving_Scheduled) Run_Solver(segment_id);
 			segment->Emit_Levels_At_Pending_Times();
 		}
 }
@@ -123,19 +130,35 @@ void CCalculate_Filter::Schedule_Solving(const GUID &level_signal_id) {
 	if ((level_signal_id == glucose::signal_Calibration) && mSolve_On_Calibration) mSolving_Scheduled = true;
 }
 
-void CCalculate_Filter::Run_Solver() {
-	/*TODO taky doimplementovat nacitani defaultnich parametru, aby je pouzival jak solver, tak i calculator
-		a jeste konfigurovatelne meze pro solver
+double CCalculate_Filter::Calculate_Fitness(const uint64_t segment_id) {
+	//Are we calculating parameters for a single segment or for all segments?
 
-	{
-		double *pb, *pe;
-		if (cur->parameters->get(&pb, &pe) == S_OK)
-		{
-			size_t paramcnt = std::distance(pb, pe) / 3; // lower, defaults, upper
-			lowBound = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(pb, pb + paramcnt);
-			defParams = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(pb + paramcnt, pb + 2 * paramcnt);
-			highBound = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(pb + 2 * paramcnt, pe);
+	return std::numeric_limits<double>::max();
+}
+
+void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
+	//1. we need to calculate present fitness of current parameters
+	//2. then, we attempt to calculate new parameters 
+	//3. subsequently, we calculate fitness of the new parameters
+	//4. eventually, we apply new parameters if they present a better fitness
+
+	auto solve_segment = [this](const CTime_Segment *segment_id) {
+
+	};
+
+	if (!mSolve_All_Segments) {
+		if (segment_id != glucose::Invalid_Segment_Id) {
+			//solve just the one, given segment
+			const auto segment = Get_Segment(segment_id).get();
+			if (segment) solve_segment(segment);
+		} else {
+			//enumerate all known segments and solve them one by one
+			for (auto &segment : mSegments) {
+				solve_segment(segment.second.get());
+			}
 		}
-
-		*/
+	}
+	else {
+		//solve using all segments
+	}
 }
