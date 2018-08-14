@@ -155,6 +155,17 @@ void CCalculate_Filter::Schedule_Solving(const GUID &level_signal_id) {
 double CCalculate_Filter::Calculate_Fitness(glucose::ITime_Segment **segments, const size_t segment_count, glucose::SMetric metric, glucose::IModel_Parameter_Vector *parameters) {
 	metric->Reset();
 
+	std::vector<double> reference, times, calculated;
+	for (size_t i = 0; i < segment_count; i++) {
+		glucose::STime_Segment segment{ segments[i] };
+
+		glucose::ISignal *reference_signal, *calculated_signal;
+		if (segments[i]->Get_Signal(&mSignal_id, &calculated_signal) == S_OK
+		
+		calculated_signal = setup_segment.Get_Signal(setup.calculated_signal_id);
+		info.reference_signal = setup_segment.Get_Signal(setup.reference_signal_id);
+	}
+
 	return std::numeric_limits<double>::max();
 }
 
