@@ -1,6 +1,7 @@
 #include "calculate.h"
 
-#include "../../../common/rtl/SolverLib.h"
+#include "descriptor.h"
+
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/rattime.h"
 #include "../../../common/lang/dstrings.h"
@@ -151,8 +152,8 @@ void CCalculate_Filter::Schedule_Solving(const GUID &level_signal_id) {
 	if ((level_signal_id == glucose::signal_Calibration) && mSolve_On_Calibration) mSolving_Scheduled = true;
 }
 
-double CCalculate_Filter::Calculate_Fitness(const uint64_t segment_id) {
-	//Are we calculating parameters for a single segment or for all segments?
+double CCalculate_Filter::Calculate_Fitness(glucose::ITime_Segment **segments, const size_t segment_count, glucose::SMetric metric, glucose::IModel_Parameter_Vector *parameters) {
+	metric->Reset();
 
 	return std::numeric_limits<double>::max();
 }
@@ -169,7 +170,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 
 	glucose::SMetric metric{ glucose::TMetric_Parameters{ mMetric_Id, bool_2_uc(mUse_Relative_Error),  bool_2_uc(mUse_Squared_Differences), bool_2_uc(mPrefer_More_Levels),  mMetric_Threshold } };
 
-	auto solve_segment = [this, &metric](glucose::ITime_Segment **segments, const size_t segment_count) {
+	auto solve_segment = [this, &metric, segment_id](glucose::ITime_Segment **segments, const size_t segment_count, glucose::SModel_Parameter_Vector working_parameters) {
 		
 		size_t real_levels_required = 0;		
 		{	//get the number of levels required
@@ -194,10 +195,23 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 			for (auto &hint : mParameter_Hints)
 				raw_hints.push_back(hint.get());
 			if (mDefault_Parameters) raw_hints.push_back(mDefault_Parameters.get());
+
+			//find the best parameters
+			if (raw_hints.size()>1) {
+				double best_fitness = Calculate_Fitness(segments, segment_count, metric, raw_hints[0]);
+				size_t best_index = 0;
+				for (size_t i = 1; i < raw_hints.size(); i++) {
+					const double local_fitness = Calculate_Fitness(segments, segment_count, metric, raw_hints[i]);
+					if (local_fitness < best_fitness) best_index = i;
+				}
+
+				//swap the best hint to the first position
+				if (best_index>0) std::swap(raw_hints[0], raw_hints[best_index]);
+			}
 		}
 
 		metric->Reset();
-		glucose::TSolver_Progress progress;
+		glucose::TSolver_Progress progress{ 0 };
 		glucose::SModel_Parameter_Vector solved_parameters{};		
 
 		glucose::TSolver_Setup setup{
@@ -210,6 +224,39 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 			&progress
 		};
 
+		if (glucose::Solve_Model_Parameters(setup) == S_OK) {
+			//calculate and compare the present parameters with the new one
+
+			const double original_fitness = Calculate_Fitness(segments, segment_count, metric, working_parameters.get());
+			const double solved_fitness = Calculate_Fitness(segments, segment_count, metric, solved_parameters.get());
+			if (solved_fitness < original_fitness) {
+				//OK, we have found better fitness => set it and send respective message
+				const auto &segment = Get_Segment(segment_id);
+				if (segment) {
+					segment->Set_Parameters(solved_parameters);
+					Add_Parameters_Hint(solved_parameters);
+				}
+
+				glucose::UDevice_Event solved_evt{ glucose::NDevice_Event_Code::Parameters };
+				solved_evt.device_time = Unix_Time_To_Rat_Time(time(nullptr));
+				solved_evt.device_id = calculate::Calculate_Filter_GUID;
+				solved_evt.signal_id = mSignal_Id;
+				solved_evt.segment_id = segment_id;
+				solved_evt.parameters.set(solved_parameters);				
+				mOutput.Send(solved_evt);
+			}
+
+		} else {
+			//for some reason, it has failed
+			glucose::UDevice_Event failed_evt{ glucose::NDevice_Event_Code::Information };
+			failed_evt.device_time = Unix_Time_To_Rat_Time(time(nullptr));
+			failed_evt.device_id = calculate::Calculate_Filter_GUID;
+			failed_evt.signal_id = mSignal_Id;			
+			failed_evt.segment_id = segment_id;
+			failed_evt.info.set(rsInfo_Solver_Failed);
+			mOutput.Send(failed_evt);
+		}
+
 	};
 
 	//do not forget that CTimeSegment is not reference-counted, so that we can omit all those addrefs and releases
@@ -219,22 +266,24 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 			const auto segment = Get_Segment(segment_id).get();			
 			if (segment) {
 				glucose::ITime_Segment *raw_segment = static_cast<glucose::ITime_Segment*>(segment);
-				solve_segment(&raw_segment, 1);
+				solve_segment(&raw_segment, 1, segment->Get_Parameters());
 			}
 		} else {
 			//enumerate all known segments and solve them one by one
 			for (auto &segment : mSegments) {
 				glucose::ITime_Segment *raw_segment = static_cast<glucose::ITime_Segment*>(segment.second.get());
-				solve_segment(&raw_segment, 1);
+				solve_segment(&raw_segment, 1, segment.second.get()->Get_Parameters());
 			}
 		}
 	}
 	else {
 		//solve using all segments
-		std::vector<glucose::ITime_Segment*> raw_segments;
-		for (auto &segment : mSegments) {
-			raw_segments.push_back(static_cast<glucose::ITime_Segment*>(segment.second.get()));
-			solve_segment(raw_segments.data(), raw_segments.size());
+		if (!mSegments.empty()) {
+			std::vector<glucose::ITime_Segment*> raw_segments;
+			for (auto &segment : mSegments) 
+				raw_segments.push_back(static_cast<glucose::ITime_Segment*>(segment.second.get()));
+
+			solve_segment(raw_segments.data(), raw_segments.size(), mSegments.begin()->second->Get_Parameters());			
 		}
 	}
 }

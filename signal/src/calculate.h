@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../../common/rtl/FilterLib.h"
+#include "../../../common/rtl/SolverLib.h"
 #include "../../../common/rtl/referencedImpl.h"
 
 #include "time_segment.h"
@@ -41,7 +42,7 @@ protected:
 	int64_t mReference_Level_Counter;
 	void Schedule_Solving(const GUID &level_signal_id);
 	void Run_Solver(const uint64_t segment_id);
-	double Calculate_Fitness(const uint64_t segment_id);
+	double Calculate_Fitness(glucose::ITime_Segment **segments, const size_t segment_count, glucose::SMetric metric, glucose::IModel_Parameter_Vector *parameters);
 	void Configure(glucose::SFilter_Parameters shared_configuration);
 protected:
 	std::map<int64_t, std::unique_ptr<CTime_Segment>> mSegments;

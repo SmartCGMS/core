@@ -80,6 +80,10 @@ bool CTime_Segment::Set_Parameters(glucose::SModel_Parameter_Vector parameters) 
 	return mWorking_Parameters.set(parameters);	//make a deep copy to ensure that the shared object will not be gone unexpectedly
 }
 
+glucose::SModel_Parameter_Vector CTime_Segment::Get_Parameters() {
+	return mWorking_Parameters;
+}
+
 bool CTime_Segment::Calculate(const std::vector<double> &times, std::vector<double> &levels) {
 	if (mCalculated_Signal) {
 		levels.resize(times.size());
