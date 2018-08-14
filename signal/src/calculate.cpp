@@ -1,6 +1,7 @@
 #include "calculate.h"
 
-
+#include "../../../common/rtl/SolverLib.h"
+#include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/rattime.h"
 #include "../../../common/lang/dstrings.h"
 
@@ -19,9 +20,7 @@ std::unique_ptr<CTime_Segment>& CCalculate_Filter::Get_Segment(const int64_t seg
 	}
 }
 
-HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
-	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
-
+void CCalculate_Filter::Configure(glucose::SFilter_Parameters shared_configuration) {
 	mSignal_Id = shared_configuration.Read_GUID(rsSelected_Signal);
 	mPrediction_Window = shared_configuration.Read_Double(rsPrediction_Window);
 	mSolver_Enabled = shared_configuration.Read_Bool(rsSolve_Parameters);
@@ -31,11 +30,33 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 	mSolving_Scheduled = false;
 	mReference_Level_Counter = 0;
 
+	mSolver_Id = shared_configuration.Read_GUID(rsSelected_Solver);
+	shared_configuration.Read_Parameters(rsSelected_Model_Bounds, mLower_Bound, mDefault_Parameters, mUpper_Bound);
+	//get reference signal id
 
-	//TODO: overit, jak se to vlastne uklada - jestli to neni jedno obrovske pole
-	mDefault_Parameters = shared_configuration.Read_Parameters(rsDefault_Parameters);
-	mLower_Bound = shared_configuration.Read_Parameters(rsLower_Bound);
-	mUpper_Bound = shared_configuration.Read_Parameters(rsUpper_Bound);
+	glucose::TModel_Descriptor desc = glucose::Null_Model_Descriptor;
+	if (glucose::get_model_descriptor_by_signal_id(mSignal_Id, desc)) {
+		//find the proper reference id
+		GUID mReference_Signal_Id = Invalid_GUID;	//sanity check
+		for (size_t i = 0; i < desc.number_of_calculated_signals; i++)
+			if (desc.calculated_signal_ids[i] == mSignal_Id) {
+				mReference_Signal_Id = desc.reference_signal_ids[i];
+				break;
+			}
+	}
+	
+	mMetric_Id = shared_configuration.Read_GUID(rsSelected_Metric);
+	mUse_Relative_Error = shared_configuration.Read_Bool(rsUse_Relative_Error);
+	mUse_Squared_Differences = shared_configuration.Read_Bool(rsUse_Squared_Diff);
+	mPrefer_More_Levels = shared_configuration.Read_Bool(rsUse_Prefer_More_Levels);
+	mMetric_Threshold = shared_configuration.Read_Double(rsMetric_Threshold);
+	mUse_Measured_Levels = shared_configuration.Read_Bool(rsUse_Measured_Levels);
+	mLevels_Required = shared_configuration.Read_Int(rsMetric_Levels_Required);
+	
+}
+
+HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
+	Configure(refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true));
 
 	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
 
@@ -142,23 +163,78 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 	//3. subsequently, we calculate fitness of the new parameters
 	//4. eventually, we apply new parameters if they present a better fitness
 
-	auto solve_segment = [this](const CTime_Segment *segment_id) {
+	auto bool_2_uc = [](const bool b)->const unsigned char {
+		return b ? static_cast<const unsigned char>(1) : static_cast<const unsigned char>(0);
+	};
+
+	glucose::SMetric metric{ glucose::TMetric_Parameters{ mMetric_Id, bool_2_uc(mUse_Relative_Error),  bool_2_uc(mUse_Squared_Differences), bool_2_uc(mPrefer_More_Levels),  mMetric_Threshold } };
+
+	auto solve_segment = [this, &metric](glucose::ITime_Segment **segments, const size_t segment_count) {
+		
+		size_t real_levels_required = 0;		
+		{	//get the number of levels required
+			size_t global_count = 0;
+			if (mLevels_Required < 0) {
+				//handle the relative value
+
+				for (size_t i = 0; i < segment_count; i++) {
+					glucose::ISignal *signal;
+					if (segments[i]->Get_Signal(&mReference_Signal_Id, &signal) == S_OK) {
+						size_t local_count = 0;
+						if (signal->Get_Discrete_Bounds(nullptr, &local_count) == S_OK)
+							global_count += local_count;
+					}
+				}
+			}
+			real_levels_required = static_cast<size_t>(static_cast<int64_t>(global_count) + mLevels_Required);
+		}
+
+		std::vector<glucose::IModel_Parameter_Vector*> raw_hints;
+		{	//get the raw hints
+			for (auto &hint : mParameter_Hints)
+				raw_hints.push_back(hint.get());
+			if (mDefault_Parameters) raw_hints.push_back(mDefault_Parameters.get());
+		}
+
+		metric->Reset();
+		glucose::TSolver_Progress progress;
+		glucose::SModel_Parameter_Vector solved_parameters{};		
+
+		glucose::TSolver_Setup setup{
+			mSolver_Id, mSignal_Id, mReference_Signal_Id,
+			segments, segment_count,
+			metric.get(), real_levels_required, mUse_Measured_Levels ? 1 : 0,
+			mLower_Bound.get(), mUpper_Bound.get(),		
+			raw_hints.data(), raw_hints.size(),
+			solved_parameters.get(),
+			&progress
+		};
 
 	};
 
+	//do not forget that CTimeSegment is not reference-counted, so that we can omit all those addrefs and releases
 	if (!mSolve_All_Segments) {
 		if (segment_id != glucose::Invalid_Segment_Id) {
 			//solve just the one, given segment
-			const auto segment = Get_Segment(segment_id).get();
-			if (segment) solve_segment(segment);
+			const auto segment = Get_Segment(segment_id).get();			
+			if (segment) {
+				glucose::ITime_Segment *raw_segment = static_cast<glucose::ITime_Segment*>(segment);
+				solve_segment(&raw_segment, 1);
+			}
 		} else {
 			//enumerate all known segments and solve them one by one
 			for (auto &segment : mSegments) {
-				solve_segment(segment.second.get());
+				glucose::ITime_Segment *raw_segment = static_cast<glucose::ITime_Segment*>(segment.second.get());
+				solve_segment(&raw_segment, 1);
 			}
 		}
 	}
 	else {
 		//solve using all segments
+		std::vector<glucose::ITime_Segment*> raw_segments;
+		for (auto &segment : mSegments) {
+			raw_segments.push_back(static_cast<glucose::ITime_Segment*>(segment.second.get()));
+			solve_segment(raw_segments.data(), raw_segments.size());
+		}
 	}
 }

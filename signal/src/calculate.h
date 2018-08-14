@@ -21,8 +21,17 @@ protected:
 protected:
 	// calculated signal ID
 	GUID mSignal_Id = Invalid_GUID;
+	GUID mReference_Signal_Id = Invalid_GUID;
 	double mPrediction_Window = 0.0;
 	glucose::SModel_Parameter_Vector mDefault_Parameters, mLower_Bound, mUpper_Bound;
+	GUID mSolver_Id = Invalid_GUID;
+	GUID mMetric_Id = Invalid_GUID;
+	bool mUse_Relative_Error;
+	bool mUse_Squared_Differences;
+	bool mPrefer_More_Levels;		//i.e. result is once more divided by the number of levels evaluated
+	double mMetric_Threshold;
+	bool mUse_Measured_Levels;
+	uint64_t mLevels_Required = 0;
 protected:
 	bool mSolver_Enabled;
 	bool mSolving_Scheduled;
@@ -33,6 +42,7 @@ protected:
 	void Schedule_Solving(const GUID &level_signal_id);
 	void Run_Solver(const uint64_t segment_id);
 	double Calculate_Fitness(const uint64_t segment_id);
+	void Configure(glucose::SFilter_Parameters shared_configuration);
 protected:
 	std::map<int64_t, std::unique_ptr<CTime_Segment>> mSegments;
 	std::vector<glucose::SModel_Parameter_Vector> mParameter_Hints;

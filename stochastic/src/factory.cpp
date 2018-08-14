@@ -160,7 +160,7 @@ HRESULT IfaceCalling do_solve_model_parameters(const glucose::TSolver_Setup *set
 		const glucose::SMetric shared_metric = refcnt::make_shared_reference_ext<glucose::SMetric, glucose::IMetric>(setup->metric, true);
 		const auto shared_lower = refcnt::make_shared_reference_ext<glucose::SModel_Parameter_Vector, glucose::IModel_Parameter_Vector>(setup->lower_bound, true);
 		const auto shared_upper = refcnt::make_shared_reference_ext<glucose::SModel_Parameter_Vector, glucose::IModel_Parameter_Vector>(setup->upper_bound, true);
-		auto shared_solved = refcnt::make_shared_reference_ext<glucose::SModel_Parameter_Vector, glucose::IModel_Parameter_Vector>(*(setup->solved_parameters), true);
+		auto shared_solved = refcnt::make_shared_reference_ext<glucose::SModel_Parameter_Vector, glucose::IModel_Parameter_Vector>(setup->solved_parameters, true);
 		auto shared_hints = refcnt::Referenced_To_Vector<glucose::SModel_Parameter_Vector, glucose::IModel_Parameter_Vector>(setup->solution_hints, setup->hint_count);
 
 		//make sure that we do our best to supply at least one hint for local and evolutionary solvers

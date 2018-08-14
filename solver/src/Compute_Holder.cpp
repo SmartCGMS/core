@@ -184,7 +184,7 @@ glucose::TSolver_Setup CCompute_Holder::Prepare_Solver_Setup() {
 		mMetric.get(), mMetricLevelsRequired, mUseMeasuredLevels,				// metric, levels_required, use_measured_levels
 		mLowBounds.get(), mHighBounds.get(),									// lower_bound, upper_bound
 		mTmpSolverContainer.solutionHints.data(), mTmpSolverContainer.solutionHints.size(),		// solution_hints, hint_count
-		&mTmpSolverContainer.paramsTarget,										// solved_parameters
+		mTmpSolverContainer.paramsTarget,										// solved_parameters
 		&mSolverProgress														// progress
 	};
 }
