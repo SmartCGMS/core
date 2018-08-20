@@ -93,32 +93,49 @@ bool CDb_Writer::Store_Level(const glucose::UDevice_Event& evt) {
 	int64_t id = Get_Db_Segment_Id(evt.segment_id);
 	if (id == db_writer::Error_Id) return false;
 
-	// "INSERT INTO measuredvalue (measuredat, blood, ist, isig, insulin, carbohydrates, calibration, segmentid) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-	auto qr = mDb_Connection.Query(rsInsert_New_Measured_Value,
-		to_iso8601(Rat_Time_To_Unix_Time(evt.device_time)).c_str());
-
-	if (!qr)
-		return false;
-
-	const auto sigCondBind = [&qr, &evt](const GUID& cond) {
-		if (cond == evt.signal_id)
-			qr.Bind_Parameters(evt.level);
-		else
-			qr.Bind_Parameters(nullptr);
-	};
-
-	sigCondBind(glucose::signal_BG);
-	sigCondBind(glucose::signal_IG);
-	sigCondBind(glucose::signal_ISIG);
-	sigCondBind(glucose::signal_Insulin);
-	sigCondBind(glucose::signal_Carb_Intake);
-	sigCondBind(glucose::signal_Calibration);
-
-	qr.Bind_Parameters(id);
-
-	qr.Execute();
+	mPrepared_Values.push_back({
+		evt.device_time,
+		evt.signal_id,
+		evt.level,
+		id
+	});
 
 	return true;
+}
+
+
+void CDb_Writer::Flush_Levels()
+{
+	// TODO: transactions
+
+	for (const auto& val : mPrepared_Values)
+	{
+		auto qr = mDb_Connection.Query(rsInsert_New_Measured_Value,
+			to_iso8601(Rat_Time_To_Unix_Time(val.measuredAt)).c_str());
+
+		if (!qr)
+			break;
+
+		const auto sigCondBind = [&qr, &val](const GUID& cond) {
+			if (cond == val.signalId)
+				qr.Bind_Parameters(val.value);
+			else
+				qr.Bind_Parameters(nullptr);
+		};
+
+		sigCondBind(glucose::signal_BG);
+		sigCondBind(glucose::signal_IG);
+		sigCondBind(glucose::signal_ISIG);
+		sigCondBind(glucose::signal_Insulin);
+		sigCondBind(glucose::signal_Carb_Intake);
+		sigCondBind(glucose::signal_Calibration);
+
+		qr.Bind_Parameters(val.segmentId);
+
+		qr.Execute();
+	}
+
+	mPrepared_Values.clear();
 }
 
 bool CDb_Writer::Store_Parameters(const glucose::UDevice_Event& evt) {
@@ -244,12 +261,15 @@ HRESULT IfaceCalling CDb_Writer::Run(glucose::IFilter_Configuration *configurati
 																break;
 
 			case glucose::NDevice_Event_Code::Parameters:		if (mStore_Parameters) if (!Store_Parameters(evt)) return E_FAIL; break;
+			case glucose::NDevice_Event_Code::Time_Segment_Stop:	Flush_Levels(); break;
 			default:	break;
 		}
 
 		if (!mOutput.Send(evt))
 			break;
 	}
+
+	Flush_Levels();
 
 	return S_OK;
 }

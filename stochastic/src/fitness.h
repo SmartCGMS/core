@@ -72,7 +72,7 @@ public:
 			if (info.calculated_signal && info.reference_signal) {
 
 				size_t levels_count;
-				if (info.reference_signal->Get_Discrete_Bounds(nullptr, &levels_count) == S_OK) {
+				if (info.reference_signal->Get_Discrete_Bounds(nullptr, &levels_count) == S_OK && levels_count > 0) {
 					info.reference_time.resize(levels_count);
 					info.reference_level.resize(levels_count);					
 					

@@ -14,6 +14,8 @@
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 using TValue_Vector = std::vector<CMeasured_Value*>;
+// segment begin and end (indexes in given array/vector)
+using TSegment_Limits = std::pair<size_t, size_t>;
 
 /*
  * Filter class for loading and extracting file, and sending values to chain
@@ -33,6 +35,10 @@ class CFile_Reader : public glucose::IFilter, public virtual refcnt::CReferenced
 		std::vector<TValue_Vector> mMergedValues;
 		// do we need to send shutdown after last value?
 		bool mShutdownAfterLast;
+		// minimum values in segment
+		size_t mMinValueCount;
+		// require both IG and BG values in a segment
+		bool mRequireBG_IG;
 
 		// reader thread
 		std::unique_ptr<std::thread> mReaderThread;
@@ -48,6 +54,9 @@ class CFile_Reader : public glucose::IFilter, public virtual refcnt::CReferenced
 		HRESULT Extract(ExtractionResult &values);
 		// merge values from extraction result to internal vector
 		void Merge_Values(ExtractionResult& result);
+
+		// resolves segments of given value vector
+		void Resolve_Segments(TValue_Vector const& src, std::list<TSegment_Limits>& targetList) const;
 
 	public:
 		CFile_Reader(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);

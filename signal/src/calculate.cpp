@@ -15,14 +15,14 @@ std::unique_ptr<CTime_Segment>& CCalculate_Filter::Get_Segment(const int64_t seg
 
 	if (iter != mSegments.end()) return iter->second;
 	else {
-		std::unique_ptr<CTime_Segment> segment = std::make_unique<CTime_Segment>(segment_id, mSignal_Id, mDefault_Parameters, mPrediction_Window, mOutput);		
+		std::unique_ptr<CTime_Segment> segment = std::make_unique<CTime_Segment>(segment_id, mCalculated_Signal_Id, mDefault_Parameters, mPrediction_Window, mOutput);		
 		const auto ret = mSegments.insert(std::pair<int64_t, std::unique_ptr<CTime_Segment>>{segment_id, std::move(segment)});
 		return ret.first->second;
 	}
 }
 
 void CCalculate_Filter::Configure(glucose::SFilter_Parameters shared_configuration) {
-	mSignal_Id = shared_configuration.Read_GUID(rsSelected_Signal);
+	mCalculated_Signal_Id = shared_configuration.Read_GUID(rsSelected_Signal);
 	mPrediction_Window = shared_configuration.Read_Double(rsPrediction_Window);
 	mSolver_Enabled = shared_configuration.Read_Bool(rsSolve_Parameters);
 	mSolve_On_Calibration = shared_configuration.Read_Bool(rsSolve_On_Level_Count);
@@ -36,11 +36,11 @@ void CCalculate_Filter::Configure(glucose::SFilter_Parameters shared_configurati
 	//get reference signal id
 
 	glucose::TModel_Descriptor desc = glucose::Null_Model_Descriptor;
-	if (glucose::get_model_descriptor_by_signal_id(mSignal_Id, desc)) {
+	if (glucose::get_model_descriptor_by_signal_id(mCalculated_Signal_Id, desc)) {
 		//find the proper reference id
 		GUID mReference_Signal_Id = Invalid_GUID;	//sanity check
 		for (size_t i = 0; i < desc.number_of_calculated_signals; i++)
-			if (desc.calculated_signal_ids[i] == mSignal_Id) {
+			if (desc.calculated_signal_ids[i] == mCalculated_Signal_Id) {
 				mReference_Signal_Id = desc.reference_signal_ids[i];
 				break;
 			}
@@ -86,7 +86,7 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 				break;
 
 			case glucose::NDevice_Event_Code::Parameters:
-				if (evt.signal_id == mSignal_Id) {
+				if (evt.signal_id == mCalculated_Signal_Id) {
 					const auto &segment = Get_Segment(evt.segment_id);
 					if (segment) {
 						segment->Set_Parameters(evt.parameters);
@@ -96,7 +96,7 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 				break;
 
 			case glucose::NDevice_Event_Code::Parameters_Hint:
-				if (evt.signal_id == mSignal_Id) Add_Parameters_Hint(evt.parameters);
+				if (evt.signal_id == mCalculated_Signal_Id) Add_Parameters_Hint(evt.parameters);
 				break;
 
 			case glucose::NDevice_Event_Code::Solve_Parameters:
@@ -106,23 +106,23 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 			case glucose::NDevice_Event_Code::Warm_Reset:
 				for (const auto &segment : mSegments)
 					segment.second->Clear_Data();
-				break;				
+				break;
 			default:
 				break;
 		}
 
 
 		if (!event_already_sent)
-			if (!mOutput.Send(evt)) 
-					break;
+			if (!mOutput.Send(evt))
+				break;
 	}
 
 	return S_OK;
 }
 
 void CCalculate_Filter::Add_Level(const int64_t segment_id, const GUID &signal_id, const double level, const double time_stamp) {
-	
-	if ((signal_id == Invalid_GUID) || (signal_id == mSignal_Id)) return;	//cannot add what unknown signal and cannot add what we have to compute
+
+	if ((signal_id == Invalid_GUID) || (signal_id == mCalculated_Signal_Id)) return;	//cannot add what unknown signal and cannot add what we have to compute
 
 	const auto &segment = Get_Segment(segment_id);
 	if (segment)
@@ -143,7 +143,7 @@ void CCalculate_Filter::Add_Parameters_Hint(glucose::SModel_Parameter_Vector par
 void CCalculate_Filter::Schedule_Solving(const GUID &level_signal_id) {
 	mSolving_Scheduled = false;
 
-	if (level_signal_id == mSignal_Id) mReference_Level_Counter++;
+	if (level_signal_id == mCalculated_Signal_Id) mReference_Level_Counter++;
 	if ((mReference_Level_Threshold_Count > 0) && (mReference_Level_Counter >= mReference_Level_Threshold_Count)) {
 		mReference_Level_Counter = 0;
 		mSolving_Scheduled = true;
@@ -155,18 +155,49 @@ void CCalculate_Filter::Schedule_Solving(const GUID &level_signal_id) {
 double CCalculate_Filter::Calculate_Fitness(glucose::ITime_Segment **segments, const size_t segment_count, glucose::SMetric metric, glucose::IModel_Parameter_Vector *parameters) {
 	metric->Reset();
 
+	size_t real_levels_required = mLevels_Required;
+	size_t global_count = 0;
 	std::vector<double> reference, times, calculated;
 	for (size_t i = 0; i < segment_count; i++) {
-		glucose::STime_Segment segment{ segments[i] };
+		glucose::STime_Segment segment = refcnt::make_shared_reference_ext<glucose::STime_Segment, glucose::ITime_Segment>(segments[i], true);
+		auto reference_signal = segment.Get_Signal(mReference_Signal_Id);
+		auto calculated_signal = segment.Get_Signal(mCalculated_Signal_Id);
 
-		glucose::ISignal *reference_signal, *calculated_signal;
-		if (segments[i]->Get_Signal(&mSignal_id, &calculated_signal) == S_OK
-		
-		calculated_signal = setup_segment.Get_Signal(setup.calculated_signal_id);
-		info.reference_signal = setup_segment.Get_Signal(setup.reference_signal_id);
+
+		glucose::TBounds bounds;
+		size_t count, filled;
+		if (reference_signal->Get_Discrete_Bounds(&bounds, &count) == S_OK) {
+			global_count += count;
+
+
+			reference.resize(count);
+			times.resize(count);
+			calculated.resize(count);
+			if (reference_signal->Get_Discrete_Levels(times.data(), reference.data(), count, &filled) == S_OK) {
+				if (!mUse_Measured_Levels)
+					reference_signal->Get_Continuous_Levels(nullptr, times.data(), reference.data(), count, glucose::apxNo_Derivation);
+
+
+				if (calculated_signal->Get_Continuous_Levels(parameters, times.data(), calculated.data(), count, glucose::apxNo_Derivation)) {
+					metric->Accumulate(times.data(), reference.data(), calculated.data(), count);
+				}
+			}
+		}
 	}
 
-	return std::numeric_limits<double>::max();
+
+	if (mLevels_Required < 0) 	//get the number of levels required
+		//handle the relative value
+		real_levels_required = static_cast<size_t>(static_cast<int64_t>(global_count) + mLevels_Required);
+
+
+	double fitness;
+	size_t accumulated = 0;
+	if (!metric->Calculate(&fitness, &accumulated, real_levels_required) != S_OK) {
+		fitness = std::numeric_limits<double>::max();
+	}
+
+	return fitness;
 }
 
 void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
@@ -223,10 +254,11 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 
 		metric->Reset();
 		glucose::TSolver_Progress progress{ 0 };
-		glucose::SModel_Parameter_Vector solved_parameters{};		
+		
+		glucose::SModel_Parameter_Vector solved_parameters{ mDefault_Parameters };
 
 		glucose::TSolver_Setup setup{
-			mSolver_Id, mSignal_Id, mReference_Signal_Id,
+			mSolver_Id, mCalculated_Signal_Id, mReference_Signal_Id,
 			segments, segment_count,
 			metric.get(), real_levels_required, mUse_Measured_Levels ? 1 : 0,
 			mLower_Bound.get(), mUpper_Bound.get(),		
@@ -251,7 +283,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 				glucose::UDevice_Event solved_evt{ glucose::NDevice_Event_Code::Parameters };
 				solved_evt.device_time = Unix_Time_To_Rat_Time(time(nullptr));
 				solved_evt.device_id = calculate::Calculate_Filter_GUID;
-				solved_evt.signal_id = mSignal_Id;
+				solved_evt.signal_id = mCalculated_Signal_Id;
 				solved_evt.segment_id = segment_id;
 				solved_evt.parameters.set(solved_parameters);				
 				mOutput.Send(solved_evt);
@@ -262,7 +294,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 			glucose::UDevice_Event failed_evt{ glucose::NDevice_Event_Code::Information };
 			failed_evt.device_time = Unix_Time_To_Rat_Time(time(nullptr));
 			failed_evt.device_id = calculate::Calculate_Filter_GUID;
-			failed_evt.signal_id = mSignal_Id;			
+			failed_evt.signal_id = mCalculated_Signal_Id;			
 			failed_evt.segment_id = segment_id;
 			failed_evt.info.set(rsInfo_Solver_Failed);
 			mOutput.Send(failed_evt);

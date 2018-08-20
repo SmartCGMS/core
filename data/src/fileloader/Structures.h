@@ -17,16 +17,16 @@ class COptional
 
 	public:
 		T & operator=(T const& val) { mVal = val; mHasValue = true; return mVal; }
-		auto operator<(T const& val) { return mVal < val; }
-		auto operator>(T const& val) { return mVal > val; }
-		auto operator<=(T const& val) { return mVal <= val; }
-		auto operator>=(T const& val) { return mVal >= val; }
-		auto operator==(T const& val) { return mVal == val; }
+		auto operator<(T const& val) const { return mVal < val; }
+		auto operator>(T const& val) const { return mVal > val; }
+		auto operator<=(T const& val) const { return mVal <= val; }
+		auto operator>=(T const& val) const { return mVal >= val; }
+		auto operator==(T const& val) const { return mVal == val; }
 
-		T value() { return mVal; }
+		T value() const { return mVal; }
 
 		void reset() { mHasValue = false; }
-		bool has_value() { return mHasValue; }
+		bool has_value() const { return mHasValue; }
 };
 
 /*

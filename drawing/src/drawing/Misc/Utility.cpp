@@ -98,7 +98,10 @@ namespace Utility
 
     Value Get_Bezier_Value(Value& p0, Value& p1, Value& p2, Value& search)
     {
-        double t = Time_To_Double((search.date - p0.date) / (search.date - p0.date));
+		const auto date_diff = search.date - p0.date;
+		if (date_diff == 0) return p0.value;
+
+        double t = Time_To_Double((search.date - p0.date) / date_diff);
         double y1 = p0.value*(1 - t)*(1 - t) + 2 * t*p1.value*(1 - t) + t*t*p2.value;
         Value v;
         v.date = search.date;
@@ -154,7 +157,7 @@ namespace Utility
         else // otherwise approximate
         {
             // border value - no data
-            if (s_index == 0 || s_index == diffVal.size())
+            if (s_index == 0 || s_index >= diffVal.size()-1)
                 return false;
 
             // even index - bezier curve passes through this point

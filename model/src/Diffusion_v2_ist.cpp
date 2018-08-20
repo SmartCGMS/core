@@ -77,7 +77,14 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Pa
 			opt.set_lower_bounds(dt.element()[i] - glucose::One_Hour);
 			opt.set_upper_bounds(dt.element()[i] + glucose::One_Hour);
 			opt.set_xtol_rel(0.1*glucose::One_Second);
-			/*nlopt::result result = */opt.optimize(estimated_present_time, minf); 
+			try
+			{
+				/*nlopt::result result = */opt.optimize(estimated_present_time, minf);
+			}
+			catch (nlopt::roundoff_limited&)
+			{
+				//
+			}
 
 			dt.element()[i] = estimated_present_time[0];
 		}

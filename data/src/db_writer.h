@@ -16,6 +16,14 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
+struct CPrepared_Value
+{
+	double measuredAt;
+	GUID signalId;
+	double value;
+	int64_t segmentId;
+};
+
 /*
  * Filter class for writing data and parameters to database
  */
@@ -51,6 +59,8 @@ class CDb_Writer : public virtual glucose::IFilter, public virtual db::IDb_Sink,
 		std::map<int64_t, int64_t> mSegment_Db_Id_Map;
 		// set of all signals to be ignored when storing to DB
 		std::set<GUID> mIgnored_Signals;
+		// list of prepared values
+		std::list<CPrepared_Value> mPrepared_Values;
 
 		int64_t mLast_Generated_Idx = 0;
 
@@ -69,6 +79,9 @@ class CDb_Writer : public virtual glucose::IFilter, public virtual db::IDb_Sink,
 		bool Store_Level(const glucose::UDevice_Event& evt);
 		// stores incoming parameters to database
 		bool Store_Parameters(const glucose::UDevice_Event& evt);
+
+		// flushes cached levels to database
+		void Flush_Levels();
 
 		bool Configure(glucose::SFilter_Parameters conf);
 

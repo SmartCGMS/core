@@ -21,7 +21,7 @@ protected:
 	glucose::SFilter_Pipe mOutput;
 protected:
 	// calculated signal ID
-	GUID mSignal_Id = Invalid_GUID;
+	GUID mCalculated_Signal_Id = Invalid_GUID;
 	GUID mReference_Signal_Id = Invalid_GUID;
 	double mPrediction_Window = 0.0;
 	glucose::SModel_Parameter_Vector mDefault_Parameters, mLower_Bound, mUpper_Bound;

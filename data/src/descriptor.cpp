@@ -143,30 +143,38 @@ namespace db_writer {
 
 namespace file_reader
 {
-	constexpr size_t param_count = 3;
+	constexpr size_t param_count = 5;
 
 	constexpr glucose::NParameter_Type param_type[param_count] = {
 		glucose::NParameter_Type::ptWChar_Container,
 		glucose::NParameter_Type::ptInt64,
-		glucose::NParameter_Type::ptBool
+		glucose::NParameter_Type::ptBool,
+		glucose::NParameter_Type::ptInt64,
+		glucose::NParameter_Type::ptBool,
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
 		dsInput_Values_File,
 		dsInput_Segment_Spacing,
-		dsShutdown_After_Last
+		dsShutdown_After_Last,
+		dsMinimum_Segment_Levels,
+		dsRequire_IG_BG
 	};
 
 	const wchar_t* config_param_name[param_count] = {
 		rsInput_Values_File,
 		rsInput_Segment_Spacing,
-		rsShutdown_After_Last
+		rsShutdown_After_Last,
+		rsMinimum_Segment_Levels,
+		rsRequire_IG_BG
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
 		dsInput_Values_File_Tooltip,
 		dsInput_Segment_Spacing_Tooltip,
-		dsShutdown_After_Last_Tooltip
+		dsShutdown_After_Last_Tooltip,
+		dsMinimum_Segment_Levels_Tooltip,
+		dsRequire_IG_BG_Tooltip
 	};
 
 	const glucose::TFilter_Descriptor File_Reader_Descriptor = {
