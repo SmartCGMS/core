@@ -37,8 +37,7 @@ void CCalculate_Filter::Configure(glucose::SFilter_Parameters shared_configurati
 
 	glucose::TModel_Descriptor desc = glucose::Null_Model_Descriptor;
 	if (glucose::get_model_descriptor_by_signal_id(mCalculated_Signal_Id, desc)) {
-		//find the proper reference id
-		GUID mReference_Signal_Id = Invalid_GUID;	//sanity check
+		//find the proper reference id		
 		for (size_t i = 0; i < desc.number_of_calculated_signals; i++)
 			if (desc.calculated_signal_ids[i] == mCalculated_Signal_Id) {
 				mReference_Signal_Id = desc.reference_signal_ids[i];
@@ -163,6 +162,7 @@ double CCalculate_Filter::Calculate_Fitness(glucose::ITime_Segment **segments, c
 		auto reference_signal = segment.Get_Signal(mReference_Signal_Id);
 		auto calculated_signal = segment.Get_Signal(mCalculated_Signal_Id);
 
+		if (!reference_signal || !calculated_signal) return std::numeric_limits<double>::max();
 
 		glucose::TBounds bounds;
 		size_t count, filled;
