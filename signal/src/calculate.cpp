@@ -25,7 +25,7 @@ void CCalculate_Filter::Configure(glucose::SFilter_Parameters shared_configurati
 	mCalculated_Signal_Id = shared_configuration.Read_GUID(rsSelected_Signal);
 	mPrediction_Window = shared_configuration.Read_Double(rsPrediction_Window);
 	mSolver_Enabled = shared_configuration.Read_Bool(rsSolve_Parameters);
-	mSolve_On_Calibration = shared_configuration.Read_Bool(rsSolve_On_Level_Count);
+	mSolve_On_Calibration = shared_configuration.Read_Bool(rsSolve_On_Calibration);
 	mSolve_All_Segments = shared_configuration.Read_Bool(rsSolve_Using_All_Segments);
 	mReference_Level_Threshold_Count = shared_configuration.Read_Int(rsSolve_On_Level_Count);
 	mSolving_Scheduled = false;
@@ -98,8 +98,11 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 				if (evt.signal_id == mCalculated_Signal_Id) Add_Parameters_Hint(evt.parameters);
 				break;
 
-			case glucose::NDevice_Event_Code::Solve_Parameters:
-				Run_Solver(evt.segment_id);
+			case glucose::NDevice_Event_Code::Solve_Parameters: {
+					const auto segment_id = evt.segment_id;
+					event_already_sent = mOutput.Send(evt);	//preserve original order of the events
+					Run_Solver(evt.segment_id);
+				}
 				break;
 
 			case glucose::NDevice_Event_Code::Warm_Reset:
@@ -142,7 +145,7 @@ void CCalculate_Filter::Add_Parameters_Hint(glucose::SModel_Parameter_Vector par
 void CCalculate_Filter::Schedule_Solving(const GUID &level_signal_id) {
 	mSolving_Scheduled = false;
 
-	if (level_signal_id == mCalculated_Signal_Id) mReference_Level_Counter++;
+	if (level_signal_id == mReference_Signal_Id) mReference_Level_Counter++;
 	if ((mReference_Level_Threshold_Count > 0) && (mReference_Level_Counter >= mReference_Level_Threshold_Count)) {
 		mReference_Level_Counter = 0;
 		mSolving_Scheduled = true;
@@ -178,7 +181,7 @@ double CCalculate_Filter::Calculate_Fitness(glucose::ITime_Segment **segments, c
 					reference_signal->Get_Continuous_Levels(nullptr, times.data(), reference.data(), count, glucose::apxNo_Derivation);
 
 
-				if (calculated_signal->Get_Continuous_Levels(parameters, times.data(), calculated.data(), count, glucose::apxNo_Derivation)) {
+				if (calculated_signal->Get_Continuous_Levels(parameters, times.data(), calculated.data(), count, glucose::apxNo_Derivation) == S_OK) {
 					metric->Accumulate(times.data(), reference.data(), calculated.data(), count);
 				}
 			}
@@ -193,7 +196,7 @@ double CCalculate_Filter::Calculate_Fitness(glucose::ITime_Segment **segments, c
 
 	double fitness;
 	size_t accumulated = 0;
-	if (!metric->Calculate(&fitness, &accumulated, real_levels_required) != S_OK) {
+	if (metric->Calculate(&fitness, &accumulated, real_levels_required) != S_OK) {
 		fitness = std::numeric_limits<double>::max();
 	}
 

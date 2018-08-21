@@ -67,7 +67,7 @@ namespace calculate {
 		rsSelected_Solver,
 		rsSelected_Model_Bounds,
 		rsSolve_On_Level_Count,
-		dsSolve_On_Calibration,
+		rsSolve_On_Calibration,
 		rsSolve_Using_All_Segments,
 		nullptr,
 		rsSelected_Metric,
