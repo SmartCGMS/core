@@ -17,7 +17,7 @@ bool CAkima::Update() {
 	if (mSignal.Get_Discrete_Bounds(nullptr, &update_count) != S_OK)
 		return false;
 
-	if (update_count < MINIMUM_NUMBER_POINTS) return S_FALSE;
+	if (update_count < MINIMUM_NUMBER_POINTS) return false;
 
 	if (mInputTimes.size() != update_count) {
 		mInputTimes.resize(update_count);

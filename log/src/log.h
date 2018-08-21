@@ -43,7 +43,7 @@ protected:
 	glucose::SFilter_Pipe mInput;
 	glucose::SFilter_Pipe mOutput;
 	std::wofstream mLog;
-	bool mIs_Terminated;
+	bool mIs_Terminated = false;
 	
 	std::mutex mLog_Records_Guard;
 	std::shared_ptr<refcnt::wstr_list> mNew_Log_Records;

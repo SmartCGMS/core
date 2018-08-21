@@ -52,7 +52,8 @@ namespace metade {
 		NStrategy strategy;
 		double CR, F;
 		TSolution current, next;
-		double current_fitness, next_fitness;
+		double current_fitness = std::numeric_limits<double>::max();
+		double next_fitness = std::numeric_limits<double>::max();
 		glucose::SMetric metric_calculator;	//de-facto, we create a pool of metrics so that we don't need to clone it for each thread or implement pushing and poping to and from the pool
 	};
 

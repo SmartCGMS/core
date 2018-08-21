@@ -55,7 +55,7 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 		std::wstring mECDF_FilePath;
 
 		// input data changed
-		bool mChanged;
+		bool mChanged = false;
 		// mutex guard for changed variable
 		std::mutex mChangedMtx;
 		// scheduler condition variable

@@ -23,9 +23,9 @@ class CMapping_Filter : public glucose::IFilter, public virtual refcnt::CReferen
 		glucose::SFilter_Pipe mOutput;
 
 		// source signal ID (what signal will be mapped)
-		GUID mSourceId;
+		GUID mSource_Id = Invalid_GUID;
 		// destination signal ID (to what ID it will be mapped)
-		GUID mDestinationId;
+		GUID mDestination_Id = Invalid_GUID;
 	public:
 		CMapping_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
 		virtual ~CMapping_Filter() {};

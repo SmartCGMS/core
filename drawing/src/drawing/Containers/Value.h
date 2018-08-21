@@ -71,9 +71,9 @@ struct Data
     bool Is_Visible_Legend();
 
     ValueVector values;
-    bool visible;
-    bool empty;
-	bool calculated;
+    bool visible = false;
+    bool empty = true;
+	bool calculated = false;
 	std::string identifier;
 };
 

@@ -45,7 +45,7 @@ class CDb_Reader : public virtual glucose::IFilter, public virtual db::IDb_Sink,
 		// loaded segments ID
 		std::vector<int64_t> mDbTimeSegmentIds;
 		// do we need to send shutdown after last value?
-		bool mShutdownAfterLast;
+		bool mShutdownAfterLast = false;
 
 	protected:
 		std::atomic<bool> mQuit_Flag{ false };

@@ -10,12 +10,12 @@
 
 namespace imported {
 	struct TLibraryInfo {	
-		CDynamic_Library library;	
-		glucose::TCreate_Filter create_filter;
-		glucose::TCreate_Metric create_metric;
-		glucose::TCreate_Signal create_signal;		
-		glucose::TSolve_Model_Parameters solve_model_parameters;
-		glucose::TCreate_Approximator create_approximator;
+		CDynamic_Library library{};
+		glucose::TCreate_Filter create_filter = nullptr;
+		glucose::TCreate_Metric create_metric = nullptr;
+		glucose::TCreate_Signal create_signal = nullptr;		
+		glucose::TSolve_Model_Parameters solve_model_parameters = nullptr;
+		glucose::TCreate_Approximator create_approximator = nullptr;
 	};
 }
 

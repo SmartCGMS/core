@@ -34,7 +34,7 @@ class CFile_Reader : public glucose::IFilter, public virtual refcnt::CReferenced
 		// merged extracted values from given file
 		std::vector<TValue_Vector> mMergedValues;
 		// do we need to send shutdown after last value?
-		bool mShutdownAfterLast;
+		bool mShutdownAfterLast = false;
 		// minimum values in segment
 		size_t mMinValueCount;
 		// require both IG and BG values in a segment

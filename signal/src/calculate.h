@@ -27,19 +27,19 @@ protected:
 	glucose::SModel_Parameter_Vector mDefault_Parameters, mLower_Bound, mUpper_Bound;
 	GUID mSolver_Id = Invalid_GUID;
 	GUID mMetric_Id = Invalid_GUID;
-	bool mUse_Relative_Error;
-	bool mUse_Squared_Differences;
-	bool mPrefer_More_Levels;		//i.e. result is once more divided by the number of levels evaluated
-	double mMetric_Threshold;
-	bool mUse_Measured_Levels;
+	bool mUse_Relative_Error = true;
+	bool mUse_Squared_Differences = false;
+	bool mPrefer_More_Levels = false;		//i.e. result is once more divided by the number of levels evaluated
+	double mMetric_Threshold = 0.0;
+	bool mUse_Measured_Levels = false;
 	uint64_t mLevels_Required = 0;
 protected:
-	bool mSolver_Enabled;
-	bool mSolving_Scheduled;
-	bool mSolve_On_Calibration;
-	bool mSolve_All_Segments;
-	int64_t mReference_Level_Threshold_Count;
-	int64_t mReference_Level_Counter;
+	bool mSolver_Enabled = false;
+	bool mSolving_Scheduled = false;
+	bool mSolve_On_Calibration = true;
+	bool mSolve_All_Segments = false;
+	int64_t mReference_Level_Threshold_Count = 0;
+	int64_t mReference_Level_Counter = 0;
 	void Schedule_Solving(const GUID &level_signal_id);
 	void Run_Solver(const uint64_t segment_id);
 	double Calculate_Fitness(glucose::ITime_Segment **segments, const size_t segment_count, glucose::SMetric metric, glucose::IModel_Parameter_Vector *parameters);

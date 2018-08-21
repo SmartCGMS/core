@@ -72,7 +72,7 @@ public:
 
 class CStdDevMetric : public CAbsDiffPercentilMetric {
 protected:
-	double mLast_Calculated_Avg;			//stores the average calculated with the last call to DoCalculateMetric()
+	double mLast_Calculated_Avg = std::numeric_limits<double>::quiet_NaN();			//stores the average calculated with the last call to DoCalculateMetric()
 	bool mDo_Bessel_Correction;
 	virtual double Do_Calculate_Metric();
 public:

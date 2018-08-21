@@ -28,11 +28,11 @@ class CMasking_Filter : public glucose::IFilter, public virtual refcnt::CReferen
 		std::map<uint64_t, uint8_t> mSegmentMaskState;
 
 		// signal ID to be masked
-		GUID mSignalId;
+		GUID mSignal_Id = Invalid_GUID;
 		// bitset used for masking
 		std::bitset<BitmaskMaxBitCount> mMask;
 		// real bit count in a given bitmask
-		size_t mBitCount;
+		size_t mBitCount = 0;
 
 	protected:
 		bool Parse_Bitmask(std::wstring in);

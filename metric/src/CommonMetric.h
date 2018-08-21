@@ -29,7 +29,7 @@ struct TProcessed_Difference {
 
 class CCommon_Metric : public virtual glucose::IMetric, public virtual refcnt::CReferenced {
 protected:
-	size_t mAll_Levels_Count;
+	size_t mAll_Levels_Count = 0;
 	const glucose::TMetric_Parameters mParameters;
 	std::vector<TProcessed_Difference> mDifferences;	
 protected:

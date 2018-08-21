@@ -17,7 +17,7 @@ class Day
 {
     private:
         std::map<double, std::vector<double> > mMap;
-        bool mEmpty;
+        bool mEmpty = true;
 
     protected:
         void Quartile_X(std::vector<double> vector, double &y0, double &y1, double &y2, double &y3, double &y4);

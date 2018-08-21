@@ -36,7 +36,7 @@ class CDb_Writer : public virtual glucose::IFilter, public virtual db::IDb_Sink,
 		// database host configured
 		std::wstring mDbHost;
 		// configured DB port
-		uint16_t mDbPort;
+		uint16_t mDbPort = 0;
 		// database provider string in Qt format
 		std::wstring mDbProvider;
 		// database name / filename

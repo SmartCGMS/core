@@ -46,14 +46,14 @@ bool CMasking_Filter::Parse_Bitmask(std::wstring inw)
 
 HRESULT CMasking_Filter::Run(glucose::IFilter_Configuration* configuration) {
 	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
-	mSignalId = shared_configuration.Read_GUID(rsSignal_Masked_Id);
+	mSignal_Id = shared_configuration.Read_GUID(rsSignal_Masked_Id);
 
 	if (!Parse_Bitmask(shared_configuration.Read_String(rsSignal_Value_Bitmask)))
 		return E_FAIL;
 
 	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
 		// mask only configured signal and event of type "Level"
-		if (evt.event_code == glucose::NDevice_Event_Code::Level && evt.signal_id == mSignalId) {
+		if (evt.event_code == glucose::NDevice_Event_Code::Level && evt.signal_id == mSignal_Id) {
 			auto itr = mSegmentMaskState.find(evt.segment_id);
 			if (itr == mSegmentMaskState.end())
 				mSegmentMaskState[evt.segment_id] = 0;
