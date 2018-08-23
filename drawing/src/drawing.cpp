@@ -117,6 +117,11 @@ void CDrawing_Filter::Run_Main() {
 			{
 				mSegmentMarkers.push_back(Value(0, Rat_Time_To_Unix_Time(evt.device_time), evt.segment_id));
 			}
+			else if (evt.event_code == glucose::NDevice_Event_Code::Warm_Reset)
+			{
+				mInputData.clear();
+				mParameterChanges.clear();
+			}
 		}
 
 		if (!mOutput.Send(evt))

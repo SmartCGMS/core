@@ -64,6 +64,12 @@ void CError_Marker_Counter::Reset_Segment(uint64_t segment_id, const GUID& signa
 		mCalculatedValues[segment_id][signal_id].clear();
 }
 
+void CError_Marker_Counter::Reset_All()
+{
+	mCalculatedValues.clear();
+	mReferenceValues.clear();
+}
+
 HRESULT CError_Marker_Counter::Get_Errors(const GUID &signal_id, const glucose::NError_Type type, glucose::TError_Markers &markers) {
 	if (mErrors.find(signal_id) == mErrors.end())
 		return ENOENT;

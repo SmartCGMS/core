@@ -57,6 +57,8 @@ class CError_Marker_Counter
 		bool Recalculate_Errors_For(const GUID& signal_id);
 		// updates parameters of given signal (model)
 		void Reset_Segment(uint64_t segment_id, const GUID& signal_id);
+		// resets the whole instance
+		void Reset_All();
 		
 		// retrieves error record
 		HRESULT Get_Errors(const GUID &signal_id, const glucose::NError_Type type, glucose::TError_Markers &markers);

@@ -2,6 +2,7 @@
 
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
+#include "../../../common/rtl/UILib.h"
 
 #include <memory>
 #include <thread>
@@ -43,6 +44,8 @@ protected:
 	glucose::SFilter_Pipe mInput;
 	glucose::SFilter_Pipe mOutput;
 	std::wofstream mLog;
+	glucose::CSignal_Names mSignal_Names;
+
 	bool mIs_Terminated = false;
 	
 	std::mutex mLog_Records_Guard;
@@ -53,8 +56,7 @@ protected:
 protected:
 	// vector of model descriptors; stored for parameter formatting
 	std::vector<glucose::TModel_Descriptor> mModelDescriptors;
-	std::wstring Parameters_To_WStr(const glucose::UDevice_Event& evt);
-	std::wstring Signal_Id_To_WStr(const GUID &signal_id);
+	std::wstring Parameters_To_WStr(const glucose::UDevice_Event& evt);	
 public:
 	CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
 	virtual ~CLog_Filter() {};

@@ -29,25 +29,6 @@ HRESULT IfaceCalling CLog_Filter::QueryInterface(const GUID*  riid, void ** ppvO
 	return E_NOINTERFACE;
 }
 
-std::wstring CLog_Filter::Signal_Id_To_WStr(const GUID &signal_id) {
-	const std::map<GUID, const wchar_t*> signal_names = {	//don't make it static unless with TBB allocator, else the memory won't be freed
-		{ glucose::signal_BG, L"BG" },
-		{ glucose::signal_IG, L"IG" },
-		{ glucose::signal_ISIG, L"ISIG" },
-		{ glucose::signal_Calibration, L"Calibration" },
-		{ glucose::signal_Insulin, L"Insulin" },
-		{ glucose::signal_Carb_Intake, L"Carb" },
-		{ glucose::signal_Health_Stress, L"Stress" },
-		{ glucose::signal_Diffusion_v2_Blood, L"Diff2 BG" },
-		{ glucose::signal_Diffusion_v2_Ist, L"Diff2 IG" },
-		{ glucose::signal_Steil_Rebrin_Blood, L"SR BG" }
-	};
-
-	const auto resolved_name = signal_names.find(signal_id);
-	if (resolved_name != signal_names.end()) return resolved_name->second;
-	else return GUID_To_WString(signal_id);
-}
-
 std::wstring CLog_Filter::Parameters_To_WStr(const glucose::UDevice_Event& evt) {
 	// retrieve params
 	double *begin, *end;
@@ -143,7 +124,7 @@ void CLog_Filter::Log_Event(const glucose::UDevice_Event &evt) {
 	log_line << evt.logical_time << delim;
 	log_line << Rat_Time_To_Local_Time_WStr(evt.device_time, rsLog_Date_Time_Format) << delim;
 	log_line << glucose::event_code_text[static_cast<size_t>(evt.event_code)] << delim;
-	if (evt.signal_id != Invalid_GUID) log_line << Signal_Id_To_WStr(evt.signal_id);
+	if (evt.signal_id != Invalid_GUID) log_line << mSignal_Names.Get_Name(evt.signal_id);
 		log_line << delim;
 	if (evt.is_level_event()) log_line << evt.level;
 		else if (evt.is_info_event()) log_line << refcnt::WChar_Container_To_WString(evt.info.get());

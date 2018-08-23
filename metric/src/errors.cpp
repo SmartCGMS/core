@@ -49,6 +49,9 @@ HRESULT CErrors_Filter::Run(glucose::IFilter_Configuration* configuration) {
 				else if (evt.info == rsParameters_Reset)
 					mErrorCounter->Reset_Segment(evt.segment_id, evt.signal_id);
 				break;
+			case glucose::NDevice_Event_Code::Warm_Reset:
+				mErrorCounter->Reset_All();
+				break;
 			default:
 				break;
 		}

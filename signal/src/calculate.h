@@ -45,10 +45,12 @@ protected:
 	double Calculate_Fitness(glucose::ITime_Segment **segments, const size_t segment_count, glucose::SMetric metric, glucose::IModel_Parameter_Vector *parameters);
 	void Configure(glucose::SFilter_Parameters shared_configuration);
 protected:
+	bool mWarm_Reset_Done = false;
+protected:
 	std::map<int64_t, std::unique_ptr<CTime_Segment>> mSegments;
 	std::vector<glucose::SModel_Parameter_Vector> mParameter_Hints;
-	std::unique_ptr<CTime_Segment>& Get_Segment(const int64_t segment_id);
-	void Add_Level(const int64_t segment_id, const GUID &signal_id, const double level, const double time_stamp);	
+	std::unique_ptr<CTime_Segment>& Get_Segment(const uint64_t segment_id);
+	void Add_Level(const uint64_t segment_id, const GUID &signal_id, const double level, const double time_stamp);	
 	void Add_Parameters_Hint(glucose::SModel_Parameter_Vector parameters);
 public:
 	CCalculate_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
