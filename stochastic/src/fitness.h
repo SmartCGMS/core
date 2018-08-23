@@ -33,7 +33,7 @@ using aligned_double_vector = std::vector<double, AlignmentAllocator<double>>;	/
 struct TShared_Solver_Setup {
 	const GUID solver_id; const GUID calculated_signal_id; const GUID reference_signal_id;
 	std::vector<glucose::STime_Segment> segments;
-	glucose::SMetric metric;	const size_t levels_required; const char use_measured_levels;
+	glucose::SMetric metric; const size_t levels_required; const unsigned char use_measured_levels;
 	const glucose::SModel_Parameter_Vector lower_bound, upper_bound;
 	const std::vector<glucose::SModel_Parameter_Vector> solution_hints;
 	glucose::SModel_Parameter_Vector solved_parameters;
