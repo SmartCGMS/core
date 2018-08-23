@@ -39,7 +39,6 @@
 #define EIGEN_DERIVE_ARRAY(derived_type, inherited_type) \
 class derived_type : public inherited_type, public virtual glucose::IModel_Parameter_Vector, public virtual refcnt::CNotReferenced { \
 public: \
-	EIGEN_MAKE_ALIGNED_OPERATOR_NEW \
 	derived_type(const derived_type &other) : inherited_type(other) {} \
 	derived_type(void) : inherited_type() {} \
 	typedef inherited_type Base; \
