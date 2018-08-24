@@ -181,7 +181,7 @@ glucose::TSolver_Setup CCompute_Holder::Prepare_Solver_Setup() {
 		mSignalId,																// calculated signal_id
 		reference_signal_id,
 		mTmpSolverContainer.clonedSegments.data(), mTmpSolverContainer.clonedSegments.size(),	// segments, segment_count
-		mMetric.get(), mMetricLevelsRequired, mUseMeasuredLevels,				// metric, levels_required, use_measured_levels
+		mMetric.get(), mMetricLevelsRequired, static_cast<unsigned char>(mUseMeasuredLevels),				// metric, levels_required, use_measured_levels
 		mLowBounds.get(), mHighBounds.get(),									// lower_bound, upper_bound
 		mTmpSolverContainer.solutionHints.data(), mTmpSolverContainer.solutionHints.size(),		// solution_hints, hint_count
 		mTmpSolverContainer.paramsTarget,										// solved_parameters

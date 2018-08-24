@@ -32,7 +32,7 @@ protected:
 	bool mPrefer_More_Levels = false;		//i.e. result is once more divided by the number of levels evaluated
 	double mMetric_Threshold = 0.0;
 	bool mUse_Measured_Levels = false;
-	uint64_t mLevels_Required = 0;
+	int64_t mLevels_Required = 0;
 protected:
 	bool mSolver_Enabled = false;
 	bool mSolving_Scheduled = false;

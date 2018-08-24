@@ -134,7 +134,7 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 			case glucose::NDevice_Event_Code::Solve_Parameters: {
 					const auto segment_id = evt.segment_id;
 					event_already_sent = mOutput.Send(evt);	//preserve original order of the events
-					Run_Solver(evt.segment_id);
+					Run_Solver(segment_id);
 				}
 				break;
 

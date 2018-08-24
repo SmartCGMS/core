@@ -196,7 +196,7 @@ void CCompute_Filter::Run_Scheduler()
 				// new or better parameters available
 				if (result == S_OK)
 				{
-					std::vector<size_t> updatedSegments;
+					std::vector<uint64_t> updatedSegments;
 					if (resetForcedFlag || mRecalc_With_Every_Params)
 						mComputeHolder->Get_All_Segment_Ids(updatedSegments);
 					else
