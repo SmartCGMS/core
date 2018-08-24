@@ -160,7 +160,7 @@ protected:
 protected:
 	const TSolution mLower_Bound;
 	const TSolution mUpper_Bound;
-	std::vector<metade::TMetaDE_Candidate_Solution<TSolution>> mPopulation;
+	TAligned_Solution_Vector<metade::TMetaDE_Candidate_Solution<TSolution>> mPopulation;
 	std::vector<size_t> mPopulation_Best;	//indexes into mPopulation sorted by mPopulation's member's current fitness
 											//we do not sort mPopulation due to performance costs and not to loose population diversity
 	void Generate_Meta_Params(metade::TMetaDE_Candidate_Solution<TSolution> &solution) { 
