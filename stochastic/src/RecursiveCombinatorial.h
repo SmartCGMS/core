@@ -12,12 +12,12 @@ protected:
 protected:
 	const TSolution mLower_Bound;
 	const TSolution mUpper_Bound;
-	std::vector<TSolution> mInitial_Solutions;
+	TAligned_Solution_Vector<TSolution> mInitial_Solutions;
 protected:
 	TFitness &mFitness;
 	SMetricFactory &mMetric_Factory;
 public:
-	CRecursive_Combinatorial_Descent(const std::vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, SMetricFactory &metric_factory) :
+	CRecursive_Combinatorial_Descent(const TAligned_Solution_Vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, SMetricFactory &metric_factory) :
 		mInitial_Solutions(initial_solutions), mLower_Bound(lower_bound), mUpper_Bound(upper_bound), mFitness(fitness), mMetric_Factory(metric_factory) {
 	}
 

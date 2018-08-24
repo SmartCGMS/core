@@ -28,12 +28,12 @@ class CLocalSearch {
 protected:
 	const TSolution mLower_Bound;
 	const TSolution mUpper_Bound;
-	std::vector<TSolution> mStepping;
+	TAligned_Solution_Vector<TSolution> mStepping;
 protected:
 	TFitness &mFitness;
 	glucose::SMetric &mMetric;
 public:
-	CLocalSearch(const std::vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, glucose::SMetric &metric) :
+	CLocalSearch(const TAligned_Solution_Vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, glucose::SMetric &metric) :
 
 		mStepping(initial_solutions), mLower_Bound(lower_bound), mUpper_Bound(upper_bound), mFitness(fitness), mMetric(metric) {
 		//keep the initial solutions as first as the Solve relies on it

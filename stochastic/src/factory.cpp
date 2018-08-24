@@ -21,7 +21,6 @@ public:
 	virtual HRESULT Solve_Model_Parameters(TShared_Solver_Setup &setup) = 0;
 };
 
-
 template <typename TSolution>
 void Solution_To_Parameters(TSolution &src, glucose::SModel_Parameter_Vector dst) {
 	double *begin = src.data();
@@ -30,7 +29,7 @@ void Solution_To_Parameters(TSolution &src, glucose::SModel_Parameter_Vector dst
 }
 
 template <typename TSolver, typename TSolution, typename TFitness>
-HRESULT Solve_By_Class(TShared_Solver_Setup &setup, std::vector<TSolution>& hints, const TSolution& lower_bound, const TSolution& upper_bound) /*const */{
+HRESULT Solve_By_Class(TShared_Solver_Setup &setup, TAligned_Solution_Vector<TSolution>& hints, const TSolution& lower_bound, const TSolution& upper_bound) /*const */{
 
 	TFitness fitness{ setup };
 	TSolver  solver{ hints, lower_bound, upper_bound, fitness, setup.metric };
@@ -42,7 +41,7 @@ HRESULT Solve_By_Class(TShared_Solver_Setup &setup, std::vector<TSolution>& hint
 }
 
 template <typename TSolution, nlopt::algorithm algorithm_id>
-HRESULT Solve_NLOpt(TShared_Solver_Setup &setup, std::vector<TSolution>& hints, const TSolution& lower_bound, const TSolution& upper_bound)  {
+HRESULT Solve_NLOpt(TShared_Solver_Setup &setup, TAligned_Solution_Vector<TSolution>& hints, const TSolution& lower_bound, const TSolution& upper_bound)  {
 
 	using TFitness = CFitness<TSolution>;
 	using TNLOpt_Specialized_Solver = CNLOpt<TSolution, TFitness, algorithm_id>;
@@ -51,12 +50,12 @@ HRESULT Solve_NLOpt(TShared_Solver_Setup &setup, std::vector<TSolution>& hints, 
 
 	TSolution solved = solver.Solve(setup.progress);
 	Solution_To_Parameters(solved, setup.solved_parameters);
-
+	
 	return S_OK;
 }
 
 template <typename TSolution>
-using  TSolve = std::function<HRESULT(TShared_Solver_Setup &, std::vector<TSolution>&, const TSolution&, const TSolution&)>;
+using  TSolve = std::function<HRESULT(TShared_Solver_Setup &, TAligned_Solution_Vector<TSolution>&, const TSolution&, const TSolution&)>;
 
 template <typename TSolution, typename TFitness = CFitness<TSolution>>
 class CSpecialized_Id_Dispatcher : public CGeneral_Id_Dispatcher {
@@ -103,7 +102,7 @@ public:
 
 	virtual HRESULT Solve_Model_Parameters(TShared_Solver_Setup &setup) final {
 
-		std::vector<TSolution> converted_hints;
+		TAligned_Solution_Vector<TSolution> converted_hints;
 		for (auto &hint : setup.solution_hints) {
 			if (hint->empty() != S_OK) {
 				auto converted = Parameters_To_Solution(hint);

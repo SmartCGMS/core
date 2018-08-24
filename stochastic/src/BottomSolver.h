@@ -6,11 +6,9 @@
 
 #include "solution.h"
 #include "fitness.h"
-#include "composite_fitness.h"
 #include "nlopt.h"
 #include "LocalSearch.h"
 
-//#include "../..\..\common\rtl\cfixes.h"
 
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_reduce.h>
@@ -28,7 +26,7 @@ protected:
 	TFitness &mFitness;
 	SMetricFactory &mMetric_Factory;
 public:
-	CBottom_Solver(const std::vector<TResult_Solution> &initial_solutions, const TResult_Solution &lower_bound, const TResult_Solution &upper_bound, TFitness &fitness, SMetricFactory &metric_factory) :
+	CBottom_Solver(const TAligned_Solution_Vector<TResult_Solution> &initial_solutions, const TResult_Solution &lower_bound, const TResult_Solution &upper_bound, TFitness &fitness, SMetricFactory &metric_factory) :
 
 		mFitness(fitness), mMetric_Factory(metric_factory) {
 
@@ -44,7 +42,7 @@ public:
 	TResult_Solution Solve(volatile TSolverProgress &progress) {
 
 		TTop_Solution top_result;
-		const std::vector<TBottom_Solution> bottom_init = { top_result.Decompose(mInitial_Solution) };	//also initializes top_results
+		const TAligned_Solution_Vector<TBottom_Solution> bottom_init = { top_result.Decompose(mInitial_Solution) };	//also initializes top_results
 		CNLOpt_Fitness_Proxy<TFitness, TTop_Solution, TBottom_Solution> fitness_proxy{ mFitness, top_result }; //that's needed by fitness_proxy
 		TBottom_Solver bottom_solver(bottom_init, mLower_Bottom_Bound, mUpper_Bottom_Bound, fitness_proxy, mMetric_Factory);
 		TBottom_Solution bottom_result = bottom_solver.Solve(progress);

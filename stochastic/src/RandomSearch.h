@@ -32,7 +32,7 @@ protected:
 	TFitness &mFitness;
 	SMetricFactory &mMetric_Factory;
 public:
-	CRandom_Search(const std::vector<TResult_Solution> &initial_solutions, const TResult_Solution &lower_bound, const TResult_Solution &upper_bound, TFitness &fitness, SMetricFactory &metric_factory) :
+	CRandom_Search(const TAligned_Solution_Vector<TResult_Solution> &initial_solutions, const TResult_Solution &lower_bound, const TResult_Solution &upper_bound, TFitness &fitness, SMetricFactory &metric_factory) :
 
 		mFitness(fitness), mMetric_Factory(metric_factory) {
 
@@ -69,7 +69,7 @@ public:
 
 				auto Evaluate_Top_Solution = [&](const auto &top)->TLCCandidate_Solution<TResult_Solution> {
 					CNLOpt_Fitness_Proxy<TFitness, TTop_Solution, TBottom_Solution> fitness_proxy{ mFitness, top };
-					const std::vector<TBottom_Solution> bottom_init;
+					const TAligned_Solution_Vector<TBottom_Solution> bottom_init;
 					TBottom_Solver bottom_solver(bottom_init, mLower_Bottom_Bound, mUpper_Bottom_Bound, fitness_proxy, mMetric_Factory);					
 					TBottom_Solution bottom_result = bottom_solver.Solve(progress);
 

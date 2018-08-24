@@ -41,7 +41,7 @@ struct TNLOpt_Objective_Function_Data {
 
 	TFitness &fitness;
 	TBottom_Solution& lower_bottom_bound, upper_bottom_bound;
-	std::vector<TBottom_Solution> initial_bottom_solution;
+	TAligned_Solution_Vector<TBottom_Solution> initial_bottom_solution;
 
 	TTop_Solution &default_top_solution;
 	std::vector<size_t> &dimension_remap;
@@ -129,7 +129,7 @@ protected:
 		return result; 
 	}
 public:
-	CNLOpt(const std::vector<TResult_Solution> &initial_solutions, const TResult_Solution &lower_bound, const TResult_Solution &upper_bound, TFitness &fitness, glucose::SMetric &metric) :
+	CNLOpt(const TAligned_Solution_Vector<TResult_Solution> &initial_solutions, const TResult_Solution &lower_bound, const TResult_Solution &upper_bound, TFitness &fitness, glucose::SMetric &metric) :
 		mFitness(fitness), mMetric(metric) {
 		
 		TResult_Solution tmp_init;
@@ -162,7 +162,7 @@ public:
 		nlopt::opt opt{ mTop_Algorithm, static_cast<unsigned int>(mDimension_Remap.size()) };
 
 
-		const std::vector<TBottom_Solution> initial_bottom_solution = { mInitial_Bottom_Solution };
+		const TAligned_Solution_Vector<TBottom_Solution> initial_bottom_solution = { mInitial_Bottom_Solution };
 		auto init_solution = mInitial_Top_Solution.Compose(mInitial_Bottom_Solution);
 		auto metric_calculator = mMetric.Clone();					
 

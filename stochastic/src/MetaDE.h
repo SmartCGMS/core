@@ -188,7 +188,7 @@ protected:
 	TFitness &mFitness;
 	glucose::SMetric &mMetric;
 public:
-	CMetaDE(const std::vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, glucose::SMetric &metric) :
+	CMetaDE(const TAligned_Solution_Vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, glucose::SMetric &metric) :
 		mLower_Bound(lower_bound), mUpper_Bound(upper_bound), mPopulation(mPopulation_Size), mPopulation_Best(mPopulation_Size), mFitness(fitness), mMetric(metric) {
 
 
@@ -329,7 +329,7 @@ public:
 
 /*
 					//apply additional local solver
-					const std::vector<TSolution> local_solution_candidate = { candidate_solution.next };
+					const TAligned_Solution_Vector<TSolution> local_solution_candidate = { candidate_solution.next };
 					TLocalSolver local_solver { local_solution_candidate, mLower_Bound, mUpper_Bound, mFitness, candidate_solution.metric_calculator };
 					TSolverProgress tmp_progress;
 					candidate_solution.next = local_solver.Solve(tmp_progress);

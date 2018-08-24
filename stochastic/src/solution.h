@@ -18,6 +18,10 @@
 #include <vector>
 #include <random>
 
+template <typename TSolution>
+using TAligned_Solution_Vector = std::vector<TSolution, AlignmentAllocator<TSolution>>;
+
+
 //Let us define the vectors to cope with commans in macro arguments
 
 //typedef Eigen::Matrix<floattype, 1, 5> TDiffusion4_Vector; - would be nice, but fails with Eigen
