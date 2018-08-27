@@ -75,6 +75,7 @@ struct Data
     bool empty = true;
 	bool calculated = false;
 	std::string identifier;
+	std::string refSignalIdentifier;
 };
 
 typedef std::map<std::string, Data> DataMap;

@@ -1,0 +1,18 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
+
+SET(PROJ "drawing")
+
+CONFIGURE_COMMON(${PROJ})
+
+FILE(GLOB SRC_FILES "src/*.cpp" "src/*.c" "src/*.h")
+IF(WIN32)
+	FILE(GLOB SRC_WIN_FILES "src/win/*.cpp" "src/win/*.h" "src/win/*.def")
+	SET(SRC_FILES "${SRC_FILES};${SRC_WIN_FILES}")
+ENDIF()
+
+FILE(GLOB_RECURSE SRC_DRAWING_FILES "src/drawing/*.cpp" "src/drawing/*.c" "src/drawing/*.h")
+
+ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES};${COMMON_FILES};${SRC_DRAWING_FILES})
+CONFIGURE_FILTER_OUTPUT(${PROJ})
+
+TARGET_LINK_LIBRARIES(${PROJ} factory)

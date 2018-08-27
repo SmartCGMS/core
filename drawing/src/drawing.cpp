@@ -212,17 +212,22 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 	std::string base = "calc";
 	size_t curIdx = 0;
 
+	std::map<GUID, std::string> calcSignalMap;
+
 	for (auto const& presentData : mInputData)
 	{
 		// do not use signals we don't want to draw
 		if (!allSignals && signalIds.find(presentData.first) == signalIds.end())
 			continue;
 
+		if (Signal_Mapping.find(presentData.first) == Signal_Mapping.end() && calcSignalMap.find(presentData.first) == calcSignalMap.end())
+			calcSignalMap[presentData.first] = base + std::to_string(curIdx++);
+
 		if (Signal_Mapping.find(presentData.first) == Signal_Mapping.end())
 		{
 			const GUID& signal_id = presentData.first;
 
-			std::string key = base + std::to_string(curIdx);
+			const std::string& key = calcSignalMap[presentData.first];
 
 			for (auto& dataPair : mInputData[signal_id])
 			{
@@ -240,6 +245,20 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 					const auto& data = dataPair.second;
 					vectorsMap[key].values.reserve(vectorsMap[key].values.size() + data.size());
 					std::copy(data.begin(), data.end(), std::back_inserter(vectorsMap[key].values));
+				}
+			}
+
+			auto refItr = mReferenceForCalcMap.find(presentData.first);
+			if (refItr != mReferenceForCalcMap.end())
+			{
+				auto nameMeasuredItr = Signal_Mapping.find(refItr->second);
+				if (nameMeasuredItr != Signal_Mapping.end())
+					vectorsMap[key].refSignalIdentifier = nameMeasuredItr->second;
+				else
+				{
+					auto nameCalcItr = calcSignalMap.find(refItr->second);
+					if (nameCalcItr != calcSignalMap.end())
+						vectorsMap[key].refSignalIdentifier = nameCalcItr->second;
 				}
 			}
 
@@ -267,8 +286,6 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 				mLocaleMap[key] = itr->second;
 			else
 				mLocaleMap[key] = "???";
-
-			curIdx++;
 		}
 	}
 
@@ -308,6 +325,7 @@ HRESULT CDrawing_Filter::Run(glucose::IFilter_Configuration* const configuration
 		{
 			std::wstring wname = std::wstring(model.description) + L" - " + model.calculated_signal_names[i];
 			mCalcSignalNameMap[model.calculated_signal_ids[i]] = std::string{wname.begin(), wname.end()};
+			mReferenceForCalcMap[model.calculated_signal_ids[i]] = model.reference_signal_ids[i];
 		}
 	}
 

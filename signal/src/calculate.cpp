@@ -244,7 +244,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 	//3. subsequently, we calculate fitness of the new parameters
 	//4. eventually, we apply new parameters if they present a better fitness
 
-	
+
 
 	glucose::SMetric metric{ glucose::TMetric_Parameters{ mMetric_Id, bool_2_uc(mUse_Relative_Error),  bool_2_uc(mUse_Squared_Differences), bool_2_uc(mPrefer_More_Levels),  mMetric_Threshold } };
 
@@ -289,7 +289,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 		}
 
 		metric->Reset();
-		glucose::TSolver_Progress progress{ 0 };
+		glucose::TSolver_Progress progress{ 0, 0, 0.0, 0 };
 		
 		glucose::SModel_Parameter_Vector solved_parameters{ mDefault_Parameters };
 

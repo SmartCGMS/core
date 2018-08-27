@@ -74,6 +74,8 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 		std::map<GUID, std::map<uint64_t, ValueVector>> mInputData;
 		// calculated signal GUID-name map
 		std::map<GUID, std::string> mCalcSignalNameMap;
+		// cached map for fast mapping of reference signals to calc'd ones
+		std::map<GUID, GUID> mReferenceForCalcMap;
 
 		// markers for segment start/ends
 		ValueVector mSegmentMarkers;

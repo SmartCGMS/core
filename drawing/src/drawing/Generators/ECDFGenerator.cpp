@@ -109,9 +109,6 @@ void CECDF_Generator::Write_Body()
 {
 	size_t curColorIdx = 0;
 
-	const ValueVector istVector = Utility::Get_Value_Vector(mInputData, "ist");
-	const ValueVector bloodVector = Utility::Get_Value_Vector(mInputData, "blood");
-
 	for (auto& dataVector : mInputData)
 	{
 		if (dataVector.second.calculated)
@@ -121,8 +118,11 @@ void CECDF_Generator::Write_Body()
 			// calculated curve group scope
 			{
 				SVG::GroupGuard grp(mSvg, dataVector.second.identifier + "Curve", true);
-				// TODO: select correct reference signal !!!
-				Write_ECDF_Curve(bloodVector, Utility::Get_Value_Vector(mInputData, dataVector.first), dataVector.second.identifier);
+
+				const auto& calc = Utility::Get_Value_Vector(mInputData, dataVector.first);
+				const auto& ref = Utility::Get_Value_Vector(mInputData, dataVector.second.refSignalIdentifier);
+				if (!calc.empty() && !ref.empty())
+					Write_ECDF_Curve(ref, calc, dataVector.second.identifier);
 			}
 
 			curColorIdx = (curColorIdx + 1) % Utility::Curve_Colors.size();
