@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+	<session name="gpredict3" />
+	<directory path="C:\Program Files\MATLAB\R2018a\diabetes" />
+	<models>
+		<model id="{11223344-AABB-CCDD-EEFF-123456789ABC}" description="Simple linear regression" dbtable="linear_parameters">
+			<parameters>
+				<param name="k" dbname="k" default="0" lowerbound="-100" upperbound="100" />
+				<param name="q" dbname="q" default="4.5" lowerbound="-1000" upperbound="1000"  />
+			</parameters>
+			<signals>
+				<signal id="{55667788-AABB-CCDD-EEFF-123456789ABC}"
+						name="Blood"
+						reference="{F666F6C2-D7C0-43E8-8EE1-C8CAA8F860E5}"
+						scriptname="linear_get_continuous_levels" />
+			</signals>
+		</model>
+	</models>
+	<solvers>
+		<solver id="{AABBCCDD-AABB-CCDD-EEFF-123456789ABC}"
+				description="Ordinary least squares method"
+				scriptname="least_squares_solver">
+			<models>
+				<model id="{11223344-AABB-CCDD-EEFF-123456789ABC}" />
+			</models>
+		</solver>
+	</solvers>
+</manifest>

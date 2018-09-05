@@ -1,0 +1,130 @@
+/**
+ * SmartCGMS - continuous glucose monitoring and controlling framework
+ * https://diabetes.zcu.cz/
+ *
+ * Contact:
+ * diabetes@mail.kiv.zcu.cz
+ * Medical Informatics, Department of Computer Science and Engineering
+ * Faculty of Applied Sciences, University of West Bohemia
+ * Technicka 8
+ * 314 06, Pilsen
+ *
+ * Licensing terms:
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *
+ * a) For non-profit, academic research, this software is available under the
+ *    GPLv3 license. When publishing any related work, user of this software
+ *    must:
+ *    1) let us know about the publication,
+ *    2) acknowledge this software and respective literature - see the
+ *       https://diabetes.zcu.cz/about#publications,
+ *    3) At least, the user of this software must cite the following paper:
+ *       Parallel software architecture for the next generation of glucose
+ *       monitoring, Proceedings of the 8th International Conference on Current
+ *       and Future Trends of Information and Communication Technologies
+ *       in Healthcare (ICTH 2018) November 5-8, 2018, Leuven, Belgium
+ * b) For any other use, especially commercial use, you must contact us and
+ *    obtain specific terms and conditions for the use of the software.
+ */
+
+#pragma once
+
+#include "../../../common/rtl/FilterLib.h"
+#include "../../../common/rtl/referencedImpl.h"
+#include "../../../common/rtl/UILib.h"
+
+#include "MatlabDataArray.hpp"
+#include "MatlabEngine.hpp"
+
+#include "descriptor.h"
+#include "XMLParser.h"
+
+#include <memory>
+#include <thread>
+
+#include "Matlab_Signal.h"
+
+/*
+ * User-defined model descriptor structure; note this will be converted to glucose::TModel_Descriptor in order
+ * to return proper structure via do_get_model_descriptors call
+ */
+struct TUser_Defined_Model_Descriptor
+{
+	GUID id;
+	std::wstring description;
+	std::wstring dbTableName;
+	std::vector<std::wstring> paramNames;
+	std::vector<const wchar_t*> paramNames_Proxy; // proxy needed to supply correct wchar_t** pointer to const descriptor
+	std::vector<std::wstring> paramDBColumnNames;
+	std::vector<const wchar_t*> paramDBColumnNames_Proxy;
+	std::vector<std::wstring> signalNames;
+	std::vector<const wchar_t*> signalNames_Proxy;
+	std::vector<GUID> signalGUIDs;
+	std::vector<GUID> referenceGUIDs;
+	std::vector<double> paramDefaults;
+	std::vector<double> paramLowerBounds;
+	std::vector<double> paramUpperBounds;
+	std::vector<glucose::NModel_Parameter_Value> paramTypes;
+
+	std::vector<std::wstring> getContinuousLevelsScriptNames;
+};
+
+/*
+ * User-defined solver descriptor structure; note this will be converted to glucose::TSolver_Descriptor in order
+ * to return proper structure via do_get_solver_descriptors call
+ */
+struct TUser_Defined_Solver_Descriptor
+{
+	GUID id;
+	std::wstring description;
+	std::vector<GUID> modelsSpecialization;
+
+	std::wstring solveParametersScript;
+};
+
+/*
+ * Matlab factory class - loads solvers and models from file and manages signal and solver procedures
+ */
+class CMatlab_Factory
+{
+	private:
+		// instance of Matlab engine - lazyloaded, use Matlab() method to retrieve it
+		std::shared_ptr<matlab::engine::MATLABEngine> mEngine;
+
+		// map of models loaded from XML manifest
+		std::map<GUID, TUser_Defined_Model_Descriptor> mModels;
+		// map of solvers loaded from XML manifest
+		std::map<GUID, TUser_Defined_Solver_Descriptor> mSolvers;
+
+	protected:
+		// loaded session name (empty for a new session)
+		std::wstring mMatlab_Session_Name;
+		// working directory we "cd" into - location of user scripts
+		std::wstring mMatlab_Working_Directory;
+
+		// lazyloading method of Matlab engine
+		std::shared_ptr<matlab::engine::MATLABEngine>& Matlab();
+		// evaluates given expression using internal Matlab engine instance
+		bool Eval(const std::wstring& what);
+
+	protected:
+		// parses manifest file
+		void Parse_Manifest();
+		bool Parse_Models(CXML_Parser<wchar_t> &parser);
+		bool Parse_Solvers(CXML_Parser<wchar_t> &parser);
+
+		// loads this factory - loads manifest, exports models and solvers, ...
+		bool Load();
+
+	public:
+		CMatlab_Factory();
+		virtual ~CMatlab_Factory();
+
+		virtual HRESULT Create_Signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal** signal);
+		virtual HRESULT Solve(const glucose::TSolver_Setup *setup);
+};
+
+// global instance; note this is initialized when this library gets loaded
+extern CMatlab_Factory gMatlab_Factory;

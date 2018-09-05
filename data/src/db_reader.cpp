@@ -1,3 +1,34 @@
+/**
+ * SmartCGMS - continuous glucose monitoring and controlling framework
+ * https://diabetes.zcu.cz/
+ *
+ * Contact:
+ * diabetes@mail.kiv.zcu.cz
+ * Medical Informatics, Department of Computer Science and Engineering
+ * Faculty of Applied Sciences, University of West Bohemia
+ * Technicka 8
+ * 314 06, Pilsen
+ *
+ * Licensing terms:
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *
+ * a) For non-profit, academic research, this software is available under the
+ *    GPLv3 license. When publishing any related work, user of this software
+ *    must:
+ *    1) let us know about the publication,
+ *    2) acknowledge this software and respective literature - see the
+ *       https://diabetes.zcu.cz/about#publications,
+ *    3) At least, the user of this software must cite the following paper:
+ *       Parallel software architecture for the next generation of glucose
+ *       monitoring, Proceedings of the 8th International Conference on Current
+ *       and Future Trends of Information and Communication Technologies
+ *       in Healthcare (ICTH 2018) November 5-8, 2018, Leuven, Belgium
+ * b) For any other use, especially commercial use, you must contact us and
+ *    obtain specific terms and conditions for the use of the software.
+ */
+
 #include "db_reader.h"
 
 #include "../../../common/rtl/FilterLib.h"
@@ -70,6 +101,11 @@ bool CDb_Reader::Emit_Segment_Marker(glucose::NDevice_Event_Code code, int64_t s
 
 bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
 	for (const auto &descriptor : glucose::get_model_descriptors()) {
+
+		// skip models without database schema tables
+		if (descriptor.db_table_name == nullptr || wcslen(descriptor.db_table_name) == 0)
+			continue;
+
 		std::wstring query = rsSelect_Params_Base;
 
 		for (size_t i = 0; i < descriptor.number_of_parameters; i++) {
@@ -83,22 +119,29 @@ bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
 		query += std::wstring(descriptor.db_table_name, descriptor.db_table_name + wcslen(descriptor.db_table_name));
 		query += rsSelect_Params_Condition;
 
-		db::SDb_Query squery = mDb_Connection.Query(query, segment_id);
+		try
+		{
+			db::SDb_Query squery = mDb_Connection.Query(query, segment_id);
 
-		std::vector<double> sql_result(descriptor.number_of_parameters);
-		if (squery.Bind_Result(sql_result)) {
-			if (squery.Get_Next()) {
-				// TODO: disambiguate stored parameters for different signals within one model! This i.e. mixes diffusion2 blood and ist parameters
-				for (size_t i = 0; i < descriptor.number_of_calculated_signals; i++)
-				{
-					glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Parameters };
-					evt.device_id = Db_Reader_Device_GUID;
-					evt.signal_id = descriptor.calculated_signal_ids[i];
-					evt.segment_id = segment_id;
-					if (evt.parameters.set(sql_result))
-						if (!mOutput.Send(evt)) return false;
+			std::vector<double> sql_result(descriptor.number_of_parameters);
+			if (squery.Bind_Result(sql_result)) {
+				if (squery.Get_Next()) {
+					// TODO: disambiguate stored parameters for different signals within one model! This i.e. mixes diffusion2 blood and ist parameters
+					for (size_t i = 0; i < descriptor.number_of_calculated_signals; i++)
+					{
+						glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Parameters };
+						evt.device_id = Db_Reader_Device_GUID;
+						evt.signal_id = descriptor.calculated_signal_ids[i];
+						evt.segment_id = segment_id;
+						if (evt.parameters.set(sql_result))
+							if (!mOutput.Send(evt)) return false;
+					}
 				}
 			}
+		}
+		catch (...)
+		{
+			/* this probably means the model does not have the table created yet */
 		}
 	}
 

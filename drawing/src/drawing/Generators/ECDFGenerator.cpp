@@ -1,10 +1,32 @@
 /**
- * Portal for online glucose level calculation
- * Final calculation and SVG generating part
+ * SmartCGMS - continuous glucose monitoring and controlling framework
  * https://diabetes.zcu.cz/
  *
- * Author: Marek Rasocha (mrasocha@students.zcu.cz)
- * Maintainer: Martin Ubl (ublm@students.zcu.cz)
+ * Contact:
+ * diabetes@mail.kiv.zcu.cz
+ * Medical Informatics, Department of Computer Science and Engineering
+ * Faculty of Applied Sciences, University of West Bohemia
+ * Technicka 8
+ * 314 06, Pilsen
+ *
+ * Licensing terms:
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *
+ * a) For non-profit, academic research, this software is available under the
+ *    GPLv3 license. When publishing any related work, user of this software
+ *    must:
+ *    1) let us know about the publication,
+ *    2) acknowledge this software and respective literature - see the
+ *       https://diabetes.zcu.cz/about#publications,
+ *    3) At least, the user of this software must cite the following paper:
+ *       Parallel software architecture for the next generation of glucose
+ *       monitoring, Proceedings of the 8th International Conference on Current
+ *       and Future Trends of Information and Communication Technologies
+ *       in Healthcare (ICTH 2018) November 5-8, 2018, Leuven, Belgium
+ * b) For any other use, especially commercial use, you must contact us and
+ *    obtain specific terms and conditions for the use of the software.
  */
 
 #include "../general.h"
@@ -109,11 +131,58 @@ void CECDF_Generator::Write_Body()
 {
 	size_t curColorIdx = 0;
 
+	// this block calculates IST using linear interpolation for times of blood samples; this is wrong in many aspects, but:
+	// TODO: rework this to generic IST approximation!!! i.e. calculate filter variation
+	try
+	{
+		auto& istVec = Utility::Get_Value_Vector_Ref(mInputData, "ist");
+		auto& bloodVec = Utility::Get_Value_Vector_Ref(mInputData, "blood");
+
+		std::vector<Value> toAdd;
+
+		size_t cur_ist = 0;
+
+		if (istVec.size() > 0)
+		{
+			for (auto& val : bloodVec)
+			{
+				while (cur_ist < istVec.size() - 1)
+				{
+					const auto& prevIst = istVec[cur_ist];
+					const auto& nextIst = istVec[cur_ist + 1];
+
+					// discard blood values before current ist (the values has to be orderer, so this means we dont have valid ist for it anyway
+					if (val.date < prevIst.date)
+						break;
+
+					if (val.date > prevIst.date && val.date < nextIst.date)
+					{
+						const double k = static_cast<double>(nextIst.value - prevIst.value) / static_cast<double>(nextIst.date - prevIst.date);
+						const double q = static_cast<double>(prevIst.value);
+
+						if (std::isfinite(k))
+							istVec.insert(istVec.begin() + cur_ist + 1, Value{ k*static_cast<double>(val.date) + q, val.date, val.segment_id });
+						break;
+					}
+					else
+						cur_ist++;
+				}
+			}
+		}
+	}
+	catch (...)
+	{
+		//
+	}
+
 	for (auto& dataVector : mInputData)
 	{
-		if (dataVector.second.calculated)
+		if (!dataVector.second.refSignalIdentifier.empty())
 		{
-			mSvg.Set_Stroke(1, Utility::Curve_Colors[curColorIdx], "none");
+			if (dataVector.first == "ist")
+				mSvg.Set_Stroke(1, "blue", "none");
+			else
+				mSvg.Set_Stroke(1, Utility::Curve_Colors[curColorIdx], "none");
 
 			// calculated curve group scope
 			{
@@ -125,7 +194,8 @@ void CECDF_Generator::Write_Body()
 					Write_ECDF_Curve(ref, calc, dataVector.second.identifier);
 			}
 
-			curColorIdx = (curColorIdx + 1) % Utility::Curve_Colors.size();
+			if (dataVector.first != "ist")
+				curColorIdx = (curColorIdx + 1) % Utility::Curve_Colors.size();
 		}
 	}
 }

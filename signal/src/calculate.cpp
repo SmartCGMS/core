@@ -1,3 +1,34 @@
+/**
+ * SmartCGMS - continuous glucose monitoring and controlling framework
+ * https://diabetes.zcu.cz/
+ *
+ * Contact:
+ * diabetes@mail.kiv.zcu.cz
+ * Medical Informatics, Department of Computer Science and Engineering
+ * Faculty of Applied Sciences, University of West Bohemia
+ * Technicka 8
+ * 314 06, Pilsen
+ *
+ * Licensing terms:
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *
+ * a) For non-profit, academic research, this software is available under the
+ *    GPLv3 license. When publishing any related work, user of this software
+ *    must:
+ *    1) let us know about the publication,
+ *    2) acknowledge this software and respective literature - see the
+ *       https://diabetes.zcu.cz/about#publications,
+ *    3) At least, the user of this software must cite the following paper:
+ *       Parallel software architecture for the next generation of glucose
+ *       monitoring, Proceedings of the 8th International Conference on Current
+ *       and Future Trends of Information and Communication Technologies
+ *       in Healthcare (ICTH 2018) November 5-8, 2018, Leuven, Belgium
+ * b) For any other use, especially commercial use, you must contact us and
+ *    obtain specific terms and conditions for the use of the software.
+ */
+
 #include "calculate.h"
 
 #include "descriptor.h"
@@ -13,7 +44,7 @@ constexpr unsigned char bool_2_uc(const bool b) {
 }
 
 
-CCalculate_Filter::CCalculate_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe) : mInput{ inpipe }, mOutput{ outpipe } {	
+CCalculate_Filter::CCalculate_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe) : mInput{ inpipe }, mOutput{ outpipe }, mReference_Signal_Id(Invalid_GUID) {
 }
 
 std::unique_ptr<CTime_Segment>& CCalculate_Filter::Get_Segment(const uint64_t segment_id) {		
@@ -21,7 +52,7 @@ std::unique_ptr<CTime_Segment>& CCalculate_Filter::Get_Segment(const uint64_t se
 
 	if (iter != mSegments.end()) return iter->second;
 	else {
-		std::unique_ptr<CTime_Segment> segment = std::make_unique<CTime_Segment>(segment_id, mCalculated_Signal_Id, mDefault_Parameters, mPrediction_Window, mOutput);		
+		std::unique_ptr<CTime_Segment> segment = std::make_unique<CTime_Segment>(segment_id, mCalculated_Signal_Id, mDefault_Parameters, mPrediction_Window, mOutput);
 		const auto ret = mSegments.insert(std::make_pair(segment_id, std::move(segment)));
 		return ret.first->second;
 	}
@@ -45,8 +76,8 @@ void CCalculate_Filter::Configure(glucose::SFilter_Parameters shared_configurati
 	if (glucose::get_model_descriptor_by_signal_id(mCalculated_Signal_Id, desc)) {
 
 		auto set_params = [](glucose::SModel_Parameter_Vector &parameters, const double *begin, const size_t count) {
-			if (!parameters) parameters = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(const_cast<double*>(begin), const_cast<double*>(begin) +count);
-				else parameters->set(const_cast<double*>(begin), const_cast<double*>(begin) +count);
+			if (!parameters) parameters = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(const_cast<double*>(begin), const_cast<double*>(begin) + count);
+			else parameters->set(const_cast<double*>(begin), const_cast<double*>(begin) + count);
 		};
 
 		if (mLower_Bound.empty()) set_params(mLower_Bound, desc.lower_bound, desc.number_of_parameters);
@@ -61,7 +92,7 @@ void CCalculate_Filter::Configure(glucose::SFilter_Parameters shared_configurati
 				break;
 			}
 	}
-	
+
 	mMetric_Id = shared_configuration.Read_GUID(rsSelected_Metric);
 	mUse_Relative_Error = shared_configuration.Read_Bool(rsUse_Relative_Error);
 	mUse_Squared_Differences = shared_configuration.Read_Bool(rsUse_Squared_Diff);
@@ -69,7 +100,6 @@ void CCalculate_Filter::Configure(glucose::SFilter_Parameters shared_configurati
 	mMetric_Threshold = shared_configuration.Read_Double(rsMetric_Threshold);
 	mUse_Measured_Levels = shared_configuration.Read_Bool(rsUse_Measured_Levels);
 	mLevels_Required = shared_configuration.Read_Int(rsMetric_Levels_Required);
-	
 }
 
 HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
@@ -109,9 +139,9 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 					//or, we calculate parameters and therefore we stop accepting new ones once warm-resetted
 
 					if (evt.signal_id == mCalculated_Signal_Id) {
-						if (evt.segment_id != glucose::Invalid_Segment_Id) {
-							const auto &segment = Get_Segment(evt.segment_id);
-							if (segment) {
+						if (evt.segment_id != glucose::Invalid_Segment_Id){
+
+							auto test_and_apply_parameters = [&evt, this](const std::unique_ptr<CTime_Segment> &segment) {
 								//do these parameters improve?
 								glucose::SMetric metric{ glucose::TMetric_Parameters{ mMetric_Id, bool_2_uc(mUse_Relative_Error),  bool_2_uc(mUse_Squared_Differences), bool_2_uc(mPrefer_More_Levels),  mMetric_Threshold } };
 								glucose::ITime_Segment *segment_raw = segment.get();
@@ -120,8 +150,20 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 
 								if (new_fitness < current_fitness)
 									segment->Set_Parameters(evt.parameters);
+							};
 
+							if (evt.segment_id != glucose::All_Segments_Id) {
+								const auto &segment = Get_Segment(evt.segment_id);
+								if (segment) 
+									test_and_apply_parameters(segment);
+								
 							}
+							else {
+								for (const auto &segment:mSegments)
+									test_and_apply_parameters(segment.second);
+							}
+
+
 							Add_Parameters_Hint(evt.parameters);
 						}
 					}
@@ -132,9 +174,12 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 				break;
 
 			case glucose::NDevice_Event_Code::Solve_Parameters: {
-					const auto segment_id = evt.segment_id;
-					event_already_sent = mOutput.Send(evt);	//preserve original order of the events
-					Run_Solver(segment_id);
+					if (evt.signal_id == glucose::signal_All || evt.signal_id == mCalculated_Signal_Id) {
+						// note that the Run_Solver method can handle Any_Segment_Id case properly, so we don't need to disambiguate here
+						const auto segment_id = evt.segment_id;
+						event_already_sent = mOutput.Send(evt);	//preserve original order of the events
+						Run_Solver(segment_id);
+					}
 				}
 				break;
 
@@ -159,7 +204,7 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 void CCalculate_Filter::Add_Level(const uint64_t segment_id, const GUID &signal_id, const double level, const double time_stamp) {
 
 	if ((signal_id == Invalid_GUID) || (signal_id == mCalculated_Signal_Id)) return;	//cannot add what unknown signal and cannot add what we have to compute
-	if (segment_id == glucose::Invalid_Segment_Id) return;
+	if (segment_id == glucose::Invalid_Segment_Id || segment_id == glucose::All_Segments_Id) return;
 
 	const auto &segment = Get_Segment(segment_id);
 	if (segment)
@@ -244,8 +289,6 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 	//3. subsequently, we calculate fitness of the new parameters
 	//4. eventually, we apply new parameters if they present a better fitness
 
-
-
 	glucose::SMetric metric{ glucose::TMetric_Parameters{ mMetric_Id, bool_2_uc(mUse_Relative_Error),  bool_2_uc(mUse_Squared_Differences), bool_2_uc(mPrefer_More_Levels),  mMetric_Threshold } };
 
 	auto solve_segment = [this, &metric, segment_id](glucose::ITime_Segment **segments, const size_t segment_count, glucose::SModel_Parameter_Vector working_parameters) {
@@ -310,7 +353,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 			const double solved_fitness = Calculate_Fitness(segments, segment_count, metric, solved_parameters.get());
 			if (solved_fitness < original_fitness) {
 				//OK, we have found better fitness => set it and send respective message
-				if (segment_id != glucose::Invalid_Segment_Id) {
+				if (segment_id != glucose::All_Segments_Id) {
 					const auto &segment = Get_Segment(segment_id);
 					if (segment) 
 						segment->Set_Parameters(solved_parameters);					
@@ -347,7 +390,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 
 	//do not forget that CTimeSegment is not reference-counted, so that we can omit all those addrefs and releases
 	if (!mSolve_All_Segments) {
-		if (segment_id != glucose::Invalid_Segment_Id) {
+		if (segment_id != glucose::All_Segments_Id) {
 			//solve just the one, given segment
 			const auto segment = Get_Segment(segment_id).get();			
 			if (segment) {
