@@ -29,7 +29,6 @@
  *    obtain specific terms and conditions for the use of the software.
  */
 
-
 #include "masking.h"
 
 #include "../../../common/rtl/FilterLib.h"
@@ -38,6 +37,7 @@
 #include <algorithm>
 #include <cctype>
 #include <codecvt>
+#include <locale>
 
 CMasking_Filter::CMasking_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
 	: mInput{ inpipe }, mOutput{ outpipe }

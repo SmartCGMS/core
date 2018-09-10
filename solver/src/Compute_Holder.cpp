@@ -35,7 +35,7 @@
 #include "../../../common/rtl/SolverLib.h"
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/referencedImpl.h"
-#include "../../../common/rtl/winapi_mapping.h"
+#include "../../../common/utils/winapi_mapping.h"
 
 #include <cmath>
 

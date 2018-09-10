@@ -31,7 +31,7 @@
 
 #include "CSVFormat.h"
 #include "Misc.h"
-#include "../../../../common/rtl/winapi_mapping.h"
+#include "../../../../common/utils/winapi_mapping.h"
 
 #include <map>
 #include <sstream>

@@ -32,6 +32,8 @@
 #include "line.h"
 
 #include <assert.h>
+#include <cmath>
+#include <algorithm>
 
 CLine_Approximator::CLine_Approximator(glucose::WSignal signal, glucose::IApprox_Parameters_Vector* configuration)
 	: mSignal(signal)

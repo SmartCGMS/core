@@ -69,7 +69,7 @@ void Day::Quartile(std::vector<TCoordinate> &q0, std::vector<TCoordinate> &q1, s
         {
             double key = it->first;
             std::vector<double> vector = it->second;
-            double y0, y1, y2, y3, y4;
+            double y0 = 0.0, y1 = 0.0, y2 = 0.0, y3 = 0.0, y4 = 0.0;
 
             Quartile_X(vector, y0, y1, y2, y3, y4);
 			q0.push_back(TCoordinate{ key, y0 });

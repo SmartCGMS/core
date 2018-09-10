@@ -33,7 +33,7 @@
 
 #include "../../../common/rtl/FilesystemLib.h"
 #include "../../../common/rtl/descriptor_utils.h"
-#include "../../../common/rtl/winapi_mapping.h"
+#include "../../../common/utils/winapi_mapping.h"
 #include "../../../common/lang/dstrings.h"
 
 namespace imported {

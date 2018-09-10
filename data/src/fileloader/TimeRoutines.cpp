@@ -30,7 +30,7 @@
  */
 
 #include "TimeRoutines.h"
-#include "../../../../common/rtl/winapi_mapping.h"
+#include "../../../../common/utils/winapi_mapping.h"
 
 #include <iostream>
 #include <sstream>

@@ -92,7 +92,7 @@ void CAkima::Compute_Coefficients() {
 	double w2 = fabs(d2 - d3);
 	double w3 = fabs(d3 - d4);
 
-	double fd, fdPrev;
+	double fd, fdPrev = 0.0;
 
 
 	auto computeFd = [&](size_t i) {
