@@ -47,7 +47,7 @@
 
 #include <tbb/parallel_for.h>
 
-#include "../../../common/DebugHelper.h"
+#include "../../../common/utils/DebugHelper.h"
 
 
 #include "NullMethod.h"

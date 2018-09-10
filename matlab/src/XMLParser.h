@@ -36,6 +36,24 @@
 #include <map>
 #include <fstream>
 #include <sstream>
+#include <stdexcept>
+
+#include <codecvt>
+#include <locale>
+
+// TODO: define templates (maybe variadic) for char16_t, char32_t, ..
+
+template<typename C> constexpr const C* ChooseStrCW(const char* c, const wchar_t* w);
+template<> constexpr const char* ChooseStrCW<char>(const char* c, const wchar_t* w) { return c; }
+template<> constexpr const wchar_t* ChooseStrCW<wchar_t>(const char* c, const wchar_t* w) { return w; }
+
+#define StrCW(C, STR) ChooseStrCW<C>(STR, L##STR)
+
+template<typename C> constexpr const C ChooseCW(const char c, const wchar_t w);
+template<> constexpr const char ChooseCW<char>(const char c, const wchar_t w) { return c; }
+template<> constexpr const wchar_t ChooseCW<wchar_t>(const char c, const wchar_t w) { return w; }
+
+#define CW(C, STR) ChooseCW<C>(STR, L##STR)
 
 template<typename T, typename S = std::basic_string<T, std::char_traits<T>, std::allocator<T>>>
 struct CXML_Element
@@ -47,7 +65,7 @@ struct CXML_Element
 	S const& Get_Parameter(const S& key) {
 		const auto& itr = parameters.find(key);
 		if (itr == parameters.end())
-			throw std::exception{ "Requested parameter not found" };
+			throw std::runtime_error("Requested parameter not found");
 		return itr->second;
 	}
 	S const& Get_Parameter(const S& key, const S& defaultValue) {
@@ -64,19 +82,19 @@ template<typename T, typename S = std::basic_string<T, std::char_traits<T>, std:
 class CXML_Parser
 {
 	protected:
-		static const T rsQuote;
-		static const T rsLAngle;
-		static const T rsRAngle;
-		static const T rsFWSlash;
-		static const T rsEquals;
-		static const T rsDot;
-		static const T rsColon;
-		static const T* rsWhitespaces;
-		static const T* rsQuestionSubstr;
-		static const T* rsXMLOpeningSubstr;
-		static const T* rsFWSlashSpaceSubstr;
-		static const T* rsEmpty;
-		static const T* rsCommentStartSubstr;
+		static constexpr const T rsQuote = CW(T, '"');
+		static constexpr const T rsLAngle = CW(T, '<');
+		static constexpr const T rsRAngle = CW(T, '>');
+		static constexpr const T rsFWSlash = CW(T, '/');
+		static constexpr const T rsEquals = CW(T, '=');
+		static constexpr const T rsDot = CW(T, '.');
+		static constexpr const T rsColon = CW(T, ':');
+		static constexpr const T* rsWhitespaces = StrCW(T, " \t\r\n");
+		static constexpr const T* rsQuestionSubstr = StrCW(T, "?");
+		static constexpr const T* rsXMLOpeningSubstr = StrCW(T, "?xml");
+		static constexpr const T* rsFWSlashSpaceSubstr = StrCW(T, " /");
+		static constexpr const T* rsEmpty = StrCW(T, "");
+		static constexpr const T* rsCommentStartSubstr = StrCW(T, "!--");
 
 	protected:
 		CXML_Element<T> mRootElement;
@@ -164,7 +182,9 @@ class CXML_Parser
 		}
 
 	public:
-		CXML_Parser(const S& fileName) noexcept : mFile(fileName), mValid(false) {
+		CXML_Parser(const S& fileName) noexcept : mValid(false) {
+			std::wstring_convert<std::codecvt_utf8<T>> myconv;
+			mFile.open(myconv.to_bytes(fileName));
 			if (mFile.is_open()) Parse_Root_Element();
 		}
 
@@ -188,7 +208,7 @@ class CXML_Parser
 
 				auto itr = el->children.find(tag);
 				if (itr == el->children.end() || itr->second.empty())
-					throw std::exception{ "Requested element not found" };
+					throw std::runtime_error("Requested element not found");
 
 				el = &itr->second[0];
 			}
@@ -209,18 +229,18 @@ class CXML_Parser
 				if (!tag.empty()) {
 					auto itr = el->children.find(tag);
 					if (itr == el->children.end() || itr->second.empty())
-						throw std::exception{ "Requested element not found" };
+						throw std::runtime_error("Requested element not found");
 
 					el = &itr->second[0];
 				}
 				if (!param.empty()) {
 					auto pitr = el->parameters.find(param);
 					if (pitr == el->parameters.end())
-						throw std::exception{ "Requested parameter not found" };
+						throw std::runtime_error("Requested parameter not found");
 					return pitr->second;
 				}
 			}
-			throw std::exception{ "Requested parameter not found" };
+			throw std::runtime_error("Requested parameter not found");
 		}
 
 		S const& Get_Parameter(const S& path, const S& defaultValue) const {
@@ -231,31 +251,3 @@ class CXML_Parser
 			}
 		}
 };
-
-template<> const wchar_t CXML_Parser<wchar_t>::rsQuote = L'\"';
-template<> const wchar_t CXML_Parser<wchar_t>::rsLAngle = L'<';
-template<> const wchar_t CXML_Parser<wchar_t>::rsRAngle = L'>';
-template<> const wchar_t CXML_Parser<wchar_t>::rsFWSlash = L'/';
-template<> const wchar_t CXML_Parser<wchar_t>::rsEquals = L'=';
-template<> const wchar_t CXML_Parser<wchar_t>::rsDot = L'.';
-template<> const wchar_t CXML_Parser<wchar_t>::rsColon = L':';
-template<> const wchar_t* CXML_Parser<wchar_t>::rsWhitespaces = L" \t\r\n";
-template<> const wchar_t* CXML_Parser<wchar_t>::rsQuestionSubstr = L"?";
-template<> const wchar_t* CXML_Parser<wchar_t>::rsXMLOpeningSubstr = L"?xml";
-template<> const wchar_t* CXML_Parser<wchar_t>::rsFWSlashSpaceSubstr = L" /";
-template<> const wchar_t* CXML_Parser<wchar_t>::rsEmpty = L"";
-template<> const wchar_t* CXML_Parser<wchar_t>::rsCommentStartSubstr = L"!--";
-
-template<> const char CXML_Parser<char>::rsQuote = '\"';
-template<> const char CXML_Parser<char>::rsLAngle = '<';
-template<> const char CXML_Parser<char>::rsRAngle = '>';
-template<> const char CXML_Parser<char>::rsFWSlash = '/';
-template<> const char CXML_Parser<char>::rsEquals = '=';
-template<> const char CXML_Parser<char>::rsDot = '.';
-template<> const char CXML_Parser<char>::rsColon = ':';
-template<> const char* CXML_Parser<char>::rsWhitespaces = " \t\r\n";
-template<> const char* CXML_Parser<char>::rsQuestionSubstr = "?";
-template<> const char* CXML_Parser<char>::rsXMLOpeningSubstr = "?xml";
-template<> const char* CXML_Parser<char>::rsFWSlashSpaceSubstr = " /";
-template<> const char* CXML_Parser<char>::rsEmpty = "";
-template<> const char* CXML_Parser<char>::rsCommentStartSubstr = "!--";

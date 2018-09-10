@@ -37,7 +37,7 @@
 #include "solution.h"
 #include "NullMethod.h"
 
-#include "../../../common/DebugHelper.h"
+#include "../../../common/utils/DebugHelper.h"
 
 #undef min
 

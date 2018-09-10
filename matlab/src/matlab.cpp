@@ -42,6 +42,7 @@
 #include <set>
 #include <chrono>
 #include <iostream>
+#include <stdexcept>
 
 #undef max
 
@@ -380,7 +381,7 @@ std::shared_ptr<matlab::engine::MATLABEngine>& CMatlab_Factory::Matlab()
 			mEngine = matlab::engine::startMATLAB();
 
 		if (!mEngine)
-			throw std::exception("Could not start MATLAB session");
+			throw std::runtime_error("Could not start MATLAB session");
 
 		auto dir = mMatlab_Working_Directory;
 		if (!dir.empty())

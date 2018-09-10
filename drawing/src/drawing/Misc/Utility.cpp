@@ -33,6 +33,7 @@
 #include "Utility.h"
 
 #include <iomanip>
+#include <stdexcept>
 
 namespace Utility
 {
@@ -218,7 +219,7 @@ namespace Utility
 	{
 		std::map<std::string, Data>::iterator search = vectors.find(key);
 		if (search == vectors.end())
-			throw std::exception{ "Vector not found" };
+			throw std::domain_error("Vector not found");
 
 		return search->second.values;
 	}

@@ -30,7 +30,7 @@
  */
 
 #include "FormatRuleLoader.h"
-#include "../../../../../common/SimpleIni.h"
+#include "../../../../common/utils/SimpleIni.h"
 #include "../../../../common/rtl/FilesystemLib.h"
 
 #include "FormatRecognizer.h"

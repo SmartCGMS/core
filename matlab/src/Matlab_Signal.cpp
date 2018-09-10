@@ -33,7 +33,7 @@
 #include "../../../common/lang/dstrings.h"
 
 CMatlab_Signal::CMatlab_Signal(std::shared_ptr<matlab::engine::MATLABEngine>& engine, const std::vector<double> &defaultParameters, const std::wstring& getContinuousLevelsScriptName)
-	: mEngine(engine), mDefaultParameters(defaultParameters), mGetContinuousLevelsScriptName(getContinuousLevelsScriptName) {
+	: mDefaultParameters(defaultParameters), mEngine(engine), mGetContinuousLevelsScriptName(getContinuousLevelsScriptName) {
 }
 
 CMatlab_Signal::~CMatlab_Signal() {
