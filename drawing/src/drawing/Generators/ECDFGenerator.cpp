@@ -47,7 +47,7 @@ int CECDF_Generator::sizeX = 800;
 int CECDF_Generator::sizeY = 800;
 
 constexpr double Relative_Margin = 0.05;
-constexpr std::array<const char*, 4> X_Axis_Uniform_Titles{ "0.1", "1", "10", "100" };
+constexpr std::array<const char*, 4> X_Axis_Uniform_Titles = { { "0.1", "1", "10", "100" } };
 constexpr size_t Y_Axis_Step_Count = 11;
 
 void CECDF_Generator::Set_Canvas_Size(int width, int height)

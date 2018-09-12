@@ -36,8 +36,8 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/descriptor_utils.h"
 
-const std::array < glucose::TMetric_Descriptor, 10 > metric_descriptor {
-	 glucose::TMetric_Descriptor {mtrAvg_Abs, dsAvg_Abs } ,
+const std::array < glucose::TMetric_Descriptor, 10 > metric_descriptor = { {
+	 glucose::TMetric_Descriptor{ mtrAvg_Abs, dsAvg_Abs },
 	 glucose::TMetric_Descriptor{ mtrMax_Abs, dsMax_Abs },
 	 glucose::TMetric_Descriptor{ mtrPerc_Abs, dsPerc_Abs },
 	 glucose::TMetric_Descriptor{ mtrThresh_Abs, dsThresh_Abs },
@@ -47,7 +47,7 @@ const std::array < glucose::TMetric_Descriptor, 10 > metric_descriptor {
 	 glucose::TMetric_Descriptor{ mtrCrosswalk, dsCrosswalk },
 	 glucose::TMetric_Descriptor{ mtrIntegral_CDF, dsIntegral_CDF },
 	 glucose::TMetric_Descriptor{ mtrAvg_Plus_Bessel_Std_Dev, dsAvg_Plus_Bessel_Std_Dev }
-};
+} };
 
 HRESULT IfaceCalling do_get_metric_descriptors(glucose::TMetric_Descriptor **begin, glucose::TMetric_Descriptor **end) {
 	*begin = const_cast<glucose::TMetric_Descriptor*>(metric_descriptor.data());
@@ -70,7 +70,7 @@ namespace errors
 	};
 }
 
-static const std::array<glucose::TFilter_Descriptor, 1> filter_descriptions = { errors::Errors_Descriptor };
+static const std::array<glucose::TFilter_Descriptor, 1> filter_descriptions = { { errors::Errors_Descriptor } };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
 	*begin = const_cast<glucose::TFilter_Descriptor*>(filter_descriptions.data());

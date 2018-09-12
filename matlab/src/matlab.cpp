@@ -272,15 +272,15 @@ bool CMatlab_Factory::Parse_Models(CXML_Parser<wchar_t> &parser)
 		target.description = modelDesc.Get_Parameter(rsMatlab_Manifest_Description_Parameter);
 		target.dbTableName = modelDesc.Get_Parameter(rsMatlab_Manifest_DB_Table_Parameter);
 
-		const auto storeStrParam = [&parser](const wchar_t* name, const std::map<std::wstring, std::wstring>& paramMap, std::vector<std::wstring>& target) -> bool {
+		const auto storeStrParam = [](const wchar_t* name, const std::map<std::wstring, std::wstring>& paramMap, std::vector<std::wstring>& target) -> bool {
 			return Get_Param(name, paramMap, [&target](const std::wstring& s) { target.push_back(s); });
 		};
 
-		const auto storeDoubleParam = [&parser](const wchar_t* name, const std::map<std::wstring, std::wstring>& paramMap, std::vector<double>& target) -> bool {
+		const auto storeDoubleParam = [](const wchar_t* name, const std::map<std::wstring, std::wstring>& paramMap, std::vector<double>& target) -> bool {
 			return Get_Param(name, paramMap, [&target](const std::wstring& s) { target.push_back(std::stod(s)); });
 		};
 
-		const auto storeGUIDParam = [&parser](const wchar_t* name, const std::map<std::wstring, std::wstring>& paramMap, std::vector<GUID>& target) -> bool {
+		const auto storeGUIDParam = [](const wchar_t* name, const std::map<std::wstring, std::wstring>& paramMap, std::vector<GUID>& target) -> bool {
 			return Get_Param(name, paramMap, [&target](const std::wstring& s) { target.push_back(WString_To_GUID(s)); });
 		};
 

@@ -60,13 +60,13 @@ const char* rsExtractorColumnCondition = "event-condition";
 const char* dsDatabaseTimestampFormatShort = "%FT%T";
 
 // recognized datetime format formatter strings
-const std::array<const char*, static_cast<size_t>(NKnownDateFormat::UNKNOWN_DATEFORMAT)> KnownDateFormatFmtStrings {
+const std::array<const char*, static_cast<size_t>(NKnownDateFormat::UNKNOWN_DATEFORMAT)> KnownDateFormatFmtStrings = { {
 	"%d/%m/%Y %H:%M",        // DATEFORMAT_DDMMYYYY
 	"%Y/%m/%d %H:%M",        // DATEFORMAT_YYYYMMDD
 	"%d.%m.%Y %H:%M",        // DATEFORMAT_CZ
 	"%Y-%m-%dT%H:%M:%S",     // DATEFORMAT_DB_YYYYMMDD_T
 	"%Y-%m-%d %H:%M:%S",     // DATEFORMAT_DB_YYYYMMDD
-};
+} };
 
 
 NKnownDateFormat Recognize_Date_Format(const wchar_t *str) {

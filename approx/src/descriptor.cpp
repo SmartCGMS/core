@@ -63,7 +63,7 @@ namespace akima {
 	};
 }
 
-const std::array<glucose::TApprox_Descriptor, 2> approx_descriptions = { line::LineApprox_Descriptor, akima::Akima_Descriptor };
+const std::array<glucose::TApprox_Descriptor, 2> approx_descriptions = { { line::LineApprox_Descriptor, akima::Akima_Descriptor } };
 
 extern "C" HRESULT IfaceCalling do_get_approximator_descriptors(glucose::TApprox_Descriptor **begin, glucose::TApprox_Descriptor **end) {
 	*begin = const_cast<glucose::TApprox_Descriptor*>(approx_descriptions.data());

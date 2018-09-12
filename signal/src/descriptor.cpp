@@ -227,7 +227,7 @@ namespace measured_signal
 		glucose::signal_Health_Stress
 	};
 }
-const std::array<glucose::TFilter_Descriptor, 3> filter_descriptions = { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, masking::Masking_Descriptor };
+const std::array<glucose::TFilter_Descriptor, 3> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, masking::Masking_Descriptor } };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
 	*begin = const_cast<glucose::TFilter_Descriptor*>(filter_descriptions.data());

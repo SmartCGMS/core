@@ -32,7 +32,7 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
 
 
-#include "..\..\..\..\..\common\DebugHelper.h"
+#include "..\..\..\..\common\utils\DebugHelper.h"
 
 #include <Windows.h>
 
