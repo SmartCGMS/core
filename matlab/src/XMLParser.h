@@ -49,9 +49,9 @@ template<> constexpr const wchar_t* ChooseStrCW<wchar_t>(const char* c, const wc
 
 #define StrCW(C, STR) ChooseStrCW<C>(STR, L##STR)
 
-template<typename C> constexpr const C ChooseCW(const char c, const wchar_t w);
-template<> constexpr const char ChooseCW<char>(const char c, const wchar_t w) { return c; }
-template<> constexpr const wchar_t ChooseCW<wchar_t>(const char c, const wchar_t w) { return w; }
+template<typename C> constexpr C ChooseCW(const char c, const wchar_t w);
+template<> constexpr char ChooseCW<char>(const char c, const wchar_t w) { return c; }
+template<> constexpr wchar_t ChooseCW<wchar_t>(const char c, const wchar_t w) { return w; }
 
 #define CW(C, STR) ChooseCW<C>(STR, L##STR)
 

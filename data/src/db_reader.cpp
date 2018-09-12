@@ -170,10 +170,10 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 
 		// go through all value columns
 		for (NColumn_Pos i = NColumn_Pos::_Begin; i < NColumn_Pos::_End; ++i) {
-			auto column = levels[static_cast<size_t>(i)];
+			const auto column = levels[static_cast<size_t>(i)];
 
 			// if no value is present, skip
-			auto fpcl = std::fpclassify(column);
+			const auto fpcl = std::fpclassify(column);
 			if (fpcl == FP_NAN || fpcl == FP_INFINITE)
 				continue;
 
@@ -242,14 +242,17 @@ HRESULT CDb_Reader::Run(glucose::IFilter_Configuration *configuration) {
 
 
 	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
-		if (evt.event_code == glucose::NDevice_Event_Code::Warm_Reset) {
-			//recreate the reader thread
-			End_Db_Reader();						
-			mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
+		if (evt) {
+			if (evt.event_code == glucose::NDevice_Event_Code::Warm_Reset) {
+				//recreate the reader thread
+				End_Db_Reader();
+				mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
+			}
+
+
+			if (!mOutput.Send(evt)) 
+				break;	//passing the shutdown code will shutdown the outpipe and subsequently the db-reader thread as well			
 		}
-
-
-		if (!mOutput.Send(evt))	break;	//passing the shutdown code will shutdown the outpipe and subsequently the db-reader thread as well
 	}
 
 

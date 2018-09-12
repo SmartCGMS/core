@@ -84,7 +84,7 @@ public:
 static CId_Dispatcher Id_Dispatcher;
 
 
-HRESULT IfaceCalling do_create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
+extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
 	if ((calc_id ==nullptr) || (segment == nullptr)) return E_INVALIDARG;
 	return Id_Dispatcher.Create_Signal(*calc_id, segment, signal);
 }

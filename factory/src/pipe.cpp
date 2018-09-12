@@ -46,6 +46,9 @@ CFilter_Pipe::~CFilter_Pipe() {
 }
 
 HRESULT CFilter_Pipe::send(glucose::IDevice_Event* event) {
+	if (event == nullptr)
+		return E_INVALIDARG;
+
 	if (mShutting_Down_Send)
 		return S_FALSE;
 

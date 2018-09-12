@@ -215,14 +215,16 @@ namespace masking
 
 namespace measured_signal
 {
-	constexpr size_t supported_count = 5;
+	constexpr size_t supported_count = 7;
 
 	const GUID supported_signal_ids[supported_count] = {
 		glucose::signal_IG,
 		glucose::signal_BG,
+		glucose::signal_ISIG,
 		glucose::signal_Insulin,
 		glucose::signal_Carb_Intake,
-		glucose::signal_Calibration
+		glucose::signal_Calibration,
+		glucose::signal_Health_Stress
 	};
 }
 const std::array<glucose::TFilter_Descriptor, 3> filter_descriptions = { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, masking::Masking_Descriptor };
