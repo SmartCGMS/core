@@ -158,6 +158,9 @@ void CDrawing_Filter::Run_Main() {
 		if (!mOutput.Send(evt))
 			break;
 	}
+
+	// prevent deletion during update
+	std::unique_lock<std::mutex> lck(mRetrieveMtx);
 }
 
 bool CDrawing_Filter::Redraw_If_Changed(const std::unordered_set<uint64_t> &segmentIds, const std::set<GUID> &signalIds)
@@ -170,8 +173,6 @@ bool CDrawing_Filter::Redraw_If_Changed(const std::unordered_set<uint64_t> &segm
 
 		mDataMap.clear();
 		Prepare_Drawing_Map(segmentIds, signalIds);
-		// we don't need that lock anymore
-		lck.unlock();
 
 		Generate_Graphs(mDataMap, mGraphMaxValue, mLocaleMap);
 
@@ -238,6 +239,7 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 		}
 	}
 
+	vectorsMap["ist"].identifier = "ist";
 	vectorsMap["ist"].refSignalIdentifier = "blood";
 
 	vectorsMap["segment_markers"] = Data(mSegmentMarkers, true, mSegmentMarkers.empty(), false);

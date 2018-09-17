@@ -332,7 +332,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 		}
 
 		metric->Reset();
-		glucose::TSolver_Progress progress{ 0, 0, 0.0, 0 };
+		glucose::TSolver_Progress progress = glucose::Null_Solver_Progress;
 		
 		glucose::SModel_Parameter_Vector solved_parameters{ mDefault_Parameters };
 

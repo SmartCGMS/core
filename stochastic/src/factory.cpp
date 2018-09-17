@@ -204,7 +204,7 @@ HRESULT IfaceCalling do_solve_model_parameters(const glucose::TSolver_Setup *set
 			}
 		}
 
-		glucose::TSolver_Progress dummy_progress;
+		glucose::TSolver_Progress dummy_progress = glucose::Null_Solver_Progress;
 		glucose::TSolver_Progress* local_progress = setup->progress;
 		if (local_progress == nullptr) local_progress = &dummy_progress;
 

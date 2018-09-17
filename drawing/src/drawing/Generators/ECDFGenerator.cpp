@@ -264,12 +264,21 @@ void CECDF_Generator::Write_Legend()
 
 		for (auto& dataVector : mInputData)
 		{
-			if (dataVector.second.calculated && !dataVector.second.empty)
+			if (!dataVector.second.refSignalIdentifier.empty() && !dataVector.second.values.empty())
 			{
-				mSvg.Set_Stroke(1, Utility::Curve_Colors[curColorIdx], Utility::Curve_Colors[curColorIdx]);
+				if (dataVector.first == "ist")
+					mSvg.Set_Stroke(1, "blue", "none");
+				else
+					mSvg.Set_Stroke(1, Utility::Curve_Colors[curColorIdx], Utility::Curve_Colors[curColorIdx]);
+
+				std::string name = tr(dataVector.second.identifier);
+
+				auto refItr = mInputData.find(dataVector.second.refSignalIdentifier);
+				if (refItr != mInputData.end())
+					name += " (" + tr(dataVector.second.refSignalIdentifier) + ")";
 
 				SVG::GroupGuard diffGrp(mSvg, dataVector.second.identifier, false);
-				mSvg.Link_Text_color(Normalize_X(0.0) + 20, y, tr(dataVector.second.identifier), "", 12); // TODO: add visibility change function
+				mSvg.Link_Text_color(Normalize_X(0.0) + 20, y, name, "", 12); // TODO: add visibility change function
 
 				curColorIdx = (curColorIdx + 1) % Utility::Curve_Colors.size();
 
