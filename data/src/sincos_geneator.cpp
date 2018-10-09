@@ -1,0 +1,172 @@
+/**
+ * SmartCGMS - continuous glucose monitoring and controlling framework
+ * https://diabetes.zcu.cz/
+ *
+ * Contact:
+ * diabetes@mail.kiv.zcu.cz
+ * Medical Informatics, Department of Computer Science and Engineering
+ * Faculty of Applied Sciences, University of West Bohemia
+ * Technicka 8
+ * 314 06, Pilsen
+ *
+ * Licensing terms:
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *
+ * a) For non-profit, academic research, this software is available under the
+ *    GPLv3 license. When publishing any related work, user of this software
+ *    must:
+ *    1) let us know about the publication,
+ *    2) acknowledge this software and respective literature - see the
+ *       https://diabetes.zcu.cz/about#publications,
+ *    3) At least, the user of this software must cite the following paper:
+ *       Parallel software architecture for the next generation of glucose
+ *       monitoring, Proceedings of the 8th International Conference on Current
+ *       and Future Trends of Information and Communication Technologies
+ *       in Healthcare (ICTH 2018) November 5-8, 2018, Leuven, Belgium
+ * b) For any other use, especially commercial use, you must contact us and
+ *    obtain specific terms and conditions for the use of the software.
+ */
+
+#include "sincos_geneator.h"
+#include "descriptor.h"
+
+#include "../../../common/rtl/rattime.h"
+#include "../../../common/lang/dstrings.h"
+
+#include <cmath>
+
+constexpr double PI = 3.141592653589793238462643;
+
+CSinCos_Generator::CSinCos_Generator(glucose::SFilter_Pipe in_pipe, glucose::SFilter_Pipe out_pipe)
+	: mInput(in_pipe), mOutput(out_pipe), mExit_Flag{ false } {
+}
+
+HRESULT IfaceCalling CSinCos_Generator::QueryInterface(const GUID*  riid, void ** ppvObj) {
+	if (Internal_Query_Interface<CSinCos_Generator>(sincos_generator::filter_id, *riid, ppvObj)) return S_OK;
+	return E_NOINTERFACE;
+}
+
+void CSinCos_Generator::Run_Generator() {
+	const double startTime = Unix_Time_To_Rat_Time(time(nullptr));
+	const double endTime = startTime + mTotal_Time;
+
+	double nextIG = startTime + mIG_Params.samplingPeriod;
+	double nextBG = startTime + mBG_Params.samplingPeriod;
+
+	GUID signal;
+	double level;
+	double time = startTime;
+
+	const uint64_t segment_id = 1; // probably no need to introduce more segments
+
+	if (!Emit_Segment_Marker(segment_id, true))
+		return;
+
+	while (!mExit_Flag && time < endTime) {
+
+		if (nextIG < nextBG)
+		{
+			signal = glucose::signal_IG;
+			level = mIG_Params.amplitude * std::sin((nextIG - startTime)*(2*PI)/mIG_Params.period) + mIG_Params.offset;
+			time = nextIG;
+			nextIG += mIG_Params.samplingPeriod;
+		}
+		else
+		{
+			signal = glucose::signal_BG;
+			level = mBG_Params.amplitude * std::cos((nextBG - startTime)*(2*PI)/mBG_Params.period) + mBG_Params.offset;
+			time = nextBG;
+			nextBG += mBG_Params.samplingPeriod;
+		}
+
+		if (!Emit_Signal_Level(signal, time, level, segment_id))
+			break;
+
+		if (signal == glucose::signal_BG)
+			if (!Emit_Signal_Level(glucose::signal_Calibration, time, level, segment_id))
+				break;
+	}
+
+	if (!Emit_Segment_Marker(segment_id, false))
+		return;
+
+	if (mShutdownAfterLast)
+		Emit_Shut_Down();
+}
+
+bool CSinCos_Generator::Configure(glucose::SFilter_Parameters configuration) {
+
+	mIG_Params.offset = configuration.Read_Double(rsGen_IG_Offset);
+	mIG_Params.amplitude = configuration.Read_Double(rsGen_IG_Amplitude);
+	mIG_Params.period = configuration.Read_Double(rsGen_IG_Sin_Period);
+	mIG_Params.samplingPeriod = configuration.Read_Double(rsGen_IG_Sampling_Period);
+
+	mBG_Params.offset = configuration.Read_Double(rsGen_BG_Level_Offset);
+	mBG_Params.amplitude = configuration.Read_Double(rsGen_BG_Amplitude);
+	mBG_Params.period = configuration.Read_Double(rsGen_BG_Cos_Period);
+	mBG_Params.samplingPeriod = configuration.Read_Double(rsGen_BG_Sampling_Period);
+
+	mTotal_Time = configuration.Read_Double(rsGen_Total_Time);
+	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
+
+	return true;
+}
+
+bool CSinCos_Generator::Emit_Segment_Marker(uint64_t segment_id, bool start) {
+	glucose::UDevice_Event evt{ start ? glucose::NDevice_Event_Code::Time_Segment_Start : glucose::NDevice_Event_Code::Time_Segment_Stop };
+	evt.device_id = sincos_generator::filter_id;
+	evt.segment_id = segment_id;
+	return mOutput.Send(evt);
+}
+
+bool CSinCos_Generator::Emit_Signal_Level(GUID signal_id, double time, double level, uint64_t segment_id) {
+	glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Level };
+	evt.device_time = time;
+	evt.signal_id = signal_id;
+	evt.segment_id = segment_id;
+	evt.level = level;
+	evt.device_id = sincos_generator::filter_id;
+	return mOutput.Send(evt);
+}
+
+bool CSinCos_Generator::Emit_Shut_Down() {
+	glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Shut_Down };
+	evt.device_id = sincos_generator::filter_id;
+	return mOutput.Send(evt);
+}
+
+HRESULT IfaceCalling CSinCos_Generator::Run(glucose::IFilter_Configuration *configuration) {
+
+	if (!Configure(refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true))) return E_INVALIDARG;
+
+	Start_Generator();
+
+	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
+		if (evt.event_code == glucose::NDevice_Event_Code::Warm_Reset) {
+			Terminate_Generator();
+			Start_Generator();
+		}
+
+		if (!mOutput.Send(evt))
+			break;
+	}
+
+	Terminate_Generator();
+
+	return S_OK;
+}
+
+void CSinCos_Generator::Start_Generator()
+{
+	mExit_Flag = false;
+	mGenerator_Thread = std::make_unique<std::thread>(&CSinCos_Generator::Run_Generator, this);
+}
+
+void CSinCos_Generator::Terminate_Generator()
+{
+	mExit_Flag = true;
+	if (mGenerator_Thread->joinable())
+		mGenerator_Thread->join();
+}

@@ -31,30 +31,66 @@
 
 #pragma once
 
-#include "../../../common/rtl/ApproxLib.h"
+#include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
+#include "../../../common/rtl/DbLib.h"
+
+#include <memory>
+#include <thread>
+#include <vector>
+
+// helper struct for storing signal generation parameters
+struct TGenerator_Signal_Parameters
+{
+	double offset;
+	double amplitude;
+	double period;
+
+	double samplingPeriod;
+};
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CMeasured_Signal : public virtual glucose::ISignal, public virtual refcnt::CReferenced
-{
+/*
+ * Class that generates sinus/cosinus functions as IG/BG signals
+ */
+class CSinCos_Generator : public virtual glucose::IFilter, public virtual refcnt::CReferenced {
 	protected:
-		std::vector<double> mTimes;
-		std::vector<double> mLevels;
+		glucose::SFilter_Pipe mInput;
+		glucose::SFilter_Pipe mOutput;
 
-		glucose::SApproximator mApprox;
+		// do we need to send shutdown after last value?
+		bool mShutdownAfterLast = false;
+
+		std::unique_ptr<std::thread> mGenerator_Thread;
+		std::atomic<bool> mExit_Flag;
+
+		// generator parameters for IG
+		TGenerator_Signal_Parameters mIG_Params;
+		// generator parameters for BG
+		TGenerator_Signal_Parameters mBG_Params;
+		// total time to be generated
+		double mTotal_Time;
+
+	protected:
+		void Run_Generator();
+		bool Configure(glucose::SFilter_Parameters configuration);
+
+		bool Emit_Segment_Marker(uint64_t segment_id, bool start);
+		bool Emit_Signal_Level(GUID signal_id, double time, double level, uint64_t segment_id);
+		bool Emit_Shut_Down();
+
+		void Start_Generator();
+		void Terminate_Generator();
 
 	public:
-		CMeasured_Signal();
-		virtual ~CMeasured_Signal() {};
+		CSinCos_Generator(glucose::SFilter_Pipe in_pipe, glucose::SFilter_Pipe out_pipe);
+		virtual ~CSinCos_Generator() {};
 
-		virtual HRESULT IfaceCalling Get_Discrete_Levels(double* const times, double* const levels, const size_t count, size_t *filled) const override;
-		virtual HRESULT IfaceCalling Get_Discrete_Bounds(glucose::TBounds* const time_bounds, glucose::TBounds* const level_bounds, size_t *level_count) const override;
-		virtual HRESULT IfaceCalling Add_Levels(const double *times, const double *levels, const size_t count) override;
-
-		virtual HRESULT IfaceCalling Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params, const double* times, double* const levels, const size_t count, const size_t derivation_order) const override;
-		virtual HRESULT IfaceCalling Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const override;
+		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
+		virtual HRESULT IfaceCalling Run(glucose::IFilter_Configuration *configuration) override;
 };
 
 #pragma warning( pop )
+

@@ -43,7 +43,7 @@ CLine_Approximator::CLine_Approximator(glucose::WSignal signal, glucose::IApprox
 
 bool CLine_Approximator::Update() {
 	size_t update_count;
-	if (mSignal.Get_Discrete_Bounds(nullptr, &update_count) != S_OK)
+	if (mSignal.Get_Discrete_Bounds(nullptr, nullptr, &update_count) != S_OK)
 		return false;
 
 	if (mInputTimes.size() != update_count) {

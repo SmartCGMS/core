@@ -60,11 +60,11 @@ HRESULT IfaceCalling CSteil_Rebrin_blood::Get_Continuous_Levels(glucose::IModel_
 	CPooled_Buffer<TVector1D> calibration_offsets = mVector1D_Pool.pop( count );
 	//we need to go through the calibration vector and convert it to the time offset of the first calibrations
 	//and for that we need to consider the very first BG measurement as calibration
-	glucose::TBounds bounds;
-	rc = mIst->Get_Discrete_Bounds(&bounds, nullptr);
+	glucose::TBounds time_bounds;
+	rc = mIst->Get_Discrete_Bounds(&time_bounds, nullptr, nullptr);
 	if (rc != S_OK) return rc;
 
-	double recent_calibration_time = bounds.Min_Time;
+	double recent_calibration_time = time_bounds.Min;
 
 	rc = mCalibration->Get_Continuous_Levels(nullptr, times, calibration_offsets.element().data(), count, glucose::apxNo_Derivation);
 	if (rc != S_OK) calibration_offsets.element().setConstant(std::numeric_limits<double>::quiet_NaN());	//if failed, well, let's behave like if there was no calibration at all

@@ -47,6 +47,13 @@ constexpr unsigned char bool_2_uc(const bool b) {
 CCalculate_Filter::CCalculate_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe) : mInput{ inpipe }, mOutput{ outpipe }, mReference_Signal_Id(Invalid_GUID) {
 }
 
+HRESULT IfaceCalling CCalculate_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
+	if (Internal_Query_Interface<glucose::IFilter>(glucose::Log_Filter, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<glucose::ICalculate_Filter_Inspection>(glucose::Calculate_Filter_Inspection, *riid, ppvObj)) return S_OK;
+
+	return E_NOINTERFACE;
+}
+
 std::unique_ptr<CTime_Segment>& CCalculate_Filter::Get_Segment(const uint64_t segment_id) {		
 	const auto iter = mSegments.find(segment_id);
 
@@ -198,6 +205,8 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 				break;
 	}
 
+	mSolver_Progress.cancelled = TRUE;
+
 	return S_OK;
 }
 
@@ -247,11 +256,9 @@ double CCalculate_Filter::Calculate_Fitness(glucose::ITime_Segment **segments, c
 
 		if (!reference_signal || !calculated_signal) return std::numeric_limits<double>::max();
 
-		glucose::TBounds bounds;
 		size_t count, filled;
-		if (reference_signal->Get_Discrete_Bounds(&bounds, &count) == S_OK) {
+		if (reference_signal->Get_Discrete_Bounds(nullptr, nullptr, &count) == S_OK) {
 			global_count += count;
-
 
 			reference.resize(count);
 			times.resize(count);
@@ -303,7 +310,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 					glucose::ISignal *signal;
 					if (segments[i]->Get_Signal(&mReference_Signal_Id, &signal) == S_OK) {
 						size_t local_count = 0;
-						if (signal->Get_Discrete_Bounds(nullptr, &local_count) == S_OK)
+						if (signal->Get_Discrete_Bounds(nullptr, nullptr, &local_count) == S_OK)
 							global_count += local_count;
 					}
 				}
@@ -332,7 +339,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 		}
 
 		metric->Reset();
-		glucose::TSolver_Progress progress = glucose::Null_Solver_Progress;
+		mSolver_Progress = glucose::Null_Solver_Progress;
 		
 		glucose::SModel_Parameter_Vector solved_parameters{ mDefault_Parameters };
 
@@ -343,7 +350,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 			mLower_Bound.get(), mUpper_Bound.get(),		
 			raw_hints.data(), raw_hints.size(),
 			solved_parameters.get(),
-			&progress
+			&mSolver_Progress
 		};
 
 		if (glucose::Solve_Model_Parameters(setup) == S_OK) {
@@ -415,4 +422,19 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 			solve_segment(raw_segments.data(), raw_segments.size(), mSegments.begin()->second->Get_Parameters());			
 		}
 	}
+}
+
+HRESULT IfaceCalling CCalculate_Filter::Get_Solver_Progress(glucose::TSolver_Progress* const progress)
+{
+	// copy progress structure
+	*progress = mSolver_Progress;
+
+	return S_OK;
+}
+
+HRESULT IfaceCalling CCalculate_Filter::Cancel_Solver()
+{
+	mSolver_Progress.cancelled = TRUE;
+
+	return S_OK;
 }

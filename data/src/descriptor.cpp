@@ -34,6 +34,7 @@
 #include "db_writer.h"
 #include "file_reader.h"
 #include "hold.h"
+#include "sincos_geneator.h"
 #include "../../../common/rtl/descriptor_utils.h"
 
 #include "../../../common/lang/dstrings.h"
@@ -250,7 +251,75 @@ namespace hold
 	};
 }
 
-static const std::vector<glucose::TFilter_Descriptor, tbb::tbb_allocator<glucose::TFilter_Descriptor>> filter_descriptions = { db_reader::Db_Reader_Descriptor, db_writer::Db_Writer_Descriptor, file_reader::File_Reader_Descriptor, hold::Hold_Descriptor };
+namespace sincos_generator {
+
+	constexpr size_t param_count = 10;
+
+	constexpr glucose::NParameter_Type param_type[param_count] = {
+		glucose::NParameter_Type::ptDouble,
+		glucose::NParameter_Type::ptDouble,
+		glucose::NParameter_Type::ptRatTime,
+		glucose::NParameter_Type::ptRatTime,
+		glucose::NParameter_Type::ptDouble,
+		glucose::NParameter_Type::ptDouble,
+		glucose::NParameter_Type::ptRatTime,
+		glucose::NParameter_Type::ptRatTime,
+		glucose::NParameter_Type::ptRatTime,
+		glucose::NParameter_Type::ptBool
+	};
+
+	const wchar_t* ui_param_name[param_count] = {
+		dsGen_IG_Offset,
+		dsGen_IG_Amplitude,
+		dsGen_IG_Sin_Period,
+		dsGen_IG_Sampling_Period,
+		dsGen_BG_Offset,
+		dsGen_BG_Amplitude,
+		dsGen_BG_Cos_Period,
+		dsGen_BG_Sampling_Period,
+		dsGen_Total_Time,
+		dsShutdown_After_Last
+	};
+
+	const wchar_t* config_param_name[param_count] = {
+		rsGen_IG_Offset,
+		rsGen_IG_Amplitude,
+		rsGen_IG_Sin_Period,
+		rsGen_IG_Sampling_Period,
+		rsGen_BG_Level_Offset,
+		rsGen_BG_Amplitude,
+		rsGen_BG_Cos_Period,
+		rsGen_BG_Sampling_Period,
+		rsGen_Total_Time,
+		rsShutdown_After_Last
+	};
+
+	const wchar_t* ui_param_tooltips[param_count] = {
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		dsShutdown_After_Last_Tooltip
+	};
+
+	const glucose::TFilter_Descriptor SinCos_Generator_Descriptor = {
+		filter_id,
+		dsSinCos_Generator,
+		param_count,
+		param_type,
+		ui_param_name,
+		config_param_name,
+		ui_param_tooltips
+	};
+
+}
+
+static const std::vector<glucose::TFilter_Descriptor, tbb::tbb_allocator<glucose::TFilter_Descriptor>> filter_descriptions = { db_reader::Db_Reader_Descriptor, db_writer::Db_Writer_Descriptor, file_reader::File_Reader_Descriptor, hold::Hold_Descriptor, sincos_generator::SinCos_Generator_Descriptor };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
 	return do_get_descriptors(filter_descriptions, begin, end);
@@ -269,6 +338,8 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilte
 		return Manufacture_Object<CFile_Reader>(filter, shared_in, shared_out);
 	else if (*id == hold::Hold_Descriptor.id)
 		return Manufacture_Object<CHold_Filter>(filter, shared_in, shared_out);
+	else if (*id == sincos_generator::SinCos_Generator_Descriptor.id)
+		return Manufacture_Object<CSinCos_Generator>(filter, shared_in, shared_out);
 
 	return ENOENT;
 }

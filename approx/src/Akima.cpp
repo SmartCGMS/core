@@ -45,7 +45,7 @@ CAkima::CAkima(glucose::WSignal signal, glucose::IApprox_Parameters_Vector* conf
 
 bool CAkima::Update() {
 	size_t update_count;
-	if (mSignal.Get_Discrete_Bounds(nullptr, &update_count) != S_OK)
+	if (mSignal.Get_Discrete_Bounds(nullptr, nullptr, &update_count) != S_OK)
 		return false;
 
 	if (update_count < MINIMUM_NUMBER_POINTS) return false;

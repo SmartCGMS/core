@@ -71,24 +71,27 @@ HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Levels(double* const times, 
 	return S_OK;
 }
 
-HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Bounds(glucose::TBounds *bounds, size_t *level_count) const
+HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Bounds(glucose::TBounds* const time_bounds, glucose::TBounds* const level_bounds, size_t *level_count) const
 {
 
 	if (level_count)
 		*level_count = mLevels.size();
 
-	if (bounds == nullptr)
-		return S_OK;
-
 	if (mLevels.size() == 0)
-		return E_FAIL;
+		return S_FALSE;
 
-	bounds->Min_Time = mTimes[0];
-	bounds->Max_Time = mTimes[mTimes.size() - 1];
+	if (time_bounds)
+	{
+		time_bounds->Min = mTimes[0];
+		time_bounds->Max = mTimes[mTimes.size() - 1];
+	}
 
-	auto res = std::minmax_element(mLevels.begin(), mLevels.end());
-	bounds->Min_Level = *res.first;
-	bounds->Max_Level = *res.second;
+	if (level_bounds)
+	{
+		auto res = std::minmax_element(mLevels.begin(), mLevels.end());
+		level_bounds->Min = *res.first;
+		level_bounds->Max = *res.second;
+	}
 
 	return S_OK;
 }

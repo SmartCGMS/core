@@ -46,7 +46,7 @@
 /*
  * Filter class for calculating signals from incoming parameters
  */
-class CCalculate_Filter : public glucose::IFilter, public virtual refcnt::CReferenced {
+class CCalculate_Filter : public glucose::IFilter, public glucose::ICalculate_Filter_Inspection, public virtual refcnt::CReferenced {
 protected:
 	glucose::SFilter_Pipe mInput;
 	glucose::SFilter_Pipe mOutput;
@@ -77,6 +77,7 @@ protected:
 	void Configure(glucose::SFilter_Parameters shared_configuration);
 protected:
 	bool mWarm_Reset_Done = false;
+	glucose::TSolver_Progress mSolver_Progress;
 protected:
 	std::map<int64_t, std::unique_ptr<CTime_Segment>> mSegments;
 	std::vector<glucose::SModel_Parameter_Vector> mParameter_Hints;
@@ -88,6 +89,9 @@ public:
 	virtual ~CCalculate_Filter() {};
 
 	virtual HRESULT Run(glucose::IFilter_Configuration* configuration) override;
+	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
+	virtual HRESULT IfaceCalling Get_Solver_Progress(glucose::TSolver_Progress* const progress) override;
+	virtual HRESULT IfaceCalling Cancel_Solver() override;
 };
 
 #pragma warning( pop )
