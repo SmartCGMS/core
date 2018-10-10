@@ -100,13 +100,16 @@ void CCalculate_Filter::Configure(glucose::SFilter_Parameters shared_configurati
 			}
 	}
 
-	mMetric_Id = shared_configuration.Read_GUID(rsSelected_Metric);
-	mUse_Relative_Error = shared_configuration.Read_Bool(rsUse_Relative_Error);
-	mUse_Squared_Differences = shared_configuration.Read_Bool(rsUse_Squared_Diff);
-	mPrefer_More_Levels = shared_configuration.Read_Bool(rsUse_Prefer_More_Levels);
+	const auto metric_tmp = glucose::get_metric_descriptors();
+	mMetric_Id = shared_configuration.Read_GUID(rsSelected_Metric, metric_tmp.empty() ? Invalid_GUID : metric_tmp[0].id);
+	mUse_Relative_Error = shared_configuration.Read_Bool(rsUse_Relative_Error, mUse_Relative_Error);
+	mUse_Squared_Differences = shared_configuration.Read_Bool(rsUse_Squared_Diff, mUse_Squared_Differences);
+	mPrefer_More_Levels = shared_configuration.Read_Bool(rsUse_Prefer_More_Levels, mPrefer_More_Levels);
 	mMetric_Threshold = shared_configuration.Read_Double(rsMetric_Threshold);
-	mUse_Measured_Levels = shared_configuration.Read_Bool(rsUse_Measured_Levels);
-	mLevels_Required = shared_configuration.Read_Int(rsMetric_Levels_Required);
+	mUse_Measured_Levels = shared_configuration.Read_Bool(rsUse_Measured_Levels, mUse_Measured_Levels);
+	mLevels_Required = shared_configuration.Read_Int(rsMetric_Levels_Required, desc.number_of_parameters);
+
+	mSolver_Enabled &= (mSolver_Id != Invalid_GUID) & (mMetric_Id != Invalid_GUID);	//no metric, no solving and metric is no use without a solver anyway
 }
 
 HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
@@ -184,7 +187,7 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 					if (evt.signal_id == glucose::signal_All || evt.signal_id == mCalculated_Signal_Id) {
 						// note that the Run_Solver method can handle Any_Segment_Id case properly, so we don't need to disambiguate here
 						const auto segment_id = evt.segment_id;
-						event_already_sent = mOutput.Send(evt);	//preserve original order of the events
+						event_already_sent = mOutput.Send(evt);	//preserve the original order of the events
 						Run_Solver(segment_id);
 					}
 				}
