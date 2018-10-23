@@ -2,31 +2,40 @@
  * SmartCGMS - continuous glucose monitoring and controlling framework
  * https://diabetes.zcu.cz/
  *
+ * Copyright (c) since 2018 University of West Bohemia.
+ *
  * Contact:
  * diabetes@mail.kiv.zcu.cz
  * Medical Informatics, Department of Computer Science and Engineering
  * Faculty of Applied Sciences, University of West Bohemia
- * Technicka 8
- * 314 06, Pilsen
+ * Univerzitni 8
+ * 301 00, Pilsen
+ * 
+ * 
+ * Purpose of this software:
+ * This software is intended to demonstrate work of the diabetes.zcu.cz research
+ * group to other scientists, to complement our published papers. It is strictly
+ * prohibited to use this software for diagnosis or treatment of any medical condition,
+ * without obtaining all required approvals from respective regulatory bodies.
+ *
+ * Especially, a diabetic patient is warned that unauthorized use of this software
+ * may result into severe injure, including death.
+ *
  *
  * Licensing terms:
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * distributed under these license terms is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *
  * a) For non-profit, academic research, this software is available under the
- *    GPLv3 license. When publishing any related work, user of this software
- *    must:
- *    1) let us know about the publication,
- *    2) acknowledge this software and respective literature - see the
- *       https://diabetes.zcu.cz/about#publications,
- *    3) At least, the user of this software must cite the following paper:
- *       Parallel software architecture for the next generation of glucose
- *       monitoring, Proceedings of the 8th International Conference on Current
+ *      GPLv3 license.
+ * b) For any other use, especially commercial use, you must contact us and
+ *       obtain specific terms and conditions for the use of the software.
+ * c) When publishing work with results obtained using this software, you agree to cite the following paper:
+ *       Tomas Koutny and Martin Ubl, "Parallel software architecture for the next generation of glucose
+ *       monitoring", Proceedings of the 8th International Conference on Current
  *       and Future Trends of Information and Communication Technologies
  *       in Healthcare (ICTH 2018) November 5-8, 2018, Leuven, Belgium
- * b) For any other use, especially commercial use, you must contact us and
- *    obtain specific terms and conditions for the use of the software.
  */
 
 #pragma once
@@ -97,7 +106,7 @@ public:
 		for (auto &setup_segment : setup.segments) {
 			TSegment_Info info;
 			info.segment = setup_segment;
-			info.calculated_signal = setup_segment.Get_Signal(setup.calculated_signal_id);			
+			info.calculated_signal = setup_segment.Get_Signal(setup.calculated_signal_id);
 			info.reference_signal = setup_segment.Get_Signal(setup.reference_signal_id);
 
 			if (info.calculated_signal && info.reference_signal) {
@@ -105,14 +114,13 @@ public:
 				size_t levels_count;
 				if (info.reference_signal->Get_Discrete_Bounds(nullptr, nullptr, &levels_count) == S_OK && levels_count > 0) {
 					info.reference_time.resize(levels_count);
-					info.reference_level.resize(levels_count);					
+					info.reference_level.resize(levels_count);
 					
 					//prepare arrays with reference levels and their times
 					if (info.reference_signal->Get_Discrete_Levels(info.reference_time.data(), info.reference_level.data(), info.reference_time.size(), &levels_count) == S_OK) {
 						info.reference_time.resize(levels_count);
 						info.reference_level.resize(levels_count);
 					}
-					
 
 					//if desired, replace them continous signal approdximation
 					if (setup.use_measured_levels == 0) {
@@ -127,8 +135,6 @@ public:
 					}
 				}
 
-
-				
 			} //if we managed to get both segment and signal
 		} //for each segments
 
@@ -147,13 +153,12 @@ public:
 		//let's pick a memory block for calculated
 		CPooled_Buffer<aligned_double_vector> tmp_levels = mTemporal_Levels.pop( mMax_Levels_Per_Segment );
 
-		for (auto &info : mSegment_Info) {			
+		for (auto &info : mSegment_Info) {
 			if (info.calculated_signal->Get_Continuous_Levels(&solution, info.reference_time.data(), tmp_levels.element().data(), info.reference_time.size(), glucose::apxNo_Derivation) == S_OK) {
 				//levels got, calculate the metric
 				metric->Accumulate(info.reference_time.data(), info.reference_level.data(), tmp_levels.element().data(), info.reference_time.size());
 			}
 		}
-
 
 		//eventually, calculate the metric number
 		double result;

@@ -1,8 +1,3 @@
-#include "iso8601.h"
-#include "../../../../common/utils/winapi_mapping.h"
-
-//https://github.com/logandk/restful_mapper/blob/master/include/restful_mapper/internal/iso8601.h
-
 /*
 	Copyright(c) 2013, Logan Raarup
 	All rights reserved.
@@ -29,6 +24,11 @@
 	OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 	OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+
+//https://github.com/logandk/restful_mapper/blob/master/include/restful_mapper/internal/iso8601.h
+
+#include "iso8601.h"
+#include "../../../../common/utils/winapi_mapping.h"
 
 #include <cctype>
 #include <time.h>

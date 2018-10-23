@@ -2,31 +2,40 @@
  * SmartCGMS - continuous glucose monitoring and controlling framework
  * https://diabetes.zcu.cz/
  *
+ * Copyright (c) since 2018 University of West Bohemia.
+ *
  * Contact:
  * diabetes@mail.kiv.zcu.cz
  * Medical Informatics, Department of Computer Science and Engineering
  * Faculty of Applied Sciences, University of West Bohemia
- * Technicka 8
- * 314 06, Pilsen
+ * Univerzitni 8
+ * 301 00, Pilsen
+ * 
+ * 
+ * Purpose of this software:
+ * This software is intended to demonstrate work of the diabetes.zcu.cz research
+ * group to other scientists, to complement our published papers. It is strictly
+ * prohibited to use this software for diagnosis or treatment of any medical condition,
+ * without obtaining all required approvals from respective regulatory bodies.
+ *
+ * Especially, a diabetic patient is warned that unauthorized use of this software
+ * may result into severe injure, including death.
+ *
  *
  * Licensing terms:
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * distributed under these license terms is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *
  * a) For non-profit, academic research, this software is available under the
- *    GPLv3 license. When publishing any related work, user of this software
- *    must:
- *    1) let us know about the publication,
- *    2) acknowledge this software and respective literature - see the
- *       https://diabetes.zcu.cz/about#publications,
- *    3) At least, the user of this software must cite the following paper:
- *       Parallel software architecture for the next generation of glucose
- *       monitoring, Proceedings of the 8th International Conference on Current
+ *      GPLv3 license.
+ * b) For any other use, especially commercial use, you must contact us and
+ *       obtain specific terms and conditions for the use of the software.
+ * c) When publishing work with results obtained using this software, you agree to cite the following paper:
+ *       Tomas Koutny and Martin Ubl, "Parallel software architecture for the next generation of glucose
+ *       monitoring", Proceedings of the 8th International Conference on Current
  *       and Future Trends of Information and Communication Technologies
  *       in Healthcare (ICTH 2018) November 5-8, 2018, Leuven, Belgium
- * b) For any other use, especially commercial use, you must contact us and
- *    obtain specific terms and conditions for the use of the software.
  */
 
 #include "metric.h"
@@ -51,7 +60,7 @@ double CAbsDiffAvgMetric::Do_Calculate_Metric() {
 		double Y = diffs[i].difference - C;
 		double T = accumulator + Y;
 		C = T - accumulator - Y;
-		accumulator = T;		
+		accumulator = T;
 	}
 	*/
 
@@ -76,23 +85,23 @@ double CAbsDiffMaxMetric::Do_Calculate_Metric() {
 }
 
 CAbsDiffPercentilMetric::CAbsDiffPercentilMetric(glucose::TMetric_Parameters params) : CCommon_Metric(params) {
-	mInvThreshold = 0.01 * params.threshold;	
+	mInvThreshold = 0.01 * params.threshold;
 };
 
 double CAbsDiffPercentilMetric::Do_Calculate_Metric() {
 	size_t count = mDifferences.size();
 	size_t offset = (size_t)round(((double)(count))*mInvThreshold);
-	offset = std::min(offset, count - 1);//handles negative value as well
+	offset = std::min(offset, count - 1); //handles negative value as well
 
 	std::partial_sort(mDifferences.begin(),
 		mDifferences.begin()+offset, //middle
 		mDifferences.end(),
-		[](const TProcessed_Difference &a, const TProcessed_Difference &b)->bool {
+		[](const TProcessed_Difference &a, const TProcessed_Difference &b) -> bool {
 			return a.difference < b.difference;
 	}
 	);
 
-	if (offset>0) offset--;	//elements are sorted up to middle, i.e, middle is not sorted
+	if (offset > 0) offset--;	//elements are sorted up to middle, i.e, middle is not sorted
 
 	return mDifferences[offset].difference;	
 }
@@ -101,7 +110,7 @@ double CAbsDiffPercentilMetric::Do_Calculate_Metric() {
 
 double CAbsDiffThresholdMetric::Do_Calculate_Metric() {
 	sort(mDifferences.begin(), mDifferences.end(), 
-		[](const TProcessed_Difference &a, const TProcessed_Difference &b)->bool {
+		[](const TProcessed_Difference &a, const TProcessed_Difference &b) -> bool {
 			return a.difference < b.difference; }
 	);
 	//we need to determine how many levels were calculated until the desired threshold 
@@ -111,13 +120,13 @@ double CAbsDiffThresholdMetric::Do_Calculate_Metric() {
 	const TProcessed_Difference thresh = { { 0.0, 0.0, 0.0 }, mParameters.threshold*0.01 };
 
 	auto iter = std::upper_bound(thebegin, mDifferences.end(), thresh,
-		[](const TProcessed_Difference &a, const TProcessed_Difference &b)->bool {
+		[](const TProcessed_Difference &a, const TProcessed_Difference &b) -> bool {
 			return a.difference < b.difference; }	//a always equal to thresh
 		);
 
 	//return 1.0 / std::distance(thebegin, iter);
 	size_t thresholdcount = std::distance(thebegin, iter);
-	
+
 	return (double) (mAll_Levels_Count - thresholdcount);
 }
 
@@ -128,22 +137,22 @@ CLeal2010Metric::CLeal2010Metric(glucose::TMetric_Parameters params) : CCommon_M
 }
 
 double CLeal2010Metric::Do_Calculate_Metric() {
-		
+
 	double diffsqsum = 0.0;
 	double avgedsqsum = 0.0;
 
-	double expectedsum = 0.0;	
+	double expectedsum = 0.0;
 	for (const auto &diff : mDifferences) {
 		expectedsum += diff.raw.expected;
 	}
 
 	const double avg = expectedsum / static_cast<double>(mDifferences.size());
-	
+
 	for (const auto &diff : mDifferences) {
-		double tmp = diff.difference;		
+		double tmp = diff.difference;
 		diffsqsum += tmp*tmp;
 
-		tmp = diff.raw.expected - avg;		
+		tmp = diff.raw.expected - avg;
 
 		avgedsqsum += tmp*tmp;
 	}
@@ -163,7 +172,7 @@ double CLeal2010Metric::Do_Calculate_Metric() {
 
 CAICMetric::CAICMetric(glucose::TMetric_Parameters params) : CAbsDiffAvgMetric({ params.metric_id, false, true, params.prefer_more_levels, params.threshold }){
 	//mParameters.UseRelativeValues = false;
-	//mParameters.UseSquaredDifferences = true;	
+	//mParameters.UseSquaredDifferences = true;
 };
 
 
@@ -176,7 +185,7 @@ double CStdDevMetric::Do_Calculate_Metric() {
 
 	//threshold holds margins to cut off, so we have to sort first
 	sort(mDifferences.begin(), mDifferences.end(), 
-		[](const TProcessed_Difference &a, const TProcessed_Difference &b)->bool {
+		[](const TProcessed_Difference &a, const TProcessed_Difference &b) -> bool {
 		return a.difference < b.difference; }
 	);
 
@@ -192,13 +201,11 @@ double CStdDevMetric::Do_Calculate_Metric() {
 	if (lowbound >= highbound)
 		return std::numeric_limits<double>::quiet_NaN();
 
-
 	double sum = 0.0;
 	auto diffs = &mDifferences[0];
 	for (auto i = lowbound; i != highbound; i++) {
 		sum += diffs[i].difference;
 	}
-
 
 	double invn = (double)mDifferences.size();
 	if (mDo_Bessel_Correction) {
@@ -231,7 +238,7 @@ double CCrossWalkMetric::Do_Calculate_Metric() {
 		We will calculate path from first measured to second calculated, then to third measured, until we reach the last difference.
 		Then, we will do the same, but starting with calculated level. As a result we get a length of pass that we would
 		have to traverse and which will equal to double length of the measured curve, if both curves would be identical.
-		*/
+	*/
 
 	//1. we have to sort differences accordingly to the time
 	sort(mDifferences.begin(), mDifferences.end(),
@@ -301,7 +308,7 @@ double CCrossWalkMetric::Do_Calculate_Metric() {
 		}
 		else {
 			//Measured-to-measured and calculated-to-calculated
-			double height = mesA - mesB;		
+			double height = mesA - mesB;
 			height *= height;
 			if (mCrosswalk4) height *= height;
 			path_length += sqrt(timedelta + height);
@@ -318,7 +325,7 @@ double CCrossWalkMetric::Do_Calculate_Metric() {
 			mes_height *= mes_height;
 			if (mCrosswalk4) mes_height *= mes_height;
 			measured_path_length += sqrt(timedelta + mes_height);
-		}		
+		}
 	}
 	
 	if (mCompare_To_Measured_Path)	path_length = abs(path_length - measured_path_length);
@@ -372,6 +379,5 @@ double CIntegralCDFMetric::Do_Calculate_Metric() {
 		area += step*(std::min(diffs[previous].difference, diffs[i].difference) + fabs(diffs[previous].difference - diffs[i].difference)*0.5);
 	}
 
-
-	return area*step;	
+	return area*step;
 }

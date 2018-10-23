@@ -2,31 +2,40 @@
  * SmartCGMS - continuous glucose monitoring and controlling framework
  * https://diabetes.zcu.cz/
  *
+ * Copyright (c) since 2018 University of West Bohemia.
+ *
  * Contact:
  * diabetes@mail.kiv.zcu.cz
  * Medical Informatics, Department of Computer Science and Engineering
  * Faculty of Applied Sciences, University of West Bohemia
- * Technicka 8
- * 314 06, Pilsen
+ * Univerzitni 8
+ * 301 00, Pilsen
+ * 
+ * 
+ * Purpose of this software:
+ * This software is intended to demonstrate work of the diabetes.zcu.cz research
+ * group to other scientists, to complement our published papers. It is strictly
+ * prohibited to use this software for diagnosis or treatment of any medical condition,
+ * without obtaining all required approvals from respective regulatory bodies.
+ *
+ * Especially, a diabetic patient is warned that unauthorized use of this software
+ * may result into severe injure, including death.
+ *
  *
  * Licensing terms:
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * distributed under these license terms is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *
  * a) For non-profit, academic research, this software is available under the
- *    GPLv3 license. When publishing any related work, user of this software
- *    must:
- *    1) let us know about the publication,
- *    2) acknowledge this software and respective literature - see the
- *       https://diabetes.zcu.cz/about#publications,
- *    3) At least, the user of this software must cite the following paper:
- *       Parallel software architecture for the next generation of glucose
- *       monitoring, Proceedings of the 8th International Conference on Current
+ *      GPLv3 license.
+ * b) For any other use, especially commercial use, you must contact us and
+ *       obtain specific terms and conditions for the use of the software.
+ * c) When publishing work with results obtained using this software, you agree to cite the following paper:
+ *       Tomas Koutny and Martin Ubl, "Parallel software architecture for the next generation of glucose
+ *       monitoring", Proceedings of the 8th International Conference on Current
  *       and Future Trends of Information and Communication Technologies
  *       in Healthcare (ICTH 2018) November 5-8, 2018, Leuven, Belgium
- * b) For any other use, especially commercial use, you must contact us and
- *    obtain specific terms and conditions for the use of the software.
  */
 
 #pragma once
@@ -73,18 +82,14 @@ public:
 		mLower_Bottom_Bound = mLower_Top_Bound.Decompose(lower_bound);
 		mUpper_Bottom_Bound = upper_top_bound.Decompose(upper_bound);
 
-
 		mRange_Top_Bound = upper_top_bound - mLower_Top_Bound;
 	}
-
-	
 
 	TResult_Solution Solve(volatile TSolverProgress &progress) {
 
 		const TLCCandidate_Solution<TResult_Solution> init_solution { mInitial_Solution,
 																 mFitness.Calculate_Fitness(init_solution.solution, mMetric_Factory.CreateCalculator()) };
 
-		
 		progress.CurrentIteration = 0;
 		progress.MaxIterations = max_eval;
 		progress.BestMetric = init_solution.fitness;
@@ -101,7 +106,7 @@ public:
 				auto Evaluate_Top_Solution = [&](const auto &top)->TLCCandidate_Solution<TResult_Solution> {
 					CNLOpt_Fitness_Proxy<TFitness, TTop_Solution, TBottom_Solution> fitness_proxy{ mFitness, top };
 					const TAligned_Solution_Vector<TBottom_Solution> bottom_init;
-					TBottom_Solver bottom_solver(bottom_init, mLower_Bottom_Bound, mUpper_Bottom_Bound, fitness_proxy, mMetric_Factory);					
+					TBottom_Solver bottom_solver(bottom_init, mLower_Bottom_Bound, mUpper_Bottom_Bound, fitness_proxy, mMetric_Factory);
 					TBottom_Solution bottom_result = bottom_solver.Solve(progress);
 
 					TLCCandidate_Solution<TResult_Solution> result;
@@ -111,9 +116,8 @@ public:
 					return result;
 				};
 
-				
 				auto Strategy_1 = [&](const TResult_Solution &best)->TLCCandidate_Solution<TResult_Solution> {
-					//Strategy 1 - let's generate completely new tree and evaluate it			
+					//Strategy 1 - let's generate completely new tree and evaluate it
 					TTop_Solution top_result;
 					top_result.Decompose(best);
 
@@ -125,7 +129,7 @@ public:
 
 					return Evaluate_Top_Solution(top_result);
 				};
-				
+
 				auto Strategy_2 = [&](const TResult_Solution &best)->TLCCandidate_Solution<TResult_Solution> {
 					//Strategy 2 - let's mutate the tree node by node and save beneficial changes only
 					TTop_Solution top_result;
@@ -163,7 +167,7 @@ public:
 					if (local_solution.fitness < best_solution.fitness) {
 						best_solution = local_solution;
 						progress.BestMetric = best_solution.fitness;
-					}								
+					}
 
 					progress.CurrentIteration++;
 				}

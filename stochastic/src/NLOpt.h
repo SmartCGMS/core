@@ -2,36 +2,43 @@
  * SmartCGMS - continuous glucose monitoring and controlling framework
  * https://diabetes.zcu.cz/
  *
+ * Copyright (c) since 2018 University of West Bohemia.
+ *
  * Contact:
  * diabetes@mail.kiv.zcu.cz
  * Medical Informatics, Department of Computer Science and Engineering
  * Faculty of Applied Sciences, University of West Bohemia
- * Technicka 8
- * 314 06, Pilsen
+ * Univerzitni 8
+ * 301 00, Pilsen
+ * 
+ * 
+ * Purpose of this software:
+ * This software is intended to demonstrate work of the diabetes.zcu.cz research
+ * group to other scientists, to complement our published papers. It is strictly
+ * prohibited to use this software for diagnosis or treatment of any medical condition,
+ * without obtaining all required approvals from respective regulatory bodies.
+ *
+ * Especially, a diabetic patient is warned that unauthorized use of this software
+ * may result into severe injure, including death.
+ *
  *
  * Licensing terms:
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * distributed under these license terms is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *
  * a) For non-profit, academic research, this software is available under the
- *    GPLv3 license. When publishing any related work, user of this software
- *    must:
- *    1) let us know about the publication,
- *    2) acknowledge this software and respective literature - see the
- *       https://diabetes.zcu.cz/about#publications,
- *    3) At least, the user of this software must cite the following paper:
- *       Parallel software architecture for the next generation of glucose
- *       monitoring, Proceedings of the 8th International Conference on Current
+ *      GPLv3 license.
+ * b) For any other use, especially commercial use, you must contact us and
+ *       obtain specific terms and conditions for the use of the software.
+ * c) When publishing work with results obtained using this software, you agree to cite the following paper:
+ *       Tomas Koutny and Martin Ubl, "Parallel software architecture for the next generation of glucose
+ *       monitoring", Proceedings of the 8th International Conference on Current
  *       and Future Trends of Information and Communication Technologies
  *       in Healthcare (ICTH 2018) November 5-8, 2018, Leuven, Belgium
- * b) For any other use, especially commercial use, you must contact us and
- *    obtain specific terms and conditions for the use of the software.
  */
 
 #pragma once
-
-
 
 #include <nlopt.hpp>
 #include "solution.h"
@@ -47,12 +54,10 @@ namespace nlopt_tx {
 }
 
 /*
-
-   Non-linear optimization may give better result, if we break appart nested equations such as
-   the left side of diffusion model and its phi(t). Hence we need to instantiate
-   top-level solver for phi(t) parameters and then launch bottom-level solver
-   for the linear paramters.
-  
+	Non-linear optimization may give better result, if we break appart nested equations such as
+	the left side of diffusion model and its phi(t). Hence we need to instantiate
+	top-level solver for phi(t) parameters and then launch bottom-level solver
+	for the linear parameters.
 */
 
 
@@ -69,7 +74,7 @@ struct TNLOpt_Objective_Function_Data {
 	TTop_Solution &default_top_solution;
 	std::vector<size_t> &dimension_remap;
 
-	glucose::SMetric metric; //don't make this a reference!	
+	glucose::SMetric metric; //don't make this a reference!
 
 	volatile glucose::TSolver_Progress *progress;
 	nlopt::opt &options;
@@ -103,7 +108,6 @@ double NLOpt_Top_Solution_Objective_Function(const std::vector<double> &x, std::
 		}
 	} else
 		top_result.set(const_cast<double*>(x.data()), const_cast<double*>(x.data())+x.size());
-	
 
 	CNLOpt_Fitness_Proxy<TFitness, TTop_Solution, TBottom_Solution> fitness_proxy{ data->fitness, top_result };
 	TBottom_Solver bottom_solver(data->initial_bottom_solution, data->lower_bottom_bound, data->upper_bottom_bound, fitness_proxy, data->metric);
@@ -111,7 +115,6 @@ double NLOpt_Top_Solution_Objective_Function(const std::vector<double> &x, std::
 	TBottom_Solution bottom_result = bottom_solver.Solve(tmp_progress);
 
 	TResult_Solution composed_result = top_result.Compose(bottom_result);
-	
 
 	double fitness = data->fitness.Calculate_Fitness(composed_result, data->metric);
 
@@ -133,7 +136,7 @@ double NLOpt_Top_Solution_Objective_Function(const std::vector<double> &x, std::
 
 
 template <typename TResult_Solution, typename TFitness, nlopt::algorithm mTop_Algorithm, typename TTop_Solution = TResult_Solution, typename TBottom_Solution = TResult_Solution, typename TBottom_Solver = CNullMethod<TResult_Solution, CNLOpt_Fitness_Proxy<TFitness, TResult_Solution, TResult_Solution>>, size_t max_eval = 0>
-class CNLOpt {	
+class CNLOpt {
 protected:
 	TTop_Solution mInitial_Top_Solution;
 	TBottom_Solution mInitial_Bottom_Solution;
@@ -166,13 +169,11 @@ public:
 
 		for (auto i = 0; i < mUpper_Top_Bound.cols(); i++) {
 
-
 			if (mUpper_Top_Bound[i] != mLower_Top_Bound[i]) {
 				mDimension_Remap.push_back(i);
 				mRemapped_Upper_Top_Bound.push_back(mUpper_Top_Bound[i]);
 				mRemapped_Lower_Top_Bound.push_back(mLower_Top_Bound[i]);
-			} 
-				
+			}
 		}
 	}
 
@@ -181,13 +182,11 @@ public:
 
 		if (nlopt_tx::print_statistics) nlopt_tx::eval_counter = 0;
 
-
 		nlopt::opt opt{ mTop_Algorithm, static_cast<unsigned int>(mDimension_Remap.size()) };
-
 
 		const TAligned_Solution_Vector<TBottom_Solution> initial_bottom_solution = { mInitial_Bottom_Solution };
 		auto init_solution = mInitial_Top_Solution.Compose(mInitial_Bottom_Solution);
-		auto metric_calculator = mMetric.Clone();					
+		auto metric_calculator = mMetric.Clone();
 
 		TNLOpt_Objective_Function_Data<TResult_Solution, TTop_Solution, TBottom_Solution, TFitness> data =
 		{
@@ -199,7 +198,7 @@ public:
 			initial_bottom_solution,								//std::vector<TBottom_Solution> initial_solution;
 			mInitial_Top_Solution,
 			mDimension_Remap,
-			metric_calculator,										//SMetricCalculator metric_calculator; //don't make this a reference!	
+			metric_calculator,										//SMetricCalculator metric_calculator; //don't make this a reference!
 			&progress,												//volatile TSolverProgress *progress;
 			opt														//nlopt::opt &options;
 		};
@@ -207,17 +206,13 @@ public:
 		//we need expression templates to reduce the overhead of remapping
 		if (mDimension_Remap.size() == static_cast<size_t>(mUpper_Top_Bound.cols())) opt.set_min_objective(NLOpt_Top_Solution_Objective_Function<TResult_Solution, TTop_Solution, TBottom_Solution, TBottom_Solver, TFitness, false>, &data);
 			else opt.set_min_objective(NLOpt_Top_Solution_Objective_Function<TResult_Solution, TTop_Solution, TBottom_Solution, TBottom_Solver, TFitness, true>, &data);
-				
-		
 
 		opt.set_lower_bounds(mRemapped_Lower_Top_Bound);
 		opt.set_upper_bounds(mRemapped_Upper_Top_Bound);
-		
 
 		//opt.set_xtol_rel(1e-4);
 		opt.set_xtol_rel(1e-10);
 		if (max_eval>0) opt.set_maxeval(max_eval);
-
 
 		progress.max_progress = opt.get_maxeval();
 		if (progress.max_progress == 0) progress.max_progress = 100;
@@ -235,5 +230,4 @@ public:
 
 		return data.best_solution;
 	}
-	
 };

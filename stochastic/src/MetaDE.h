@@ -2,31 +2,40 @@
  * SmartCGMS - continuous glucose monitoring and controlling framework
  * https://diabetes.zcu.cz/
  *
+ * Copyright (c) since 2018 University of West Bohemia.
+ *
  * Contact:
  * diabetes@mail.kiv.zcu.cz
  * Medical Informatics, Department of Computer Science and Engineering
  * Faculty of Applied Sciences, University of West Bohemia
- * Technicka 8
- * 314 06, Pilsen
+ * Univerzitni 8
+ * 301 00, Pilsen
+ * 
+ * 
+ * Purpose of this software:
+ * This software is intended to demonstrate work of the diabetes.zcu.cz research
+ * group to other scientists, to complement our published papers. It is strictly
+ * prohibited to use this software for diagnosis or treatment of any medical condition,
+ * without obtaining all required approvals from respective regulatory bodies.
+ *
+ * Especially, a diabetic patient is warned that unauthorized use of this software
+ * may result into severe injure, including death.
+ *
  *
  * Licensing terms:
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * distributed under these license terms is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *
  * a) For non-profit, academic research, this software is available under the
- *    GPLv3 license. When publishing any related work, user of this software
- *    must:
- *    1) let us know about the publication,
- *    2) acknowledge this software and respective literature - see the
- *       https://diabetes.zcu.cz/about#publications,
- *    3) At least, the user of this software must cite the following paper:
- *       Parallel software architecture for the next generation of glucose
- *       monitoring, Proceedings of the 8th International Conference on Current
+ *      GPLv3 license.
+ * b) For any other use, especially commercial use, you must contact us and
+ *       obtain specific terms and conditions for the use of the software.
+ * c) When publishing work with results obtained using this software, you agree to cite the following paper:
+ *       Tomas Koutny and Martin Ubl, "Parallel software architecture for the next generation of glucose
+ *       monitoring", Proceedings of the 8th International Conference on Current
  *       and Future Trends of Information and Communication Technologies
  *       in Healthcare (ICTH 2018) November 5-8, 2018, Leuven, Belgium
- * b) For any other use, especially commercial use, you must contact us and
- *    obtain specific terms and conditions for the use of the software.
  */
 
 #pragma once
@@ -109,7 +118,7 @@ protected:
 	const double mF_min = 0.0;
 	const double mF_range = 2.0;
 	const size_t mStrategy_min = 0;
-	const size_t mStrategy_range = 4;	
+	const size_t mStrategy_range = 4;
 protected:
 	const bool mCollect_Statistics = true;
 	const bool mPrint_Brief_Statistics = true;
@@ -131,30 +140,30 @@ protected:
 			snapshot.strategy_fitness[static_cast<size_t>(individual.strategy)] = std::min(snapshot.strategy_fitness[static_cast<size_t>(individual.strategy)], individual.current_fitness);
 			snapshot.best_fitness = std::min(snapshot.best_fitness, individual.current_fitness);
 		}
-		
+
 		mStatistics.push_back(snapshot);
 	}
 
-  void Print_Statistics() {
-    if (mPrint_Brief_Statistics) Print_Statistics_Brief();
-      else Print_Statistics_Full();  
-  }
+	void Print_Statistics() {
+		if (mPrint_Brief_Statistics) Print_Statistics_Brief();
+		else Print_Statistics_Full();  
+	}
 
-  void Print_Statistics_Brief() {
-     //find the least fitness value we ever observed
-     const auto best_fitness_iter = std::min_element(mStatistics.begin(), mStatistics.end(), [](const auto &left, const auto &right){ return left.best_fitness < right.best_fitness; });
-     const auto best_fitness_dist = std::distance(mStatistics.begin(), best_fitness_iter);
+	void Print_Statistics_Brief() {
+		//find the least fitness value we ever observed
+		const auto best_fitness_iter = std::min_element(mStatistics.begin(), mStatistics.end(), [](const auto &left, const auto &right){ return left.best_fitness < right.best_fitness; });
+		const auto best_fitness_dist = std::distance(mStatistics.begin(), best_fitness_iter);
 
-	 std::chrono::duration<double, std::milli> secs_duration = mSolve_Stop_Time - mSolve_Start_Time;
-	 const double secs = secs_duration.count()*0.001;
-	 const double secs_per_iter = secs / static_cast<double>(mGeneration_Count);
+		std::chrono::duration<double, std::milli> secs_duration = mSolve_Stop_Time - mSolve_Start_Time;
+		const double secs = secs_duration.count()*0.001;
+		const double secs_per_iter = secs / static_cast<double>(mGeneration_Count);
 
-	 dprintf((char*)"%g; %d; %f; %f\n", best_fitness_iter->best_fitness, best_fitness_dist, secs, secs_per_iter);
-  }
+		dprintf((char*)"%g; %d; %f; %f\n", best_fitness_iter->best_fitness, best_fitness_dist, secs, secs_per_iter);
+	}
 
 	void Print_Statistics_Full() {
 		dprintf("\n\nStatistics begin\n\n");
-                                         
+
 		dprintf("Iteration; best");
 		for (auto i = static_cast<metade::NStrategy>(0); i < metade::NStrategy::count; metade::increment(i))
 			dprintf((char*)"; %s_fit", (char*) metade::strategy_name.find(i)->second);
@@ -189,7 +198,7 @@ protected:
 	void Generate_Meta_Params(metade::TMetaDE_Candidate_Solution<TSolution> &solution) { 
 		solution.CR = mCR_min + mCR_range*mUniform_Distribution(mRandom_Generator);
 		solution.F = mF_min + mF_range*mUniform_Distribution(mRandom_Generator);
-		
+
 		const auto old_strategy = solution.strategy;
 		decltype(solution.strategy) new_strategy;
 		do {
@@ -252,7 +261,7 @@ public:
 		std::iota(mPopulation_Best.begin(), mPopulation_Best.end(), 0);
 	}
 
-	TSolution Solve(volatile glucose::TSolver_Progress &progress)	{
+	TSolution Solve(volatile glucose::TSolver_Progress &progress) {
 
 		if (mCollect_Statistics) {
 			Take_Statistics_Snapshot();
@@ -276,7 +285,7 @@ public:
 			//as each next will be written just once.
 			//We assume that parallelization cost will get amortized
 			tbb::parallel_for(tbb::blocked_range<size_t>(size_t(0), mPopulation_Size), [=](const tbb::blocked_range<size_t> &r) {
-				
+
 				//for (size_t iter = 0; iter<mPopulation_Size; iter++) {
 
 				const size_t rend = r.end();
@@ -337,7 +346,7 @@ public:
 						break;
 					}
 
-					//ensure the bounds				
+					//ensure the bounds
 					candidate_solution.next = mUpper_Bound.min(mLower_Bound.max(candidate_solution.next));
 
 
@@ -377,7 +386,7 @@ public:
 				}
 				else {
 					//the offspring is worse than its parents => modify parents' DE parameters
-					Generate_Meta_Params(solution);					
+					Generate_Meta_Params(solution);
 				}
 			}
 
@@ -389,7 +398,7 @@ public:
 			Print_Statistics();
 		}
 
-		  //find the best result and return it
+		//find the best result and return it
 		const auto result = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const metade::TMetaDE_Candidate_Solution<TSolution> &a, const metade::TMetaDE_Candidate_Solution<TSolution> &b) {return a.current_fitness < b.current_fitness; });
 		return result->current;
 	}

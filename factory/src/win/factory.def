@@ -6,11 +6,11 @@ EXPORTS
 	create_metric
 	create_signal	
 	solve_model_parameters
-    create_approximator
+	create_approximator
 	get_filter_descriptors
 	get_metric_descriptors
 	get_model_descriptors
 	get_solver_descriptors
-    get_approx_descriptors
+	get_approx_descriptors
 	add_filters
 	create_device_event

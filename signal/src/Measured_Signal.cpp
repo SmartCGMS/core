@@ -2,59 +2,65 @@
  * SmartCGMS - continuous glucose monitoring and controlling framework
  * https://diabetes.zcu.cz/
  *
+ * Copyright (c) since 2018 University of West Bohemia.
+ *
  * Contact:
  * diabetes@mail.kiv.zcu.cz
  * Medical Informatics, Department of Computer Science and Engineering
  * Faculty of Applied Sciences, University of West Bohemia
- * Technicka 8
- * 314 06, Pilsen
+ * Univerzitni 8
+ * 301 00, Pilsen
+ * 
+ * 
+ * Purpose of this software:
+ * This software is intended to demonstrate work of the diabetes.zcu.cz research
+ * group to other scientists, to complement our published papers. It is strictly
+ * prohibited to use this software for diagnosis or treatment of any medical condition,
+ * without obtaining all required approvals from respective regulatory bodies.
+ *
+ * Especially, a diabetic patient is warned that unauthorized use of this software
+ * may result into severe injure, including death.
+ *
  *
  * Licensing terms:
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * distributed under these license terms is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *
  * a) For non-profit, academic research, this software is available under the
- *    GPLv3 license. When publishing any related work, user of this software
- *    must:
- *    1) let us know about the publication,
- *    2) acknowledge this software and respective literature - see the
- *       https://diabetes.zcu.cz/about#publications,
- *    3) At least, the user of this software must cite the following paper:
- *       Parallel software architecture for the next generation of glucose
- *       monitoring, Proceedings of the 8th International Conference on Current
+ *      GPLv3 license.
+ * b) For any other use, especially commercial use, you must contact us and
+ *       obtain specific terms and conditions for the use of the software.
+ * c) When publishing work with results obtained using this software, you agree to cite the following paper:
+ *       Tomas Koutny and Martin Ubl, "Parallel software architecture for the next generation of glucose
+ *       monitoring", Proceedings of the 8th International Conference on Current
  *       and Future Trends of Information and Communication Technologies
  *       in Healthcare (ICTH 2018) November 5-8, 2018, Leuven, Belgium
- * b) For any other use, especially commercial use, you must contact us and
- *    obtain specific terms and conditions for the use of the software.
  */
 
 #include "Measured_Signal.h"
 #include "descriptor.h"
-
-
 
 #undef min
 
 #include <algorithm>
 #include <assert.h>
 
-
 CMeasured_Signal::CMeasured_Signal(): mApprox(nullptr) {
 	// TODO: proper approximator configuration
 	//		 now we just pick the first one, which is obviously wrong
-	
+
 	const auto approx_descriptors = glucose::get_approx_descriptors();
 
 	// TODO: passing approximation parameters through architecture to Approximate method
 	//		 for now, we just send nullptr so the approximation method uses default parameters
-	
+
 	if (!approx_descriptors.empty()) {
 
 		glucose::ISignal* self_signal = static_cast<glucose::ISignal*>(this);
 		glucose::SApprox_Parameters_Vector params;
 
-		mApprox = glucose::Create_Approximator(approx_descriptors[0].id, self_signal, params);		
+		mApprox = glucose::Create_Approximator(approx_descriptors[0].id, self_signal, params);
 	}
 }
 
@@ -73,7 +79,6 @@ HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Levels(double* const times, 
 
 HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Bounds(glucose::TBounds* const time_bounds, glucose::TBounds* const level_bounds, size_t *level_count) const
 {
-
 	if (level_count)
 		*level_count = mLevels.size();
 
@@ -104,7 +109,7 @@ HRESULT IfaceCalling CMeasured_Signal::Add_Levels(const double *times, const dou
 	return S_OK;
 }
 
-HRESULT IfaceCalling CMeasured_Signal::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params, const double* times, double* const levels, const size_t count, const size_t derivation_order) const {	
+HRESULT IfaceCalling CMeasured_Signal::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params, const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 	assert(times != nullptr);
 	assert(levels != nullptr);
 	assert(count > 0);
