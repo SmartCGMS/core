@@ -33,9 +33,7 @@
  *       obtain specific terms and conditions for the use of the software.
  * c) When publishing work with results obtained using this software, you agree to cite the following paper:
  *       Tomas Koutny and Martin Ubl, "Parallel software architecture for the next generation of glucose
- *       monitoring", Proceedings of the 8th International Conference on Current
- *       and Future Trends of Information and Communication Technologies
- *       in Healthcare (ICTH 2018) November 5-8, 2018, Leuven, Belgium
+ *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
 #pragma once
