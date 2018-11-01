@@ -70,7 +70,6 @@ struct TNLOpt_Objective_Function_Data {
 	TAligned_Solution_Vector<TBottom_Solution> initial_bottom_solution;
 
 	TTop_Solution &default_top_solution;
-	std::vector<size_t> &dimension_remap;
 
 	glucose::SMetric metric; //don't make this a reference!
 
@@ -94,18 +93,12 @@ public:
 };
 
 //let's use use_remap to eliminate the overhead of remapping, when it is not needed - compiler will generate two functions for us, just from a single source code
-template <typename TResult_Solution, typename TTop_Solution, typename TBottom_Solution, typename TBottom_Solver, typename TFitness, bool use_remap>
+template <typename TResult_Solution, typename TTop_Solution, typename TBottom_Solution, typename TBottom_Solver, typename TFitness>
 double NLOpt_Top_Solution_Objective_Function(const std::vector<double> &x, std::vector<double> &grad, void *my_func_data) {
 	TNLOpt_Objective_Function_Data<TResult_Solution, TTop_Solution, TBottom_Solution, TFitness> * data = (TNLOpt_Objective_Function_Data<TResult_Solution, TTop_Solution, TBottom_Solution, TFitness>*)my_func_data;
 
 	TTop_Solution top_result;// = TTop_Solution::From_Vector(x);
-	if (use_remap) {
-		top_result = data->default_top_solution;
-		for (size_t i = 0; i < x.size(); i++) {
-			top_result[data->dimension_remap[i]] = x[i];
-		}
-	} else
-		top_result.set(const_cast<double*>(x.data()), const_cast<double*>(x.data())+x.size());
+	top_result.set(const_cast<double*>(x.data()), const_cast<double*>(x.data())+x.size());
 
 	CNLOpt_Fitness_Proxy<TFitness, TTop_Solution, TBottom_Solution> fitness_proxy{ data->fitness, top_result };
 	TBottom_Solver bottom_solver(data->initial_bottom_solution, data->lower_bottom_bound, data->upper_bottom_bound, fitness_proxy, data->metric);
@@ -139,10 +132,6 @@ protected:
 	TTop_Solution mInitial_Top_Solution;
 	TBottom_Solution mInitial_Bottom_Solution;
 protected:
-	std::vector<size_t> mDimension_Remap;		//in the case that some bounds limit particular parameter to a constant, it decreases the problem dimension => we need to check as the results may differ then
-												//for example with diff2, k=h=0 would produce worse solution if we do not reduce the number of parameters to non-zero ones
-	std::vector<double> mRemapped_Upper_Top_Bound, mRemapped_Lower_Top_Bound;	//reduced bounds
-protected:
 	TFitness &mFitness;
 	glucose::SMetric &mMetric;
 	TTop_Solution mLower_Top_Bound, mUpper_Top_Bound;
@@ -164,15 +153,6 @@ public:
 		mInitial_Bottom_Solution = mInitial_Top_Solution.Decompose(tmp_init);
 		mUpper_Bottom_Bound = mUpper_Top_Bound.Decompose(upper_bound);
 		mLower_Bottom_Bound = mLower_Top_Bound.Decompose(lower_bound);
-
-		for (auto i = 0; i < mUpper_Top_Bound.cols(); i++) {
-
-			if (mUpper_Top_Bound[i] != mLower_Top_Bound[i]) {
-				mDimension_Remap.push_back(i);
-				mRemapped_Upper_Top_Bound.push_back(mUpper_Top_Bound[i]);
-				mRemapped_Lower_Top_Bound.push_back(mLower_Top_Bound[i]);
-			}
-		}
 	}
 
 
@@ -180,7 +160,7 @@ public:
 
 		if (nlopt_tx::print_statistics) nlopt_tx::eval_counter = 0;
 
-		nlopt::opt opt{ mTop_Algorithm, static_cast<unsigned int>(mDimension_Remap.size()) };
+		nlopt::opt opt(mTop_Algorithm, static_cast<unsigned int>(mInitial_Top_Solution.cols()));
 
 		const TAligned_Solution_Vector<TBottom_Solution> initial_bottom_solution = { mInitial_Bottom_Solution };
 		auto init_solution = mInitial_Top_Solution.Compose(mInitial_Bottom_Solution);
@@ -195,18 +175,15 @@ public:
 			mLower_Bottom_Bound, mUpper_Bottom_Bound,				//TBottom_Solution& lower_bottom_bound, upper_bottom_bound;
 			initial_bottom_solution,								//std::vector<TBottom_Solution> initial_solution;
 			mInitial_Top_Solution,
-			mDimension_Remap,
 			metric_calculator,										//SMetricCalculator metric_calculator; //don't make this a reference!
 			&progress,												//volatile TSolverProgress *progress;
 			opt														//nlopt::opt &options;
 		};
-		
-		//we need expression templates to reduce the overhead of remapping
-		if (mDimension_Remap.size() == static_cast<size_t>(mUpper_Top_Bound.cols())) opt.set_min_objective(NLOpt_Top_Solution_Objective_Function<TResult_Solution, TTop_Solution, TBottom_Solution, TBottom_Solver, TFitness, false>, &data);
-			else opt.set_min_objective(NLOpt_Top_Solution_Objective_Function<TResult_Solution, TTop_Solution, TBottom_Solution, TBottom_Solver, TFitness, true>, &data);
+				
+		opt.set_min_objective(NLOpt_Top_Solution_Objective_Function<TResult_Solution, TTop_Solution, TBottom_Solution, TBottom_Solver, TFitness>, &data);		
 
-		opt.set_lower_bounds(mRemapped_Lower_Top_Bound);
-		opt.set_upper_bounds(mRemapped_Upper_Top_Bound);
+		opt.set_lower_bounds(Top_Solution_As_Vector(mLower_Top_Bound));
+		opt.set_upper_bounds(Top_Solution_As_Vector(mUpper_Top_Bound));
 
 		//opt.set_xtol_rel(1e-4);
 		opt.set_xtol_rel(1e-10);

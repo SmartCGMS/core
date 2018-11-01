@@ -129,7 +129,7 @@ bool CTime_Segment::Calculate(const std::vector<double> &times, std::vector<doub
 }
 
 void CTime_Segment::Emit_Levels_At_Pending_Times() {
-	if (mPending_Times.empty()) return;
+	if (mPending_Times.empty() || !mCalculated_Signal) return;
 
 	std::vector<double> levels(mPending_Times.size()), times{ mPending_Times.begin(), mPending_Times.end() };
 	if (levels.size() != times.size()) return;	//allocation error!
