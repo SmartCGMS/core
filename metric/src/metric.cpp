@@ -254,7 +254,7 @@ double CCrossWalkMetric::Do_Calculate_Metric() {
 
 	for (size_t i = 1; i < mDifferences.size(); i++) {
 		const TProcessed_Difference& previous_diff = mDifferences[i-1];
-		const TProcessed_Difference& current_diff = mDifferences[i - 1];
+		const TProcessed_Difference& current_diff = mDifferences[i];
 
 		double timedelta = current_diff.raw.datetime - previous_diff.raw.datetime;
 		timedelta *= timedelta;
