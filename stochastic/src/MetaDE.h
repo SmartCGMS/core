@@ -45,6 +45,7 @@
 #include <map>
 #include <ctime>
 #include <chrono>
+#include <set>
 
 #include "solution.h"
 #include "fitness.h"
@@ -62,20 +63,21 @@
 
 
 namespace metade {
-
-	enum class NStrategy : size_t { desCurrentToPBest = 0, desCurrentToUmPBest, desBest2Bin, desUmBest1, desCurrentToRand1, count };
+	
+	enum class NStrategy : size_t { desCurrentToPBest = 0, desCurrentToUmPBest, desBest2Bin, desUmBest1, desCurrentToRand1, desTournament, count };
 
 	const std::map<NStrategy, const char*, std::less<NStrategy>, tbb::tbb_allocator<std::pair<const NStrategy, const char*>>> strategy_name = {
 														{ NStrategy::desCurrentToPBest,		"CurToPBest" },
 														{ NStrategy::desCurrentToUmPBest,	"CurToUmPBest" },
 														{ NStrategy::desBest2Bin,			"Best2Bin" },
 														{ NStrategy::desUmBest1,			"UmBest1" },
-														{ NStrategy::desCurrentToRand1,		"CurToRand1" } };
+														{ NStrategy::desCurrentToRand1,		"CurToRand1" },
+														{ NStrategy::desTournament,			"Tournament" } };
 
 
 
 	const static double Strategy_min = 0.0;
-	const static double Strategy_range = 4.0;
+	const static double Strategy_range = static_cast<double>(static_cast<size_t>(NStrategy::count)-1);
 
 	template <typename TSolution>
 	struct TMetaDE_Candidate_Solution {
@@ -93,8 +95,6 @@ namespace metade {
 		size_t strategy_counter[static_cast<size_t>(NStrategy::count)];
 	};
 
-
-
 	template <typename T>
 	T& increment(T& value)
 	{
@@ -108,17 +108,13 @@ namespace metade {
 template <typename TSolution, typename TFitness, typename TLocalSolver, size_t mGeneration_Count = 10'000, size_t mPopulation_Size = 100>
 class CMetaDE {
 protected:
-	//const size_t mPopulation_Size = 100;
-	//const size_t mGeneration_Count = 10000;
 	const size_t mPBest_Count = 5;
 	const double mCR_min = 0.0;
 	const double mCR_range = 1.0;
 	const double mF_min = 0.0;
 	const double mF_range = 2.0;
-	const size_t mStrategy_min = 0;
-	const size_t mStrategy_range = 4;
 protected:
-	const bool mCollect_Statistics = true;
+	const bool mCollect_Statistics = false;
 	const bool mPrint_Brief_Statistics = true;
 	std::chrono::high_resolution_clock::time_point mSolve_Start_Time, mSolve_Stop_Time;
 
@@ -205,9 +201,6 @@ protected:
 		} while (old_strategy == new_strategy);
 
 		solution.strategy = new_strategy;
-		
-		//solution.strategy = mUniform_Distribution(mRandom_Generator) > 0.5 ? metade::NStrategy::desCurrentToUmPBest : metade::NStrategy::desCurrentToRand1;
-		//solution.strategy = metade::NStrategy::desCurrentToRand1;
 	}
 protected:
 	//not used in a thread-safe way but does not seem to be a problem so far
@@ -269,6 +262,10 @@ public:
 		progress.current_progress = 0;
 		progress.max_progress = mGeneration_Count;
 
+		const double dbl_population_high = static_cast<double>(mPopulation_Size - 1);
+		const size_t solution_size = mPopulation[0].next.cols();
+		const double dbl_solution_high = static_cast<double>(solution_size - 1);
+
 		while ((progress.current_progress++ < mGeneration_Count) && (progress.cancelled == 0)) {
 			//1. determine the best p-count parameters, without actually re-ordering the population
 			//we want to avoid of getting all params close together and likely loosing the population diversity
@@ -290,9 +287,8 @@ public:
 				for (size_t iter = r.begin(); iter != rend; iter++) {
 
 
-					auto generate_random_index = [&]()->size_t {
-						const double fl_population_high = static_cast<double>(mPopulation_Size - 1);
-						return static_cast<size_t>(round(mUniform_Distribution(mRandom_Generator)*fl_population_high));
+					auto generate_random_index = [&]()->size_t {						
+						return static_cast<size_t>(round(mUniform_Distribution(mRandom_Generator)*dbl_population_high));
 					};
 
 					auto random_difference_vector = [&]()->TSolution {
@@ -304,44 +300,67 @@ public:
 					auto &candidate_solution = mPopulation[iter];
 
 					switch (candidate_solution.strategy) {
-					case metade::NStrategy::desCurrentToPBest:
-					{
-						const size_t p_index = static_cast<size_t>(round(mUniform_Distribution(mRandom_Generator)*static_cast<double>(mPBest_Count - 1)));
-						candidate_solution.next = candidate_solution.current +
-							candidate_solution.F*(mPopulation[mPopulation_Best[p_index]].current - candidate_solution.current) +
-							candidate_solution.F*random_difference_vector();
-					}
-					break;
-
-					case metade::NStrategy::desCurrentToUmPBest:
-					{
-						const size_t p_index = static_cast<size_t>(round(mUniform_Distribution(mRandom_Generator)*static_cast<double>(mPBest_Count - 1)));
-						candidate_solution.next = candidate_solution.current +
-							candidate_solution.F*(mPopulation[mPopulation_Best[p_index]].current - candidate_solution.current) +
-							mUniform_Distribution(mRandom_Generator)*random_difference_vector();
-					}
-					break;
-
-					case metade::NStrategy::desBest2Bin:
-						candidate_solution.next = candidate_solution.current +
-							candidate_solution.F*random_difference_vector() +
-							candidate_solution.F*random_difference_vector();
+						case metade::NStrategy::desCurrentToPBest:
+						{
+							const size_t p_index = static_cast<size_t>(round(mUniform_Distribution(mRandom_Generator)*static_cast<double>(mPBest_Count - 1)));
+							candidate_solution.next = candidate_solution.current +
+								candidate_solution.F*(mPopulation[mPopulation_Best[p_index]].current - candidate_solution.current) +
+								candidate_solution.F*random_difference_vector();
+						}
 						break;
 
-					case metade::NStrategy::desUmBest1:
-						candidate_solution.next = candidate_solution.current +
-							mUniform_Distribution(mRandom_Generator)*random_difference_vector() +
-							candidate_solution.F*random_difference_vector();
+						case metade::NStrategy::desCurrentToUmPBest:
+						{
+							const size_t p_index = static_cast<size_t>(round(mUniform_Distribution(mRandom_Generator)*static_cast<double>(mPBest_Count - 1)));
+							candidate_solution.next = candidate_solution.current +
+								candidate_solution.F*(mPopulation[mPopulation_Best[p_index]].current - candidate_solution.current) +
+								mUniform_Distribution(mRandom_Generator)*random_difference_vector();
+						}
 						break;
 
-					case metade::NStrategy::desCurrentToRand1:
-						candidate_solution.next = candidate_solution.current +
-							candidate_solution.F*(mPopulation[mPopulation_Best[0]].current - candidate_solution.current) +
-							mUniform_Distribution(mRandom_Generator)*random_difference_vector();
-						break;
+						case metade::NStrategy::desBest2Bin:
+							candidate_solution.next = candidate_solution.current +
+								candidate_solution.F*random_difference_vector() +
+								candidate_solution.F*random_difference_vector();
+							break;
 
-					default:
-						break;
+						case metade::NStrategy::desUmBest1:
+							candidate_solution.next = candidate_solution.current +
+								mUniform_Distribution(mRandom_Generator)*random_difference_vector() +
+								candidate_solution.F*random_difference_vector();
+							break;
+
+						case metade::NStrategy::desCurrentToRand1:
+							candidate_solution.next = candidate_solution.current +
+								candidate_solution.F*(mPopulation[mPopulation_Best[0]].current - candidate_solution.current) +
+								mUniform_Distribution(mRandom_Generator)*random_difference_vector();
+							break;
+
+						case metade::NStrategy::desTournament: {
+								//we choose mPBest_Count-number of random candidates for a direct crossbreeding with the current candidate solution
+
+								size_t to_go = mPBest_Count;
+								size_t best_tournament_index = iter;
+								double best_tournament_fitness = std::numeric_limits<double>::max();
+								std::set<size_t> visited_tournament_indexes{ {iter} };
+								while (to_go-- > 0) {
+									size_t random_tournament_index = generate_random_index();
+									if (visited_tournament_indexes.find(random_tournament_index) == visited_tournament_indexes.end()) {
+										visited_tournament_indexes.insert(random_tournament_index);
+
+										if (mPopulation[random_tournament_index].current_fitness < best_tournament_fitness) {
+											best_tournament_fitness = mPopulation[random_tournament_index].current_fitness;
+											best_tournament_index = random_tournament_index;
+										}
+									}
+								}
+
+								candidate_solution.next = mPopulation[best_tournament_index].current;
+							}
+							break;
+
+						default:
+							break;
 					}
 
 					//ensure the bounds
@@ -349,15 +368,14 @@ public:
 
 
 					//crossbreed
-					{
-						const size_t element_count = candidate_solution.next.cols();
-						for (size_t element_iter = 0; element_iter < element_count; element_iter++) {
+					{						
+						for (size_t element_iter = 0; element_iter < solution_size; element_iter++) {
 							if (mUniform_Distribution(mRandom_Generator) > candidate_solution.CR)
 								candidate_solution.next[element_iter] = candidate_solution.current[element_iter];
 						}
 
 						//and, we alway have to keep at least one original/current element
-						const size_t element_to_replace = static_cast<size_t>(round(mUniform_Distribution(mRandom_Generator)*static_cast<double>(element_count - 1)));
+						const size_t element_to_replace = static_cast<size_t>(round(mUniform_Distribution(mRandom_Generator)*dbl_solution_high));
 						candidate_solution.next[element_to_replace] = candidate_solution.current[element_to_replace];
 					}
 
