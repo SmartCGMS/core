@@ -43,37 +43,29 @@
 
 #undef max
 
+constexpr double Infintity_Diff_Penalty = 1'000.0;	//the more levels that won't be calculated would considerably increase the overall penalty
+													//however, we cannot use double_max to avoid overflow, so we need a small number (yet overly great compared to glucose levels)
+
 CCommon_Metric::CCommon_Metric(const glucose::TMetric_Parameters &params) : mParameters(params) {
 	Reset();
 }
 
 HRESULT IfaceCalling CCommon_Metric::Accumulate(const double *times, const double *expected, const double *calculated, const size_t count) {
 
-	std::vector<double> diff(count);
-
-	//the following 3 fors are inteded for autovectorization
-
-	for (size_t i = 0; i < count; i++)
-		diff[i] = fabs(expected[i] - calculated[i]);
-
-	if (mParameters.use_relative_error)
-		for (size_t i = 0; i < count; i++)
-			diff[i] /= fabs(calculated[i]);	//with wrong (e.g., MetaDE random) parameters, the result could be negative
-
-	if (mParameters.use_squared_differences)
-		for (size_t i = 0; i < count; i++)
-			diff[i] *= diff[i];
-
 	for (size_t i = 0; i < count; i++) {
-		if (!std::isnan(calculated[i])) {
-			TProcessed_Difference tmp;
-			tmp.raw.datetime = times[i];
-			tmp.raw.calculated = calculated[i];
-			tmp.raw.expected = expected[i];
-			tmp.difference = diff[i];
+		TProcessed_Difference tmp;
 
-			mDifferences.push_back(tmp);
-		}
+		tmp.raw.datetime = times[i];
+		tmp.raw.calculated = std::isnan(calculated[i]) ? Infintity_Diff_Penalty : calculated[i];
+		tmp.raw.expected = expected[i];		
+		
+		tmp.difference = fabs(expected[i] - tmp.raw.calculated);
+		if (mParameters.use_relative_error)
+			tmp.difference /= fabs(tmp.raw.calculated);	//with wrong (e.g., MetaDE random) parameters, the result could be negative
+		if (mParameters.use_squared_differences)
+			tmp.difference *= tmp.difference;
+
+		mDifferences.push_back(tmp);
 	}
 
 	mAll_Levels_Count += count;
@@ -90,19 +82,21 @@ HRESULT IfaceCalling CCommon_Metric::Reset() {
 
 
 HRESULT IfaceCalling CCommon_Metric::Calculate(double *metric, size_t *levels_accumulated, size_t levels_required) {
-	size_t count = mDifferences.size();
 
-	*levels_accumulated = count;
+	*levels_accumulated = 0;
+	for (const auto &diff : mDifferences)
+		if (diff.difference != Infintity_Diff_Penalty) (*levels_accumulated)++;
+
 	levels_required = std::max((decltype(levels_required))1, levels_required);
 
-	if (/* (count<1) || */ (count < levels_required)) return S_FALSE;
+	if (*levels_accumulated < levels_required) return S_FALSE;
 
 	double local_metric = Do_Calculate_Metric();	//caching into the register
 	
 	const auto cl = std::fpclassify(local_metric);
 	if ((cl != FP_NORMAL) && (cl != FP_ZERO)) return S_FALSE;
 
-	if (mParameters.prefer_more_levels != 0) local_metric /= static_cast<double>(count);
+	if (mParameters.prefer_more_levels != 0) local_metric /= static_cast<double>(*levels_accumulated);
 
 	*metric = local_metric;
 
