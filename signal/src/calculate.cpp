@@ -382,12 +382,13 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 
 		if (glucose::Solve_Model_Parameters(setup) == S_OK) {
 			//calculate and compare the present parameters with the new one
-
-			mSolver_Status = glucose::TSolver_Status::Completed;
+			
 
 			const double original_fitness = Calculate_Fitness(segments, segment_count, metric, working_parameters.get());
 			const double solved_fitness = Calculate_Fitness(segments, segment_count, metric, solved_parameters.get());
 			if (solved_fitness < original_fitness) {
+				mSolver_Status = glucose::TSolver_Status::Completed_Improved;
+
 				//OK, we have found better fitness => set it and send respective message
 				if (segment_id != glucose::All_Segments_Id) {
 					const auto &segment = Get_Segment(segment_id);
@@ -408,6 +409,16 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 				solved_evt.segment_id = segment_id;
 				solved_evt.parameters.set(solved_parameters);
 				mOutput.Send(solved_evt);
+			}
+			else {
+				mSolver_Status = glucose::TSolver_Status::Completed_Not_Improved;
+				glucose::UDevice_Event not_improved_evt{ glucose::NDevice_Event_Code::Information };
+				not_improved_evt.device_time = Unix_Time_To_Rat_Time(time(nullptr));
+				not_improved_evt.device_id = calculate::Calculate_Filter_GUID;
+				not_improved_evt.signal_id = mCalculated_Signal_Id;
+				not_improved_evt.segment_id = segment_id;
+				not_improved_evt.info.set(rsInfo_Solver_Failed);
+				mOutput.Send(not_improved_evt);
 			}
 
 		} else {
