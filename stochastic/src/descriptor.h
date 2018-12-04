@@ -55,4 +55,8 @@ namespace bobyqa {
 }
 
 
+namespace halton_sequence {
+	constexpr GUID id =	{ 0x739bc222, 0x9b1e, 0x4891, { 0xb5, 0xee, 0x90, 0xaa, 0x1, 0x31, 0xc1, 0xf1 } };
+}
+
 extern "C" HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end);

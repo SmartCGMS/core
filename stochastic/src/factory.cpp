@@ -44,6 +44,7 @@
 #include "NLOpt.h"
 #include "MetaDE.h"
 #include "NullMethod.h"
+#include "HaltonSequence.h"
 
 #include "descriptor.h"
 #include "fitness.h"
@@ -134,6 +135,8 @@ public:
 
 		using TPure_MetaDE = CMetaDE<TSolution, TFitness, CNullMethod<TSolution, TFitness>>;
 		mSolver_Id_Map[metade::id] = std::bind(&Solve_By_Class<TPure_MetaDE, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+
+		mSolver_Id_Map[halton_sequence::id] = std::bind(&Solve_By_Class<CHalton_Sequence<TSolution, TFitness>, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 	}
 
 	virtual HRESULT Solve_Model_Parameters(TShared_Solver_Setup &setup) final {
