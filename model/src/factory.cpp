@@ -42,6 +42,7 @@
 #include "Diffusion_v2_ist.h"
 #include "Steil_Rebrin_blood.h"
 #include "Steil_Rebrin_Diffusion_Prediction.h"
+#include "Diffusion_Prediction.h"
 #include "descriptor.h"
 
 #include <map>
@@ -76,6 +77,7 @@ public:
 		Add_Signal<CDiffusion_v2_ist>(glucose::signal_Diffusion_v2_Ist);
 		Add_Signal<CSteil_Rebrin_blood>(glucose::signal_Steil_Rebrin_Blood);
 		Add_Signal<CSteil_Rebrin_Diffusion_Prediction>(glucose::signal_Steil_Rebrin_Diffusion_Prediction);
+		Add_Signal<CDiffusion_Prediction>(glucose::signal_Diffusion_Prediction);
 	}
 
 	HRESULT Create_Signal(const GUID &calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) const {
