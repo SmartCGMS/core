@@ -61,6 +61,7 @@ using TAligned_Solution_Vector = std::vector<TSolution, AlignmentAllocator<TSolu
 #define TDiffusion_v2_Vector Eigen::Array<double, 1, diffusion_v2_model::param_count>
 #define TSteil_Rebrin_Vector Eigen::Array<double, 1, steil_rebrin::param_count>
 #define TSteil_Rebrin_Diffusion_Prediction_Vector Eigen::Array<double, 1, steil_rebrin_diffusion_prediction::param_count>
+#define TDiffusion_Prediction_Vector Eigen::Array<double, 1, diffusion_prediction::param_count>
 
 //generic vector for any unknown model
 #define TGeneric_Vector Eigen::Array<double, 1, Eigen::Dynamic, Eigen::RowMajor>
@@ -132,6 +133,9 @@ EIGEN_DERIVE_ARRAY(CSteil_Rebrin_Solution, TSteil_Rebrin_Vector)
 };
 
 EIGEN_DERIVE_ARRAY(CSteil_Rebrin_Diffusion_Prediction_Solution, TSteil_Rebrin_Diffusion_Prediction_Vector)
+};
+
+EIGEN_DERIVE_ARRAY(CDiffusion_Prediction_Solution, TDiffusion_Prediction_Vector)
 };
 
 EIGEN_DERIVE_ARRAY(CGeneric_Solution, TGeneric_Vector)

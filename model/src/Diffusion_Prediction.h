@@ -38,65 +38,22 @@
 
 #pragma once
 
-#include "../../../common/iface/UIIface.h"
-#include "../../../common/rtl/hresult.h"
-#include "../../../common/rtl/ModelsLib.h"
+#include "../../../common/rtl/Common_Calculation.h"
 
-namespace diffusion_v2_model {
-	const double default_parameters[param_count] = { 1.091213, -0.015811, -0.174114, 0.0233101854166667, -2.6E-6, 0.0185995368055556 };
+#pragma warning( push )
+#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-	struct TParameters {
-		union {
-			struct {
-				double p, cg, c, dt, k, h;
-			};
-			double vector[param_count];
-		};
-	};
-}
+class CDiffusion_Prediction : public virtual CCommon_Calculation {
+protected:
+	glucose::SSignal mIst;	
+public:
+	CDiffusion_Prediction(glucose::WTime_Segment segment);
+	virtual ~CDiffusion_Prediction() {};
 
+	//glucose::ISignal iface
+	virtual HRESULT IfaceCalling Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+		const double* times, double* const levels, const size_t count, const size_t derivation_order) const final;
+	virtual HRESULT IfaceCalling Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const final;
+};
 
-namespace steil_rebrin {
-	//DelFavero 2014 flaw of the Steil-Rebrin model
-	const double default_parameters[param_count] = { 0.00576459, 1.0 / 1.02164072, 0.0, 0.0 };
-
-	struct TParameters {
-		union {
-			struct {
-				double tau, alpha, beta, gamma;	//and g is considered == 1.0
-			};
-			double vector[param_count];
-		};
-	};
-}
-
-namespace steil_rebrin_diffusion_prediction {
-	//const double default_parameters[param_count] = { 1.091213, -0.015811, -0.174114, 0.0233101854166667, 1.02164072, 1.0 / 0.00576459  };
-	const double default_parameters[param_count] = { 0.00116362, -7.20151e-11, 0.0794574, 0.010417, 850.437, 0.00630974 };	//15 minutes prediction
-
-	struct TParameters {
-		union {
-			struct {
-				double p, cg, c, dt, inv_g, tau;
-			};
-			double vector[param_count];
-		};
-	};
-}
-
-
-namespace diffusion_prediction {
-
-	const double default_parameters[param_count] = { 1.091213, -0.015811, -0.174114, 0.0233101854166667, 1.065754, -0.004336, 0.167069, 0.0247337965277778 - 0.0233101854166667 };
-
-	struct TParameters {
-		union {
-			struct {
-				double p, cg, c, dt;
-			} retrospective, predictive;
-			double vector[param_count];
-		};		
-	};
-}
-
-extern "C" HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end);
+#pragma warning( pop )

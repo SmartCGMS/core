@@ -148,7 +148,43 @@ namespace steil_rebrin_diffusion_prediction {
 
 }
 
-const std::array<glucose::TModel_Descriptor, 3> model_descriptions = { { diffusion_v2_model::desc, steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc } };
+namespace diffusion_prediction {
+	const GUID id = { 0xc5473eab, 0x32de, 0x49ce, { 0x90, 0xfc, 0xf2, 0xa2, 0xbd, 0x11, 0x3d, 0x88 } };
+
+	const glucose::NModel_Parameter_Value param_types[param_count] = { glucose::NModel_Parameter_Value::mptDouble, glucose::NModel_Parameter_Value::mptDouble, glucose::NModel_Parameter_Value::mptDouble, glucose::NModel_Parameter_Value::mptTime, 
+																	   glucose::NModel_Parameter_Value::mptDouble, glucose::NModel_Parameter_Value::mptDouble, glucose::NModel_Parameter_Value::mptDouble, glucose::NModel_Parameter_Value::mptTime};
+
+	const wchar_t *param_names[param_count] = { dsRetrospectiveP, dsRetrospectiveCg, dsRetrospectiveC, dsRetrospectiveDt, dsPredictiveP, dsPredictiveCg, dsPredictiveC, dsPredictiveDt };
+	const wchar_t *param_columns[param_count] = { rsRetrospectiveP, rsRetrospectiveCg, rsRetrospectiveC, rsRetrospectiveDt, rsPredictiveP, rsPredictiveCg, rsPredictiveC, rsPredictiveDt };
+
+	const double lower_bound[param_count] = { 0.0, -0.5, -10.0, 0.0, 0.0, -0.5, -10.0, 0.0 };
+	const double upper_bound[param_count] = { 2.0, 0.0, 10.0, glucose::One_Hour, 2.0, 0.0, 10.0, glucose::One_Hour };
+
+	const size_t signal_count = 1;
+
+	const GUID signal_ids[signal_count] = { glucose::signal_Diffusion_Prediction };
+	const wchar_t *signal_names[signal_count] = { dsInterstitial };
+	const GUID reference_signal_ids[signal_count] = { glucose::signal_IG };
+
+	const glucose::TModel_Descriptor desc = {
+		id,
+		dsDiffusion_Prediction,
+		rsDiffusion_Prediction_Table,
+		param_count,
+		param_types,
+		param_names,
+		param_columns,
+		lower_bound,
+		default_parameters,
+		upper_bound,
+		signal_count,
+		signal_ids,
+		signal_names,
+		reference_signal_ids
+	};
+}
+
+const std::array<glucose::TModel_Descriptor, 4> model_descriptions = { { diffusion_v2_model::desc, steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc, diffusion_prediction::desc } };
 
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end) {

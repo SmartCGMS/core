@@ -165,6 +165,7 @@ protected:
 	CSpecialized_Id_Dispatcher<CDiffusion_v2_Solution> mDiffusion_v2_Dispatcher;
 	CSpecialized_Id_Dispatcher<CSteil_Rebrin_Solution> mSteil_Rebrin_Dispatcher;
 	CSpecialized_Id_Dispatcher<CSteil_Rebrin_Diffusion_Prediction_Solution> mSteil_Rebrin_Diffusion_Prediction_Dispatcher;
+	CSpecialized_Id_Dispatcher<CDiffusion_Prediction_Solution> mDiffusion_Prediction_Dispatcher;
 	CSpecialized_Id_Dispatcher<CGeneric_Solution> mGeneric_Dispatcher;
 	std::map<const GUID, CGeneral_Id_Dispatcher*, std::less<GUID>, tbb::tbb_allocator<std::pair<const GUID, CGeneral_Id_Dispatcher*>>> mSignal_Id_map;
 public:
@@ -175,6 +176,7 @@ public:
 		mSignal_Id_map[glucose::signal_Diffusion_v2_Ist] = &mDiffusion_v2_Dispatcher;
 		mSignal_Id_map[glucose::signal_Steil_Rebrin_Blood] = &mSteil_Rebrin_Dispatcher;
 		mSignal_Id_map[glucose::signal_Steil_Rebrin_Diffusion_Prediction] = &mSteil_Rebrin_Diffusion_Prediction_Dispatcher;
+		mSignal_Id_map[glucose::signal_Diffusion_Prediction] = &mDiffusion_Prediction_Dispatcher;
 	}
 
 	HRESULT Solve_Model_Parameters(TShared_Solver_Setup &setup) {
