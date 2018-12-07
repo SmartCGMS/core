@@ -70,7 +70,7 @@ protected:
 	TSolution mInitial_Lower_Bound;
 	TSolution mInitial_Upper_Bound;
 protected:
-	std::vector<size_t> mHalton_Base;
+	std::vector<size_t, AlignmentAllocator<size_t>> mHalton_Base;
 
 	//Generates one number from halton sequence with given base and index
 	//https://en.wikipedia.org/wiki/Halton_sequence#Implementation_in_pseudocode
@@ -125,25 +125,26 @@ public:
 		progress.max_progress = max_iterations;
 		progress.best_metric = best_solution.fitness;
 
+		const size_t solution_size = mDefault_Solution.cols();
+		const size_t solution_size_bit_combinations = static_cast<size_t>(1) << solution_size;
+		
+		std::vector<TSolution, AlignmentAllocator<TSolution>> halton_numbers;
+		 //pre-calculate the halton numbers sequene			
+		for (size_t halton_iter = 0; halton_iter < halton_count; halton_iter++) {
+			TSolution tmp;
+			tmp.resize(Eigen::NoChange, solution_size);
 
-		std::vector<TSolution> halton_numbers;
-		{ //pre-calculate the halton numbers sequene
-			const int sol_count = mDefault_Solution.cols();
-			for (size_t halton_iter = 0; halton_iter < halton_count; halton_iter++) {
-				TSolution tmp;
-				tmp.resize(Eigen::NoChange, sol_count);
-
-				//halton generate index (it is recommended to skip few numbers to get rid of correlation between parameters)
-				constexpr size_t halton_increment = 409;
+			//halton generate index (it is recommended to skip few numbers to get rid of correlation between parameters)
+			constexpr size_t halton_increment = 409;
 
 
-				// calculate the shift to halton_bases array
-				for (size_t i = 0; i < static_cast<size_t>(sol_count); i++)
-					tmp[i] = halton(mHalton_Base[i], halton_iter + halton_increment);
+			// calculate the shift to halton_bases array
+			for (size_t i = 0; i < static_cast<size_t>(solution_size); i++)
+				tmp[i] = halton(mHalton_Base[i], halton_iter + halton_increment);
 
-				halton_numbers.push_back(tmp);
-			}
+			halton_numbers.push_back(tmp);
 		}
+		
 
 		while ((progress.current_progress++ < max_iterations) && (progress.cancelled == 0)) {
 			const TSolution bounds_difference = working_upper_bound - working_lower_bound;			
@@ -151,21 +152,37 @@ public:
 								
 			//for each halton sequence point
 			best_solution = tbb::parallel_reduce(tbb::blocked_range<size_t>(1, halton_count), best_solution,
-				[this, &bounds_difference, &working_lower_bound, &progress, &halton_numbers](const tbb::blocked_range<size_t> &r, Halton_internal::TCandidate<TSolution> default_solution)->Halton_internal::TCandidate<TSolution> {
+				[this, &bounds_difference, &working_lower_bound, &working_upper_bound, &progress, &halton_numbers, solution_size, solution_size_bit_combinations](const tbb::blocked_range<size_t> &r, Halton_internal::TCandidate<TSolution> default_solution)->Halton_internal::TCandidate<TSolution> {
 				
+					TSolution drifting_solution;
+					drifting_solution.resize(Eigen::NoChange, solution_size);
+
 					for (size_t halton_iter = r.begin(); halton_iter != r.end(); halton_iter++) {
 						auto local_metric = mMetric.Clone();
 					
 						TSolution candidate_solution = halton_numbers[halton_iter] * bounds_difference + working_lower_bound;
 
-						mMetric->Reset();
-						const double candidate_fitness = mFitness.Calculate_Fitness(candidate_solution, local_metric);
-						if (candidate_fitness < default_solution.fitness) {
-							default_solution.fitness = candidate_fitness;
-							default_solution.solution = candidate_solution;
-							progress.best_metric = candidate_fitness;
-						}
+						//Now, we have two almost likely different solutions - best and candidate
+						//To simulate evolutionary drift/random mutation, let's try to combine them - a deterministic approach						
+						for (size_t combination = 0; combination <= solution_size_bit_combinations; combination++) {
+							drifting_solution = candidate_solution;
 
+							size_t bit_mask = 1;
+							for (size_t bit_index = 0; bit_index < solution_size; bit_index++) {
+								if (bit_mask & combination) drifting_solution[bit_index] = default_solution.solution[bit_index];
+								bit_mask <<= 1;
+							}
+						
+							drifting_solution = working_upper_bound.min(working_lower_bound.max(drifting_solution));
+
+							mMetric->Reset();
+							const double drifting_fitness = mFitness.Calculate_Fitness(drifting_solution, local_metric);
+							if (drifting_fitness < default_solution.fitness) {
+								default_solution.fitness = drifting_fitness;
+								default_solution.solution = drifting_solution;
+								progress.best_metric = drifting_fitness;
+							}
+						}
 					}
 
 
