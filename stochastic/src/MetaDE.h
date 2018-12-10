@@ -49,6 +49,7 @@
 
 #include "solution.h"
 #include "fitness.h"
+#include "HaltonDevice.h"
 
 #undef max
 #undef min
@@ -105,7 +106,7 @@ namespace metade {
 }
 
 
-template <typename TSolution, typename TFitness, typename TLocalSolver, size_t mGeneration_Count = 10'000, size_t mPopulation_Size = 100>
+template <typename TSolution, typename TFitness, typename TLocalSolver, size_t mGeneration_Count = 10'000, size_t mPopulation_Size = 100, typename TRandom_Device = std::random_device>//CHalton_Device>
 class CMetaDE {
 protected:
 	const size_t mPBest_Count = 5;
@@ -204,7 +205,7 @@ protected:
 	}
 protected:
 	//not used in a thread-safe way but does not seem to be a problem so far
-	std::random_device mRandom_Device;
+	TRandom_Device mRandom_Device;
 	std::mt19937 mRandom_Generator{ mRandom_Device() };
 	std::uniform_real_distribution<double> mUniform_Distribution_dbl{ 0.0, 1.0 };	
 	std::uniform_int_distribution<size_t> mUniform_Distribution_PBest{ 0, mPBest_Count-1 };

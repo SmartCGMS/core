@@ -46,7 +46,7 @@
 
 #include "solution.h"
 #include "fitness.h"
-
+#include "HaltonDevice.h"
 #include <tbb/parallel_reduce.h>
 
 
@@ -69,48 +69,9 @@ protected:
 	TSolution mDefault_Solution;
 	TSolution mInitial_Lower_Bound;
 	TSolution mInitial_Upper_Bound;
-protected:
-	std::vector<size_t, AlignmentAllocator<size_t>> mHalton_Base;
-
-	//Generates one number from halton sequence with given base and index
-	//https://en.wikipedia.org/wiki/Halton_sequence#Implementation_in_pseudocode
-	double halton(const size_t base, size_t index) { ////base of halton sequence, index of halton sequence number		
-		double fraction = 1.0;	//current fraction		
-		double result = 0.0;	//halton sequence number to return
-		
-		while (index) {
-			//we need to divide the fraction by the b\se
-			fraction /= base;
-			//and add shift to the result
-			result += fraction * (index % base);
-			//and divide the index
-			index /= base;
-		}		
-		return result;
-	}
-
 public:
 	CHalton_Sequence(const TAligned_Solution_Vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, glucose::SMetric &metric) :
 		mDefault_Solution(initial_solutions[0]), mInitial_Lower_Bound(lower_bound), mInitial_Upper_Bound(upper_bound), mFitness(fitness), mMetric(metric) {
-	
-		//compute primes  as the halton base		
-		mHalton_Base.push_back(2);
-		for (size_t prime_counter = 0, examined_number = 3; prime_counter < static_cast<size_t>(mDefault_Solution.cols()); examined_number +=2) {
-			//for every smaller number from 2 to sqrt
-			bool is_prime = true;
-			for (size_t c = 2; c*c <= examined_number; c++)
-				//if the examined_number divides by c with zero reminder, then examined_number is not prime
-				if (!(examined_number%c)) {
-					is_prime = false;
-					break;
-				}
-			
-			if (is_prime) {
-				mHalton_Base.push_back(examined_number); //the number is prime, let put in in the array
-				prime_counter++;
-			}
-		}
-
 	};
 
 	TSolution Solve(volatile glucose::TSolver_Progress &progress) {
@@ -129,20 +90,19 @@ public:
 		const size_t solution_size_bit_combinations = static_cast<size_t>(1) << solution_size;
 		
 		std::vector<TSolution, AlignmentAllocator<TSolution>> halton_numbers;
-		 //pre-calculate the halton numbers sequene			
-		for (size_t halton_iter = 0; halton_iter < halton_count; halton_iter++) {
-			TSolution tmp;
-			tmp.resize(Eigen::NoChange, solution_size);
+		{
+			std::vector<CHalton_Device> halton_devices(solution_size);
+			//pre-calculate the halton numbers sequene			
+			for (size_t halton_iter = 0; halton_iter < halton_count; halton_iter++) {
+				TSolution tmp;
+				tmp.resize(Eigen::NoChange, solution_size);
 
-			//halton generate index (it is recommended to skip few numbers to get rid of correlation between parameters)
-			constexpr size_t halton_increment = 409;
+				// calculate the shift to halton_bases array
+				for (size_t i = 0; i < static_cast<size_t>(solution_size); i++)
+					tmp[i] = halton_devices[i].advance();//operator()();
 
-
-			// calculate the shift to halton_bases array
-			for (size_t i = 0; i < static_cast<size_t>(solution_size); i++)
-				tmp[i] = halton(mHalton_Base[i], halton_iter + halton_increment);
-
-			halton_numbers.push_back(tmp);
+				halton_numbers.push_back(tmp);
+			}
 		}
 		
 
