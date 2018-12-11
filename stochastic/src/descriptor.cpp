@@ -53,6 +53,9 @@ namespace metade {
 	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsMetaDE);
 }
 
+namespace halton_metade {
+	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsHalton_MetaDE);
+}
 
 namespace bobyqa {
 	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsBOBYQA);
@@ -63,7 +66,7 @@ namespace halton_sequence {
 }
 
 
-const std::vector<glucose::TSolver_Descriptor, tbb::tbb_allocator<glucose::TSolver_Descriptor>> solver_descriptions = { newuoa::desc, metade::desc, bobyqa::desc, halton_sequence::desc };
+const std::vector<glucose::TSolver_Descriptor, tbb::tbb_allocator<glucose::TSolver_Descriptor>> solver_descriptions = { newuoa::desc, metade::desc, bobyqa::desc, halton_sequence::desc, halton_metade::desc };
 
 
 HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {

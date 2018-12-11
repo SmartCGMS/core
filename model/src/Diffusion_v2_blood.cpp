@@ -117,7 +117,7 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 		converted_levels = beta.square() - 4.0*parameters.cg*(parameters.c - future_ist.element());
 		//converted_levels.max(0.0);	//max cannot be inlined to make a one large equation
 		for (size_t i = 0; i < count; i++)
-			if (converted_levels[i] < 0.0) return E_FAIL; // shouldn't we fail rather? converted_levels[i] = 0.0;	//max would be nice solution, but it fails for some reason
+			if (converted_levels[i] < 0.0) return E_INVALIDARG; // shouldn't we fail rather? converted_levels[i] = 0.0;	//max would be nice solution, but it fails for some reason
 		converted_levels = (converted_levels.sqrt() - beta)*0.5 / parameters.cg;		
 	} else {		
 		//with alpha==0.0 we cannot calculate discriminant D as it would lead to division by zero(alpha)
