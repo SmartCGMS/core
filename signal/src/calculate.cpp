@@ -77,6 +77,7 @@ void CCalculate_Filter::Configure(glucose::SFilter_Parameters shared_configurati
 	mPrediction_Window = shared_configuration.Read_Double(rsPrediction_Window);
 	mSolver_Enabled = shared_configuration.Read_Bool(rsSolve_Parameters);
 	mSolve_On_Calibration = shared_configuration.Read_Bool(rsSolve_On_Calibration);
+	mSolve_On_Time_Segment_End = shared_configuration.Read_Bool(rsSolve_On_Time_Segment_End);
 	mSolve_All_Segments = shared_configuration.Read_Bool(rsSolve_Using_All_Segments);
 	mReference_Level_Threshold_Count = shared_configuration.Read_Int(rsSolve_On_Level_Count);
 	mSolving_Scheduled = false;
@@ -198,6 +199,12 @@ HRESULT CCalculate_Filter::Run(glucose::IFilter_Configuration* configuration)  {
 
 			case glucose::NDevice_Event_Code::Parameters_Hint:
 				if (evt.signal_id == mCalculated_Signal_Id) Add_Parameters_Hint(evt.parameters);
+				break;
+
+			case glucose::NDevice_Event_Code::Time_Segment_Stop:
+				if (mSolver_Enabled && mSolve_On_Time_Segment_End) Run_Solver(evt.segment_id);
+					//in this particular case, we do not preserve the original order of events
+					//to emit the paramters before the time segment actually ends
 				break;
 
 			case glucose::NDevice_Event_Code::Solve_Parameters: {

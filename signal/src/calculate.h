@@ -75,6 +75,7 @@ protected:
 	bool mSolver_Enabled = false;
 	bool mSolving_Scheduled = false;
 	bool mSolve_On_Calibration = true;
+	bool mSolve_On_Time_Segment_End = false;
 	bool mSolve_All_Segments = false;
 	int64_t mReference_Level_Threshold_Count = 0;
 	int64_t mReference_Level_Counter = 0;

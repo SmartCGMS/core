@@ -49,7 +49,7 @@
 
 namespace calculate {
 
-	constexpr size_t param_count = 19;
+	constexpr size_t param_count = 20;
 
 	constexpr glucose::NParameter_Type param_type[param_count] = {
 		glucose::NParameter_Type::ptNull,
@@ -61,6 +61,7 @@ namespace calculate {
 		glucose::NParameter_Type::ptSolver_Id,
 		glucose::NParameter_Type::ptModel_Bounds,
 		glucose::NParameter_Type::ptInt64,
+		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptNull,
@@ -84,6 +85,7 @@ namespace calculate {
 		dsSelected_Model_Bounds,
 		dsSolve_On_Level_Count,
 		dsSolve_On_Calibration,
+		dsSolve_On_Time_Segment_End,
 		dsSolve_Using_All_Segments,
 		dsMetric_Separator,
 		dsSelected_Metric,
@@ -106,6 +108,7 @@ namespace calculate {
 		rsSelected_Model_Bounds,
 		rsSolve_On_Level_Count,
 		rsSolve_On_Calibration,
+		rsSolve_On_Time_Segment_End,
 		rsSolve_Using_All_Segments,
 		nullptr,
 		rsSelected_Metric,
@@ -122,6 +125,7 @@ namespace calculate {
 		dsSelected_Model_Tooltip,
 		dsSelected_Signal_Tooltip,
 		dsPrediction_Window_Tooltip,
+		nullptr,
 		nullptr,
 		nullptr,
 		nullptr,
