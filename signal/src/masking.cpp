@@ -74,8 +74,10 @@ bool CMasking_Filter::Parse_Bitmask(std::wstring inw)
 	{
 		switch (in[i])
 		{
-			case L'0': mMask.reset(i); break;
-			case L'1': mMask.set(i);   break;
+			//zeroes represent levels to suppres
+			//ones represent levels to pass through
+			case L'1': mMask.reset(i); break;
+			case L'0': mMask.set(i);   break;
 			default:   return false;
 		}
 	}
