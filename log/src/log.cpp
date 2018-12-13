@@ -138,8 +138,7 @@ HRESULT IfaceCalling CLog_Filter::Run(glucose::IFilter_Configuration* configurat
 	const bool log_opened = Open_Log(shared_configuration);
 
 	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
-		if (log_opened)
-			Log_Event(evt);
+		Log_Event(evt);
 
 		if (!mOutput.Send(evt)) break;
 	}	
@@ -176,7 +175,7 @@ void CLog_Filter::Log_Event(const glucose::UDevice_Event &evt) {
 	// but not in GUI output, since records in list are considered "lines" and external logic (e.g. GUI) maintains line endings by itself
 
 	const std::wstring log_line_str = log_line.str();
-	mLog << log_line_str << std::endl;
+	if (mLog.is_open()) mLog << log_line_str << std::endl;
 
 	refcnt::wstr_container* container = refcnt::WString_To_WChar_Container(log_line_str.c_str());
 	std::unique_lock<std::mutex> scoped_lock{ mLog_Records_Guard };

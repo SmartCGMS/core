@@ -47,6 +47,8 @@
 #include "../../../common/rtl/FilesystemLib.h"
 #include "../../../common/lang/dstrings.h"
 
+#include "../../../common/utils/DebugHelper.h"
+
 #include "third party/iso8601.h"
 #include "descriptor.h"
 
@@ -54,6 +56,7 @@
 
 #include <map>
 #include <ctime>
+
 
 namespace db_writer
 {
@@ -181,59 +184,63 @@ bool CDb_Writer::Store_Parameters(const glucose::UDevice_Event& evt) {
 	int64_t id = Get_Db_Segment_Id(evt.segment_id);
 	if (id == db_writer::Error_Id) return false;
 
-	double *begin, *end;
-	evt.parameters->get(&begin, &end);
+	double *begin, *end;	
+	bool result = evt.parameters->get(&begin, &end) == S_OK;
 
-	size_t paramCnt = std::distance(begin, end);
+	if (result) {
+		const size_t paramCnt = std::distance(begin, end);
 
-	auto models = glucose::get_model_descriptors();
-	for (const auto& model : models) {
-		for (size_t i = 0; i < model.number_of_calculated_signals; i++) {
-			if (evt.signal_id == model.calculated_signal_ids[i] && model.number_of_parameters == paramCnt) {
+		auto models = glucose::get_model_descriptors();
+		for (const auto& model : models) {
+			for (size_t i = 0; i < model.number_of_calculated_signals; i++) {
+				if (evt.signal_id == model.calculated_signal_ids[i] && model.number_of_parameters == paramCnt) {
 
-				// delete old parameters
-				std::wstring query;
-				query = rsDelete_Parameters_Of_Segment_Base;
-				query += model.db_table_name;
-				query += rsDelete_Parameters_Of_Segment_Stmt;
+					// delete old parameters
+					std::wstring query_text;
+					query_text = rsDelete_Parameters_Of_Segment_Base;
+					query_text += model.db_table_name;
+					query_text += rsDelete_Parameters_Of_Segment_Stmt;
 
-				auto qrDel = mDb_Connection.Query(query, id);
-				if (qrDel)
-					qrDel.Execute(); // TODO: error checking
+					auto delete_query = mDb_Connection.Query(query_text, id);
+					if (delete_query)
+						delete_query.Execute(); // TODO: error checking
 
-				// INSERT INTO model_db_table (segmentid, param_1, param_2, ..., param_N) VALUES (?, ?, ..., ?)
+					// INSERT INTO model_db_table (segmentid, param_1, param_2, ..., param_N) VALUES (?, ?, ..., ?)
 
-				// INSERT INTO model_db_table
-				query = rsInsert_Params_Base;
-				query += std::wstring(model.db_table_name, model.db_table_name + wcslen(model.db_table_name));;
+					// INSERT INTO model_db_table
+					query_text = rsInsert_Params_Base;
+					query_text += std::wstring(model.db_table_name, model.db_table_name + wcslen(model.db_table_name));;
 
-				// (segmentid, param_1, param_2, ..., param_N)
-				query += L" (";
-				query += rsInsert_Params_Segmentid_Column;
-				for (size_t i = 0; i < model.number_of_parameters; i++)
-					query += L", " + std::wstring(model.parameter_db_column_names[i], model.parameter_db_column_names[i] + wcslen(model.parameter_db_column_names[i]));
-				query += L")";
+					// (segmentid, param_1, param_2, ..., param_N)
+					query_text += L" (";
+					query_text += rsInsert_Params_Segmentid_Column;
+					for (size_t i = 0; i < model.number_of_parameters; i++)
+						query_text += L", " + std::wstring(model.parameter_db_column_names[i], model.parameter_db_column_names[i] + wcslen(model.parameter_db_column_names[i]));
+					query_text += L")";
 
-				// VALUES (?, ?, ..., ?)
-				query += L" ";
-				query += rsInsert_Params_Values_Stmt;
-				query += L" (?";
-				for (size_t i = 0; i < model.number_of_parameters; i++)
-					query += L", ?";
-				query += L")";
+					// VALUES (?, ?, ..., ?)
+					query_text += L" ";
+					query_text += rsInsert_Params_Values_Stmt;
+					query_text += L" (?";
+					for (size_t i = 0; i < model.number_of_parameters; i++)
+						query_text += L", ?";
+					query_text += L")";
 
-				// create query and bind our parameters
-				auto qr = mDb_Connection.Query(query);
-				qr.Bind_Parameters(id);
-				for (size_t i = 0; i < model.number_of_parameters; i++)
-					qr.Bind_Parameters(*(begin + i));
+					// create query and bind our parameters
+					auto insert_query = mDb_Connection.Query(query_text);
+					if (insert_query) {
+						insert_query.Bind_Parameters(id);
+						for (size_t i = 0; i < model.number_of_parameters; i++)
+							insert_query.Bind_Parameters(*(begin + i));
 
-				qr.Execute();
+						result = insert_query.Execute();
+					}
+				}
 			}
 		}
 	}
 
-	return true;
+	return result;
 }
 
 bool CDb_Writer::Configure(glucose::SFilter_Parameters conf)
@@ -294,12 +301,30 @@ HRESULT IfaceCalling CDb_Writer::Run(glucose::IFilter_Configuration *configurati
 
 		switch (evt.event_code) {
 			case glucose::NDevice_Event_Code::Level:
-			case glucose::NDevice_Event_Code::Masked_Level:		if (mStore_Data && mIgnored_Signals.find(evt.signal_id) == mIgnored_Signals.end())
-																	if (!Store_Level(evt)) return E_FAIL;
+			case glucose::NDevice_Event_Code::Masked_Level:		if (mStore_Data && (mIgnored_Signals.find(evt.signal_id) == mIgnored_Signals.end())) {
+																	if (!Store_Level(evt)) 
+																		dprintf(__FILE__);
+																		dprintf(", ");
+																		dprintf(__LINE__);
+																		dprintf(", ");
+																		dprintf(__func__);
+																		dprintf(" has failed!\n");
+																}
 																break;
 
-			case glucose::NDevice_Event_Code::Parameters:		if (mStore_Parameters) if (!Store_Parameters(evt)) return E_FAIL; break;
-			case glucose::NDevice_Event_Code::Time_Segment_Stop:	Flush_Levels(); break;
+			case glucose::NDevice_Event_Code::Parameters:		if (mStore_Parameters) {
+																	if (!Store_Parameters(evt)) 
+																		dprintf(__FILE__);
+																		dprintf(", ");
+																		dprintf(__LINE__);
+																		dprintf(", ");
+																		dprintf(__func__);
+																		dprintf(" has failed!\n");
+																}			
+																break;
+
+			case glucose::NDevice_Event_Code::Time_Segment_Stop:	Flush_Levels(); 
+																	break;
 			default:	break;
 		}
 
