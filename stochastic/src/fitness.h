@@ -155,7 +155,9 @@ public:
 			if (info.calculated_signal->Get_Continuous_Levels(&solution, info.reference_time.data(), tmp_levels.element().data(), info.reference_time.size(), glucose::apxNo_Derivation) == S_OK) {
 				//levels got, calculate the metric
 				metric->Accumulate(info.reference_time.data(), info.reference_level.data(), tmp_levels.element().data(), info.reference_time.size());
-			}
+			} else
+				//quit immediatelly as the paramters must be valid for all segments
+				return std::numeric_limits<double>::max();
 		}
 
 		//eventually, calculate the metric number

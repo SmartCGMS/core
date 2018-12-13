@@ -127,6 +127,10 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 			//gamma = parameters.c - future_ist.element;
 			//converted_levels = gamma / parameters.p; --let's rather expand to full expression
 			converted_levels = (future_ist.element() - parameters.c) / parameters.p; //and that's it - we have degraded to linear regression
+
+			//actually, now we have collapsed into simple linear reqression, which could be a valid solution
+			//if the input signal is very-close to the reference signal so that it already covers that
+			//glucose dynamics that this model solves
 		}
 
 
