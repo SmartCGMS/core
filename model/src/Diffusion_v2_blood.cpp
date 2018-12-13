@@ -117,7 +117,7 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 		converted_levels = beta.square() - 4.0*parameters.cg*(parameters.c - future_ist.element());
 		//converted_levels.max(0.0);	//max cannot be inlined to make a one large equation
 		for (size_t i = 0; i < count; i++)
-			if (converted_levels[i] < 0.0) return E_INVALIDARG; // shouldn't we fail rather? converted_levels[i] = 0.0;	//max would be nice solution, but it fails for some reason
+			if (converted_levels[i] < 0.0) return E_FAIL; // shouldn't we fail rather? converted_levels[i] = 0.0;	//max would be nice solution, but it fails for some reason
 		converted_levels = (converted_levels.sqrt() - beta)*0.5 / parameters.cg;		
 	} else {		
 		//with alpha==0.0 we cannot calculate discriminant D as it would lead to division by zero(alpha)
@@ -134,7 +134,9 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 		// By all means, of the orignal equation, the glucose level is constant,
 		// thus the subject is dead => thus NaN, in-fact, would be the correct value.
 		// However, let us return the constat glucose level instead.
-		else converted_levels = parameters.c;
+		else ///converted_levels = parameters.c;
+			return E_FAIL;	//no, it is physiologically implausible result
+							//that allows stochastics methods to collapse into invalid, singular solution
 	}
 
 	return S_OK;
