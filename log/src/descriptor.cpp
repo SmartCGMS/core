@@ -51,11 +51,11 @@ namespace logger
 	constexpr size_t param_count = 1;
 
 	constexpr glucose::NParameter_Type param_type[param_count] = {
-		glucose::NParameter_Type::ptWChar_Container
+		glucose::NParameter_Type::ptWChar_Container		
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
-		dsLog_Output_File
+		dsLog_Output_File		
 	};
 
 	const wchar_t* config_param_name[param_count] = {
@@ -63,7 +63,7 @@ namespace logger
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
-		dsLog_File_Output_Tooltip
+		dsLog_File_Output_Tooltip,		
 	};
 
 	const glucose::TFilter_Descriptor Log_Descriptor = {
@@ -79,22 +79,26 @@ namespace logger
 
 namespace log_replay
 {
-	constexpr size_t param_count = 1;
+	constexpr size_t param_count = 2;
 
 	constexpr glucose::NParameter_Type param_type[param_count] = {
-		glucose::NParameter_Type::ptWChar_Container
+		glucose::NParameter_Type::ptWChar_Container,
+		glucose::NParameter_Type::ptBool
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
-		dsLog_Output_File
+		dsLog_Output_File,
+		dsIgnore_Shutdown_Msg
 	};
 
 	const wchar_t* config_param_name[param_count] = {
-		rsLog_Output_File
+		rsLog_Output_File,
+		rsIgnore_Shutdown_Msg
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
-		dsLog_File_Input_Tooltip
+		dsLog_File_Input_Tooltip,
+		nullptr
 	};
 
 	const glucose::TFilter_Descriptor Log_Replay_Descriptor = {

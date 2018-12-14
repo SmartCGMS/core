@@ -62,7 +62,7 @@ CLog_Replay_Filter::CLog_Replay_Filter(glucose::SFilter_Pipe inpipe, glucose::SF
 {
 }
 
-void CLog_Replay_Filter::Run_Main()
+void CLog_Replay_Filter::Log_Replay()
 {
 	std::wstring line;
 	std::wstring column;
@@ -120,8 +120,10 @@ void CLog_Replay_Filter::Run_Main()
 
 			// do not send shutdown event through pipes - it's a job for outer code (GUI, ..)
 			// furthermore, sending this event would cancel and stop simulation - we don't want that
-			if (evt.event_code == glucose::NDevice_Event_Code::Shut_Down)
-				break;
+			if (mIgnore_Shutdown) {
+				if (evt.event_code == glucose::NDevice_Event_Code::Shut_Down)
+					continue;
+			}
 
 			evt.device_id = WString_To_GUID(cut_column());
 			evt.signal_id = WString_To_GUID(cut_column());
@@ -161,10 +163,11 @@ bool CLog_Replay_Filter::Open_Log(glucose::SFilter_Parameters configuration)
 HRESULT CLog_Replay_Filter::Run(refcnt::IVector_Container<glucose::TFilter_Parameter>* const configuration) {
 
 	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, refcnt::IVector_Container<glucose::TFilter_Parameter>>(configuration, true);
+	mIgnore_Shutdown = shared_configuration.Read_Bool(rsIgnore_Shutdown_Msg, mIgnore_Shutdown);
 	const bool log_opened = Open_Log(shared_configuration);
 
 	if (log_opened)
-		mLog_Replay_Thread = std::make_unique<std::thread>(&CLog_Replay_Filter::Run_Main, this);
+		mLog_Replay_Thread = std::make_unique<std::thread>(&CLog_Replay_Filter::Log_Replay, this);
 
 	// main loop in log reader main thread - we still need to be able to pass events from input pipe to output, althought we are the source of messages (separate thread)
 	// the reason is the same as in any other "pure-input" filter like db reader - simulation commands comes through input pipe

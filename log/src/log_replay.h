@@ -58,12 +58,12 @@ class CLog_Replay_Filter : public glucose::IFilter, public virtual refcnt::CRefe
 		glucose::SFilter_Pipe mInput;
 		glucose::SFilter_Pipe mOutput;
 		std::wifstream mLog;
-
+		bool mIgnore_Shutdown = false;
 		std::unique_ptr<std::thread> mLog_Replay_Thread;
 
 	protected:
 		// thread method
-		void Run_Main();
+		void Log_Replay();
 
 		// opens log for reading, returns true if success, false if failed
 		bool Open_Log(glucose::SFilter_Parameters configuration);
