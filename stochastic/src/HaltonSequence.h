@@ -125,6 +125,7 @@ public:
 						//Now, we have two almost likely different solutions - best and candidate
 						//To simulate evolutionary drift/random mutation, let's try to combine them - a deterministic approach						
 						for (size_t combination = 0; combination <= solution_size_bit_combinations; combination++) {
+						//for (size_t combination = ; combination <= solution_size_bit_combinations; combination <<=1) {	//faster but worse						
 							drifting_solution = candidate_solution;
 
 							size_t bit_mask = 1;
