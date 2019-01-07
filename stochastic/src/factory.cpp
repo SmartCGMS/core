@@ -141,8 +141,6 @@ public:
 
 		using TRandom_MetaDE = CMetaDE<TSolution, TFitness, CNullMethod<TSolution, TFitness>, 100000, 100, std::random_device>;
 		mSolver_Id_Map[rnd_metade::id] = std::bind(&Solve_By_Class<TRandom_MetaDE, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
-
-		mSolver_Id_Map[halton_sequence::id] = std::bind(&Solve_By_Class<CHalton_Sequence<TSolution, TFitness>, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 	}
 
 	virtual HRESULT Solve_Model_Parameters(TShared_Solver_Setup &setup) final {
