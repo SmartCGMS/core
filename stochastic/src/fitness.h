@@ -138,7 +138,7 @@ public:
 
 	} //ctor's end
 
-	double Calculate_Fitness(TSolution &solution, glucose::SMetric &metric) {
+	double Calculate_Fitness(const TSolution &solution, glucose::SMetric &metric) {
 
 #ifdef D_PRINT_PARAMS
 		stochastic_fitness::Print_Params(solution);
@@ -152,7 +152,7 @@ public:
 		CPooled_Buffer<aligned_double_vector> tmp_levels = mTemporal_Levels.pop( mMax_Levels_Per_Segment );
 
 		for (auto &info : mSegment_Info) {
-			if (info.calculated_signal->Get_Continuous_Levels(&solution, info.reference_time.data(), tmp_levels.element().data(), info.reference_time.size(), glucose::apxNo_Derivation) == S_OK) {
+			if (info.calculated_signal->Get_Continuous_Levels(const_cast<TSolution*>(&solution), info.reference_time.data(), tmp_levels.element().data(), info.reference_time.size(), glucose::apxNo_Derivation) == S_OK) {
 				//levels got, calculate the metric
 				metric->Accumulate(info.reference_time.data(), info.reference_level.data(), tmp_levels.element().data(), info.reference_time.size());
 			} else

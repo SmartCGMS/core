@@ -424,7 +424,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 				not_improved_evt.device_id = calculate::Calculate_Filter_GUID;
 				not_improved_evt.signal_id = mCalculated_Signal_Id;
 				not_improved_evt.segment_id = segment_id;
-				not_improved_evt.info.set(rsInfo_Solver_Failed);
+				not_improved_evt.info.set(rsInfo_Solver_Completed_But_No_Improvement);
 				mOutput.Send(not_improved_evt);
 			}
 
