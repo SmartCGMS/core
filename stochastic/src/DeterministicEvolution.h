@@ -47,7 +47,7 @@
 #include "solution.h"
 #include "fitness.h"
 #include <random>
-#include <tbb/parallel_reduce.h>
+#include <tbb/parallel_for.h>
 
 
 namespace Deterministic_Evolution_internal {
@@ -90,16 +90,17 @@ public:
 
 		//b) by complementing it with randomly generated numbers
 		std::mt19937 MT_sequence;	//to be completely deterministic in every run we used the constant, default seed
+		std::uniform_real_distribution<double> uniform_distribution(0, 1.0);
 		const auto bounds_range = mUpper_Bound - mLower_Bound;
 		for (size_t i = initialized_count; i < mPopulation_Size; i++) {
 			TSolution tmp;
 
 			// this helps when we use generic solution vector, and does nothing when we use fixed lengths (since ColsAtCompileTime already equals bounds_range.cols(), so it gets
-			// optimized away in compile time
+			// optimized away at compile time
 			tmp.resize(Eigen::NoChange, bounds_range.cols());
 
 			for (auto j = 0; j < bounds_range.cols(); j++)
-				tmp[j] = MT_sequence();
+				tmp[j] = uniform_distribution(MT_sequence);
 
 			mPopulation[i].current = mLower_Bound + tmp.cwiseProduct(bounds_range);
 		}

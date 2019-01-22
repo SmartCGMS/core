@@ -71,7 +71,12 @@ protected:
 	TSolution mInitial_Upper_Bound;
 public:
 	CHalton_Sequence(const TAligned_Solution_Vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, glucose::SMetric &metric) :
-		mDefault_Solution(initial_solutions[0]), mInitial_Lower_Bound(lower_bound), mInitial_Upper_Bound(upper_bound), mFitness(fitness), mMetric(metric) {
+		mInitial_Lower_Bound(lower_bound), mInitial_Upper_Bound(upper_bound), mFitness(fitness), mMetric(metric) {
+		if (initial_solutions.empty()) {
+			mDefault_Solution = (upper_bound + lower_bound)*0.5;
+		}
+		else
+			mDefault_Solution = initial_solutions[0];
 	};
 
 	TSolution Solve(volatile glucose::TSolver_Progress &progress) {
