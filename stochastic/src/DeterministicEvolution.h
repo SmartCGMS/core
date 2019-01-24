@@ -63,7 +63,8 @@ namespace Deterministic_Evolution_internal {
 
 #undef min
 
-template <typename TSolution, typename TFitness, size_t mPopulation_Size = 15, size_t mGeneration_Count = 20000>
+template <typename TSolution, typename TFitness, size_t mPopulation_Size = 15, size_t mGeneration_Count = 200000>
+	//mPopulation_Size fails with Griewangk if it is modulo divisible by 10, by 5 it works OK
 class CDeterministic_Evolution {
 protected:
 	TFitness &mFitness;
@@ -90,7 +91,7 @@ public:
 
 		//b) by complementing it with randomly generated numbers
 		std::mt19937 MT_sequence;	//to be completely deterministic in every run we used the constant, default seed
-		std::uniform_real_distribution<double> uniform_distribution(0, 1.0);
+		std::uniform_real_distribution<double> uniform_distribution(0.0, 1.0);
 		const auto bounds_range = mUpper_Bound - mLower_Bound;
 		for (size_t i = initialized_count; i < mPopulation_Size; i++) {
 			TSolution tmp;
@@ -125,19 +126,18 @@ public:
 
 		const size_t solution_size = mPopulation[0].next.cols();
 		
-
 		while ((progress.current_progress++ < mGeneration_Count) && (progress.cancelled == 0)) {
-			
+
 			//update the progress
-			const auto result = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const Deterministic_Evolution_internal::TCandidate<TSolution> &a, const Deterministic_Evolution_internal::TCandidate<TSolution> &b) {return a.current_fitness < b.current_fitness; });
-			progress.best_metric = result->current_fitness;
+			const auto global_best = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const Deterministic_Evolution_internal::TCandidate<TSolution> &a, const Deterministic_Evolution_internal::TCandidate<TSolution> &b) {return a.current_fitness < b.current_fitness; });
+			progress.best_metric = global_best->current_fitness;
 
 			//2. Calculate the next vectors and their fitness 
 			//In this step, current is read-only and next is write-only => no locking is needed
 			//as each next will be written just once.
 			//We assume that parallelization cost will get amortized
 			tbb::parallel_for(tbb::blocked_range<size_t>(size_t(0), mPopulation_Size), [=](const tbb::blocked_range<size_t> &r) {
-			
+
 
 				const size_t rend = r.end();
 				for (size_t iter = r.begin(); iter != rend; iter++) {
@@ -146,7 +146,7 @@ public:
 					auto &candidate_solution = mPopulation[iter];
 
 					//try to advance the current solution in the direction of the other solutions
-					
+
 					for (size_t pop_iter = 0; pop_iter < mPopulation_Size; pop_iter++) {
 						TSolution candidate = candidate_solution.current + candidate_solution.velocity*candidate_solution.direction*(candidate_solution.current - mPopulation[pop_iter].current);
 						candidate = mUpper_Bound.min(mLower_Bound.max(candidate));//also ensure the bounds
@@ -155,7 +155,7 @@ public:
 						const double fitness = mFitness.Calculate_Fitness(candidate, candidate_solution.metric_calculator);
 						if (fitness < candidate_solution.next_fitness) {
 							candidate_solution.next = candidate;
-							candidate_solution.next_fitness = fitness;							
+							candidate_solution.next_fitness = fitness;
 						}
 					}
 
@@ -168,7 +168,7 @@ public:
 
 						bool carry = false;
 						for (size_t i = 0; i < solution_size; i++) {
-							
+
 							auto add_one = [this](double &number)->bool {	//returns carry
 								bool carry = false;
 

@@ -48,7 +48,7 @@
 
 namespace nlopt_tx {
 	constexpr bool print_statistics = false;
-	std::atomic<size_t> eval_counter;
+	extern std::atomic<size_t> eval_counter;
 }
 
 /*
