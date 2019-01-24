@@ -54,7 +54,7 @@ namespace Deterministic_Evolution_internal {
 	template <typename TSolution>
 	struct TCandidate {
 		TSolution current, next;
-		TSolution direction;
+		size_t direction_index;
 		double velocity;
 		double current_fitness, next_fitness;
 		glucose::SMetric metric_calculator;	//de-facto, we create a pool of metrics so that we don't need to clone it for each thread or implement pushing and poping to and from the pool
@@ -72,6 +72,57 @@ protected:
 protected:
 	const double mInitial_Velocity = 1.0 / 3.0;
 	const double mVelocity_Increase = 1.05;
+
+	TAligned_Solution_Vector<TSolution> mDirections;
+	void Generate_Directions() {
+
+		const size_t solution_size = mLower_Bound.cols();
+		const size_t combination_count = static_cast<size_t>(pow(3.0, static_cast<double>(solution_size)));			
+
+		//1. generate the deterministic, uniform direction vectors
+
+		//let's try the very next binary-encoded integer as the vector, until we flip over to zero
+		//zero means a desired, one-generation-only stagnation
+		//with this, we do something like mutation and crosbreeding combined
+
+		TSolution direction;
+		direction.resize(Eigen::NoChange, solution_size);
+		direction.setConstant(1.0);		//init to max so it overflow to min as the first pushed value
+
+		for (size_t combination = 0; combination < combination_count; combination++) {
+			auto add_one = [this](double &number)->bool {	//returns carry
+				bool carry = false;
+
+				if (number < 0.0) number = 0.0;
+				else if (number == 0.0) number = 1.0;
+				else if (number > 0.0) {
+					number = -1.0;
+					carry = true;
+				}
+
+				return carry;
+			};
+			
+			bool carry = add_one(direction[0]);
+			for (size_t i = 1; carry && (i < solution_size); i++) {			
+				carry = add_one(direction[i]);				
+			}
+
+			mDirections.push_back(direction);
+		}
+
+
+		//2. generate pseudo random directions
+		std::mt19937 MT_sequence;	//to be completely deterministic in every run we used the constant, default seed
+		std::uniform_real_distribution<double> uniform_distribution(-1.0, 1.0);
+		for (size_t i = 0; i < combination_count*3; i++) {
+			for (auto j = 0; j < solution_size; j++)
+				direction[j] = uniform_distribution(MT_sequence);
+
+			mDirections.push_back(direction);
+		}
+
+	}
 protected:
 	TAligned_Solution_Vector<Deterministic_Evolution_internal::TCandidate<TSolution>> mPopulation;
 protected:
@@ -115,9 +166,11 @@ public:
 			solution.next = solution.current;
 			solution.next_fitness = solution.current_fitness;
 			
-			solution.direction.setConstant(1.0);		//full speed ahead
+			solution.direction_index = 0;
 			solution.velocity = mInitial_Velocity;
 		}		
+
+		Generate_Directions();
 	};
 
 	TSolution Solve(volatile glucose::TSolver_Progress &progress) {
@@ -130,7 +183,7 @@ public:
 
 			//update the progress
 			const auto global_best = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const Deterministic_Evolution_internal::TCandidate<TSolution> &a, const Deterministic_Evolution_internal::TCandidate<TSolution> &b) {return a.current_fitness < b.current_fitness; });
-			progress.best_metric = global_best->current_fitness;
+			progress.best_metric = global_best->current_fitness;			
 
 			//2. Calculate the next vectors and their fitness 
 			//In this step, current is read-only and next is write-only => no locking is needed
@@ -148,7 +201,7 @@ public:
 					//try to advance the current solution in the direction of the other solutions
 
 					for (size_t pop_iter = 0; pop_iter < mPopulation_Size; pop_iter++) {
-						TSolution candidate = candidate_solution.current + candidate_solution.velocity*candidate_solution.direction*(candidate_solution.current - mPopulation[pop_iter].current);
+						TSolution candidate = candidate_solution.current + candidate_solution.velocity*mDirections[candidate_solution.direction_index]*(candidate_solution.current - mPopulation[pop_iter].current);
 						candidate = mUpper_Bound.min(mLower_Bound.max(candidate));//also ensure the bounds
 
 						candidate_solution.metric_calculator->Reset();
@@ -160,33 +213,11 @@ public:
 					}
 
 					if (candidate_solution.next_fitness >= candidate_solution.current_fitness) {
-						//we have not improved, let's try a different search direction
+						//we have not improved, let's try a different search direction						
 
-						//let's try the very next binary-encoded integer as the vector, until we flip over to zero
-						//zero means a desired, one-generation-only stagnation
-						//with this, we do something like mutation and crosbreeding combined
-
-						bool carry = false;
-						for (size_t i = 0; i < solution_size; i++) {
-
-							auto add_one = [this](double &number)->bool {	//returns carry
-								bool carry = false;
-
-								if (number < 0.0) number = 0.0;
-								else if (number == 0.0) number = mInitial_Velocity;
-								else if (number > 0.0) {
-									number = -mInitial_Velocity;
-									carry = true;
-								}
-
-								return carry;
-							};
-
-
-							TSolution &direction = candidate_solution.direction;
-							if (carry) add_one(direction[i]);	//adding carry from the previous grade/position
-							carry = add_one(direction[i]);		//adding 1 to the current grade/position
-						}
+						candidate_solution.direction_index++;
+						if (candidate_solution.direction_index >= mDirections.size())
+							candidate_solution.direction_index = 0;
 
 						candidate_solution.velocity = mInitial_Velocity;
 					}
