@@ -63,8 +63,7 @@ namespace Deterministic_Evolution_internal {
 
 #undef min
 
-template <typename TSolution, typename TFitness, size_t mPopulation_Size = 15, size_t mGeneration_Count = 200000>
-	//mPopulation_Size fails with Griewangk if it is modulo divisible by 10, by 5 it works OK
+template <typename TSolution, typename TFitness, size_t mPopulation_Size = 15, size_t mGeneration_Count = 200000, bool mUse_LD_Directions = true>	
 class CDeterministic_Evolution {
 protected:
 	TFitness &mFitness;
@@ -113,15 +112,16 @@ protected:
 
 
 		//2. generate pseudo random directions
-		std::mt19937 MT_sequence;	//to be completely deterministic in every run we used the constant, default seed
-		std::uniform_real_distribution<double> uniform_distribution(-1.0, 1.0);
-		for (size_t i = 0; i < combination_count*3; i++) {
-			for (auto j = 0; j < solution_size; j++)
-				direction[j] = uniform_distribution(MT_sequence);
+		if (mUse_LD_Directions) {
+			std::mt19937 MT_sequence;	//to be completely deterministic in every run we used the constant, default seed
+			std::uniform_real_distribution<double> uniform_distribution(-1.0, 1.0);
+			for (size_t i = 0; i < combination_count * 3; i++) {
+				for (auto j = 0; j < solution_size; j++)
+					direction[j] = uniform_distribution(MT_sequence);
 
-			mDirections.push_back(direction);
+				mDirections.push_back(direction);
+			}
 		}
-
 	}
 protected:
 	TAligned_Solution_Vector<Deterministic_Evolution_internal::TCandidate<TSolution>> mPopulation;
@@ -200,7 +200,7 @@ public:
 
 					//try to advance the current solution in the direction of the other solutions
 
-					for (size_t pop_iter = 0; pop_iter < mPopulation_Size; pop_iter++) {
+					for (size_t pop_iter = 0; pop_iter < mPopulation_Size; pop_iter++) {						
 						TSolution candidate = candidate_solution.current + candidate_solution.velocity*mDirections[candidate_solution.direction_index]*(candidate_solution.current - mPopulation[pop_iter].current);
 						candidate = mUpper_Bound.min(mLower_Bound.max(candidate));//also ensure the bounds
 

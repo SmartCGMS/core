@@ -205,9 +205,9 @@ protected:
 	}
 protected:
 	//not used in a thread-safe way but does not seem to be a problem so far
-	//TRandom_Device mRandom_Device;
-	//std::mt19937 mRandom_Generator{ mRandom_Device() };
-	TRandom_Device mRandom_Generator;
+	std::random_device mRandom_Device;
+	std::mt19937 mRandom_Generator{ mRandom_Device() };
+	//TRandom_Device mRandom_Generator;
 	std::uniform_real_distribution<double> mUniform_Distribution_dbl{ 0.0, 1.0 };	
 	std::uniform_int_distribution<size_t> mUniform_Distribution_PBest{ 0, mPBest_Count-1 };
 	std::uniform_int_distribution<size_t> mUniform_Distribution_Population{ 0, mPopulation_Size-1 };
@@ -325,14 +325,14 @@ public:
 
 						case metade::NStrategy::desUmBest1:
 							candidate_solution.next = candidate_solution.current +
-								mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector() +
-								candidate_solution.F*random_difference_vector();
+								candidate_solution.F*(mPopulation[mPopulation_Best[0]].current - candidate_solution.current) +
+								mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector();
 							break;
 
 						case metade::NStrategy::desCurrentToRand1:
 							candidate_solution.next = candidate_solution.current +
-								candidate_solution.F*(mPopulation[mPopulation_Best[0]].current - candidate_solution.current) +
-								mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector();
+								mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector() +
+								candidate_solution.F*random_difference_vector();
 							break;
 
 						case metade::NStrategy::desTournament: {
