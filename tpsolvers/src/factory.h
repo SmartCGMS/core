@@ -36,42 +36,9 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "descriptor.h"
-#include "../../../common/iface/DeviceIface.h"
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/rtl/descriptor_utils.h"
-#include <vector>
+#pragma once
 
-#include <tbb/tbb_allocator.h>
+#include "../../../common/iface/SolverIface.h"
 
 
-namespace mt_metade {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsMT_MetaDE);
-}
-
-namespace halton_metade {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsHalton_MetaDE);
-}
-
-namespace rnd_metade {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsRnd_MetaDE);
-}
-
-
-namespace halton_sequence {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsHalton_Sequence);
-}
-
-namespace deterministic_evolution {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsDeterministic_Evolution);
-}
-
-
-
-
-const std::vector<glucose::TSolver_Descriptor, tbb::tbb_allocator<glucose::TSolver_Descriptor>> solver_descriptions = { mt_metade::desc, halton_sequence::desc, halton_metade::desc, rnd_metade::desc, deterministic_evolution::desc };
-
-
-HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {
-	return do_get_descriptors(solver_descriptions, begin, end);
-}
+extern "C" HRESULT IfaceCalling do_solve_model_parameters(const glucose::TSolver_Setup *setup);

@@ -40,10 +40,6 @@
 
 #include <vector>
 
-
-#include "solution.h"
-#include "fitness.h"
-
 template <typename TSolution, typename TFitness>
 class CNullMethod {
 protected:

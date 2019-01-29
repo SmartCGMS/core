@@ -44,8 +44,6 @@
 #pragma once
 
 
-#include "solution.h"
-#include "fitness.h"
 #include <random>
 #include <tbb/parallel_for.h>
 

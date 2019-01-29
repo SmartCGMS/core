@@ -44,8 +44,6 @@
 #pragma once
 
 
-#include "solution.h"
-#include "fitness.h"
 #include "HaltonDevice.h"
 #include <tbb/parallel_reduce.h>
 

@@ -41,9 +41,6 @@
 #include <vector>
 
 
-#include "solution.h"
-#include "fitness.h"
-
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_reduce.h>
 

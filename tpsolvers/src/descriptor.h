@@ -36,42 +36,45 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "descriptor.h"
-#include "../../../common/iface/DeviceIface.h"
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/rtl/descriptor_utils.h"
-#include <vector>
+#pragma once
 
-#include <tbb/tbb_allocator.h>
+#include "../../../common/iface/UIIface.h"
+#include "../../../common/rtl/hresult.h"
 
 
-namespace mt_metade {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsMT_MetaDE);
+namespace newuoa {
+	constexpr GUID id = { 0xfd4f3f19, 0xcd6b, 0x4598,{ 0x86, 0x32, 0x40, 0x84, 0x7a, 0xad, 0x9f, 0x5 } };	// {FD4F3F19-CD6B-4598-8632-40847AAD9F05}
+}
+
+namespace mt_metade {	//mersenne twister initialized with linear random generator
+	constexpr GUID id =	{ 0x1b21b62f, 0x7c6c, 0x4027,{ 0x89, 0xbc, 0x68, 0x7d, 0x8b, 0xd3, 0x2b, 0x3c } };	// {1B21B62F-7C6C-4027-89BC-687D8BD32B3C}
 }
 
 namespace halton_metade {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsHalton_MetaDE);
+	constexpr GUID id = { 0x1274b08, 0xf721, 0x42bc, { 0xa5, 0x62, 0x5, 0x56, 0x71, 0x4c, 0x56, 0x85 } };
 }
 
-namespace rnd_metade {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsRnd_MetaDE);
+namespace rnd_metade {		//std::random_device, should be cryprographicallly secure depending on the implementation
+	constexpr GUID id = { 0x2332f9a7, 0x39a2, 0x4fd6, { 0x90, 0xd5, 0x90, 0xb8, 0x85, 0x20, 0x18, 0x69 } };
+
+}
+
+namespace bobyqa {
+	constexpr GUID id = { 0x46559ef3, 0xa11c, 0x4387,{ 0x8f, 0x96, 0x47, 0x2d, 0x26, 0x71, 0xa, 0x1e } };	// {46559EF3-A11C-4387-8F96-472D26710A1E}
 }
 
 
 namespace halton_sequence {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsHalton_Sequence);
+	constexpr GUID id =	{ 0x739bc222, 0x9b1e, 0x4891, { 0xb5, 0xee, 0x90, 0xaa, 0x1, 0x31, 0xc1, 0xf1 } };
 }
 
 namespace deterministic_evolution {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsDeterministic_Evolution);
+	constexpr GUID id = { 0xb4dfc25e, 0x796b, 0x4b96, { 0xb0, 0xf, 0xaa, 0x95, 0x8e, 0xc6, 0x83, 0x53 } };
+
 }
 
-
-
-
-const std::vector<glucose::TSolver_Descriptor, tbb::tbb_allocator<glucose::TSolver_Descriptor>> solver_descriptions = { mt_metade::desc, halton_sequence::desc, halton_metade::desc, rnd_metade::desc, deterministic_evolution::desc };
-
-
-HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {
-	return do_get_descriptors(solver_descriptions, begin, end);
+namespace pso {
+	constexpr GUID id = { 0x48b7e2f6, 0xa915, 0x4b63, { 0xb0, 0xf7, 0x18, 0x3e, 0xc0, 0x9b, 0x2, 0x5d } };
 }
+
+extern "C" HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end);

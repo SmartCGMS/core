@@ -43,6 +43,8 @@
 #include <atomic>
 
 
+#undef min
+
 class CHalton_Device {
 public:
 	using result_type = unsigned int;

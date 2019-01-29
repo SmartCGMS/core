@@ -3,6 +3,12 @@
 #include "../../../common/rtl/SolverLib.h"
 #include "../../../common/rtl/Eigen_Buffer_Pool.h"
 
+
+/*#include <pagmo/external/cereal/cereal.hpp>
+#include <pagmo/external/cereal/types/polymorphic.hpp>
+#include <pagmo/external/cereal/details/polymorphic_impl.hpp>
+*/
+
 #include <pagmo/types.hpp>
 #include <pagmo/problem.hpp>
 #include <pagmo/island.hpp>
@@ -98,12 +104,17 @@ public:
 
 		switch (mAlgo) {
 			case pagmo2::EPagmo_Algo::SADE: 
-				champion_x = solve_pagmo( pagmo::sade{ mGeneration_Count });
+				{  
+					pagmo::sade sade{ mGeneration_Count };
+					champion_x = solve_pagmo(sade);
+				}
 				break;
 
 				
 			case pagmo2::EPagmo_Algo::PSO:	
-				champion_x = solve_pagmo(pagmo::pso{ mGeneration_Count });
+				{	pagmo::pso pso{ mGeneration_Count };
+					champion_x = solve_pagmo(pso);
+				}
 				break;
 		}
 
