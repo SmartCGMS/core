@@ -39,8 +39,9 @@
 #pragma once
 
 #include <nlopt.hpp>
-#include "solution.h"
-#include "NullMethod.h"
+#include "../../../common/solver/solution.h"
+#include "../../../common/solver/NullMethod.h"
+#include "../../../common/rtl/SolverLib.h"
 
 #include "../../../common/utils/DebugHelper.h"
 

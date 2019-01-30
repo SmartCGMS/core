@@ -40,45 +40,21 @@
 #include "../../../common/iface/DeviceIface.h"
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/descriptor_utils.h"
-#include <vector>
-
-#include <tbb/tbb_allocator.h>
+#include <array>
 
 namespace newuoa {
 	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsNewUOA);
-}
-
-
-namespace mt_metade {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsMT_MetaDE);
-}
-
-namespace halton_metade {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsHalton_MetaDE);
-}
-
-namespace rnd_metade {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsRnd_MetaDE);
 }
 
 namespace bobyqa {
 	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsBOBYQA);
 }
 
-namespace halton_sequence {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsHalton_Sequence);
-}
-
-namespace deterministic_evolution {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsDeterministic_Evolution);
-}
-
-
 namespace pso {
 	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsPSO);
 }
 
-const std::vector<glucose::TSolver_Descriptor, tbb::tbb_allocator<glucose::TSolver_Descriptor>> solver_descriptions = { newuoa::desc, mt_metade::desc, bobyqa::desc, halton_sequence::desc, halton_metade::desc, rnd_metade::desc, deterministic_evolution::desc, pso::desc };
+const std::array<glucose::TSolver_Descriptor, 3> solver_descriptions = { newuoa::desc, bobyqa::desc, pso::desc };
 
 
 HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {

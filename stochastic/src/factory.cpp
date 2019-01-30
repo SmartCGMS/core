@@ -40,9 +40,9 @@
 
 #include "..\..\..\common\solver\solution.h"
 #include "..\..\..\common\solver\fitness.h"
+#include "../../../common/solver/NullMethod.h"
 
 #include "MetaDE.h"
-#include "NullMethod.h"
 #include "HaltonSequence.h"
 #include "DeterministicEvolution.h"
 
@@ -67,11 +67,13 @@ public:\
 };\
 
 
+
 #include "../../../common/solver/dispatcher.h"
+
 
 static CId_Dispatcher Id_Dispatcher;
 
 
 HRESULT IfaceCalling do_solve_model_parameters(const glucose::TSolver_Setup *setup) {	
-	return do_solve_model_parameters_internal(Id_Dispatcher, setup);
+	return Id_Dispatcher.do_solve_model_parameters(setup);
 }

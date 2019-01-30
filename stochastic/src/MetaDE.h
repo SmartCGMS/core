@@ -56,8 +56,6 @@
 
 #include "../../../common/utils/DebugHelper.h"
 
-
-#include "NullMethod.h"
 #include "LocalSearch.h"
 
 

@@ -36,17 +36,25 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
+// dllmain.cpp : Defines the entry point for the DLL application.
 
-#include <vector>
 
-template <typename TSolution, typename TFitness>
-class CNullMethod {
-protected:
-	TSolution mSolution;
-public:
-	CNullMethod(const TAligned_Solution_Vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, glucose::SMetric &metric) :
-		mSolution(initial_solutions[0]) {};
+#include "..\..\..\..\common\utils\DebugHelper.h"
 
-	TSolution Solve(volatile glucose::TSolver_Progress &progress) { return mSolution; };
-};
+#include <Windows.h>
+
+BOOL APIENTRY DllMain( HMODULE hModule,
+                       DWORD  ul_reason_for_call,
+                       LPVOID lpReserved
+					 )
+{
+	switch (ul_reason_for_call)	{
+		case DLL_PROCESS_ATTACH:		
+		case DLL_THREAD_ATTACH:
+		case DLL_THREAD_DETACH:	
+		case DLL_PROCESS_DETACH: 
+			break;
+	}
+	return TRUE;
+}
+
