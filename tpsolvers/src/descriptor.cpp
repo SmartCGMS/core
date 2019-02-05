@@ -54,7 +54,29 @@ namespace pso {
 	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsPSO);
 }
 
-const std::array<glucose::TSolver_Descriptor, 3> solver_descriptions = { newuoa::desc, bobyqa::desc, pso::desc };
+namespace sade {
+	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsSADE);
+}
+
+namespace de1220 {
+	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsDE1220);
+}
+
+namespace abc {
+	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsABC);
+}
+
+namespace cmaes {
+	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsCMAES);
+}
+
+namespace xnes {
+	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsXNES);
+}
+
+
+
+const std::array<glucose::TSolver_Descriptor, 8> solver_descriptions = { newuoa::desc, bobyqa::desc, pso::desc, sade::desc, de1220::desc, abc::desc, cmaes::desc, xnes::desc };
 
 
 HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {

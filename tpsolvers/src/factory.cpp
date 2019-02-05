@@ -76,9 +76,13 @@ public:\
 		add_NLOpt<nlopt::LN_BOBYQA>(bobyqa::id);\
 \
 		CSpecialized_Id_Dispatcher<TSolution, TFitness>::mSolver_Id_Map[pso::id] = std::bind(&Solve_By_Class<CPagmo2<TSolution, TFitness, pagmo2::EPagmo_Algo::PSO>, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);\
+		CSpecialized_Id_Dispatcher<TSolution, TFitness>::mSolver_Id_Map[sade::id] = std::bind(&Solve_By_Class<CPagmo2<TSolution, TFitness, pagmo2::EPagmo_Algo::SADE>, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);\
+		CSpecialized_Id_Dispatcher<TSolution, TFitness>::mSolver_Id_Map[de1220::id] = std::bind(&Solve_By_Class<CPagmo2<TSolution, TFitness, pagmo2::EPagmo_Algo::DE1220>, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);\
+		CSpecialized_Id_Dispatcher<TSolution, TFitness>::mSolver_Id_Map[abc::id] = std::bind(&Solve_By_Class<CPagmo2<TSolution, TFitness, pagmo2::EPagmo_Algo::ABC>, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);\
+		CSpecialized_Id_Dispatcher<TSolution, TFitness>::mSolver_Id_Map[cmaes::id] = std::bind(&Solve_By_Class<CPagmo2<TSolution, TFitness, pagmo2::EPagmo_Algo::CMAES>, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);\
+		CSpecialized_Id_Dispatcher<TSolution, TFitness>::mSolver_Id_Map[xnes::id] = std::bind(&Solve_By_Class<CPagmo2<TSolution, TFitness, pagmo2::EPagmo_Algo::xNES>, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);\
 	}\
 };
-
 
 #include "../../../common/solver/dispatcher.h"
 
