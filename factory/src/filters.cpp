@@ -37,6 +37,7 @@
  */
 
 #include "filters.h"
+#include "fitness.h"
 
 #include "../../../common/rtl/FilesystemLib.h"
 #include "../../../common/rtl/descriptor_utils.h"
@@ -54,6 +55,7 @@ namespace imported {
 	const char* rsDo_Create_Signal = "do_create_signal";
 	const char* rsDo_Solve_Model_Parameters = "do_solve_model_parameters";
 	const char* rsDo_Create_Approximator = "do_create_approximator";
+	const char* rsDo_Solve_Generic = "do_solve_generic";
 }
 
 
@@ -99,6 +101,10 @@ HRESULT IfaceCalling solve_model_parameters(const glucose::TSolver_Setup *setup)
 	return loaded_filters.solve_model_parameters(setup);
 }
 
+HRESULT IfaceCalling solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress) {
+	return loaded_filters.solve_generic(solver_id, setup, progress);
+}
+
 HRESULT IfaceCalling create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApprox_Parameters_Vector* configuration, glucose::IApproximator **approx) {
 	return loaded_filters.create_approximator(approx_id, signal, configuration, approx);
 }
@@ -119,9 +125,9 @@ void CLoaded_Filters::load_libraries() {
 			if (lib.library.Load(filepath.c_str())) {
 				bool lib_used = Resolve_Func<glucose::TCreate_Filter>(lib.create_filter, lib.library, imported::rsDo_Create_Filter);
 				lib_used |= Resolve_Func<glucose::TCreate_Metric>(lib.create_metric, lib.library, imported::rsDo_Create_Metric);
-				lib_used |= Resolve_Func<glucose::TCreate_Signal>(lib.create_signal, lib.library, imported::rsDo_Create_Signal);
-				lib_used |= Resolve_Func<glucose::TSolve_Model_Parameters>(lib.solve_model_parameters, lib.library, imported::rsDo_Solve_Model_Parameters);
+				lib_used |= Resolve_Func<glucose::TCreate_Signal>(lib.create_signal, lib.library, imported::rsDo_Create_Signal);				
 				lib_used |= Resolve_Func<glucose::TCreate_Approximator>(lib.create_approximator, lib.library, imported::rsDo_Create_Approximator);
+				lib_used |= Resolve_Func<solver::TGeneric_Solver>(lib.solve_generic, lib.library, imported::rsDo_Solve_Generic);
 
 				lib_used |= Load_Descriptors<glucose::TGet_Filter_Descriptors, glucose::TFilter_Descriptor>(mFilter_Descriptors, lib.library, imported::rsGet_Filter_Descriptors);
 				lib_used |= Load_Descriptors<glucose::TGet_Metric_Descriptors, glucose::TMetric_Descriptor>(mMetric_Descriptors, lib.library, imported::rsGet_Metric_Descriptors);
@@ -173,8 +179,66 @@ HRESULT CLoaded_Filters::create_signal(const GUID *calc_id, glucose::ITime_Segme
 
 
 HRESULT CLoaded_Filters::solve_model_parameters(const glucose::TSolver_Setup *setup) {
-	auto call_solve_filter = [](const imported::TLibraryInfo &info) { return info.solve_model_parameters; }; 
-	return Call_Func(call_solve_filter, setup);
+	auto call_solve_model_parameters = [](const imported::TLibraryInfo &info) { return info.solve_model_parameters; }; 	
+	HRESULT rc = Call_Func(call_solve_model_parameters, setup);
+
+	if (rc != S_OK) {
+		//let's try to apply the generic filters as well
+		glucose::TModel_Descriptor *model = nullptr;
+		for (size_t i=0; i<mModel_Descriptors.size(); i++)
+			for (size_t i = 0; i < mModel_Descriptors[i].number_of_calculated_signals; i++) {
+				if (mModel_Descriptors[i].calculated_signal_ids[i] == setup->calculated_signal_id) {
+					model = &mModel_Descriptors[i];
+					break;
+				}
+			}
+
+		if (model != nullptr) {
+			double *lower_bound, *upper_bound, *begin, *end;
+
+			if ((setup->lower_bound->get(&lower_bound, &end) != S_OK) || (setup->upper_bound->get(&upper_bound, &end) != S_OK)) return E_FAIL;
+
+			std::vector<double*> hints;
+			for (size_t i = 0; i < setup->hint_count; i++) {
+				if (setup->solution_hints[i]->get(&begin, &end) == S_OK)
+					hints.push_back(begin);
+			}	
+			
+			std::vector<double> solution(model->number_of_parameters);
+						
+			CFitness fitness{ *setup, model->number_of_parameters};
+
+			solver::TSolver_Setup generic_setup{
+				model->number_of_parameters,
+				lower_bound, upper_bound,
+				const_cast<const double**> (hints.data()), hints.size(),
+				solution.data(),
+
+
+				&fitness,
+				Fitness_Wrapper,
+
+				solver::Default_Solver_Setup.max_generations,
+				solver::Default_Solver_Setup.population_size,
+				solver::Default_Solver_Setup.tolerance,
+			};
+			
+			rc = solve_generic(&setup->solver_id, &generic_setup, setup->progress);
+			if (rc == S_OK) {
+				rc = setup->solved_parameters->set(solution.data(), solution.data()+solution.size());
+			}
+
+			return rc;
+		}
+
+	}
+
+	return rc;
+}
+
+HRESULT CLoaded_Filters::solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress) {
+	auto call_solve_filter = [](const imported::TLibraryInfo &info) { return info.solve_generic; };
+	return Call_Func(call_solve_filter, solver_id, setup, progress);
 }
 
 HRESULT CLoaded_Filters::create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApprox_Parameters_Vector* configuration, glucose::IApproximator **approx) {
@@ -182,23 +246,22 @@ HRESULT CLoaded_Filters::create_approximator(const GUID *approx_id, glucose::ISi
 	return Call_Func(call_create_approx, approx_id, signal, configuration, approx);
 }
 
-HRESULT IfaceCalling CLoaded_Filters::get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
+HRESULT CLoaded_Filters::get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
 	return do_get_descriptors<glucose::TFilter_Descriptor>(mFilter_Descriptors, begin, end);
 }
 
-HRESULT IfaceCalling CLoaded_Filters::get_metric_descriptors(glucose::TMetric_Descriptor **begin, glucose::TMetric_Descriptor **end) {
+HRESULT CLoaded_Filters::get_metric_descriptors(glucose::TMetric_Descriptor **begin, glucose::TMetric_Descriptor **end) {
 	return do_get_descriptors<glucose::TMetric_Descriptor>(mMetric_Descriptors, begin, end);
 }
 
-
-HRESULT IfaceCalling CLoaded_Filters::get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end) {
+HRESULT CLoaded_Filters::get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end) {
 	return do_get_descriptors<glucose::TModel_Descriptor>(mModel_Descriptors, begin, end);
 }
 
-HRESULT IfaceCalling CLoaded_Filters::get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {
+HRESULT CLoaded_Filters::get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {
 	return do_get_descriptors<glucose::TSolver_Descriptor>(mSolver_Descriptors, begin, end);
 }
 
-HRESULT IfaceCalling CLoaded_Filters::get_approx_descriptors(glucose::TApprox_Descriptor **begin, glucose::TApprox_Descriptor **end) {
+HRESULT CLoaded_Filters::get_approx_descriptors(glucose::TApprox_Descriptor **begin, glucose::TApprox_Descriptor **end) {
 	return do_get_descriptors<glucose::TApprox_Descriptor>(mApprox_Descriptors, begin, end);
 }

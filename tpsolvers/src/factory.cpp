@@ -38,58 +38,62 @@
 
 #include "factory.h"
 
-#include "../../../common/rtl/SolverLib.h"
-#include "../../../common/rtl/referencedImpl.h"
+#include "../../../common/iface/SolverIface.h"
 
 #include "NLOpt.h"
 #include "pagmo2.h"
 
 #include "descriptor.h"
-#include "../../../common/solver/fitness.h"
-#include "../../../common/solver/solution.h"
 
-template <typename TSolution, nlopt::algorithm algorithm_id>
-HRESULT Solve_NLOpt(TShared_Solver_Setup &setup, TAligned_Solution_Vector<TSolution>& hints, const TSolution& lower_bound, const TSolution& upper_bound) {
 
-	using TFitness = CFitness<TSolution>;
-	using TNLOpt_Specialized_Solver = CNLOpt<TSolution, TFitness, algorithm_id>;
-	TFitness fitness{ setup };
-	TNLOpt_Specialized_Solver solver{ hints, lower_bound, upper_bound, fitness, setup.metric };
-
-	TSolution solved = solver.Solve(setup.progress);
-	Solution_To_Parameters(solved, setup.solved_parameters);
-
+template <nlopt::algorithm algo>
+bool Solve_NLOpt(const solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
+	CNLOpt<algo> nlopt{ setup };
+	return nlopt.Solve(progress);
 	return S_OK;
 }
 
 
-#define DSpecialized_Id_Dispatcher template <typename TSolution, typename TFitness = CFitness<TSolution>>\
-class CLocal_Id_Dispatcher : public virtual CSpecialized_Id_Dispatcher<TSolution, TFitness> {\
-protected:\
-	template <nlopt::algorithm algorithm_id>\
-	void add_NLOpt(const GUID &id) {\
-		CSpecialized_Id_Dispatcher<TSolution, TFitness>::mSolver_Id_Map[id] = std::bind(&Solve_NLOpt<TSolution, algorithm_id>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);\
-	}\
-public:\
-	CLocal_Id_Dispatcher() {\
-		add_NLOpt<nlopt::LN_NEWUOA>(newuoa::id);\
-		add_NLOpt<nlopt::LN_BOBYQA>(bobyqa::id);\
-\
-		CSpecialized_Id_Dispatcher<TSolution, TFitness>::mSolver_Id_Map[pso::id] = std::bind(&Solve_By_Class<CPagmo2<TSolution, TFitness, pagmo2::EPagmo_Algo::PSO>, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);\
-		CSpecialized_Id_Dispatcher<TSolution, TFitness>::mSolver_Id_Map[sade::id] = std::bind(&Solve_By_Class<CPagmo2<TSolution, TFitness, pagmo2::EPagmo_Algo::SADE>, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);\
-		CSpecialized_Id_Dispatcher<TSolution, TFitness>::mSolver_Id_Map[de1220::id] = std::bind(&Solve_By_Class<CPagmo2<TSolution, TFitness, pagmo2::EPagmo_Algo::DE1220>, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);\
-		CSpecialized_Id_Dispatcher<TSolution, TFitness>::mSolver_Id_Map[abc::id] = std::bind(&Solve_By_Class<CPagmo2<TSolution, TFitness, pagmo2::EPagmo_Algo::ABC>, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);\
-		CSpecialized_Id_Dispatcher<TSolution, TFitness>::mSolver_Id_Map[cmaes::id] = std::bind(&Solve_By_Class<CPagmo2<TSolution, TFitness, pagmo2::EPagmo_Algo::CMAES>, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);\
-		CSpecialized_Id_Dispatcher<TSolution, TFitness>::mSolver_Id_Map[xnes::id] = std::bind(&Solve_By_Class<CPagmo2<TSolution, TFitness, pagmo2::EPagmo_Algo::xNES>, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);\
-	}\
+
+template <pagmo2::EPagmo_Algo algo>
+bool Solve_Pagmo(const solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
+	CPagmo2<algo> pagmo{ setup };
+	return pagmo.Solve(progress);
+	return S_OK;
+}
+
+
+
+
+using  TSolver_Func = std::function<bool(const solver::TSolver_Setup &, solver::TSolver_Progress&)>;
+
+struct TSolver_Info{
+	GUID id;
+	TSolver_Func func;
 };
 
-#include "../../../common/solver/dispatcher.h"
+const std::array<TSolver_Info, 8> solvers = {	TSolver_Info{newuoa::id, Solve_NLOpt<nlopt::LN_NEWUOA>},
+												TSolver_Info{bobyqa::id, Solve_NLOpt<nlopt::LN_BOBYQA>},
+
+												TSolver_Info{pso::id, Solve_Pagmo<pagmo2::EPagmo_Algo::PSO>},
+												TSolver_Info{sade::id, Solve_Pagmo<pagmo2::EPagmo_Algo::SADE>},
+												TSolver_Info{de1220::id, Solve_Pagmo<pagmo2::EPagmo_Algo::DE1220>},
+												TSolver_Info{abc::id, Solve_Pagmo<pagmo2::EPagmo_Algo::ABC>},
+												TSolver_Info{cmaes::id, Solve_Pagmo<pagmo2::EPagmo_Algo::CMAES>},
+												TSolver_Info{xnes::id, Solve_Pagmo<pagmo2::EPagmo_Algo::xNES>},
+};
 
 
-static CId_Dispatcher Id_Dispatcher;
 
+extern "C" HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress) {
+	
+	//instead of traversing an array, we could have used map
+	//but with map, we would have to use TBB allocator, which is useless for us at the moment
+	//hence traversing the array is easy to write and the overhead is neglible compared to the work of a solver
+	for (const auto &solver : solvers) {
+		if (solver.id == *solver_id)
+			return solver.func(*setup, *progress) ? S_OK : E_FAIL;
+  }
 
-HRESULT IfaceCalling do_solve_model_parameters(const glucose::TSolver_Setup *setup) {
-	return Id_Dispatcher.do_solve_model_parameters(setup);
+	return E_NOTIMPL;
 }

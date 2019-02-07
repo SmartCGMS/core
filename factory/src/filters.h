@@ -52,8 +52,9 @@ namespace imported {
 		glucose::TCreate_Filter create_filter = nullptr;
 		glucose::TCreate_Metric create_metric = nullptr;
 		glucose::TCreate_Signal create_signal = nullptr;
-		glucose::TSolve_Model_Parameters solve_model_parameters = nullptr;
 		glucose::TCreate_Approximator create_approximator = nullptr;
+		glucose::TSolve_Model_Parameters solve_model_parameters = nullptr;
+		solver::TGeneric_Solver solve_generic = nullptr;			
 	};
 }
 
@@ -64,7 +65,7 @@ protected:
 	std::vector<glucose::TMetric_Descriptor, tbb::tbb_allocator<glucose::TMetric_Descriptor>> mMetric_Descriptors;
 	std::vector<glucose::TModel_Descriptor, tbb::tbb_allocator<glucose::TModel_Descriptor>> mModel_Descriptors;
 	std::vector<glucose::TSolver_Descriptor, tbb::tbb_allocator<glucose::TSolver_Descriptor>> mSolver_Descriptors;
-	std::vector<glucose::TApprox_Descriptor, tbb::tbb_allocator<glucose::TApprox_Descriptor>> mApprox_Descriptors;
+	std::vector<glucose::TApprox_Descriptor, tbb::tbb_allocator<glucose::TApprox_Descriptor>> mApprox_Descriptors;	
 	
 	template <typename TDesc_Func, typename TDesc_Item>
 	bool Load_Descriptors(std::vector<TDesc_Item, tbb::tbb_allocator<TDesc_Item>> &dst, CDynamic_Library &lib, const char *func_name)  {
@@ -117,6 +118,7 @@ public:
 	HRESULT create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric);
 	HRESULT create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
 	HRESULT solve_model_parameters(const glucose::TSolver_Setup *setup);
+	HRESULT solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress);
 	HRESULT create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApprox_Parameters_Vector* configuration, glucose::IApproximator **approx);
 
 	HRESULT get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end);
@@ -132,6 +134,7 @@ extern "C" HRESULT IfaceCalling create_filter(const GUID *id, glucose::IFilter_P
 extern "C" HRESULT IfaceCalling create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric);
 extern "C" HRESULT IfaceCalling create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
 extern "C" HRESULT IfaceCalling solve_model_parameters(const glucose::TSolver_Setup *setup);
+extern "C" HRESULT IfaceCalling solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress);
 extern "C" HRESULT IfaceCalling create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApprox_Parameters_Vector* configuration, glucose::IApproximator **approx);
 
 extern "C" HRESULT IfaceCalling get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end);

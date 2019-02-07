@@ -38,7 +38,47 @@
 
 #pragma once
 
+
 #include "../../../common/iface/SolverIface.h"
+#include "../../../common/rtl/Buffer_Pool.h"
+#include "../../../common/rtl/AlignmentAllocator.h"
+
+#include <tbb/concurrent_queue.h>
+
+#include <vector>
 
 
-extern "C" HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress);
+#undef max
+
+using aligned_double_vector = std::vector<double, AlignmentAllocator<double>>;	//Needed for Eigen and SIMD optimizations
+
+
+
+struct TSegment_Info {
+	std::shared_ptr<glucose::ITime_Segment> segment;
+	std::shared_ptr<glucose::ISignal> calculated_signal;
+	std::shared_ptr<glucose::ISignal> reference_signal;
+	aligned_double_vector reference_time;
+	aligned_double_vector reference_level;
+};
+
+class CFitness {
+protected:
+	const size_t mSolution_Size;
+	glucose::TMetric_Parameters mMetric = glucose::Null_Metric_Parameters;	
+	tbb::concurrent_queue<std::shared_ptr<glucose::IMetric>> mMetric_Pool;
+protected:
+	std::vector<TSegment_Info> mSegment_Info;	
+	size_t mLevels_Required;
+	size_t mMax_Levels_Per_Segment;	//to avoid multiple resize of memory block when calculating the error
+	CBuffer_Pool<aligned_double_vector> mTemporal_Levels{ [](auto &container, auto minimum_size) {
+		if (container.size() < minimum_size) container.resize(minimum_size);
+	} };
+public:
+	CFitness(const glucose::TSolver_Setup &setup, const size_t solution_size);
+	double Calculate_Fitness(const double *solution);
+
+};
+
+
+double IfaceCalling Fitness_Wrapper(const void *data, const double *solution);
