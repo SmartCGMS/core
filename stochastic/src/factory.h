@@ -41,4 +41,4 @@
 #include "../../../common/iface/SolverIface.h"
 
 
-extern "C" HRESULT IfaceCalling do_solve_model_parameters(const glucose::TSolver_Setup *setup);
+extern "C" HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, solver::TSolver_Setup *setup, solver::TSolver_Progress *progress);

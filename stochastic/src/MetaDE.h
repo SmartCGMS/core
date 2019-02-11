@@ -47,7 +47,6 @@
 #include <chrono>
 #include <set>
 
-#include "HaltonDevice.h"
 
 #undef max
 #undef min
@@ -55,8 +54,6 @@
 #include <tbb/parallel_for.h>
 
 #include "../../../common/utils/DebugHelper.h"
-
-#include "LocalSearch.h"
 
 
 namespace metade {
@@ -76,14 +73,13 @@ namespace metade {
 	//const static double Strategy_min = 0.0;
 	//const static double Strategy_range = static_cast<double>(static_cast<size_t>(NStrategy::count)-1);
 
-	template <typename TSolution>
+	template <typename TUsed_Solution>
 	struct TMetaDE_Candidate_Solution {
 		NStrategy strategy;
 		double CR, F;
-		TSolution current, next;
+		TUsed_Solution current, next;
 		double current_fitness = std::numeric_limits<double>::max();
 		double next_fitness = std::numeric_limits<double>::max();
-		glucose::SMetric metric_calculator;	//de-facto, we create a pool of metrics so that we don't need to clone it for each thread or implement pushing and poping to and from the pool
 	};
 
 	struct TMetaDE_Stats {
@@ -102,7 +98,7 @@ namespace metade {
 }
 
 
-template <typename TSolution, typename TFitness, typename TLocalSolver, size_t mGeneration_Count = 10'000, size_t mPopulation_Size = 100, typename TRandom_Device = std::random_device>//CHalton_Device>
+template <typename TUsed_Solution, typename TRandom_Device = std::random_device>//CHalton_Device>
 class CMetaDE {
 protected:
 	const size_t mPBest_Count = 5;
@@ -181,12 +177,12 @@ protected:
 		dprintf("\n\nStatistics end\n\n");
 	}
 protected:
-	const TSolution mLower_Bound;
-	const TSolution mUpper_Bound;
-	TAligned_Solution_Vector<metade::TMetaDE_Candidate_Solution<TSolution>> mPopulation;
+	const TUsed_Solution mLower_Bound;
+	const TUsed_Solution mUpper_Bound;
+	TAligned_Solution_Vector<metade::TMetaDE_Candidate_Solution<TUsed_Solution>> mPopulation;
 	std::vector<size_t> mPopulation_Best;	//indexes into mPopulation sorted by mPopulation's member's current fitness
 											//we do not sort mPopulation due to performance costs and not to loose population diversity
-	void Generate_Meta_Params(metade::TMetaDE_Candidate_Solution<TSolution> &solution) { 
+	void Generate_Meta_Params(metade::TMetaDE_Candidate_Solution<TUsed_Solution> &solution) { 
 		solution.CR = mCR_min + mCR_range*mUniform_Distribution_dbl(mRandom_Generator);
 		solution.F = mF_min + mF_range*mUniform_Distribution_dbl(mRandom_Generator);
 
@@ -205,34 +201,36 @@ protected:
 	//std::mt19937 mRandom_Generator{ mRandom_Device() };
 	TRandom_Device mRandom_Generator;
 	std::uniform_real_distribution<double> mUniform_Distribution_dbl{ 0.0, 1.0 };	
-	std::uniform_int_distribution<size_t> mUniform_Distribution_PBest{ 0, mPBest_Count-1 };
-	std::uniform_int_distribution<size_t> mUniform_Distribution_Population{ 0, mPopulation_Size-1 };
+	std::uniform_int_distribution<size_t> mUniform_Distribution_PBest{ 0, mPBest_Count-1 };	
 	std::uniform_int_distribution<size_t> mUniform_Distribution_Strategy{ 0, static_cast<size_t>(metade::NStrategy::count)-1 };
 protected:
-	TFitness &mFitness;
-	glucose::SMetric &mMetric;
+    solver::TSolver_Setup mSetup;
+	size_t mGeneration_Count;	//declared to avoid assigning to the mSetup that's not l-value
+	size_t mPopulation_Size;
 public:
-	CMetaDE(const TAligned_Solution_Vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, glucose::SMetric &metric) :
-		mLower_Bound(lower_bound), mUpper_Bound(upper_bound), mPopulation(mPopulation_Size), mPopulation_Best(mPopulation_Size), mFitness(fitness), mMetric(metric) {
+	CMetaDE(const solver::TSolver_Setup &setup) : mSetup(setup), mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)) {
+		//fill in the default values
+		mGeneration_Count = mSetup.max_generations != 0 ? mSetup.max_generations : 10'000;
+		mPopulation_Size = mSetup.population_size != 0 ? mSetup.population_size : 40;
 
 
 		//1. create the initial population
-		const size_t initialized_count = std::min(mPopulation_Size / 2, initial_solutions.size());
+		const size_t initialized_count = std::min(mPopulation_Size / 2, mSetup.hint_count);
 		//a) by storing suggested params
 		for (size_t i = 0; i < initialized_count; i++) {
-			mPopulation[i].current = mUpper_Bound.min(mLower_Bound.max(initial_solutions[i]));//also ensure the bounds
+			mPopulation[i].current = mUpper_Bound.min(mLower_Bound.max(Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size)));//also ensure the bounds
 		}
 
 		//b) by complementing it with randomly generated numbers
-		const auto bounds_range = mUpper_Bound - mLower_Bound;
+			const auto bounds_range = mUpper_Bound - mLower_Bound;
 		for (size_t i = initialized_count; i < mPopulation_Size; i++) {
-			TSolution tmp;
+			TUsed_Solution tmp;
 
 			// this helps when we use generic solution vector, and does nothing when we use fixed lengths (since ColsAtCompileTime already equals bounds_range.cols(), so it gets
 			// optimized away in compile time
-			tmp.resize(Eigen::NoChange, bounds_range.cols());
+			tmp.resize(Eigen::NoChange, mSetup.problem_size);
 
-			for (auto j = 0; j < bounds_range.cols(); j++)
+			for (auto j = 0; j < mSetup.problem_size; j++)
 				tmp[j] = mUniform_Distribution_dbl(mRandom_Generator);
 
 			mPopulation[i].current = mLower_Bound + tmp.cwiseProduct(bounds_range);
@@ -244,8 +242,7 @@ public:
 		//2. set cr and f parameters, and calculate the metrics
 		for (auto &solution : mPopulation) {
 			Generate_Meta_Params(solution);
-			solution.metric_calculator = mMetric.Clone(); //verify that clone is thread-safe if ever reworking this to parallel (but likely not needed for a performance reasons)
-			solution.current_fitness = mFitness.Calculate_Fitness(solution.current, solution.metric_calculator);
+			solution.current_fitness = mSetup.objective(mSetup.data, solution.current.data());
 			
 		}
 
@@ -253,7 +250,7 @@ public:
 		std::iota(mPopulation_Best.begin(), mPopulation_Best.end(), 0);
 	}
 
-	TSolution Solve(volatile glucose::TSolver_Progress &progress) {
+	TUsed_Solution Solve(solver::TSolver_Progress &progress) {
 
 		if (mCollect_Statistics) {
 			Take_Statistics_Snapshot();
@@ -265,6 +262,7 @@ public:
 	
 		const size_t solution_size = mPopulation[0].next.cols();
 		std::uniform_int_distribution<size_t> mUniform_Distribution_Solution{ 0, solution_size - 1 };	//this distribution must be local as solution can be dynamic
+		std::uniform_int_distribution<size_t> mUniform_Distribution_Population{ 0, mPopulation_Size - 1 };
 
 		while ((progress.current_progress++ < mGeneration_Count) && (progress.cancelled == 0)) {
 			//1. determine the best p-count parameters, without actually re-ordering the population
@@ -279,14 +277,12 @@ public:
 			//In this step, current is read-only and next is write-only => no locking is needed
 			//as each next will be written just once.
 			//We assume that parallelization cost will get amortized
-			tbb::parallel_for(tbb::blocked_range<size_t>(size_t(0), mPopulation_Size), [=](const tbb::blocked_range<size_t> &r) {
-
-				//for (size_t iter = 0; iter<mPopulation_Size; iter++) {
+			tbb::parallel_for(tbb::blocked_range<size_t>(size_t(0), mPopulation_Size), [=](const tbb::blocked_range<size_t> &r) {				
 
 				const size_t rend = r.end();
 				for (size_t iter = r.begin(); iter != rend; iter++) {
 
-					auto random_difference_vector = [&]()->TSolution {
+					auto random_difference_vector = [&]()->TUsed_Solution {
 						const size_t idx1 = mUniform_Distribution_Population(mRandom_Generator);
 						const size_t idx2 = mUniform_Distribution_Population(mRandom_Generator);
 						return mPopulation[idx1].current - mPopulation[idx2].current;
@@ -374,16 +370,8 @@ public:
 						candidate_solution.next[element_to_replace] = candidate_solution.current[element_to_replace];
 					}
 
-/*
-					//apply additional local solver
-					const TAligned_Solution_Vector<TSolution> local_solution_candidate = { candidate_solution.next };
-					TLocalSolver local_solver { local_solution_candidate, mLower_Bound, mUpper_Bound, mFitness, candidate_solution.metric_calculator };
-					TSolverProgress tmp_progress;
-					candidate_solution.next = local_solver.Solve(tmp_progress);
-*/
-					//and evaluate
-					candidate_solution.metric_calculator->Reset();
-					candidate_solution.next_fitness = mFitness.Calculate_Fitness(candidate_solution.next, candidate_solution.metric_calculator);
+					//and evaluate					
+					candidate_solution.next_fitness = mSetup.objective(mSetup.data, candidate_solution.next.data());						
 				}
 			});
 
@@ -410,7 +398,7 @@ public:
 		}
 
 		//find the best result and return it
-		const auto result = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const metade::TMetaDE_Candidate_Solution<TSolution> &a, const metade::TMetaDE_Candidate_Solution<TSolution> &b) {return a.current_fitness < b.current_fitness; });
-		return result->current;
+		const auto result = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const metade::TMetaDE_Candidate_Solution<TUsed_Solution> &a, const metade::TMetaDE_Candidate_Solution<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
+		return result->current;		
 	}
 };

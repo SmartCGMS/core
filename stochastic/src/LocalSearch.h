@@ -46,9 +46,9 @@
 
 #undef max
 
-template <typename TSolution>
+template <typename TUsed_Solution>
 struct TLCCandidate_Solution {
-	TSolution solution;
+	TUsed_Solution solution;
 	double fitness;
 };
 
@@ -58,29 +58,29 @@ constexpr size_t Suggested_Stepping_Granularity(const bool _Preserve_Combination
 	//empirically determined - could go two more orders higher but seems to have no real effect, just do not go below - begins to be unstable
 }
 
-template <typename TSolution, typename TFitness, bool _Preserve_Combination_Order, size_t _Stepping_Granularity = Suggested_Stepping_Granularity(_Preserve_Combination_Order)>
+template <typename TUsed_Solution, typename TFitness, bool _Preserve_Combination_Order, size_t _Stepping_Granularity = Suggested_Stepping_Granularity(_Preserve_Combination_Order)>
 class CLocalSearch {
 protected:
-	const TSolution mLower_Bound;
-	const TSolution mUpper_Bound;
-	TAligned_Solution_Vector<TSolution> mStepping;
+	const TUsed_Solution mLower_Bound;
+	const TUsed_Solution mUpper_Bound;
+	TAligned_Solution_Vector<TUsed_Solution> mStepping;
 protected:
 	TFitness &mFitness;
 	glucose::SMetric &mMetric;
 public:
-	CLocalSearch(const TAligned_Solution_Vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, glucose::SMetric &metric) :
+	CLocalSearch(const TAligned_Solution_Vector<TUsed_Solution> &initial_solutions, const TUsed_Solution &lower_bound, const TUsed_Solution &upper_bound, TFitness &fitness, glucose::SMetric &metric) :
 
 		mStepping(initial_solutions), mLower_Bound(lower_bound), mUpper_Bound(upper_bound), mFitness(fitness), mMetric(metric) {
 		//keep the initial solutions as first as the Solve relies on it
 		//mStepping.insert(mStepping.end(), initial_solutions.begin(), initial_solutions.end()); - copy constructor
 
-		TSolution stepping;
+		TUsed_Solution stepping;
 		stepping.resize(mUpper_Bound.cols());
 		for (auto i = 0; i < mUpper_Bound.cols(); i++) {
 			stepping(i) = (mUpper_Bound(i) - mLower_Bound(i)) / static_cast<double>(_Stepping_Granularity);
 		}
 
-		TSolution step = mLower_Bound;
+		TUsed_Solution step = mLower_Bound;
 		mStepping.push_back(step);
 		for (auto i = 0; i < _Stepping_Granularity; i++) {
 			step += stepping;
@@ -88,9 +88,9 @@ public:
 		}
 	}
 
-	TSolution Solve(volatile glucose::TSolver_Progress &progress) {
+	TUsed_Solution Solve(volatile glucose::TSolver_Progress &progress) {
 
-		const TLCCandidate_Solution<TSolution> init_solution { mStepping[0],
+		const TLCCandidate_Solution<TUsed_Solution> init_solution { mStepping[0],
 															   mFitness.Calculate_Fitness(init_solution.solution, mMetric) };
 
 		const size_t steps_to_go = mStepping.size();
@@ -102,13 +102,13 @@ public:
 		auto result = tbb::parallel_reduce(tbb::blocked_range<size_t>(size_t(0), steps_to_go),
 			init_solution,
 
-			[=, &progress](const tbb::blocked_range<size_t> &r, TLCCandidate_Solution<TSolution> other)->TLCCandidate_Solution<TSolution> {
+			[=, &progress](const tbb::blocked_range<size_t> &r, TLCCandidate_Solution<TUsed_Solution> other)->TLCCandidate_Solution<TUsed_Solution> {
 				if (progress.cancelled != 0) return init_solution;
 
 				const auto param_count = mLower_Bound.cols();
 				glucose::SMetric metric_calculator = mMetric.Clone();
 
-				TLCCandidate_Solution<TSolution> local_solution, best_solution;
+				TLCCandidate_Solution<TUsed_Solution> local_solution, best_solution;
 				local_solution.solution.resize(param_count);
 				best_solution.fitness = std::numeric_limits<double>::max();
 				if (other.fitness < best_solution.fitness)
@@ -163,7 +163,7 @@ public:
 				return best_solution;
 			},
 
-			[&progress](TLCCandidate_Solution<TSolution> a, TLCCandidate_Solution<TSolution> b)->TLCCandidate_Solution<TSolution> {
+			[&progress](TLCCandidate_Solution<TUsed_Solution> a, TLCCandidate_Solution<TUsed_Solution> b)->TLCCandidate_Solution<TUsed_Solution> {
 				if (a.fitness < b.fitness) {
 					progress.best_metric = a.fitness;
 					return a;

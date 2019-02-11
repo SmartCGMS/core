@@ -42,44 +42,44 @@
 #include "LocalSearch.h"
 
 
-template <typename TSolution, typename TFitness, bool _Preserve_Combination_Order>
+template <typename TUsed_Solution, typename TFitness, bool _Preserve_Combination_Order>
 class CRecursive_Combinatorial_Descent {
 protected:
 	const size_t mCombinatorial_Granularity = 10;
 	const floattype mScale_Factor = 0.1;
 protected:
-	const TSolution mLower_Bound;
-	const TSolution mUpper_Bound;
-	TAligned_Solution_Vector<TSolution> mInitial_Solutions;
+	const TUsed_Solution mLower_Bound;
+	const TUsed_Solution mUpper_Bound;
+	TAligned_Solution_Vector<TUsed_Solution> mInitial_Solutions;
 protected:
 	TFitness &mFitness;
 	SMetricFactory &mMetric_Factory;
 public:
-	CRecursive_Combinatorial_Descent(const TAligned_Solution_Vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, SMetricFactory &metric_factory) :
+	CRecursive_Combinatorial_Descent(const TAligned_Solution_Vector<TUsed_Solution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, SMetricFactory &metric_factory) :
 		mInitial_Solutions(initial_solutions), mLower_Bound(lower_bound), mUpper_Bound(upper_bound), mFitness(fitness), mMetric_Factory(metric_factory) {
 	}
 
 
-	TSolution Solve(volatile TSolverProgress &progress) {
+	TUsed_Solution Solve(volatile TSolverProgress &progress) {
 
 
-		TSolution local_lower_bound = mLower_Bound;
-		TSolution local_upper_bound = mUpper_Bound;
+		TUsed_Solution local_lower_bound = mLower_Bound;
+		TUsed_Solution local_upper_bound = mUpper_Bound;
 		
 		size_t iter_count = 100;
 
 		decltype(mInitial_Solutions) local_solutions = { mInitial_Solutions };
 
-		TSolution previous_local_result = mInitial_Solutions[0];
+		TUsed_Solution previous_local_result = mInitial_Solutions[0];
 		floattype previous_local_fitness = mFitness.Calculate_Fitness(previous_local_result, mMetric_Factory.CreateCalculator());
 
 		progress.MaxProgress = 100;
 		progress.CurrentProgress = 0;
 
 		while (iter_count-- > 0) {
-			CLocalSearch<TSolution, TFitness, _Preserve_Combination_Order, _Preserve_Combination_Order ? 20 : 100'000> local_search(local_solutions, local_lower_bound, local_upper_bound, mFitness, mMetric_Factory);
+			CLocalSearch<TUsed_Solution, TFitness, _Preserve_Combination_Order, _Preserve_Combination_Order ? 20 : 100'000> local_search(local_solutions, local_lower_bound, local_upper_bound, mFitness, mMetric_Factory);
 			TSolverProgress tmp_progress;
-			TSolution present_local_result = local_search.Solve(tmp_progress);
+			TUsed_Solution present_local_result = local_search.Solve(tmp_progress);
 
 			floattype present_local_fitness = mFitness.Calculate_Fitness(present_local_result, mMetric_Factory.CreateCalculator());
 			if (present_local_fitness >= previous_local_fitness) break;

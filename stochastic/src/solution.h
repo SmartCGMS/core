@@ -36,42 +36,24 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "descriptor.h"
-#include "../../../common/iface/DeviceIface.h"
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/rtl/descriptor_utils.h"
+#pragma once
+
+#include <Eigen/Dense>
 #include <vector>
-
-#include <tbb/tbb_allocator.h>
-
-
-namespace mt_metade {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsMT_MetaDE);
-}
-
-namespace halton_metade {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsHalton_MetaDE);
-}
-
-namespace rnd_metade {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsRnd_MetaDE);
-}
+#include "../../../common/rtl/AlignmentAllocator.h"
 
 
-namespace halton_sequence {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsHalton_Sequence);
-}
+template <int n>
+using TSolution = Eigen::Array<double, 1, n, Eigen::RowMajor>;
 
-namespace deterministic_evolution {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsPathfinder);
-}
+template <typename TUsed_Solution>
+using TAligned_Solution_Vector = std::vector<TUsed_Solution, AlignmentAllocator<TUsed_Solution>>;
 
-
-
-
-const std::vector<glucose::TSolver_Descriptor, tbb::tbb_allocator<glucose::TSolver_Descriptor>> solver_descriptions = { mt_metade::desc, halton_sequence::desc, halton_metade::desc, rnd_metade::desc, deterministic_evolution::desc };
-
-
-HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {
-	return do_get_descriptors(solver_descriptions, begin, end);
+template <typename TUsed_Solution>
+TUsed_Solution Vector_2_Solution(const double *vector, const int n) {
+	//to avoid all the complications with Eigein-class deriving, let's do this as a standalone function
+	TUsed_Solution result;
+	result.resize(Eigen::NoChange, n);
+	std::copy(vector, vector + n, result.data());	
+	return result;
 }

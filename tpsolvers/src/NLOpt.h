@@ -100,7 +100,7 @@ protected:
 public:
 	CNLOpt(const solver::TSolver_Setup &setup) : mSetup(setup) {
 		
-		mInitial_Solution.resize(mSetup.size);
+		mInitial_Solution.resize(mSetup.problem_size);
 
 		if (mSetup.hint_count > 0) {
 			for (size_t i = 0; i < mInitial_Solution.size(); i++)		//enforce bounds as the initial hint can be wrong
@@ -111,7 +111,7 @@ public:
 				mInitial_Solution[i] = mSetup.lower_bound[i] + 0.5*(mSetup.upper_bound[i] - mSetup.lower_bound[i]);
 		}
 
-		for (auto i = 0; i < mSetup.size; i++) {
+		for (auto i = 0; i < mSetup.problem_size; i++) {
 
 			if (mSetup.lower_bound[i] != mSetup.upper_bound[i]) {
 				mDimension_Remap.push_back(i);
@@ -138,14 +138,14 @@ public:
 		};
 		
 		//we need expression templates to reduce the overhead of remapping
-		if (mDimension_Remap.size() == mSetup.size) opt.set_min_objective(NLOpt_Top_Solution_Objective_Function<false>, &data);
+		if (mDimension_Remap.size() == mSetup.problem_size) opt.set_min_objective(NLOpt_Top_Solution_Objective_Function<false>, &data);
 			else opt.set_min_objective(NLOpt_Top_Solution_Objective_Function<true>, &data);
 
 		opt.set_lower_bounds(mRemapped_Lower_Top_Bound);
 		opt.set_upper_bounds(mRemapped_Upper_Top_Bound);
 		
 		opt.set_ftol_abs(mSetup.tolerance);
-		opt.set_maxeval(static_cast<int>(mSetup.max_generations));
+		if (mSetup.max_generations != 0) opt.set_maxeval(static_cast<int>(mSetup.max_generations));
 
 		progress.max_progress = opt.get_maxeval();
 		if (progress.max_progress == 0) progress.max_progress = 100;
@@ -165,7 +165,7 @@ public:
 		}
 
 
-		memcpy(mSetup.solution, x.data(), mSetup.size * sizeof(double));	//copy the parameters, which possibly stays the same
+		memcpy(mSetup.solution, x.data(), mSetup.problem_size * sizeof(double));	//copy the parameters, which possibly stays the same
 		for (auto i = 0; i < mDimension_Remap.size(); i++)					//and copy those, which changed at their correct positions in the final solution
 			mSetup.solution[mDimension_Remap[i]] = x[i];
 

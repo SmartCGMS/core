@@ -41,4 +41,4 @@
 #include "../../../common/iface/SolverIface.h"
 
 
-extern "C" HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress);
+extern "C" HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, solver::TSolver_Setup *setup, solver::TSolver_Progress *progress);

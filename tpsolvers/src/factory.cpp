@@ -56,7 +56,7 @@ bool Solve_NLOpt(const solver::TSolver_Setup &setup, solver::TSolver_Progress &p
 
 
 template <pagmo2::EPagmo_Algo algo>
-bool Solve_Pagmo(const solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
+bool Solve_Pagmo(solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
 	CPagmo2<algo> pagmo{ setup };
 	return pagmo.Solve(progress);
 	return S_OK;
@@ -65,7 +65,7 @@ bool Solve_Pagmo(const solver::TSolver_Setup &setup, solver::TSolver_Progress &p
 
 
 
-using  TSolver_Func = std::function<bool(const solver::TSolver_Setup &, solver::TSolver_Progress&)>;
+using  TSolver_Func = std::function<bool(solver::TSolver_Setup &, solver::TSolver_Progress&)>;
 
 struct TSolver_Info{
 	GUID id;
@@ -85,7 +85,7 @@ const std::array<TSolver_Info, 8> solvers = {	TSolver_Info{newuoa::id, Solve_NLO
 
 
 
-extern "C" HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress) {
+extern "C" HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, solver::TSolver_Setup *setup, solver::TSolver_Progress *progress) {
 	
 	//instead of traversing an array, we could have used map
 	//but with map, we would have to use TBB allocator, which is useless for us at the moment

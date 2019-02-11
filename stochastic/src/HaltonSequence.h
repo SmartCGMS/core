@@ -49,55 +49,57 @@
 
 
 namespace Halton_internal {
-	template <typename TSolution>
+	template <typename TUsed_Solution>
 	struct TCandidate {
-		TSolution solution;
+		TUsed_Solution solution;
 		double fitness;
 	};
 }
 
 
-template <typename TSolution, typename TFitness, size_t max_iterations=50, size_t halton_count = 1000>
+template <typename TUsed_Solution>// typename TFitness, size_t max_iterations=50, size_t halton_count = 1000>
 class CHalton_Sequence {
+	solver::TSolver_Setup mSetup;
 protected:
-	TFitness &mFitness;
-	glucose::SMetric &mMetric;
 protected:
 	const double mZoom_Factor = 0.2;
-	TSolution mDefault_Solution;
-	TSolution mInitial_Lower_Bound;
-	TSolution mInitial_Upper_Bound;
+	TUsed_Solution mDefault_Solution;
+	TUsed_Solution mInitial_Lower_Bound;
+	TUsed_Solution mInitial_Upper_Bound;
 public:
-	CHalton_Sequence(const TAligned_Solution_Vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, glucose::SMetric &metric) :
-		mInitial_Lower_Bound(lower_bound), mInitial_Upper_Bound(upper_bound), mFitness(fitness), mMetric(metric) {
-		if (initial_solutions.empty()) {
-			mDefault_Solution = (upper_bound + lower_bound)*0.5;
+	CHalton_Sequence(const solver::TSolver_Setup &setup) : mSetup(setup), mInitial_Lower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mInitial_Upper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)) {
+		//fill in the default values
+		if (setup.population_size == 0) mSetup.population_size = 1'000;
+		if (setup.max_generations == 0) mSetup.max_generations = 50;
+
+
+		if (mSetup.hint_count == 0) {
+			mDefault_Solution = (mInitial_Upper_Bound + mInitial_Lower_Bound)*0.5;
 		}
 		else
-			mDefault_Solution = initial_solutions[0];
+			mDefault_Solution = Vector_2_Solution<TUsed_Solution>(mSetup.hints[0]);
 	};
 
-	TSolution Solve(volatile glucose::TSolver_Progress &progress) {
-		TSolution working_lower_bound{ mInitial_Lower_Bound };
-		TSolution working_upper_bound { mInitial_Upper_Bound };
-	
-		mMetric->Reset();		
-		Halton_internal::TCandidate<TSolution> best_solution{ working_upper_bound.min(working_lower_bound.max(mDefault_Solution)), 0.0};		
-		best_solution.fitness = mFitness.Calculate_Fitness(best_solution.solution, mMetric);
+	TUsed_Solution Solve(solver::TSolver_Progress &progress) {
+		TUsed_Solution working_lower_bound{ mInitial_Lower_Bound };
+		TUsed_Solution working_upper_bound { mInitial_Upper_Bound };
+					
+		Halton_internal::TCandidate<TUsed_Solution> best_solution{ working_upper_bound.min(working_lower_bound.max(mDefault_Solution)), 0.0};		
+		best_solution.fitness = mSetup.objective(mSetup.data, best_solution.solution.data());
 
 		progress.current_progress = 0;
-		progress.max_progress = max_iterations;
+		progress.max_progress = mSetup.max_generations;
 		progress.best_metric = best_solution.fitness;
 
 		const size_t solution_size = mDefault_Solution.cols();
 		const size_t solution_size_bit_combinations = static_cast<size_t>(1) << solution_size;
 		
-		std::vector<TSolution, AlignmentAllocator<TSolution>> halton_numbers;
+		std::vector<TUsed_Solution, AlignmentAllocator<TUsed_Solution>> halton_numbers;
 		{
 			std::vector<CHalton_Device> halton_devices(solution_size);
 			//pre-calculate the halton numbers sequene			
-			for (size_t halton_iter = 0; halton_iter < halton_count; halton_iter++) {
-				TSolution tmp;
+			for (size_t halton_iter = 0; halton_iter < mSetup.population_size; halton_iter++) {
+				TUsed_Solution tmp;
 				tmp.resize(Eigen::NoChange, solution_size);
 
 				// calculate the shift to halton_bases array
@@ -109,21 +111,20 @@ public:
 		}
 		
 
-		while ((progress.current_progress++ < max_iterations) && (progress.cancelled == 0)) {
-			const TSolution bounds_difference = working_upper_bound - working_lower_bound;			
+		while ((progress.current_progress++ < mSetup.max_generations) && (progress.cancelled == 0)) {
+			const TUsed_Solution bounds_difference = working_upper_bound - working_lower_bound;			
 
 								
 			//for each halton sequence point
-			best_solution = tbb::parallel_reduce(tbb::blocked_range<size_t>(1, halton_count), best_solution,
-				[this, &bounds_difference, &working_lower_bound, &working_upper_bound, &progress, &halton_numbers, solution_size, solution_size_bit_combinations](const tbb::blocked_range<size_t> &r, Halton_internal::TCandidate<TSolution> default_solution)->Halton_internal::TCandidate<TSolution> {
+			best_solution = tbb::parallel_reduce(tbb::blocked_range<size_t>(1, mSetup.population_size), best_solution,
+				[this, &bounds_difference, &working_lower_bound, &working_upper_bound, &progress, &halton_numbers, solution_size, solution_size_bit_combinations](const tbb::blocked_range<size_t> &r, Halton_internal::TCandidate<TUsed_Solution> default_solution)->Halton_internal::TCandidate<TUsed_Solution> {
 				
-					TSolution drifting_solution;
+					TUsed_Solution drifting_solution;
 					drifting_solution.resize(Eigen::NoChange, solution_size);
 
 					for (size_t halton_iter = r.begin(); halton_iter != r.end(); halton_iter++) {
-						auto local_metric = mMetric.Clone();
-					
-						TSolution candidate_solution = halton_numbers[halton_iter] * bounds_difference + working_lower_bound;
+											
+						TUsed_Solution candidate_solution = halton_numbers[halton_iter] * bounds_difference + working_lower_bound;
 
 						//Now, we have two almost likely different solutions - best and candidate
 						//To simulate evolutionary drift/random mutation, let's try to combine them - a deterministic approach						
@@ -139,8 +140,7 @@ public:
 						
 							drifting_solution = working_upper_bound.min(working_lower_bound.max(drifting_solution));
 
-							mMetric->Reset();
-							const double drifting_fitness = mFitness.Calculate_Fitness(drifting_solution, local_metric);
+							const double drifting_fitness = mSetup.objective(mSetup.data, drifting_solution.data());
 							if (drifting_fitness < default_solution.fitness) {
 								default_solution.fitness = drifting_fitness;
 								default_solution.solution = drifting_solution;
@@ -152,7 +152,7 @@ public:
 
 					return default_solution;
 				},
-				[](const Halton_internal::TCandidate<TSolution> &a, const Halton_internal::TCandidate<TSolution> &b) { return a.fitness < b.fitness ? a : b;  });
+				[](const Halton_internal::TCandidate<TUsed_Solution> &a, const Halton_internal::TCandidate<TUsed_Solution> &b) { return a.fitness < b.fitness ? a : b;  });
 
 			//zoom the boundaries, i.e., focus them towards the best known solution
 			working_lower_bound = (best_solution.solution - working_lower_bound)*mZoom_Factor + working_lower_bound;

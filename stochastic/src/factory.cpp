@@ -37,43 +37,94 @@
  */
 
 #include "factory.h"
+#include "descriptor.h"
+#include "solution.h"
 
-#include "..\..\..\common\solver\solution.h"
-#include "..\..\..\common\solver\fitness.h"
-#include "../../../common/solver/NullMethod.h"
-
+#include "HaltonDevice.h"
 #include "MetaDE.h"
 #include "HaltonSequence.h"
-#include "DeterministicEvolution.h"
+#include "pathfinder.h"
+
+template <typename TSolver, typename TUsed_Solution>
+HRESULT Solve_By_Class(solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
+	TSolver solver{ setup };
+	TUsed_Solution result = solver.Solve(progress);
+	std::copy(result.data(), result.data() + result.cols(), setup.solution);
+	return progress.cancelled == 0 ? S_OK : E_ABORT;
+}
 
 
-#define DSpecialized_Id_Dispatcher template <typename TSolution, typename TFitness = CFitness<TSolution>>\
-class CLocal_Id_Dispatcher : public virtual CSpecialized_Id_Dispatcher<TSolution, TFitness> {\
-public:\
-	CLocal_Id_Dispatcher() {\
-		using TMT_MetaDE = CMetaDE<TSolution, TFitness, CNullMethod<TSolution, TFitness>, 100000, 100, std::mt19937>;\
-		CSpecialized_Id_Dispatcher<TSolution, TFitness>::mSolver_Id_Map[mt_metade::id] = std::bind(&Solve_By_Class<TMT_MetaDE, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);\
-\
-		using THalton_MetaDE = CMetaDE<TSolution, TFitness, CNullMethod<TSolution, TFitness>, 100000, 100, CHalton_Device>;\
-		CSpecialized_Id_Dispatcher<TSolution, TFitness>::mSolver_Id_Map[halton_metade::id] = std::bind(&Solve_By_Class<THalton_MetaDE, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);\
-\
-		using TRandom_MetaDE = CMetaDE<TSolution, TFitness, CNullMethod<TSolution, TFitness>, 100000, 100, std::random_device>;\
-		CSpecialized_Id_Dispatcher<TSolution, TFitness>::mSolver_Id_Map[rnd_metade::id] = std::bind(&Solve_By_Class<TRandom_MetaDE, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);\
-\
-		CSpecialized_Id_Dispatcher<TSolution, TFitness>::mSolver_Id_Map[halton_sequence::id] = std::bind(&Solve_By_Class<CHalton_Sequence<TSolution, TFitness>, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);\
-\
-		CSpecialized_Id_Dispatcher<TSolution, TFitness>::mSolver_Id_Map[deterministic_evolution::id] = std::bind(&Solve_By_Class<CDeterministic_Evolution<TSolution, TFitness>, TSolution, TFitness>, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);\
-	}\
-};\
+template <typename TUsed_Solution>
+class TMT_MetaDE : public CMetaDE<TUsed_Solution, std::mt19937> {};
+
+
+using  TSolve = std::function<HRESULT(solver::TSolver_Setup &, solver::TSolver_Progress&)>;
 
 
 
-#include "../../../common/solver/dispatcher.h"
+template <typename TUsed_Solution>
+class CSolution_Dispatcher {
+protected:	
+	std::map<const GUID, TSolve, std::less<GUID>, tbb::tbb_allocator<std::pair<const GUID, TSolve>>> mSolver_Id_Map;
+public:
+	CSolution_Dispatcher() {
+
+		using TMT_MetaDE = CMetaDE<TUsed_Solution, std::mt19937>;
+		mSolver_Id_Map[mt_metade::id] = std::bind(&Solve_By_Class<TMT_MetaDE, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);		
+
+		using THalton_MetaDE = CMetaDE<TUsed_Solution, CHalton_Device>; 
+		mSolver_Id_Map[halton_metade::id] = std::bind(&Solve_By_Class<THalton_MetaDE, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2); 
+		
+		using TRandom_MetaDE = CMetaDE<TUsed_Solution, std::random_device>;
+		mSolver_Id_Map[rnd_metade::id] = std::bind(&Solve_By_Class<TRandom_MetaDE, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+						
+		mSolver_Id_Map[halton_sequence::id] = std::bind(&Solve_By_Class<CHalton_Sequence<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2); 
+		
+		mSolver_Id_Map[deterministic_evolution::id] = std::bind(&Solve_By_Class<CPathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+	}
+
+	HRESULT Solve(const GUID &solver_id, solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
+
+		const auto iter = mSolver_Id_Map.find(solver_id);
+		if (iter != mSolver_Id_Map.end())
+			return iter->second(setup, progress);
+		else return E_NOTIMPL;
+	}
+};
+
+	
+
+
+class CId_Dispatcher {
+protected:
+	CSolution_Dispatcher<TSolution<2>> mDispatcher_2;
+	CSolution_Dispatcher<TSolution<4>> mDispatcher_4;
+	CSolution_Dispatcher<TSolution<6>> mDispatcher_6;
+	CSolution_Dispatcher<TSolution<8>> mDispatcher_8;
+	CSolution_Dispatcher<TSolution<Eigen::Dynamic>> mDispatcher_General;	
+public:
+	HRESULT do_solve(const GUID &solver_id, solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
+
+		auto call_the_solver = [&](auto &solver)->HRESULT {
+			return solver.Solve(solver_id, setup, progress);
+		};
+
+		switch (setup.problem_size) {
+			case 2: return call_the_solver(mDispatcher_2);
+			case 4: return call_the_solver(mDispatcher_4);
+			case 6: return call_the_solver(mDispatcher_6);
+			case 8: return call_the_solver(mDispatcher_8);
+			default: return call_the_solver(mDispatcher_General);
+		}
+
+		return E_FAIL;	//just to keep the compiler happy as we never get here
+	}
+};
 
 
 static CId_Dispatcher Id_Dispatcher;
 
 
-HRESULT IfaceCalling do_solve_model_parameters(const glucose::TSolver_Setup *setup) {	
-	return Id_Dispatcher.do_solve_model_parameters(setup);
+HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, solver::TSolver_Setup *setup, solver::TSolver_Progress *progress) {
+	return Id_Dispatcher.do_solve(*solver_id, *setup, *progress);
 }

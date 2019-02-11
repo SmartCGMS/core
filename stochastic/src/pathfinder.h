@@ -48,29 +48,27 @@
 #include <tbb/parallel_for.h>
 
 
-namespace Deterministic_Evolution_internal {
-	template <typename TSolution>
+namespace pathfinder_internal {
+	template <typename TUsed_Solution>
 	struct TCandidate {
-		TSolution current, next;
+		TUsed_Solution current, next;
 		size_t direction_index;
 		double velocity;
 		double current_fitness, next_fitness;
-		glucose::SMetric metric_calculator;	//de-facto, we create a pool of metrics so that we don't need to clone it for each thread or implement pushing and poping to and from the pool
 	};
 }
 
 #undef min
 
-template <typename TSolution, typename TFitness, size_t mPopulation_Size = 15, size_t mGeneration_Count = 200000, bool mUse_LD_Directions = true>	
-class CDeterministic_Evolution {
+template <typename TUsed_Solution, bool mUse_LD_Directions = true>// size_t mPopulation_Size = 15, size_t mGeneration_Count = 200000,	
+class CPathfinder {
 protected:
-	TFitness &mFitness;
-	glucose::SMetric &mMetric;
+	solver::TSolver_Setup mSetup;
 protected:
 	const double mInitial_Velocity = 1.0 / 3.0;
 	const double mVelocity_Increase = 1.05;
 
-	TAligned_Solution_Vector<TSolution> mDirections;
+	TAligned_Solution_Vector<TUsed_Solution> mDirections;
 	void Generate_Directions() {
 
 		const size_t solution_size = mLower_Bound.cols();
@@ -82,7 +80,7 @@ protected:
 		//zero means a desired, one-generation-only stagnation
 		//with this, we do something like mutation and crosbreeding combined
 
-		TSolution direction;
+		TUsed_Solution direction;
 		direction.resize(Eigen::NoChange, solution_size);
 		direction.setConstant(1.0);		//init to max so it overflow to min as the first pushed value
 
@@ -122,28 +120,31 @@ protected:
 		}
 	}
 protected:
-	TAligned_Solution_Vector<Deterministic_Evolution_internal::TCandidate<TSolution>> mPopulation;
+	TAligned_Solution_Vector<pathfinder_internal::TCandidate<TUsed_Solution>> mPopulation;
 protected:
-	const TSolution mLower_Bound;
-	const TSolution mUpper_Bound;
+	const TUsed_Solution mLower_Bound;
+	const TUsed_Solution mUpper_Bound;
 public:
-	CDeterministic_Evolution(const TAligned_Solution_Vector<TSolution> &initial_solutions, const TSolution &lower_bound, const TSolution &upper_bound, TFitness &fitness, glucose::SMetric &metric) :
-		mLower_Bound(lower_bound), mUpper_Bound(upper_bound), mPopulation(mPopulation_Size), mFitness(fitness), mMetric(metric) {
+	CPathfinder(const solver::TSolver_Setup &setup) : mSetup(setup), mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)) {		
+
+		//fill in the default values
+		if (setup.population_size == 0) mSetup.population_size = 1'000;
+		if (setup.max_generations == 0) mSetup.max_generations = 50;
 
 
 		//1. create the initial population
-		const size_t initialized_count = std::min(mPopulation_Size / 2, initial_solutions.size());
+		const size_t initialized_count = std::min(mSetup.population_size / 2, mSetup.hint_count);
 		//a) by storing suggested params
 		for (size_t i = 0; i < initialized_count; i++) {
-			mPopulation[i].current = mUpper_Bound.min(mLower_Bound.max(initial_solutions[i]));//also ensure the bounds
+			mPopulation[i].current = mUpper_Bound.min(mLower_Bound.max(Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size)));//also ensure the bounds
 		}
 
 		//b) by complementing it with randomly generated numbers
 		std::mt19937 MT_sequence;	//to be completely deterministic in every run we used the constant, default seed
 		std::uniform_real_distribution<double> uniform_distribution(0.0, 1.0);
 		const auto bounds_range = mUpper_Bound - mLower_Bound;
-		for (size_t i = initialized_count; i < mPopulation_Size; i++) {
-			TSolution tmp;
+		for (size_t i = initialized_count; i < mSetup.population_size; i++) {
+			TUsed_Solution tmp;
 
 			// this helps when we use generic solution vector, and does nothing when we use fixed lengths (since ColsAtCompileTime already equals bounds_range.cols(), so it gets
 			// optimized away at compile time
@@ -157,8 +158,7 @@ public:
 
 		//2. and calculate the metrics
 		for (auto &solution : mPopulation) {
-			solution.metric_calculator = mMetric.Clone(); //verify that clone is thread-safe if ever reworking this to parallel (but likely not needed for a performance reasons)
-			solution.current_fitness = mFitness.Calculate_Fitness(solution.current, solution.metric_calculator);
+			solution.current_fitness = mSetup.objective(mSetup.data, solution.current.data());
 			
 			//the main solving algorithm expects that next contains valid values from the last run of the generation
 			solution.next = solution.current;
@@ -171,23 +171,23 @@ public:
 		Generate_Directions();
 	};
 
-	TSolution Solve(volatile glucose::TSolver_Progress &progress) {
+	TUsed_Solution Solve(solver::TSolver_Progress &progress) {
 		progress.current_progress = 0;
-		progress.max_progress = mGeneration_Count;
+		progress.max_progress = mSetup.max_generations;
 
 		const size_t solution_size = mPopulation[0].next.cols();
 		
-		while ((progress.current_progress++ < mGeneration_Count) && (progress.cancelled == 0)) {
+		while ((progress.current_progress++ < mSetup.max_generations) && (progress.cancelled == 0)) {
 
 			//update the progress
-			const auto global_best = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const Deterministic_Evolution_internal::TCandidate<TSolution> &a, const Deterministic_Evolution_internal::TCandidate<TSolution> &b) {return a.current_fitness < b.current_fitness; });
+			const auto global_best = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const pathfinder_internal::TCandidate<TUsed_Solution> &a, const pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
 			progress.best_metric = global_best->current_fitness;			
 
 			//2. Calculate the next vectors and their fitness 
 			//In this step, current is read-only and next is write-only => no locking is needed
 			//as each next will be written just once.
 			//We assume that parallelization cost will get amortized
-			tbb::parallel_for(tbb::blocked_range<size_t>(size_t(0), mPopulation_Size), [=](const tbb::blocked_range<size_t> &r) {
+			tbb::parallel_for(tbb::blocked_range<size_t>(size_t(0), mSetup.population_size), [=](const tbb::blocked_range<size_t> &r) {
 
 
 				const size_t rend = r.end();
@@ -198,12 +198,11 @@ public:
 
 					//try to advance the current solution in the direction of the other solutions
 
-					for (size_t pop_iter = 0; pop_iter < mPopulation_Size; pop_iter++) {						
-						TSolution candidate = candidate_solution.current + candidate_solution.velocity*mDirections[candidate_solution.direction_index]*(candidate_solution.current - mPopulation[pop_iter].current);
+					for (size_t pop_iter = 0; pop_iter < mSetup.population_size; pop_iter++) {						
+						TUsed_Solution candidate = candidate_solution.current + candidate_solution.velocity*mDirections[candidate_solution.direction_index]*(candidate_solution.current - mPopulation[pop_iter].current);
 						candidate = mUpper_Bound.min(mLower_Bound.max(candidate));//also ensure the bounds
-
-						candidate_solution.metric_calculator->Reset();
-						const double fitness = mFitness.Calculate_Fitness(candidate, candidate_solution.metric_calculator);
+						
+						const double fitness = mSetup.objective(mSetup.data, candidate.data());
 						if (fitness < candidate_solution.next_fitness) {
 							candidate_solution.next = candidate;
 							candidate_solution.next_fitness = fitness;
@@ -235,7 +234,7 @@ public:
 		} //while in the progress
 
 		//find the best result and return it
-		const auto result = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const Deterministic_Evolution_internal::TCandidate<TSolution> &a, const Deterministic_Evolution_internal::TCandidate<TSolution> &b) {return a.current_fitness < b.current_fitness; });
+		const auto result = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const pathfinder_internal::TCandidate<TUsed_Solution> &a, const pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
 		return result->current;
 	
 	}
