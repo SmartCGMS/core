@@ -95,7 +95,12 @@ extern "C" HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, solver::
 	//hence traversing the array is easy to write and the overhead is neglible compared to the work of a solver
 	for (const auto &solver : solvers) {
 		if (solver.id == *solver_id)
-			return solver.func(*setup, *progress) ? S_OK : E_FAIL;
+			try {
+				return solver.func(*setup, *progress) ? S_OK : E_FAIL;
+			}
+			catch (...) {
+				return E_FAIL;
+			}
   }
 
 	return E_NOTIMPL;
