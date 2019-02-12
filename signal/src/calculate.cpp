@@ -373,7 +373,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 		}
 
 		metric->Reset();
-		mSolver_Progress = glucose::Null_Solver_Progress;
+		mSolver_Progress = solver::Null_Solver_Progress;
 		
 		glucose::SModel_Parameter_Vector solved_parameters{ mDefault_Parameters };
 
@@ -472,7 +472,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 	}
 }
 
-HRESULT IfaceCalling CCalculate_Filter::Get_Solver_Progress(glucose::TSolver_Progress* const progress)
+HRESULT IfaceCalling CCalculate_Filter::Get_Solver_Progress(solver::TSolver_Progress* const progress)
 {
 	// copy progress structure
 	*progress = mSolver_Progress;

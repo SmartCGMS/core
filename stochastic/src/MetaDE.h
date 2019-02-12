@@ -53,6 +53,7 @@
 
 #include <tbb/parallel_for.h>
 
+#include "../../../common/rtl/SolverLib.h"
 #include "../../../common/utils/DebugHelper.h"
 
 
@@ -143,7 +144,7 @@ protected:
 
 		std::chrono::duration<double, std::milli> secs_duration = mSolve_Stop_Time - mSolve_Start_Time;
 		const double secs = secs_duration.count()*0.001;
-		const double secs_per_iter = secs / static_cast<double>(mGeneration_Count);
+		const double secs_per_iter = secs / static_cast<double>(mSetup.max_generations);
 
 		dprintf((char*)"%g; %d; %f; %f\n", best_fitness_iter->best_fitness, best_fitness_dist, secs, secs_per_iter);
 	}
@@ -205,17 +206,16 @@ protected:
 	std::uniform_int_distribution<size_t> mUniform_Distribution_Strategy{ 0, static_cast<size_t>(metade::NStrategy::count)-1 };
 protected:
     solver::TSolver_Setup mSetup;
-	size_t mGeneration_Count;	//declared to avoid assigning to the mSetup that's not l-value
-	size_t mPopulation_Size;
 public:
-	CMetaDE(const solver::TSolver_Setup &setup) : mSetup(setup), mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)) {
-		//fill in the default values
-		mGeneration_Count = mSetup.max_generations != 0 ? mSetup.max_generations : 10'000;
-		mPopulation_Size = mSetup.population_size != 0 ? mSetup.population_size : 40;
+	CMetaDE(const solver::TSolver_Setup &setup) : mSetup(solver::Check_Default_Parameters(setup, 100'000, 100)), 
+				mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)) {				
 
+		mPopulation.resize(mSetup.population_size);
+		mPopulation_Best.resize(mSetup.population_size);
 
-		//1. create the initial population
-		const size_t initialized_count = std::min(mPopulation_Size / 2, mSetup.hint_count);
+		//1. create the initial population		
+		const size_t initialized_count = std::min(mSetup.population_size / 2, mSetup.hint_count);		
+
 		//a) by storing suggested params
 		for (size_t i = 0; i < initialized_count; i++) {
 			mPopulation[i].current = mUpper_Bound.min(mLower_Bound.max(Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size)));//also ensure the bounds
@@ -223,7 +223,7 @@ public:
 
 		//b) by complementing it with randomly generated numbers
 			const auto bounds_range = mUpper_Bound - mLower_Bound;
-		for (size_t i = initialized_count; i < mPopulation_Size; i++) {
+		for (size_t i = initialized_count; i < mSetup.population_size; i++) {
 			TUsed_Solution tmp;
 
 			// this helps when we use generic solution vector, and does nothing when we use fixed lengths (since ColsAtCompileTime already equals bounds_range.cols(), so it gets
@@ -250,6 +250,7 @@ public:
 		std::iota(mPopulation_Best.begin(), mPopulation_Best.end(), 0);
 	}
 
+
 	TUsed_Solution Solve(solver::TSolver_Progress &progress) {
 
 		if (mCollect_Statistics) {
@@ -258,13 +259,13 @@ public:
 		}
 
 		progress.current_progress = 0;
-		progress.max_progress = mGeneration_Count;
+		progress.max_progress = mSetup.max_generations;
 	
-		const size_t solution_size = mPopulation[0].next.cols();
+		const size_t solution_size = mPopulation[0].current.cols();
 		std::uniform_int_distribution<size_t> mUniform_Distribution_Solution{ 0, solution_size - 1 };	//this distribution must be local as solution can be dynamic
-		std::uniform_int_distribution<size_t> mUniform_Distribution_Population{ 0, mPopulation_Size - 1 };
+		std::uniform_int_distribution<size_t> mUniform_Distribution_Population{ 0, mSetup.population_size - 1 };
 
-		while ((progress.current_progress++ < mGeneration_Count) && (progress.cancelled == 0)) {
+		while ((progress.current_progress++ < mSetup.max_generations) && (progress.cancelled == 0)) {
 			//1. determine the best p-count parameters, without actually re-ordering the population
 			//we want to avoid of getting all params close together and likely loosing the population diversity
 			std::partial_sort(mPopulation_Best.begin(), mPopulation_Best.begin() + mPBest_Count, mPopulation_Best.end(),
@@ -277,7 +278,7 @@ public:
 			//In this step, current is read-only and next is write-only => no locking is needed
 			//as each next will be written just once.
 			//We assume that parallelization cost will get amortized
-			tbb::parallel_for(tbb::blocked_range<size_t>(size_t(0), mPopulation_Size), [=](const tbb::blocked_range<size_t> &r) {				
+			tbb::parallel_for(tbb::blocked_range<size_t>(size_t(0), mSetup.population_size), [=](const tbb::blocked_range<size_t> &r) {				
 
 				const size_t rend = r.end();
 				for (size_t iter = r.begin(); iter != rend; iter++) {

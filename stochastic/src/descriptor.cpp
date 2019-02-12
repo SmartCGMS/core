@@ -62,14 +62,12 @@ namespace halton_sequence {
 	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsHalton_Sequence);
 }
 
-namespace deterministic_evolution {
+namespace pathfinder {
 	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsPathfinder);
 }
 
 
-
-
-const std::vector<glucose::TSolver_Descriptor, tbb::tbb_allocator<glucose::TSolver_Descriptor>> solver_descriptions = { mt_metade::desc, halton_sequence::desc, halton_metade::desc, rnd_metade::desc, deterministic_evolution::desc };
+const std::vector<glucose::TSolver_Descriptor, tbb::tbb_allocator<glucose::TSolver_Descriptor>> solver_descriptions = { mt_metade::desc, halton_sequence::desc, halton_metade::desc, rnd_metade::desc, pathfinder::desc };
 
 
 HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {

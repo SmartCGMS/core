@@ -55,7 +55,7 @@ bool Solve_NLOpt(const solver::TSolver_Setup &setup, solver::TSolver_Progress &p
 
 
 
-template <pagmo2::EPagmo_Algo algo>
+template <pagmo2::NPagmo_Algo algo>
 bool Solve_Pagmo(solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
 	CPagmo2<algo> pagmo{ setup };
 	return pagmo.Solve(progress);
@@ -72,15 +72,18 @@ struct TSolver_Info{
 	TSolver_Func func;
 };
 
-const std::array<TSolver_Info, 8> solvers = {	TSolver_Info{newuoa::id, Solve_NLOpt<nlopt::LN_NEWUOA>},
-												TSolver_Info{bobyqa::id, Solve_NLOpt<nlopt::LN_BOBYQA>},
+const std::array<TSolver_Info, 11> solvers = {	TSolver_Info{nlopt::newuoa_id, Solve_NLOpt<nlopt::LN_NEWUOA>},
+												TSolver_Info{nlopt::bobyqa_id, Solve_NLOpt<nlopt::LN_BOBYQA>},
+												TSolver_Info{nlopt::simplex_id, Solve_NLOpt<nlopt::LN_NELDERMEAD>},
+												TSolver_Info{nlopt::subplex_id, Solve_NLOpt<nlopt::LN_SBPLX>},
+												TSolver_Info{nlopt::praxis_id, Solve_NLOpt<nlopt::LN_PRAXIS>},
 
-												TSolver_Info{pso::id, Solve_Pagmo<pagmo2::EPagmo_Algo::PSO>},
-												TSolver_Info{sade::id, Solve_Pagmo<pagmo2::EPagmo_Algo::SADE>},
-												TSolver_Info{de1220::id, Solve_Pagmo<pagmo2::EPagmo_Algo::DE1220>},
-												TSolver_Info{abc::id, Solve_Pagmo<pagmo2::EPagmo_Algo::ABC>},
-												TSolver_Info{cmaes::id, Solve_Pagmo<pagmo2::EPagmo_Algo::CMAES>},
-												TSolver_Info{xnes::id, Solve_Pagmo<pagmo2::EPagmo_Algo::xNES>},
+												TSolver_Info{pagmo::pso_id, Solve_Pagmo<pagmo2::NPagmo_Algo::PSO>},
+												TSolver_Info{pagmo::sade_id, Solve_Pagmo<pagmo2::NPagmo_Algo::SADE>},
+												TSolver_Info{pagmo::de1220_id, Solve_Pagmo<pagmo2::NPagmo_Algo::DE1220>},
+												TSolver_Info{pagmo::abc_id, Solve_Pagmo<pagmo2::NPagmo_Algo::ABC>},
+												TSolver_Info{pagmo::cmaes_id, Solve_Pagmo<pagmo2::NPagmo_Algo::CMAES>},
+												TSolver_Info{pagmo::xnes_id, Solve_Pagmo<pagmo2::NPagmo_Algo::xNES>},
 };
 
 

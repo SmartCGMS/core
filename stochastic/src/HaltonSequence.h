@@ -57,7 +57,7 @@ namespace Halton_internal {
 }
 
 
-template <typename TUsed_Solution>// typename TFitness, size_t max_iterations=50, size_t halton_count = 1000>
+template <typename TUsed_Solution>
 class CHalton_Sequence {
 	solver::TSolver_Setup mSetup;
 protected:
@@ -67,17 +67,13 @@ protected:
 	TUsed_Solution mInitial_Lower_Bound;
 	TUsed_Solution mInitial_Upper_Bound;
 public:
-	CHalton_Sequence(const solver::TSolver_Setup &setup) : mSetup(setup), mInitial_Lower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mInitial_Upper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)) {
-		//fill in the default values
-		if (setup.population_size == 0) mSetup.population_size = 1'000;
-		if (setup.max_generations == 0) mSetup.max_generations = 50;
-
-
+	CHalton_Sequence(const solver::TSolver_Setup &setup) : mSetup(solver::Check_Default_Parameters(setup, 50, 1'000)), mInitial_Lower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mInitial_Upper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)) {
+		
 		if (mSetup.hint_count == 0) {
 			mDefault_Solution = (mInitial_Upper_Bound + mInitial_Lower_Bound)*0.5;
 		}
 		else
-			mDefault_Solution = Vector_2_Solution<TUsed_Solution>(mSetup.hints[0]);
+			mDefault_Solution = Vector_2_Solution<TUsed_Solution>(mSetup.hints[0], mSetup.problem_size);
 	};
 
 	TUsed_Solution Solve(solver::TSolver_Progress &progress) {

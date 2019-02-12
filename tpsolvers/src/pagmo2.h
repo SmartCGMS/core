@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../common/iface/SolverIface.h"
+#include "../../../common/rtl/SolverLib.h"
 
 #define PAGMO_WITH_EIGEN3
 
@@ -18,7 +18,7 @@
 
 namespace pagmo2 {
 
-	enum class EPagmo_Algo {
+	enum class NPagmo_Algo {
 		PSO,
 		SADE,
 		DE1220,
@@ -80,17 +80,12 @@ namespace pagmo2 {
 }
 
 
-template <pagmo2::EPagmo_Algo mAlgo>
+template <pagmo2::NPagmo_Algo mAlgo>
 class CPagmo2 {
 protected:
-	solver::TSolver_Setup mSetup;	
-	size_t mGeneration_Count;
-	size_t mPopulation_Size;
+	solver::TSolver_Setup mSetup;		
 public:
-	CPagmo2(const solver::TSolver_Setup &setup) : mSetup(setup) {
-		//fill the default values
-		mGeneration_Count = mSetup.max_generations != 0 ? mSetup.max_generations : 10'000;
-		mPopulation_Size = mSetup.population_size != 0 ? mSetup.population_size : 40;
+	CPagmo2(const solver::TSolver_Setup &setup) : mSetup(solver::Check_Default_Parameters(setup, 10'000, 40)) {
 	};
 
 	bool Solve(solver::TSolver_Progress &progress) {
@@ -102,7 +97,7 @@ public:
 			pagmo::problem prob(pagmo2::TProblem{ mSetup, progress });
 
 			pagmo::algorithm algo{ solver };
-			pagmo::island isle{ algo, prob, mPopulation_Size };
+			pagmo::island isle{ algo, prob, mSetup.population_size };
 			isle.evolve();
 			isle.wait_check();
 
@@ -113,12 +108,12 @@ public:
 		};
 
 		switch (mAlgo) {
-			case pagmo2::EPagmo_Algo::PSO:		ps(pagmo::pso{ static_cast<unsigned int>(mGeneration_Count) }); break;
-			case pagmo2::EPagmo_Algo::SADE:		ps(pagmo::sade{ static_cast<unsigned int>(mGeneration_Count), 2, 1, mSetup.tolerance }); break;
-			case pagmo2::EPagmo_Algo::DE1220:	ps(pagmo::de1220{ static_cast<unsigned int>(mGeneration_Count), pagmo::de1220_statics<void>::allowed_variants, 1, mSetup.tolerance }); break;
-			case pagmo2::EPagmo_Algo::ABC:		ps(pagmo::bee_colony{ static_cast<unsigned int>(mGeneration_Count) });  break;
-			case pagmo2::EPagmo_Algo::CMAES:	ps(pagmo::cmaes{ static_cast<unsigned int>(mGeneration_Count), -1.0, -1.0, -1.0, -1.0, 0.5, mSetup.tolerance });  break;
-			case pagmo2::EPagmo_Algo::xNES:		ps(pagmo::xnes{ static_cast<unsigned int>(mGeneration_Count), -1.0, -1.0, -1.0, -1.0, mSetup.tolerance }); break;
+			case pagmo2::NPagmo_Algo::PSO:		ps(pagmo::pso{ static_cast<unsigned int>(mSetup.max_generations) }); break;
+			case pagmo2::NPagmo_Algo::SADE:		ps(pagmo::sade{ static_cast<unsigned int>(mSetup.max_generations), 2, 1, mSetup.tolerance }); break;
+			case pagmo2::NPagmo_Algo::DE1220:	ps(pagmo::de1220{ static_cast<unsigned int>(mSetup.max_generations), pagmo::de1220_statics<void>::allowed_variants, 1, mSetup.tolerance }); break;
+			case pagmo2::NPagmo_Algo::ABC:		ps(pagmo::bee_colony{ static_cast<unsigned int>(mSetup.max_generations) });  break;
+			case pagmo2::NPagmo_Algo::CMAES:	ps(pagmo::cmaes{ static_cast<unsigned int>(mSetup.max_generations), -1.0, -1.0, -1.0, -1.0, 0.5, mSetup.tolerance });  break;
+			case pagmo2::NPagmo_Algo::xNES:		ps(pagmo::xnes{ static_cast<unsigned int>(mSetup.max_generations), -1.0, -1.0, -1.0, -1.0, mSetup.tolerance }); break;
 		}
 		
 		for (size_t i = 0; i < champion_x.size(); i++)		//enforce bounds as pagmo does not do so - pagmo prevents us from doing so permanently in the objective function/object of the TProblem class

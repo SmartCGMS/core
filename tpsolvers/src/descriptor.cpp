@@ -42,41 +42,27 @@
 #include "../../../common/rtl/descriptor_utils.h"
 #include <array>
 
-namespace newuoa {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsNewUOA);
+namespace nlopt {
+	const glucose::TSolver_Descriptor newuoa_desc = Describe_Non_Specialized_Solver(newuoa_id, dsNewUOA);
+	const glucose::TSolver_Descriptor bobyqa_desc = Describe_Non_Specialized_Solver(bobyqa_id, dsBOBYQA);
+	const glucose::TSolver_Descriptor simplex_desc = Describe_Non_Specialized_Solver(simplex_id, dsSimplex);
+	const glucose::TSolver_Descriptor subplex_desc = Describe_Non_Specialized_Solver(subplex_id, dsSubplex);
+	const glucose::TSolver_Descriptor praxis_desc = Describe_Non_Specialized_Solver(praxis_id, dsPraxis);
 }
 
-namespace bobyqa {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsBOBYQA);
-}
-
-namespace pso {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsPSO);
-}
-
-namespace sade {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsSADE);
-}
-
-namespace de1220 {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsDE1220);
-}
-
-namespace abc {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsABC);
-}
-
-namespace cmaes {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsCMAES);
-}
-
-namespace xnes {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsXNES);
+namespace pagmo {
+	const glucose::TSolver_Descriptor pso_desc = Describe_Non_Specialized_Solver(pso_id, dsPSO);
+	const glucose::TSolver_Descriptor sade_desc = Describe_Non_Specialized_Solver(sade_id, dsSADE);
+	const glucose::TSolver_Descriptor de1220_desc = Describe_Non_Specialized_Solver(de1220_id, dsDE1220);
+	const glucose::TSolver_Descriptor abc_desc = Describe_Non_Specialized_Solver(abc_id, dsABC);
+	const glucose::TSolver_Descriptor cmaes_desc = Describe_Non_Specialized_Solver(cmaes_id, dsCMAES);
+	const glucose::TSolver_Descriptor xnes_desc = Describe_Non_Specialized_Solver(xnes_id, dsXNES);
 }
 
 
 
-const std::array<glucose::TSolver_Descriptor, 8> solver_descriptions = { newuoa::desc, bobyqa::desc, pso::desc, sade::desc, de1220::desc, abc::desc, cmaes::desc, xnes::desc };
+const std::array<glucose::TSolver_Descriptor, 11> solver_descriptions = { nlopt::newuoa_desc, nlopt::bobyqa_desc, nlopt::simplex_desc, nlopt::subplex_desc, nlopt::praxis_desc,
+																		 pagmo::pso_desc, pagmo::sade_desc, pagmo::de1220_desc, pagmo::abc_desc, pagmo::cmaes_desc, pagmo::xnes_desc };
 
 
 HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {

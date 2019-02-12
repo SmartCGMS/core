@@ -80,7 +80,7 @@ public:
 						
 		mSolver_Id_Map[halton_sequence::id] = std::bind(&Solve_By_Class<CHalton_Sequence<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2); 
 		
-		mSolver_Id_Map[deterministic_evolution::id] = std::bind(&Solve_By_Class<CPathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+		mSolver_Id_Map[pathfinder::id] = std::bind(&Solve_By_Class<CPathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 	}
 
 	HRESULT Solve(const GUID &solver_id, solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {

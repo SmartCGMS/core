@@ -85,7 +85,7 @@ protected:
 	void Configure(glucose::SFilter_Parameters shared_configuration);
 protected:
 	bool mWarm_Reset_Done = false;
-	glucose::TSolver_Progress mSolver_Progress;
+	solver::TSolver_Progress mSolver_Progress;
 	glucose::TSolver_Status mSolver_Status;
 protected:
 	std::map<int64_t, std::unique_ptr<CTime_Segment>> mSegments;
@@ -99,7 +99,7 @@ public:
 
 	virtual HRESULT Run(glucose::IFilter_Configuration* configuration) override;
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
-	virtual HRESULT IfaceCalling Get_Solver_Progress(glucose::TSolver_Progress* const progress) override;
+	virtual HRESULT IfaceCalling Get_Solver_Progress(solver::TSolver_Progress* const progress) override;
 	virtual HRESULT IfaceCalling Get_Solver_Information(GUID* const calculated_signal_id, glucose::TSolver_Status* const status) const override;
 	virtual HRESULT IfaceCalling Cancel_Solver() override;
 };

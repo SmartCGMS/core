@@ -125,12 +125,11 @@ protected:
 	const TUsed_Solution mLower_Bound;
 	const TUsed_Solution mUpper_Bound;
 public:
-	CPathfinder(const solver::TSolver_Setup &setup) : mSetup(setup), mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)) {		
-
-		//fill in the default values
-		if (setup.population_size == 0) mSetup.population_size = 1'000;
-		if (setup.max_generations == 0) mSetup.max_generations = 50;
-
+	CPathfinder(const solver::TSolver_Setup &setup) : 
+				mSetup(solver::Check_Default_Parameters(setup, 20'000, 15)), 
+				mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)) {
+		
+		mPopulation.resize(mSetup.population_size);
 
 		//1. create the initial population
 		const size_t initialized_count = std::min(mSetup.population_size / 2, mSetup.hint_count);
@@ -142,6 +141,8 @@ public:
 		//b) by complementing it with randomly generated numbers
 		std::mt19937 MT_sequence;	//to be completely deterministic in every run we used the constant, default seed
 		std::uniform_real_distribution<double> uniform_distribution(0.0, 1.0);
+		CHalton_Device halton;
+
 		const auto bounds_range = mUpper_Bound - mLower_Bound;
 		for (size_t i = initialized_count; i < mSetup.population_size; i++) {
 			TUsed_Solution tmp;
@@ -175,7 +176,7 @@ public:
 		progress.current_progress = 0;
 		progress.max_progress = mSetup.max_generations;
 
-		const size_t solution_size = mPopulation[0].next.cols();
+		const size_t solution_size = mPopulation[0].current.cols();
 		
 		while ((progress.current_progress++ < mSetup.max_generations) && (progress.cancelled == 0)) {
 

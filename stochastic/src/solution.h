@@ -50,7 +50,7 @@ template <typename TUsed_Solution>
 using TAligned_Solution_Vector = std::vector<TUsed_Solution, AlignmentAllocator<TUsed_Solution>>;
 
 template <typename TUsed_Solution>
-TUsed_Solution Vector_2_Solution(const double *vector, const int n) {
+TUsed_Solution Vector_2_Solution(const double *vector, const size_t n) {
 	//to avoid all the complications with Eigein-class deriving, let's do this as a standalone function
 	TUsed_Solution result;
 	result.resize(Eigen::NoChange, n);
