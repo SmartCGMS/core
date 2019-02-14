@@ -36,7 +36,7 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "sincos_geneator.h"
+#include "sincos_generator.h"
 #include "descriptor.h"
 
 #include "../../../common/rtl/rattime.h"
