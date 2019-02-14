@@ -49,8 +49,7 @@
 template <nlopt::algorithm algo>
 bool Solve_NLOpt(const solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
 	CNLOpt<algo> nlopt{ setup };
-	return nlopt.Solve(progress);
-	return S_OK;
+	return nlopt.Solve(progress);	
 }
 
 
@@ -58,8 +57,7 @@ bool Solve_NLOpt(const solver::TSolver_Setup &setup, solver::TSolver_Progress &p
 template <pagmo2::NPagmo_Algo algo>
 bool Solve_Pagmo(solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
 	CPagmo2<algo> pagmo{ setup };
-	return pagmo.Solve(progress);
-	return S_OK;
+	return pagmo.Solve(progress);	
 }
 
 
@@ -95,7 +93,7 @@ extern "C" HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, solver::
 	//hence traversing the array is easy to write and the overhead is neglible compared to the work of a solver
 	for (const auto &solver : solvers) {
 		if (solver.id == *solver_id)
-			try {
+			try {			
 				return solver.func(*setup, *progress) ? S_OK : E_FAIL;
 			}
 			catch (...) {

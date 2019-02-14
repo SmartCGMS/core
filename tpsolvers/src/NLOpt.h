@@ -140,13 +140,13 @@ public:
 		//we need expression templates to reduce the overhead of remapping
 		if (mDimension_Remap.size() == mSetup.problem_size) opt.set_min_objective(NLOpt_Top_Solution_Objective_Function<false>, &data);
 			else opt.set_min_objective(NLOpt_Top_Solution_Objective_Function<true>, &data);
-
+		/*
 		opt.set_lower_bounds(mRemapped_Lower_Top_Bound);
 		opt.set_upper_bounds(mRemapped_Upper_Top_Bound);
 		
-		opt.set_ftol_abs(mSetup.tolerance);
-		if (mSetup.max_generations != 0) opt.set_maxeval(static_cast<int>(mSetup.max_generations));
-
+		opt.set_ftol_abs(mSetup.tolerance);		
+		if (mSetup.max_generations != 0) opt.set_maxeval(static_cast<int>(mSetup.max_generations)); 
+		*/
 		progress.max_progress = opt.get_maxeval();
 		if (progress.max_progress == 0) progress.max_progress = 100;
 		progress.current_progress = 0;
@@ -157,7 +157,14 @@ public:
 			x.push_back(mInitial_Solution[mDimension_Remap[i]]);
 
 		double minf = std::numeric_limits<double>::max();
-		nlopt::result result = opt.optimize(x, minf); 
+		nlopt::result result;
+		try {
+			result = opt.optimize(x, minf);
+		}
+		catch (nlopt::roundoff_limited) {
+			//just mask it as accordingly to the manual the result is useable
+			result = nlopt::result::FTOL_REACHED;
+		}
 		
 		if (nlopt_tx::print_statistics) {
 			const size_t count = nlopt_tx::eval_counter;	//https://stackoverflow.com/questions/27314485/use-of-deleted-function-error-with-stdatomic-int

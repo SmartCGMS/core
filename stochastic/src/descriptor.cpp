@@ -59,7 +59,7 @@ namespace rnd_metade {
 
 
 namespace halton_sequence {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsHalton_Sequence);
+	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsHalton_Zooming);
 }
 
 namespace pathfinder {
