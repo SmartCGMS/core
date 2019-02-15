@@ -124,6 +124,8 @@ public:
 
 	bool Solve(solver::TSolver_Progress &progress) {
 
+		if ((algo == nlopt::LN_PRAXIS) && (mDimension_Remap.size() < 2)) return false;	//NLopt lib does not actully check the required N
+
 		if (nlopt_tx::print_statistics) nlopt_tx::eval_counter = 0;
 
 		nlopt::opt opt{ algo, static_cast<unsigned int>(mDimension_Remap.size()) };
@@ -140,13 +142,13 @@ public:
 		//we need expression templates to reduce the overhead of remapping
 		if (mDimension_Remap.size() == mSetup.problem_size) opt.set_min_objective(NLOpt_Top_Solution_Objective_Function<false>, &data);
 			else opt.set_min_objective(NLOpt_Top_Solution_Objective_Function<true>, &data);
-		/*
+		
 		opt.set_lower_bounds(mRemapped_Lower_Top_Bound);
 		opt.set_upper_bounds(mRemapped_Upper_Top_Bound);
 		
 		opt.set_ftol_abs(mSetup.tolerance);		
 		if (mSetup.max_generations != 0) opt.set_maxeval(static_cast<int>(mSetup.max_generations)); 
-		*/
+		
 		progress.max_progress = opt.get_maxeval();
 		if (progress.max_progress == 0) progress.max_progress = 100;
 		progress.current_progress = 0;
