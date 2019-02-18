@@ -47,6 +47,8 @@
 #include <random>
 #include <tbb/parallel_for.h>
 
+#include "third party/little-big-int.hpp"
+#include <math.h>
 
 namespace pathfinder_internal {
 	template <typename TUsed_Solution>
@@ -60,7 +62,7 @@ namespace pathfinder_internal {
 
 #undef min
 
-template <typename TUsed_Solution, bool mUse_LD_Directions = true>// size_t mPopulation_Size = 15, size_t mGeneration_Count = 200000,	
+template <typename TUsed_Solution, bool mUse_LD_Directions, bool mUse_LD_Population>// size_t mPopulation_Size = 15, size_t mGeneration_Count = 200000,	
 class CPathfinder {
 protected:
 	solver::TSolver_Setup mSetup;
@@ -119,6 +121,180 @@ protected:
 			}
 		}
 	}
+
+	void Generate_LD_Population(const size_t initialized_count) {
+		std::mt19937 MT_sequence;	//to be completely deterministic in every run we used the constant, default seed
+		std::uniform_real_distribution<double> uniform_distribution(0.0, 1.0);
+		CHalton_Device halton;
+
+		const auto bounds_range = mUpper_Bound - mLower_Bound;
+
+		TAligned_Solution_Vector<TUsed_Solution> solutions;
+
+		std::vector<double> fitness;
+		std::vector<size_t> fi;
+		for (size_t i = 0; i < mSetup.population_size*5; i++) {
+			TUsed_Solution tmp;
+			tmp.resize(Eigen::NoChange, bounds_range.cols());
+
+			for (auto j = 0; j < bounds_range.cols(); j++)
+				tmp[j] = uniform_distribution(MT_sequence);
+
+			solutions.push_back(tmp);
+			fitness.push_back(mSetup.objective(mSetup.data, solutions[i].data()));
+			fi.push_back(i);
+		}
+
+
+		std::sort(fi.begin(), fi.end(), [&fitness](const size_t a, const size_t b) {return fitness[a] < fitness[b]; });
+
+		for (size_t i = initialized_count; i < mSetup.population_size; i++)
+			mPopulation[i].current = solutions[fi[i- initialized_count]];
+
+
+
+/*		for (size_t i = initialized_count; i < mSetup.population_size; i++) {
+			TUsed_Solution tmp;
+
+			// this helps when we use generic solution vector, and does nothing when we use fixed lengths (since ColsAtCompileTime already equals bounds_range.cols(), so it gets
+			// optimized away at compile time
+			tmp.resize(Eigen::NoChange, bounds_range.cols());
+
+			for (auto j = 0; j < bounds_range.cols(); j++)
+				tmp[j] = uniform_distribution(MT_sequence);
+
+			mPopulation[i].current = mLower_Bound + tmp.cwiseProduct(bounds_range);
+		}
+*/
+	}
+
+	void discretize(const size_t index, TUsed_Solution &sample, TAligned_Solution_Vector<TUsed_Solution> &solutions, std::vector<double> &steps) {
+		const auto bounds_range = mUpper_Bound - mLower_Bound;
+		
+		
+
+		for (const auto &step : steps) {
+			TUsed_Solution tmp = sample;
+			tmp[index] = step;
+
+			if (index > 0) discretize(index - 1, tmp, solutions, steps);
+				else solutions.push_back(mLower_Bound + tmp.cwiseProduct(bounds_range));
+		}
+	};
+
+	void Generate_Deterministic_Population(const size_t initialized_count) {
+		
+		const double stepping = 0.001;//1.0/static_cast<double>(mSetup.population_size);
+		double stepped = stepping*0.5;
+		std::vector<double> steps; 
+		//for (size_t i = 0; i < steps.size(); i++)
+		while (stepped < 1.0) {
+			steps.push_back(stepped);
+			stepped += stepping;
+		}
+
+		TAligned_Solution_Vector<TUsed_Solution> solutions;
+		TUsed_Solution tmp;
+		tmp.resize(Eigen::NoChange, mUpper_Bound.cols());
+		discretize(mUpper_Bound.cols() - 1, tmp, solutions, steps);
+		
+
+		std::vector<double> fitness;
+		std::vector<size_t> fi;
+		for (size_t i = 0; i < solutions.size(); i++) {
+			fitness.push_back(mSetup.objective(mSetup.data, solutions[i].data()));
+			fi.push_back(i);
+		}
+		
+
+		std::sort(fi.begin(), fi.end(), [&fitness](const size_t a, const size_t b) {return fitness[a] < fitness[b]; });
+
+		for (size_t i = initialized_count; i < mSetup.population_size; i++)
+			mPopulation[i].current = solutions[fi[i- initialized_count]];
+
+		return;
+		
+/*
+
+		const auto bounds_range = mUpper_Bound - mLower_Bound;
+
+		//const double step = 3.14*0.5*0.75 / static_cast<double>(mSetup.population_size - initialized_count);
+		const double step = 0.6;
+
+		double stepped = 0.0;
+
+		for (size_t i = initialized_count; i < mSetup.population_size; i++) {
+
+			TUsed_Solution tmp;
+			tmp.resize(Eigen::NoChange, bounds_range.cols());
+
+			
+			for (auto j = 0; j < bounds_range.cols(); j++) {
+
+				const double di = static_cast<double>(i)*stepped;
+				double cand_val = 0.5 + 0.25 * sin(di);
+				while (cand_val < 0.0)
+					cand_val += 1.0;
+				while (cand_val > 1.0)
+					cand_val -= 1.0;
+
+				tmp[j] = cand_val;
+
+				stepped += step;
+			}
+			
+			mPopulation[i].current = mLower_Bound + tmp.cwiseProduct(bounds_range);
+		}
+
+
+		return;
+
+
+		double N = static_cast<double>(mSetup.population_size - initialized_count);	//how many points we have to generate
+		const BigUint axis_intersections{ static_cast<BigUint::Block>(std::max(2.0, ceil(pow(N, 1.0 / static_cast<double>(mSetup.problem_size))))) };					//at how many places we have to intersect each axis - at leas two are needed		
+		//Hence the ideal number of points would be the number of axis intersections to the power of problem_size.
+		//While e.g, problem size 2 with 3 intersections would create a nice rectangle with 9 points, it is not feasible e.g., for a problem size like 100. Therefore, we must use a big-integer library to do the trick.		 
+
+		BigUint ideal_point_count{ 1};
+		//do the power
+		for (size_t i = 0; i < mSetup.problem_size; i++)
+			ideal_point_count *= axis_intersections;
+
+		const BigUint real_point_count{ static_cast<BigUint::Block>(N) };
+		const BigUint stepping = ideal_point_count / real_point_count;
+		BigUint coord{ 0 };
+
+		const double axis_stepping = 1.0 / static_cast<double>(axis_intersections.getSimple()+1);
+		const double axis_skew = 1.0 / (axis_stepping*0.8);
+		size_t index = initialized_count;		
+
+		std::uniform_real_distribution<double> uniform_distribution(0.0, 1.0);
+		double last_skew = 1.0;
+		while (coord < real_point_count) {
+			TUsed_Solution tmp;
+			tmp.resize(Eigen::NoChange, bounds_range.cols());
+
+			BigUint tmp_coord = coord;
+			for (auto j = 0; j < bounds_range.cols(); j++) {
+				const size_t axis_coord = (tmp_coord % axis_intersections).getSimple();
+				tmp_coord /= axis_intersections;
+
+				tmp[j] = trunc(axis_stepping * static_cast<double>(axis_coord + 1) * last_skew);
+				
+				last_skew *= 1.033;
+			}				
+			
+
+			mPopulation[index].current = mLower_Bound + tmp.cwiseProduct(bounds_range);
+			index++;
+
+			coord += stepping;
+		}
+
+		assert(index == mPopulation.size());
+		*/
+	}
+
 protected:
 	TAligned_Solution_Vector<pathfinder_internal::TCandidate<TUsed_Solution>> mPopulation;
 protected:
@@ -139,23 +315,8 @@ public:
 		}
 
 		//b) by complementing it with randomly generated numbers
-		std::mt19937 MT_sequence;	//to be completely deterministic in every run we used the constant, default seed
-		std::uniform_real_distribution<double> uniform_distribution(0.0, 1.0);
-		CHalton_Device halton;
-
-		const auto bounds_range = mUpper_Bound - mLower_Bound;
-		for (size_t i = initialized_count; i < mSetup.population_size; i++) {
-			TUsed_Solution tmp;
-
-			// this helps when we use generic solution vector, and does nothing when we use fixed lengths (since ColsAtCompileTime already equals bounds_range.cols(), so it gets
-			// optimized away at compile time
-			tmp.resize(Eigen::NoChange, bounds_range.cols());
-
-			for (auto j = 0; j < bounds_range.cols(); j++)
-				tmp[j] = uniform_distribution(MT_sequence);
-
-			mPopulation[i].current = mLower_Bound + tmp.cwiseProduct(bounds_range);
-		}
+		if (mUse_LD_Population) Generate_LD_Population(initialized_count);
+			else Generate_Deterministic_Population(initialized_count);
 
 		//2. and calculate the metrics
 		for (auto &solution : mPopulation) {
