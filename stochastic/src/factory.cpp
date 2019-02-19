@@ -61,7 +61,7 @@ HRESULT Eval_Pathfinder_Angle(solver::TSolver_Setup &setup, solver::TSolver_Prog
 	double global_fitness = std::numeric_limits<double>::max();
 	double best_angle = std::numeric_limits<double>::quiet_NaN();
 
-	double stepped = 0.0;
+	double stepped = stepping;//0.0 is illformed solution
 	const double pi = atan(1.0)*4.0;
 	while (stepped <= 2.0*pi) {
 		CPathfinder<TUsed_Solution, false, false> solver{ setup, stepped };
@@ -79,6 +79,16 @@ HRESULT Eval_Pathfinder_Angle(solver::TSolver_Setup &setup, solver::TSolver_Prog
 
 	
 	std::cout << "best angle: " << best_angle << std::endl;
+	std::cout << "best fitness: " << global_fitness << std::endl;
+
+	{
+		CPathfinder<TUsed_Solution, false, false> solver{ setup, 0.45 };
+		TUsed_Solution local_solution = solver.Solve(progress);
+		const double local_fitness = setup.objective(setup.data, local_solution.data());
+		std::cout << "0.45 fitness: " << local_fitness << std::endl;
+	}
+
+	
 
 	std::copy(best_solution.data(), best_solution.data() + best_solution.cols(), setup.solution);
 	return progress.cancelled == 0 ? S_OK : E_ABORT;
@@ -111,8 +121,8 @@ public:
 						
 		mSolver_Id_Map[halton_sequence::id] = std::bind(&Solve_By_Class<CHalton_Sequence<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2); 
 		
-		mSolver_Id_Map[pathfinder::id] = std::bind(&Eval_Pathfinder_Angle<TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
-		//mSolver_Id_Map[pathfinder::id] = std::bind(&Solve_By_Class<CPathfinder<TUsed_Solution, false, false>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+		//mSolver_Id_Map[pathfinder::id] = std::bind(&Eval_Pathfinder_Angle<TUsed_Solution>, std::placeholders::_1, std::placeholders::_2); -- diagnostic
+		mSolver_Id_Map[pathfinder::id] = std::bind(&Solve_By_Class<CPathfinder<TUsed_Solution, false, false>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 		mSolver_Id_Map[pathfinder::id_LD_Dir] = std::bind(&Solve_By_Class<CPathfinder<TUsed_Solution, true, false>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 		mSolver_Id_Map[pathfinder::id_LD_Pop] = std::bind(&Solve_By_Class<CPathfinder<TUsed_Solution, false, true>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 		mSolver_Id_Map[pathfinder::id_LD_Dir_Pop] = std::bind(&Solve_By_Class<CPathfinder<TUsed_Solution, true, true>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
