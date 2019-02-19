@@ -47,7 +47,6 @@
 #include <random>
 #include <tbb/parallel_for.h>
 
-#include "third party/little-big-int.hpp"
 #include <math.h>
 
 namespace pathfinder_internal {
