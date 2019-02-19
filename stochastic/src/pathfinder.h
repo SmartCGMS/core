@@ -67,6 +67,7 @@ class CPathfinder {
 protected:
 	solver::TSolver_Setup mSetup;
 protected:
+	double mAngle_Stepping = 3.14*2.0 / 37.0;
 	const double mInitial_Velocity = 1.0 / 3.0;
 	const double mVelocity_Increase = 1.05;
 
@@ -182,11 +183,12 @@ protected:
 		}
 	};
 
-	void Generate_Deterministic_Population(const size_t initialized_count) {
+	//when calling this method, be aware that the total number of fintess calls will be
+	//(1/stepping)^problem_size, so it may be easily become unfeasible, e.g. for stepping 0.001 and problem size 100
+	void Generate_Discretized_Population(const size_t initialized_count, const double stepping) {
 		
-		const double stepping = 0.001;//1.0/static_cast<double>(mSetup.population_size);
-		double stepped = stepping*0.5;
-		std::vector<double> steps; 
+		double stepped = stepping * 0.5;
+		std::vector<double> steps;
 		//for (size_t i = 0; i < steps.size(); i++)
 		while (stepped < 1.0) {
 			steps.push_back(stepped);
@@ -197,7 +199,7 @@ protected:
 		TUsed_Solution tmp;
 		tmp.resize(Eigen::NoChange, mUpper_Bound.cols());
 		discretize(mUpper_Bound.cols() - 1, tmp, solutions, steps);
-		
+
 
 		std::vector<double> fitness;
 		std::vector<size_t> fi;
@@ -205,34 +207,48 @@ protected:
 			fitness.push_back(mSetup.objective(mSetup.data, solutions[i].data()));
 			fi.push_back(i);
 		}
-		
+
 
 		std::sort(fi.begin(), fi.end(), [&fitness](const size_t a, const size_t b) {return fitness[a] < fitness[b]; });
 
 		for (size_t i = initialized_count; i < mSetup.population_size; i++)
-			mPopulation[i].current = solutions[fi[i- initialized_count]];
+			mPopulation[i].current = solutions[fi[i - initialized_count]];
+	}
 
-		return;
-		
-/*
+	void Generate_Spheric_Population(const size_t initialized_count) {
+
 
 		const auto bounds_range = mUpper_Bound - mLower_Bound;
 
+		TAligned_Solution_Vector<TUsed_Solution> solutions;
+		std::vector<double> fitness;
+		std::vector<size_t> fi;
+
 		//const double step = 3.14*0.5*0.75 / static_cast<double>(mSetup.population_size - initialized_count);
-		const double step = 0.6;
+		//const size_t step_count = std::min(mSetup.population_size * 5, static_cast<size_t>(5 * 37));
+		const size_t step_count = std::max(mSetup.population_size, static_cast<size_t>(655));	//so that 655/37 gives 17.7 angle won't be stepped equally
+		const double stepping = 1.0 / static_cast<double>(step_count);
+		const double angle_stepping = mAngle_Stepping;// 3.14*2.0 / 37.0;
 
 		double stepped = 0.0;
+		double angle_stepped = 0.0;
 
-		for (size_t i = initialized_count; i < mSetup.population_size; i++) {
+		for (size_t i = 0; i < step_count; i++) {
 
 			TUsed_Solution tmp;
 			tmp.resize(Eigen::NoChange, bounds_range.cols());
 
-			
+
 			for (auto j = 0; j < bounds_range.cols(); j++) {
 
-				const double di = static_cast<double>(i)*stepped;
-				double cand_val = 0.5 + 0.25 * sin(di);
+				//const double di = static_cast<double>(i)*stepped;
+				double cand_val = 0.5;
+
+
+				if (j & 1 == 0) cand_val += stepped * sin(angle_stepped);
+				else cand_val += stepped * cos(angle_stepped);
+
+
 				while (cand_val < 0.0)
 					cand_val += 1.0;
 				while (cand_val > 1.0)
@@ -240,20 +256,37 @@ protected:
 
 				tmp[j] = cand_val;
 
-				stepped += step;
+				stepped += stepping;
+				angle_stepped += angle_stepping;
 			}
-			
-			mPopulation[i].current = mLower_Bound + tmp.cwiseProduct(bounds_range);
+
+			tmp = mLower_Bound + tmp.cwiseProduct(bounds_range);
+			fitness.push_back(mSetup.objective(mSetup.data, tmp.data()));
+			solutions.push_back(tmp);
+			fi.push_back(i);
 		}
 
+		std::sort(fi.begin(), fi.end(), [&fitness](const size_t a, const size_t b) {return fitness[a] < fitness[b]; });
 
-		return;
+		for (size_t i = initialized_count; i < mSetup.population_size; i++)
+			mPopulation[i].current = solutions[fi[i - initialized_count]];
 
 
-		double N = static_cast<double>(mSetup.population_size - initialized_count);	//how many points we have to generate
+	}
+
+	void Generate_Deterministic_Population(const size_t initialized_count) {
+		const auto bounds_range = mUpper_Bound - mLower_Bound;
+
+		//double N = static_cast<double>(mSetup.population_size - initialized_count);	//how many points we have to generate
+		double N = std::max(static_cast<double>(mSetup.population_size*5), 655.0);
 		const BigUint axis_intersections{ static_cast<BigUint::Block>(std::max(2.0, ceil(pow(N, 1.0 / static_cast<double>(mSetup.problem_size))))) };					//at how many places we have to intersect each axis - at leas two are needed		
 		//Hence the ideal number of points would be the number of axis intersections to the power of problem_size.
 		//While e.g, problem size 2 with 3 intersections would create a nice rectangle with 9 points, it is not feasible e.g., for a problem size like 100. Therefore, we must use a big-integer library to do the trick.		 
+
+
+		TAligned_Solution_Vector<TUsed_Solution> solutions;
+		std::vector<double> fitness;
+		std::vector<size_t> fi;
 
 		BigUint ideal_point_count{ 1};
 		//do the power
@@ -266,10 +299,10 @@ protected:
 
 		const double axis_stepping = 1.0 / static_cast<double>(axis_intersections.getSimple()+1);
 		const double axis_skew = 1.0 / (axis_stepping*0.8);
-		size_t index = initialized_count;		
 
 		std::uniform_real_distribution<double> uniform_distribution(0.0, 1.0);
 		double last_skew = 1.0;
+		size_t i = 0;
 		while (coord < real_point_count) {
 			TUsed_Solution tmp;
 			tmp.resize(Eigen::NoChange, bounds_range.cols());
@@ -285,14 +318,19 @@ protected:
 			}				
 			
 
-			mPopulation[index].current = mLower_Bound + tmp.cwiseProduct(bounds_range);
-			index++;
+			tmp = mLower_Bound + tmp.cwiseProduct(bounds_range);
+			fitness.push_back(mSetup.objective(mSetup.data, tmp.data()));
+			solutions.push_back(tmp);
+			fi.push_back(i);
+			i++;
 
 			coord += stepping;
 		}
 
-		assert(index == mPopulation.size());
-		*/
+		std::sort(fi.begin(), fi.end(), [&fitness](const size_t a, const size_t b) {return fitness[a] < fitness[b]; });
+
+		for (size_t i = initialized_count; i < mSetup.population_size; i++)
+			mPopulation[i].current = solutions[fi[i - initialized_count]];
 	}
 
 protected:
@@ -301,7 +339,8 @@ protected:
 	const TUsed_Solution mLower_Bound;
 	const TUsed_Solution mUpper_Bound;
 public:
-	CPathfinder(const solver::TSolver_Setup &setup) : 
+	CPathfinder(const solver::TSolver_Setup &setup, const double angle_stepping = 3.14*2.0 / 37.0) :
+				mAngle_Stepping(angle_stepping),
 				mSetup(solver::Check_Default_Parameters(setup, 20'000, 15)), 
 				mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)) {
 		
@@ -316,7 +355,7 @@ public:
 
 		//b) by complementing it with randomly generated numbers
 		if (mUse_LD_Population) Generate_LD_Population(initialized_count);
-			else Generate_Deterministic_Population(initialized_count);
+			else Generate_Spheric_Population/*Generate_Deterministic_Population*/(initialized_count);
 
 		//2. and calculate the metrics
 		for (auto &solution : mPopulation) {
