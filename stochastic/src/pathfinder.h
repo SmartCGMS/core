@@ -70,11 +70,15 @@ protected:
 	const double mInitial_Velocity = 1.0 / 3.0;
 	const double mVelocity_Increase = 1.05;
 
+	const size_t mMax_Deterministic_Directions_By_Problem_Size = 12;	//half a million of deterministic directions
 	TAligned_Solution_Vector<TUsed_Solution> mDirections;
 	void Generate_Directions() {
 
 		const size_t solution_size = mLower_Bound.cols();
-		const size_t combination_count = static_cast<size_t>(pow(3.0, static_cast<double>(solution_size)));			
+		const size_t combination_count = static_cast<size_t>(pow(3.0, static_cast<double>(std::min(solution_size, mMax_Deterministic_Directions_By_Problem_Size))));
+		const bool override_directions_by_problem_size = solution_size > mMax_Deterministic_Directions_By_Problem_Size;
+			//Actually, if we would not cache mDirections, but calculate them on the fly, we could stay deterministic. However, the number of directions would be so
+			//big that it would make the calculation unfeasible.
 
 		//1. generate the deterministic, uniform direction vectors
 
@@ -86,31 +90,33 @@ protected:
 		direction.resize(Eigen::NoChange, solution_size);
 		direction.setConstant(1.0);		//init to max so it overflow to min as the first pushed value
 
-		for (size_t combination = 0; combination < combination_count; combination++) {
-			auto add_one = [this](double &number)->bool {	//returns carry
-				bool carry = false;
+		if (!override_directions_by_problem_size) {
+			for (size_t combination = 0; combination < combination_count; combination++) {
+				auto add_one = [this](double &number)->bool {	//returns carry
+					bool carry = false;
 
-				if (number < 0.0) number = 0.0;
-				else if (number == 0.0) number = 1.0;
-				else if (number > 0.0) {
-					number = -1.0;
-					carry = true;
+					if (number < 0.0) number = 0.0;
+					else if (number == 0.0) number = 1.0;
+					else if (number > 0.0) {
+						number = -1.0;
+						carry = true;
+					}
+
+					return carry;
+				};
+
+				bool carry = add_one(direction[0]);
+				for (size_t i = 1; carry && (i < solution_size); i++) {
+					carry = add_one(direction[i]);
 				}
 
-				return carry;
-			};
-			
-			bool carry = add_one(direction[0]);
-			for (size_t i = 1; carry && (i < solution_size); i++) {			
-				carry = add_one(direction[i]);				
+				mDirections.push_back(direction);
 			}
-
-			mDirections.push_back(direction);
 		}
 
 
 		//2. generate pseudo random directions
-		if (mUse_LD_Directions) {
+		if (mUse_LD_Directions || override_directions_by_problem_size) {
 			std::mt19937 MT_sequence;	//to be completely deterministic in every run we used the constant, default seed
 			std::uniform_real_distribution<double> uniform_distribution(-1.0, 1.0);
 			for (size_t i = 0; i < combination_count * 3; i++) {
@@ -183,7 +189,7 @@ protected:
 				double cand_val = 0.5;
 
 
-				if (j & 1 == 0) cand_val += diameter_stepped * sin(angle_stepped);
+				if ((j & 1) == 0) cand_val += diameter_stepped * sin(angle_stepped);
 					else cand_val += diameter_stepped * cos(angle_stepped);
 
 
