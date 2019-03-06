@@ -146,7 +146,6 @@ protected:
 	TAligned_Solution_Vector<TUsed_Solution> Generate_LD_Population() {
 		std::mt19937 MT_sequence;	//to be completely deterministic in every run we used the constant, default seed
 		std::uniform_real_distribution<double> uniform_distribution(0.0, 1.0);
-		CHalton_Device halton;
 
 		const auto bounds_range = mUpper_Bound - mLower_Bound;
 
