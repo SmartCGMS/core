@@ -128,6 +128,71 @@ protected:
 		}
 	}
 
+	void Generate_Triangle_Directions() {
+		TUsed_Solution right_triangle, left_triangle, saw, half_triangle;
+		right_triangle.resize(Eigen::NoChange, mSetup.problem_size);
+		left_triangle.resize(Eigen::NoChange, mSetup.problem_size);
+		half_triangle.resize(Eigen::NoChange, mSetup.problem_size);
+		saw.resize(Eigen::NoChange, mSetup.problem_size);
+
+		//push the basic directions
+		saw.setConstant(1.0);
+		mDirections.push_back(saw);
+		mDirections.push_back(-saw);
+
+		if (mSetup.problem_size < 2) return;
+
+		const double k = 1.0/ static_cast<double>(mSetup.problem_size-1);
+		for (size_t i = 0; i < mSetup.problem_size; i++)
+			right_triangle[i] = static_cast<double>(i)*k;
+		left_triangle = 1.0 - right_triangle;
+				
+		const size_t mid_index = mSetup.problem_size / 2;
+		for (size_t i = 0; i < mid_index; i++)
+			half_triangle[i] = 2.0*static_cast<double>(i)*k;
+		for (size_t i = mid_index; i < mSetup.problem_size; i++)
+			half_triangle[i] = 2.0-2.0*static_cast<double>(i)*k;
+		
+		saw = half_triangle.max(left_triangle.max(right_triangle));
+
+		//push the shapes above the zero
+		mDirections.push_back(right_triangle);
+		mDirections.push_back(left_triangle);
+		mDirections.push_back(half_triangle);
+		mDirections.push_back(saw);
+		mDirections.push_back(1.0-saw);
+
+		//mirror them to the negative axis
+		mDirections.push_back(-right_triangle);
+		mDirections.push_back(-left_triangle);
+		mDirections.push_back(-half_triangle);
+		mDirections.push_back(-saw);
+		mDirections.push_back(saw - 1.0);
+
+		//and strech the combinations across the entire boundaries
+		mDirections.push_back(2.0*right_triangle - 1.0);
+		mDirections.push_back(2.0*left_triangle - 1.0);
+		mDirections.push_back(2.0*half_triangle - 1.0);
+		mDirections.push_back(2.0*saw - 1.0);
+		mDirections.push_back(1.0 - 2.0*saw);
+		
+		mDirections.push_back(-2.0*right_triangle + 1.0);
+		mDirections.push_back(-2.0*left_triangle + 1.0);
+		mDirections.push_back(-2.0*half_triangle + 1.0);
+		//stretched saw is already mirrored
+
+		
+/*
+		for (const TUsed_Solution &x : mDirections) {
+			for (size_t i = 0; i < mSetup.problem_size; i++)
+				std::cout << x[i] << " ";
+			std::cout << std::endl;
+		}
+
+		std::cout << std::endl;
+*/
+	}
+
 	void Fill_Population_From_Candidates(const size_t initialized_count, const TAligned_Solution_Vector<TUsed_Solution> &candidates) {
 		std::vector<double> fitness;
 		std::vector<size_t> indexes;
@@ -249,7 +314,8 @@ public:
 			solution.velocity = mInitial_Velocity;
 		}		
 
-		Generate_Directions();
+		if (mUse_LD_Directions) Generate_Directions();
+			else Generate_Triangle_Directions();
 	};
 
 	TUsed_Solution Solve(solver::TSolver_Progress &progress) {
