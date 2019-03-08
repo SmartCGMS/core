@@ -49,6 +49,8 @@
 
 #include <math.h>
 
+#include <unordered_set>
+
 namespace pathfinder_internal {
 	template <typename TUsed_Solution>
 	struct TCandidate {
@@ -129,10 +131,11 @@ protected:
 	}
 
 	void Generate_Triangle_Directions() {
-		TUsed_Solution right_triangle, left_triangle, saw, half_triangle;
+		TUsed_Solution right_triangle, left_triangle, saw, mid_point_triangle, mirrored_mid_point_triangle;
 		right_triangle.resize(Eigen::NoChange, mSetup.problem_size);
 		left_triangle.resize(Eigen::NoChange, mSetup.problem_size);
-		half_triangle.resize(Eigen::NoChange, mSetup.problem_size);
+		mid_point_triangle.resize(Eigen::NoChange, mSetup.problem_size);
+		mirrored_mid_point_triangle.resize(Eigen::NoChange, mSetup.problem_size);
 		saw.resize(Eigen::NoChange, mSetup.problem_size);
 
 		//push the basic directions
@@ -149,39 +152,46 @@ protected:
 				
 		const size_t mid_index = mSetup.problem_size / 2;
 		for (size_t i = 0; i < mid_index; i++)
-			half_triangle[i] = 2.0*static_cast<double>(i)*k;
+			mid_point_triangle[i] = 2.0*static_cast<double>(i)*k;
 		for (size_t i = mid_index; i < mSetup.problem_size; i++)
-			half_triangle[i] = 2.0-2.0*static_cast<double>(i)*k;
+			mid_point_triangle[i] = 2.0-2.0*static_cast<double>(i)*k;
 		
-		saw = half_triangle.max(left_triangle.max(right_triangle));
+		mirrored_mid_point_triangle = 1.0 - mid_point_triangle;
+
+		saw = mid_point_triangle.max(left_triangle.max(right_triangle));
 
 		//push the shapes above the zero
 		mDirections.push_back(right_triangle);
 		mDirections.push_back(left_triangle);
-		mDirections.push_back(half_triangle);
+		mDirections.push_back(mid_point_triangle);
+		mDirections.push_back(mirrored_mid_point_triangle);
 		mDirections.push_back(saw);
 		mDirections.push_back(1.0-saw);
 
 		//mirror them to the negative axis
 		mDirections.push_back(-right_triangle);
 		mDirections.push_back(-left_triangle);
-		mDirections.push_back(-half_triangle);
+		mDirections.push_back(-mid_point_triangle);
+		mDirections.push_back(-mirrored_mid_point_triangle);
 		mDirections.push_back(-saw);
 		mDirections.push_back(saw - 1.0);
 
 		//and strech the combinations across the entire boundaries
 		mDirections.push_back(2.0*right_triangle - 1.0);
 		mDirections.push_back(2.0*left_triangle - 1.0);
-		mDirections.push_back(2.0*half_triangle - 1.0);
+		mDirections.push_back(2.0*mid_point_triangle - 1.0);
+		mDirections.push_back(2.0*mirrored_mid_point_triangle-1.0);
 		mDirections.push_back(2.0*saw - 1.0);
 		mDirections.push_back(1.0 - 2.0*saw);
 		
 		mDirections.push_back(-2.0*right_triangle + 1.0);
 		mDirections.push_back(-2.0*left_triangle + 1.0);
-		mDirections.push_back(-2.0*half_triangle + 1.0);
+		mDirections.push_back(-2.0*mid_point_triangle + 1.0);
+		mDirections.push_back(-2.0*mirrored_mid_point_triangle + 1.0);
 		//stretched saw is already mirrored
 
-		
+		//at this point, some duplicities occurs for dimensions 2 and 3, but it is not necessary to remove them => so, let's rather keep the code shorter
+
 /*
 		for (const TUsed_Solution &x : mDirections) {
 			for (size_t i = 0; i < mSetup.problem_size; i++)
@@ -191,6 +201,7 @@ protected:
 
 		std::cout << std::endl;
 */
+
 	}
 
 	void Fill_Population_From_Candidates(const size_t initialized_count, const TAligned_Solution_Vector<TUsed_Solution> &candidates) {
@@ -349,10 +360,51 @@ public:
 						TUsed_Solution candidate = candidate_solution.current + candidate_solution.velocity*mDirections[candidate_solution.direction_index]*(candidate_solution.current - mPopulation[pop_iter].current);
 						candidate = mUpper_Bound.min(mLower_Bound.max(candidate));//also ensure the bounds
 						
+
+						TUsed_Solution quadratic_candidate = candidate_solution.current;
+
 						const double fitness = mSetup.objective(mSetup.data, candidate.data());
 						if (fitness < candidate_solution.next_fitness) {
 							candidate_solution.next = candidate;
 							candidate_solution.next_fitness = fitness;
+
+							quadratic_candidate = candidate;
+						}						
+					
+						//try to construct one more solution by using a quadratic interpolation of the given parameters
+						
+						quadratic_candidate.resize(Eigen::NoChange, mSetup.problem_size);
+
+						Eigen::Matrix3d A = Eigen::Matrix3d::Ones();
+						Eigen::Vector3d b;
+
+						for (size_t i = 0; i < mSetup.problem_size; i++) {
+							const double &x1 = candidate_solution.current[i];
+							const double &y1 = candidate_solution.current_fitness;
+
+							const double &x2 = candidate[i];
+							const double &y2 = fitness;
+
+							const double &x3 = mPopulation[pop_iter].current[i];
+							const double &y3 = mPopulation[pop_iter].current_fitness;
+							
+							A(0, 0) = x1 * x1; A(0, 1) = x1; b(0) = y1;
+							A(1, 0) = x2 * x2; A(1, 1) = x2; b(1) = y2;
+							A(2, 0) = x3 * x3; A(2, 1) = x3; b(2) = y3;
+							
+							const Eigen::Vector3d coeff = A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);
+
+							//now, we have calcualted a*x*x + b*x +c = y,  hence first derivative is
+							//2a*x +b = 0 => -b/2a gives the extreme position - the x^2 member must be positive in order the polynomial has minimum
+							if (coeff[0] > 0.0) quadratic_candidate[i] = -coeff[1] / (2.0*coeff[0]);				//if not, we preserve the better parameters only												
+						}
+
+						quadratic_candidate = mUpper_Bound.min(mLower_Bound.max(quadratic_candidate));//also ensure the bounds
+						//have we improved?
+						const double quadratic_fitness = mSetup.objective(mSetup.data, quadratic_candidate.data());
+						if (quadratic_fitness < candidate_solution.next_fitness) {
+							candidate_solution.next = quadratic_candidate;
+							candidate_solution.next_fitness = quadratic_fitness;						
 						}
 					}
 
