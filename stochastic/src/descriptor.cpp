@@ -67,6 +67,7 @@ namespace pathfinder {
 	const glucose::TSolver_Descriptor desc_LD_Dir = Describe_Non_Specialized_Solver(id_LD_Dir, dsPathfinder_LD_Directions);
 	const glucose::TSolver_Descriptor desc_LD_Pop = Describe_Non_Specialized_Solver(id_LD_Dir, dsPathfinder_LD_Population);
 	const glucose::TSolver_Descriptor desc_LD_Dir_Pop = Describe_Non_Specialized_Solver(id_LD_Dir, dsPathfinder_LD_Directions_Population);
+	const glucose::TSolver_Descriptor desc_fast = Describe_Non_Specialized_Solver(id_fast, dsPathfinder_Fast);
 }
 
 

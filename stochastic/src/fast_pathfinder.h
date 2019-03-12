@@ -51,7 +51,7 @@
 
 #include <unordered_set>
 
-namespace pathfinder_internal {
+namespace fast_fast_fast_pathfinder_internal {
 	template <typename TUsed_Solution>
 	struct TCandidate {
 		TUsed_Solution current, next;
@@ -64,7 +64,7 @@ namespace pathfinder_internal {
 #undef min
 
 template <typename TUsed_Solution, bool mUse_LD_Directions, bool mUse_LD_Population>// size_t mPopulation_Size = 15, size_t mGeneration_Count = 200000,	
-class CPathfinder {
+class CFast_Pathfinder {
 protected:
 	solver::TSolver_Setup mSetup;
 protected:
@@ -287,12 +287,12 @@ protected:
 		return solutions;
 	}
 protected:
-	TAligned_Solution_Vector<pathfinder_internal::TCandidate<TUsed_Solution>> mPopulation;
+	TAligned_Solution_Vector<fast_pathfinder_internal::TCandidate<TUsed_Solution>> mPopulation;
 protected:
 	const TUsed_Solution mLower_Bound;
 	const TUsed_Solution mUpper_Bound;
 public:
-	CPathfinder(const solver::TSolver_Setup &setup, const double angle_stepping = 3.14*2.0 / 37.0) :
+	CFast_Pathfinder(const solver::TSolver_Setup &setup, const double angle_stepping = 3.14*2.0 / 37.0) :
 				mAngle_Stepping(angle_stepping),
 				mSetup(solver::Check_Default_Parameters(setup, 20'000, 15)), 
 				mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)) {
@@ -330,7 +330,7 @@ public:
 	};
 
 
-	size_t Find_Best_Leader(const pathfinder_internal::TCandidate<TUsed_Solution> &candidate_solution) {
+	size_t Find_Best_Leader(const fast_pathfinder_internal::TCandidate<TUsed_Solution> &candidate_solution) {
 		size_t result = std::numeric_limits<size_t>::max();
 		double result_fitness = std::numeric_limits<double>::max();
 
@@ -347,7 +347,7 @@ public:
 
 	}
 
-	bool Eval_Solution(const pathfinder_internal::TCandidate<TUsed_Solution> &candidate_solution, const pathfinder_internal::TCandidate<TUsed_Solution> &leading_solution,
+	bool Eval_Solution(const fast_pathfinder_internal::TCandidate<TUsed_Solution> &candidate_solution, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &leading_solution,
 		TUsed_Solution &found_solution, double &found_fitness) {
 		//returns true, if found_solution has better found fitness than the current fitness of the candidate_solution
 
@@ -424,7 +424,7 @@ public:
 		while ((progress.current_progress++ < mSetup.max_generations) && (progress.cancelled == 0)) {
 
 			//update the progress
-			const auto global_best = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const pathfinder_internal::TCandidate<TUsed_Solution> &a, const pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
+			const auto global_best = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
 			progress.best_metric = global_best->current_fitness;			
 
 			//2. Calculate the next vectors and their fitness 
@@ -458,7 +458,7 @@ public:
 		} //while in the progress
 
 		//find the best result and return it
-		const auto result = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const pathfinder_internal::TCandidate<TUsed_Solution> &a, const pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
+		const auto result = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
 		return result->current;
 	
 	}

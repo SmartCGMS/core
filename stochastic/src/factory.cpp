@@ -44,6 +44,7 @@
 #include "MetaDE.h"
 #include "HaltonSequence.h"
 #include "pathfinder.h"
+#include "fast_pathfinder.h"
 
 template <typename TSolver, typename TUsed_Solution>
 HRESULT Solve_By_Class(solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
@@ -126,6 +127,7 @@ public:
 		mSolver_Id_Map[pathfinder::id_LD_Dir] = std::bind(&Solve_By_Class<CPathfinder<TUsed_Solution, true, false>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 		mSolver_Id_Map[pathfinder::id_LD_Pop] = std::bind(&Solve_By_Class<CPathfinder<TUsed_Solution, false, true>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 		mSolver_Id_Map[pathfinder::id_LD_Dir_Pop] = std::bind(&Solve_By_Class<CPathfinder<TUsed_Solution, true, true>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+		mSolver_Id_Map[pathfinder::id_fast] = std::bind(&Solve_By_Class<CFast_Pathfinder<TUsed_Solution, true, true>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 	}
 
 	HRESULT Solve(const GUID &solver_id, solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
