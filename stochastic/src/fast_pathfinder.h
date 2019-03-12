@@ -51,12 +51,11 @@
 
 #include <unordered_set>
 
-namespace fast_fast_fast_pathfinder_internal {
+namespace fast_pathfinder_internal {
 	template <typename TUsed_Solution>
 	struct TCandidate {
 		TUsed_Solution current, next;
 		size_t population_index;
-		double velocity;
 		double current_fitness, next_fitness;
 	};
 }
@@ -69,9 +68,6 @@ protected:
 	solver::TSolver_Setup mSetup;
 protected:
 	double mAngle_Stepping = 0.45;
-	const double mInitial_Velocity = 1.0 / 3.0;
-	const double mMax_Velocity = 0.5;
-	const double mVelocity_Increase = 1.05;
 
 	const size_t mMax_Deterministic_Directions_By_Problem_Size = 12;	//half a million of deterministic directions
 	TAligned_Solution_Vector<TUsed_Solution> mDirections;
@@ -320,9 +316,7 @@ public:
 			
 			//the main solving algorithm expects that next contains valid values from the last run of the generation
 			solution.next = solution.current;
-			solution.next_fitness = solution.current_fitness;
-			
-			solution.velocity = mInitial_Velocity;
+			solution.next_fitness = solution.current_fitness;		
 		}		
 
 		if (mUse_LD_Directions) Generate_Directions();
@@ -330,21 +324,13 @@ public:
 	};
 
 
-	size_t Find_Best_Leader(const fast_pathfinder_internal::TCandidate<TUsed_Solution> &candidate_solution) {
-		size_t result = std::numeric_limits<size_t>::max();
-		double result_fitness = std::numeric_limits<double>::max();
+	void Find_Best_Leader(fast_pathfinder_internal::TCandidate<TUsed_Solution> &candidate_solution) {
+		//also updates next solution and fitness if it finds a better one
 
-		for (size_t i = 0; i < mPopulation.size(); i++) {
-			TUsed_Solution tmp_solution;
-			double tmp_fitness;
-			if (Eval_Solution(candidate_solution, mPopulation[i], tmp_solution, tmp_fitness)) {
-				if (tmp_fitness < result_fitness) {
-					result = i;
-					result_fitness = tmp_fitness;
-				}
+		for (size_t i = 0; i < mPopulation.size(); i++) 
+			if (Eval_Solution(candidate_solution, mPopulation[i], candidate_solution.next, candidate_solution.next_fitness)) {
+				candidate_solution.population_index = i;
 			}
-		}
-
 	}
 
 	bool Eval_Solution(const fast_pathfinder_internal::TCandidate<TUsed_Solution> &candidate_solution, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &leading_solution,
@@ -355,50 +341,62 @@ public:
 		
 		found_fitness = candidate_solution.current_fitness;
 
-		auto check_solution = [&](const double fitness, const TUsed_Solution &solution) {
+		auto check_solution = [&](TUsed_Solution &solution) {
+			solution = mUpper_Bound.min(mLower_Bound.max(solution));
+			const double fitness = mSetup.objective(mSetup.data, solution.data());
+
 			if (fitness < found_fitness) {
 				found_solution = solution;
 				found_fitness = fitness;
 
 				improved = true;
 			}
+
+			return fitness;
 		};
 
 		const TUsed_Solution diff = candidate_solution.current - leading_solution.current;
+		TUsed_Solution quadratic_candidate = candidate_solution.current;
+		quadratic_candidate.resize(Eigen::NoChange, mSetup.problem_size);
+
+		Eigen::Matrix3d A = Eigen::Matrix3d::Ones();
+		Eigen::Vector3d b;
+
+		b(0) = candidate_solution.current_fitness;
+		b(2) = leading_solution.current_fitness;
 
 		for (size_t i = 0; i < mDirections.size(); i++) {
-			const TUsed_Solution offset = diff*mDirections[i]*candidate_solution.velocity;
-
-			TUsed_Solution sample = candidate_solution.current + offset;
-			sample = mUpper_Bound.min(mLower_Bound.max(sample));
-			const double sample_fitness = mSetup.objective(mSetup.data, sample.data());
-									
-			check_solution(sample_fitness, sample);
+			TUsed_Solution sample = candidate_solution.current + diff*mDirections[i];
+			const double sample_fitness = check_solution(sample);			
 			
 
-			const double y_lc = leading_solution.current_fitness - candidate_solution.current_fitness;
-			const TUsed_Solution sample_x = offset / diff;	
-			const TUsed_Solution quadratic_a = (sample_fitness - candidate_solution.current_fitness) / (sample_x*(sample_x + y_lc));
-			 
-			TUsed_Solution quadratic_scale;
-			quadratic_scale.resize(Eigen::NoChange, mSetup.problem_size);
-			quadratic_scale.setZero();
+			for (size_t i = 0; i < mSetup.problem_size; i++) {			
+				const double &x1 = candidate_solution.current[i];
 
-			for (size_t j = 0; j < mSetup.problem_size; j++) {
-				const double &a = quadratic_a[j];
-	
-			if (a > 0.0) {
-					// now, we have calcualted a*x*x + b * x + c = y, hence first derivative is
-					//2a*x +b = 0 => -b/2a gives the extreme position - the x^2 member must be positive in order the polynomial has minimum
-					const double quadratic_b = y_lc - a;
-					quadratic_scale[j] = -0.5 * quadratic_b / a;
-				}
+				const double &x2 = sample[i];
+				const double &y2 = sample_fitness;
+
+				const double &x3 = leading_solution.current[i];
+
+				A(0, 0) = x1 * x1; A(0, 1) = x1;
+				A(1, 0) = x2 * x2; A(1, 1) = x2; b(1) = y2;
+				A(2, 0) = x3 * x3; A(2, 1) = x3;
+				
+				const Eigen::Vector3d coeff = A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);
+
+				//now, we have calculated a*x*x + b*x +c = y,  hence first derivative is
+				//2a*x +b = 0 => -b/2a gives the extreme position - the x^2 member must be positive in order for the polynomial to has a minimum
+				if (coeff[0] > 0.0) quadratic_candidate[i] = -coeff[1] / (2.0*coeff[0]);				//if not, we preserve the better parameters only												
 			}
+			
+			check_solution(quadratic_candidate);
 
-			TUsed_Solution quadratic = candidate_solution.current + quadratic_scale * diff;
-			quadratic = mUpper_Bound.min(mLower_Bound.max(quadratic));
-			const double quadratic_fitness = mSetup.objective(mSetup.data, quadratic.data());
-			check_solution(quadratic_fitness, quadratic);
+			//eventually, try to replace solution elements one by one
+			for (size_t j = 0; j < mSetup.problem_size; j++) {
+				TUsed_Solution x = found_solution;
+				x[j] = quadratic_candidate[j];
+				check_solution(x);				
+			}
 		
 		}
 
@@ -408,14 +406,13 @@ public:
 
 	TUsed_Solution Solve(solver::TSolver_Progress &progress) {
 		
-
-		for (size_t i=0; i<mPopulation.size(); i++) {
-			mPopulation[i].population_index = Find_Best_Leader(mPopulation[i]);
-			if (mPopulation[i].population_index == std::numeric_limits<size_t>::max()) {
-				mPopulation[i].population_index = i + 1;
-				if (mPopulation[i].population_index == mPopulation.size()) mPopulation[i].population_index = 0;
-			}
+		for (auto &solution : mPopulation) {
+			Find_Best_Leader(solution);
+			solution.current = solution.next;
+			solution.current_fitness = solution.next_fitness;
 		}
+			
+	
 
 		progress.current_progress = 0;
 		progress.max_progress = mSetup.max_generations;
@@ -439,11 +436,10 @@ public:
 					auto &candidate_solution = mPopulation[iter];
 
 					if (!Eval_Solution(candidate_solution, mPopulation[candidate_solution.population_index], candidate_solution.next, candidate_solution.next_fitness)) {
-						candidate_solution.population_index++;
-						if (candidate_solution.population_index >= mPopulation.size()) candidate_solution.population_index = 0;
-						candidate_solution.velocity = mInitial_Velocity;
-					} else
-						candidate_solution.velocity = std::min(candidate_solution.velocity * mVelocity_Increase, mMax_Velocity);
+						Find_Best_Leader(candidate_solution);
+						//candidate_solution.population_index++;
+						//if (candidate_solution.population_index >= mPopulation.size()) candidate_solution.population_index = 0;
+					}
 				}
 			});
 

@@ -72,7 +72,7 @@ namespace pathfinder {
 
 
 const std::vector<glucose::TSolver_Descriptor, tbb::tbb_allocator<glucose::TSolver_Descriptor>> solver_descriptions = { mt_metade::desc, halton_sequence::desc, halton_metade::desc, rnd_metade::desc, 
-																														pathfinder::desc,  pathfinder::desc_LD_Dir, pathfinder::desc_LD_Pop, pathfinder::desc_LD_Dir_Pop};
+																														pathfinder::desc,  pathfinder::desc_LD_Dir, pathfinder::desc_LD_Pop, pathfinder::desc_LD_Dir_Pop, pathfinder::desc_fast};
 
 
 HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {
