@@ -55,151 +55,29 @@ namespace fast_pathfinder_internal {
 	template <typename TUsed_Solution>
 	struct TCandidate {
 		TUsed_Solution current, next;
-		size_t population_index;
+		size_t leader_index;
 		double current_fitness, next_fitness;
+
+		TUsed_Solution direction;
+
+		//the following members safe to either guarantee thread safety and to avoid memory allocations
+		TUsed_Solution quadratic;
+		Eigen::Matrix3d A;
+		Eigen::Vector3d b, coeff;
+
+		std::mt19937_64 random_generator;
+		std::uniform_real_distribution<double> uniform_distribution{ -0.5, 0.5 };
 	};
 }
 
 #undef min
 
-template <typename TUsed_Solution, bool mUse_LD_Directions, bool mUse_LD_Population>// size_t mPopulation_Size = 15, size_t mGeneration_Count = 200000,	
+template <typename TUsed_Solution, bool mUse_LD_Population>// size_t mPopulation_Size = 15, size_t mGeneration_Count = 200000,	
 class CFast_Pathfinder {
 protected:
 	solver::TSolver_Setup mSetup;
 protected:
 	double mAngle_Stepping = 0.45;
-
-	const size_t mMax_Deterministic_Directions_By_Problem_Size = 12;	//half a million of deterministic directions
-	TAligned_Solution_Vector<TUsed_Solution> mDirections;
-	void Generate_Directions() {
-
-		const size_t solution_size = mLower_Bound.cols();
-		const size_t combination_count = static_cast<size_t>(pow(3.0, static_cast<double>(std::min(solution_size, mMax_Deterministic_Directions_By_Problem_Size))));
-		const bool override_directions_by_problem_size = solution_size > mMax_Deterministic_Directions_By_Problem_Size;
-			//Actually, if we would not cache mDirections, but calculate them on the fly, we could stay deterministic. However, the number of directions would be so
-			//big that it would make the calculation unfeasible.
-
-		//1. generate the deterministic, uniform direction vectors
-
-		//let's try the very next binary-encoded integer as the vector, until we flip over to zero
-		//zero means a desired, one-generation-only stagnation
-		//with this, we do something like mutation and crosbreeding combined
-
-		TUsed_Solution direction;
-		direction.resize(Eigen::NoChange, solution_size);
-		direction.setConstant(1.0);		//init to max so it overflow to min as the first pushed value
-
-		if (!override_directions_by_problem_size) {
-			for (size_t combination = 0; combination < combination_count; combination++) {
-				auto add_one = [this](double &number)->bool {	//returns carry
-					bool carry = false;
-
-					if (number < 0.0) number = 0.0;
-					else if (number == 0.0) number = 1.0;
-					else if (number > 0.0) {
-						number = -1.0;
-						carry = true;
-					}
-
-					return carry;
-				};
-
-				bool carry = add_one(direction[0]);
-				for (size_t i = 1; carry && (i < solution_size); i++) {
-					carry = add_one(direction[i]);
-				}
-
-				mDirections.push_back(direction);
-			}
-		}
-
-
-		//2. generate pseudo random directions
-		if (mUse_LD_Directions || override_directions_by_problem_size) {
-			std::mt19937 MT_sequence;	//to be completely deterministic in every run we used the constant, default seed
-			std::uniform_real_distribution<double> uniform_distribution(-1.0, 1.0);
-			for (size_t i = 0; i < combination_count * 3; i++) {
-				for (auto j = 0; j < solution_size; j++)
-					direction[j] = uniform_distribution(MT_sequence);
-
-				mDirections.push_back(direction);
-			}
-		}
-	}
-
-	void Generate_Triangle_Directions() {
-		TUsed_Solution right_triangle, left_triangle, saw, mid_point_triangle, mirrored_mid_point_triangle;
-		right_triangle.resize(Eigen::NoChange, mSetup.problem_size);
-		left_triangle.resize(Eigen::NoChange, mSetup.problem_size);
-		mid_point_triangle.resize(Eigen::NoChange, mSetup.problem_size);
-		mirrored_mid_point_triangle.resize(Eigen::NoChange, mSetup.problem_size);
-		saw.resize(Eigen::NoChange, mSetup.problem_size);
-
-		//push the basic directions
-		saw.setConstant(1.0);
-		mDirections.push_back(saw);
-		mDirections.push_back(-saw);
-
-		if (mSetup.problem_size < 2) return;
-
-		const double k = 1.0/ static_cast<double>(mSetup.problem_size-1);
-		for (size_t i = 0; i < mSetup.problem_size; i++)
-			right_triangle[i] = static_cast<double>(i)*k;
-		left_triangle = 1.0 - right_triangle;
-				
-		const size_t mid_index = mSetup.problem_size / 2;
-		for (size_t i = 0; i < mid_index; i++)
-			mid_point_triangle[i] = 2.0*static_cast<double>(i)*k;
-		for (size_t i = mid_index; i < mSetup.problem_size; i++)
-			mid_point_triangle[i] = 2.0-2.0*static_cast<double>(i)*k;
-		
-		mirrored_mid_point_triangle = 1.0 - mid_point_triangle;
-
-		saw = mid_point_triangle.max(left_triangle.max(right_triangle));
-
-		//push the shapes above the zero
-		mDirections.push_back(right_triangle);
-		mDirections.push_back(left_triangle);
-		mDirections.push_back(mid_point_triangle);
-		mDirections.push_back(mirrored_mid_point_triangle);
-		mDirections.push_back(saw);
-		mDirections.push_back(1.0-saw);
-
-		//mirror them to the negative axis
-		mDirections.push_back(-right_triangle);
-		mDirections.push_back(-left_triangle);
-		mDirections.push_back(-mid_point_triangle);
-		mDirections.push_back(-mirrored_mid_point_triangle);
-		mDirections.push_back(-saw);
-		mDirections.push_back(saw - 1.0);
-
-		//and strech the combinations across the entire boundaries
-		mDirections.push_back(2.0*right_triangle - 1.0);
-		mDirections.push_back(2.0*left_triangle - 1.0);
-		mDirections.push_back(2.0*mid_point_triangle - 1.0);
-		mDirections.push_back(2.0*mirrored_mid_point_triangle-1.0);
-		mDirections.push_back(2.0*saw - 1.0);
-		mDirections.push_back(1.0 - 2.0*saw);
-		
-		mDirections.push_back(-2.0*right_triangle + 1.0);
-		mDirections.push_back(-2.0*left_triangle + 1.0);
-		mDirections.push_back(-2.0*mid_point_triangle + 1.0);
-		mDirections.push_back(-2.0*mirrored_mid_point_triangle + 1.0);
-		//stretched saw is already mirrored
-
-		//at this point, some duplicities occurs for dimensions 2 and 3, but it is not necessary to remove them => so, let's rather keep the code shorter
-
-/*
-		for (const TUsed_Solution &x : mDirections) {
-			for (size_t i = 0; i < mSetup.problem_size; i++)
-				std::cout << x[i] << " ";
-			std::cout << std::endl;
-		}
-
-		std::cout << std::endl;
-*/
-
-	}
 
 	void Fill_Population_From_Candidates(const size_t initialized_count, const TAligned_Solution_Vector<TUsed_Solution> &candidates) {
 		std::vector<double> fitness;
@@ -314,32 +192,62 @@ public:
 		for (auto &solution : mPopulation) {
 			solution.current_fitness = mSetup.objective(mSetup.data, solution.current.data());
 			
+			solution.leader_index = 0;	//as the population is sorted, zero is the best leader
+
 			//the main solving algorithm expects that next contains valid values from the last run of the generation
 			solution.next = solution.current;
-			solution.next_fitness = solution.current_fitness;		
-		}		
+			solution.next_fitness = solution.current_fitness;	
 
-		if (mUse_LD_Directions) Generate_Directions();
-			else Generate_Triangle_Directions();
+			solution.direction.resize(Eigen::NoChange, mSetup.problem_size);
+			solution.direction.setConstant(solution.uniform_distribution.max());
+			solution.quadratic.resize(Eigen::NoChange, mSetup.problem_size);
+			solution.A.setConstant(1.0);
+		}		
+		mPopulation[0].leader_index = 1;	//so that it does not point to itself
 	};
 
+
+	void Find_And_Set_Best_Leader(fast_pathfinder_internal::TCandidate<TUsed_Solution> &candidate_solution) {
+		//also updates next solution and fitness if it finds a better one
+
+		TUsed_Solution tmp_solution;
+		tmp_solution.resize(Eigen::NoChange, mSetup.problem_size);
+		double tmp_fitness;
+
+		for (size_t i = 0; i < mPopulation.size(); i++) 
+			if (Eval_Solution(candidate_solution, mPopulation[i], tmp_solution, tmp_fitness)) {
+
+				if (tmp_fitness < candidate_solution.next_fitness) {
+
+					candidate_solution.leader_index = i;
+					candidate_solution.next = tmp_solution;
+					candidate_solution.next_fitness = tmp_fitness;
+				}
+			}
+	}
 
 	void Find_Best_Leader(fast_pathfinder_internal::TCandidate<TUsed_Solution> &candidate_solution) {
 		//also updates next solution and fitness if it finds a better one
 
-		for (size_t i = 0; i < mPopulation.size(); i++) 
+		double g = std::numeric_limits<double>::max();
+
+		for (size_t i = 0; i < mPopulation.size(); i++)
 			if (Eval_Solution(candidate_solution, mPopulation[i], candidate_solution.next, candidate_solution.next_fitness)) {
-				candidate_solution.population_index = i;
+
+				if (candidate_solution.next_fitness < g) {
+					g = candidate_solution.next_fitness;
+					candidate_solution.population_index = i;
+				}
 			}
 	}
 
-	bool Eval_Solution(const fast_pathfinder_internal::TCandidate<TUsed_Solution> &candidate_solution, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &leading_solution,
+	bool Eval_Solution(fast_pathfinder_internal::TCandidate<TUsed_Solution> &candidate_solution, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &leading_solution,
 		TUsed_Solution &found_solution, double &found_fitness) {
 		//returns true, if found_solution has better found fitness than the current fitness of the candidate_solution
 
 		bool improved = false;
-		
-		found_fitness = candidate_solution.current_fitness;
+
+		found_fitness = candidate_solution.current_fitness;		
 
 		auto check_solution = [&](TUsed_Solution &solution) {
 			solution = mUpper_Bound.min(mLower_Bound.max(solution));
@@ -355,64 +263,61 @@ public:
 			return fitness;
 		};
 
-		const TUsed_Solution diff = candidate_solution.current - leading_solution.current;
-		TUsed_Solution quadratic_candidate = candidate_solution.current;
-		quadratic_candidate.resize(Eigen::NoChange, mSetup.problem_size);
+				
+		
+		auto &A = candidate_solution.A;
+		auto &b = candidate_solution.b;
+		auto &coeff = candidate_solution.coeff;
 
-		Eigen::Matrix3d A = Eigen::Matrix3d::Ones();
-		Eigen::Vector3d b;
+		auto &quadratic_candidate = candidate_solution.quadratic;
+				
+		quadratic_candidate = candidate_solution.current + candidate_solution.direction*(candidate_solution.current - leading_solution.current);
 
 		b(0) = candidate_solution.current_fitness;
+		b(1) = check_solution(quadratic_candidate);
 		b(2) = leading_solution.current_fitness;
+		
+		for (size_t i = 0; i < mSetup.problem_size; i++) {
+			const double &x1 = candidate_solution.current[i];
+			const double &x2 = quadratic_candidate[i];
+			const double &x3 = leading_solution.current[i];
 
-		for (size_t i = 0; i < mDirections.size(); i++) {
-			TUsed_Solution sample = candidate_solution.current + diff*mDirections[i];
-			const double sample_fitness = check_solution(sample);			
-			
+			A(0, 0) = x1 * x1; A(0, 1) = x1;
+			A(1, 0) = x2 * x2; A(1, 1) = x2; 
+			A(2, 0) = x3 * x3; A(2, 1) = x3;
 
-			for (size_t i = 0; i < mSetup.problem_size; i++) {			
-				const double &x1 = candidate_solution.current[i];
-
-				const double &x2 = sample[i];
-				const double &y2 = sample_fitness;
-
-				const double &x3 = leading_solution.current[i];
-
-				A(0, 0) = x1 * x1; A(0, 1) = x1;
-				A(1, 0) = x2 * x2; A(1, 1) = x2; b(1) = y2;
-				A(2, 0) = x3 * x3; A(2, 1) = x3;
+			//coeff = (A.transpose() * A).ldlt().solve(A.transpose() * b);//A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);
+			coeff = A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);
 				
-				const Eigen::Vector3d coeff = A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);
-
-				//now, we have calculated a*x*x + b*x +c = y,  hence first derivative is
-				//2a*x +b = 0 => -b/2a gives the extreme position - the x^2 member must be positive in order for the polynomial to has a minimum
-				if (coeff[0] > 0.0) quadratic_candidate[i] = -coeff[1] / (2.0*coeff[0]);				//if not, we preserve the better parameters only												
-			}
-			
-			check_solution(quadratic_candidate);
-
-			//eventually, try to replace solution elements one by one
-			for (size_t j = 0; j < mSetup.problem_size; j++) {
-				TUsed_Solution x = found_solution;
-				x[j] = quadratic_candidate[j];
-				check_solution(x);				
+			//now, we have calculated a*x*x + b*x +c = y,  hence first derivative is
+			//2a*x +b = 0 => -b/2a gives the extreme position - the x^2 member must be positive in order for the polynomial to has a minimum
+			if (coeff[0] > 0.0) quadratic_candidate[i] = -coeff[1] / (2.0*coeff[0]);				//if not, we preserve the better parameters only												
+				else {				    
+					if (!improved) {
+						candidate_solution.direction[i] = candidate_solution.uniform_distribution(candidate_solution.random_generator);
+						quadratic_candidate[i] = candidate_solution.current[i];
+					}
+				}
 			}
 		
-		}
+		check_solution(quadratic_candidate);		
 
+
+		if (!improved) found_solution = candidate_solution.current;
+	
 		return improved;
 
 	}
 
 	TUsed_Solution Solve(solver::TSolver_Progress &progress) {
-		
-		for (auto &solution : mPopulation) {
-			Find_Best_Leader(solution);
+
+/*		for (auto &solution : mPopulation) {
+			Find_And_Set_Best_Leader(solution);
 			solution.current = solution.next;
 			solution.current_fitness = solution.next_fitness;
 		}
-			
 	
+*/	
 
 		progress.current_progress = 0;
 		progress.max_progress = mSetup.max_generations;
@@ -435,10 +340,14 @@ public:
 				for (size_t iter = r.begin(); iter != rend; iter++) {
 					auto &candidate_solution = mPopulation[iter];
 
-					if (!Eval_Solution(candidate_solution, mPopulation[candidate_solution.population_index], candidate_solution.next, candidate_solution.next_fitness)) {
-						Find_Best_Leader(candidate_solution);
-						//candidate_solution.population_index++;
-						//if (candidate_solution.population_index >= mPopulation.size()) candidate_solution.population_index = 0;
+					if (!Eval_Solution(candidate_solution, mPopulation[candidate_solution.leader_index], candidate_solution.next, candidate_solution.next_fitness)) {
+						candidate_solution.leader_index++;
+						if (candidate_solution.leader_index >= mPopulation.size()) candidate_solution.leader_index = 0;
+
+						for (size_t i = 0; i < mSetup.problem_size; i++)
+							candidate_solution.direction[i] = candidate_solution.uniform_distribution(candidate_solution.random_generator);
+					
+//						Find_And_Set_Best_Leader(candidate_solution);	//--commenting this gains speed, but reduces accuracy
 					}
 				}
 			});

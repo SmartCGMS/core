@@ -127,7 +127,7 @@ public:
 		mSolver_Id_Map[pathfinder::id_LD_Dir] = std::bind(&Solve_By_Class<CPathfinder<TUsed_Solution, true, false>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 		mSolver_Id_Map[pathfinder::id_LD_Pop] = std::bind(&Solve_By_Class<CPathfinder<TUsed_Solution, false, true>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 		mSolver_Id_Map[pathfinder::id_LD_Dir_Pop] = std::bind(&Solve_By_Class<CPathfinder<TUsed_Solution, true, true>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
-		mSolver_Id_Map[pathfinder::id_fast] = std::bind(&Solve_By_Class<CFast_Pathfinder<TUsed_Solution, true, true>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+		mSolver_Id_Map[pathfinder::id_fast] = std::bind(&Solve_By_Class<CFast_Pathfinder<TUsed_Solution, false>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 	}
 
 	HRESULT Solve(const GUID &solver_id, solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
@@ -173,5 +173,10 @@ static CId_Dispatcher Id_Dispatcher;
 
 
 HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, solver::TSolver_Setup *setup, solver::TSolver_Progress *progress) {
-	return Id_Dispatcher.do_solve(*solver_id, *setup, *progress);
+	try {
+		return Id_Dispatcher.do_solve(*solver_id, *setup, *progress);
+	}
+	catch (...) {
+		return E_FAIL;
+	}
 }
