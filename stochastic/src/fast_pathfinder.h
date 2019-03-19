@@ -36,11 +36,6 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-//Implementation of fast, low-energy cost linear version of the Bayes optimization
-//For advanced Bayes, optmization we should consider using the following toolkits (Limbo claims to be faster), which, however, both require Boost
-//https://github.com/resibots/limbo
-//https://github.com/rmcantin/bayesopt
-
 #pragma once
 
 
@@ -66,13 +61,13 @@ namespace fast_pathfinder_internal {
 		Eigen::Vector3d b, coeff;
 
 		std::mt19937_64 random_generator;
-		std::uniform_real_distribution<double> uniform_distribution{ -0.5, 0.5 };
+		std::uniform_real_distribution<double> uniform_distribution{ -1.0, 1.0 };
 	};
 }
 
 #undef min
 
-template <typename TUsed_Solution, bool mUse_LD_Population>// size_t mPopulation_Size = 15, size_t mGeneration_Count = 200000,	
+template <typename TUsed_Solution>// size_t mPopulation_Size = 15, size_t mGeneration_Count = 200000,	
 class CFast_Pathfinder {
 protected:
 	solver::TSolver_Setup mSetup;
@@ -92,27 +87,6 @@ protected:
 
 		for (size_t i = initialized_count; i < mSetup.population_size; i++)
 			mPopulation[i].current = candidates[indexes[i - initialized_count]];
-	}
-
-	TAligned_Solution_Vector<TUsed_Solution> Generate_LD_Population() {
-		std::mt19937 MT_sequence;	//to be completely deterministic in every run we used the constant, default seed
-		std::uniform_real_distribution<double> uniform_distribution(0.0, 1.0);
-
-		const auto bounds_range = mUpper_Bound - mLower_Bound;
-
-		TAligned_Solution_Vector<TUsed_Solution> solutions;
-		
-		for (size_t i = 0; i < mSetup.population_size*5; i++) {
-			TUsed_Solution tmp;
-			tmp.resize(Eigen::NoChange, bounds_range.cols());
-
-			for (auto j = 0; j < bounds_range.cols(); j++)
-				tmp[j] = uniform_distribution(MT_sequence);
-
-			solutions.push_back(tmp);
-		}
-
-		return solutions;
 	}
 
 	TAligned_Solution_Vector<TUsed_Solution> Generate_Spheric_Population() {
@@ -160,11 +134,80 @@ protected:
 
 		return solutions;
 	}
+
 protected:
 	TAligned_Solution_Vector<fast_pathfinder_internal::TCandidate<TUsed_Solution>> mPopulation;
 protected:
 	const TUsed_Solution mLower_Bound;
 	const TUsed_Solution mUpper_Bound;
+
+	bool Evolve_Solution(fast_pathfinder_internal::TCandidate<TUsed_Solution> &candidate_solution, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &leading_solution) {
+		//returns true, if found_solution has better found fitness than the current fitness of the candidate_solution
+
+		bool improved = false;
+
+		candidate_solution.next_fitness = candidate_solution.current_fitness;
+
+		auto check_solution = [&](TUsed_Solution &solution) {
+			solution = mUpper_Bound.min(mLower_Bound.max(solution));
+			const double fitness = mSetup.objective(mSetup.data, solution.data());
+
+			if (fitness < candidate_solution.next_fitness) {
+				candidate_solution.next = solution;
+				candidate_solution.next_fitness = fitness;
+
+				improved = true;
+			}
+
+			return fitness;
+		};
+
+
+		auto &A = candidate_solution.A;
+		auto &b = candidate_solution.b;
+		auto &coeff = candidate_solution.coeff;
+
+		auto &quadratic_candidate = candidate_solution.quadratic;
+
+		quadratic_candidate = candidate_solution.current + candidate_solution.direction*(candidate_solution.current - leading_solution.current);
+				
+
+		b(0) = candidate_solution.current_fitness;
+		b(1) = check_solution(quadratic_candidate);
+		b(2) = leading_solution.current_fitness;
+
+		for (size_t i = 0; i < mSetup.problem_size; i++) {
+			const double &x1 = candidate_solution.current[i];
+			const double &x2 = quadratic_candidate[i];
+			const double &x3 = leading_solution.current[i];
+
+			A(0, 0) = x1 * x1; A(0, 1) = x1;
+			A(1, 0) = x2 * x2; A(1, 1) = x2;
+			A(2, 0) = x3 * x3; A(2, 1) = x3;
+
+			//coeff = (A.transpose() * A).ldlt().solve(A.transpose() * b);//A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);
+			coeff = A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);
+
+			//now, we have calculated a*x*x + b*x +c = y,  hence first derivative is
+			//2a*x +b = 0 => -b/2a gives the extreme position - the x^2 member must be positive in order for the polynomial to has a minimum
+			if (coeff[0] > 0.0) quadratic_candidate[i] = -coeff[1] / (2.0*coeff[0]);				//if not, we preserve the better parameters only												
+			else {
+				if (!improved) {
+					candidate_solution.direction[i] = candidate_solution.uniform_distribution(candidate_solution.random_generator);
+					quadratic_candidate[i] = candidate_solution.current[i];
+				}
+			}
+		}
+
+		check_solution(quadratic_candidate);
+
+
+		if (!improved) candidate_solution.next = candidate_solution.current;
+
+		return improved;
+
+	}
+
 public:
 	CFast_Pathfinder(const solver::TSolver_Setup &setup, const double angle_stepping = 3.14*2.0 / 37.0) :
 				mAngle_Stepping(angle_stepping),
@@ -183,8 +226,7 @@ public:
 		//b) by complementing it with randomly generated numbers
 		{
 			TAligned_Solution_Vector<TUsed_Solution> solutions;
-			if (mUse_LD_Population) solutions = Generate_LD_Population();
-				else solutions = Generate_Spheric_Population();
+			solutions = Generate_Spheric_Population();			
 			Fill_Population_From_Candidates(initialized_count, solutions);
 		}
 
@@ -206,118 +248,9 @@ public:
 		mPopulation[0].leader_index = 1;	//so that it does not point to itself
 	};
 
-
-	void Find_And_Set_Best_Leader(fast_pathfinder_internal::TCandidate<TUsed_Solution> &candidate_solution) {
-		//also updates next solution and fitness if it finds a better one
-
-		TUsed_Solution tmp_solution;
-		tmp_solution.resize(Eigen::NoChange, mSetup.problem_size);
-		double tmp_fitness;
-
-		for (size_t i = 0; i < mPopulation.size(); i++) 
-			if (Eval_Solution(candidate_solution, mPopulation[i], tmp_solution, tmp_fitness)) {
-
-				if (tmp_fitness < candidate_solution.next_fitness) {
-
-					candidate_solution.leader_index = i;
-					candidate_solution.next = tmp_solution;
-					candidate_solution.next_fitness = tmp_fitness;
-				}
-			}
-	}
-
-	void Find_Best_Leader(fast_pathfinder_internal::TCandidate<TUsed_Solution> &candidate_solution) {
-		//also updates next solution and fitness if it finds a better one
-
-		double g = std::numeric_limits<double>::max();
-
-		for (size_t i = 0; i < mPopulation.size(); i++)
-			if (Eval_Solution(candidate_solution, mPopulation[i], candidate_solution.next, candidate_solution.next_fitness)) {
-
-				if (candidate_solution.next_fitness < g) {
-					g = candidate_solution.next_fitness;
-					candidate_solution.population_index = i;
-				}
-			}
-	}
-
-	bool Eval_Solution(fast_pathfinder_internal::TCandidate<TUsed_Solution> &candidate_solution, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &leading_solution,
-		TUsed_Solution &found_solution, double &found_fitness) {
-		//returns true, if found_solution has better found fitness than the current fitness of the candidate_solution
-
-		bool improved = false;
-
-		found_fitness = candidate_solution.current_fitness;		
-
-		auto check_solution = [&](TUsed_Solution &solution) {
-			solution = mUpper_Bound.min(mLower_Bound.max(solution));
-			const double fitness = mSetup.objective(mSetup.data, solution.data());
-
-			if (fitness < found_fitness) {
-				found_solution = solution;
-				found_fitness = fitness;
-
-				improved = true;
-			}
-
-			return fitness;
-		};
-
-				
-		
-		auto &A = candidate_solution.A;
-		auto &b = candidate_solution.b;
-		auto &coeff = candidate_solution.coeff;
-
-		auto &quadratic_candidate = candidate_solution.quadratic;
-				
-		quadratic_candidate = candidate_solution.current + candidate_solution.direction*(candidate_solution.current - leading_solution.current);
-
-		b(0) = candidate_solution.current_fitness;
-		b(1) = check_solution(quadratic_candidate);
-		b(2) = leading_solution.current_fitness;
-		
-		for (size_t i = 0; i < mSetup.problem_size; i++) {
-			const double &x1 = candidate_solution.current[i];
-			const double &x2 = quadratic_candidate[i];
-			const double &x3 = leading_solution.current[i];
-
-			A(0, 0) = x1 * x1; A(0, 1) = x1;
-			A(1, 0) = x2 * x2; A(1, 1) = x2; 
-			A(2, 0) = x3 * x3; A(2, 1) = x3;
-
-			//coeff = (A.transpose() * A).ldlt().solve(A.transpose() * b);//A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);
-			coeff = A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);
-				
-			//now, we have calculated a*x*x + b*x +c = y,  hence first derivative is
-			//2a*x +b = 0 => -b/2a gives the extreme position - the x^2 member must be positive in order for the polynomial to has a minimum
-			if (coeff[0] > 0.0) quadratic_candidate[i] = -coeff[1] / (2.0*coeff[0]);				//if not, we preserve the better parameters only												
-				else {				    
-					if (!improved) {
-						candidate_solution.direction[i] = candidate_solution.uniform_distribution(candidate_solution.random_generator);
-						quadratic_candidate[i] = candidate_solution.current[i];
-					}
-				}
-			}
-		
-		check_solution(quadratic_candidate);		
-
-
-		if (!improved) found_solution = candidate_solution.current;
 	
-		return improved;
-
-	}
-
+	
 	TUsed_Solution Solve(solver::TSolver_Progress &progress) {
-
-/*		for (auto &solution : mPopulation) {
-			Find_And_Set_Best_Leader(solution);
-			solution.current = solution.next;
-			solution.current_fitness = solution.next_fitness;
-		}
-	
-*/	
 
 		progress.current_progress = 0;
 		progress.max_progress = mSetup.max_generations;
@@ -340,14 +273,14 @@ public:
 				for (size_t iter = r.begin(); iter != rend; iter++) {
 					auto &candidate_solution = mPopulation[iter];
 
-					if (!Eval_Solution(candidate_solution, mPopulation[candidate_solution.leader_index], candidate_solution.next, candidate_solution.next_fitness)) {
+					if (!Evolve_Solution(candidate_solution, mPopulation[candidate_solution.leader_index])) {					
+						
 						candidate_solution.leader_index++;
 						if (candidate_solution.leader_index >= mPopulation.size()) candidate_solution.leader_index = 0;
 
-						for (size_t i = 0; i < mSetup.problem_size; i++)
-							candidate_solution.direction[i] = candidate_solution.uniform_distribution(candidate_solution.random_generator);
-					
-//						Find_And_Set_Best_Leader(candidate_solution);	//--commenting this gains speed, but reduces accuracy
+						if (!Evolve_Solution(candidate_solution, *global_best))
+							for (size_t i = 0; i < mSetup.problem_size; i++)
+								candidate_solution.direction[i] = candidate_solution.uniform_distribution(candidate_solution.random_generator);																	
 					}
 				}
 			});
