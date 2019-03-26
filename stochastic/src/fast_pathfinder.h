@@ -44,7 +44,6 @@
 
 #include <math.h>
 
-#include <unordered_set>
 
 namespace fast_pathfinder_internal {
 	template <typename TUsed_Solution>
@@ -89,7 +88,7 @@ protected:
 			mPopulation[i].current = candidates[indexes[i - initialized_count]];
 	}
 
-	TAligned_Solution_Vector<TUsed_Solution> Generate_Spheric_Population() {
+	TAligned_Solution_Vector<TUsed_Solution> Generate_Spheric_Population(const TUsed_Solution &unit_offset) {
 
 		const auto bounds_range = mUpper_Bound - mLower_Bound;
 
@@ -110,7 +109,7 @@ protected:
 			for (auto j = 0; j < bounds_range.cols(); j++) {
 
 				//const double di = static_cast<double>(i)*stepped;
-				double cand_val = 0.5;
+				double cand_val = unit_offset[j];
 
 
 				if ((j & 1) == 0) cand_val += diameter_stepped * sin(angle_stepped);
@@ -223,15 +222,63 @@ public:
 			mPopulation[i].current = mUpper_Bound.min(mLower_Bound.max(Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size)));//also ensure the bounds
 		}
 
-		//b) by complementing it with randomly generated numbers
+		//b) by complementing it with deterministically generated numbers
 		{
+		
+			const auto bounds_range = mUpper_Bound - mLower_Bound;
+
+			TUsed_Solution unit_offset;
+			unit_offset.resize(Eigen::NoChange, mSetup.problem_size);
+			unit_offset.setConstant(0.5);
+
 			TAligned_Solution_Vector<TUsed_Solution> solutions;
-			solutions = Generate_Spheric_Population();			
+			solutions = Generate_Spheric_Population(unit_offset);
 			Fill_Population_From_Candidates(initialized_count, solutions);
+
+			double best_fitness = std::numeric_limits<double>::max();
+			TAligned_Solution_Vector<TUsed_Solution> best_solutions = solutions;
+
+			for (size_t zoom_index = 0; zoom_index < 100; zoom_index++) {
+
+				//calculate the metrics
+				for (auto &solution : mPopulation)
+					solution.current_fitness = mSetup.objective(mSetup.data, solution.current.data());
+
+				//find the best as the next offset - needs recalculation
+				auto global_best = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
+				//std::cout << "Zoom index " << zoom_index << "; fitness " << global_best->current_fitness << std::endl;
+
+				unit_offset = global_best->current - mLower_Bound;
+				for (size_t j = 0; j < mSetup.problem_size; j++) {
+					if (bounds_range[j] != 0.0) unit_offset[j] /= bounds_range[j];
+					else unit_offset[j] = 0.0;
+				}				
+
+				if (global_best->current_fitness < best_fitness) {
+					best_solutions = solutions;
+					best_fitness = global_best->current_fitness;
+				}
+				else
+					break;
+
+
+				
+				solutions = Generate_Spheric_Population(unit_offset);
+				Fill_Population_From_Candidates(0, solutions);
+
+			}
+
+			Fill_Population_From_Candidates(0, best_solutions);
+
+			for (auto &solution : mPopulation)
+				solution.current_fitness = mSetup.objective(mSetup.data, solution.current.data());
+			auto global_best = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
+			//std::cout << "Final spheric fitness " << global_best->current_fitness << std::endl;
 		}
 
-		//2. and calculate the metrics
-		for (auto &solution : mPopulation) {
+		//2. and fill the rest
+		for (auto &solution : mPopulation) {			
+			//first, we need to calculate the current fitnesses
 			solution.current_fitness = mSetup.objective(mSetup.data, solution.current.data());
 			
 			solution.leader_index = 0;	//as the population is sorted, zero is the best leader
@@ -256,10 +303,28 @@ public:
 		progress.max_progress = mSetup.max_generations;
 		
 		
+		const size_t pop_solve_size = std::min(mPopulation.size(), 10);
+
+		Eigen::Matrix<double, Eigen::Dynamic, 3> A;
+		Eigen::Matrix<double, Eigen::Dynamic, 1> b;
+		A.resize(mPopulation.size(), Eigen::NoChange);
+		A.setConstant(1.0);
+		b.resize(mPopulation.size(), Eigen::NoChange);
+
+		std::mt19937 MT_sequence;	//to be completely deterministic in every run we used the constant, default seed
+		std::uniform_real_distribution<double> uniform_distribution(0.0, 1.0);
+
+		TUsed_Solution quadratic;
+		quadratic.resize(Eigen::NoChange, mSetup.problem_size);
+
+		const auto bounds_range = mUpper_Bound - mLower_Bound;
+
+
+
 		while ((progress.current_progress++ < mSetup.max_generations) && (progress.cancelled == 0)) {
 
 			//update the progress
-			const auto global_best = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
+			auto global_best = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
 			progress.best_metric = global_best->current_fitness;			
 
 			//2. Calculate the next vectors and their fitness 
@@ -273,7 +338,7 @@ public:
 				for (size_t iter = r.begin(); iter != rend; iter++) {
 					auto &candidate_solution = mPopulation[iter];
 
-					if (!Evolve_Solution(candidate_solution, mPopulation[candidate_solution.leader_index])) {					
+					if (!Evolve_Solution(candidate_solution, mPopulation[candidate_solution.leader_index])) {
 						
 						candidate_solution.leader_index++;
 						if (candidate_solution.leader_index >= mPopulation.size()) candidate_solution.leader_index = 0;
@@ -286,6 +351,50 @@ public:
 			});
 
 
+			
+
+			bool reached = true;
+			for (size_t i = 0; i < mSetup.problem_size; i++) {
+				if (global_best->next[i] != global_worst->next[i]) {
+					reached = false;
+					break;
+				}
+
+			}
+
+			if (reached) {
+				global_best->current = global_best->next;
+				break;
+			}
+			
+			for (size_t i = 0; i < mPopulation.size(); i++)
+				b(i) = mPopulation[i].next_fitness;
+
+			for (size_t j = 0; j < mSetup.problem_size; j++) {			
+				for (size_t i = 0; i < mPopulation.size(); i++) {
+					const double x = mPopulation[i].next[j];
+					A(i, 0) = x * x; A(i, 1) = x; 
+				}
+
+				const auto coeff = A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);
+
+				//now, we have calculated a*x*x + b*x +c = y,  hence first derivative is
+				//2a*x +b = 0 => -b/2a gives the extreme position - the x^2 member must be positive in order for the polynomial to has a minimum
+				if (coeff[0] > 0.0) quadratic[j] = -coeff[1] / (2.0*coeff[0]);				//if not, we preserve the better parameters only																
+					else quadratic[j] = mLower_Bound[j] + uniform_distribution(MT_sequence)*bounds_range[j];
+			}
+
+			quadratic = mUpper_Bound.min(mLower_Bound.max(quadratic));
+			const double q_f = mSetup.objective(mSetup.data, quadratic.data());
+
+			auto global_worst = std::max_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
+			if (q_f < global_worst->next_fitness) {
+				global_worst->next = quadratic;
+				global_worst->next_fitness = q_f;
+			}
+
+			
+			
 			//3. copy the current results
 			//we must make the copy to avoid non-determinism that could arise by having current solution only 
 			for (auto &solution : mPopulation) {
