@@ -85,7 +85,7 @@ class CPagmo2 {
 protected:
 	solver::TSolver_Setup mSetup;		
 public:
-	CPagmo2(const solver::TSolver_Setup &setup) : mSetup(solver::Check_Default_Parameters(setup, 10'000, 40)) {
+	CPagmo2(const solver::TSolver_Setup &setup) : mSetup(solver::Check_Default_Parameters(setup, 100'000, 100)) {
 	};
 
 	bool Solve(solver::TSolver_Progress &progress) {
