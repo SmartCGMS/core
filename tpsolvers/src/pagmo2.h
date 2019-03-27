@@ -14,7 +14,8 @@
 #include <pagmo/algorithms/bee_colony.hpp>
 #include <pagmo/algorithms/cmaes.hpp>
 #include <pagmo/algorithms/xnes.hpp>
-
+#include <pagmo/algorithms/pso_gen.hpp>
+#include <pagmo/algorithms/ihs.hpp>
 
 namespace pagmo2 {
 
@@ -25,6 +26,8 @@ namespace pagmo2 {
 		ABC,
 		CMAES,
 		xNES,
+		GPSO,
+		IHS		
 	};
 
 	
@@ -114,6 +117,8 @@ public:
 			case pagmo2::NPagmo_Algo::ABC:		ps(pagmo::bee_colony{ static_cast<unsigned int>(mSetup.max_generations) });  break;
 			case pagmo2::NPagmo_Algo::CMAES:	ps(pagmo::cmaes{ static_cast<unsigned int>(mSetup.max_generations), -1.0, -1.0, -1.0, -1.0, 0.5, mSetup.tolerance });  break;
 			case pagmo2::NPagmo_Algo::xNES:		ps(pagmo::xnes{ static_cast<unsigned int>(mSetup.max_generations), -1.0, -1.0, -1.0, -1.0, mSetup.tolerance }); break;
+			case pagmo2::NPagmo_Algo::GPSO:		ps(pagmo::pso_gen{ static_cast<unsigned int>(mSetup.max_generations) }); break;
+			case pagmo2::NPagmo_Algo::IHS:		ps(pagmo::ihs{ static_cast<unsigned int>(mSetup.max_generations) }); break;			
 		}
 		
 		for (size_t i = 0; i < champion_x.size(); i++)		//enforce bounds as pagmo does not do so - pagmo prevents us from doing so permanently in the objective function/object of the TProblem class

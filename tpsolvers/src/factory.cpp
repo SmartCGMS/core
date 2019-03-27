@@ -70,7 +70,7 @@ struct TSolver_Info{
 	TSolver_Func func;
 };
 
-const std::array<TSolver_Info, 11> solvers = {	TSolver_Info{nlopt::newuoa_id, Solve_NLOpt<nlopt::LN_NEWUOA>},
+const std::array<TSolver_Info, 14> solvers = {	TSolver_Info{nlopt::newuoa_id, Solve_NLOpt<nlopt::LN_NEWUOA>},
 												TSolver_Info{nlopt::bobyqa_id, Solve_NLOpt<nlopt::LN_BOBYQA>},
 												TSolver_Info{nlopt::simplex_id, Solve_NLOpt<nlopt::LN_NELDERMEAD>},
 												TSolver_Info{nlopt::subplex_id, Solve_NLOpt<nlopt::LN_SBPLX>},
@@ -82,6 +82,8 @@ const std::array<TSolver_Info, 11> solvers = {	TSolver_Info{nlopt::newuoa_id, So
 												TSolver_Info{pagmo::abc_id, Solve_Pagmo<pagmo2::NPagmo_Algo::ABC>},
 												TSolver_Info{pagmo::cmaes_id, Solve_Pagmo<pagmo2::NPagmo_Algo::CMAES>},
 												TSolver_Info{pagmo::xnes_id, Solve_Pagmo<pagmo2::NPagmo_Algo::xNES>},
+												TSolver_Info{pagmo::gpso_id, Solve_Pagmo<pagmo2::NPagmo_Algo::GPSO>},
+												TSolver_Info{pagmo::ihs_id, Solve_Pagmo<pagmo2::NPagmo_Algo::IHS>},											
 };
 
 

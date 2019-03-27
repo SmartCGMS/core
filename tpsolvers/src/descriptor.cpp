@@ -57,12 +57,15 @@ namespace pagmo {
 	const glucose::TSolver_Descriptor abc_desc = Describe_Non_Specialized_Solver(abc_id, dsABC);
 	const glucose::TSolver_Descriptor cmaes_desc = Describe_Non_Specialized_Solver(cmaes_id, dsCMAES);
 	const glucose::TSolver_Descriptor xnes_desc = Describe_Non_Specialized_Solver(xnes_id, dsXNES);
+	const glucose::TSolver_Descriptor gpso_desc = Describe_Non_Specialized_Solver(gpso_id, dsGPSO);
+	const glucose::TSolver_Descriptor ihs_desc = Describe_Non_Specialized_Solver(ihs_id, dsIHS);
 }
 
 
 
-const std::array<glucose::TSolver_Descriptor, 11> solver_descriptions = { nlopt::newuoa_desc, nlopt::bobyqa_desc, nlopt::simplex_desc, nlopt::subplex_desc, nlopt::praxis_desc,
-																		 pagmo::pso_desc, pagmo::sade_desc, pagmo::de1220_desc, pagmo::abc_desc, pagmo::cmaes_desc, pagmo::xnes_desc };
+const std::array<glucose::TSolver_Descriptor, 13> solver_descriptions = { nlopt::newuoa_desc, nlopt::bobyqa_desc, nlopt::simplex_desc, nlopt::subplex_desc, nlopt::praxis_desc,
+																		 pagmo::pso_desc, pagmo::sade_desc, pagmo::de1220_desc, pagmo::abc_desc, pagmo::cmaes_desc, pagmo::xnes_desc,
+																		 pagmo::gpso_desc, pagmo::ihs_desc};
 
 
 HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {
