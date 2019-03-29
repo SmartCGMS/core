@@ -185,10 +185,10 @@ HRESULT CLoaded_Filters::solve_model_parameters(const glucose::TSolver_Setup *se
 	if (rc != S_OK) {
 		//let's try to apply the generic filters as well
 		glucose::TModel_Descriptor *model = nullptr;
-		for (size_t i=0; i<mModel_Descriptors.size(); i++)
-			for (size_t i = 0; i < mModel_Descriptors[i].number_of_calculated_signals; i++) {
-				if (mModel_Descriptors[i].calculated_signal_ids[i] == setup->calculated_signal_id) {
-					model = &mModel_Descriptors[i];
+		for (size_t desc_idx=0; desc_idx<mModel_Descriptors.size(); desc_idx++)
+			for (size_t signal_idx = 0; signal_idx < mModel_Descriptors[desc_idx].number_of_calculated_signals; signal_idx++) {
+				if (mModel_Descriptors[desc_idx].calculated_signal_ids[signal_idx] == setup->calculated_signal_id) {
+					model = &mModel_Descriptors[desc_idx];
 					break;
 				}
 			}
