@@ -75,7 +75,7 @@ protected:
 protected:
 	double mAngle_Stepping = 0.45;
 
-	void Fill_Population_From_Candidates(const size_t initialized_count, const TAligned_Solution_Vector<TUsed_Solution> &candidates) {
+	void Fill_Population_From_Candidates(const TAligned_Solution_Vector<TUsed_Solution> &candidates) {
 		std::vector<double> fitness;
 		std::vector<size_t> indexes;
 
@@ -84,10 +84,10 @@ protected:
 			indexes.push_back(i);
 		}
 
-		std::partial_sort(indexes.begin(), indexes.begin() + mSetup.population_size - initialized_count, indexes.end(), [&fitness](const size_t a, const size_t b) {return fitness[a] < fitness[b]; });
+		std::partial_sort(indexes.begin(), indexes.begin() + mSetup.population_size, indexes.end(), [&fitness](const size_t a, const size_t b) {return fitness[a] < fitness[b]; });
 
-		for (size_t i = initialized_count; i < mSetup.population_size; i++)
-			mPopulation[i].current = candidates[indexes[i - initialized_count]];
+		for (size_t i = 0; i < mSetup.population_size; i++)
+			mPopulation[i].current = candidates[indexes[i]];
 	}
 
 	TAligned_Solution_Vector<TUsed_Solution> Generate_Spheric_Population(const TUsed_Solution &unit_offset) {
@@ -207,8 +207,7 @@ protected:
 		auto &quadratic_candidate = candidate_solution.quadratic;
 
 		quadratic_candidate = candidate_solution.current + candidate_solution.direction*(candidate_solution.current - leading_solution.current);
-				
-
+	
 		b(0) = candidate_solution.current_fitness;
 		b(1) = check_solution(quadratic_candidate);
 		b(2) = leading_solution.current_fitness;
@@ -220,10 +219,10 @@ protected:
 
 			A(0, 0) = x1 * x1; A(0, 1) = x1;
 			A(1, 0) = x2 * x2; A(1, 1) = x2;
-			A(2, 0) = x3 * x3; A(2, 1) = x3;
+			A(2, 0) = x3 * x3; A(2, 1) = x3;			
 
 			//coeff = (A.transpose() * A).ldlt().solve(A.transpose() * b);//A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);
-			coeff = A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);
+			coeff = A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);			
 
 			//now, we have calculated a*x*x + b*x +c = y,  hence first derivative is
 			//2a*x +b = 0 => -b/2a gives the extreme position - the x^2 member must be positive in order for the polynomial to has a minimum
@@ -231,7 +230,24 @@ protected:
 			else {
 				if (!improved) {
 					candidate_solution.direction[i] = candidate_solution.uniform_distribution(candidate_solution.random_generator);
-					quadratic_candidate[i] = candidate_solution.current[i];
+
+					if (coeff[0] < 0.0) {
+						//quadratic_candidate[i] = 0.5*(candidate_solution.current[i] + (-coeff[1] / (2.0*coeff[0])));
+
+						const double x_candidate = 0.5*(candidate_solution.current[i] + (-coeff[1] / (2.0*coeff[0])));
+						const double x_leading = 0.5*(leading_solution.current[i] + (-coeff[1] / (2.0*coeff[0])));
+
+						const double y_candidate = x_candidate * x_candidate*coeff[0] + x_candidate * coeff[1] + coeff[2];
+						const double y_leading = x_leading * x_leading*coeff[0] + x_leading * coeff[1] + coeff[2];
+
+						quadratic_candidate[i] = y_leading < y_candidate ? x_leading : x_candidate;
+					}
+
+					else {
+						const double diff = leading_solution.current[i] - candidate_solution.current[i];
+						const double k = leading_solution.current_fitness < candidate_solution.current_fitness ? 0.25 : -0.25;
+						quadratic_candidate[i] = candidate_solution.current[i] + diff * k;											  
+					}
 				}
 			}
 		}
@@ -243,7 +259,7 @@ protected:
 
 		return improved;
 
-	}
+	}	
 
 public:
 	CFast_Pathfinder(const solver::TSolver_Setup &setup, const double angle_stepping = 3.14*2.0 / 37.0) :
@@ -254,13 +270,8 @@ public:
 		mPopulation.resize(mSetup.population_size);
 
 		//1. create the initial population
-		const size_t initialized_count = std::min(mSetup.population_size / 2, mSetup.hint_count);
-		//a) by storing suggested params
-		for (size_t i = 0; i < initialized_count; i++) {
-			mPopulation[i].current = mUpper_Bound.min(mLower_Bound.max(Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size)));//also ensure the bounds
-		}
-
-		//b) by complementing it with deterministically generated numbers
+	
+		//a) by creatuing deterministically generated solutions
 		{
 		
 			const auto bounds_range = mUpper_Bound - mLower_Bound;
@@ -272,7 +283,13 @@ public:
 			TAligned_Solution_Vector<TUsed_Solution> solutions;
 			TAligned_Solution_Vector<TUsed_Solution> best_solutions;
 			solutions = Generate_Spheric_Population(unit_offset);
-			Fill_Population_From_Candidates(initialized_count, solutions);
+
+			//b) and appending the supplied hints
+			for (size_t i = 0; i < mSetup.hint_count; i++) {
+				solutions.push_back(mUpper_Bound.min(mLower_Bound.max(Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size))));//also ensure the bounds
+			}
+
+			Fill_Population_From_Candidates(solutions);
 
 			double best_fitness = std::numeric_limits<double>::max();
 
@@ -310,7 +327,7 @@ public:
 				}
 				
 				solutions = Generate_Spheric_Population(unit_offset);
-				Fill_Population_From_Candidates(0, solutions);
+				Fill_Population_From_Candidates(solutions);
 
 			}
 
