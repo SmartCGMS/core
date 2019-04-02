@@ -74,6 +74,7 @@ protected:
 	solver::TSolver_Setup mSetup;
 protected:
 	double mAngle_Stepping = 0.45;
+	double mBase_Attractor_Factor = 0.25;
 
 	void Fill_Population_From_Candidates(const TAligned_Solution_Vector<TUsed_Solution> &candidates) {
 		std::vector<double> fitness;
@@ -213,7 +214,7 @@ protected:
 		b(1) = check_solution(quadratic_candidate);
 		b(2) = leading_solution.current_fitness;
 
-		const double attractor_factor = leading_solution.current_fitness < candidate_solution.current_fitness ? 0.25 : -0.25;
+		const double attractor_factor = leading_solution.current_fitness < candidate_solution.current_fitness ? mBase_Attractor_Factor : -mBase_Attractor_Factor;
 
 		for (size_t i = 0; i < mSetup.problem_size; i++) {
 			const double &x1 = candidate_solution.current[i];
@@ -236,9 +237,9 @@ protected:
 					if (coeff[0] < 0.0) {
 						//Concave could mean that a likely line-symmetric quirtic polynomial could fit this local area better
 						//=> let's see it this way and choose that local minima that has lesser y-value with respect to the global extreme of the 2nd-order polynomial
-
-						const double x_candidate = 0.5*(candidate_solution.current[i] + (-coeff[1] / (2.0*coeff[0])));
-						const double x_leading = 0.5*(leading_solution.current[i] + (-coeff[1] / (2.0*coeff[0])));
+						const double x_extreme = -coeff[1] / (2.0*coeff[0]);
+						const double x_candidate = 0.5*(candidate_solution.current[i] + x_extreme);
+						const double x_leading = 0.5*(leading_solution.current[i] + x_extreme));
 
 						const double y_candidate = x_candidate * x_candidate*coeff[0] + x_candidate * coeff[1] + coeff[2];
 						const double y_leading = x_leading * x_leading*coeff[0] + x_leading * coeff[1] + coeff[2];
