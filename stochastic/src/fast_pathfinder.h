@@ -205,12 +205,15 @@ protected:
 		auto &coeff = candidate_solution.coeff;
 
 		auto &quadratic_candidate = candidate_solution.quadratic;
-
-		quadratic_candidate = candidate_solution.current + candidate_solution.direction*(candidate_solution.current - leading_solution.current);
+		
+		const TUsed_Solution difference = candidate_solution.current - leading_solution.current;
+		quadratic_candidate = candidate_solution.current + candidate_solution.direction*difference;
 	
 		b(0) = candidate_solution.current_fitness;
 		b(1) = check_solution(quadratic_candidate);
 		b(2) = leading_solution.current_fitness;
+
+		const double attractor_factor = leading_solution.current_fitness < candidate_solution.current_fitness ? 0.25 : -0.25;
 
 		for (size_t i = 0; i < mSetup.problem_size; i++) {
 			const double &x1 = candidate_solution.current[i];
@@ -221,10 +224,9 @@ protected:
 			A(1, 0) = x2 * x2; A(1, 1) = x2;
 			A(2, 0) = x3 * x3; A(2, 1) = x3;			
 
-			//coeff = (A.transpose() * A).ldlt().solve(A.transpose() * b);//A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);
 			coeff = A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);			
 
-			//now, we have calculated a*x*x + b*x +c = y,  hence first derivative is
+			//now, we have calculated a*x*x + b*x +c = y,  hence the first derivative is
 			//2a*x +b = 0 => -b/2a gives the extreme position - the x^2 member must be positive in order for the polynomial to has a minimum
 			if (coeff[0] > 0.0) quadratic_candidate[i] = -coeff[1] / (2.0*coeff[0]);				//if not, we preserve the better parameters only												
 			else {
@@ -232,7 +234,8 @@ protected:
 					candidate_solution.direction[i] = candidate_solution.uniform_distribution(candidate_solution.random_generator);
 
 					if (coeff[0] < 0.0) {
-						//quadratic_candidate[i] = 0.5*(candidate_solution.current[i] + (-coeff[1] / (2.0*coeff[0])));
+						//Concave could mean that a likely line-symmetric quirtic polynomial could fit this local area better
+						//=> let's see it this way and choose that local minima that has lesser y-value with respect to the global extreme of the 2nd-order polynomial
 
 						const double x_candidate = 0.5*(candidate_solution.current[i] + (-coeff[1] / (2.0*coeff[0])));
 						const double x_leading = 0.5*(leading_solution.current[i] + (-coeff[1] / (2.0*coeff[0])));
@@ -242,12 +245,8 @@ protected:
 
 						quadratic_candidate[i] = y_leading < y_candidate ? x_leading : x_candidate;
 					}
-
-					else {
-						const double diff = leading_solution.current[i] - candidate_solution.current[i];
-						const double k = leading_solution.current_fitness < candidate_solution.current_fitness ? 0.25 : -0.25;
-						quadratic_candidate[i] = candidate_solution.current[i] + diff * k;											  
-					}
+					else 
+						quadratic_candidate[i] = candidate_solution.current[i] - difference[i] * attractor_factor;	//minus is because of the difference used to calculate the initial estimate of new solution					
 				}
 			}
 		}
@@ -271,7 +270,7 @@ public:
 
 		//1. create the initial population
 	
-		//a) by creatuing deterministically generated solutions
+		//a) by creating deterministically generated solutions
 		{
 		
 			const auto bounds_range = mUpper_Bound - mLower_Bound;
@@ -376,13 +375,7 @@ public:
 		progress.max_progress = mSetup.max_generations;
 				
 
-
-//		std::mt19937 MT_sequence;	//to be completely deterministic in every run we used the constant, default seed
-//		std::uniform_real_distribution<double> uniform_distribution(0.0, 1.0);
-
-
 		const auto bounds_range = mUpper_Bound - mLower_Bound;
-
 
 
 		while ((progress.current_progress++ < mSetup.max_generations) && (progress.cancelled == 0)) {
@@ -433,7 +426,6 @@ public:
 
 			TUsed_Solution quadratic = Calculate_Quadratic_Candidate_From_Population();
 			for (size_t j = 0; j < mSetup.problem_size; j++)
-				//				if (isnan(quadratic[j])) quadratic[j] = mLower_Bound[j] + uniform_distribution(MT_sequence)*bounds_range[j];
 				if (isnan(quadratic[j])) quadratic[j] = global_best->current[j]; //moving one step back to previous generation
 			
 			const double q_f = mSetup.objective(mSetup.data, quadratic.data());
