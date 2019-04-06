@@ -239,7 +239,7 @@ protected:
 						//=> let's see it this way and choose that local minima that has lesser y-value with respect to the global extreme of the 2nd-order polynomial
 						const double x_extreme = -coeff[1] / (2.0*coeff[0]);
 						const double x_candidate = 0.5*(candidate_solution.current[i] + x_extreme);
-						const double x_leading = 0.5*(leading_solution.current[i] + x_extreme));
+						const double x_leading = 0.5*(leading_solution.current[i] + x_extreme);
 
 						const double y_candidate = x_candidate * x_candidate*coeff[0] + x_candidate * coeff[1] + coeff[2];
 						const double y_leading = x_leading * x_leading*coeff[0] + x_leading * coeff[1] + coeff[2];
