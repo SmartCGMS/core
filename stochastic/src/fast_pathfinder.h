@@ -261,6 +261,85 @@ protected:
 
 	}	
 
+
+	TUsed_Solution Solve_Internal(solver::TSolver_Progress &progress) {
+
+		const auto bounds_range = mUpper_Bound - mLower_Bound;
+
+		while ((progress.current_progress++ < mSetup.max_generations) && (progress.cancelled == 0)) {
+
+			//update the progress
+			auto global_best = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
+			progress.best_metric = global_best->current_fitness;
+
+			//2. Calculate the next vectors and their fitness 
+			//In this step, current is read-only and next is write-only => no locking is needed
+			//as each next will be written just once.
+			//We assume that parallelization cost will get amortized
+			tbb::parallel_for(tbb::blocked_range<size_t>(size_t(0), mSetup.population_size), [=](const tbb::blocked_range<size_t> &r) {
+
+
+				const size_t rend = r.end();
+				for (size_t iter = r.begin(); iter != rend; iter++) {
+					auto &candidate_solution = mPopulation[iter];
+
+					if (!Evolve_Solution(candidate_solution, mPopulation[candidate_solution.leader_index])) {
+
+						candidate_solution.leader_index++;
+						if (candidate_solution.leader_index >= mPopulation.size()) candidate_solution.leader_index = 0;
+
+						if (!Evolve_Solution(candidate_solution, *global_best))
+							for (size_t i = 0; i < mSetup.problem_size; i++)
+								candidate_solution.direction[i] = candidate_solution.uniform_distribution(candidate_solution.random_generator);
+					}
+				}
+			});
+
+
+			auto global_worst = std::max_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
+
+			bool reached = true;
+			for (size_t i = 0; i < mSetup.problem_size; i++) {
+				if (global_best->next[i] != global_worst->next[i]) {
+					reached = false;
+					break;
+				}
+
+			}
+
+			if (reached) {
+				global_best->current = global_best->next;
+				break;
+			}
+
+			TUsed_Solution quadratic = Calculate_Quadratic_Candidate_From_Population();
+			for (size_t j = 0; j < mSetup.problem_size; j++)
+				if (isnan(quadratic[j])) quadratic[j] = global_best->current[j]; //moving one step back to previous generation
+
+			const double q_f = mSetup.objective(mSetup.data, quadratic.data());
+
+			if (q_f < global_worst->next_fitness) {
+				global_worst->next = quadratic;
+				global_worst->next_fitness = q_f;
+			}
+
+
+
+			//3. copy the current results
+			//we must make the copy to avoid non-determinism that could arise by having current solution only 
+			for (auto &solution : mPopulation) {
+				solution.current = solution.next;
+				solution.current_fitness = solution.next_fitness;
+			}
+
+		} //while in the progress
+
+		//find the best result and return it
+		const auto result = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
+		return result->current;
+
+	}
+
 public:
 	CFast_Pathfinder(const solver::TSolver_Setup &setup, const double angle_stepping = 3.14*2.0 / 37.0) :
 				mAngle_Stepping(angle_stepping),
@@ -374,82 +453,39 @@ public:
 
 		progress.current_progress = 0;
 		progress.max_progress = mSetup.max_generations;
-				
+
+		TUsed_Solution best_solution = Solve_Internal(progress);
+		double best_fitness = mSetup.objective(mSetup.data, best_solution.data());
+
 
 		const auto bounds_range = mUpper_Bound - mLower_Bound;
+		while (/*(progress.current_progress < mSetup.max_generations) && */(progress.cancelled == 0)) {
 
-
-		while ((progress.current_progress++ < mSetup.max_generations) && (progress.cancelled == 0)) {
-
-			//update the progress
-			auto global_best = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
-			progress.best_metric = global_best->current_fitness;			
-
-			//2. Calculate the next vectors and their fitness 
-			//In this step, current is read-only and next is write-only => no locking is needed
-			//as each next will be written just once.
-			//We assume that parallelization cost will get amortized
-			tbb::parallel_for(tbb::blocked_range<size_t>(size_t(0), mSetup.population_size), [=](const tbb::blocked_range<size_t> &r) {
-
-
-				const size_t rend = r.end();
-				for (size_t iter = r.begin(); iter != rend; iter++) {
-					auto &candidate_solution = mPopulation[iter];
-
-					if (!Evolve_Solution(candidate_solution, mPopulation[candidate_solution.leader_index])) {
-						
-						candidate_solution.leader_index++;
-						if (candidate_solution.leader_index >= mPopulation.size()) candidate_solution.leader_index = 0;
-
-						if (!Evolve_Solution(candidate_solution, *global_best))
-							for (size_t i = 0; i < mSetup.problem_size; i++)
-								candidate_solution.direction[i] = candidate_solution.uniform_distribution(candidate_solution.random_generator);																	
-					}
-				}
-			});
-
-
-			auto global_worst = std::max_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
-
-			bool reached = true;
-			for (size_t i = 0; i < mSetup.problem_size; i++) {
-				if (global_best->next[i] != global_worst->next[i]) {
-					reached = false;
-					break;
-				}
-
+			TUsed_Solution unit_offset = best_solution - mLower_Bound;
+			for (size_t j = 0; j < mSetup.problem_size; j++) {
+				if (bounds_range[j] != 0.0) unit_offset[j] /= bounds_range[j];
+				else unit_offset[j] = 0.0;
 			}
 
-			if (reached) {
-				global_best->current = global_best->next;
-				break;
+			const TAligned_Solution_Vector<TUsed_Solution> solutions = Generate_Spheric_Population(unit_offset);
+			Fill_Population_From_Candidates(solutions);
+
+
+			const TUsed_Solution local_solution = Solve_Internal(progress);
+			const double local_fitness = mSetup.objective(mSetup.data, local_solution.data());
+
+			if (local_fitness < best_fitness) {
+				std::cout << "i old: " << best_fitness << " new  " << local_fitness << std::endl;
+				best_fitness = local_fitness;
+				best_solution = local_solution;				
 			}
+			else break;
+		}
 
-			TUsed_Solution quadratic = Calculate_Quadratic_Candidate_From_Population();
-			for (size_t j = 0; j < mSetup.problem_size; j++)
-				if (isnan(quadratic[j])) quadratic[j] = global_best->current[j]; //moving one step back to previous generation
-			
-			const double q_f = mSetup.objective(mSetup.data, quadratic.data());
-			
-			if (q_f < global_worst->next_fitness) {
-				global_worst->next = quadratic;
-				global_worst->next_fitness = q_f;
-			}
+		return best_solution;
 
-
-			
-			//3. copy the current results
-			//we must make the copy to avoid non-determinism that could arise by having current solution only 
-			for (auto &solution : mPopulation) {
-				solution.current = solution.next;
-				solution.current_fitness = solution.next_fitness;
-			}
-
-		} //while in the progress
-
-		//find the best result and return it
-		const auto result = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
-		return result->current;
-	
 	}
+
+
+	
 };
