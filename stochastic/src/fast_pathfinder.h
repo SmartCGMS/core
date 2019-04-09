@@ -54,15 +54,16 @@ namespace fast_pathfinder_internal {
 		size_t leader_index;
 		double current_fitness, next_fitness;
 
-		TUsed_Solution direction;
+//		TUsed_Solution direction;
+		std::vector<size_t> dir_index;
 
 		//the following members safe to either guarantee thread safety and to avoid memory allocations
 		TUsed_Solution quadratic;
 		Eigen::Matrix3d A;
 		Eigen::Vector3d b, coeff;
 
-		std::mt19937_64 random_generator;
-		std::uniform_real_distribution<double> uniform_distribution{ -1.0, 1.0 };
+		//std::mt19937_64 random_generator;
+		//std::uniform_real_distribution<double> uniform_distribution{ -1.0, 1.0 };
 	};
 }
 
@@ -75,6 +76,18 @@ protected:
 protected:
 	double mAngle_Stepping = 0.45;
 	double mBase_Attractor_Factor = 0.25;
+	//*const */std::vector<double> mDirections = {0.5, -0.5, 0.0, 1.0/3.0, -1.0/3.0, 2.0/3.0, -2.0/3.0};
+	std::vector<double> mDirections = { 0.5, -0.5, 0.0,
+		0.9, -0.9,
+		1.0 / 3.0, -1.0 / 3.0,
+		0.7, -0.7,
+		0.4, -0.4,
+		1.0, -1.0,
+		1.0 / 6.0, -1.0 / 6.0,
+		0.2, -0.2,
+		0.8, -0.8,
+		0.1, -0.1 };
+					
 
 	void Fill_Population_From_Candidates(const TAligned_Solution_Vector<TUsed_Solution> &candidates) {
 		std::vector<double> fitness;
@@ -208,7 +221,11 @@ protected:
 		auto &quadratic_candidate = candidate_solution.quadratic;
 		
 		const TUsed_Solution difference = candidate_solution.current - leading_solution.current;
-		quadratic_candidate = candidate_solution.current + candidate_solution.direction*difference;
+		//quadratic_candidate = candidate_solution.current + candidate_solution.direction*difference;
+		quadratic_candidate = candidate_solution.current;
+		for (size_t i = 0; i < mSetup.problem_size; i++)
+			quadratic_candidate[i] += difference[i] * mDirections[candidate_solution.dir_index[i]];
+		//+candidate_solution.direction*difference;
 	
 		b(0) = candidate_solution.current_fitness;
 		b(1) = check_solution(quadratic_candidate);
@@ -232,7 +249,10 @@ protected:
 			if (coeff[0] > 0.0) quadratic_candidate[i] = -coeff[1] / (2.0*coeff[0]);				//if not, we preserve the better parameters only												
 			else {
 				if (!improved) {
-					candidate_solution.direction[i] = candidate_solution.uniform_distribution(candidate_solution.random_generator);
+					//candidate_solution.direction[i] = candidate_solution.uniform_distribution(candidate_solution.random_generator);
+					candidate_solution.dir_index[i]++;
+					if (candidate_solution.dir_index[i] >= mDirections.size()) candidate_solution.dir_index[i] = 0;
+
 
 					if (coeff[0] < 0.0) {
 						//Concave could mean that a likely line-symmetric quirtic polynomial could fit this local area better
@@ -290,7 +310,11 @@ protected:
 
 						if (!Evolve_Solution(candidate_solution, *global_best))
 							for (size_t i = 0; i < mSetup.problem_size; i++)
-								candidate_solution.direction[i] = candidate_solution.uniform_distribution(candidate_solution.random_generator);
+								//candidate_solution.direction[i] = candidate_solution.uniform_distribution(candidate_solution.random_generator);
+							{
+								candidate_solution.dir_index[i]++;
+								if (candidate_solution.dir_index[i] >= mDirections.size()) candidate_solution.dir_index[i] = 0;
+							}
 					}
 				}
 			});
@@ -439,12 +463,31 @@ public:
 			solution.next = solution.current;
 			solution.next_fitness = solution.current_fitness;	
 
-			solution.direction.resize(Eigen::NoChange, mSetup.problem_size);
-			solution.direction.setConstant(solution.uniform_distribution.max());
+			//solution.direction.resize(Eigen::NoChange, mSetup.problem_size);
+			//solution.direction.setConstant(solution.uniform_distribution.max());
 			solution.quadratic.resize(Eigen::NoChange, mSetup.problem_size);
 			solution.A.setConstant(1.0);
+
+			solution.dir_index.assign(mSetup.problem_size, 0);
 		}		
 		mPopulation[0].leader_index = 1;	//so that it does not point to itself
+
+
+			{
+			///std::mt19937_64 random_generator;
+			//std::uniform_real_distribution<double> uniform_distribution{ -1.0, 1.0 };
+			mDirections.resize(0);
+			for (size_t i = 1; i < 5; i++) {
+				mDirections.push_back(0.9 / static_cast<double>(i));
+				mDirections.push_back(-0.9 / static_cast<double>(i));
+
+				//mDirections.push_back(uniform_distribution(random_generator));
+			}
+
+			mDirections.insert(mDirections.begin() + 2, 0.0);
+		}
+	
+
 	};
 
 	
