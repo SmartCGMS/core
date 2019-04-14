@@ -274,7 +274,7 @@ protected:
 	}
 
 
-	TUsed_Solution Solve_Internal(solver::TSolver_Progress &progress) {
+	TUsed_Solution Evolve_Population(solver::TSolver_Progress &progress) {
 
 		const auto bounds_range = mUpper_Bound - mLower_Bound;
 
@@ -310,7 +310,8 @@ protected:
 			});
 
 
-			auto global_worst = std::max_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
+			global_best = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.next_fitness < b.next_fitness; });
+			auto global_worst = std::max_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.next_fitness < b.next_fitness; });
 
 			bool reached = true;
 			for (size_t i = 0; i < mSetup.problem_size; i++) {
@@ -430,9 +431,6 @@ protected:
 			}
 		}
 
-
-
-
 		//2. and fill the rest
 		for (auto &solution : mPopulation) {
 			//first, we need to calculate the current fitnesses
@@ -468,7 +466,7 @@ public:
 		progress.current_progress = 0;
 		progress.max_progress = mSetup.max_generations;
 
-		TUsed_Solution best_solution = Solve_Internal(progress);
+		TUsed_Solution best_solution = Evolve_Population(progress);
 		double best_fitness = mSetup.objective(mSetup.data, best_solution.data());
 
 		while ((progress.current_progress < mSetup.max_generations) && (progress.cancelled == 0)) {
@@ -490,7 +488,7 @@ public:
 			mPopulation[0].leader_index = 1;	//so that it does not point to itself
 
 
-			const TUsed_Solution local_solution = Solve_Internal(progress);
+			const TUsed_Solution local_solution = Evolve_Population(progress);
 			const double local_fitness = mSetup.objective(mSetup.data, local_solution.data());
 
 			if (local_fitness < best_fitness) {
