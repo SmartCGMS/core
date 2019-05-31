@@ -184,7 +184,42 @@ namespace diffusion_prediction {
 	};
 }
 
-const std::array<glucose::TModel_Descriptor, 4> model_descriptions = { { diffusion_v2_model::desc, steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc, diffusion_prediction::desc } };
+namespace constant_model {
+	const GUID id = { 0x637465fb, 0xfb6f, 0x4a05, { 0xbb, 0x13, 0xab, 0x2a, 0x59, 0xb9, 0x77, 0x4b } };	// {637465FB-FB6F-4A05-BB13-AB2A59B9774B}
+
+	const glucose::NModel_Parameter_Value param_types[param_count] = { glucose::NModel_Parameter_Value::mptDouble };
+
+	const wchar_t *param_names[param_count] = { dsConstantParam };
+	const wchar_t *param_columns[param_count] = { rsConstantParam };
+
+	const double lower_bound[param_count] = { 0.0 };
+	const double upper_bound[param_count] = {  100.0 };
+
+	const size_t signal_count = 2;
+
+	const GUID signal_ids[signal_count] = { glucose::signal_Constant_BG, glucose::signal_Constant_Insulin };
+	const wchar_t *signal_names[signal_count] = { dsConstant_Blood_Signal, dsConstant_Insulin };
+	const GUID reference_signal_ids[signal_count] = { glucose::signal_BG, glucose::signal_Basal_Insulin };
+
+	const glucose::TModel_Descriptor desc = {
+		id,
+		dsConstant_Model,
+		rsConstant_Model,
+		param_count,
+		param_types,
+		param_names,
+		param_columns,
+		lower_bound,
+		default_parameters,
+		upper_bound,
+		signal_count,
+		signal_ids,
+		signal_names,
+		reference_signal_ids
+	};
+}
+
+const std::array<glucose::TModel_Descriptor, 5> model_descriptions = { { diffusion_v2_model::desc, steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc, diffusion_prediction::desc, constant_model::desc } };
 
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end) {

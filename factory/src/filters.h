@@ -41,6 +41,7 @@
 #include "../../../common/iface/SolverIface.h"
 #include "../../../common/iface/UIIface.h"
 #include "../../../common/iface/ApproxIface.h"
+#include "../../../common/iface/SensorIface.h"
 #include "../../../common/rtl/Dynamic_Library.h"
 
 #include <tbb/concurrent_vector.h>
@@ -49,12 +50,14 @@
 namespace imported {
 	struct TLibraryInfo {
 		CDynamic_Library library{};
-		glucose::TCreate_Filter create_filter = nullptr;
+		glucose::TCreate_Asynchronnous_Filter create_asynchronnous_filter = nullptr;
+		glucose::TCreate_Synchronnous_Filter create_synchronnous_filter = nullptr;
 		glucose::TCreate_Metric create_metric = nullptr;
 		glucose::TCreate_Signal create_signal = nullptr;
+		glucose::TCreate_Device_Driver create_device_driver = nullptr;
 		glucose::TCreate_Approximator create_approximator = nullptr;
 		glucose::TSolve_Model_Parameters solve_model_parameters = nullptr;
-		solver::TGeneric_Solver solve_generic = nullptr;			
+		solver::TGeneric_Solver solve_generic = nullptr;
 	};
 }
 
@@ -65,7 +68,8 @@ protected:
 	std::vector<glucose::TMetric_Descriptor, tbb::tbb_allocator<glucose::TMetric_Descriptor>> mMetric_Descriptors;
 	std::vector<glucose::TModel_Descriptor, tbb::tbb_allocator<glucose::TModel_Descriptor>> mModel_Descriptors;
 	std::vector<glucose::TSolver_Descriptor, tbb::tbb_allocator<glucose::TSolver_Descriptor>> mSolver_Descriptors;
-	std::vector<glucose::TApprox_Descriptor, tbb::tbb_allocator<glucose::TApprox_Descriptor>> mApprox_Descriptors;	
+	std::vector<glucose::TApprox_Descriptor, tbb::tbb_allocator<glucose::TApprox_Descriptor>> mApprox_Descriptors;
+	std::vector<glucose::TDevice_Driver_Descriptor, tbb::tbb_allocator<glucose::TDevice_Driver_Descriptor>> mDevice_Driver_Descriptors;
 	
 	template <typename TDesc_Func, typename TDesc_Item>
 	bool Load_Descriptors(std::vector<TDesc_Item, tbb::tbb_allocator<TDesc_Item>> &dst, CDynamic_Library &lib, const char *func_name)  {
@@ -114,9 +118,11 @@ protected:
 public:
 	CLoaded_Filters();
 
-	HRESULT create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter);
+	HRESULT create_asynchronnous_filter(const GUID *id, glucose::IFilter_Asynchronous_Pipe *input, glucose::IFilter_Asynchronous_Pipe *output, glucose::IAsynchronnous_Filter **filter);
+	HRESULT create_synchronnous_filter(const GUID *id, glucose::ISynchronnous_Filter **filter);
 	HRESULT create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric);
 	HRESULT create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
+	HRESULT create_device_driver(const GUID *calc_id, glucose::IFilter_Asynchronous_Pipe* output, glucose::IDevice_Driver** device_driver);
 	HRESULT solve_model_parameters(const glucose::TSolver_Setup *setup);
 	HRESULT solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress);
 	HRESULT create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApprox_Parameters_Vector* configuration, glucose::IApproximator **approx);
@@ -126,13 +132,16 @@ public:
 	HRESULT get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end);
 	HRESULT get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end);
 	HRESULT get_approx_descriptors(glucose::TApprox_Descriptor **begin, glucose::TApprox_Descriptor **end);
+	HRESULT get_device_driver_descriptors(glucose::TDevice_Driver_Descriptor **begin, glucose::TDevice_Driver_Descriptor **end);
 
-	HRESULT add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Filter create_filter);
+	HRESULT add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Asynchronnous_Filter create_filter, const glucose::TCreate_Synchronnous_Filter create_synchronnous_filter);
 };
 
-extern "C" HRESULT IfaceCalling create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter);
+extern "C" HRESULT IfaceCalling create_asynchronnous_filter(const GUID *id, glucose::IFilter_Asynchronous_Pipe *input, glucose::IFilter_Asynchronous_Pipe *output, glucose::IAsynchronnous_Filter **filter);
+extern "C" HRESULT IfaceCalling create_synchronnous_filter(const GUID *id, glucose::ISynchronnous_Filter **filter);
 extern "C" HRESULT IfaceCalling create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric);
 extern "C" HRESULT IfaceCalling create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
+extern "C" HRESULT IfaceCalling create_device_driver(const GUID *calc_id, glucose::IFilter_Asynchronous_Pipe* output, glucose::IDevice_Driver** device_driver);
 extern "C" HRESULT IfaceCalling solve_model_parameters(const glucose::TSolver_Setup *setup);
 extern "C" HRESULT IfaceCalling solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress);
 extern "C" HRESULT IfaceCalling create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApprox_Parameters_Vector* configuration, glucose::IApproximator **approx);
@@ -142,5 +151,6 @@ extern "C" HRESULT IfaceCalling get_metric_descriptors(glucose::TMetric_Descript
 extern "C" HRESULT IfaceCalling get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end);
 extern "C" HRESULT IfaceCalling get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end);
 extern "C" HRESULT IfaceCalling get_approx_descriptors(glucose::TApprox_Descriptor **begin, glucose::TApprox_Descriptor **end);
+extern "C" HRESULT IfaceCalling get_device_driver_descriptors(glucose::TDevice_Driver_Descriptor **begin, glucose::TDevice_Driver_Descriptor **end);
 
-extern "C" HRESULT IfaceCalling add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Filter create_filter);
+extern "C" HRESULT IfaceCalling add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Asynchronnous_Filter create_filter, const glucose::TCreate_Synchronnous_Filter create_synchronnous_filter);

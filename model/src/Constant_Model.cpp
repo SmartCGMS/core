@@ -36,36 +36,31 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
+#include "Constant_Model.h"
+#include "descriptor.h"
 
-#include "../../../common/iface/FilterIface.h"
-#include "../../../common/rtl/referencedImpl.h"
+#include <cmath>
 
-#include <tbb/concurrent_queue.h>
+CConstant_Model::CConstant_Model(glucose::WTime_Segment segment) : CCommon_Calculation(segment, glucose::signal_BG) {
+	//
+}
 
-#pragma warning( push )
-#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
+HRESULT IfaceCalling CConstant_Model::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
+{
+	constant_model::TParameters &parameters = Convert_Parameters<constant_model::TParameters>(params, constant_model::default_parameters);
 
-class CFilter_Pipe :  public glucose::IFilter_Pipe, public virtual refcnt::CReferenced {
-protected:
-	tbb::concurrent_bounded_queue<glucose::IDevice_Event*> mQueue;
-	const std::ptrdiff_t mDefault_Capacity = 64;
-	bool mShutting_Down_Send = false;
-	bool mShutting_Down_Receive = false;
-		//we need two flags to let the last shutdown event to fall through
-public:
-	CFilter_Pipe() noexcept;
-	virtual ~CFilter_Pipe();
+	// for all input times (reference signal times), output constant value
+	// this comes in handy for e.g. measuring quality of regulation - metrics then can tell us, how good the regulation actually was,
+	// how many values were in target range, etc.
 
-	virtual HRESULT send(glucose::IDevice_Event* event) override final;
-	virtual HRESULT receive(glucose::IDevice_Event** event) override final;
-	virtual HRESULT abort() final;
-};
+	for (size_t i = 0; i < count; i++)
+		levels[i] = parameters.c;
 
-#pragma warning( pop )
+	return S_OK;
+}
 
-#ifdef _WIN32
-	extern "C" __declspec(dllexport) HRESULT IfaceCalling create_filter_pipe(glucose::IFilter_Pipe **pipe);
-#else
-	extern "C" HRESULT IfaceCalling create_filter_pipe(glucose::IFilter_Pipe **pipe);
-#endif
+HRESULT IfaceCalling CConstant_Model::Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const {
+	double *params = const_cast<double*>(constant_model::default_parameters);
+	return parameters->set(params, params + constant_model::param_count);
+}

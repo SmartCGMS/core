@@ -80,11 +80,13 @@ extern "C" HRESULT IfaceCalling do_get_approximator_descriptors(glucose::TApprox
 
 extern "C" HRESULT IfaceCalling do_create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApprox_Parameters_Vector* configuration, glucose::IApproximator **approx) {
 
+	// TODO: fix this; temporary construct before approximator configuration is defined - use Akima spline despite another approximator is defined
 	return Manufacture_Object<CAkima>(approx, glucose::WSignal{ signal }, configuration);
 
 	if (*approx_id == line::LineApprox_Descriptor.id)
 		return Manufacture_Object<CLine_Approximator>(approx, glucose::WSignal{ signal }, configuration);
-		
+	else if (*approx_id == akima::Akima_Descriptor.id)
+		return Manufacture_Object<CAkima>(approx, glucose::WSignal{ signal }, configuration);
 
 	return ENOENT;
 }

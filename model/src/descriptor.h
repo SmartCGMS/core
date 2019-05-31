@@ -99,4 +99,18 @@ namespace diffusion_prediction {
 	};
 }
 
+namespace constant_model {
+	const size_t param_count = 1;
+	const double default_parameters[param_count] = { 6.66 };
+
+	struct TParameters {
+		union {
+			struct {
+				double c;
+			};
+			double vector[param_count];
+		};
+	};
+}
+
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end);

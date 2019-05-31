@@ -54,6 +54,7 @@ CDevice_Event::CDevice_Event(glucose::NDevice_Event_Code code) {
 	mRaw.segment_id = glucose::Invalid_Segment_Id;
 
 	switch (code) {
+		case glucose::NDevice_Event_Code::Synchronization:
 		case glucose::NDevice_Event_Code::Information:
 		case glucose::NDevice_Event_Code::Warning:
 		case glucose::NDevice_Event_Code::Error:			mRaw.info = refcnt::WString_To_WChar_Container(nullptr);
@@ -70,6 +71,7 @@ CDevice_Event::CDevice_Event(glucose::NDevice_Event_Code code) {
 
 CDevice_Event::~CDevice_Event() {
 	switch (mRaw.event_code) {
+		case glucose::NDevice_Event_Code::Synchronization:
 		case glucose::NDevice_Event_Code::Information:
 		case glucose::NDevice_Event_Code::Warning:
 		case glucose::NDevice_Event_Code::Error:			if (mRaw.info) mRaw.info->Release();

@@ -1,10 +1,13 @@
 LIBRARY factory.dll
 
 EXPORTS
- 	create_filter   
-	create_filter_pipe  
+	create_asynchronnous_filter
+	create_synchronnous_filter
+	create_filter_asynchronous_pipe
+	create_filter_synchronnous_pipe
 	create_metric
-	create_signal	
+	create_signal
+	create_device_driver
 	solve_model_parameters
 	solve_generic
 	create_approximator
@@ -13,5 +16,6 @@ EXPORTS
 	get_model_descriptors
 	get_solver_descriptors
 	get_approx_descriptors
+	get_device_driver_descriptors
 	add_filters
 	create_device_event

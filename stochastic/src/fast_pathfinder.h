@@ -336,6 +336,9 @@ protected:
 			if (q_f < global_worst->next_fitness) {
 				global_worst->next = quadratic;
 				global_worst->next_fitness = q_f;
+				for (auto &dir : global_worst->direction_index)
+					dir = 0;
+				global_worst->leader_index = static_cast<size_t>(std::distance(mPopulation.begin(), global_best));
 			}
 
 
