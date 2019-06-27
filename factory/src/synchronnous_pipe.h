@@ -44,6 +44,7 @@
 #include "../../../common/rtl/FilterLib.h"
 
 #include <tbb/concurrent_queue.h>
+#include <mutex>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
@@ -61,6 +62,8 @@ class CFilter_Synchronnous_Pipe :  public glucose::IFilter_Synchronnous_Pipe, pu
 
 		// managed synchronnous filters
 		std::vector<glucose::SSynchronnous_Filter> mFilters;
+		// mutex for incoming events to protect Send method
+		std::mutex mInMutex; 
 
 	public:
 		CFilter_Synchronnous_Pipe() noexcept;

@@ -61,6 +61,8 @@ HRESULT CFilter_Synchronnous_Pipe::send(glucose::IDevice_Event* event) {
 	HRESULT rc = event->Raw(&raw_event);
 	if (rc != S_OK)
 		return rc;
+
+	std::unique_lock<std::mutex> lck(mInMutex); 
 	
 	if (raw_event->event_code == glucose::NDevice_Event_Code::Shut_Down)
 		mShutting_Down_Send = true;
