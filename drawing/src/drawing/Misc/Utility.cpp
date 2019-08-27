@@ -234,7 +234,7 @@ namespace Utility
     std::string Format_Decimal(double number, int precision)
     {
         std::stringstream str;
-        str << std::setprecision(precision) << number;
+        str << std::fixed << std::setprecision(precision) << number;
         return str.str();
     }
 

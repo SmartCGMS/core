@@ -80,4 +80,4 @@ extern "C" HRESULT IfaceCalling do_get_metric_descriptors(glucose::TMetric_Descr
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end);
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter);
+extern "C" HRESULT IfaceCalling do_create_synchronnous_filter(const GUID *id, glucose::ISynchronnous_Filter **filter); 

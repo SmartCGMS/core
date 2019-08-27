@@ -62,7 +62,7 @@ struct TGenerator_Signal_Parameters
 /*
  * Class that generates sinus/cosinus functions as IG/BG signals
  */
-class CSinCos_Generator : public virtual glucose::IFilter, public virtual refcnt::CReferenced {
+class CSinCos_Generator : public glucose::IAsynchronnous_Filter, public virtual refcnt::CReferenced {
 	protected:
 		glucose::SFilter_Pipe mInput;
 		glucose::SFilter_Pipe mOutput;

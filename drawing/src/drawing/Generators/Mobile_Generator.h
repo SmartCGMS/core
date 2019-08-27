@@ -38,42 +38,64 @@
 
 #pragma once
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/referencedImpl.h"
-#include "../../../common/rtl/SolverLib.h"
+#include <map>
+#include <vector>
 
-#include "error_metric_counter.h"
+#include "IGenerator.h"
+#include "../Containers/Value.h"
 
-#include <memory>
-#include <thread>
-#include <mutex>
-#include <atomic>
-#include <condition_variable>
+#include "../../../../../common/utils/drawing/SVGRenderer.h"
 
-#pragma warning( push )
-#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
+constexpr time_t OneDay = 24 * 60 * 60;
+constexpr time_t ThreeHours = 3 * 60 * 60;
+
+// TODO: make this configurable after drawing refacoring
+constexpr double BG_Target_Min = 3.8;
+constexpr double BG_Target_Max = 7.0;
+constexpr double BG_Elevated_Max = 10.8;
+
+constexpr int MobileTextSize = 32;
+constexpr int MobileHeaderTextSize = 40;
+
+extern const char* ColumnColor_Shade1;
+extern const char* ColumnColor_Shade2;
+extern const char* ColumnColor_Shade3;
+extern const char* ColumnColor_Shade4;
+extern const char* ColumnColor_Shade5;
+
+extern const char* TextColor;
+extern const char* TargetRangeColor;
+extern const char* TargetElevatedColor;
+
+extern const char* MeasurementAboveColor;
+extern const char* MeasurementElevatedColor;
+extern const char* MeasurementInRangeColor;
+extern const char* MeasurementBelowColor;
+
+extern const char* CarbsColumnColor;
+extern const char* CarbsCoBFillColor;
+extern const char* CarbsCoBStrokeColor;
+
+extern const char* InsulinBolusColumnColor;
+extern const char* InsulinBasalDotColor;
+extern const char* InsulinIoBFillColor;
+extern const char* InsulinIoBStrokeColor;
 
 /*
- * Filter class for calculating error metrics
+ * Mobile generator parent
  */
-class CErrors_Filter : public glucose::ISynchronnous_Filter, public glucose::IError_Filter_Inspection, public virtual refcnt::CReferenced
+class CMobile_Generator : public IGenerator
 {
 	protected:
-		// currently used error counter instance; TODO: in future, we need to consider more segments at once
-		std::unique_ptr<CError_Marker_Counter> mErrorCounter;
+		std::pair<time_t, time_t> Get_Display_Time_Range(const DataMap& inputData) const;
+		static std::string Get_Time_Of_Day_Color(time_t curTime);
+		static std::string Get_Time_Of_Day_Title(time_t curTime);
+
+		drawing::Drawing mDraw;
 
 	public:
-		CErrors_Filter();
-		virtual ~CErrors_Filter() = default;
-		
-		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
-
-		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override;
-		virtual HRESULT IfaceCalling Execute(glucose::IDevice_Event_Vector* events) override;
-
-		// retrieves the only instance of errors filter
-		virtual HRESULT IfaceCalling Get_Errors(const GUID *signal_id, const glucose::NError_Type type, glucose::TError_Markers *markers) override final;
+		CMobile_Generator(DataMap &inputData, double maxValue, LocalizationMap &localization, int mmolFlag)
+			: IGenerator(inputData, maxValue, localization, mmolFlag)
+		{
+		}
 };
-
-
-#pragma warning( pop )

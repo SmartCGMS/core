@@ -82,11 +82,13 @@ class SVG
         // draws line using given points
         void Line(double x1, double y1, double x2, double y2);
         // draws dashed line using given points
-        void Line_Dash(double x1, double y1, double x2, double y2);
+		void Line_Dash(double x1, double y1, double x2, double y2);
+		// draws dotted line
+		void Line_Dotted(double x1, double y1, double x2, double y2, int dotSpacing = 4);
         // draws point (circle) of given radius
         void Point(double x1, double y1, int radius);
-        // draws text
-        void Draw_Text(double x1, double y1, std::string text, std::string align, std::string color, int font_size);
+        // draws text, bold = {normal, bold, bolder, lighter, <integer>}
+        void Draw_Text(double x1, double y1, std::string text, std::string align, std::string color, int font_size, const std::string& bold = "normal");
         // draws transformed text
         void Draw_Text_Transform(double x1, double y1, std::string text, std::string transform, std::string color, int font_size = 0);
 
@@ -106,7 +108,11 @@ class SVG
         void Link_Text_color(double x, double y, std::string text, std::string function, int font_size = 0);
 
         // draws rectangle of given properties
-        void Rectangle(double x, double y, double width, double height);
+        void Rectangle(double x, double y, double width, double height, const std::string& fillColor = "");
+		// draws polygon using given point spec and properties
+		void Polygon(const std::string &pointSpec, const std::string& fillColor = "", int strokeWidth = 0, const std::string& strokeColor = "");
+
+		static void AppendPointSpec(std::string& str, double x, double y);
 
         // dumps SVG to string and returns it
         std::string Dump() const;

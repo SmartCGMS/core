@@ -63,7 +63,7 @@ struct TStored_Model_Params {
  * Class that reads selected segments from the db produces the events
  * i.e., it mimicks CGMS
  */
-class CDb_Reader : public virtual glucose::IFilter, public virtual db::IDb_Sink, public virtual refcnt::CReferenced {
+class CDb_Reader : public glucose::IAsynchronnous_Filter, public db::IDb_Sink, public virtual refcnt::CReferenced {
 	protected:
 		glucose::SFilter_Pipe mInput;
 		glucose::SFilter_Pipe mOutput;

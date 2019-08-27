@@ -63,7 +63,8 @@ enum class NColumn_Pos : size_t
 	Blood = 0,
 	Ist,
 	Isig,
-	Insulin,
+	Insulin_Bolus,
+	Insulin_Basal_Rate,
 	Carbohydrates,
 	Calibration,
 	_End,
@@ -81,7 +82,7 @@ NColumn_Pos& operator++(NColumn_Pos& ref)
 
 // array of DB columns - signal GUIDs used
 std::array<GUID, static_cast<size_t>(NColumn_Pos::_Count)> ColumnSignalMap = { {
-	glucose::signal_BG, glucose::signal_IG, glucose::signal_ISIG, glucose::signal_Insulin, glucose::signal_Carb_Intake, glucose::signal_Calibration
+	glucose::signal_BG, glucose::signal_IG, glucose::signal_ISIG, glucose::signal_Bolus_Insulin, glucose::signal_Basal_Insulin_Rate, glucose::signal_Carb_Intake, glucose::signal_Calibration
 } };
 
 CDb_Reader::CDb_Reader(glucose::SFilter_Pipe in_pipe, glucose::SFilter_Pipe out_pipe) : mInput(in_pipe), mOutput(out_pipe), mDbPort(0) {
@@ -92,7 +93,7 @@ bool CDb_Reader::Emit_Shut_Down()
 {
 	glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Shut_Down };
 
-	evt.device_id = Db_Reader_Device_GUID;
+	evt.device_id() = Db_Reader_Device_GUID;
 
 	return mOutput.Send(evt);
 }
@@ -100,8 +101,8 @@ bool CDb_Reader::Emit_Shut_Down()
 bool CDb_Reader::Emit_Segment_Marker(glucose::NDevice_Event_Code code, int64_t segment_id) {
 	glucose::UDevice_Event evt{ code };
 
-	evt.device_id = Db_Reader_Device_GUID;
-	evt.segment_id = segment_id;
+	evt.device_id() = Db_Reader_Device_GUID;
+	evt.segment_id() = segment_id;
 
 	return mOutput.Send(evt);
 }
@@ -137,9 +138,9 @@ bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
 					for (size_t i = 0; i < descriptor.number_of_calculated_signals; i++)
 					{
 						glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Parameters };
-						evt.device_id = Db_Reader_Device_GUID;
-						evt.signal_id = descriptor.calculated_signal_ids[i];
-						evt.segment_id = segment_id;
+						evt.device_id() = Db_Reader_Device_GUID;
+						evt.signal_id() = descriptor.calculated_signal_ids[i];
+						evt.segment_id() = segment_id;
 						if (evt.parameters.set(sql_result))
 							if (!mOutput.Send(evt)) return false;
 					}
@@ -168,8 +169,8 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 
 	while (query.Get_Next() && !mQuit_Flag) {
 
-		// "select measuredat, blood, ist, isig, insulin, carbohydrates, calibration from measuredvalue where segmentid = ? order by measuredat asc"
-		//         0           1      2    3     4        5              6
+		// "select measuredat, blood, ist, isig, insulin_bolus, insulin_basal_rate, carbohydrates, calibration from measuredvalue where segmentid = ? order by measuredat asc"
+		//         0           1      2    3     4              5                   6              7
 
 		// assuming that subsequent datetime formats are identical, try to recognize the used date time format from the first line
 		const double measured_at = Unix_Time_To_Rat_Time(from_iso8601(measured_at_str));
@@ -186,11 +187,11 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 
 			glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Level };
 
-			evt.level = column;
-			evt.device_id = Db_Reader_Device_GUID;
-			evt.signal_id = ColumnSignalMap[static_cast<size_t>(i)];
-			evt.device_time = measured_at;
-			evt.segment_id = segment_id;
+			evt.level() = column;
+			evt.device_id() = Db_Reader_Device_GUID;
+			evt.signal_id() = ColumnSignalMap[static_cast<size_t>(i)];
+			evt.device_time() = measured_at;
+			evt.segment_id() = segment_id;
 
 			// this may block if the pipe is full (i.e. due to artificial slowdown filter, simulation stepping, etc.)
 			if (!mOutput.Send(evt)) return false;
@@ -250,7 +251,7 @@ HRESULT CDb_Reader::Run(glucose::IFilter_Configuration *configuration) {
 
 	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
 		if (evt) {
-			if (evt.event_code == glucose::NDevice_Event_Code::Warm_Reset) {
+			if (evt.event_code() == glucose::NDevice_Event_Code::Warm_Reset) {
 				//recreate the reader thread
 				End_Db_Reader();
 				mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);

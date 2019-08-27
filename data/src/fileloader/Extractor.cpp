@@ -56,7 +56,8 @@ const char* rsExtractorColumnBloodTime = "blood-time";
 const char* rsExtractorColumnBloodDatetime = "blood-datetime";
 const char* rsExtractorColumnBloodCalibration = "blood-calibration";
 const char* rsExtractorColumnDevice = "device";
-const char* rsExtractorColumnInsulin = "insulin";
+const char* rsExtractorColumnInsulinBolus = "insulin-bolus";
+const char* rsExtractorColumnInsulinBasalRate = "insulin-basal-rate";
 const char* rsExtractorColumnCarbohydrates = "carbohydrates";
 const char* rsExtractorColumnEvent = "event";
 const char* rsExtractorColumnEventDate = "event-date";
@@ -136,7 +137,8 @@ CExtractor::CExtractor()
 	mColumnTypes[rsExtractorColumnBloodTime] = ExtractorColumns::COL_BLOOD_TIME;
 	mColumnTypes[rsExtractorColumnBloodDatetime] = ExtractorColumns::COL_BLOOD_DATETIME;
 	mColumnTypes[rsExtractorColumnDevice] = ExtractorColumns::COL_DEVICE;
-	mColumnTypes[rsExtractorColumnInsulin] = ExtractorColumns::COL_INSULIN;
+	mColumnTypes[rsExtractorColumnInsulinBolus] = ExtractorColumns::COL_INSULIN_BOLUS;
+	mColumnTypes[rsExtractorColumnInsulinBasalRate] = ExtractorColumns::COL_INSULIN_BASAL_RATE;
 	mColumnTypes[rsExtractorColumnCarbohydrates] = ExtractorColumns::COL_CARBOHYDRATES;
 	mColumnTypes[rsExtractorColumnEvent] = ExtractorColumns::COL_EVENT;
 	mColumnTypes[rsExtractorColumnEventDate] = ExtractorColumns::COL_EVENT_DATE;
@@ -592,9 +594,15 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 
 			switch (ccol)
 			{
-				case ExtractorColumns::COL_INSULIN:
+				case ExtractorColumns::COL_INSULIN_BOLUS:
 				{
-					mval->mInsulin = dval;
+					mval->mInsulinBolus = dval;
+					validValue = true;
+					break;
+				}
+				case ExtractorColumns::COL_INSULIN_BASAL_RATE:
+				{
+					mval->mInsulinBasalRate = dval;
 					validValue = true;
 					break;
 				}
@@ -700,7 +708,7 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 
 bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapter& source, ExtractionResult& result, size_t fileIndex) const
 {
-	SheetPosition datePos, timePos, datetimePos, isigPos, istPos, bloodPos, bloodCalPos, insulinPos, carbsPos,
+	SheetPosition datePos, timePos, datetimePos, isigPos, istPos, bloodPos, bloodCalPos, insulinBolusPos, insulinBasalRatePos, carbsPos,
 		bloodDatePos, bloodTimePos, bloodDatetimePos, eventPos, eventDatePos, eventTimePos, eventDateTimePos, eventCondPos;
 
 	// find positions of important columns in current format
@@ -718,7 +726,8 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 	if (!bloodDatePos.Valid() || !bloodTimePos.Valid())
 		Fill_SheetPosition_For(formatName, ExtractorColumns::COL_BLOOD_DATETIME, bloodDatetimePos);
 	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_BLOOD_CALIBRATION, bloodCalPos);
-	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_INSULIN, insulinPos);
+	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_INSULIN_BOLUS, insulinBolusPos);
+	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_INSULIN_BASAL_RATE, insulinBasalRatePos);
 	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_CARBOHYDRATES, carbsPos);
 
 	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_EVENT, eventPos);
@@ -743,7 +752,8 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 	double bloodCalMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_BLOOD_CALIBRATION);
 	double istMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_IST);
 	double isigMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_ISIG);
-	double insulinMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_INSULIN);
+	double insulinBolusMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_INSULIN_BOLUS);
+	double insulinBasalRateMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_INSULIN_BASAL_RATE);
 	double carbsMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_CARBOHYDRATES);
 
 	// we need at least one type to be fully available (either datetime or date AND time)
@@ -757,7 +767,7 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 
 	// declare lambdas for all row position incrementation
 	auto posInc_ist = [&]() {
-		datePos.row++; timePos.row++; datetimePos.row++; isigPos.row++; istPos.row++; insulinPos.row++; carbsPos.row++;
+		datePos.row++; timePos.row++; datetimePos.row++; isigPos.row++; istPos.row++; insulinBolusPos.row++; insulinBasalRatePos.row++; carbsPos.row++;
 	};
 	auto posInc_blood = [&]() {
 		bloodPos.row++; bloodCalPos.row++; bloodDatePos.row++; bloodTimePos.row++; bloodDatetimePos.row++;
@@ -857,11 +867,19 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 					validValue = true;
 				}
 			}
-			if (insulinPos.Valid())
+			if (insulinBolusPos.Valid())
 			{
-				if (source.Read(insulinPos.row, insulinPos.column, insulinPos.sheetIndex).length())
+				if (source.Read(insulinBolusPos.row, insulinBolusPos.column, insulinBolusPos.sheetIndex).length())
 				{
-					mval->mInsulin = source.Read_Double(insulinPos.row, insulinPos.column, insulinPos.sheetIndex) * insulinMultiplier;
+					mval->mInsulinBolus = source.Read_Double(insulinBolusPos.row, insulinBolusPos.column, insulinBolusPos.sheetIndex) * insulinBolusMultiplier;
+					validValue = true;
+				}
+			}
+			if (insulinBasalRatePos.Valid())
+			{
+				if (source.Read(insulinBasalRatePos.row, insulinBasalRatePos.column, insulinBasalRatePos.sheetIndex).length())
+				{
+					mval->mInsulinBasalRate = source.Read_Double(insulinBasalRatePos.row, insulinBasalRatePos.column, insulinBasalRatePos.sheetIndex) * insulinBasalRateMultiplier;
 					validValue = true;
 				}
 			}
@@ -908,9 +926,15 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 				{
 					switch (ccol)
 					{
-						case ExtractorColumns::COL_INSULIN:
+						case ExtractorColumns::COL_INSULIN_BOLUS:
 						{
-							mval->mInsulin = dval;
+							mval->mInsulinBolus = dval;
+							validValue = true;
+							break;
+						}
+						case ExtractorColumns::COL_INSULIN_BASAL_RATE:
+						{
+							mval->mInsulinBasalRate = dval;
 							validValue = true;
 							break;
 						}

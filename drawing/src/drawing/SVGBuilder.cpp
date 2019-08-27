@@ -106,13 +106,23 @@ void SVG::Line_Dash(double x1, double y1, double x2, double y2)
                << "/>" << std::endl;
 }
 
+void SVG::Line_Dotted(double x1, double y1, double x2, double y2, int dotSpacing)
+{
+	mSvgStream << "<line x1 =\"" << x1 << "\" y1 =\"" << y1
+				<< "\" x2 = \"" << x2 << "\" y2 = \"" << y2
+				<< "\"" << Get_Stroke()
+				<< " stroke-linecap=\"round\""
+				<< " stroke-dasharray = \"" << dotSpacing/2 << "," << dotSpacing << "\""
+				<< "/>" << std::endl;
+}
+
 void SVG::Point(double x1, double y1, int round)
 {
     mSvgStream << "<circle cx=\"" << x1 << "\" cy=\"" << y1 << "\" r=\"" << round << "\""
                << Get_Stroke() << " />" << std::endl;
 }
 
-void SVG::Draw_Text(double x1, double y1, std::string text, std::string align, std::string color, int font_size)
+void SVG::Draw_Text(double x1, double y1, std::string text, std::string align, std::string color, int font_size, const std::string& bold)
 {
     mSvgStream << "<text x=\"" << x1 << "\" y=\"" << y1
                << "\" text-anchor=\"" << align;
@@ -120,7 +130,7 @@ void SVG::Draw_Text(double x1, double y1, std::string text, std::string align, s
     if (!color.empty())
         mSvgStream << "\" fill=\"" << color;
 
-    mSvgStream << "\" font-size = \"" << font_size << "\">" << text << "</text>" << std::endl;
+    mSvgStream << "\" font-weight=\"" << bold << "\" font-size=\"" << font_size << "\">" << text << "</text>" << std::endl;
 }
 
 void SVG::Draw_Text_Transform(double x1, double y1, std::string text, std::string transform, std::string color, int font_size)
@@ -182,9 +192,29 @@ void SVG::Link_Text_color(double x, double y, std::string text, std::string func
     mSvgStream << "</a>" << std::endl;
 }
 
-void SVG::Rectangle(double x, double y, double width, double height)
+void SVG::Rectangle(double x, double y, double width, double height, const std::string& fillColor)
 {
-    mSvgStream << "<rect x = \"" << x << "\" y = \"" << y << "\" width = \"" << width << "\" height = \"" << height << "\"/>" << std::endl;
+	mSvgStream << "<rect x=\"" << x << "\" y=\"" << y << "\" width=\"" << width << "\" height=\"" << height << "\"";
+	if (!fillColor.empty())
+		mSvgStream << " fill=\"" << fillColor << "\" ";
+	mSvgStream << "/>" << std::endl;
+}
+
+void SVG::Polygon(const std::string &pointSpec, const std::string& fillColor, int strokeWidth, const std::string& strokeColor)
+{
+	mSvgStream << "<polygon points=\"" << pointSpec << "\" ";
+	if (!fillColor.empty())
+		mSvgStream << " fill=\"" << fillColor << "\" ";
+	if (!strokeColor.empty())
+		mSvgStream << " stroke-width=\"" << strokeWidth << "\" stroke=\"" << strokeColor << "\"";
+	mSvgStream << " />" << std::endl;
+}
+
+void SVG::AppendPointSpec(std::string& str, double x, double y)
+{
+	if (!str.empty())
+		str += " ";
+	str += std::to_string(x) + "," + std::to_string(y);
 }
 
 std::string SVG::Dump() const

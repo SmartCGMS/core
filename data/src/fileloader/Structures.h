@@ -83,7 +83,9 @@ struct CMeasured_Value
 	// ISIG value
 	COptional<double> mIsig;
 	// insulin bolus amount
-	COptional<double> mInsulin;
+	COptional<double> mInsulinBolus;
+	// insulin basal rate
+	COptional<double> mInsulinBasalRate;
 	// carbohydrates amount
 	COptional<double> mCarbohydrates;
 	// BG sensor calibration value
@@ -95,7 +97,8 @@ struct CMeasured_Value
 		mBlood.reset();
 		mIst.reset();
 		mIsig.reset();
-		mInsulin.reset();
+		mInsulinBolus.reset();
+		mInsulinBasalRate.reset();
 		mCarbohydrates.reset();
 		mCalibration.reset();
 	}

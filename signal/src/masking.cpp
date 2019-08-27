@@ -46,9 +46,7 @@
 #include <codecvt>
 #include <locale>
 
-CMasking_Filter::CMasking_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
-	: mInput{ inpipe }, mOutput{ outpipe }
-{
+CMasking_Filter::CMasking_Filter() {
 	//
 }
 
@@ -85,21 +83,26 @@ bool CMasking_Filter::Parse_Bitmask(std::wstring inw)
 	return true;
 }
 
-HRESULT CMasking_Filter::Run(glucose::IFilter_Configuration* configuration) {
+HRESULT CMasking_Filter::Configure(glucose::IFilter_Configuration* configuration) {
 	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
 	mSignal_Id = shared_configuration.Read_GUID(rsSignal_Masked_Id);
 
 	if (!Parse_Bitmask(shared_configuration.Read_String(rsSignal_Value_Bitmask)))
 		return E_FAIL;
 
-	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
-		// mask only configured signal and event of type "Level"
-		if (evt.event_code == glucose::NDevice_Event_Code::Level && evt.signal_id == mSignal_Id) {
-			auto itr = mSegmentMaskState.find(evt.segment_id);
-			if (itr == mSegmentMaskState.end())
-				mSegmentMaskState[evt.segment_id] = 0;
+	return S_OK;
+}
 
-			if (mMask.test(mSegmentMaskState[evt.segment_id]))
+HRESULT CMasking_Filter::Execute(glucose::IDevice_Event_Vector* events)
+{
+	for (auto evt : glucose::UDevice_Event_Iterator(events)) {
+		// mask only configured signal and event of type "Level"
+		if (evt.event_code() == glucose::NDevice_Event_Code::Level && evt.signal_id() == mSignal_Id) {
+			auto itr = mSegmentMaskState.find(evt.segment_id());
+			if (itr == mSegmentMaskState.end())
+				mSegmentMaskState[evt.segment_id()] = 0;
+
+			if (mMask.test(mSegmentMaskState[evt.segment_id()]))
 			{
 				// This is certainly not nice, but we want to avoid creating a new device event, because it will generate new logical clock value, which would be
 				// out of order with the rest of levels; also Level and Masked_Level uses the same union value, so it's fine to just change the type
@@ -108,12 +111,9 @@ HRESULT CMasking_Filter::Run(glucose::IFilter_Configuration* configuration) {
 					raw->event_code = glucose::NDevice_Event_Code::Masked_Level;
 			}
 
-			mSegmentMaskState[evt.segment_id] = (mSegmentMaskState[evt.segment_id] + 1) % mBitCount;
+			mSegmentMaskState[evt.segment_id()] = (mSegmentMaskState[evt.segment_id()] + 1) % mBitCount;
 		}
-
-		if (!mOutput.Send(evt))
-			break;
 	}
 
 	return S_OK;
-};
+}

@@ -110,23 +110,23 @@ void CLog_Replay_Filter::Log_Replay()
 			if (evt.is_info_event())
 				evt.info.set(specificval.c_str());
 			else if (evt.is_level_event())
-				evt.level = std::stod(specificval);
+				evt.level() = std::stod(specificval);
 			else if (evt.is_parameters_event())
 				WStr_To_Parameters(specificval, evt.parameters);
 
-			evt.device_time = device_time;
-			evt.segment_id = segment_id;
+			evt.device_time() = device_time;
+			evt.segment_id() = segment_id;
 			
 
 			// do not send shutdown event through pipes - it's a job for outer code (GUI, ..)
 			// furthermore, sending this event would cancel and stop simulation - we don't want that
 			if (mIgnore_Shutdown) {
-				if (evt.event_code == glucose::NDevice_Event_Code::Shut_Down)
+				if (evt.event_code() == glucose::NDevice_Event_Code::Shut_Down)
 					continue;
 			}
 
-			evt.device_id = WString_To_GUID(cut_column());
-			evt.signal_id = WString_To_GUID(cut_column());
+			evt.device_id() = WString_To_GUID(cut_column());
+			evt.signal_id() = WString_To_GUID(cut_column());
 
 			if (!mOutput.Send(evt))
 				return;

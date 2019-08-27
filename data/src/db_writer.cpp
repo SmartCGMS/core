@@ -86,7 +86,7 @@ HRESULT IfaceCalling CDb_Writer::QueryInterface(const GUID*  riid, void ** ppvOb
 }
 
 int64_t CDb_Writer::Create_Segment(std::wstring name, std::wstring comment) {
-	auto qr = mDb_Connection.Query(rsFound_New_Segment, rsReserved_Segment_Name);
+	auto qr = mDb_Connection.Query(rsFound_New_Segment, rsReserved_Segment_Name, L"", false);
 	qr.Get_Next();	//no need to test the return value - shall it fail, we'll try to reuse previously founded new segment
 
 	int64_t segment_id;
@@ -102,7 +102,7 @@ int64_t CDb_Writer::Create_Segment(std::wstring name, std::wstring comment) {
 }
 
 int64_t CDb_Writer::Create_Subject(std::wstring name) {
-	auto qr = mDb_Connection.Query(rsFound_New_Subject, rsReserved_Subject_Name);
+	auto qr = mDb_Connection.Query(rsFound_New_Subject, rsReserved_Subject_Name, L"", -1, 0);
 	qr.Get_Next();
 
 	int64_t subject_id;
@@ -131,13 +131,13 @@ int64_t CDb_Writer::Get_Db_Segment_Id(int64_t segment_id) {
 
 bool CDb_Writer::Store_Level(const glucose::UDevice_Event& evt) {
 
-	int64_t id = Get_Db_Segment_Id(evt.segment_id);
+	int64_t id = Get_Db_Segment_Id(evt.segment_id());
 	if (id == db_writer::Error_Id) return false;
 
 	mPrepared_Values.push_back({
-		evt.device_time,
-		evt.signal_id,
-		evt.level,
+		evt.device_time(),
+		evt.signal_id(),
+		evt.level(),
 		id
 	});
 
@@ -167,7 +167,8 @@ void CDb_Writer::Flush_Levels()
 		sigCondBind(glucose::signal_BG);
 		sigCondBind(glucose::signal_IG);
 		sigCondBind(glucose::signal_ISIG);
-		sigCondBind(glucose::signal_Insulin);
+		sigCondBind(glucose::signal_Bolus_Insulin);
+		sigCondBind(glucose::signal_Basal_Insulin_Rate);
 		sigCondBind(glucose::signal_Carb_Intake);
 		sigCondBind(glucose::signal_Calibration);
 
@@ -181,7 +182,7 @@ void CDb_Writer::Flush_Levels()
 
 bool CDb_Writer::Store_Parameters(const glucose::UDevice_Event& evt) {
 
-	int64_t id = Get_Db_Segment_Id(evt.segment_id);
+	int64_t id = Get_Db_Segment_Id(evt.segment_id());
 	if (id == db_writer::Error_Id) return false;
 
 	double *begin, *end;	
@@ -193,7 +194,7 @@ bool CDb_Writer::Store_Parameters(const glucose::UDevice_Event& evt) {
 		auto models = glucose::get_model_descriptors();
 		for (const auto& model : models) {
 			for (size_t i = 0; i < model.number_of_calculated_signals; i++) {
-				if (evt.signal_id == model.calculated_signal_ids[i] && model.number_of_parameters == paramCnt) {
+				if (evt.signal_id() == model.calculated_signal_ids[i] && model.number_of_parameters == paramCnt) {
 
 					// delete old parameters
 					std::wstring query_text;
@@ -299,31 +300,33 @@ HRESULT IfaceCalling CDb_Writer::Run(glucose::IFilter_Configuration *configurati
 
 	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
 
-		switch (evt.event_code) {
+		switch (evt.event_code()) {
 			case glucose::NDevice_Event_Code::Level:
-			case glucose::NDevice_Event_Code::Masked_Level:		if (mStore_Data && (mIgnored_Signals.find(evt.signal_id) == mIgnored_Signals.end())) {
-																	if (!Store_Level(evt)) 
+			case glucose::NDevice_Event_Code::Masked_Level:		if (mStore_Data && (mIgnored_Signals.find(evt.signal_id()) == mIgnored_Signals.end())) {
+																	if (!Store_Level(evt)) {
 																		dprintf(__FILE__);
 																		dprintf(", ");
 																		dprintf(__LINE__);
 																		dprintf(", ");
 																		dprintf(__func__);
 																		dprintf(" has failed!\n");
+																	}
 																}
 																break;
 
 			case glucose::NDevice_Event_Code::Parameters:		if (mStore_Parameters) {
-																	if (!Store_Parameters(evt)) 
+																	if (!Store_Parameters(evt)) {
 																		dprintf(__FILE__);
 																		dprintf(", ");
 																		dprintf(__LINE__);
 																		dprintf(", ");
 																		dprintf(__func__);
 																		dprintf(" has failed!\n");
-																}			
+																	}
+																}
 																break;
 
-			case glucose::NDevice_Event_Code::Time_Segment_Stop:	Flush_Levels(); 
+			case glucose::NDevice_Event_Code::Time_Segment_Stop:	Flush_Levels();
 																	break;
 			default:	break;
 		}

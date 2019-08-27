@@ -59,7 +59,7 @@ using TSegment_Limits = std::pair<size_t, size_t>;
 /*
  * Filter class for loading and extracting file, and sending values to chain
  */
-class CFile_Reader : public glucose::IFilter, public virtual refcnt::CReferenced {
+class CFile_Reader : public glucose::IAsynchronnous_Filter, public virtual refcnt::CReferenced {
 	protected:
 		// input pipe
 		glucose::SFilter_Pipe mInput;

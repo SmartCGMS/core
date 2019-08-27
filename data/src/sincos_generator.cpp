@@ -123,24 +123,24 @@ bool CSinCos_Generator::Configure(glucose::SFilter_Parameters configuration) {
 
 bool CSinCos_Generator::Emit_Segment_Marker(uint64_t segment_id, bool start) {
 	glucose::UDevice_Event evt{ start ? glucose::NDevice_Event_Code::Time_Segment_Start : glucose::NDevice_Event_Code::Time_Segment_Stop };
-	evt.device_id = sincos_generator::filter_id;
-	evt.segment_id = segment_id;
+	evt.device_id() = sincos_generator::filter_id;
+	evt.segment_id() = segment_id;
 	return mOutput.Send(evt);
 }
 
 bool CSinCos_Generator::Emit_Signal_Level(GUID signal_id, double time, double level, uint64_t segment_id) {
 	glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Level };
-	evt.device_time = time;
-	evt.signal_id = signal_id;
-	evt.segment_id = segment_id;
-	evt.level = level;
-	evt.device_id = sincos_generator::filter_id;
+	evt.device_time() = time;
+	evt.signal_id() = signal_id;
+	evt.segment_id() = segment_id;
+	evt.level() = level;
+	evt.device_id() = sincos_generator::filter_id;
 	return mOutput.Send(evt);
 }
 
 bool CSinCos_Generator::Emit_Shut_Down() {
 	glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Shut_Down };
-	evt.device_id = sincos_generator::filter_id;
+	evt.device_id() = sincos_generator::filter_id;
 	return mOutput.Send(evt);
 }
 
@@ -151,7 +151,7 @@ HRESULT IfaceCalling CSinCos_Generator::Run(glucose::IFilter_Configuration *conf
 	Start_Generator();
 
 	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
-		if (evt.event_code == glucose::NDevice_Event_Code::Warm_Reset) {
+		if (evt.event_code() == glucose::NDevice_Event_Code::Warm_Reset) {
 			Terminate_Generator();
 			Start_Generator();
 		}

@@ -57,12 +57,7 @@ void CHold_Filter::Run_Main() {
 
 	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
 		hold = true;
-		switch (evt.event_code)
-		{
-			case glucose::NDevice_Event_Code::Simulation_Step:
-				Simulation_Step((size_t)evt.signal_id.Data1);
-				hold = false;
-				break;
+		switch (evt.event_code()) {
 			case glucose::NDevice_Event_Code::Solve_Parameters:
 			case glucose::NDevice_Event_Code::Suspend_Parameter_Solving:
 			case glucose::NDevice_Event_Code::Resume_Parameter_Solving:
@@ -124,9 +119,9 @@ void CHold_Filter::Run_Hold()
 			else
 			{
 				// if the device time is in future, wait for this amount of time to simulate real-time measurement
-				while (mNotified == 0 && evt.device_time > j_now)
+				while (mNotified == 0 && evt.device_time() > j_now)
 				{
-					time_t tdiff = static_cast<time_t>(std::round((evt.device_time - j_now) * MSecsPerDay / 1000.0));
+					time_t tdiff = static_cast<time_t>(std::round((evt.device_time() - j_now) * MSecsPerDay / 1000.0));
 					mHoldCv.wait_for(lck, std::chrono::seconds(tdiff));
 
 					t_now = static_cast<time_t>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
@@ -134,12 +129,12 @@ void CHold_Filter::Run_Hold()
 				}
 
 				// accumulate simulation offset, if notified and the time is still lower than desired device time
-				if (mNotified != 0 && evt.device_time > j_now)
+				if (mNotified != 0 && evt.device_time() > j_now)
 				{
 					// accumulate simulation offset, so the next value will come with spacing relevant to current value,
 					// not the actual time (so if the spacing is 5 minutes and somebody notifies 2 minutes before current value
 					// time, simulation offset increases by 2 minutes and the next value will fire in 5 minutes instead of 7)
-					mSimulationOffset += evt.device_time - j_now;
+					mSimulationOffset += evt.device_time() - j_now;
 
 					mNotified--;
 				}

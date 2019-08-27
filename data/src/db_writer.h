@@ -65,7 +65,7 @@ struct CPrepared_Value
 /*
  * Filter class for writing data and parameters to database
  */
-class CDb_Writer : public virtual glucose::IFilter, public virtual db::IDb_Sink, public virtual refcnt::CReferenced
+class CDb_Writer : public glucose::IAsynchronnous_Filter, public db::IDb_Sink, public virtual refcnt::CReferenced
 {
 	protected:
 		glucose::SFilter_Pipe mInput;

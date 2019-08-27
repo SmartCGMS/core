@@ -77,32 +77,34 @@ namespace logger {
 /*
  * Filter class for logging all incoming events and dropping them (terminating the chain)
  */
-class CLog_Filter : public glucose::IFilter, public glucose::ILog_Filter_Inspection, public virtual refcnt::CReferenced {
-protected:
-	glucose::SFilter_Pipe mInput;
-	glucose::SFilter_Pipe mOutput;
-	std::wofstream mLog;
-	glucose::CSignal_Names mSignal_Names;
+class CLog_Filter : public glucose::ISynchronnous_Filter, public glucose::ILog_Filter_Inspection, public virtual refcnt::CReferenced {
+	protected:
+		std::wofstream mLog;
+		glucose::CSignal_Names mSignal_Names;
 
-	bool mIs_Terminated = false;
+		bool mIs_Terminated = false;
 	
-	std::mutex mLog_Records_Guard;
-	std::shared_ptr<refcnt::wstr_list> mNew_Log_Records;
+		std::mutex mLog_Records_Guard;
+		std::shared_ptr<refcnt::wstr_list> mNew_Log_Records;
 	
-	bool Open_Log(glucose::SFilter_Parameters configuration);
-	void Log_Event(const glucose::UDevice_Event &evt);
-protected:
-	// vector of model descriptors; stored for parameter formatting
-	std::vector<glucose::TModel_Descriptor> mModelDescriptors;
-	std::wstring Parameters_To_WStr(const glucose::UDevice_Event& evt);
-public:
-	CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
-	virtual ~CLog_Filter() {};
-	
-	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
+		bool Open_Log(glucose::SFilter_Parameters configuration);
+		void Log_Event(const glucose::UDevice_Event &evt);
 
-	virtual HRESULT IfaceCalling Run(glucose::IFilter_Configuration* configuration) override final;
-	virtual HRESULT IfaceCalling Pop(refcnt::wstr_list **str) override final;
+	protected:
+		// vector of model descriptors; stored for parameter formatting
+		std::vector<glucose::TModel_Descriptor> mModelDescriptors;
+		std::wstring Parameters_To_WStr(const glucose::UDevice_Event& evt);
+
+	public:
+		CLog_Filter();
+		virtual ~CLog_Filter() = default;
+	
+		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
+
+		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
+		virtual HRESULT IfaceCalling Execute(glucose::IDevice_Event_Vector* events) override final;
+
+		virtual HRESULT IfaceCalling Pop(refcnt::wstr_list **str) override final;
 };
 
 #pragma warning( pop )

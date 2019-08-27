@@ -145,6 +145,7 @@ namespace calculate {
 
 	const glucose::TFilter_Descriptor Calculate_Descriptor = {
 		{ 0x14a25f4c, 0xe1b1, 0x85c4,{ 0x12, 0x74, 0x9a, 0x0d, 0x11, 0xe0, 0x98, 0x13 } },  // {14A25F4C-E1B1-85C4-1274-9A0D11E09813}
+		glucose::NFilter_Flags::Synchronnous,
 		dsCalculate_Filter,
 		param_count,
 		param_type,
@@ -180,6 +181,7 @@ namespace mapping
 
 	const glucose::TFilter_Descriptor Mapping_Descriptor = {
 		{ 0x8fab525c, 0x5e86, 0xab81,{ 0x12, 0xcb, 0xd9, 0x5b, 0x15, 0x88, 0x53, 0x0A } }, //// {8FAB525C-5E86-AB81-12CB-D95B1588530A}
+		glucose::NFilter_Flags::Synchronnous,
 		dsMapping_Filter,
 		param_count,
 		param_type,
@@ -215,6 +217,7 @@ namespace masking
 
 	const glucose::TFilter_Descriptor Masking_Descriptor = {
 		{ 0xa1124c89, 0x18a4, 0xf4c1,{ 0x28, 0xe8, 0xa9, 0x47, 0x1a, 0x58, 0x02, 0x1e } }, //// {A1124C89-18A4-F4C1-28E8-A9471A58021Q}
+		glucose::NFilter_Flags::Synchronnous,
 		dsMasking_Filter,
 		param_count,
 		param_type,
@@ -226,16 +229,20 @@ namespace masking
 
 namespace measured_signal
 {
-	constexpr size_t supported_count = 7;
+	constexpr size_t supported_count = 11;
 
 	const GUID supported_signal_ids[supported_count] = {
 		glucose::signal_IG,
 		glucose::signal_BG,
 		glucose::signal_ISIG,
-		glucose::signal_Insulin,
+		glucose::signal_Bolus_Insulin,
+		glucose::signal_Basal_Insulin,
+		glucose::signal_Insulin_Activity,
+		glucose::signal_IOB,
+		glucose::signal_COB,
 		glucose::signal_Carb_Intake,
 		glucose::signal_Calibration,
-		glucose::signal_Health_Stress
+		glucose::signal_Physical_Activity
 	};
 }
 const std::array<glucose::TFilter_Descriptor, 3> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, masking::Masking_Descriptor } };
@@ -246,14 +253,14 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter)
+extern "C" HRESULT IfaceCalling do_create_synchronnous_filter(const GUID *id, glucose::ISynchronnous_Filter **filter)
 {
 	if (*id == calculate::Calculate_Descriptor.id)
-		return Manufacture_Object<CCalculate_Filter>(filter, input, output);
-	else if (*id == mapping::Mapping_Descriptor.id)
-		return Manufacture_Object<CMapping_Filter>(filter, input, output);
+		return Manufacture_Object<CCalculate_Filter>(filter);
 	else if (*id == masking::Masking_Descriptor.id)
-		return Manufacture_Object<CMasking_Filter>(filter, input, output);
+		return Manufacture_Object<CMasking_Filter>(filter);
+	else if (*id == mapping::Mapping_Descriptor.id)
+		return Manufacture_Object<CMapping_Filter>(filter);
 
 	return ENOENT;
 }

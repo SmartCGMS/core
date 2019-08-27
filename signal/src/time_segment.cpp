@@ -43,8 +43,8 @@
 
 #include <cmath>
 
-CTime_Segment::CTime_Segment(const int64_t segment_id, const GUID &calculated_signal_id, glucose::SModel_Parameter_Vector &working_parameters, const double prediction_window, glucose::SFilter_Pipe output)
-	: mOutput(output), mCalculated_Signal_Id(calculated_signal_id), mSegment_id(segment_id), mPrediction_Window(prediction_window) {
+CTime_Segment::CTime_Segment(const int64_t segment_id, const GUID &calculated_signal_id, glucose::SModel_Parameter_Vector &working_parameters, const double prediction_window)
+	: mCalculated_Signal_Id(calculated_signal_id), mSegment_id(segment_id), mPrediction_Window(prediction_window) {
 	Clear_Data();
 
 	mWorking_Parameters.set(working_parameters);
@@ -97,12 +97,13 @@ bool CTime_Segment::Add_Level(const GUID &signal_id, const double level, const d
 					mPending_Times.insert(time_to_insert);
 			};
 
-			insert_the_time(time_stamp + mPrediction_Window);
-			if (signal_id == mReference_Signal_Id)
+			if (signal_id == mReference_Signal_Id) {
+				insert_the_time(time_stamp + mPrediction_Window);
 				insert_the_time(time_stamp);		//for the reference signal, we also request calculation at the present time
 													//so that we can determine calculation errors easily and precisly with measured, 
 													//not interpolated levels => the metrics filter simply stores calculated-measured
 													//pair of levels with no need for another calculation nor interpolation/approximation
+			}
 			
 		}
 		return true;
@@ -128,7 +129,7 @@ bool CTime_Segment::Calculate(const std::vector<double> &times, std::vector<doub
 	return false;
 }
 
-void CTime_Segment::Emit_Levels_At_Pending_Times() {
+void CTime_Segment::Emit_Levels_At_Pending_Times(glucose::SDevice_Event_Vector& events) {
 	if (mPending_Times.empty() || !mCalculated_Signal) return;
 
 	std::vector<double> levels(mPending_Times.size()), times{ mPending_Times.begin(), mPending_Times.end() };
@@ -142,12 +143,12 @@ void CTime_Segment::Emit_Levels_At_Pending_Times() {
 		for (size_t i = 0; i < levels.size(); i++) {
 			if (!std::isnan(levels[i])) {
 				glucose::UDevice_Event calcEvt{ glucose::NDevice_Event_Code::Level };
-				calcEvt.device_time = times[i];
-				calcEvt.level = levels[i];
-				calcEvt.device_id = calculate::Calculate_Filter_GUID;
-				calcEvt.signal_id = mCalculated_Signal_Id;
-				calcEvt.segment_id = mSegment_id;
-				if (mOutput.Send(calcEvt))
+				calcEvt.device_time() = times[i];
+				calcEvt.level() = levels[i];
+				calcEvt.device_id() = calculate::Calculate_Filter_GUID;
+				calcEvt.signal_id() = mCalculated_Signal_Id;
+				calcEvt.segment_id() = mSegment_id;
+				if (events.Add_Defered(calcEvt))
 					mEmitted_Times.insert(times[i]);
 			}
 			else

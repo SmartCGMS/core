@@ -68,6 +68,7 @@ namespace logger
 
 	const glucose::TFilter_Descriptor Log_Descriptor = {
 		glucose::Log_Filter,
+		glucose::NFilter_Flags::Synchronnous,
 		dsLog_Filter,
 		param_count,
 		param_type,
@@ -103,6 +104,7 @@ namespace log_replay
 
 	const glucose::TFilter_Descriptor Log_Replay_Descriptor = {
 		{ 0x172ea814, 0x9df1, 0x657c,{ 0x12, 0x89, 0xc7, 0x18, 0x93, 0xf1, 0xd0, 0x85 } }, //// {172EA814-9DF1-657C-1289-C71893F1D085}
+		glucose::NFilter_Flags::None,
 		dsLog_Filter_Replay,
 		param_count,
 		param_type,
@@ -118,12 +120,18 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter)
+extern "C" HRESULT IfaceCalling do_create_asynchronnous_filter(const GUID *id, glucose::IFilter_Asynchronous_Pipe *input, glucose::IFilter_Asynchronous_Pipe *output, glucose::IAsynchronnous_Filter **filter)
+{
+	if (*id == log_replay::Log_Replay_Descriptor.id)
+		return Manufacture_Object<CLog_Replay_Filter>(filter, input, output);
+
+	return ENOENT;
+}
+
+extern "C" HRESULT IfaceCalling do_create_synchronnous_filter(const GUID *id, glucose::ISynchronnous_Filter **filter)
 {
 	if (*id == logger::Log_Descriptor.id)
-		return Manufacture_Object<CLog_Filter>(filter, input, output);
-	else if (*id == log_replay::Log_Replay_Descriptor.id)
-		return Manufacture_Object<CLog_Replay_Filter>(filter, input, output);
+		return Manufacture_Object<CLog_Filter>(filter);
 
 	return ENOENT;
 }

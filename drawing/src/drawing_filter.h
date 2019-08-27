@@ -57,13 +57,8 @@
 /*
  * Drawing filter class utilizing the code for generating SVGs based on input data
  */
-class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose::IDrawing_Filter_Inspection, public virtual refcnt::CReferenced {
+class CDrawing_Filter : public glucose::ISynchronnous_Filter, public glucose::IDrawing_Filter_Inspection, public virtual refcnt::CReferenced {
 	protected:
-		// input pipe
-		glucose::SFilter_Pipe mInput;
-		// output pipe
-		glucose::SFilter_Pipe mOutput;
-
 		// stored AGP SVG
 		std::string mAGP_SVG;
 		// stored clark grid SVG
@@ -78,6 +73,13 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 		std::string mParkes_type2_SVG;
 		// stored ECDF SVG
 		std::string mECDF_SVG;
+
+		// stored profile - glucose SVG
+		std::string mProfile_Glucose_SVG;
+		// stored profile - bolus carbs SVG
+		std::string mProfile_Carbs_SVG;
+		// stored profile - basal SVG
+		std::string mProfile_Insulin_SVG;
 
 		// AGP file path
 		std::wstring mAGP_FilePath;
@@ -125,11 +127,10 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 		// configured canvas height
 		int mCanvasHeight = 768;
 
-		// thread function
-		void Run_Main();
-
 		// if the inputs changed, redraw SVGs
 		bool Redraw_If_Changed(const std::unordered_set<uint64_t> &segmentIds = {}, const std::set<GUID> &signalIds = {});
+		// redraw (without locking!)
+		bool Force_Redraw(const std::unordered_set<uint64_t> &segmentIds = {}, const std::set<GUID> &signalIds = {});
 
 		// fills given localization map with translation constants
 		void Fill_Localization_Map(LocalizationMap& locales);
@@ -149,12 +150,13 @@ class CDrawing_Filter : public virtual glucose::IFilter, public virtual glucose:
 
 		HRESULT Get_Plot(const std::string &plot, refcnt::IVector_Container<char> *svg) const;
 	public:
-		CDrawing_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
-		virtual ~CDrawing_Filter() {};
+		CDrawing_Filter();
+		virtual ~CDrawing_Filter() = default;
 
 		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
 
-		virtual HRESULT Run(glucose::IFilter_Configuration* configuration) override;
+		virtual HRESULT Configure(glucose::IFilter_Configuration* configuration) override;
+		virtual HRESULT Execute(glucose::IDevice_Event_Vector* events) override;
 
 		virtual HRESULT IfaceCalling Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg, refcnt::IVector_Container<uint64_t> *segmentIds, refcnt::IVector_Container<GUID> *signalIds) override;
 };

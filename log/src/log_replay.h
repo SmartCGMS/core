@@ -52,7 +52,7 @@
 /*
  * Filter class for loading previously stored log file and "replay" it through pipe
  */
-class CLog_Replay_Filter : public glucose::IFilter, public virtual refcnt::CReferenced
+class CLog_Replay_Filter : public glucose::IAsynchronnous_Filter, public virtual refcnt::CReferenced
 {
 	protected:
 		glucose::SFilter_Pipe mInput;

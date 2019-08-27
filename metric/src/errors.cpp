@@ -49,8 +49,7 @@
 #include <chrono>
 
 
-CErrors_Filter::CErrors_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
-	: mInput{inpipe}, mOutput{outpipe} {
+CErrors_Filter::CErrors_Filter() {
 	//
 }
 
@@ -62,18 +61,21 @@ HRESULT IfaceCalling CErrors_Filter::QueryInterface(const GUID*  riid, void ** p
 	return E_NOINTERFACE;
 }
 
-HRESULT CErrors_Filter::Run(glucose::IFilter_Configuration* configuration) {
+HRESULT CErrors_Filter::Configure(glucose::IFilter_Configuration* configuration) {
 	
 	mErrorCounter = std::make_unique<CError_Marker_Counter>();
+	return S_OK;
+}
+
+HRESULT IfaceCalling CErrors_Filter::Execute(glucose::IDevice_Event_Vector* events) {
 	
-	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
-	
-		switch (evt.event_code)
-		{
+	for (auto evt : glucose::UDevice_Event_Iterator{ events } ) {
+
+		switch (evt.event_code()) {
 			case glucose::NDevice_Event_Code::Level:
 			case glucose::NDevice_Event_Code::Masked_Level:
 				// the internal logic will tell us, if the signal is reference signal, and therefore we need to recalculate errors
-				if (mErrorCounter->Add_Level(evt.segment_id, evt.signal_id, evt.device_time, evt.level))
+				if (mErrorCounter->Add_Level(evt.segment_id(), evt.signal_id(), evt.device_time(), evt.level()))
 					mErrorCounter->Recalculate_Errors();
 				break;
 			case glucose::NDevice_Event_Code::Parameters:
@@ -83,9 +85,9 @@ HRESULT CErrors_Filter::Run(glucose::IFilter_Configuration* configuration) {
 				break;
 			case glucose::NDevice_Event_Code::Information:
 				if (evt.info == rsSegment_Recalculate_Complete)
-					mErrorCounter->Recalculate_Errors_For(evt.signal_id);
+					mErrorCounter->Recalculate_Errors_For(evt.signal_id());
 				else if (evt.info == rsParameters_Reset)
-					mErrorCounter->Reset_Segment(evt.segment_id, evt.signal_id);
+					mErrorCounter->Reset_Segment(evt.segment_id(), evt.signal_id());
 				break;
 			case glucose::NDevice_Event_Code::Warm_Reset:
 				mErrorCounter->Reset_All();
@@ -93,14 +95,10 @@ HRESULT CErrors_Filter::Run(glucose::IFilter_Configuration* configuration) {
 			default:
 				break;
 		}
-
-		if (!mOutput.Send(evt))
-			break;
 	}
 
 	return S_OK;
 }
-
 
 HRESULT IfaceCalling CErrors_Filter::Get_Errors(const GUID *signal_id, const glucose::NError_Type type, glucose::TError_Markers *markers) {
 	if (!mErrorCounter)

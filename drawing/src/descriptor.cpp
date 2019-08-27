@@ -37,7 +37,7 @@
  */
 
 #include "descriptor.h"
-#include "drawing.h"
+#include "drawing_filter.h"
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
@@ -97,6 +97,7 @@ namespace drawing
 
 	const glucose::TFilter_Descriptor Drawing_Descriptor = {
 		glucose::Drawing_Filter,
+		glucose::NFilter_Flags::Synchronnous,
 		dsDrawing_Filter,
 		param_count,
 		param_type,
@@ -112,15 +113,10 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter_Pipe *input, glucose::IFilter_Pipe *output, glucose::IFilter **filter)
+extern "C" HRESULT IfaceCalling do_create_synchronnous_filter(const GUID *id, glucose::ISynchronnous_Filter **filter)
 {
 	if (*id == drawing::Drawing_Descriptor.id)
-	{
-		glucose::SFilter_Pipe shared_in = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe, glucose::IFilter_Pipe>(input, true);
-		glucose::SFilter_Pipe shared_out = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe, glucose::IFilter_Pipe>(output, true);
-
-		return Manufacture_Object<CDrawing_Filter>(filter, shared_in, shared_out);
-	}
+		return Manufacture_Object<CDrawing_Filter>(filter);
 
 	return ENOENT;
 }

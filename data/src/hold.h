@@ -55,7 +55,7 @@
 /*
  * Filter class for holding input events until the real time matches the event device time
  */
-class CHold_Filter : public glucose::IFilter, public virtual refcnt::CReferenced {
+class CHold_Filter : public glucose::IAsynchronnous_Filter, public virtual refcnt::CReferenced {
 	protected:
 		// input pipe
 		glucose::SFilter_Pipe mInput;

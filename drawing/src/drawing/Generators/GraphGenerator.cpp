@@ -62,21 +62,21 @@ void CGraph_Generator::Set_Canvas_Size(int width, int height)
     maxY = height;
 }
 
-void CGraph_Generator::Write_QuadraticBezierCurve(ValueVector values)
+void CGraph_Generator::Write_QuadraticBezierCurve(const ValueVector& values)
 {
 	if (values.empty())
 		return;
 
-	auto findNext = [&values](size_t &pos, uint64_t segId) -> Value& {
+	auto findNext = [&values](size_t &pos, uint64_t segId) -> size_t {
 		// the unsigned overflow is well defined, so if "pos" equals Invalid_Position (-1), it will overflow to 0
 		for (pos++; pos < values.size(); pos++)
 		{
 			if (values[pos].segment_id == segId)
-				return values[pos];
+				return pos;
 		}
 
 		pos = Invalid_Position;
-		return values[0];
+		return Invalid_Position;
 	};
 
 	// extract segment IDs from values
@@ -91,23 +91,23 @@ void CGraph_Generator::Write_QuadraticBezierCurve(ValueVector values)
 
 		size_t pos = Invalid_Position;
 
-		Value& previous = findNext(pos, segId);
+		size_t previous = findNext(pos, segId);
 		if (pos == Invalid_Position)
 			continue;
-		Value& control = findNext(pos, segId);
+		size_t control = findNext(pos, segId);
 		if (pos == Invalid_Position)
 			continue;
-		Value& end = findNext(pos, segId);
+		size_t end = findNext(pos, segId);
 		if (pos == Invalid_Position)
 			continue;
 
-		mSvg << "<path d =\"M " << Normalize_Time_X(previous.date) << " " << Normalize_Y(previous.value);
+		mSvg << "<path d =\"M " << Normalize_Time_X(values[previous].date) << " " << Normalize_Y(values[previous].value);
 
 		bool ctrEnd = false;
 
 		while (pos != Invalid_Position)
 		{
-			mSvg << " Q " << Normalize_Time_X(control.date) << " " << Normalize_Y(control.value) << " " << Normalize_Time_X(end.date) << " " << Normalize_Y(end.value);
+			mSvg << " Q " << Normalize_Time_X(values[control].date) << " " << Normalize_Y(values[control].value) << " " << Normalize_Time_X(values[end].date) << " " << Normalize_Y(values[end].value);
 
 			// slide by 2 values (so the next bezier curve will start at the end of previous
 			previous = end;
@@ -123,7 +123,54 @@ void CGraph_Generator::Write_QuadraticBezierCurve(ValueVector values)
 		mSvg << "\"/>" << std::endl;
 
 		if (!ctrEnd)
-			mSvg.Line(Normalize_Time_X(previous.date), Normalize_Y(previous.value), Normalize_Time_X(control.date), Normalize_Y(control.value));
+			mSvg.Line(Normalize_Time_X(values[previous].date), Normalize_Y(values[previous].value), Normalize_Time_X(values[control].date), Normalize_Y(values[control].value));
+	}
+}
+
+void CGraph_Generator::Write_LinearCurve(const ValueVector& values)
+{
+	if (values.empty())
+		return;
+
+	auto findNext = [&values](size_t &pos, uint64_t segId) -> size_t {
+		// the unsigned overflow is well defined, so if "pos" equals Invalid_Position (-1), it will overflow to 0
+		for (pos++; pos < values.size(); pos++)
+		{
+			if (values[pos].segment_id == segId)
+				return pos;
+		}
+
+		pos = Invalid_Position;
+		return Invalid_Position;
+	};
+
+	// extract segment IDs from values
+	std::set<uint64_t> segmentIds;
+	for (auto& val : values)
+		segmentIds.insert(val.segment_id);
+
+	// draw segment lines separatelly
+	for (uint64_t segId : segmentIds)
+	{
+		size_t pos = Invalid_Position, next;
+
+		size_t previous = findNext(pos, segId);
+		if (pos == Invalid_Position)
+			continue;
+
+		mSvg << "<path d =\"M " << Normalize_Time_X(values[previous].date) << " " << Normalize_Y(values[previous].value);
+
+		while (pos != Invalid_Position)
+		{
+			next = findNext(pos, segId);
+			if (next == Invalid_Position)
+				break;
+
+			mSvg << " L " << Normalize_Time_X(values[next].date) << " " << Normalize_Y(values[next].value);
+			pos = next;
+		}
+
+		mSvg << "\"/>" << std::endl;
 	}
 }
 
@@ -134,8 +181,64 @@ void CGraph_Generator::Write_Normalized_Lines(ValueVector istVector, ValueVector
     // IST curve group scope
     {
         SVG::GroupGuard grp(mSvg, "istCurve", true);
-        Write_QuadraticBezierCurve(istVector);
+		Write_LinearCurve(istVector);
     }
+
+	// IoB curve group scope
+	try
+	{
+		ValueVector& iobs = Utility::Get_Value_Vector_Ref(mInputData, "iob");
+
+		mSvg.Set_Stroke(1, "#5555DD", "none");
+		SVG::GroupGuard grp(mSvg, "iobCurve", true);
+		Write_LinearCurve(iobs);
+	}
+	catch (...)
+	{
+		//
+	}
+
+	// CoB curve group scope
+	try
+	{
+		ValueVector& cobs = Utility::Get_Value_Vector_Ref(mInputData, "cob");
+
+		mSvg.Set_Stroke(1, "#55DD55", "none");
+		SVG::GroupGuard grp(mSvg, "cobCurve", true);
+		Write_LinearCurve(cobs);
+	}
+	catch (...)
+	{
+		//
+	}
+
+	// suggested basal curve group scope
+	try
+	{
+		ValueVector& cobs = Utility::Get_Value_Vector_Ref(mInputData, "basal_insulin_rate");
+
+		mSvg.Set_Stroke(1, "#55DDDD", "none");
+		SVG::GroupGuard grp(mSvg, "basal_insulin_rateCurve", true);
+		Write_LinearCurve(cobs);
+	}
+	catch (...)
+	{
+		//
+	}
+
+	// insulin activity curve group scope
+	try
+	{
+		ValueVector& insact = Utility::Get_Value_Vector_Ref(mInputData, "insulin_activity");
+
+		mSvg.Set_Stroke(1, "#DD5500", "none");
+		SVG::GroupGuard grp(mSvg, "insulin_activity", true);
+		Write_LinearCurve(insact);
+	}
+	catch (...)
+	{
+		//
+	}
 
 	size_t curColorIdx = 0;
 
@@ -148,7 +251,7 @@ void CGraph_Generator::Write_Normalized_Lines(ValueVector istVector, ValueVector
 			// calculated curve group scope
 			{
 				SVG::GroupGuard grp(mSvg, dataVector.second.identifier + "Curve", true);
-				Write_QuadraticBezierCurve(Utility::Get_Value_Vector(mInputData, dataVector.first));
+				Write_LinearCurve(Utility::Get_Value_Vector(mInputData, dataVector.first));
 			}
 
 			std::string paramVecName = "param_" + dataVector.second.identifier;
@@ -197,6 +300,23 @@ void CGraph_Generator::Write_Normalized_Lines(ValueVector istVector, ValueVector
 			Value& val = mInputData["carbs"].values[i];
 			mSvg.Set_Stroke(3, "green", "green");
 			mSvg.Point(Normalize_Time_X(val.date), Normalize_Y(1) - val.value / 20.0, (int)(val.value / 10.0));
+		}
+	}
+
+	// calculated bolus insulin group scope
+	if (mInputData.find("calcd_insulin") != mInputData.end())
+	{
+		auto vec = Utility::Get_Value_Vector_Ref(mInputData, "calcd_insulin");
+
+		SVG::GroupGuard grp(mSvg, "bloodCurve", false);
+		for (size_t i = 0; i < vec.size(); i++)
+		{
+			Value& val = vec[i];
+			if (val.value > 0.01) // ignore zero (or near-zero) boluses
+			{
+				mSvg.Set_Stroke(5, "#8855CC", "#8855CC");
+				mSvg.Point(Normalize_Time_X(val.date), Normalize_Y(val.value), 3);
+			}
 		}
 	}
 
@@ -344,6 +464,7 @@ void CGraph_Generator::Write_Body()
 	double y = 40;
 
 	// ist legend group scope
+	if (!istVector.empty())
 	{
 		SVG::GroupGuard istGrp(mSvg, "ist", false);
 		mSvg.Set_Stroke(1, "blue", "none");
@@ -385,6 +506,74 @@ void CGraph_Generator::Write_Body()
 	{
 		SVG::GroupGuard bloodCalibrationGrp(mSvg, "bloodCalibration", false);
 		mSvg.Link_Text_color(startX + 10, y, tr("bloodCalibration"), "change_visibility_bloodCalibration()", 12);
+
+		y += 20;
+	}
+
+	mSvg.Set_Stroke(1, "green", "green");
+
+	// carb intake group scope
+	if (mInputData.find("carbs") != mInputData.end())
+	{
+		SVG::GroupGuard bloodCalibrationGrp(mSvg, "carbIntake", false);
+		mSvg.Link_Text_color(startX + 10, y, tr("carbIntake"), "change_visibility_bloodCalibration()", 12);
+
+		y += 20;
+	}
+
+	mSvg.Set_Stroke(1, "#5555DD", "#5555DD");
+
+	// IOB group scope
+	if (mInputData.find("iob") != mInputData.end())
+	{
+		SVG::GroupGuard bloodCalibrationGrp(mSvg, "iob", false);
+		mSvg.Link_Text_color(startX + 10, y, tr("iob"), "", 12);
+
+		y += 20;
+	}
+
+	mSvg.Set_Stroke(1, "#DD5500", "#DD5500");
+
+	// IOB group scope
+	if (mInputData.find("insulin_activity") != mInputData.end())
+	{
+		SVG::GroupGuard bloodCalibrationGrp(mSvg, "insulin_activity", false);
+		mSvg.Link_Text_color(startX + 10, y, tr("insulin_activity"), "", 12);
+
+		y += 20;
+	}
+
+	mSvg.Set_Stroke(1, "#55DD55", "#55DD55");
+
+	// COB group scope
+	if (mInputData.find("cob") != mInputData.end())
+	{
+		SVG::GroupGuard bloodCalibrationGrp(mSvg, "cob", false);
+		mSvg.Link_Text_color(startX + 10, y, tr("cob"), "", 12);
+
+		y += 20;
+	}
+
+	mSvg.Set_Stroke(1, "#55DDDD", "#55DDDD");
+
+	// suggested basal rate group scope
+	if (mInputData.find("basal_insulin_rate") != mInputData.end())
+	{
+		SVG::GroupGuard bloodCalibrationGrp(mSvg, "basal_insulin_rate", false);
+		mSvg.Link_Text_color(startX + 10, y, tr("basal_insulin_rate"), "", 12);
+
+		y += 20;
+	}
+
+	mSvg.Set_Stroke(1, "#8855DD", "#8855DD");
+
+	// calculated bolus dosage group scope
+	if (mInputData.find("calcd_insulin") != mInputData.end())
+	{
+		SVG::GroupGuard bloodCalibrationGrp(mSvg, "calcd_insulin", false);
+		mSvg.Link_Text_color(startX + 10, y, tr("calcd_insulin"), "", 12);
+
+		y += 20;
 	}
 }
 

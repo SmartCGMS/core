@@ -230,8 +230,14 @@ bool CError_Marker_Counter::Recalculate_Errors_For(const GUID& signal_id)
 
 	std::vector<double> absolute(cnt);
 	std::vector<double> relative(cnt);
+	double absoluteSum = 0.0;
 	double absoluteAvg = 0.0;
 	double relativeAvg = 0.0;
+
+	absErr.r5 = 0.0;
+	absErr.r10 = 0.0;
+	absErr.r25 = 0.0;
+	absErr.r50 = 0.0;
 
 	// calculate absolute and relative errors
 	for (size_t i = 0; i < cnt; i++)
@@ -239,20 +245,43 @@ bool CError_Marker_Counter::Recalculate_Errors_For(const GUID& signal_id)
 		const double delta = fabs(refValues[i] - calcValues[i]);
 
 		absolute[i] = delta;
-		relative[i] += delta / refValues[i];
+
+		const double relErr = delta / refValues[i];
+
+		relative[i] += relErr;
+
+		const double rangePct = relErr;
+		if (rangePct < 0.5)
+		{
+			absErr.r50 += 1.0;
+			if (rangePct < 0.25)
+			{
+				absErr.r25 += 1.0;
+				if (rangePct < 0.1)
+				{
+					absErr.r10 += 1.0;
+					if (rangePct < 0.05)
+						absErr.r5 += 1.0;
+				}
+			}
+		}
 	}
+
+	const double dblCnt = static_cast<double>(cnt);
 
 	// sort values in ascending order
 	std::sort(absolute.begin(), absolute.end(), std::less<double>());
 	// sum all absolute errors and calculate average
-	absoluteAvg = std::accumulate(absolute.begin(), absolute.end(), 0.0) / static_cast<double>(cnt);
+	absoluteSum = std::accumulate(absolute.begin(), absolute.end(), 0.0, [](double acc, double val) { return acc + abs(val); });
+	absoluteAvg = std::accumulate(absolute.begin(), absolute.end(), 0.0) / dblCnt;
 
 	// same for relative error
 	std::sort(relative.begin(), relative.end(), std::less<double>());
-	relativeAvg = std::accumulate(relative.begin(), relative.end(), 0.0) / static_cast<double>(cnt);
+	relativeAvg = std::accumulate(relative.begin(), relative.end(), 0.0) / dblCnt;
 
 	// fill absolute error container
 	absErr.avg = absoluteAvg;
+	absErr.sum = absoluteSum;
 	Get_Quantiles(absolute, { 0.25, 0.5, 0.75, 0.95, 0.99 }, &absErr.percentile[1] );
 	absErr.minval = absolute[0];
 	absErr.maxval = absolute[cnt - 1];
@@ -261,11 +290,15 @@ bool CError_Marker_Counter::Recalculate_Errors_For(const GUID& signal_id)
 
 	// fill relative error container
 	relErr.avg = relativeAvg;
+	relErr.sum = std::numeric_limits<double>::quiet_NaN(); // there's no point in summing relative errors
 	Get_Quantiles(relative, { 0.25, 0.5, 0.75, 0.95, 0.99 }, &relErr.percentile[1]);
 	relErr.minval = relative[0];
 	relErr.maxval = relative[cnt - 1];
 	relErr.stddev = Get_Standard_Deviation(relative, relativeAvg);
 	relErr.aic = std::numeric_limits<double>::quiet_NaN();//Get_AIC(relative, relativeAvg);
+
+	for (size_t i = 0; i < (size_t)glucose::NError_Range::count; i++)
+		relErr.range[i] = absErr.range[i] / dblCnt;
 
 	return true;
 }

@@ -54,9 +54,7 @@
 #include <map>
 #include <codecvt>
 
-CLog_Filter::CLog_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
-	: mInput{inpipe}, mOutput{outpipe} {
-	
+CLog_Filter::CLog_Filter() {
 	mNew_Log_Records = refcnt::Create_Container_shared<refcnt::wstr_container*>(nullptr, nullptr);
 }
 
@@ -79,7 +77,7 @@ std::wstring CLog_Filter::Parameters_To_WStr(const glucose::UDevice_Event& evt) 
 	for (auto& desc : mModelDescriptors)
 	{
 		for (size_t i = 0; i < desc.number_of_calculated_signals; i++) 	{
-			if (evt.signal_id == desc.calculated_signal_ids[i]) {
+			if (evt.signal_id() == desc.calculated_signal_ids[i]) {
 				modelDesc = &desc;
 				break;
 			}
@@ -129,48 +127,44 @@ bool CLog_Filter::Open_Log(glucose::SFilter_Parameters configuration) {
 	return result;
 }
 
-HRESULT IfaceCalling CLog_Filter::Run(glucose::IFilter_Configuration* configuration) {
+HRESULT IfaceCalling CLog_Filter::Configure(glucose::IFilter_Configuration* configuration) {
 	mIs_Terminated = false;
 
 	// load model descriptors to be able to properly format log outputs of parameters	
 	mModelDescriptors = glucose::get_model_descriptors();
 	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
+
 	const bool log_opened = Open_Log(shared_configuration);
 
-	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
+	return S_OK;
+}
+
+HRESULT IfaceCalling CLog_Filter::Execute(glucose::IDevice_Event_Vector* events)
+{
+	for (const auto evt : glucose::UDevice_Event_Iterator(events))
 		Log_Event(evt);
 
-		if (!mOutput.Send(evt)) break;
-	}	
-
-	mIs_Terminated = true;
-
-	if (log_opened)
-		mLog.close();
-
 	return S_OK;
-};
-
+}
 
 void CLog_Filter::Log_Event(const glucose::UDevice_Event &evt) {
 	const wchar_t *delim = L"; ";
 		
 	std::wostringstream log_line;
 
-
-	log_line << evt.logical_time << delim;
-	log_line << Rat_Time_To_Local_Time_WStr(evt.device_time, rsLog_Date_Time_Format) << delim;
-	log_line << glucose::event_code_text[static_cast<size_t>(evt.event_code)] << delim;
-	if (evt.signal_id != Invalid_GUID) log_line << mSignal_Names.Get_Name(evt.signal_id);
+	log_line << evt.logical_time() << delim;
+	log_line << Rat_Time_To_Local_Time_WStr(evt.device_time(), rsLog_Date_Time_Format) << delim;
+	log_line << glucose::event_code_text[static_cast<size_t>(evt.event_code())] << delim;
+	if (evt.signal_id() != Invalid_GUID) log_line << mSignal_Names.Get_Name(evt.signal_id());
 		log_line << delim;
-	if (evt.is_level_event()) log_line << evt.level;
+	if (evt.is_level_event()) log_line << evt.level();
 		else if (evt.is_info_event()) log_line << refcnt::WChar_Container_To_WString(evt.info.get());
 			else if (evt.is_parameters_event()) log_line << Parameters_To_WStr(evt);
 	log_line << delim;
-	log_line << evt.segment_id << delim;
-	log_line << static_cast<size_t>(evt.event_code) << delim;
-	log_line << GUID_To_WString(evt.device_id) << delim;
-	log_line << GUID_To_WString(evt.signal_id);
+	log_line << evt.segment_id() << delim;
+	log_line << static_cast<size_t>(evt.event_code()) << delim;
+	log_line << GUID_To_WString(evt.device_id()) << delim;
+	log_line << GUID_To_WString(evt.signal_id());
 	// note the absence of std::endl at the end of line - we include it in file output only (see below)
 	// but not in GUI output, since records in list are considered "lines" and external logic (e.g. GUI) maintains line endings by itself
 

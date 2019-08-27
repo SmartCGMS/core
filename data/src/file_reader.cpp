@@ -77,12 +77,12 @@ bool CFile_Reader::Send_Event(glucose::NDevice_Event_Code code, double device_ti
 {
 	glucose::UDevice_Event evt{ code };
 
-	evt.device_id = file_reader::File_Reader_Device_GUID;
-	evt.device_time = device_time;	
-	evt.level = value;
-	evt.segment_id = segment_id;
+	evt.device_id() = file_reader::File_Reader_Device_GUID;
+	evt.device_time() = device_time;	
+	evt.level() = value;
+	evt.segment_id() = segment_id;
 	if (signalId)
-		evt.signal_id = *signalId;
+		evt.signal_id() = *signalId;
 
 	return mOutput.Send(evt);
 }
@@ -170,8 +170,10 @@ void CFile_Reader::Run_Reader()
 					errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_ISIG, cur->mIsig.value());
 				if (cur->mBlood.has_value())
 					errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_BG, cur->mBlood.value());
-				if (cur->mInsulin.has_value())
-					errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Insulin, cur->mInsulin.value());
+				if (cur->mInsulinBolus.has_value())
+					errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Bolus_Insulin, cur->mInsulinBolus.value());
+				if (cur->mInsulinBasalRate.has_value())
+					errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Basal_Insulin_Rate, cur->mInsulinBasalRate.value());
 				if (cur->mCarbohydrates.has_value())
 					errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Carb_Intake, cur->mCarbohydrates.value());
 				if (cur->mCalibration.has_value())
@@ -199,7 +201,7 @@ void CFile_Reader::Run_Reader()
 	{
 		glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Shut_Down };
 
-		evt.device_id = file_reader::File_Reader_Device_GUID;
+		evt.device_id() = file_reader::File_Reader_Device_GUID;
 		mOutput.Send(evt);
 	}
 }
