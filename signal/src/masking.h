@@ -54,7 +54,7 @@ constexpr size_t BitmaskMaxBitCount = 64;
 /*
  * Filter class for masking input levels using configured bitmask
  */
-class CMasking_Filter : public glucose::ISynchronnous_Filter, public virtual refcnt::CReferenced
+class CMasking_Filter : public glucose::ISynchronous_Filter, public virtual refcnt::CReferenced
 {
 	protected:
 		// masking is performed separatelly for each segment

@@ -52,11 +52,10 @@
 /*
  * Filter class for loading previously stored log file and "replay" it through pipe
  */
-class CLog_Replay_Filter : public glucose::IAsynchronnous_Filter, public virtual refcnt::CReferenced
-{
+class CLog_Replay_Filter : public glucose::IAsynchronous_Filter, public virtual refcnt::CReferenced {
 	protected:
-		glucose::SFilter_Pipe mInput;
-		glucose::SFilter_Pipe mOutput;
+		glucose::SFilter_Asynchronous_Pipe mInput;
+		glucose::SFilter_Asynchronous_Pipe mOutput;
 		std::wifstream mLog;
 		bool mIgnore_Shutdown = false;
 		std::unique_ptr<std::thread> mLog_Replay_Thread;
@@ -71,7 +70,7 @@ class CLog_Replay_Filter : public glucose::IAsynchronnous_Filter, public virtual
 		void WStr_To_Parameters(const std::wstring& src, glucose::SModel_Parameter_Vector& target);
 
 	public:
-		CLog_Replay_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
+		CLog_Replay_Filter(glucose::SFilter_Asynchronous_Pipe inpipe, glucose::SFilter_Asynchronous_Pipe outpipe);
 		virtual ~CLog_Replay_Filter() {};
 
 		virtual HRESULT Run(refcnt::IVector_Container<glucose::TFilter_Parameter>* const configuration) override final;

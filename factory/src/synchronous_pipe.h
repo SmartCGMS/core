@@ -49,39 +49,39 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CFilter_Synchronnous_Pipe :  public glucose::IFilter_Synchronnous_Pipe, public virtual refcnt::CReferenced
+class CFilter_Synchronous_Pipe :  public glucose::IFilter_Synchronous_Pipe, public virtual refcnt::CReferenced
 {
 	protected:
 		tbb::concurrent_bounded_queue<glucose::IDevice_Event*> mQueue;
 		const std::ptrdiff_t mDefault_Capacity = 64;
 
-		// vector of events - initially, "send" pushes single event, but any synchronnous filter may want to add more		
+		// vector of events - initially, "send" pushes single event, but any synchronous filter may want to add more		
 		refcnt::SVector_Container<glucose::IDevice_Event*> mDeviceEvents;
 		bool mShutting_Down_Send = false;
 		bool mShutting_Down_Receive = false;
 
-		// managed synchronnous filters
-		std::vector<glucose::SSynchronnous_Filter> mFilters;
+		// managed synchronous filters
+		std::vector<glucose::SSynchronous_Filter> mFilters;
 		// mutex for incoming events to protect Send method
 		std::mutex mInMutex; 
 
 	public:
-		CFilter_Synchronnous_Pipe() noexcept;
-		virtual ~CFilter_Synchronnous_Pipe() = default;
+		CFilter_Synchronous_Pipe() noexcept;
+		virtual ~CFilter_Synchronous_Pipe() = default;
 
 		// glucose::IFilter_Pipe iface
 		virtual HRESULT send(glucose::IDevice_Event* event) override final;
 		virtual HRESULT receive(glucose::IDevice_Event** event) override final;
 		virtual HRESULT abort() final;
 
-		// glucose::IFilter_Synchronnous_Pipe iface
-		virtual HRESULT add_filter(glucose::ISynchronnous_Filter* synchronnous_filter) override;
+		// glucose::IFilter_Synchronous_Pipe iface
+		virtual HRESULT add_filter(glucose::ISynchronous_Filter* synchronous_filter) override;
 };
 
 #pragma warning( pop )
 
 #ifdef _WIN32
-	extern "C" __declspec(dllexport) HRESULT IfaceCalling create_filter_synchronnous_pipe(glucose::IFilter_Asynchronous_Pipe **pipe);
+	extern "C" __declspec(dllexport) HRESULT IfaceCalling create_filter_synchronous_pipe(glucose::IFilter_Synchronous_Pipe **pipe);
 #else
-	extern "C" HRESULT IfaceCalling create_filter_synchronnous_pipe(glucose::IFilter_Pipe **pipe);
+	extern "C" HRESULT IfaceCalling create_filter_synchronous_pipe(glucose::IFilter_Synchronous_Pipe **pipe);
 #endif

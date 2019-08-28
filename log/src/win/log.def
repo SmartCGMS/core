@@ -2,5 +2,5 @@ LIBRARY log.dll
 
 EXPORTS
 	do_get_filter_descriptors
-	do_create_asynchronnous_filter
-	do_create_synchronnous_filter
+	do_create_asynchronous_filter
+	do_create_synchronous_filter

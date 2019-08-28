@@ -1,10 +1,10 @@
 LIBRARY factory.dll
 
 EXPORTS
-	create_asynchronnous_filter
-	create_synchronnous_filter
+	create_asynchronous_filter
+	create_synchronous_filter
 	create_filter_asynchronous_pipe
-	create_filter_synchronnous_pipe
+	create_filter_synchronous_pipe
 	create_metric
 	create_signal
 	create_device_driver

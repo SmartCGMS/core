@@ -36,21 +36,21 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "synchronnous_pipe.h"
+#include "synchronous_pipe.h"
 
 #include "../../../common/rtl/manufactory.h"
 
-HRESULT IfaceCalling create_filter_synchronnous_pipe(glucose::IFilter_Asynchronous_Pipe **pipe) {
-	return Manufacture_Object<CFilter_Synchronnous_Pipe, glucose::IFilter_Asynchronous_Pipe>(pipe);
+HRESULT IfaceCalling create_filter_synchronous_pipe(glucose::IFilter_Synchronous_Pipe **pipe) {
+	return Manufacture_Object<CFilter_Synchronous_Pipe, glucose::IFilter_Synchronous_Pipe>(pipe);
 }
 
-CFilter_Synchronnous_Pipe::CFilter_Synchronnous_Pipe() noexcept
+CFilter_Synchronous_Pipe::CFilter_Synchronous_Pipe() noexcept
 {
 	mDeviceEvents = refcnt::Create_Container_shared<glucose::IDevice_Event*>(nullptr, nullptr);
 	mQueue.set_capacity(mDefault_Capacity);
 }
 
-HRESULT CFilter_Synchronnous_Pipe::send(glucose::IDevice_Event* event) {
+HRESULT CFilter_Synchronous_Pipe::send(glucose::IDevice_Event* event) {
 	if (event == nullptr)
 		return E_INVALIDARG;
 
@@ -71,7 +71,7 @@ HRESULT CFilter_Synchronnous_Pipe::send(glucose::IDevice_Event* event) {
 	// but we use this pointer just here and in callee's Execute methods
 	mDeviceEvents->add(&event, &event + 1);	//since now, event is nullptr as we do not own it anymore
 
-	// iterate through all managed synchronnous filters within one thread
+	// iterate through all managed synchronous filters within one thread
 	for (auto& filter : mFilters) {
 		if (filter->Execute(mDeviceEvents.get()) != S_OK)
 			return rc;
@@ -87,7 +87,7 @@ HRESULT CFilter_Synchronnous_Pipe::send(glucose::IDevice_Event* event) {
 	return S_OK;
 }
 
-HRESULT CFilter_Synchronnous_Pipe::receive(glucose::IDevice_Event** event)
+HRESULT CFilter_Synchronous_Pipe::receive(glucose::IDevice_Event** event)
 {
 	if (mShutting_Down_Receive)
 		return S_FALSE;
@@ -107,14 +107,14 @@ HRESULT CFilter_Synchronnous_Pipe::receive(glucose::IDevice_Event** event)
 	return S_OK;
 }
 
-HRESULT CFilter_Synchronnous_Pipe::abort()
+HRESULT CFilter_Synchronous_Pipe::abort()
 {
 	mShutting_Down_Send = mShutting_Down_Receive = true;
 	return S_OK;
 }
 
-HRESULT CFilter_Synchronnous_Pipe::add_filter(glucose::ISynchronnous_Filter* synchronnous_filter)
+HRESULT CFilter_Synchronous_Pipe::add_filter(glucose::ISynchronous_Filter* synchronous_filter)
 {
-	mFilters.push_back(refcnt::make_shared_reference_ext<glucose::SSynchronnous_Filter, glucose::ISynchronnous_Filter>(synchronnous_filter, true));
+	mFilters.push_back(refcnt::make_shared_reference_ext<glucose::SSynchronous_Filter, glucose::ISynchronous_Filter>(synchronous_filter, true));
 	return S_OK;
 }

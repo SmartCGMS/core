@@ -56,7 +56,7 @@
 /*
  * Filter class for calculating error metrics
  */
-class CErrors_Filter : public glucose::ISynchronnous_Filter, public glucose::IError_Filter_Inspection, public virtual refcnt::CReferenced
+class CErrors_Filter : public glucose::ISynchronous_Filter, public glucose::IError_Filter_Inspection, public virtual refcnt::CReferenced
 {
 	protected:
 		// currently used error counter instance; TODO: in future, we need to consider more segments at once

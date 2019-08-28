@@ -75,7 +75,7 @@ namespace db_writer
 	const wchar_t* Subject_Base_Name = L"Subject";
 }
 
-CDb_Writer::CDb_Writer(glucose::SFilter_Pipe in_pipe, glucose::SFilter_Pipe out_pipe) : mInput(in_pipe), mOutput(out_pipe) {
+CDb_Writer::CDb_Writer(glucose::SFilter_Asynchronous_Pipe in_pipe, glucose::SFilter_Asynchronous_Pipe out_pipe) : mInput(in_pipe), mOutput(out_pipe) {
 }
 
 HRESULT IfaceCalling CDb_Writer::QueryInterface(const GUID*  riid, void ** ppvObj) {

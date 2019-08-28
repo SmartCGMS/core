@@ -97,7 +97,7 @@ namespace drawing
 
 	const glucose::TFilter_Descriptor Drawing_Descriptor = {
 		glucose::Drawing_Filter,
-		glucose::NFilter_Flags::Synchronnous,
+		glucose::NFilter_Flags::Synchronous,
 		dsDrawing_Filter,
 		param_count,
 		param_type,
@@ -113,7 +113,7 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-extern "C" HRESULT IfaceCalling do_create_synchronnous_filter(const GUID *id, glucose::ISynchronnous_Filter **filter)
+extern "C" HRESULT IfaceCalling do_create_synchronous_filter(const GUID *id, glucose::ISynchronous_Filter **filter)
 {
 	if (*id == drawing::Drawing_Descriptor.id)
 		return Manufacture_Object<CDrawing_Filter>(filter);

@@ -46,7 +46,7 @@
 
 constexpr double PI = 3.141592653589793238462643;
 
-CSinCos_Generator::CSinCos_Generator(glucose::SFilter_Pipe in_pipe, glucose::SFilter_Pipe out_pipe)
+CSinCos_Generator::CSinCos_Generator(glucose::SFilter_Asynchronous_Pipe in_pipe, glucose::SFilter_Asynchronous_Pipe out_pipe)
 	: mInput(in_pipe), mOutput(out_pipe), mExit_Flag{ false } {
 }
 

@@ -77,7 +77,7 @@ namespace logger {
 /*
  * Filter class for logging all incoming events and dropping them (terminating the chain)
  */
-class CLog_Filter : public glucose::ISynchronnous_Filter, public glucose::ILog_Filter_Inspection, public virtual refcnt::CReferenced {
+class CLog_Filter : public glucose::ISynchronous_Filter, public glucose::ILog_Filter_Inspection, public virtual refcnt::CReferenced {
 	protected:
 		std::wofstream mLog;
 		glucose::CSignal_Names mSignal_Names;

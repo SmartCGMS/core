@@ -62,10 +62,10 @@ struct TGenerator_Signal_Parameters
 /*
  * Class that generates sinus/cosinus functions as IG/BG signals
  */
-class CSinCos_Generator : public glucose::IAsynchronnous_Filter, public virtual refcnt::CReferenced {
+class CSinCos_Generator : public glucose::IAsynchronous_Filter, public virtual refcnt::CReferenced {
 	protected:
-		glucose::SFilter_Pipe mInput;
-		glucose::SFilter_Pipe mOutput;
+		glucose::SFilter_Asynchronous_Pipe mInput;
+		glucose::SFilter_Asynchronous_Pipe mOutput;
 
 		// do we need to send shutdown after last value?
 		bool mShutdownAfterLast = false;
@@ -92,7 +92,7 @@ class CSinCos_Generator : public glucose::IAsynchronnous_Filter, public virtual 
 		void Terminate_Generator();
 
 	public:
-		CSinCos_Generator(glucose::SFilter_Pipe in_pipe, glucose::SFilter_Pipe out_pipe);
+		CSinCos_Generator(glucose::SFilter_Asynchronous_Pipe in_pipe, glucose::SFilter_Asynchronous_Pipe out_pipe);
 		virtual ~CSinCos_Generator() {};
 
 		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;

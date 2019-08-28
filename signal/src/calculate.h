@@ -53,7 +53,7 @@
 /*
  * Filter class for calculating signals from incoming parameters
  */
-class CCalculate_Filter : public glucose::ISynchronnous_Filter, public glucose::ICalculate_Filter_Inspection, public virtual refcnt::CReferenced {
+class CCalculate_Filter : public glucose::ISynchronous_Filter, public glucose::ICalculate_Filter_Inspection, public virtual refcnt::CReferenced {
 protected:
 	// calculated signal ID
 	GUID mCalculated_Signal_Id = Invalid_GUID;

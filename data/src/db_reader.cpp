@@ -85,7 +85,7 @@ std::array<GUID, static_cast<size_t>(NColumn_Pos::_Count)> ColumnSignalMap = { {
 	glucose::signal_BG, glucose::signal_IG, glucose::signal_ISIG, glucose::signal_Bolus_Insulin, glucose::signal_Basal_Insulin_Rate, glucose::signal_Carb_Intake, glucose::signal_Calibration
 } };
 
-CDb_Reader::CDb_Reader(glucose::SFilter_Pipe in_pipe, glucose::SFilter_Pipe out_pipe) : mInput(in_pipe), mOutput(out_pipe), mDbPort(0) {
+CDb_Reader::CDb_Reader(glucose::SFilter_Asynchronous_Pipe in_pipe, glucose::SFilter_Asynchronous_Pipe out_pipe) : mInput(in_pipe), mOutput(out_pipe), mDbPort(0) {
 	//
 }
 

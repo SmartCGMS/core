@@ -2,4 +2,4 @@ LIBRARY data.dll
 
 EXPORTS
 	do_get_filter_descriptors
-	do_create_asynchronnous_filter
+	do_create_asynchronous_filter

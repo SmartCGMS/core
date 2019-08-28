@@ -68,7 +68,7 @@ namespace errors
 
 	const glucose::TFilter_Descriptor Errors_Descriptor = {
 		glucose::Error_Filter,
-		glucose::NFilter_Flags::Synchronnous,
+		glucose::NFilter_Flags::Synchronous,
 		dsErrors_Filter,
 		param_count,
 		nullptr,
@@ -86,7 +86,7 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_create_synchronnous_filter(const GUID *id, glucose::ISynchronnous_Filter **filter)
+extern "C" HRESULT IfaceCalling do_create_synchronous_filter(const GUID *id, glucose::ISynchronous_Filter **filter)
 {
 	if (*id == errors::Errors_Descriptor.id)
 		return Manufacture_Object<CErrors_Filter>(filter);

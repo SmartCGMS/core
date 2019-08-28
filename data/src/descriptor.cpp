@@ -337,10 +337,10 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-extern "C" HRESULT IfaceCalling do_create_asynchronnous_filter(const GUID *id, glucose::IFilter_Asynchronous_Pipe *input, glucose::IFilter_Asynchronous_Pipe *output, glucose::IFilter **filter) {
+extern "C" HRESULT IfaceCalling do_create_asynchronous_filter(const GUID *id, glucose::IFilter_Asynchronous_Pipe *input, glucose::IFilter_Asynchronous_Pipe *output, glucose::IFilter **filter) {
 
-	glucose::SFilter_Pipe shared_in = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe, glucose::IFilter_Asynchronous_Pipe>(input, true);
-    glucose::SFilter_Pipe shared_out = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe, glucose::IFilter_Asynchronous_Pipe>(output, true);
+	glucose::SFilter_Asynchronous_Pipe shared_in = refcnt::make_shared_reference_ext<glucose::SFilter_Asynchronous_Pipe, glucose::IFilter_Asynchronous_Pipe>(input, true);
+    glucose::SFilter_Asynchronous_Pipe shared_out = refcnt::make_shared_reference_ext<glucose::SFilter_Asynchronous_Pipe, glucose::IFilter_Asynchronous_Pipe>(output, true);
 
 	if (*id == db_reader::Db_Reader_Descriptor.id)
 		return Manufacture_Object<CDb_Reader>(filter, shared_in, shared_out);

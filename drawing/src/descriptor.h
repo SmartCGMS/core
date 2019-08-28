@@ -42,4 +42,4 @@
 #include "../../../common/rtl/hresult.h"
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end);
-extern "C" HRESULT IfaceCalling do_create_synchronnous_filter(const GUID *id, glucose::ISynchronnous_Filter **filter);
+extern "C" HRESULT IfaceCalling do_create_synchronous_filter(const GUID *id, glucose::ISynchronous_Filter **filter);

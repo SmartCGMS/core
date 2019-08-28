@@ -57,7 +57,7 @@
 #include <cctype>
 #include <codecvt>
 
-CLog_Replay_Filter::CLog_Replay_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
+CLog_Replay_Filter::CLog_Replay_Filter(glucose::SFilter_Asynchronous_Pipe inpipe, glucose::SFilter_Asynchronous_Pipe outpipe)
 	: mInput{ inpipe }, mOutput{ outpipe }
 {
 }

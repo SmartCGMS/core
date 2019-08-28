@@ -55,12 +55,12 @@
 /*
  * Filter class for holding input events until the real time matches the event device time
  */
-class CHold_Filter : public glucose::IAsynchronnous_Filter, public virtual refcnt::CReferenced {
+class CHold_Filter : public glucose::IAsynchronous_Filter, public virtual refcnt::CReferenced {
 	protected:
 		// input pipe
-		glucose::SFilter_Pipe mInput;
+		glucose::SFilter_Asynchronous_Pipe mInput;
 		// output pipe
-		glucose::SFilter_Pipe mOutput;
+		glucose::SFilter_Asynchronous_Pipe mOutput;
 
 		// mutex for waiting on CV
 		std::mutex mHoldMtx;
@@ -88,7 +88,7 @@ class CHold_Filter : public glucose::IAsynchronnous_Filter, public virtual refcn
 		void Run_Hold();
 
 	public:
-		CHold_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe);
+		CHold_Filter(glucose::SFilter_Asynchronous_Pipe inpipe, glucose::SFilter_Asynchronous_Pipe outpipe);
 
 		// method for notifying condition variable and performing simulation step
 		void Simulation_Step(size_t stepcount);

@@ -46,7 +46,7 @@
 #include <chrono>
 #include <cmath>
 
-CHold_Filter::CHold_Filter(glucose::SFilter_Pipe inpipe, glucose::SFilter_Pipe outpipe)
+CHold_Filter::CHold_Filter(glucose::SFilter_Asynchronous_Pipe inpipe, glucose::SFilter_Asynchronous_Pipe outpipe)
 	: mInput(inpipe), mOutput(outpipe), mNotified(0), mSimulationOffset(0.0), mMsWait(0)
 {
 	//

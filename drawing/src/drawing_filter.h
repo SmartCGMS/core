@@ -57,7 +57,7 @@
 /*
  * Drawing filter class utilizing the code for generating SVGs based on input data
  */
-class CDrawing_Filter : public glucose::ISynchronnous_Filter, public glucose::IDrawing_Filter_Inspection, public virtual refcnt::CReferenced {
+class CDrawing_Filter : public glucose::ISynchronous_Filter, public glucose::IDrawing_Filter_Inspection, public virtual refcnt::CReferenced {
 	protected:
 		// stored AGP SVG
 		std::string mAGP_SVG;

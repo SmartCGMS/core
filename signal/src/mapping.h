@@ -52,7 +52,7 @@
 /*
  * Filter class for mapping input signal GUID to another
  */
-class CMapping_Filter : public glucose::ISynchronnous_Filter, public virtual refcnt::CReferenced
+class CMapping_Filter : public glucose::ISynchronous_Filter, public virtual refcnt::CReferenced
 {
 	protected:
 		// source signal ID (what signal will be mapped)

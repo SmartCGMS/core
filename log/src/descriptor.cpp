@@ -68,7 +68,7 @@ namespace logger
 
 	const glucose::TFilter_Descriptor Log_Descriptor = {
 		glucose::Log_Filter,
-		glucose::NFilter_Flags::Synchronnous,
+		glucose::NFilter_Flags::Synchronous,
 		dsLog_Filter,
 		param_count,
 		param_type,
@@ -120,15 +120,17 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-extern "C" HRESULT IfaceCalling do_create_asynchronnous_filter(const GUID *id, glucose::IFilter_Asynchronous_Pipe *input, glucose::IFilter_Asynchronous_Pipe *output, glucose::IAsynchronnous_Filter **filter)
-{
+extern "C" HRESULT IfaceCalling do_create_asynchronous_filter(const GUID *id, glucose::IFilter_Asynchronous_Pipe *input, glucose::IFilter_Asynchronous_Pipe *output, glucose::IAsynchronous_Filter **filter) {
+	glucose::SFilter_Asynchronous_Pipe shared_in = refcnt::make_shared_reference_ext<glucose::SFilter_Asynchronous_Pipe, glucose::IFilter_Asynchronous_Pipe>(input, true);
+	glucose::SFilter_Asynchronous_Pipe shared_out = refcnt::make_shared_reference_ext<glucose::SFilter_Asynchronous_Pipe, glucose::IFilter_Asynchronous_Pipe>(output, true);
+
 	if (*id == log_replay::Log_Replay_Descriptor.id)
-		return Manufacture_Object<CLog_Replay_Filter>(filter, input, output);
+		return Manufacture_Object<CLog_Replay_Filter>(filter, shared_in, shared_out);
 
 	return ENOENT;
 }
 
-extern "C" HRESULT IfaceCalling do_create_synchronnous_filter(const GUID *id, glucose::ISynchronnous_Filter **filter)
+extern "C" HRESULT IfaceCalling do_create_synchronous_filter(const GUID *id, glucose::ISynchronous_Filter **filter)
 {
 	if (*id == logger::Log_Descriptor.id)
 		return Manufacture_Object<CLog_Filter>(filter);
