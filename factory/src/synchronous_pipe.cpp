@@ -44,9 +44,7 @@ HRESULT IfaceCalling create_filter_synchronous_pipe(glucose::IFilter_Synchronous
 	return Manufacture_Object<CFilter_Synchronous_Pipe, glucose::IFilter_Synchronous_Pipe>(pipe);
 }
 
-CFilter_Synchronous_Pipe::CFilter_Synchronous_Pipe() noexcept
-{
-	mDeviceEvents = refcnt::Create_Container_shared<glucose::IDevice_Event*>(nullptr, nullptr);
+CFilter_Synchronous_Pipe::CFilter_Synchronous_Pipe() noexcept {	
 	mQueue.set_capacity(mDefault_Capacity);
 }
 
@@ -69,21 +67,19 @@ HRESULT CFilter_Synchronous_Pipe::send(glucose::IDevice_Event* event) {
 
 	// add event to container; "event" is local pointer, so &event would be invalid outside the scope
 	// but we use this pointer just here and in callee's Execute methods
-	mDeviceEvents->add(&event, &event + 1);	//since now, event is nullptr as we do not own it anymore
-
+	mRW.push_fresh_event(event);//since now, event is nullptr as we do not own it anymore
+	
 	// iterate through all managed synchronous filters within one thread
 	for (auto& filter : mFilters) {
-		if (filter->Execute(mDeviceEvents.get()) != S_OK)
-			return rc;
+		mRW.Commit_Done_As_Fresh();
+		rc = filter->Execute();		//filter has to already know ifaces to our mRW
+		if (rc != S_OK) return rc;		
 	}
 
 	// move all events from container to pipe; preserve order of creation
-	while (mDeviceEvents->pop(&event) == S_OK)
+	while (mRW.pop_done_event(&event) == S_OK)
 		mQueue.push(event);
-
-	// clear the container, all device events were passed to output queue
-	mDeviceEvents->set(nullptr, nullptr);
-
+	
 	return S_OK;
 }
 
@@ -113,8 +109,8 @@ HRESULT CFilter_Synchronous_Pipe::abort()
 	return S_OK;
 }
 
-HRESULT CFilter_Synchronous_Pipe::add_filter(glucose::ISynchronous_Filter* synchronous_filter)
+HRESULT CFilter_Synchronous_Pipe::add_filter(glucose::IFilter* synchronous_filter)
 {
-	mFilters.push_back(refcnt::make_shared_reference_ext<glucose::SSynchronous_Filter, glucose::ISynchronous_Filter>(synchronous_filter, true));
+	mFilters.push_back(refcnt::make_shared_reference_ext<glucose::SFilter, glucose::IFilter>(synchronous_filter, true));
 	return S_OK;
 }

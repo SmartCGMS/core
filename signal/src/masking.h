@@ -54,9 +54,14 @@ constexpr size_t BitmaskMaxBitCount = 64;
 /*
  * Filter class for masking input levels using configured bitmask
  */
-class CMasking_Filter : public glucose::ISynchronous_Filter, public virtual refcnt::CReferenced
+class CMasking_Filter : public glucose::IFilter, public virtual refcnt::CReferenced
 {
 	protected:
+		// input pipe
+		glucose::SFilter_Pipe_Reader mInput;
+		// output pipe
+		glucose::SFilter_Pipe_Writer mOutput;
+
 		// masking is performed separatelly for each segment
 		std::map<uint64_t, uint8_t> mSegmentMaskState;
 
@@ -71,11 +76,11 @@ class CMasking_Filter : public glucose::ISynchronous_Filter, public virtual refc
 		bool Parse_Bitmask(std::wstring in);
 
 	public:
-		CMasking_Filter();
-		virtual ~CMasking_Filter() = default;
+		CMasking_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe);
+		virtual ~CMasking_Filter() {};
 
-		virtual HRESULT Configure(glucose::IFilter_Configuration* configuration) override;
-		virtual HRESULT Execute(glucose::IDevice_Event_Vector* events) override;
+		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) final;
+		virtual HRESULT IfaceCalling Execute() final;
 };
 
 #pragma warning( pop )

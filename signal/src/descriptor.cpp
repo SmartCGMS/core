@@ -253,14 +253,16 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_create_synchronous_filter(const GUID *id, glucose::ISynchronous_Filter **filter)
-{
+extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter_Pipe_Reader *input, glucose::IFilter_Pipe_Writer *output, glucose::IFilter **filter) {
+	auto shared_input = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe_Reader, glucose::IFilter_Pipe_Reader>(input, true);
+	auto shared_output = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe_Writer, glucose::IFilter_Pipe_Writer>(output, true);
+
 	if (*id == calculate::Calculate_Descriptor.id)
-		return Manufacture_Object<CCalculate_Filter>(filter);
+		return Manufacture_Object<CCalculate_Filter>(filter, shared_input, shared_output);
 	else if (*id == masking::Masking_Descriptor.id)
-		return Manufacture_Object<CMasking_Filter>(filter);
+		return Manufacture_Object<CMasking_Filter>(filter, shared_input, shared_output);
 	else if (*id == mapping::Mapping_Descriptor.id)
-		return Manufacture_Object<CMapping_Filter>(filter);
+		return Manufacture_Object<CMapping_Filter>(filter, shared_input, shared_output);
 
 	return ENOENT;
 }

@@ -46,7 +46,9 @@
 #include <codecvt>
 #include <locale>
 
-CMasking_Filter::CMasking_Filter() {
+CMasking_Filter::CMasking_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe)
+	: mInput{ inpipe }, mOutput{ outpipe }
+{
 	//
 }
 
@@ -83,7 +85,7 @@ bool CMasking_Filter::Parse_Bitmask(std::wstring inw)
 	return true;
 }
 
-HRESULT CMasking_Filter::Configure(glucose::IFilter_Configuration* configuration) {
+HRESULT IfaceCalling CMasking_Filter::Configure(glucose::IFilter_Configuration* configuration) {
 	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
 	mSignal_Id = shared_configuration.Read_GUID(rsSignal_Masked_Id);
 
@@ -93,9 +95,8 @@ HRESULT CMasking_Filter::Configure(glucose::IFilter_Configuration* configuration
 	return S_OK;
 }
 
-HRESULT CMasking_Filter::Execute(glucose::IDevice_Event_Vector* events)
-{
-	for (auto evt : glucose::UDevice_Event_Iterator(events)) {
+HRESULT IfaceCalling CMasking_Filter::Execute() {
+	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
 		// mask only configured signal and event of type "Level"
 		if (evt.event_code() == glucose::NDevice_Event_Code::Level && evt.signal_id() == mSignal_Id) {
 			auto itr = mSegmentMaskState.find(evt.segment_id());
@@ -113,6 +114,9 @@ HRESULT CMasking_Filter::Execute(glucose::IDevice_Event_Vector* events)
 
 			mSegmentMaskState[evt.segment_id()] = (mSegmentMaskState[evt.segment_id()] + 1) % mBitCount;
 		}
+
+		if (!mOutput.Send(evt))
+			break;
 	}
 
 	return S_OK;

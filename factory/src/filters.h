@@ -50,8 +50,7 @@
 namespace imported {
 	struct TLibraryInfo {
 		CDynamic_Library library{};
-		glucose::TCreate_Asynchronous_Filter create_asynchronous_filter = nullptr;
-		glucose::TCreate_Synchronous_Filter create_synchronous_filter = nullptr;
+		glucose::TCreate_Filter create_filter = nullptr;		
 		glucose::TCreate_Metric create_metric = nullptr;
 		glucose::TCreate_Signal create_signal = nullptr;
 		glucose::TCreate_Device_Driver create_device_driver = nullptr;
@@ -118,8 +117,7 @@ protected:
 public:
 	CLoaded_Filters();
 
-	HRESULT create_asynchronous_filter(const GUID *id, glucose::IFilter_Asynchronous_Pipe *input, glucose::IFilter_Asynchronous_Pipe *output, glucose::IAsynchronous_Filter **filter);
-	HRESULT create_synchronous_filter(const GUID *id, glucose::ISynchronous_Filter **filter);
+	HRESULT create_filter(const GUID *id, glucose::IFilter_Pipe_Reader *input, glucose::IFilter_Pipe_Writer *output, glucose::IFilter **filter);	
 	HRESULT create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric);
 	HRESULT create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
 	HRESULT create_device_driver(const GUID *calc_id, glucose::IFilter_Asynchronous_Pipe* output, glucose::IDevice_Driver** device_driver);
@@ -134,11 +132,10 @@ public:
 	HRESULT get_approx_descriptors(glucose::TApprox_Descriptor **begin, glucose::TApprox_Descriptor **end);
 	HRESULT get_device_driver_descriptors(glucose::TDevice_Driver_Descriptor **begin, glucose::TDevice_Driver_Descriptor **end);
 
-	HRESULT add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Asynchronous_Filter create_filter, const glucose::TCreate_Synchronous_Filter create_synchronous_filter);
+	HRESULT add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Filter create_filter);
 };
 
-extern "C" HRESULT IfaceCalling create_asynchronous_filter(const GUID *id, glucose::IFilter_Asynchronous_Pipe *input, glucose::IFilter_Asynchronous_Pipe *output, glucose::IAsynchronous_Filter **filter);
-extern "C" HRESULT IfaceCalling create_synchronous_filter(const GUID *id, glucose::ISynchronous_Filter **filter);
+extern "C" HRESULT IfaceCalling create_filter(const GUID *id, glucose::IFilter_Pipe_Reader *input, glucose::IFilter_Pipe_Writer *output, glucose::IFilter **filter);
 extern "C" HRESULT IfaceCalling create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric);
 extern "C" HRESULT IfaceCalling create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
 extern "C" HRESULT IfaceCalling create_device_driver(const GUID *calc_id, glucose::IFilter_Asynchronous_Pipe* output, glucose::IDevice_Driver** device_driver);
@@ -153,4 +150,4 @@ extern "C" HRESULT IfaceCalling get_solver_descriptors(glucose::TSolver_Descript
 extern "C" HRESULT IfaceCalling get_approx_descriptors(glucose::TApprox_Descriptor **begin, glucose::TApprox_Descriptor **end);
 extern "C" HRESULT IfaceCalling get_device_driver_descriptors(glucose::TDevice_Driver_Descriptor **begin, glucose::TDevice_Driver_Descriptor **end);
 
-extern "C" HRESULT IfaceCalling add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Asynchronous_Filter create_filter, const glucose::TCreate_Synchronous_Filter create_synchronous_filter);
+extern "C" HRESULT IfaceCalling add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Filter create_filter);

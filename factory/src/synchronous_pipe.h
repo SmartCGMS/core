@@ -49,22 +49,53 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CFilter_Synchronous_Pipe :  public glucose::IFilter_Synchronous_Pipe, public virtual refcnt::CReferenced
-{
+class CFilter_Synchronous_Pipe_RW : public virtual glucose::IFilter_Pipe_Reader, public virtual glucose::IFilter_Pipe_Writer, public virtual refcnt::CNotReferenced {
+protected:
+	// vector of events - initially, "send" pushes single event, but any synchronous filter may want to add more		
+	refcnt::SVector_Container<glucose::IDevice_Event*> mFresh_Events, mDone_Events;
+public:
+	CFilter_Synchronous_Pipe_RW() {
+		mFresh_Events = refcnt::Create_Container_shared<glucose::IDevice_Event*>(nullptr, nullptr);
+		mDone_Events = refcnt::Create_Container_shared<glucose::IDevice_Event*>(nullptr, nullptr);
+	}
+
+	void push_fresh_event(glucose::IDevice_Event* event) {
+		mFresh_Events->add(&event, &event + 1);	//since now, event is nullptr as we do not own it anymore
+	}
+
+	bool pop_done_event(glucose::IDevice_Event** event) {
+		return mDone_Events->pop(event) == S_OK;
+	}
+
+	virtual HRESULT send(glucose::IDevice_Event* event) override final {
+		return mDone_Events->add(&event, &event + 1);	//since now, event is nullptr as we do not own it anymore
+	}
+	
+	virtual HRESULT receive(glucose::IDevice_Event** event) override final {
+		return mFresh_Events->pop(event);
+	}
+
+	void Commit_Done_As_Fresh() {
+
+	}
+};
+
+class CFilter_Synchronous_Pipe :  public virtual glucose::IFilter_Synchronous_Pipe, public virtual refcnt::CReferenced {
 	protected:
 		tbb::concurrent_bounded_queue<glucose::IDevice_Event*> mQueue;
 		const std::ptrdiff_t mDefault_Capacity = 64;
 
-		// vector of events - initially, "send" pushes single event, but any synchronous filter may want to add more		
-		refcnt::SVector_Container<glucose::IDevice_Event*> mDeviceEvents;
+		
 		bool mShutting_Down_Send = false;
 		bool mShutting_Down_Receive = false;
 
 		// managed synchronous filters
-		std::vector<glucose::SSynchronous_Filter> mFilters;
+		std::vector<glucose::SFilter> mFilters;
 		// mutex for incoming events to protect Send method
 		std::mutex mInMutex; 
 
+
+		CFilter_Synchronous_Pipe_RW mRW;
 	public:
 		CFilter_Synchronous_Pipe() noexcept;
 		virtual ~CFilter_Synchronous_Pipe() = default;
@@ -75,7 +106,15 @@ class CFilter_Synchronous_Pipe :  public glucose::IFilter_Synchronous_Pipe, publ
 		virtual HRESULT abort() final;
 
 		// glucose::IFilter_Synchronous_Pipe iface
-		virtual HRESULT add_filter(glucose::ISynchronous_Filter* synchronous_filter) override;
+		virtual HRESULT add_filter(glucose::IFilter* synchronous_filter) override;
+
+		virtual IFilter_Pipe_Reader* Get_Reader() override final {
+			return dynamic_cast<IFilter_Pipe_Reader*>(&mRW);
+		}
+
+		virtual IFilter_Pipe_Writer* Get_Writer() override final {
+			return dynamic_cast<IFilter_Pipe_Writer*>(&mRW);
+		}
 };
 
 #pragma warning( pop )

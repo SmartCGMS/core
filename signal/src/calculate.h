@@ -53,7 +53,10 @@
 /*
  * Filter class for calculating signals from incoming parameters
  */
-class CCalculate_Filter : public glucose::ISynchronous_Filter, public glucose::ICalculate_Filter_Inspection, public virtual refcnt::CReferenced {
+class CCalculate_Filter : public glucose::IFilter, public glucose::ICalculate_Filter_Inspection, public virtual refcnt::CReferenced {
+protected:
+	glucose::SFilter_Pipe_Reader mInput;
+	glucose::SFilter_Pipe_Writer mOutput;
 protected:
 	// calculated signal ID
 	GUID mCalculated_Signal_Id = Invalid_GUID;
@@ -77,24 +80,25 @@ protected:
 	int64_t mReference_Level_Threshold_Count = 0;
 	int64_t mReference_Level_Counter = 0;
 	void Schedule_Solving(const GUID &level_signal_id);
-	void Run_Solver(const uint64_t segment_id, glucose::SDevice_Event_Vector& events);
-	double Calculate_Fitness(glucose::ITime_Segment **segments, const size_t segment_count, glucose::SMetric metric, glucose::IModel_Parameter_Vector *parameters);
+	void Run_Solver(const uint64_t segment_id);
+	double Calculate_Fitness(glucose::ITime_Segment **segments, const size_t segment_count, glucose::SMetric metric, glucose::IModel_Parameter_Vector *parameters);	
 protected:
 	bool mWarm_Reset_Done = false;
-	solver::TSolver_Progress mSolver_Progress{ 0, 0, 0, FALSE };
+	solver::TSolver_Progress mSolver_Progress;
 	glucose::TSolver_Status mSolver_Status;
 protected:
 	std::map<int64_t, std::unique_ptr<CTime_Segment>> mSegments;
 	std::vector<glucose::SModel_Parameter_Vector> mParameter_Hints;
 	std::unique_ptr<CTime_Segment>& Get_Segment(const uint64_t segment_id);
-	void Add_Level(const uint64_t segment_id, const GUID &signal_id, const double level, const double time_stamp, glucose::SDevice_Event_Vector& events);
+	void Add_Level(const uint64_t segment_id, const GUID &signal_id, const double level, const double time_stamp);	
 	void Add_Parameters_Hint(glucose::SModel_Parameter_Vector parameters);
 public:
-	CCalculate_Filter();
+	CCalculate_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe);
 	virtual ~CCalculate_Filter() {};
 
-	virtual HRESULT Configure(glucose::IFilter_Configuration* configuration) override;
-	virtual HRESULT Execute(glucose::IDevice_Event_Vector* events) override;
+	virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) final;
+	virtual HRESULT IfaceCalling Execute() final;
+
 
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
 	virtual HRESULT IfaceCalling Get_Solver_Progress(solver::TSolver_Progress* const progress) override;

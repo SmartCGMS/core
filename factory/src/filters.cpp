@@ -51,8 +51,7 @@ namespace imported {
 	const char* rsGet_Solvers_Descriptors = "do_get_solver_descriptors";
 	const char* rsGet_Approx_Descriptors = "do_get_approximator_descriptors";
 	const char* rsGet_Device_Driver_Descriptors = "do_get_device_driver_descriptors";
-	const char* rsDo_Create_Asynchronous_Filter = "do_create_asynchronous_filter";
-	const char* rsDo_Create_Synchronous_Filter = "do_create_synchronous_filter";
+	const char* rsDo_Create_Filter = "do_create_filter";
 	const char* rsDo_Create_Metric = "do_create_metric";
 	const char* rsDo_Create_Signal = "do_create_signal";
 	const char* rsDo_Create_Device_Driver = "do_create_device_driver";
@@ -92,12 +91,8 @@ HRESULT get_device_driver_descriptors(glucose::TDevice_Driver_Descriptor **begin
 	return loaded_filters.get_device_driver_descriptors(begin, end);
 }
 
-HRESULT IfaceCalling create_asynchronous_filter(const GUID *id, glucose::IFilter_Asynchronous_Pipe *input, glucose::IFilter_Asynchronous_Pipe *output, glucose::IAsynchronous_Filter **filter) {
-	return loaded_filters.create_asynchronous_filter(id, input, output, filter);
-}
-
-HRESULT IfaceCalling create_synchronous_filter(const GUID *id, glucose::ISynchronous_Filter **filter) {
-	return loaded_filters.create_synchronous_filter(id, filter);
+HRESULT IfaceCalling create_asynchronous_filter(const GUID *id, glucose::IFilter_Pipe_Reader *input, glucose::IFilter_Pipe_Writer *output, glucose::IFilter **filter) {
+	return loaded_filters.create_filter(id, input, output, filter);
 }
 
 HRESULT IfaceCalling create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric) {
@@ -124,8 +119,8 @@ HRESULT IfaceCalling create_approximator(const GUID *approx_id, glucose::ISignal
 	return loaded_filters.create_approximator(approx_id, signal, configuration, approx);
 }
 
-HRESULT IfaceCalling add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Asynchronous_Filter create_asynchronous_filter, const glucose::TCreate_Synchronous_Filter create_synchronous_filter) {
-	return loaded_filters.add_filters(begin, end, create_asynchronous_filter, create_synchronous_filter);
+HRESULT IfaceCalling add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Filter create_filter) {
+	return loaded_filters.add_filters(begin, end, create_filter);
 }
 
 void CLoaded_Filters::load_libraries() {
@@ -138,9 +133,8 @@ void CLoaded_Filters::load_libraries() {
 			imported::TLibraryInfo lib;
 
 			if (lib.library.Load(filepath.c_str())) {
-				bool lib_used = Resolve_Func<glucose::TCreate_Asynchronous_Filter>(lib.create_asynchronous_filter, lib.library, imported::rsDo_Create_Asynchronous_Filter);
-
-				lib_used |= Resolve_Func<glucose::TCreate_Synchronous_Filter>(lib.create_synchronous_filter, lib.library, imported::rsDo_Create_Synchronous_Filter);
+				bool lib_used = Resolve_Func<glucose::TCreate_Filter>(lib.create_filter, lib.library, imported::rsDo_Create_Filter);
+				
 				lib_used |= Resolve_Func<glucose::TCreate_Metric>(lib.create_metric, lib.library, imported::rsDo_Create_Metric);
 				lib_used |= Resolve_Func<glucose::TCreate_Signal>(lib.create_signal, lib.library, imported::rsDo_Create_Signal);
 				lib_used |= Resolve_Func<glucose::TCreate_Approximator>(lib.create_approximator, lib.library, imported::rsDo_Create_Approximator);
@@ -163,7 +157,7 @@ void CLoaded_Filters::load_libraries() {
 	}	
 }
 
-HRESULT CLoaded_Filters::add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Asynchronous_Filter create_asynchronous_filter, const glucose::TCreate_Synchronous_Filter create_synchronous_filter) {
+HRESULT CLoaded_Filters::add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Filter create_filter) {
 	if ((begin == end) || (begin == nullptr) || (end == nullptr) || (create_asynchronous_filter == nullptr)) return E_INVALIDARG;
 	imported::TLibraryInfo lib;
 	lib.create_approximator = nullptr;
@@ -171,8 +165,7 @@ HRESULT CLoaded_Filters::add_filters(const glucose::TFilter_Descriptor *begin, c
 	lib.create_metric = nullptr;
 	lib.create_device_driver = nullptr;
 	lib.solve_model_parameters = nullptr;
-	lib.create_asynchronous_filter = create_asynchronous_filter;
-	lib.create_synchronous_filter = create_synchronous_filter;
+	lib.create_filter = create_filter;	
 
 	mLibraries.push_back(std::move(lib));
 
@@ -182,14 +175,9 @@ HRESULT CLoaded_Filters::add_filters(const glucose::TFilter_Descriptor *begin, c
 }
 
 
-HRESULT CLoaded_Filters::create_asynchronous_filter(const GUID *id, glucose::IFilter_Asynchronous_Pipe *input, glucose::IFilter_Asynchronous_Pipe *output, glucose::IAsynchronous_Filter **filter) {
-	auto call_create_filter = [](const imported::TLibraryInfo &info) { return info.create_asynchronous_filter; }; 
+HRESULT CLoaded_Filters::create_filter(const GUID *id, glucose::IFilter_Pipe_Reader *input, glucose::IFilter_Pipe_Writer *output, glucose::IFilter **filter) {
+	auto call_create_filter = [](const imported::TLibraryInfo &info) { return info.create_filter; }; 
 	return Call_Func(call_create_filter, id, input, output, filter);
-}
-
-HRESULT CLoaded_Filters::create_synchronous_filter(const GUID *id, glucose::ISynchronous_Filter **filter) {
-	auto call_create_synchronous_filter = [](const imported::TLibraryInfo &info) { return info.create_synchronous_filter; };
-	return Call_Func(call_create_synchronous_filter, id, filter);
 }
 
 HRESULT CLoaded_Filters::create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric) {
