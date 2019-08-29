@@ -62,10 +62,10 @@ HRESULT CFilter_Synchronous_Pipe::send(glucose::IDevice_Event* event) {
 	if (rc != S_OK)
 		return rc;
 
-	std::unique_lock<std::mutex> lck(mInMutex); 
-	
 	if (raw_event->event_code == glucose::NDevice_Event_Code::Shut_Down)
 		mShutting_Down_Send = true;
+
+	std::unique_lock<std::mutex> lck(mInMutex);
 
 	// add event to container; "event" is local pointer, so &event would be invalid outside the scope
 	// but we use this pointer just here and in callee's Execute methods

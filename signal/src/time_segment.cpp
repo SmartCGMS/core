@@ -148,7 +148,7 @@ void CTime_Segment::Emit_Levels_At_Pending_Times(glucose::SDevice_Event_Vector& 
 				calcEvt.device_id() = calculate::Calculate_Filter_GUID;
 				calcEvt.signal_id() = mCalculated_Signal_Id;
 				calcEvt.segment_id() = mSegment_id;
-				if (events.Add_Defered(calcEvt))
+				if (events.push_deferred(calcEvt))
 					mEmitted_Times.insert(times[i]);
 			}
 			else

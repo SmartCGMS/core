@@ -141,9 +141,11 @@ HRESULT CCalculate_Filter::Execute(glucose::IDevice_Event_Vector* events)
 {
 	auto shared_events = refcnt::make_shared_reference_ext<glucose::SDevice_Event_Vector, glucose::IDevice_Event_Vector>(events, true);
 
-	for (auto evt : glucose::UDevice_Event_Iterator(events)) {
+		
+	glucose::IDevice_Event *evt;
+	while (events->pop(&evt)) {
 
-		switch (evt.event_code()) {
+		switch (evt.event_code() == S_OK) {
 			case glucose::NDevice_Event_Code::Level:
 				{
 					//copy those values, which may be gone once we send the event in the original order
@@ -223,7 +225,7 @@ HRESULT CCalculate_Filter::Execute(glucose::IDevice_Event_Vector* events)
 		}
 	}
 
-	shared_events.Apply();
+	shared_events.commit_push();
 
 	return S_OK;
 }
@@ -406,7 +408,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id, glucose::SDevice_E
 				solved_evt.signal_id() = mCalculated_Signal_Id;
 				solved_evt.segment_id() = segment_id;
 				solved_evt.parameters.set(solved_parameters);
-				events.Add_Defered(solved_evt);
+				events.push_deferred(solved_evt);
 			}
 			else {
 				mSolver_Status = glucose::TSolver_Status::Completed_Not_Improved;
@@ -416,7 +418,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id, glucose::SDevice_E
 				not_improved_evt.signal_id() = mCalculated_Signal_Id;
 				not_improved_evt.segment_id() = segment_id;
 				not_improved_evt.info.set(rsInfo_Solver_Completed_But_No_Improvement);
-				events.Add_Defered(not_improved_evt);
+				events.push_deferred(not_improved_evt);
 			}
 
 		} else {
@@ -429,7 +431,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id, glucose::SDevice_E
 			failed_evt.signal_id() = mCalculated_Signal_Id;
 			failed_evt.segment_id() = segment_id;
 			failed_evt.info.set(rsInfo_Solver_Failed);
-			events.Add_Defered(failed_evt);
+			events.push_deferred(failed_evt);
 		}
 
 	};
