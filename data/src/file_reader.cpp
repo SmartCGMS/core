@@ -57,9 +57,7 @@ namespace file_reader
 	constexpr double Default_Segment_Spacing = 600.0 * 1000.0 * InvMSecsPerDay;
 }
 
-CFile_Reader::CFile_Reader(glucose::SFilter_Asynchronous_Pipe inpipe, glucose::SFilter_Asynchronous_Pipe outpipe)
-	: mInput(inpipe), mOutput(outpipe), mSegmentSpacing(file_reader::Default_Segment_Spacing)
-{
+CFile_Reader::CFile_Reader(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe) : mInput(inpipe), mOutput(outpipe), mSegmentSpacing(file_reader::Default_Segment_Spacing) {
 	//
 }
 
@@ -209,6 +207,7 @@ void CFile_Reader::Run_Reader()
 void CFile_Reader::Run_Main() {
 
 	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
+		if (!evt) break;
 	
 		// just fall through in main filter thread
 		// there also may be some control code handling (i.e. pausing value sending, etc.)
@@ -274,8 +273,8 @@ HRESULT CFile_Reader::Extract(ExtractionResult &values)
 	return S_OK;
 }
 
-HRESULT CFile_Reader::Run(refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration)
-{
+
+HRESULT IfaceCalling CFile_Reader::Configure(glucose::IFilter_Configuration* configuration) {
 	auto conf = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
 
 	mFileName = conf.Read_String(rsInput_Values_File);
@@ -284,6 +283,11 @@ HRESULT CFile_Reader::Run(refcnt::IVector_Container<glucose::TFilter_Parameter> 
 	mMinValueCount = static_cast<size_t>(conf.Read_Int(rsMinimum_Segment_Levels));
 	mRequireBG_IG = conf.Read_Bool(rsRequire_IG_BG);
 
+	return S_OK;
+}
+
+HRESULT IfaceCalling CFile_Reader::Execute() {
+	
 	if (mFileName.empty())
 		return ENOENT;
 
@@ -298,4 +302,4 @@ HRESULT CFile_Reader::Run(refcnt::IVector_Container<glucose::TFilter_Parameter> 
 	Run_Main();
 
 	return S_OK;
-};
+}

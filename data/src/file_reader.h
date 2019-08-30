@@ -59,12 +59,12 @@ using TSegment_Limits = std::pair<size_t, size_t>;
 /*
  * Filter class for loading and extracting file, and sending values to chain
  */
-class CFile_Reader : public glucose::IAsynchronous_Filter, public virtual refcnt::CReferenced {
+class CFile_Reader : public glucose::IFilter, public virtual refcnt::CReferenced {
 	protected:
 		// input pipe
-		glucose::SFilter_Asynchronous_Pipe mInput;
+		glucose::SFilter_Pipe_Reader mInput;
 		// output pipe
-		glucose::SFilter_Asynchronous_Pipe mOutput;
+		glucose::SFilter_Pipe_Writer mOutput;
 
 		// original filename from configuration
 		std::wstring mFileName;
@@ -98,10 +98,11 @@ class CFile_Reader : public glucose::IAsynchronous_Filter, public virtual refcnt
 		void Resolve_Segments(TValue_Vector const& src, std::list<TSegment_Limits>& targetList) const;
 
 	public:
-		CFile_Reader(glucose::SFilter_Asynchronous_Pipe inpipe, glucose::SFilter_Asynchronous_Pipe outpipe);
+		CFile_Reader(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe);
 		virtual ~CFile_Reader();
 
-		virtual HRESULT Run(refcnt::IVector_Container<glucose::TFilter_Parameter> *configuration) override;
+		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
+		virtual HRESULT IfaceCalling Execute() override final;
 };
 
 #pragma warning( pop )

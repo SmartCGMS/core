@@ -46,7 +46,7 @@
 
 constexpr double PI = 3.141592653589793238462643;
 
-CSinCos_Generator::CSinCos_Generator(glucose::SFilter_Asynchronous_Pipe in_pipe, glucose::SFilter_Asynchronous_Pipe out_pipe)
+CSinCos_Generator::CSinCos_Generator(glucose::SFilter_Pipe_Reader in_pipe, glucose::SFilter_Pipe_Writer out_pipe)
 	: mInput(in_pipe), mOutput(out_pipe), mExit_Flag{ false } {
 }
 
@@ -144,13 +144,33 @@ bool CSinCos_Generator::Emit_Shut_Down() {
 	return mOutput.Send(evt);
 }
 
-HRESULT IfaceCalling CSinCos_Generator::Run(glucose::IFilter_Configuration *configuration) {
+HRESULT IfaceCalling CSinCos_Generator::Configure(glucose::IFilter_Configuration* configuration) {
 
-	if (!Configure(refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true))) return E_INVALIDARG;
+	auto shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
+
+	mIG_Params.offset = shared_configuration.Read_Double(rsGen_IG_Offset);
+	mIG_Params.amplitude = shared_configuration.Read_Double(rsGen_IG_Amplitude);
+	mIG_Params.period = shared_configuration.Read_Double(rsGen_IG_Sin_Period);
+	mIG_Params.samplingPeriod = shared_configuration.Read_Double(rsGen_IG_Sampling_Period);
+
+	mBG_Params.offset = shared_configuration.Read_Double(rsGen_BG_Level_Offset);
+	mBG_Params.amplitude = shared_configuration.Read_Double(rsGen_BG_Amplitude);
+	mBG_Params.period = shared_configuration.Read_Double(rsGen_BG_Cos_Period);
+	mBG_Params.samplingPeriod = shared_configuration.Read_Double(rsGen_BG_Sampling_Period);
+
+	mTotal_Time = shared_configuration.Read_Double(rsGen_Total_Time);
+	mShutdownAfterLast = shared_configuration.Read_Bool(rsShutdown_After_Last);
+
+	return S_OK;
+}
+
+HRESULT IfaceCalling CSinCos_Generator::Execute() {
 
 	Start_Generator();
 
 	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
+		if (!evt) break;
+
 		if (evt.event_code() == glucose::NDevice_Event_Code::Warm_Reset) {
 			Terminate_Generator();
 			Start_Generator();

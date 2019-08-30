@@ -82,9 +82,8 @@ const std::map<GUID, const char*, std::less<GUID>, tbb::tbb_allocator<std::pair<
 	{ glucose::signal_COB, "cob" },
 };
 
-CDrawing_Filter::CDrawing_Filter()
-	: mGraphMaxValue(-1)
-{
+CDrawing_Filter::CDrawing_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe) : mInput{ inpipe }, mOutput{ outpipe }, mGraphMaxValue(-1) {
+	//
 }
 
 HRESULT IfaceCalling CDrawing_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
@@ -94,7 +93,7 @@ HRESULT IfaceCalling CDrawing_Filter::QueryInterface(const GUID*  riid, void ** 
 	return E_NOINTERFACE;
 }
 
-HRESULT CDrawing_Filter::Execute(glucose::IDevice_Event_Vector* events) {
+HRESULT CDrawing_Filter::Execute() {
 
 	std::set<GUID> signalsBeingReset;
 
@@ -102,7 +101,8 @@ HRESULT CDrawing_Filter::Execute(glucose::IDevice_Event_Vector* events) {
 
 	std::unique_lock<std::mutex> lck(mChangedMtx);
 
-	for (const auto evt : glucose::UDevice_Event_Iterator(events)) {
+	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
+		if (!evt) break;
 
 		// incoming level or calibration - store to appropriate vector
 		if (evt.event_code() == glucose::NDevice_Event_Code::Level )
@@ -223,6 +223,8 @@ HRESULT CDrawing_Filter::Execute(glucose::IDevice_Event_Vector* events) {
 			mInputData.clear();
 			mParameterChanges.clear();
 		}
+
+		if (!mOutput.Send(evt)) break;
 	}
 
 	return S_OK;

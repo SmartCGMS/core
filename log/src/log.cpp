@@ -54,7 +54,7 @@
 #include <map>
 #include <codecvt>
 
-CLog_Filter::CLog_Filter() {
+CLog_Filter::CLog_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe)	: mInput{inpipe}, mOutput{outpipe} {	
 	mNew_Log_Records = refcnt::Create_Container_shared<refcnt::wstr_container*>(nullptr, nullptr);
 }
 
@@ -106,15 +106,15 @@ std::wstring CLog_Filter::Parameters_To_WStr(const glucose::UDevice_Event& evt) 
 	return stream.str();
 }
 
-bool CLog_Filter::Open_Log(glucose::SFilter_Parameters configuration) {
+bool CLog_Filter::Open_Log(const std::wstring &log_filename) {
 
 	bool result = false;
-	std::wstring log_file_name = configuration.Read_String(rsLog_Output_File);
+	
 	// if have output file name
-	if (!log_file_name.empty()) {
+	if (!log_filename.empty()) {
 		// try to open output file
 		std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converterX;
-		mLog.open(converterX.to_bytes(log_file_name));
+		mLog.open(converterX.to_bytes(log_filename));
 
 		result = mLog.is_open();
 		if (result) {
@@ -128,38 +128,49 @@ bool CLog_Filter::Open_Log(glucose::SFilter_Parameters configuration) {
 }
 
 HRESULT IfaceCalling CLog_Filter::Configure(glucose::IFilter_Configuration* configuration) {
-	mIs_Terminated = false;
-
 	// load model descriptors to be able to properly format log outputs of parameters	
 	mModelDescriptors = glucose::get_model_descriptors();
 	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
-
-	const bool log_opened = Open_Log(shared_configuration);
+	mLog_Filename = shared_configuration.Read_String(rsLog_Output_File);
 
 	return S_OK;
 }
 
-HRESULT IfaceCalling CLog_Filter::Execute(glucose::IDevice_Event_Vector* events)
-{
-	for (const auto evt : glucose::UDevice_Event_Iterator(events))
+HRESULT IfaceCalling CLog_Filter::Execute() {
+	mIs_Terminated = false;
+
+	const bool log_opened = Open_Log(mLog_Filename);
+
+	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
+		if (!evt) break;
+
 		Log_Event(evt);
 
+		if (!mOutput.Send(evt)) break;
+	}	
+
+	mIs_Terminated = true;
+
+	if (log_opened)
+		mLog.close();
+
 	return S_OK;
-}
+};
+
 
 void CLog_Filter::Log_Event(const glucose::UDevice_Event &evt) {
 	const wchar_t *delim = L"; ";
-		
+
 	std::wostringstream log_line;
 
 	log_line << evt.logical_time() << delim;
 	log_line << Rat_Time_To_Local_Time_WStr(evt.device_time(), rsLog_Date_Time_Format) << delim;
 	log_line << glucose::event_code_text[static_cast<size_t>(evt.event_code())] << delim;
 	if (evt.signal_id() != Invalid_GUID) log_line << mSignal_Names.Get_Name(evt.signal_id());
-		log_line << delim;
+	log_line << delim;
 	if (evt.is_level_event()) log_line << evt.level();
-		else if (evt.is_info_event()) log_line << refcnt::WChar_Container_To_WString(evt.info.get());
-			else if (evt.is_parameters_event()) log_line << Parameters_To_WStr(evt);
+	else if (evt.is_info_event()) log_line << refcnt::WChar_Container_To_WString(evt.info.get());
+	else if (evt.is_parameters_event()) log_line << Parameters_To_WStr(evt);
 	log_line << delim;
 	log_line << evt.segment_id() << delim;
 	log_line << static_cast<size_t>(evt.event_code()) << delim;
@@ -173,7 +184,7 @@ void CLog_Filter::Log_Event(const glucose::UDevice_Event &evt) {
 
 	refcnt::wstr_container* container = refcnt::WString_To_WChar_Container(log_line_str.c_str());
 	std::unique_lock<std::mutex> scoped_lock{ mLog_Records_Guard };
-	mNew_Log_Records->add(&container, &container +1);
+	mNew_Log_Records->add(&container, &container + 1);
 	container->Release();
 }
 

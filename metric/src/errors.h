@@ -56,20 +56,24 @@
 /*
  * Filter class for calculating error metrics
  */
-class CErrors_Filter : public glucose::ISynchronous_Filter, public glucose::IError_Filter_Inspection, public virtual refcnt::CReferenced
+class CErrors_Filter : public glucose::IFilter, public glucose::IError_Filter_Inspection, public virtual refcnt::CReferenced
 {
 	protected:
+		// input pipe
+		glucose::SFilter_Pipe_Reader mInput;
+		// output pipe
+		glucose::SFilter_Pipe_Writer mOutput;
+
 		// currently used error counter instance; TODO: in future, we need to consider more segments at once
 		std::unique_ptr<CError_Marker_Counter> mErrorCounter;
-
 	public:
-		CErrors_Filter();
-		virtual ~CErrors_Filter() = default;
+		CErrors_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe);
+		virtual ~CErrors_Filter() {};
 		
 		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
 
-		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override;
-		virtual HRESULT IfaceCalling Execute(glucose::IDevice_Event_Vector* events) override;
+		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
+		virtual HRESULT IfaceCalling Execute() override final;
 
 		// retrieves the only instance of errors filter
 		virtual HRESULT IfaceCalling Get_Errors(const GUID *signal_id, const glucose::NError_Type type, glucose::TError_Markers *markers) override final;

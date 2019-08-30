@@ -49,7 +49,8 @@
 #include <chrono>
 
 
-CErrors_Filter::CErrors_Filter() {
+CErrors_Filter::CErrors_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe)
+	: mInput{inpipe}, mOutput{outpipe} {
 	//
 }
 
@@ -61,17 +62,19 @@ HRESULT IfaceCalling CErrors_Filter::QueryInterface(const GUID*  riid, void ** p
 	return E_NOINTERFACE;
 }
 
-HRESULT CErrors_Filter::Configure(glucose::IFilter_Configuration* configuration) {
-	
-	mErrorCounter = std::make_unique<CError_Marker_Counter>();
+HRESULT IfaceCalling CErrors_Filter::Configure(glucose::IFilter_Configuration* configuration) {
 	return S_OK;
 }
 
-HRESULT IfaceCalling CErrors_Filter::Execute(glucose::IDevice_Event_Vector* events) {
+HRESULT CErrors_Filter::Execute() {
 	
-	for (auto evt : glucose::UDevice_Event_Iterator{ events } ) {
-
-		switch (evt.event_code()) {
+	mErrorCounter = std::make_unique<CError_Marker_Counter>();
+	
+	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
+		if (!evt) break;
+	
+		switch (evt.event_code())
+		{
 			case glucose::NDevice_Event_Code::Level:
 			case glucose::NDevice_Event_Code::Masked_Level:
 				// the internal logic will tell us, if the signal is reference signal, and therefore we need to recalculate errors
@@ -95,10 +98,14 @@ HRESULT IfaceCalling CErrors_Filter::Execute(glucose::IDevice_Event_Vector* even
 			default:
 				break;
 		}
+
+		if (!mOutput.Send(evt))
+			break;
 	}
 
 	return S_OK;
 }
+
 
 HRESULT IfaceCalling CErrors_Filter::Get_Errors(const GUID *signal_id, const glucose::NError_Type type, glucose::TError_Markers *markers) {
 	if (!mErrorCounter)

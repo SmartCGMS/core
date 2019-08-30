@@ -75,7 +75,7 @@ namespace db_writer
 	const wchar_t* Subject_Base_Name = L"Subject";
 }
 
-CDb_Writer::CDb_Writer(glucose::SFilter_Asynchronous_Pipe in_pipe, glucose::SFilter_Asynchronous_Pipe out_pipe) : mInput(in_pipe), mOutput(out_pipe) {
+CDb_Writer::CDb_Writer(glucose::SFilter_Pipe_Reader in_pipe, glucose::SFilter_Pipe_Writer out_pipe) : mInput(in_pipe), mOutput(out_pipe) {
 }
 
 HRESULT IfaceCalling CDb_Writer::QueryInterface(const GUID*  riid, void ** ppvObj) {
@@ -244,19 +244,20 @@ bool CDb_Writer::Store_Parameters(const glucose::UDevice_Event& evt) {
 	return result;
 }
 
-bool CDb_Writer::Configure(glucose::SFilter_Parameters conf)
-{
-	mDbHost = conf.Read_String(rsDb_Host);
-	mDbProvider = conf.Read_String(rsDb_Provider);
-	mDbPort = conf.Read_Int(rsDb_Port);
-	mDbDatabaseName = conf.Read_String(rsDb_Name);
-	mDbUsername = conf.Read_String(rsDb_User_Name);
-	mDbPassword = conf.Read_String(rsDb_Password);
-	mSubject_Id = conf.Read_Int(rsSubject_Id);
+HRESULT IfaceCalling CDb_Writer::Configure(glucose::IFilter_Configuration* configuration) {
+	glucose::SFilter_Parameters shared_conf = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
 
-	mGenerate_Primary_Keys = conf.Read_Bool(rsGenerate_Primary_Keys);
-	mStore_Data = conf.Read_Bool(rsStore_Data);
-	mStore_Parameters = conf.Read_Bool(rsStore_Parameters);
+	mDbHost = shared_conf.Read_String(rsDb_Host);
+	mDbProvider = shared_conf.Read_String(rsDb_Provider);
+	mDbPort = shared_conf.Read_Int(rsDb_Port);
+	mDbDatabaseName = shared_conf.Read_String(rsDb_Name);
+	mDbUsername = shared_conf.Read_String(rsDb_User_Name);
+	mDbPassword = shared_conf.Read_String(rsDb_Password);
+	mSubject_Id = shared_conf.Read_Int(rsSubject_Id);
+
+	mGenerate_Primary_Keys = shared_conf.Read_Bool(rsGenerate_Primary_Keys);
+	mStore_Data = shared_conf.Read_Bool(rsStore_Data);
+	mStore_Parameters = shared_conf.Read_Bool(rsStore_Parameters);
 
 	// The combination of (mStore_Data && !mGenerate_Primary_Keys) may be potentially wrong (this would save the data to an existing segment),
 	// should we warn the user somehow?
@@ -271,13 +272,11 @@ bool CDb_Writer::Configure(glucose::SFilter_Parameters conf)
 	for (const auto& id : glucose::signal_Virtual)
 		mIgnored_Signals.insert(id);
 
-	return true;
+	return S_OK;
 }
 
-HRESULT IfaceCalling CDb_Writer::Run(glucose::IFilter_Configuration *configuration)
-{
-	if (!Configure(refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true)))
-		return E_FAIL;
+
+HRESULT IfaceCalling CDb_Writer::Execute() {
 
 	if (mDb_Connector)
 		mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
@@ -299,6 +298,7 @@ HRESULT IfaceCalling CDb_Writer::Run(glucose::IFilter_Configuration *configurati
 	}
 
 	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
+		if (!evt) break;
 
 		switch (evt.event_code()) {
 			case glucose::NDevice_Event_Code::Level:

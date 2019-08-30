@@ -52,12 +52,13 @@
 /*
  * Filter class for loading previously stored log file and "replay" it through pipe
  */
-class CLog_Replay_Filter : public glucose::IAsynchronous_Filter, public virtual refcnt::CReferenced {
+class CLog_Replay_Filter : public glucose::IFilter, public virtual refcnt::CReferenced {
 	protected:
-		glucose::SFilter_Asynchronous_Pipe mInput;
-		glucose::SFilter_Asynchronous_Pipe mOutput;
+		glucose::SFilter_Pipe_Reader mInput;
+		glucose::SFilter_Pipe_Writer mOutput;
 		std::wifstream mLog;
 		bool mIgnore_Shutdown = false;
+		std::wstring mLog_Filename;
 		std::unique_ptr<std::thread> mLog_Replay_Thread;
 
 	protected:
@@ -65,15 +66,16 @@ class CLog_Replay_Filter : public glucose::IAsynchronous_Filter, public virtual 
 		void Log_Replay();
 
 		// opens log for reading, returns true if success, false if failed
-		bool Open_Log(glucose::SFilter_Parameters configuration);
+		bool Open_Log(const std::wstring &log_filename);
 		// converts string to parameters vector; note that this method have no knowledge of models at all (does not validate parameter count, ..)
 		void WStr_To_Parameters(const std::wstring& src, glucose::SModel_Parameter_Vector& target);
 
 	public:
-		CLog_Replay_Filter(glucose::SFilter_Asynchronous_Pipe inpipe, glucose::SFilter_Asynchronous_Pipe outpipe);
+		CLog_Replay_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe);
 		virtual ~CLog_Replay_Filter() {};
 
-		virtual HRESULT Run(refcnt::IVector_Container<glucose::TFilter_Parameter>* const configuration) override final;
+		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
+		virtual HRESULT IfaceCalling Execute() override final;
 };
 
 #pragma warning( pop )

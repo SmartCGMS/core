@@ -65,11 +65,11 @@ struct CPrepared_Value
 /*
  * Filter class for writing data and parameters to database
  */
-class CDb_Writer : public glucose::IAsynchronous_Filter, public db::IDb_Sink, public virtual refcnt::CReferenced
+class CDb_Writer : public glucose::IFilter, public db::IDb_Sink, public virtual refcnt::CReferenced
 {
 	protected:
-		glucose::SFilter_Asynchronous_Pipe mInput;
-		glucose::SFilter_Asynchronous_Pipe mOutput;
+		glucose::SFilter_Pipe_Reader mInput;
+		glucose::SFilter_Pipe_Writer mOutput;
 
 		// database host configured
 		std::wstring mDbHost;
@@ -124,11 +124,12 @@ class CDb_Writer : public glucose::IAsynchronous_Filter, public db::IDb_Sink, pu
 		bool Configure(glucose::SFilter_Parameters conf);
 
 	public:
-		CDb_Writer(glucose::SFilter_Asynchronous_Pipe in_pipe, glucose::SFilter_Asynchronous_Pipe out_pipe);
+		CDb_Writer(glucose::SFilter_Pipe_Reader in_pipe, glucose::SFilter_Pipe_Writer out_pipe);
 		virtual ~CDb_Writer() {};
 
 		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
-		virtual HRESULT IfaceCalling Run(glucose::IFilter_Configuration *configuration) override;
+		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
+		virtual HRESULT IfaceCalling Execute() override final;
 		virtual HRESULT IfaceCalling Set_Connector(db::IDb_Connector *connector) override;
 };
 

@@ -113,10 +113,12 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-extern "C" HRESULT IfaceCalling do_create_synchronous_filter(const GUID *id, glucose::ISynchronous_Filter **filter)
-{
+extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter_Pipe_Reader *input, glucose::IFilter_Pipe_Writer *output, glucose::IFilter **filter) {
+	glucose::SFilter_Pipe_Reader shared_in = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe_Reader, glucose::IFilter_Pipe_Reader>(input, true);
+	glucose::SFilter_Pipe_Writer shared_out = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe_Writer, glucose::IFilter_Pipe_Writer>(output, true);
+
 	if (*id == drawing::Drawing_Descriptor.id)
-		return Manufacture_Object<CDrawing_Filter>(filter);
+		return Manufacture_Object<CDrawing_Filter>(filter, shared_in, shared_out);
 
 	return ENOENT;
 }

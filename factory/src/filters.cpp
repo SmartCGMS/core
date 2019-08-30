@@ -154,12 +154,12 @@ void CLoaded_Filters::load_libraries() {
 					lib.library.Unload();
 			}
 		}
-	}	
+	}
 }
 
 HRESULT CLoaded_Filters::add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Filter create_filter) {
 	if ((begin == end) || (begin == nullptr) || (end == nullptr) || (create_asynchronous_filter == nullptr)) return E_INVALIDARG;
-	imported::TLibraryInfo lib;
+	imported::TLibraryInfo lib;	
 	lib.create_approximator = nullptr;
 	lib.create_signal = nullptr;
 	lib.create_metric = nullptr;

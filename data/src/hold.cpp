@@ -46,7 +46,7 @@
 #include <chrono>
 #include <cmath>
 
-CHold_Filter::CHold_Filter(glucose::SFilter_Asynchronous_Pipe inpipe, glucose::SFilter_Asynchronous_Pipe outpipe)
+CHold_Filter::CHold_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe)
 	: mInput(inpipe), mOutput(outpipe), mNotified(0), mSimulationOffset(0.0), mMsWait(0)
 {
 	//
@@ -56,6 +56,8 @@ void CHold_Filter::Run_Main() {
 	bool hold;
 
 	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
+		if (!evt) break;
+
 		hold = true;
 		switch (evt.event_code()) {
 			case glucose::NDevice_Event_Code::Solve_Parameters:
@@ -159,9 +161,14 @@ void CHold_Filter::Simulation_Step(size_t stepcount)
 	mHoldCv.notify_all();
 }
 
-HRESULT CHold_Filter::Run(refcnt::IVector_Container<glucose::TFilter_Parameter>* const configuration) {
+HRESULT IfaceCalling CHold_Filter::Configure(glucose::IFilter_Configuration* configuration) {
 	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
 	mMsWait = shared_configuration.Read_Int(rsHold_Values_Delay);
+
+	return S_OK;
+}
+
+HRESULT IfaceCalling CHold_Filter::Execute() {
 
 	mRunning = true;
 

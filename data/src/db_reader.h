@@ -63,10 +63,10 @@ struct TStored_Model_Params {
  * Class that reads selected segments from the db produces the events
  * i.e., it mimicks CGMS
  */
-class CDb_Reader : public glucose::IAsynchronous_Filter, public db::IDb_Sink, public virtual refcnt::CReferenced {
+class CDb_Reader : public glucose::IFilter, public db::IDb_Sink, public virtual refcnt::CReferenced {
 	protected:
-		glucose::SFilter_Asynchronous_Pipe mInput;
-		glucose::SFilter_Asynchronous_Pipe mOutput;
+		glucose::SFilter_Pipe_Reader mInput;
+		glucose::SFilter_Pipe_Writer mOutput;
 
 		// database host configured
 		std::wstring mDbHost;
@@ -103,11 +103,12 @@ class CDb_Reader : public glucose::IAsynchronous_Filter, public db::IDb_Sink, pu
 		db::SDb_Connection mDb_Connection;
 
 	public:
-		CDb_Reader(glucose::SFilter_Asynchronous_Pipe in_pipe, glucose::SFilter_Asynchronous_Pipe out_pipe);
+		CDb_Reader(glucose::SFilter_Pipe_Reader in_pipe, glucose::SFilter_Pipe_Writer out_pipe);
 		virtual ~CDb_Reader() {};
 
 		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
-		virtual HRESULT IfaceCalling Run(glucose::IFilter_Configuration *configuration) override;
+		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
+		virtual HRESULT IfaceCalling Execute() override final;
 		virtual HRESULT IfaceCalling Set_Connector(db::IDb_Connector *connector) override;
 };
 

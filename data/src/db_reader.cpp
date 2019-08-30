@@ -85,7 +85,7 @@ std::array<GUID, static_cast<size_t>(NColumn_Pos::_Count)> ColumnSignalMap = { {
 	glucose::signal_BG, glucose::signal_IG, glucose::signal_ISIG, glucose::signal_Bolus_Insulin, glucose::signal_Basal_Insulin_Rate, glucose::signal_Carb_Intake, glucose::signal_Calibration
 } };
 
-CDb_Reader::CDb_Reader(glucose::SFilter_Asynchronous_Pipe in_pipe, glucose::SFilter_Asynchronous_Pipe out_pipe) : mInput(in_pipe), mOutput(out_pipe), mDbPort(0) {
+CDb_Reader::CDb_Reader(glucose::SFilter_Pipe_Reader in_pipe, glucose::SFilter_Pipe_Writer out_pipe) : mInput(in_pipe), mOutput(out_pipe), mDbPort(0) {
 	//
 }
 
@@ -227,40 +227,43 @@ void CDb_Reader::Db_Reader() {
 		Emit_Shut_Down();
 }
 
-bool CDb_Reader::Configure(glucose::SFilter_Parameters configuration) {
-	mDbHost = configuration.Read_String(rsDb_Host);
-	mDbProvider = configuration.Read_String(rsDb_Provider);
-	mDbPort = configuration.Read_Int(rsDb_Port);
-	mDbDatabaseName = configuration.Read_String(rsDb_Name);
-	mDbUsername = configuration.Read_String(rsDb_User_Name);
-	mDbPassword = configuration.Read_String(rsDb_Password);
-	mDbTimeSegmentIds = configuration.Read_Int_Array(rsTime_Segment_ID);
-	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
+HRESULT IfaceCalling CDb_Reader::Configure(glucose::IFilter_Configuration* configuration) {
+
+	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
+
+	mDbHost = shared_configuration.Read_String(rsDb_Host);
+	mDbProvider = shared_configuration.Read_String(rsDb_Provider);
+	mDbPort = shared_configuration.Read_Int(rsDb_Port);
+	mDbDatabaseName = shared_configuration.Read_String(rsDb_Name);
+	mDbUsername = shared_configuration.Read_String(rsDb_User_Name);
+	mDbPassword = shared_configuration.Read_String(rsDb_Password);
+	mDbTimeSegmentIds = shared_configuration.Read_Int_Array(rsTime_Segment_ID);
+	mShutdownAfterLast = shared_configuration.Read_Bool(rsShutdown_After_Last);
 
 	// we need at least these parameters
-	return !(mDbHost.empty() || mDbProvider.empty() || mDbTimeSegmentIds.empty());
+	return (!(mDbHost.empty() || mDbProvider.empty() || mDbTimeSegmentIds.empty())) ? S_OK : E_INVALIDARG;
 }
 
-HRESULT CDb_Reader::Run(glucose::IFilter_Configuration *configuration) {
-
-	if (!Configure(refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true))) return E_INVALIDARG;
+HRESULT IfaceCalling CDb_Reader::Execute() {
 
 	//run the db-reader thread and meanwhile jsut forward the messages as they come
 	mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
 
 
 	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
-		if (evt) {
-			if (evt.event_code() == glucose::NDevice_Event_Code::Warm_Reset) {
-				//recreate the reader thread
-				End_Db_Reader();
-				mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
-			}
+		if (!evt) break;
 
-
-			if (!mOutput.Send(evt)) 
-				break;	//passing the shutdown code will shutdown the outpipe and subsequently the db-reader thread as well
+		
+		if (evt.event_code() == glucose::NDevice_Event_Code::Warm_Reset) {
+			//recreate the reader thread
+			End_Db_Reader();
+			mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
 		}
+
+
+		if (!mOutput.Send(evt)) 
+			break;	//passing the shutdown code will shutdown the outpipe and subsequently the db-reader thread as well
+		
 	}
 
 

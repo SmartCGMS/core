@@ -57,108 +57,111 @@
 /*
  * Drawing filter class utilizing the code for generating SVGs based on input data
  */
-class CDrawing_Filter : public glucose::ISynchronous_Filter, public glucose::IDrawing_Filter_Inspection, public virtual refcnt::CReferenced {
-	protected:
-		// stored AGP SVG
-		std::string mAGP_SVG;
-		// stored clark grid SVG
-		std::string mClark_SVG;
-		// stored day graph SVG
-		std::string mDay_SVG;
-		// stored graph SVG
-		std::string mGraph_SVG;
-		// stored parkes grid SVG for type 1
-		std::string mParkes_type1_SVG;
-		// stored parkes grid SVG for type 2
-		std::string mParkes_type2_SVG;
-		// stored ECDF SVG
-		std::string mECDF_SVG;
+class CDrawing_Filter : public glucose::IFilter, public glucose::IDrawing_Filter_Inspection, public virtual refcnt::CReferenced {
+protected:
+	glucose::SFilter_Pipe_Reader mInput;
+	glucose::SFilter_Pipe_Writer mOutput;
+protected:
+	// stored AGP SVG
+	std::string mAGP_SVG;
+	// stored clark grid SVG
+	std::string mClark_SVG;
+	// stored day graph SVG
+	std::string mDay_SVG;
+	// stored graph SVG
+	std::string mGraph_SVG;
+	// stored parkes grid SVG for type 1
+	std::string mParkes_type1_SVG;
+	// stored parkes grid SVG for type 2
+	std::string mParkes_type2_SVG;
+	// stored ECDF SVG
+	std::string mECDF_SVG;
 
-		// stored profile - glucose SVG
-		std::string mProfile_Glucose_SVG;
-		// stored profile - bolus carbs SVG
-		std::string mProfile_Carbs_SVG;
-		// stored profile - basal SVG
-		std::string mProfile_Insulin_SVG;
+	// stored profile - glucose SVG
+	std::string mProfile_Glucose_SVG;
+	// stored profile - bolus carbs SVG
+	std::string mProfile_Carbs_SVG;
+	// stored profile - basal SVG
+	std::string mProfile_Insulin_SVG;
 
-		// AGP file path
-		std::wstring mAGP_FilePath;
-		// Clark file path
-		std::wstring mClark_FilePath;
-		// day plot file path
-		std::wstring mDay_FilePath;
-		// graph file path
-		std::wstring mGraph_FilePath;
-		// Parkes file path
-		std::wstring mParkes_FilePath;
-		// ECDF file path
-		std::wstring mECDF_FilePath;
+	// AGP file path
+	std::wstring mAGP_FilePath;
+	// Clark file path
+	std::wstring mClark_FilePath;
+	// day plot file path
+	std::wstring mDay_FilePath;
+	// graph file path
+	std::wstring mGraph_FilePath;
+	// Parkes file path
+	std::wstring mParkes_FilePath;
+	// ECDF file path
+	std::wstring mECDF_FilePath;
 
-		// input data changed
-		bool mChanged = false;
-		// mutex guard for changed variable
-		std::mutex mChangedMtx;
-		// scheduler condition variable
-		std::condition_variable mSchedCv;
-		// mutex guard for retrieving image data
-		mutable std::mutex mRetrieveMtx;
+	// input data changed
+	bool mChanged = false;
+	// mutex guard for changed variable
+	std::mutex mChangedMtx;
+	// scheduler condition variable
+	std::condition_variable mSchedCv;
+	// mutex guard for retrieving image data
+	mutable std::mutex mRetrieveMtx;
 
-		// localization map
-		LocalizationMap mLocaleMap;
-		// data map stored for drawing code; TODO: support more segments
-		DataMap mDataMap;
-		// maximum value in graphs; TODO: support more segments
-		double mGraphMaxValue;
+	// localization map
+	LocalizationMap mLocaleMap;
+	// data map stored for drawing code; TODO: support more segments
+	DataMap mDataMap;
+	// maximum value in graphs; TODO: support more segments
+	double mGraphMaxValue;
 
-		// input data from pipe
-		std::map<GUID, std::map<uint64_t, ValueVector>> mInputData;
-		// calculated signal GUID-name map
-		std::map<GUID, std::string> mCalcSignalNameMap;
-		// cached map for fast mapping of reference signals to calc'd ones
-		std::map<GUID, GUID> mReferenceForCalcMap;
+	// input data from pipe
+	std::map<GUID, std::map<uint64_t, ValueVector>> mInputData;
+	// calculated signal GUID-name map
+	std::map<GUID, std::string> mCalcSignalNameMap;
+	// cached map for fast mapping of reference signals to calc'd ones
+	std::map<GUID, GUID> mReferenceForCalcMap;
 
-		// markers for segment start/ends
-		ValueVector mSegmentMarkers;
-		// markes for parameters change
-		std::map<GUID, std::map<uint64_t, ValueVector>> mParameterChanges;
+	// markers for segment start/ends
+	ValueVector mSegmentMarkers;
+	// markes for parameters change
+	std::map<GUID, std::map<uint64_t, ValueVector>> mParameterChanges;
 
-		// configured canvas width
-		int mCanvasWidth = 1024;
-		// configured canvas height
-		int mCanvasHeight = 768;
+	// configured canvas width
+	int mCanvasWidth = 1024;
+	// configured canvas height
+	int mCanvasHeight = 768;
 
-		// if the inputs changed, redraw SVGs
-		bool Redraw_If_Changed(const std::unordered_set<uint64_t> &segmentIds = {}, const std::set<GUID> &signalIds = {});
-		// redraw (without locking!)
-		bool Force_Redraw(const std::unordered_set<uint64_t> &segmentIds = {}, const std::set<GUID> &signalIds = {});
+	// if the inputs changed, redraw SVGs
+	bool Redraw_If_Changed(const std::unordered_set<uint64_t> &segmentIds = {}, const std::set<GUID> &signalIds = {});
+	// redraw (without locking!)
+	bool Force_Redraw(const std::unordered_set<uint64_t> &segmentIds = {}, const std::set<GUID> &signalIds = {});
 
-		// fills given localization map with translation constants
-		void Fill_Localization_Map(LocalizationMap& locales);
-		// sets locale title parameter to given title string
-		void Set_Locale_Title(LocalizationMap& locales, std::wstring title) const;
+	// fills given localization map with translation constants
+	void Fill_Localization_Map(LocalizationMap& locales);
+	// sets locale title parameter to given title string
+	void Set_Locale_Title(LocalizationMap& locales, std::wstring title) const;
 
-		// generates graphs for input values
-		void Generate_Graphs(DataMap& valueMap, double maxValue, LocalizationMap& locales);
-		// stores string to file path
-		void Store_To_File(std::string& str, std::wstring& filePath);
+	// generates graphs for input values
+	void Generate_Graphs(DataMap& valueMap, double maxValue, LocalizationMap& locales);
+	// stores string to file path
+	void Store_To_File(std::string& str, std::wstring& filePath);
 
-		// resets stored values and parameter changes for given signal (must be valid signal id)
-		void Reset_Signal(const GUID& signal_id, const uint64_t segment_id);
+	// resets stored values and parameter changes for given signal (must be valid signal id)
+	void Reset_Signal(const GUID& signal_id, const uint64_t segment_id);
 
-		// prepares data map for drawing
-		void Prepare_Drawing_Map(const std::unordered_set<uint64_t> &segmentIds = {}, const std::set<GUID> &signalIds = {});
+	// prepares data map for drawing
+	void Prepare_Drawing_Map(const std::unordered_set<uint64_t> &segmentIds = {}, const std::set<GUID> &signalIds = {});
 
-		HRESULT Get_Plot(const std::string &plot, refcnt::IVector_Container<char> *svg) const;
-	public:
-		CDrawing_Filter();
-		virtual ~CDrawing_Filter() = default;
+	HRESULT Get_Plot(const std::string &plot, refcnt::IVector_Container<char> *svg) const;
+public:
+	CDrawing_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe);
+	virtual ~CDrawing_Filter() = default;
 
-		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
+	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
 
-		virtual HRESULT Configure(glucose::IFilter_Configuration* configuration) override;
-		virtual HRESULT Execute(glucose::IDevice_Event_Vector* events) override;
+	virtual HRESULT Configure(glucose::IFilter_Configuration* configuration) override final;
+	virtual HRESULT Execute() override final;
 
-		virtual HRESULT IfaceCalling Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg, refcnt::IVector_Container<uint64_t> *segmentIds, refcnt::IVector_Container<GUID> *signalIds) override;
+	virtual HRESULT IfaceCalling Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg, refcnt::IVector_Container<uint64_t> *segmentIds, refcnt::IVector_Container<GUID> *signalIds) override;
 };
 
 #pragma warning( pop )

@@ -97,6 +97,8 @@ HRESULT IfaceCalling CMasking_Filter::Configure(glucose::IFilter_Configuration* 
 
 HRESULT IfaceCalling CMasking_Filter::Execute() {
 	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
+		if (!evt) break;
+
 		// mask only configured signal and event of type "Level"
 		if (evt.event_code() == glucose::NDevice_Event_Code::Level && evt.signal_id() == mSignal_Id) {
 			auto itr = mSegmentMaskState.find(evt.segment_id());

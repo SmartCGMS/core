@@ -57,9 +57,8 @@
 #include <cctype>
 #include <codecvt>
 
-CLog_Replay_Filter::CLog_Replay_Filter(glucose::SFilter_Asynchronous_Pipe inpipe, glucose::SFilter_Asynchronous_Pipe outpipe)
-	: mInput{ inpipe }, mOutput{ outpipe }
-{
+CLog_Replay_Filter::CLog_Replay_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe): mInput{ inpipe }, mOutput{ outpipe } {
+	//
 }
 
 void CLog_Replay_Filter::Log_Replay()
@@ -140,16 +139,15 @@ void CLog_Replay_Filter::Log_Replay()
 	}
 }
 
-bool CLog_Replay_Filter::Open_Log(glucose::SFilter_Parameters configuration)
+bool CLog_Replay_Filter::Open_Log(const std::wstring &log_filename)
 {
-	bool result = false;
-	std::wstring log_file_name = configuration.Read_String(rsLog_Output_File);
+	bool result = false;	
 	// do we have input file name?
-	if (!log_file_name.empty())
+	if (!log_filename.empty())
 	{
 		// try to open file for reading
 		std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converterX;
-		mLog.open(converterX.to_bytes(log_file_name));
+		mLog.open(converterX.to_bytes(log_filename));
 
 		result = mLog.is_open();
 		// set decimal point separator
@@ -160,11 +158,19 @@ bool CLog_Replay_Filter::Open_Log(glucose::SFilter_Parameters configuration)
 	return result;
 }
 
-HRESULT CLog_Replay_Filter::Run(refcnt::IVector_Container<glucose::TFilter_Parameter>* const configuration) {
-
+HRESULT IfaceCalling CLog_Replay_Filter::Configure(glucose::IFilter_Configuration* configuration) {
 	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, refcnt::IVector_Container<glucose::TFilter_Parameter>>(configuration, true);
 	mIgnore_Shutdown = shared_configuration.Read_Bool(rsIgnore_Shutdown_Msg, mIgnore_Shutdown);
-	const bool log_opened = Open_Log(shared_configuration);
+	mLog_Filename = shared_configuration.Read_String(rsLog_Output_File);
+
+	return S_OK;
+}
+
+
+HRESULT CLog_Replay_Filter::Execute() {
+
+	
+	const bool log_opened = Open_Log(mLog_Filename);
 
 	if (log_opened)
 		mLog_Replay_Thread = std::make_unique<std::thread>(&CLog_Replay_Filter::Log_Replay, this);
@@ -172,6 +178,7 @@ HRESULT CLog_Replay_Filter::Run(refcnt::IVector_Container<glucose::TFilter_Param
 	// main loop in log reader main thread - we still need to be able to pass events from input pipe to output, althought we are the source of messages (separate thread)
 	// the reason is the same as in any other "pure-input" filter like db reader - simulation commands comes through input pipe
 	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
+		if (!evt) break;
 		if (!mOutput.Send(evt))
 			break;
 	}
