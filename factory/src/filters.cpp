@@ -91,7 +91,7 @@ HRESULT get_device_driver_descriptors(glucose::TDevice_Driver_Descriptor **begin
 	return loaded_filters.get_device_driver_descriptors(begin, end);
 }
 
-HRESULT IfaceCalling create_asynchronous_filter(const GUID *id, glucose::IFilter_Pipe_Reader *input, glucose::IFilter_Pipe_Writer *output, glucose::IFilter **filter) {
+HRESULT IfaceCalling create_filter(const GUID *id, glucose::IFilter_Pipe_Reader *input, glucose::IFilter_Pipe_Writer *output, glucose::IFilter **filter) {
 	return loaded_filters.create_filter(id, input, output, filter);
 }
 
@@ -176,6 +176,7 @@ HRESULT CLoaded_Filters::add_filters(const glucose::TFilter_Descriptor *begin, c
 
 
 HRESULT CLoaded_Filters::create_filter(const GUID *id, glucose::IFilter_Pipe_Reader *input, glucose::IFilter_Pipe_Writer *output, glucose::IFilter **filter) {
+	if (!id) return E_INVALIDARG;
 	auto call_create_filter = [](const imported::TLibraryInfo &info) { return info.create_filter; }; 
 	return Call_Func(call_create_filter, id, input, output, filter);
 }
