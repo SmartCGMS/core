@@ -158,7 +158,7 @@ void CLoaded_Filters::load_libraries() {
 }
 
 HRESULT CLoaded_Filters::add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Filter create_filter) {
-	if ((begin == end) || (begin == nullptr) || (end == nullptr) || (create_asynchronous_filter == nullptr)) return E_INVALIDARG;
+	if ((begin == end) || (begin == nullptr) || (end == nullptr) || (create_filter == nullptr)) return E_INVALIDARG;
 	imported::TLibraryInfo lib;	
 	lib.create_approximator = nullptr;
 	lib.create_signal = nullptr;
