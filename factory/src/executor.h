@@ -15,7 +15,7 @@ public:
 	virtual void join() {};
 };
 
-class CFilter_Executor : public virtual CExecutor, public virtual glucose::IFilter_Pipe_Reader, public virtual glucose::IFilter_Pipe_Writer {
+class CFilter_Executor : public virtual CExecutor, public virtual glucose::IEvent_Receiver, public virtual glucose::IEvent_Sender {
 protected:
 	refcnt::SReferenced<glucose::IFilter_Executor> mConsument;
 	tbb::concurrent_bounded_queue<glucose::IDevice_Event*> mQueue;

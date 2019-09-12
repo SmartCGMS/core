@@ -49,7 +49,7 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CFilter_Synchronous_Pipe_RW : public virtual glucose::IFilter_Pipe_Reader, public virtual glucose::IFilter_Pipe_Writer, public virtual refcnt::CNotReferenced {
+class CFilter_Synchronous_Pipe_RW : public virtual glucose::IEvent_Receiver, public virtual glucose::IEvent_Sender, public virtual refcnt::CNotReferenced {
 protected:
 	// vector of events - initially, "send" pushes single event, but any synchronous filter may want to add more		
 	refcnt::SVector_Container<glucose::IDevice_Event*> mFresh_Events, mDone_Events;
@@ -108,12 +108,12 @@ class CFilter_Synchronous_Pipe :  public virtual glucose::IFilter_Synchronous_Pi
 		// glucose::IFilter_Synchronous_Pipe iface
 		virtual HRESULT add_filter(glucose::IFilter* synchronous_filter) override;
 
-		virtual IFilter_Pipe_Reader* Get_Reader() override final {
-			return dynamic_cast<IFilter_Pipe_Reader*>(&mRW);
+		virtual IEvent_Receiver* Get_Reader() override final {
+			return dynamic_cast<IEvent_Receiver*>(&mRW);
 		}
 
-		virtual IFilter_Pipe_Writer* Get_Writer() override final {
-			return dynamic_cast<IFilter_Pipe_Writer*>(&mRW);
+		virtual IEvent_Sender* Get_Writer() override final {
+			return dynamic_cast<IEvent_Sender*>(&mRW);
 		}
 };
 

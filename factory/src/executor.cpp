@@ -62,7 +62,7 @@ void CFilter_Executor::abort() {
 
 
 CAsync_Filter_Executor::CAsync_Filter_Executor(const GUID filter_id, glucose::IFilter_Executor *consument, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) : CFilter_Executor(consument)  {
-	mFilter = glucose::create_filter(filter_id, static_cast<glucose::IFilter_Pipe_Reader*>(this), static_cast<glucose::IFilter_Pipe_Writer*>(this));
+	mFilter = glucose::create_filter(filter_id, static_cast<glucose::IEvent_Receiver*>(this), static_cast<glucose::IEvent_Sender*>(this));
 	//at this point, we will call a callback function to configure the filter we've just created 
 	on_filter_created(on_filter_created_data, mFilter.get());
 	//once configured, let's execute
@@ -78,7 +78,7 @@ void CAsync_Filter_Executor::join() {
 
 
 CSync_Filter_Executor::CSync_Filter_Executor(const GUID filter_id, glucose::IFilter_Executor *consument, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) : CFilter_Executor(consument) {
-	mFilter = glucose::create_filter(filter_id, static_cast<glucose::IFilter_Pipe_Reader*>(this), static_cast<glucose::IFilter_Pipe_Writer*>(this));
+	mFilter = glucose::create_filter(filter_id, static_cast<glucose::IEvent_Receiver*>(this), static_cast<glucose::IEvent_Sender*>(this));
 	//at this point, we will call a callback function to configure the filter we've just created 
 	on_filter_created(on_filter_created_data, mFilter.get());
 	//once configured, we can call its execute method later on
