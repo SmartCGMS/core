@@ -6,7 +6,7 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
-class CFilter_Parameter : public virtual glucose::IFilter_Parameter {
+class CFilter_Parameter : public virtual glucose::IFilter_Parameter, public virtual refcnt::CReferenced {
 protected:
 	const glucose::NParameter_Type mType;
 	const std::wstring mConfig_Name;

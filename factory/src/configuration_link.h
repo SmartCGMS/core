@@ -8,7 +8,7 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
-class CFilter_Configuration_Link : public virtual CFilter_Parameter, public virtual glucose::IFilter_Configuration_Link {
+class CFilter_Configuration_Link : public virtual refcnt::internal::CVector_Container<glucose::IFilter_Parameter>, public virtual glucose::IFilter_Configuration_Link {
 protected:
 	const GUID mID;	
 public:
