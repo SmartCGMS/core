@@ -40,7 +40,7 @@ public:
 	virtual ~CFilter_Parameter() {};
 
 	virtual HRESULT IfaceCalling Get_Type(glucose::NParameter_Type *type) override final;
-	virtual HRESULT IfaceCalling Get_Config_Name(wchar_t const **config_name) override final;
+	virtual HRESULT IfaceCalling Get_Config_Name(wchar_t **config_name) override final;
 
 	//read-write
 	virtual HRESULT IfaceCalling Get_WChar_Container(refcnt::wstr_container **wstr) override final;

@@ -9,8 +9,8 @@ HRESULT IfaceCalling CFilter_Parameter::Get_Type(glucose::NParameter_Type *type)
 	return S_OK;
 }
 
-HRESULT IfaceCalling CFilter_Parameter::Get_Config_Name(wchar_t const **config_name) {
-	*config_name = mConfig_Name.c_str();
+HRESULT IfaceCalling CFilter_Parameter::Get_Config_Name(wchar_t **config_name) {
+	(*config_name) = const_cast<wchar_t*>(mConfig_Name.c_str());
 	return S_OK;
 }
 
@@ -81,3 +81,4 @@ HRESULT IfaceCalling CFilter_Parameter::Set_Model_Parameters(glucose::IModel_Par
 	mModel_Parameters = parameters;
 	return S_OK;
 }
+
