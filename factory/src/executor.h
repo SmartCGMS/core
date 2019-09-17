@@ -54,11 +54,13 @@ public:
 	virtual HRESULT IfaceCalling push_back(glucose::IDevice_Event *event) override final;
 };
 
+/* to vanish
 class CTerminal_Executor : public virtual CExecutor {
 	//executer designed to consume events only
 public:
 	CTerminal_Executor() {};
 	virtual ~CTerminal_Executor() {};
-	virtual void abort() override  final {};
+	virtual void abort() override final {};
 	virtual HRESULT IfaceCalling push_back(glucose::IDevice_Event *event) override final { event->Release(); };
 };
+*/
