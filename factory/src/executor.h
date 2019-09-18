@@ -7,12 +7,13 @@
 
 #include <thread>
 
-class CExecutor : public virtual glucose::IFilter_Executor {
+class CExecutor : public virtual glucose::IFilter_Executor, public virtual refcnt::CReferenced {
 public:
 	virtual ~CExecutor() {}
-	
-	virtual void abort() = 0; //terminate and join
+		
+	virtual void start() {};
 	virtual void join() {};
+	virtual void abort() = 0; //terminate and join
 };
 
 class CFilter_Executor : public virtual CExecutor, public virtual glucose::IEvent_Receiver, public virtual glucose::IEvent_Sender {
@@ -31,6 +32,7 @@ public:
 	virtual HRESULT IfaceCalling receive(glucose::IDevice_Event **event) override final;
 	virtual HRESULT IfaceCalling send(glucose::IDevice_Event *event) override final;
 	virtual HRESULT IfaceCalling push_back(glucose::IDevice_Event *event) override;
+
 	virtual void abort() override final;
 };
 
@@ -38,9 +40,10 @@ class CAsync_Filter_Executor : public virtual CFilter_Executor {
 protected:
 	 std::unique_ptr<std::thread> mThread;
 public:
-	CAsync_Filter_Executor(const GUID filter_id, glucose::IFilter_Executor *consument, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
+	CAsync_Filter_Executor(const GUID filter_id, glucose::IFilter_Configuration *configuration, glucose::IFilter_Executor *consument, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
 	virtual ~CAsync_Filter_Executor() {};	
-	
+
+	virtual void start() override final;
 	virtual void join() override final;
 };
 
@@ -48,7 +51,7 @@ class CSync_Filter_Executor : public virtual CFilter_Executor {
 protected:
 
 public:
-	CSync_Filter_Executor(const GUID filter_id, glucose::IFilter_Executor *consument, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
+	CSync_Filter_Executor(const GUID filter_id, glucose::IFilter_Configuration *configuration, glucose::IFilter_Executor *consument, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
 	virtual ~CSync_Filter_Executor() {};
 
 	virtual HRESULT IfaceCalling push_back(glucose::IDevice_Event *event) override final;
