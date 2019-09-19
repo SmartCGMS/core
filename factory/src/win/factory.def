@@ -1,8 +1,6 @@
 LIBRARY factory.dll
 
 EXPORTS
-	create_filter
-	create_filter_asynchronous_pipe
 	create_metric
 	create_signal
 	create_device_driver
@@ -18,3 +16,4 @@ EXPORTS
 	add_filters
 	create_device_event
 	create_filter_chain_executor
+	create_persistent_filter_chain_configuration

@@ -48,11 +48,10 @@
 	
 class CFilter_Chain_Executor : public virtual glucose::IFilter_Chain_Executor, public virtual glucose::IFilter_Executor, public virtual refcnt::CReferenced {
 protected:
-	std::vector<std::unique_ptr<CExecutor>> mExecutors;
-	refcnt::SReferenced<glucose::IEvent_Receiver> mReceiver;
+	std::vector<std::unique_ptr<CExecutor>> mExecutors;	
 	refcnt::SReferenced<glucose::IEvent_Sender> mSender;
 public:
-	CFilter_Chain_Executor(glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output);
+	CFilter_Chain_Executor(glucose::IEvent_Sender *output);
 	virtual ~CFilter_Chain_Executor();
 
 	HRESULT Configure(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
@@ -61,16 +60,17 @@ public:
 	virtual HRESULT IfaceCalling Stop() override final;
 
 	virtual HRESULT IfaceCalling push_back(glucose::IDevice_Event *event) override final;
+	virtual HRESULT IfaceCalling send(glucose::IDevice_Event *event) override final;
 };
 
 #pragma warning( pop )
 
 #ifdef _WIN32
-extern "C" __declspec(dllexport) HRESULT IfaceCalling create_filter_chain_executor(glucose::IFilter_Chain_Configuration *configuration, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output,
+extern "C" __declspec(dllexport) HRESULT IfaceCalling create_filter_chain_executor(glucose::IFilter_Chain_Configuration *configuration,  glucose::IEvent_Sender *output,
 	glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data,
 	glucose::IFilter_Chain_Executor **executor);
 #else
-extern "C" HRESULT IfaceCalling create_filter_chain_executor(glucose::IFilter_Chain_Configuration *configuration, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output,
+extern "C" HRESULT IfaceCalling create_filter_chain_executor(glucose::IFilter_Chain_Configuration *configuration, glucose::IEvent_Sender *output,
 	glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data,
 	glucose::IFilter_Chain_Executor **executor);
 #endif

@@ -91,9 +91,9 @@ HRESULT get_device_driver_descriptors(glucose::TDevice_Driver_Descriptor **begin
 	return loaded_filters.get_device_driver_descriptors(begin, end);
 }
 
-HRESULT IfaceCalling create_filter(const GUID *id, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output, glucose::IFilter **filter) {
-	return loaded_filters.create_filter(id, input, output, filter);
-}
+//HRESULT IfaceCalling create_filter(const GUID *id, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output, glucose::IFilter **filter) {
+	//return loaded_filters.create_filter(id, input, output, filter);
+//}
 
 HRESULT IfaceCalling create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric) {
 	return loaded_filters.create_metric(parameters, metric);
@@ -287,4 +287,16 @@ HRESULT CLoaded_Filters::get_approx_descriptors(glucose::TApprox_Descriptor **be
 
 HRESULT CLoaded_Filters::get_device_driver_descriptors(glucose::TDevice_Driver_Descriptor **begin, glucose::TDevice_Driver_Descriptor **end) {
 	return do_get_descriptors<glucose::TDevice_Driver_Descriptor>(mDevice_Driver_Descriptors, begin, end);
+}
+
+
+glucose::SFilter create_filter(const GUID &id, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output) {
+	glucose::SFilter result;
+	glucose::IFilter *filter;
+	
+
+	if (loaded_filters.create_filter(&id, input, output, &filter) == S_OK)
+		result = refcnt::make_shared_reference_ext<glucose::SFilter, glucose::IFilter>(filter, false);
+
+	return result;
 }

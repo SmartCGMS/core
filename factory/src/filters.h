@@ -43,6 +43,7 @@
 #include "../../../common/iface/ApproxIface.h"
 #include "../../../common/iface/SensorIface.h"
 #include "../../../common/rtl/Dynamic_Library.h"
+#include "../../../common/rtl/FilterLib.h"
 
 #include <tbb/concurrent_vector.h>
 #include <tbb/tbb_allocator.h>
@@ -135,7 +136,9 @@ public:
 	HRESULT add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Filter create_filter);
 };
 
-extern "C" HRESULT IfaceCalling create_filter(const GUID *id, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output, glucose::IFilter **filter);
+//extern "C" HRESULT IfaceCalling create_filter(const GUID *id, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output, glucose::IFilter **filter);
+
+
 extern "C" HRESULT IfaceCalling create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric);
 extern "C" HRESULT IfaceCalling create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
 extern "C" HRESULT IfaceCalling create_device_driver(const GUID *calc_id, glucose::IFilter_Asynchronous_Pipe* output, glucose::IDevice_Driver** device_driver);
@@ -151,3 +154,6 @@ extern "C" HRESULT IfaceCalling get_approx_descriptors(glucose::TApprox_Descript
 extern "C" HRESULT IfaceCalling get_device_driver_descriptors(glucose::TDevice_Driver_Descriptor **begin, glucose::TDevice_Driver_Descriptor **end);
 
 extern "C" HRESULT IfaceCalling add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Filter create_filter);
+
+
+glucose::SFilter create_filter(const GUID &id, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output);

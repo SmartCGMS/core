@@ -39,7 +39,7 @@
 #include "filter_chain_executor.h"
 #include "device_event.h"
 
-CFilter_Chain_Executor::CFilter_Chain_Executor(glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output)	: mReceiver(input), mSender(output) {
+CFilter_Chain_Executor::CFilter_Chain_Executor(glucose::IEvent_Sender *output): mSender(output) {
 	//
 }
 
@@ -90,6 +90,14 @@ HRESULT IfaceCalling CFilter_Chain_Executor::push_back(glucose::IDevice_Event *e
 		}
 }
 
+
+HRESULT IfaceCalling CFilter_Chain_Executor::send(glucose::IDevice_Event *event) {
+	if (!event) return E_INVALIDARG;
+	if (mExecutors.empty()) return S_FALSE;
+
+	return mExecutors[0]->push_back(event);
+}
+
 CFilter_Chain_Executor::~CFilter_Chain_Executor() {
 	Stop();
 }
@@ -116,11 +124,11 @@ HRESULT IfaceCalling CFilter_Chain_Executor::Stop() {
 	return S_OK;
 }
 
-HRESULT IfaceCalling create_filter_chain_executor(glucose::IFilter_Chain_Configuration *configuration, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output,
+HRESULT IfaceCalling create_filter_chain_executor(glucose::IFilter_Chain_Configuration *configuration, glucose::IEvent_Sender *output,
 												  glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data,
 												  glucose::IFilter_Chain_Executor **executor) {
 
-	std::unique_ptr<CFilter_Chain_Executor> raw_executor = std::make_unique<CFilter_Chain_Executor>(input, output);
+	std::unique_ptr<CFilter_Chain_Executor> raw_executor = std::make_unique<CFilter_Chain_Executor>(output);
 	HRESULT rc = raw_executor->Configure(configuration, on_filter_created, on_filter_created_data);
 	if (!SUCCEEDED(rc)) return rc;
 	
@@ -130,3 +138,5 @@ HRESULT IfaceCalling create_filter_chain_executor(glucose::IFilter_Chain_Configu
 
 	return S_OK;
 }
+
+

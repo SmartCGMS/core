@@ -147,7 +147,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 								break;
 
 							case glucose::NParameter_Type::ptInt64:
-							case glucose::NParameter_Type::ptSubject_Id:						
+							case glucose::NParameter_Type::ptSubject_Id:
 								valid = filter_parameter->Set_Int64(mIni.GetLongValue(section_name.pItem, desc.config_parameter_name[i])) == S_OK;
 								break;
 
@@ -161,8 +161,10 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 							case glucose::NParameter_Type::ptSignal_Id:
 							case glucose::NParameter_Type::ptSolver_Id:
 							case glucose::NParameter_Type::ptDevice_Driver_Id:
-								const GUID tmp_guid = WString_To_GUID(str_value);
-								valid = filter_parameter->Set_GUID(&tmp_guid) == S_OK;
+								{
+									const GUID tmp_guid = WString_To_GUID(str_value);
+									valid = filter_parameter->Set_GUID(&tmp_guid) == S_OK;
+								}
 								break;
 
 							case glucose::NParameter_Type::ptModel_Bounds:

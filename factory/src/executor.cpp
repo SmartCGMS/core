@@ -1,4 +1,5 @@
 #include "executor.h"
+#include "filters.h"
 
 CFilter_Executor::CFilter_Executor(glucose::IFilter_Executor *consument) : mConsument{consument} {
 	mQueue.set_capacity(mDefault_Capacity);
@@ -63,10 +64,10 @@ void CFilter_Executor::abort() {
 
 
 CAsync_Filter_Executor::CAsync_Filter_Executor(const GUID filter_id, glucose::IFilter_Configuration *configuration, glucose::IFilter_Executor *consument, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) : CFilter_Executor(consument)  {
-	mFilter = glucose::create_filter(filter_id, static_cast<glucose::IEvent_Receiver*>(this), static_cast<glucose::IEvent_Sender*>(this));	
+	mFilter = create_filter(filter_id, static_cast<glucose::IEvent_Receiver*>(this), static_cast<glucose::IEvent_Sender*>(this));	
 	if (!SUCCEEDED(mFilter->Configure(configuration))) throw std::invalid_argument::invalid_argument("Cannot configure the filter!");
 	//at this point, we will call a callback function to perform any additional configuration of the filter we've just created 
-	on_filter_created(on_filter_created_data, mFilter.get());
+	on_filter_created(mFilter.get(), on_filter_created_data);
 	//once configured, do not execute yet - do this in the start method
 	
 }
@@ -87,10 +88,10 @@ void CAsync_Filter_Executor::join() {
 
 
 CSync_Filter_Executor::CSync_Filter_Executor(const GUID filter_id, glucose::IFilter_Configuration *configuration, glucose::IFilter_Executor *consument, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) : CFilter_Executor(consument) {
-	mFilter = glucose::create_filter(filter_id, static_cast<glucose::IEvent_Receiver*>(this), static_cast<glucose::IEvent_Sender*>(this));
+	mFilter = create_filter(filter_id, static_cast<glucose::IEvent_Receiver*>(this), static_cast<glucose::IEvent_Sender*>(this));
 	if (!SUCCEEDED(mFilter->Configure(configuration))) throw std::invalid_argument::invalid_argument("Cannot configure the filter!");
 	//at this point, we will call a callback function to perform any additional configuration of the filter we've just created 
-	on_filter_created(on_filter_created_data, mFilter.get());
+	on_filter_created(mFilter.get(), on_filter_created_data);
 	//once configured, we can call its execute method later on
 }
 

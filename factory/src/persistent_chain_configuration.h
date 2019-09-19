@@ -48,7 +48,6 @@ protected:
 	std::wstring mFile_Path;	
 	std::wstring mFile_Name;		// stored filename to be used in e.g. window title
 public:
-public:
 	virtual HRESULT IfaceCalling Load_From_File(const wchar_t *file_path) override final;
 	virtual HRESULT IfaceCalling Load_From_Memory(const char *memory, const size_t len) override final;
 	virtual HRESULT IfaceCalling Save_To_File(const wchar_t *file_path) override final;
