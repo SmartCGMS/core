@@ -55,8 +55,8 @@
  */
 class CCalculate_Filter : public glucose::IFilter, public glucose::ICalculate_Filter_Inspection, public virtual refcnt::CReferenced {
 protected:
-	glucose::SFilter_Pipe_Reader mInput;
-	glucose::SFilter_Pipe_Writer mOutput;
+	glucose::SEvent_Receiver mInput;
+	glucose::SEvent_Sender mOutput;
 protected:
 	// calculated signal ID
 	GUID mCalculated_Signal_Id = Invalid_GUID;
@@ -93,7 +93,7 @@ protected:
 	void Add_Level(const uint64_t segment_id, const GUID &signal_id, const double level, const double time_stamp);	
 	void Add_Parameters_Hint(glucose::SModel_Parameter_Vector parameters);
 public:
-	CCalculate_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe);
+	CCalculate_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe);
 	virtual ~CCalculate_Filter() {};
 
 	virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) final;

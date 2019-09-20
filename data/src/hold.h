@@ -58,9 +58,9 @@
 class CHold_Filter : public glucose::IFilter, public virtual refcnt::CReferenced {
 	protected:
 		// input pipe
-		glucose::SFilter_Pipe_Reader mInput;
+		glucose::SEvent_Receiver mInput;
 		// output pipe
-		glucose::SFilter_Pipe_Writer mOutput;
+		glucose::SEvent_Sender mOutput;
 
 		// mutex for waiting on CV
 		std::mutex mHoldMtx;
@@ -88,7 +88,7 @@ class CHold_Filter : public glucose::IFilter, public virtual refcnt::CReferenced
 		void Run_Hold();
 
 	public:
-		CHold_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe);
+		CHold_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe);
 
 		// method for notifying condition variable and performing simulation step
 		void Simulation_Step(size_t stepcount);

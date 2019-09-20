@@ -46,7 +46,7 @@
 #include <codecvt>
 #include <locale>
 
-CMasking_Filter::CMasking_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe)
+CMasking_Filter::CMasking_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe)
 	: mInput{ inpipe }, mOutput{ outpipe }
 {
 	//

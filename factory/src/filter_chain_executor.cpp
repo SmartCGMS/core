@@ -39,22 +39,34 @@
 #include "filter_chain_executor.h"
 #include "device_event.h"
 
-CFilter_Chain_Executor::CFilter_Chain_Executor(glucose::IEvent_Sender *output): mSender(output) {
+CFilter_Chain_Executor::CFilter_Chain_Executor(glucose::IEvent_Sender *output): mOutput(refcnt::make_shared_reference_ext<glucose::SEvent_Sender, glucose::IEvent_Sender>(output, true)) {
 	//
+}
+
+
+CFilter_Chain_Executor::~CFilter_Chain_Executor() {
+	Stop();
 }
 
 
 HRESULT CFilter_Chain_Executor::Configure(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) {
 
-	glucose::IFilter_Executor *last_executor = static_cast<glucose::IFilter_Executor *>(this);
+	//install the terminal executor
+	std::unique_ptr<CExecutor> new_executor;
+	if (mOutput) new_executor = std::make_unique<CCopy_Event_Executor>(mOutput);
+	else new_executor = std::make_unique<CTerminal_Executor>();
+
+	glucose::IFilter_Executor *last_executor = new_executor.get();
+	mExecutors.insert(mExecutors.begin(), std::move(new_executor));
+	
 
 	glucose::IFilter_Configuration_Link **link_begin, **link_end;
 
 	HRESULT rc = configuration->get(&link_begin, &link_end);
-	if (rc != S_OK) return S_OK;
+	if (rc != S_OK) return rc;
 
 	//we have to create the filter executors from the last one
-	glucose::IFilter_Configuration_Link *link = *link_end;
+	glucose::IFilter_Configuration_Link *link = *(link_end-1);	
 	try {
 		do {
 			//let's find out if this filter is synchronous or asynchronous
@@ -66,9 +78,9 @@ HRESULT CFilter_Chain_Executor::Configure(glucose::IFilter_Chain_Configuration *
 			bool async_filter = true;	//in the worst case, we can still execute the filter as asynchronous one
 			if (glucose::get_filter_descriptor_by_id(filter_id, filter_desc)) async_filter = (filter_desc.flags & glucose::NFilter_Flags::Synchronous) != glucose::NFilter_Flags::Synchronous;
 
-			std::unique_ptr<CExecutor> new_executor;
+						
 			if (async_filter)  new_executor = std::make_unique < CAsync_Filter_Executor>(filter_id, link, last_executor, on_filter_created, on_filter_created_data);
-			else new_executor = std::make_unique<CSync_Filter_Executor>(filter_id, link, last_executor, on_filter_created, on_filter_created_data);
+				else new_executor = std::make_unique<CSync_Filter_Executor>(filter_id, link, last_executor, on_filter_created, on_filter_created_data);
 
 			last_executor = new_executor.get();
 			mExecutors.insert(mExecutors.begin(), std::move(new_executor));
@@ -82,24 +94,11 @@ HRESULT CFilter_Chain_Executor::Configure(glucose::IFilter_Chain_Configuration *
 	return S_OK;
 }
 
-HRESULT IfaceCalling CFilter_Chain_Executor::push_back(glucose::IDevice_Event *event) {
-	if (mSender) return mSender->send(event);	//simply forward the event
-		else {
-			if (event) event->Release();		//or consume it
-			return S_OK;					
-		}
-}
-
-
 HRESULT IfaceCalling CFilter_Chain_Executor::send(glucose::IDevice_Event *event) {
 	if (!event) return E_INVALIDARG;
 	if (mExecutors.empty()) return S_FALSE;
 
 	return mExecutors[0]->push_back(event);
-}
-
-CFilter_Chain_Executor::~CFilter_Chain_Executor() {
-	Stop();
 }
 
 HRESULT IfaceCalling CFilter_Chain_Executor::Start() {
@@ -121,6 +120,8 @@ HRESULT IfaceCalling CFilter_Chain_Executor::Stop() {
 	for (size_t i = 0; i < mExecutors.size(); i++) // no for each to ensure the order
 			mExecutors[i]->join();	
 
+	mExecutors.clear();
+
 	return S_OK;
 }
 
@@ -138,5 +139,3 @@ HRESULT IfaceCalling create_filter_chain_executor(glucose::IFilter_Chain_Configu
 
 	return S_OK;
 }
-
-

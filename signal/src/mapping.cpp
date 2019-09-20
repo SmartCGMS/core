@@ -45,7 +45,7 @@
 #include <iostream>
 #include <chrono>
 
-CMapping_Filter::CMapping_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe)
+CMapping_Filter::CMapping_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe)
 	: mInput{ inpipe }, mOutput{ outpipe }
 {
 	//

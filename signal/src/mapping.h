@@ -56,16 +56,16 @@ class CMapping_Filter : public glucose::IFilter, public virtual refcnt::CReferen
 {
 	protected:
 		// input pipe
-		glucose::SFilter_Pipe_Reader mInput;
+		glucose::SEvent_Receiver mInput;
 		// output pipe
-		glucose::SFilter_Pipe_Writer mOutput;
+		glucose::SEvent_Sender mOutput;
 
 		// source signal ID (what signal will be mapped)
 		GUID mSource_Id = Invalid_GUID;
 		// destination signal ID (to what ID it will be mapped)
 		GUID mDestination_Id = Invalid_GUID;
 	public:
-		CMapping_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe);
+		CMapping_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe);
 		virtual ~CMapping_Filter() {};
 
 		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) final;

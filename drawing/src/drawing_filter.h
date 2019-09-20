@@ -59,8 +59,8 @@
  */
 class CDrawing_Filter : public glucose::IFilter, public glucose::IDrawing_Filter_Inspection, public virtual refcnt::CReferenced {
 protected:
-	glucose::SFilter_Pipe_Reader mInput;
-	glucose::SFilter_Pipe_Writer mOutput;
+	glucose::SEvent_Receiver mInput;
+	glucose::SEvent_Sender mOutput;
 protected:
 	// stored AGP SVG
 	std::string mAGP_SVG;
@@ -153,7 +153,7 @@ protected:
 
 	HRESULT Get_Plot(const std::string &plot, refcnt::IVector_Container<char> *svg) const;
 public:
-	CDrawing_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe);
+	CDrawing_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe);
 	virtual ~CDrawing_Filter() = default;
 
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;

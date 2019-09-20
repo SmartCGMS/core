@@ -54,8 +54,8 @@
  */
 class CLog_Replay_Filter : public glucose::IFilter, public virtual refcnt::CReferenced {
 	protected:
-		glucose::SFilter_Pipe_Reader mInput;
-		glucose::SFilter_Pipe_Writer mOutput;
+		glucose::SEvent_Receiver mInput;
+		glucose::SEvent_Sender mOutput;
 		std::wifstream mLog;
 		bool mIgnore_Shutdown = false;
 		std::wstring mLog_Filename;
@@ -71,7 +71,7 @@ class CLog_Replay_Filter : public glucose::IFilter, public virtual refcnt::CRefe
 		void WStr_To_Parameters(const std::wstring& src, glucose::SModel_Parameter_Vector& target);
 
 	public:
-		CLog_Replay_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe);
+		CLog_Replay_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe);
 		virtual ~CLog_Replay_Filter() {};
 
 		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;

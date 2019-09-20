@@ -64,12 +64,16 @@ void CFilter_Executor::abort() {
 
 
 CAsync_Filter_Executor::CAsync_Filter_Executor(const GUID filter_id, glucose::IFilter_Configuration *configuration, glucose::IFilter_Executor *consument, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) : CFilter_Executor(consument)  {
+	receiver ani send nemuzou byt this, jinak to udela kruhovou zavislost
+		to same pro sync filtr
+
+		metody receive, pushback a send musi jit do samostatne tridy, ktera pak pujde do samostatneho objektu a tudiz nevznikne kruhova zavislost
+
 	mFilter = create_filter(filter_id, static_cast<glucose::IEvent_Receiver*>(this), static_cast<glucose::IEvent_Sender*>(this));	
 	if (!SUCCEEDED(mFilter->Configure(configuration))) throw std::invalid_argument::invalid_argument("Cannot configure the filter!");
 	//at this point, we will call a callback function to perform any additional configuration of the filter we've just created 
 	on_filter_created(mFilter.get(), on_filter_created_data);
-	//once configured, do not execute yet - do this in the start method
-	
+	//once configured, do not execute yet - do this in the start method	
 }
 
 void CAsync_Filter_Executor::start() {
@@ -104,3 +108,15 @@ HRESULT IfaceCalling CSync_Filter_Executor::push_back(glucose::IDevice_Event *ev
 		rc = mFilter->Execute();
 	return rc;	
 }
+
+CCopy_Event_Executor::CCopy_Event_Executor(glucose::SEvent_Sender output) : mOutput(output) {
+	//
+};
+
+HRESULT IfaceCalling CCopy_Event_Executor::push_back(glucose::IDevice_Event *event) { 
+	return mOutput->send(event); 
+};
+
+HRESULT IfaceCalling CTerminal_Executor::push_back(glucose::IDevice_Event *event) { 
+	event->Release(); return S_OK; 
+};

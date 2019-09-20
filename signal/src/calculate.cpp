@@ -51,7 +51,7 @@ constexpr unsigned char bool_2_uc(const bool b) {
 }
 
 
-CCalculate_Filter::CCalculate_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe) : mInput{ inpipe }, mOutput{ outpipe }, mReference_Signal_Id(Invalid_GUID) {
+CCalculate_Filter::CCalculate_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe) : mInput{ inpipe }, mOutput{ outpipe }, mReference_Signal_Id(Invalid_GUID) {
 }
 
 HRESULT IfaceCalling CCalculate_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {

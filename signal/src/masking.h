@@ -58,9 +58,9 @@ class CMasking_Filter : public glucose::IFilter, public virtual refcnt::CReferen
 {
 	protected:
 		// input pipe
-		glucose::SFilter_Pipe_Reader mInput;
+		glucose::SEvent_Receiver mInput;
 		// output pipe
-		glucose::SFilter_Pipe_Writer mOutput;
+		glucose::SEvent_Sender mOutput;
 
 		// masking is performed separatelly for each segment
 		std::map<uint64_t, uint8_t> mSegmentMaskState;
@@ -76,7 +76,7 @@ class CMasking_Filter : public glucose::IFilter, public virtual refcnt::CReferen
 		bool Parse_Bitmask(std::wstring in);
 
 	public:
-		CMasking_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe);
+		CMasking_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe);
 		virtual ~CMasking_Filter() {};
 
 		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) final;

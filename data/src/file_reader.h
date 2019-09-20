@@ -62,9 +62,9 @@ using TSegment_Limits = std::pair<size_t, size_t>;
 class CFile_Reader : public glucose::IFilter, public virtual refcnt::CReferenced {
 	protected:
 		// input pipe
-		glucose::SFilter_Pipe_Reader mInput;
+		glucose::SEvent_Receiver mInput;
 		// output pipe
-		glucose::SFilter_Pipe_Writer mOutput;
+		glucose::SEvent_Sender mOutput;
 
 		// original filename from configuration
 		std::wstring mFileName;
@@ -98,7 +98,7 @@ class CFile_Reader : public glucose::IFilter, public virtual refcnt::CReferenced
 		void Resolve_Segments(TValue_Vector const& src, std::list<TSegment_Limits>& targetList) const;
 
 	public:
-		CFile_Reader(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe);
+		CFile_Reader(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe);
 		virtual ~CFile_Reader();
 
 		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;

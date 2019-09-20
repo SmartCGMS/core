@@ -79,8 +79,8 @@ namespace logger {
  */
 class CLog_Filter : public glucose::IFilter, public glucose::ILog_Filter_Inspection, public virtual refcnt::CReferenced {
 protected:
-	glucose::SFilter_Pipe_Reader mInput;
-	glucose::SFilter_Pipe_Writer mOutput;
+	glucose::SEvent_Receiver mInput;
+	glucose::SEvent_Sender mOutput;
 	std::wofstream mLog;
 	glucose::CSignal_Names mSignal_Names;
 	std::wstring mLog_Filename;
@@ -97,7 +97,7 @@ protected:
 	std::vector<glucose::TModel_Descriptor> mModelDescriptors;
 	std::wstring Parameters_To_WStr(const glucose::UDevice_Event& evt);
 public:
-	CLog_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe);
+	CLog_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe);
 	virtual ~CLog_Filter() {};
 	
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;

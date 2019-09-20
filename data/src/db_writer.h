@@ -68,8 +68,8 @@ struct CPrepared_Value
 class CDb_Writer : public glucose::IFilter, public db::IDb_Sink, public virtual refcnt::CReferenced
 {
 	protected:
-		glucose::SFilter_Pipe_Reader mInput;
-		glucose::SFilter_Pipe_Writer mOutput;
+		glucose::SEvent_Receiver mInput;
+		glucose::SEvent_Sender mOutput;
 
 		// database host configured
 		std::wstring mDbHost;
@@ -124,7 +124,7 @@ class CDb_Writer : public glucose::IFilter, public db::IDb_Sink, public virtual 
 		bool Configure(glucose::SFilter_Parameters conf);
 
 	public:
-		CDb_Writer(glucose::SFilter_Pipe_Reader in_pipe, glucose::SFilter_Pipe_Writer out_pipe);
+		CDb_Writer(glucose::SEvent_Receiver in_pipe, glucose::SEvent_Sender out_pipe);
 		virtual ~CDb_Writer() {};
 
 		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;

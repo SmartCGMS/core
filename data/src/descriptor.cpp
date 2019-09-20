@@ -337,10 +337,10 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter_Pipe_Reader *input, glucose::IFilter_Pipe_Writer *output, glucose::IFilter **filter) {
+extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output, glucose::IFilter **filter) {
 
-	glucose::SFilter_Pipe_Reader shared_in = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe_Reader, glucose::IFilter_Pipe_Reader>(input, true);
-    glucose::SFilter_Pipe_Writer shared_out = refcnt::make_shared_reference_ext<glucose::SFilter_Pipe_Writer, glucose::IFilter_Pipe_Writer>(output, true);
+	glucose::SEvent_Receiver shared_in = refcnt::make_shared_reference_ext<glucose::SEvent_Receiver, glucose::IEvent_Receiver>(input, true);
+    glucose::SEvent_Sender shared_out = refcnt::make_shared_reference_ext<glucose::SEvent_Sender, glucose::IEvent_Sender>(output, true);
 
 	if (*id == db_reader::Db_Reader_Descriptor.id)
 		return Manufacture_Object<CDb_Reader>(filter, shared_in, shared_out);

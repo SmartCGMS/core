@@ -64,8 +64,8 @@ struct TGenerator_Signal_Parameters
  */
 class CSinCos_Generator : public glucose::IFilter, public virtual refcnt::CReferenced {
 	protected:
-		glucose::SFilter_Pipe_Reader mInput;
-		glucose::SFilter_Pipe_Writer mOutput;
+		glucose::SEvent_Receiver mInput;
+		glucose::SEvent_Sender mOutput;
 
 		// do we need to send shutdown after last value?
 		bool mShutdownAfterLast = false;
@@ -92,7 +92,7 @@ class CSinCos_Generator : public glucose::IFilter, public virtual refcnt::CRefer
 		void Terminate_Generator();
 
 	public:
-		CSinCos_Generator(glucose::SFilter_Pipe_Reader in_pipe, glucose::SFilter_Pipe_Writer out_pipe);
+		CSinCos_Generator(glucose::SEvent_Receiver in_pipe, glucose::SEvent_Sender out_pipe);
 		virtual ~CSinCos_Generator() {};
 
 		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;

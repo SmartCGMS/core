@@ -57,7 +57,7 @@ namespace file_reader
 	constexpr double Default_Segment_Spacing = 600.0 * 1000.0 * InvMSecsPerDay;
 }
 
-CFile_Reader::CFile_Reader(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe) : mInput(inpipe), mOutput(outpipe), mSegmentSpacing(file_reader::Default_Segment_Spacing) {
+CFile_Reader::CFile_Reader(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe) : mInput(inpipe), mOutput(outpipe), mSegmentSpacing(file_reader::Default_Segment_Spacing) {
 	//
 }
 

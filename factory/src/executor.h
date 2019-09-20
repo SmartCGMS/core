@@ -57,13 +57,21 @@ public:
 	virtual HRESULT IfaceCalling push_back(glucose::IDevice_Event *event) override final;
 };
 
-/* to vanish
+
+class CCopy_Event_Executor : public virtual CExecutor {
+protected:
+	glucose::SEvent_Sender mOutput;
+public:
+	CCopy_Event_Executor(glucose::SEvent_Sender output);
+	virtual ~CCopy_Event_Executor() {};
+	virtual void abort() override final {};
+	virtual HRESULT IfaceCalling push_back(glucose::IDevice_Event *event) override final;
+};
+
 class CTerminal_Executor : public virtual CExecutor {
 	//executer designed to consume events only
-public:
-	CTerminal_Executor() {};
+public:	
 	virtual ~CTerminal_Executor() {};
 	virtual void abort() override final {};
-	virtual HRESULT IfaceCalling push_back(glucose::IDevice_Event *event) override final { event->Release(); };
+	virtual HRESULT IfaceCalling push_back(glucose::IDevice_Event *event) override final;
 };
-*/

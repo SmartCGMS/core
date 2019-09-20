@@ -65,8 +65,8 @@ struct TStored_Model_Params {
  */
 class CDb_Reader : public glucose::IFilter, public db::IDb_Sink, public virtual refcnt::CReferenced {
 	protected:
-		glucose::SFilter_Pipe_Reader mInput;
-		glucose::SFilter_Pipe_Writer mOutput;
+		glucose::SEvent_Receiver mInput;
+		glucose::SEvent_Sender mOutput;
 
 		// database host configured
 		std::wstring mDbHost;
@@ -103,7 +103,7 @@ class CDb_Reader : public glucose::IFilter, public db::IDb_Sink, public virtual 
 		db::SDb_Connection mDb_Connection;
 
 	public:
-		CDb_Reader(glucose::SFilter_Pipe_Reader in_pipe, glucose::SFilter_Pipe_Writer out_pipe);
+		CDb_Reader(glucose::SEvent_Receiver input, glucose::SEvent_Sender output);
 		virtual ~CDb_Reader() {};
 
 		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;

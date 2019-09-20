@@ -54,7 +54,7 @@
 #include <map>
 #include <codecvt>
 
-CLog_Filter::CLog_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe)	: mInput{inpipe}, mOutput{outpipe} {	
+CLog_Filter::CLog_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe)	: mInput{inpipe}, mOutput{outpipe} {	
 	mNew_Log_Records = refcnt::Create_Container_shared<refcnt::wstr_container*>(nullptr, nullptr);
 }
 

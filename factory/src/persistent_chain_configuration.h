@@ -39,18 +39,26 @@
 #pragma once
 
 #include "../../../common/iface/FilterIface.h"
+#include "../../../common/rtl/referencedImpl.h"
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
-class CPersistent_Chain_Configuration : public virtual glucose::IPersistent_Filter_Chain_Configuration {
+class CPersistent_Chain_Configuration : public virtual glucose::IPersistent_Filter_Chain_Configuration, public virtual refcnt::internal::CVector_Container<glucose::IFilter_Configuration_Link*> {
 protected:
 	std::wstring mFile_Path;	
 	std::wstring mFile_Name;		// stored filename to be used in e.g. window title
 public:
+	virtual ~CPersistent_Chain_Configuration() {};
 	virtual HRESULT IfaceCalling Load_From_File(const wchar_t *file_path) override final;
 	virtual HRESULT IfaceCalling Load_From_Memory(const char *memory, const size_t len) override final;
 	virtual HRESULT IfaceCalling Save_To_File(const wchar_t *file_path) override final;
 };
 
 #pragma warning( pop )
+
+#ifdef _WIN32
+	extern "C" __declspec(dllexport) HRESULT IfaceCalling create_persistent_filter_chain_configuration(glucose::IPersistent_Filter_Chain_Configuration **configuration);
+#else
+	extern "C" HRESULT IfaceCalling create_persistent_filter_chain_configuration(glucose::IPersistent_Filter_Chain_Configuration **configuration);
+#endif

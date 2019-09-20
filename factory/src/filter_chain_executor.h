@@ -46,10 +46,10 @@
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
 	
-class CFilter_Chain_Executor : public virtual glucose::IFilter_Chain_Executor, public virtual glucose::IFilter_Executor, public virtual refcnt::CReferenced {
+class CFilter_Chain_Executor : public virtual glucose::IFilter_Chain_Executor, public virtual refcnt::CReferenced {
 protected:
 	std::vector<std::unique_ptr<CExecutor>> mExecutors;	
-	refcnt::SReferenced<glucose::IEvent_Sender> mSender;
+	glucose::SEvent_Sender mOutput;
 public:
 	CFilter_Chain_Executor(glucose::IEvent_Sender *output);
 	virtual ~CFilter_Chain_Executor();
@@ -59,7 +59,6 @@ public:
 	virtual HRESULT IfaceCalling Start() override final;
 	virtual HRESULT IfaceCalling Stop() override final;
 
-	virtual HRESULT IfaceCalling push_back(glucose::IDevice_Event *event) override final;
 	virtual HRESULT IfaceCalling send(glucose::IDevice_Event *event) override final;
 };
 

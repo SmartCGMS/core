@@ -49,7 +49,7 @@
 #include <chrono>
 
 
-CErrors_Filter::CErrors_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe)
+CErrors_Filter::CErrors_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe)
 	: mInput{inpipe}, mOutput{outpipe} {
 	//
 }

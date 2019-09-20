@@ -43,6 +43,7 @@
 #include "../../../common/rtl/FilesystemLib.h" 
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/FilterLib.h"
+#include "../../../common/rtl/manufactory.h"
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/utils/SimpleIni.h" 
 
@@ -51,7 +52,7 @@
 HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar_t *file_path) {
 	HRESULT rc = E_UNEXPECTED;
 
-	if (file_path == nullptr) {
+	if ((file_path == nullptr) || (*file_path == 0)) {
 		mFile_Path = Get_Application_Dir();
 		mFile_Name = rsConfig_File_Name;
 		Path_Append(mFile_Path, mFile_Name.c_str());
@@ -134,11 +135,19 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 							switch (desc.parameter_type[i]) {
 
 							case glucose::NParameter_Type::ptWChar_Container:
-								valid = filter_parameter->Set_WChar_Container(refcnt::WString_To_WChar_Container(str_value)) == S_OK;
+								{
+									refcnt::wstr_container *wstr = refcnt::WString_To_WChar_Container(str_value);
+									valid = filter_parameter->Set_WChar_Container(wstr) == S_OK;
+									wstr->Release();
+								}
 								break;
 
 							case glucose::NParameter_Type::ptSelect_Time_Segment_ID:
-								valid = filter_parameter->Set_Time_Segment_Id_Container(WString_To_Select_Time_Segments_Id(str_value)) == S_OK;
+								{
+									glucose::time_segment_id_container *ids = WString_To_Select_Time_Segments_Id(str_value);
+									valid = filter_parameter->Set_Time_Segment_Id_Container(ids) == S_OK;
+									ids->Release();
+								}
 								break;
 
 							case glucose::NParameter_Type::ptRatTime:
@@ -168,7 +177,11 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 								break;
 
 							case glucose::NParameter_Type::ptModel_Bounds:
-								valid = filter_parameter->Set_Model_Parameters(WString_To_Model_Parameters(str_value)) == S_OK;
+								{
+									glucose::IModel_Parameter_Vector *parameters = WString_To_Model_Parameters(str_value);
+									valid = filter_parameter->Set_Model_Parameters(parameters) == S_OK;
+									parameters->Release();
+								}
 								break;
 
 							default:
@@ -186,7 +199,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 					//and finally, add the new link into the filter chain
 					{
 						auto raw_filter_config = filter_config.get();
-						add(&raw_filter_config, &raw_filter_config + 1);
+						add(&raw_filter_config, &raw_filter_config + 1);						
 					}
 				}
 			}
@@ -329,4 +342,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 	}
 
 	return S_OK;
+}
+
+HRESULT IfaceCalling create_persistent_filter_chain_configuration(glucose::IPersistent_Filter_Chain_Configuration **configuration) {
+	return Manufacture_Object<CPersistent_Chain_Configuration, glucose::IPersistent_Filter_Chain_Configuration>(configuration);
 }

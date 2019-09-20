@@ -60,14 +60,14 @@ class CErrors_Filter : public glucose::IFilter, public glucose::IError_Filter_In
 {
 	protected:
 		// input pipe
-		glucose::SFilter_Pipe_Reader mInput;
+		glucose::SEvent_Receiver mInput;
 		// output pipe
-		glucose::SFilter_Pipe_Writer mOutput;
+		glucose::SEvent_Sender mOutput;
 
 		// currently used error counter instance; TODO: in future, we need to consider more segments at once
 		std::unique_ptr<CError_Marker_Counter> mErrorCounter;
 	public:
-		CErrors_Filter(glucose::SFilter_Pipe_Reader inpipe, glucose::SFilter_Pipe_Writer outpipe);
+		CErrors_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe);
 		virtual ~CErrors_Filter() {};
 		
 		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
