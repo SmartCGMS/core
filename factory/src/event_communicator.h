@@ -38,43 +38,25 @@
 
 #pragma once
 
-#include "..\..\..\common\iface\FilterIface.h"
+#include "../../../common/iface/FilterIface.h"
+#include "../../../common/rtl/referencedImpl.h"
 
-#include "executor.h"
-#include <thread>
-#include <mutex>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
-	
-class CFilter_Chain_Executor : public virtual glucose::IFilter_Chain_Executor, public virtual refcnt::CReferenced {
+
+class CEvent_Communicator : public virtual glucose::IEvent_Receiver, public virtual glucose::IEvent_Sender, public virtual glucose::IFilter_Communicator, public virtual refcnt::CReferenced {
 protected:
-	std::vector<std::unique_ptr<CExecutor>> mExecutors;	
-	glucose::SEvent_Sender mOutput;
-	std::unique_ptr<std::thread> mThread;
-	bool mShutting_Down = false;
-	std::mutex mCommunication_Guard;
+	glucose::IDevice_Event *mBuffered_Event = nullptr;	//buffer for exactly 1 event
+	refcnt::SReferenced<glucose::IFilter_Communicator> mNext_Communicator;	
 public:
-	CFilter_Chain_Executor(glucose::IEvent_Sender *output);
-	virtual ~CFilter_Chain_Executor();
+	CEvent_Communicator(glucose::IFilter_Communicator* next_communicator);
+	virtual ~CEvent_Communicator();
 
-	HRESULT Configure(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
-
-	virtual HRESULT IfaceCalling Start() override final;
-	virtual HRESULT IfaceCalling Stop() override final;
-
-	virtual HRESULT IfaceCalling send(glucose::IDevice_Event *event) override final;
+	virtual HRESULT IfaceCalling receive(glucose::IDevice_Event **event) override final;
+	virtual HRESULT IfaceCalling send(glucose::IDevice_Event *event) override final;	
+	virtual HRESULT IfaceCalling push_back(glucose::IDevice_Event *event) override;
 };
 
 #pragma warning( pop )
-
-#ifdef _WIN32
-extern "C" __declspec(dllexport) HRESULT IfaceCalling create_filter_chain_executor(glucose::IFilter_Chain_Configuration *configuration,  glucose::IEvent_Sender *output,
-	glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data,
-	glucose::IFilter_Chain_Executor **executor);
-#else
-extern "C" HRESULT IfaceCalling create_filter_chain_executor(glucose::IFilter_Chain_Configuration *configuration, glucose::IEvent_Sender *output,
-	glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data,
-	glucose::IFilter_Chain_Executor **executor);
-#endif

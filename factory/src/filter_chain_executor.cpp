@@ -56,7 +56,7 @@ HRESULT CFilter_Chain_Executor::Configure(glucose::IFilter_Chain_Configuration *
 	if (mOutput) new_executor = std::make_unique<CCopy_Event_Executor>(mOutput);
 	else new_executor = std::make_unique<CTerminal_Executor>();
 
-	glucose::IFilter_Executor *last_executor = new_executor.get();
+	glucose::IFilter_Communicator *last_executor = new_executor.get();
 	mExecutors.insert(mExecutors.begin(), std::move(new_executor));
 	
 
@@ -74,13 +74,7 @@ HRESULT CFilter_Chain_Executor::Configure(glucose::IFilter_Chain_Configuration *
 			rc = link->Get_Filter_Id(&filter_id);
 			if (rc != S_OK) return rc;
 
-			glucose::TFilter_Descriptor filter_desc = glucose::Null_Filter_Descriptor;
-			bool async_filter = true;	//in the worst case, we can still execute the filter as asynchronous one
-			if (glucose::get_filter_descriptor_by_id(filter_id, filter_desc)) async_filter = (filter_desc.flags & glucose::NFilter_Flags::Synchronous) != glucose::NFilter_Flags::Synchronous;
-
-						
-			if (async_filter)  new_executor = std::make_unique < CAsync_Filter_Executor>(filter_id, link, last_executor, on_filter_created, on_filter_created_data);
-				else new_executor = std::make_unique<CSync_Filter_Executor>(filter_id, link, last_executor, on_filter_created, on_filter_created_data);
+			new_executor = std::make_unique<CSync_Filter_Executor>(filter_id, link, last_executor, on_filter_created, on_filter_created_data);
 
 			last_executor = new_executor.get();
 			mExecutors.insert(mExecutors.begin(), std::move(new_executor));
@@ -97,11 +91,24 @@ HRESULT CFilter_Chain_Executor::Configure(glucose::IFilter_Chain_Configuration *
 HRESULT IfaceCalling CFilter_Chain_Executor::send(glucose::IDevice_Event *event) {
 	if (!event) return E_INVALIDARG;
 	if (mExecutors.empty()) return S_FALSE;
+	if (mShutting_Down) return S_FALSE;
 
-	return mExecutors[0]->push_back(event);
+	std::unique_lock<std::mutex> lock(_mutex, std::try_to_lock);
+	if (lock.owns_lock()) {
+		mExecutors[0]->push_back(event);
+	}
+	else
+		return E_PENDING;
+
+	
 }
 
 HRESULT IfaceCalling CFilter_Chain_Executor::Start() {
+	mShutting_Down = false;
+	mThread = std::make_unique<std::thread>([this]() {	mFilter->Execute();	
+	});
+
+	xx
 	for (size_t i = 0; i < mExecutors.size(); i++)	//no for each to ensure the order
 		mExecutors[i]->start();
 
@@ -110,6 +117,8 @@ HRESULT IfaceCalling CFilter_Chain_Executor::Start() {
 
 HRESULT IfaceCalling CFilter_Chain_Executor::Stop() {
 	if (mExecutors.empty()) return S_FALSE;
+
+	mShutting_Down = true;
 		
 	if (!SUCCEEDED(mExecutors[0]->push_back(static_cast<glucose::IDevice_Event*> (new CDevice_Event{ glucose::NDevice_Event_Code::Shut_Down }))))
 		//if failed, let's abort 
