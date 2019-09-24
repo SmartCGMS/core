@@ -118,7 +118,7 @@ protected:
 public:
 	CLoaded_Filters();
 
-	HRESULT create_filter(const GUID *id, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output, glucose::IFilter **filter);	
+	HRESULT create_filter(const GUID *id, glucose::IFilter *next_filter, glucose::IFilter **filter);
 	HRESULT create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric);
 	HRESULT create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
 	HRESULT create_device_driver(const GUID *calc_id, glucose::IFilter_Asynchronous_Pipe* output, glucose::IDevice_Driver** device_driver);
@@ -135,9 +135,6 @@ public:
 
 	HRESULT add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Filter create_filter);
 };
-
-//extern "C" HRESULT IfaceCalling create_filter(const GUID *id, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output, glucose::IFilter **filter);
-
 
 extern "C" HRESULT IfaceCalling create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric);
 extern "C" HRESULT IfaceCalling create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
@@ -156,4 +153,4 @@ extern "C" HRESULT IfaceCalling get_device_driver_descriptors(glucose::TDevice_D
 extern "C" HRESULT IfaceCalling add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Filter create_filter);
 
 
-glucose::SFilter create_filter(const GUID &id, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output);
+glucose::SFilter create_filter(const GUID &id, glucose::IFilter *next_filter);

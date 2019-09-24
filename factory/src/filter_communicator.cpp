@@ -36,33 +36,29 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "event_communicator.h"
+#include "filter_communicator.h"
+#include "../../../common/rtl/manufactory.h"
 
-CEvent_Communicator::CEvent_Communicator(glucose::IFilter_Communicator* next_communicator) : mNext_Communicator(next_communicator) {
-	//
-}
-CEvent_Communicator::~CEvent_Communicator() {
-	if (mBuffered_Event) mBuffered_Event->Release();
-}
-
-HRESULT IfaceCalling CEvent_Communicator::receive(glucose::IDevice_Event **event) {
-	if (mBuffered_Event) {
-		*event = mBuffered_Event;
-		mBuffered_Event = nullptr;
-		return S_OK;
+HRESULT IfaceCalling CFilter_Communicator::Acquire_Channel() {
+	try {
+		mLock.lock();
 	}
-	else
-		return S_FALSE;
-}
-
-HRESULT IfaceCalling CEvent_Communicator::send(glucose::IDevice_Event *event) {		
-	return mNext_Communicator->push_back(event);
-}
-
-HRESULT IfaceCalling CEvent_Communicator::push_back(glucose::IDevice_Event *event) {
-	if (!event) return E_INVALIDARG;
-	if (mBuffered_Event) return E_OUTOFMEMORY;
-
-	mBuffered_Event = event;
+	catch (...) {
+		return E_FAIL;
+	}
 	return S_OK;
+}
+
+HRESULT IfaceCalling CFilter_Communicator::Release_Channel() {
+	try {
+		mLock.unlock();
+	}
+	catch (...) {
+		return E_FAIL;
+	}
+	return S_OK;
+}
+
+HRESULT IfaceCalling create_filter_communicator(glucose::IFilter_Communicator **communicator) {
+	return Manufacture_Object<CFilter_Communicator, glucose::IFilter_Communicator>(communicator);
 }

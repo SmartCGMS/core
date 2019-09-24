@@ -91,10 +91,6 @@ HRESULT get_device_driver_descriptors(glucose::TDevice_Driver_Descriptor **begin
 	return loaded_filters.get_device_driver_descriptors(begin, end);
 }
 
-//HRESULT IfaceCalling create_filter(const GUID *id, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output, glucose::IFilter **filter) {
-	//return loaded_filters.create_filter(id, input, output, filter);
-//}
-
 HRESULT IfaceCalling create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric) {
 	return loaded_filters.create_metric(parameters, metric);
 }
@@ -175,15 +171,15 @@ HRESULT CLoaded_Filters::add_filters(const glucose::TFilter_Descriptor *begin, c
 }
 
 
-HRESULT CLoaded_Filters::create_filter(const GUID *id, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output, glucose::IFilter **filter) {
-	if (!id) return E_INVALIDARG;
+HRESULT CLoaded_Filters::create_filter(const GUID *id, glucose::IFilter *next_filter, glucose::IFilter **filter) {
+	if ((!id) || (!next_filter)) return E_INVALIDARG;	
 	auto call_create_filter = [](const imported::TLibraryInfo &info) { return info.create_filter; }; 
-	return Call_Func(call_create_filter, id, input, output, filter);
+	return Call_Func(call_create_filter, id, next_filter, filter);
 }
 
 HRESULT CLoaded_Filters::create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric) {
-	auto call_create_filter = [](const imported::TLibraryInfo &info) { return info.create_metric; }; 
-	return Call_Func(call_create_filter, parameters, metric);
+	auto call_create_metric = [](const imported::TLibraryInfo &info) { return info.create_metric; }; 
+	return Call_Func(call_create_metric, parameters, metric);
 }
 
 HRESULT CLoaded_Filters::create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
@@ -290,12 +286,12 @@ HRESULT CLoaded_Filters::get_device_driver_descriptors(glucose::TDevice_Driver_D
 }
 
 
-glucose::SFilter create_filter(const GUID &id, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output) {
+glucose::SFilter create_filter(const GUID &id, glucose::IFilter *next_filter) {
 	glucose::SFilter result;
 	glucose::IFilter *filter;
 	
 
-	if (loaded_filters.create_filter(&id, input, output, &filter) == S_OK)
+	if (loaded_filters.create_filter(&id, next_filter, &filter) == S_OK)
 		result = refcnt::make_shared_reference_ext<glucose::SFilter, glucose::IFilter>(filter, false);
 
 	return result;

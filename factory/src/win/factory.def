@@ -15,5 +15,6 @@ EXPORTS
 	get_device_driver_descriptors
 	add_filters
 	create_device_event
-	create_filter_chain_executor
+	create_filter_communicator
+	create_composite_filter
 	create_persistent_filter_chain_configuration

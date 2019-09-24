@@ -39,124 +39,34 @@
 #include "executor.h"
 #include "filters.h"
 
-CFilter_Executor::CFilter_Executor(glucose::IFilter_Communicator *consument) : mConsument{consument} {
-	mQueue.set_capacity(mDefault_Capacity);
+CFilter_Executor::CFilter_Executor(const GUID filter_id, refcnt::SReferenced<glucose::IFilter_Communicator> communicator, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) :
+	mCommunicator(communicator),  mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data) {
+	
+	mFilter = create_filter(filter_id, next_filter);			
 }
 
 
-HRESULT IfaceCalling CFilter_Executor::receive(glucose::IDevice_Event **event) {
-	if (mShutting_Down_Receive)
-		return S_FALSE;
-
-	try {
-		mQueue.pop(*event);
-
-		glucose::TDevice_Event *raw_event;
-		if ((*event)->Raw(&raw_event) == S_OK)	//should be OK since we call it in ::send
-			mShutting_Down_Receive = raw_event->event_code == glucose::NDevice_Event_Code::Shut_Down;
-	}
-
-	catch (tbb::user_abort &) {
-		mShutting_Down_Receive = true;
-		return S_FALSE;
-	}
-	return S_OK;
-
-}
-
-HRESULT IfaceCalling CFilter_Executor::send(glucose::IDevice_Event *event) {
-	return mConsument->push_back(event);
-}
-
-
-HRESULT IfaceCalling CFilter_Executor::push_back(glucose::IDevice_Event *event) {
-	if (event == nullptr)
-		return E_INVALIDARG;
-
-	if (mShutting_Down_push_back)
-		return S_FALSE;
-
-	glucose::TDevice_Event *raw_event;
-	HRESULT rc = event->Raw(&raw_event);
-	if (rc != S_OK) return rc;
-
-	if (raw_event->event_code == glucose::NDevice_Event_Code::Shut_Down)
-		mShutting_Down_push_back = true;
-
-	try {
-		mQueue.push(event);
-	}
-	catch (tbb::user_abort &) {
-		mShutting_Down_push_back = true;
-		return S_FALSE;
-	}
-	return S_OK;
-}
-
-void CFilter_Executor::abort() {
-	mShutting_Down_push_back = mShutting_Down_Receive = true;
-	mQueue.abort();
-	mQueue.clear();
-}
-
-
-
-CAsync_Filter_Executor::CAsync_Filter_Executor(const GUID filter_id, glucose::IFilter_Configuration *configuration, glucose::IFilter_Communicator *consument, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) : CFilter_Executor(consument)  {
-	receiver ani send nemuzou byt this, jinak to udela kruhovou zavislost
-		to same pro sync filtr
-
-		metody receive, pushback a send musi jit do samostatne tridy, ktera pak pujde do samostatneho objektu a tudiz nevznikne kruhova zavislost
-
-	mFilter = create_filter(filter_id, static_cast<glucose::IEvent_Receiver*>(this), static_cast<glucose::IEvent_Sender*>(this));	
-	if (!SUCCEEDED(mFilter->Configure(configuration))) throw std::invalid_argument::invalid_argument("Cannot configure the filter!");
-	//at this point, we will call a callback function to perform any additional configuration of the filter we've just created 
-	on_filter_created(mFilter.get(), on_filter_created_data);
-	//once configured, do not execute yet - do this in the start method	
-}
-
-void CAsync_Filter_Executor::start() {
-	abort();
-	join();
-	mShutting_Down_push_back = mShutting_Down_Receive = false;
-	mThread = std::make_unique<std::thread>([this]() {	mFilter->Execute();	});
-}
-
-
-void CAsync_Filter_Executor::join() {	
-	if (mThread)	
-		if (mThread->joinable()) 
-			mThread->join();
-}
-
-
-CSync_Filter_Executor::CSync_Filter_Executor(const GUID filter_id, glucose::IFilter_Configuration *configuration, std::mutex &consumer_gaurd, glucose::IFilter_Communicator *consument, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) :
-	mConsumer_Guard(consumer_gaurd), mCommunicator( CEvent_Communicator(consument))  {
-	mFilter = create_filter(filter_id, static_cast<glucose::IEvent_Receiver*>(&mCommunicator), static_cast<glucose::IEvent_Sender*>(&mCommunicator));
-	if (!SUCCEEDED(mFilter->Configure(configuration))) throw std::invalid_argument::invalid_argument("Cannot configure the filter!");
-	//at this point, we will call a callback function to perform any additional configuration of the filter we've just created 
-	on_filter_created(mFilter.get(), on_filter_created_data);
-	//once configured, we can call its execute method later on
-}
-
-
-HRESULT IfaceCalling CSync_Filter_Executor::push_back(glucose::IDevice_Event *event) {
+HRESULT IfaceCalling CFilter_Executor::Configure(glucose::IFilter_Configuration* configuration) {
 	if (!mFilter) return E_FAIL;
-	std::lock_guard<std::mutex> lock(mConsumer_Guard);
-
-	HRESULT rc = mCommunicator.push_back(event);
+	HRESULT rc = mFilter->Configure(configuration);
 	if (rc == S_OK)
-		rc = mFilter->Execute();
-	return rc;	
+		//at this point, we will call a callback function to perform any additional configuration of the filter we've just configured 
+		rc = mOn_Filter_Created(mFilter.get(), mOn_Filter_Created_Data);
+
+	return rc;
 }
 
-CCopy_Event_Executor::CCopy_Event_Executor(glucose::SEvent_Sender output) : mOutput(output) {
-	//
-};
+HRESULT IfaceCalling CFilter_Executor::Execute(glucose::IDevice_Event *event) {
+	//Simply acquire the lock and then call execute method of the filter
+	glucose::CFilter_Communicator_Lock scoped_lock(mCommunicator);
+	return mFilter->Execute(event);
+}
 
-HRESULT IfaceCalling CCopy_Event_Executor::push_back(glucose::IDevice_Event *event) { 
-	return mOutput->send(event); 
-};
 
-HRESULT IfaceCalling CTerminal_Executor::push_back(glucose::IDevice_Event *event) { 
+HRESULT IfaceCalling CTerminal_Filter::Configure(glucose::IFilter_Configuration* configuration) {
+	return S_OK;
+}
+
+HRESULT IfaceCalling CTerminal_Filter::Execute(glucose::IDevice_Event *event) {
 	event->Release(); return S_OK; 
 };
