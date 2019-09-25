@@ -42,27 +42,22 @@
 #include "../../../common/rtl/referencedImpl.h"
 
 #include <mutex>
+#include <condition_variable>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
 
-class CFilter_Communicator : public virtual glucose::IFilter_Communicator, public virtual refcnt::CReferenced {
+class CFilter_Communicator {
 protected:
 	std::mutex mLock;
+	std::condition_variable mCv;
 public:	
-	virtual ~CFilter_Communicator() {};
-
-	virtual HRESULT IfaceCalling Acquire_Channel() override final;
-	virtual HRESULT IfaceCalling Release_Channel() override final;
+	void Acquire_Channel();	//enter critical section
+	void Release_Channel(); //leave critical section
+	void Wait_For_Channel();	//wait
+	void Notify_Channel();		//notify
 };
 
 #pragma warning( pop )
 
-
-
-#ifdef _WIN32
-	extern "C" __declspec(dllexport) HRESULT IfaceCalling create_filter_communicator(glucose::IFilter_Communicator **communicator);
-#else
-	extern "C" HRESULT IfaceCalling create_filter_communicator(glucose::IFilter_Communicator **communicator);
-#endif

@@ -39,7 +39,7 @@
 #include "executor.h"
 #include "filters.h"
 
-CFilter_Executor::CFilter_Executor(const GUID filter_id, refcnt::SReferenced<glucose::IFilter_Communicator> communicator, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) :
+CFilter_Executor::CFilter_Executor(const GUID filter_id, glucose::SFilter_Communicator communicator, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) :
 	mCommunicator(communicator),  mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data) {
 	
 	mFilter = create_filter(filter_id, next_filter);			
@@ -63,10 +63,33 @@ HRESULT IfaceCalling CFilter_Executor::Execute(glucose::IDevice_Event *event) {
 }
 
 
+void CTerminal_Filter::Set_Communicator(glucose::SFilter_Communicator communicator) {
+	mCommunicator = communicator;
+}
+
+
+void CTerminal_Filter::Wait_For_Shutdown() {
+	while (!mShutdown_Received)
+		mCommunicator->Wait_For_Channel();
+}
+
+
 HRESULT IfaceCalling CTerminal_Filter::Configure(glucose::IFilter_Configuration* configuration) {
 	return S_OK;
 }
 
 HRESULT IfaceCalling CTerminal_Filter::Execute(glucose::IDevice_Event *event) {
-	event->Release(); return S_OK; 
+	
+	glucose::TDevice_Event *raw_event;
+	HRESULT rc = event->Raw(&raw_event);
+	if (rc != S_OK) return rc;
+
+	if (raw_event->event_code == glucose::NDevice_Event_Code::Shut_Down) {
+		mShutdown_Received = true;
+		mCommunicator->Notify_Channel();
+	}
+		
+	event->Release(); 
+	
+	return S_OK; 
 };

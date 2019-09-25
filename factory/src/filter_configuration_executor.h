@@ -39,33 +39,37 @@
 #pragma once
 
 #include "../../../common/iface/FilterIface.h"
+#include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
 
-#include <tbb/concurrent_queue.h>
+#include "filter_communicator.h"
+#include "executor.h"
+
 
 #pragma warning( push )
-#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
+#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
-class CFilter_Asynchronous_Pipe :  public glucose::IFilter_Asynchronous_Pipe, public virtual refcnt::CReferenced {
+
+class CFilter_Configuration_Executor : public virtual glucose::IFilter_Executor, public virtual refcnt::CReferenced {
 protected:
-	tbb::concurrent_bounded_queue<glucose::IDevice_Event*> mQueue;
-	const std::ptrdiff_t mDefault_Capacity = 64;
-	bool mShutting_Down_Send = false;
-	bool mShutting_Down_Receive = false;
-		//we need two flags to let the last shutdown event to fall through
-public:
-	CFilter_Asynchronous_Pipe() noexcept;
-	virtual ~CFilter_Asynchronous_Pipe();
+	CFilter_Communicator mCommunicator;
+	glucose::SFilter mComposite_Filter;
+	CTerminal_Filter mTerminal_Filter;
+public:	
+	CFilter_Configuration_Executor(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
+	virtual ~CFilter_Configuration_Executor();
 
-	virtual HRESULT send(glucose::IDevice_Event* event) override final;
-	virtual HRESULT receive(glucose::IDevice_Event** event) override final;
-	virtual HRESULT abort() final;
+	virtual HRESULT IfaceCalling Execute(glucose::IDevice_Event *event) override final;
+	virtual HRESULT IfaceCalling Wait_For_Shutdown_and_Terminate() override final;
+	virtual HRESULT IfaceCalling Terminate() override final;
 };
 
 #pragma warning( pop )
 
+
+
 #ifdef _WIN32
-	extern "C" __declspec(dllexport) HRESULT IfaceCalling create_filter_asynchronous_pipe(glucose::IFilter_Asynchronous_Pipe **pipe);
+	extern "C" __declspec(dllexport) HRESULT IfaceCalling execute_filter_configuration(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, glucose::IFilter_Executor **executor);
 #else
-	extern "C" HRESULT IfaceCalling create_filter_asynchronous_pipe(glucose::IFilter_Pipe **pipe);
+	extern "C" HRESULT IfaceCalling execute_filter_configuration(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, glucose::IFilter_Executor **executor);
 #endif

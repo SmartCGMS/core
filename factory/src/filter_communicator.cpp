@@ -59,6 +59,24 @@ HRESULT IfaceCalling CFilter_Communicator::Release_Channel() {
 	return S_OK;
 }
 
-HRESULT IfaceCalling create_filter_communicator(glucose::IFilter_Communicator **communicator) {
-	return Manufacture_Object<CFilter_Communicator, glucose::IFilter_Communicator>(communicator);
+
+HRESULT IfaceCalling CFilter_Communicator::Wait_For_Channel() {
+	try {
+		std::unique_lock<std::mutex> lk(mLock);
+		mCv.wait(lk);
+	}
+	catch (...) {
+		return E_FAIL;
+	}
+	return S_OK;
+}
+
+HRESULT IfaceCalling CFilter_Communicator::Notify_Channel() {
+	try {
+		mCv.notify_all();
+	}
+	catch (...) {
+		return E_FAIL;
+	}
+	return S_OK;
 }

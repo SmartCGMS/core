@@ -40,8 +40,9 @@
 #include "device_event.h"
 #include "filters.h"
 
-CComposite_Filter::CComposite_Filter(glucose::IFilter_Communicator* communicator, glucose::IFilter *next_filter) : mNext_Filter(next_filter), mCommunicator(communicator) {
-	if (!mNext_Filter) mNext_Filter = new CTerminal_Filter{};
+CComposite_Filter::CComposite_Filter(glucose::IFilter_Communicator* communicator, glucose::IFilter *next_filter) : 
+	mNext_Filter(next_filter), mCommunicator(refcnt::make_shared_reference_ext<glucose::SFilter_Communicator, glucose::IFilter_Communicator>(communicator, true)) {
+	//
 }
 
 
@@ -49,7 +50,7 @@ CComposite_Filter::~CComposite_Filter() {
 }
 
 
-HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) {	
+HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) {
 	if (!mExecutors.empty()) return E_ILLEGAL_METHOD_CALL;	//so far, we are able to configure the chain just once
 
 	glucose::CFilter_Communicator_Lock communicator_lock(mCommunicator);

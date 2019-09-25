@@ -46,12 +46,12 @@
 
 class CFilter_Executor : public virtual glucose::IFilter, public virtual refcnt::CReferenced {
 protected:	
-	refcnt::SReferenced<glucose::IFilter_Communicator> mCommunicator;
+	glucose::SFilter_Communicator mCommunicator;
 	glucose::SFilter mFilter;
 	glucose::TOn_Filter_Created mOn_Filter_Created;
 	const void* mOn_Filter_Created_Data;
 public:
-	CFilter_Executor(const GUID filter_id, refcnt::SReferenced<glucose::IFilter_Communicator> communicator, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
+	CFilter_Executor(const GUID filter_id, glucose::SFilter_Communicator communicator, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
 	virtual ~CFilter_Executor() {};
 
 	virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
@@ -59,10 +59,17 @@ public:
 };
 
 
-class CTerminal_Filter : public virtual glucose::IFilter, public virtual refcnt::CReferenced {
-	//executer designed to consume events only
+class CTerminal_Filter : public virtual glucose::IFilter, public virtual refcnt::CNotReferenced {
+	//executer designed to consume events only and to signal the shutdown event
+protected:
+	glucose::SFilter_Communicator mCommunicator;
+	bool mShutdown_Received = false;
 public:	
+	void Set_Communicator(glucose::SFilter_Communicator communicator);
 	virtual ~CTerminal_Filter() {};	
+
+	void Wait_For_Shutdown();	//blocking wait, until it receives the shutdown event
+
 	virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
 	virtual HRESULT IfaceCalling Execute(glucose::IDevice_Event *event) override final;
 };

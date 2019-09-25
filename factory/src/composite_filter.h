@@ -49,7 +49,7 @@
 	
 class CComposite_Filter : public virtual glucose::IFilter, public virtual refcnt::CReferenced {
 protected:
-	refcnt::SReferenced<glucose::IFilter_Communicator> mCommunicator;
+	glucose::SFilter_Communicator mCommunicator;
 	glucose::SFilter mNext_Filter;
 	std::vector<glucose::SFilter> mExecutors;
 public:
