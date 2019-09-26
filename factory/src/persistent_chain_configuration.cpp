@@ -88,6 +88,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 
 HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const char *memory, const size_t len) {
 	CSimpleIniW mIni;
+	bool loaded_all_filters = true;
 
 	try {
 		mIni.LoadData(memory, len);
@@ -202,6 +203,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 						add(&raw_filter_config, &raw_filter_config + 1);						
 					}
 				}
+				else
+					loaded_all_filters = false;
 			}
 		}
 	}
@@ -209,7 +212,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 		return E_FAIL;
 	}
 
-	return S_OK;
+	return loaded_all_filters ? S_OK : S_FALSE;
 }
 
 HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t *file_path) {

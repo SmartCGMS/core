@@ -55,46 +55,39 @@
 /*
  * Filter class for holding input events until the real time matches the event device time
  */
-class CHold_Filter : public glucose::IFilter, public virtual refcnt::CReferenced {
-	protected:
-		// input pipe
-		glucose::SEvent_Receiver mInput;
-		// output pipe
-		glucose::SEvent_Sender mOutput;
-
+class CHold_Filter : public glucose::CBase_Filter {
+protected:
 		// mutex for waiting on CV
-		std::mutex mHoldMtx;
-		// condition variable for waiting
-		std::condition_variable mHoldCv;
-		// was the CV properly notified? (spurious wakeup didn't occur)
-		std::atomic<size_t> mNotified;
-		// the simulation offset of held values; this value increases with each simulation step
-		double mSimulationOffset;
-		// time wait in milliseconds; if equals 0, we hold messages according to real time
-		size_t mMsWait;
+	std::mutex mHoldMtx;
+	// condition variable for waiting
+	std::condition_variable mHoldCv;
+	// was the CV properly notified? (spurious wakeup didn't occur)
+	std::atomic<size_t> mNotified;
+	// the simulation offset of held values; this value increases with each simulation step
+	double mSimulationOffset;
+	// time wait in milliseconds; if equals 0, we hold messages according to real time
+	size_t mMsWait;
 
-		// is the hold filter still supposed to run?
-		std::atomic<bool> mRunning;
+	// is the hold filter still supposed to run?
+	std::atomic<bool> mRunning;
 
-		// thread for holding events
-		std::unique_ptr<std::thread> mHoldThread;
-		// queue of events being held
-		tbb::concurrent_bounded_queue<glucose::IDevice_Event*> mQueue;
+	// thread for holding events
+	std::unique_ptr<std::thread> mHoldThread;
+	// queue of events being held
+	tbb::concurrent_bounded_queue<glucose::IDevice_Event*> mQueue;
 
-		// thread function
-		void Run_Main();
+	// thread function for holding inputs
+	bool mHold = true;
+	void Run_Hold();
+protected:
+	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
+	HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+public:
+	CHold_Filter(glucose::IFilter *output);
+	virtual ~CHold_Filter();
 
-		// thread function for holding inputs
-		void Run_Hold();
-
-	public:
-		CHold_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe);
-
-		// method for notifying condition variable and performing simulation step
-		void Simulation_Step(size_t stepcount);
-
-		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
-		virtual HRESULT IfaceCalling Execute() override final;
+	// method for notifying condition variable and performing simulation step
+	void Simulation_Step(size_t stepcount);
 };
 
 #pragma warning( pop )

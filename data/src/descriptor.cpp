@@ -337,21 +337,18 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output, glucose::IFilter **filter) {
-
-	glucose::SEvent_Receiver shared_in = refcnt::make_shared_reference_ext<glucose::SEvent_Receiver, glucose::IEvent_Receiver>(input, true);
-    glucose::SEvent_Sender shared_out = refcnt::make_shared_reference_ext<glucose::SEvent_Sender, glucose::IEvent_Sender>(output, true);
+extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter *next_filter, glucose::IFilter **filter) {
 
 	if (*id == db_reader::Db_Reader_Descriptor.id)
-		return Manufacture_Object<CDb_Reader>(filter, shared_in, shared_out);
+		return Manufacture_Object<CDb_Reader>(filter, next_filter);
 	if (*id == db_writer::Db_Writer_Descriptor.id)
-		return Manufacture_Object<CDb_Writer>(filter, shared_in, shared_out);
+		return Manufacture_Object<CDb_Writer>(filter, next_filter);
 	else if (*id == file_reader::File_Reader_Descriptor.id)
-		return Manufacture_Object<CFile_Reader>(filter, shared_in, shared_out);
+		return Manufacture_Object<CFile_Reader>(filter, next_filter);
 	else if (*id == hold::Hold_Descriptor.id)
-		return Manufacture_Object<CHold_Filter>(filter, shared_in, shared_out);
+		return Manufacture_Object<CHold_Filter>(filter, next_filter);
 	else if (*id == sincos_generator::SinCos_Generator_Descriptor.id)
-		return Manufacture_Object<CSinCos_Generator>(filter, shared_in, shared_out);
+		return Manufacture_Object<CSinCos_Generator>(filter, next_filter);
 
 	return ENOENT;
 }

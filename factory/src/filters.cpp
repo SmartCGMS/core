@@ -99,7 +99,7 @@ HRESULT IfaceCalling create_signal(const GUID *calc_id, glucose::ITime_Segment *
 	return loaded_filters.create_signal(calc_id, segment, signal);
 }
 
-HRESULT IfaceCalling create_device_driver(const GUID *calc_id, glucose::IFilter_Asynchronous_Pipe* output, glucose::IDevice_Driver** device_driver) {
+HRESULT IfaceCalling create_device_driver(const GUID *calc_id, glucose::IFilter* output, glucose::IDevice_Driver** device_driver) {
 	return loaded_filters.create_device_driver(calc_id, output, device_driver);
 }
 
@@ -187,7 +187,7 @@ HRESULT CLoaded_Filters::create_signal(const GUID *calc_id, glucose::ITime_Segme
 	return Call_Func(call_create_signal, calc_id, segment, signal);
 }
 
-HRESULT CLoaded_Filters::create_device_driver(const GUID *id, glucose::IFilter_Asynchronous_Pipe* output, glucose::IDevice_Driver** device_driver) {
+HRESULT CLoaded_Filters::create_device_driver(const GUID *id, glucose::IFilter* output, glucose::IDevice_Driver** device_driver) {
 	auto call_create_device_driver = [](const imported::TLibraryInfo &info) { return info.create_device_driver; };
 	return Call_Func(call_create_device_driver, id, output, device_driver);
 }

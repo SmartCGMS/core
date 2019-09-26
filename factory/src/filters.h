@@ -121,7 +121,7 @@ public:
 	HRESULT create_filter(const GUID *id, glucose::IFilter *next_filter, glucose::IFilter **filter);
 	HRESULT create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric);
 	HRESULT create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
-	HRESULT create_device_driver(const GUID *calc_id, glucose::IFilter_Asynchronous_Pipe* output, glucose::IDevice_Driver** device_driver);
+	HRESULT create_device_driver(const GUID *calc_id, glucose::IFilter* output, glucose::IDevice_Driver** device_driver);
 	HRESULT solve_model_parameters(const glucose::TSolver_Setup *setup);
 	HRESULT solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress);
 	HRESULT create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApprox_Parameters_Vector* configuration, glucose::IApproximator **approx);
@@ -138,7 +138,7 @@ public:
 
 extern "C" HRESULT IfaceCalling create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric);
 extern "C" HRESULT IfaceCalling create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
-extern "C" HRESULT IfaceCalling create_device_driver(const GUID *calc_id, glucose::IFilter_Asynchronous_Pipe* output, glucose::IDevice_Driver** device_driver);
+extern "C" HRESULT IfaceCalling create_device_driver(const GUID *calc_id, glucose::IFilter* output, glucose::IDevice_Driver** device_driver);
 extern "C" HRESULT IfaceCalling solve_model_parameters(const glucose::TSolver_Setup *setup);
 extern "C" HRESULT IfaceCalling solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress);
 extern "C" HRESULT IfaceCalling create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApprox_Parameters_Vector* configuration, glucose::IApproximator **approx);

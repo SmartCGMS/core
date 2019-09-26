@@ -85,8 +85,12 @@ std::array<GUID, static_cast<size_t>(NColumn_Pos::_Count)> ColumnSignalMap = { {
 	glucose::signal_BG, glucose::signal_IG, glucose::signal_ISIG, glucose::signal_Bolus_Insulin, glucose::signal_Basal_Insulin_Rate, glucose::signal_Carb_Intake, glucose::signal_Calibration
 } };
 
-CDb_Reader::CDb_Reader(glucose::SEvent_Receiver input, glucose::SEvent_Sender output) : mInput(input), mOutput(output), mDbPort(0) {
+CDb_Reader::CDb_Reader(glucose::IFilter *output) : mDbPort(0), CBase_Filter(output) {
 	//
+}
+
+CDb_Reader::~CDb_Reader() {
+	End_Db_Reader();
 }
 
 bool CDb_Reader::Emit_Shut_Down()
@@ -95,7 +99,7 @@ bool CDb_Reader::Emit_Shut_Down()
 
 	evt.device_id() = Db_Reader_Device_GUID;
 
-	return mOutput.Send(evt);
+	return Send(evt);
 }
 
 bool CDb_Reader::Emit_Segment_Marker(glucose::NDevice_Event_Code code, int64_t segment_id) {
@@ -104,7 +108,7 @@ bool CDb_Reader::Emit_Segment_Marker(glucose::NDevice_Event_Code code, int64_t s
 	evt.device_id() = Db_Reader_Device_GUID;
 	evt.segment_id() = segment_id;
 
-	return mOutput.Send(evt);
+	return Send(evt);
 }
 
 bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
@@ -142,7 +146,7 @@ bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
 						evt.signal_id() = descriptor.calculated_signal_ids[i];
 						evt.segment_id() = segment_id;
 						if (evt.parameters.set(sql_result))
-							if (!mOutput.Send(evt)) return false;
+							if (!SUCCEEDED(Send(evt))) return false;
 					}
 				}
 			}
@@ -194,13 +198,14 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 			evt.segment_id() = segment_id;
 
 			// this may block if the pipe is full (i.e. due to artificial slowdown filter, simulation stepping, etc.)
-			if (!mOutput.Send(evt)) return false;
+			if (Send(evt) != S_OK) return false;
 		}
 	}
 	return true;
 }
 
 void CDb_Reader::Db_Reader() {
+	
 	mQuit_Flag = false;
 
 	//by consulting
@@ -214,7 +219,7 @@ void CDb_Reader::Db_Reader() {
 	if (!mDb_Connection)
 		return;
 
-
+	
 
 	for (const auto segment_index : mDbTimeSegmentIds) {
 		if (!Emit_Segment_Marker(glucose::NDevice_Event_Code::Time_Segment_Start, segment_index)) break;
@@ -227,55 +232,43 @@ void CDb_Reader::Db_Reader() {
 		Emit_Shut_Down();
 }
 
-HRESULT IfaceCalling CDb_Reader::Configure(glucose::IFilter_Configuration* configuration) {
-
-	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
-
-	mDbHost = shared_configuration.Read_String(rsDb_Host);
-	mDbProvider = shared_configuration.Read_String(rsDb_Provider);
-	mDbPort = shared_configuration.Read_Int(rsDb_Port);
-	mDbDatabaseName = shared_configuration.Read_String(rsDb_Name);
-	mDbUsername = shared_configuration.Read_String(rsDb_User_Name);
-	mDbPassword = shared_configuration.Read_String(rsDb_Password);
-	mDbTimeSegmentIds = shared_configuration.Read_Int_Array(rsTime_Segment_ID);
-	mShutdownAfterLast = shared_configuration.Read_Bool(rsShutdown_After_Last);
+HRESULT IfaceCalling CDb_Reader::Do_Configure(glucose::SFilter_Configuration configuration) {
+	
+	mDbHost = configuration.Read_String(rsDb_Host);	
+	mDbProvider = configuration.Read_String(rsDb_Provider);
+	mDbPort = configuration.Read_Int(rsDb_Port);
+	mDbDatabaseName = configuration.Read_String(rsDb_Name);
+	mDbUsername = configuration.Read_String(rsDb_User_Name);
+	mDbPassword = configuration.Read_String(rsDb_Password);
+	mDbTimeSegmentIds = configuration.Read_Int_Array(rsTime_Segment_ID);	
+	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
 
 	// we need at least these parameters
-	return (!(mDbHost.empty() || mDbProvider.empty() || mDbTimeSegmentIds.empty())) ? S_OK : E_INVALIDARG;
+	HRESULT rc = (!(mDbHost.empty() || mDbProvider.empty() || mDbTimeSegmentIds.empty())) ? S_OK : E_INVALIDARG;
+	
+	if (rc == S_OK) 
+		//run the db-reader thread and meanwhile jsut forward the messages as they come
+		mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
+
+	return rc;
 }
 
-HRESULT IfaceCalling CDb_Reader::Execute() {
+HRESULT IfaceCalling CDb_Reader::Do_Execute(glucose::UDevice_Event event) {
 
-	//run the db-reader thread and meanwhile jsut forward the messages as they come
-	mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
-
-
-	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
-		if (!evt) break;
-
-		
-		if (evt.event_code() == glucose::NDevice_Event_Code::Warm_Reset) {
-			//recreate the reader thread
-			End_Db_Reader();
-			mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
-		}
-
-
-		if (!mOutput.Send(evt)) 
-			break;	//passing the shutdown code will shutdown the outpipe and subsequently the db-reader thread as well
-		
+	if (event.event_code() == glucose::NDevice_Event_Code::Warm_Reset) {
+		//recreate the reader thread
+		End_Db_Reader();
+		mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
 	}
 
-
-	End_Db_Reader();
-
-	return S_OK;
+	return Send(event);
 }
 
 void CDb_Reader::End_Db_Reader() {
 	mQuit_Flag = true;
-	if (mDb_Reader_Thread->joinable())
-		mDb_Reader_Thread->join();
+	if (mDb_Reader_Thread)
+		if (mDb_Reader_Thread->joinable())
+			mDb_Reader_Thread->join();
 }
 
 HRESULT IfaceCalling CDb_Reader::QueryInterface(const GUID*  riid, void ** ppvObj) {

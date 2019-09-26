@@ -47,8 +47,8 @@ CFilter_Executor::CFilter_Executor(const GUID filter_id, std::recursive_mutex &c
 
 
 HRESULT IfaceCalling CFilter_Executor::Configure(glucose::IFilter_Configuration* configuration) {
-	if (!mFilter) return E_FAIL;
-	HRESULT rc = mFilter->Configure(configuration);
+	if (!mFilter) return E_FAIL;	
+	HRESULT rc = mFilter->Configure(configuration);	
 	if (rc == S_OK)
 		//at this point, we will call a callback function to perform any additional configuration of the filter we've just configured 
 		rc = mOn_Filter_Created(mFilter.get(), mOn_Filter_Created_Data);
@@ -59,17 +59,14 @@ HRESULT IfaceCalling CFilter_Executor::Configure(glucose::IFilter_Configuration*
 HRESULT IfaceCalling CFilter_Executor::Execute(glucose::IDevice_Event *event) {
 	//Simply acquire the lock and then call execute method of the filter
 	std::lock_guard<std::recursive_mutex> guard{ mCommunication_Guard };
-
+	
 	return mFilter->Execute(event);
 }
 
 
-void CTerminal_Filter::Wait_For_Shutdown() {
-	while (!mShutdown_Received) {
-		std::unique_lock<std::mutex> guard{ mShutdown_Guard };
-		mShutdown_Condition.wait(guard);
-
-	}
+void CTerminal_Filter::Wait_For_Shutdown() {	
+	std::unique_lock<std::mutex> guard{ mShutdown_Guard };
+	mShutdown_Condition.wait(guard, [this]() {return !mShutdown_Received; });
 }
 
 

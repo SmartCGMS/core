@@ -54,4 +54,4 @@ namespace sincos_generator {
 }
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end);
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output, glucose::IFilter **filter);
+extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter *next_filter, glucose::IFilter **filter);

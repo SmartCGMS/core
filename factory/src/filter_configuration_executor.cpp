@@ -54,10 +54,13 @@ CFilter_Configuration_Executor::~CFilter_Configuration_Executor() {
 }
 
 HRESULT IfaceCalling CFilter_Configuration_Executor::Execute(glucose::IDevice_Event *event) {	
-	return mComposite_Filter.Execute(event);
+	HRESULT rc = mComposite_Filter.Execute(event);
+	if (rc != S_OK)  event->Release();	//in the case of a failure, we consume the event anyway
+	return rc;
 }
 
 HRESULT IfaceCalling CFilter_Configuration_Executor::Wait_For_Shutdown_and_Terminate() {
+	if (mComposite_Filter.Empty()) return S_FALSE;
 	mTerminal_Filter.Wait_For_Shutdown();
 	return Terminate();		
 }

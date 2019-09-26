@@ -57,6 +57,7 @@ public:
 	HRESULT Build_Filter_Chain(glucose::IFilter_Chain_Configuration *configuration, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
 	HRESULT Execute(glucose::IDevice_Event *event);
 	void Clear();
+	bool Empty();
 	
 };
 

@@ -46,13 +46,11 @@
 
 constexpr double PI = 3.141592653589793238462643;
 
-CSinCos_Generator::CSinCos_Generator(glucose::SEvent_Receiver in_pipe, glucose::SEvent_Sender out_pipe)
-	: mInput(in_pipe), mOutput(out_pipe), mExit_Flag{ false } {
+CSinCos_Generator::CSinCos_Generator(glucose::IFilter *output) : mExit_Flag{ false }, CBase_Filter(output) {
 }
 
-HRESULT IfaceCalling CSinCos_Generator::QueryInterface(const GUID*  riid, void ** ppvObj) {
-	if (Internal_Query_Interface<CSinCos_Generator>(sincos_generator::filter_id, *riid, ppvObj)) return S_OK;
-	return E_NOINTERFACE;
+CSinCos_Generator::~CSinCos_Generator() {
+	Terminate_Generator();
 }
 
 void CSinCos_Generator::Run_Generator() {
@@ -103,8 +101,30 @@ void CSinCos_Generator::Run_Generator() {
 		Emit_Shut_Down();
 }
 
-bool CSinCos_Generator::Configure(glucose::SFilter_Parameters configuration) {
+bool CSinCos_Generator::Emit_Segment_Marker(uint64_t segment_id, bool start) {
+	glucose::UDevice_Event evt{ start ? glucose::NDevice_Event_Code::Time_Segment_Start : glucose::NDevice_Event_Code::Time_Segment_Stop };
+	evt.device_id() = sincos_generator::filter_id;
+	evt.segment_id() = segment_id;
+	return Send(evt) == S_OK;
+}
 
+bool CSinCos_Generator::Emit_Signal_Level(GUID signal_id, double time, double level, uint64_t segment_id) {
+	glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Level };
+	evt.device_time() = time;
+	evt.signal_id() = signal_id;
+	evt.segment_id() = segment_id;
+	evt.level() = level;
+	evt.device_id() = sincos_generator::filter_id;
+	return Send(evt) == S_OK;
+}
+
+bool CSinCos_Generator::Emit_Shut_Down() {
+	glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Shut_Down };
+	evt.device_id() = sincos_generator::filter_id;
+	return Send(evt) == S_OK;
+}
+
+HRESULT IfaceCalling CSinCos_Generator::Do_Configure(glucose::SFilter_Configuration configuration) {
 	mIG_Params.offset = configuration.Read_Double(rsGen_IG_Offset);
 	mIG_Params.amplitude = configuration.Read_Double(rsGen_IG_Amplitude);
 	mIG_Params.period = configuration.Read_Double(rsGen_IG_Sin_Period);
@@ -118,71 +138,18 @@ bool CSinCos_Generator::Configure(glucose::SFilter_Parameters configuration) {
 	mTotal_Time = configuration.Read_Double(rsGen_Total_Time);
 	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
 
-	return true;
-}
-
-bool CSinCos_Generator::Emit_Segment_Marker(uint64_t segment_id, bool start) {
-	glucose::UDevice_Event evt{ start ? glucose::NDevice_Event_Code::Time_Segment_Start : glucose::NDevice_Event_Code::Time_Segment_Stop };
-	evt.device_id() = sincos_generator::filter_id;
-	evt.segment_id() = segment_id;
-	return mOutput.Send(evt);
-}
-
-bool CSinCos_Generator::Emit_Signal_Level(GUID signal_id, double time, double level, uint64_t segment_id) {
-	glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Level };
-	evt.device_time() = time;
-	evt.signal_id() = signal_id;
-	evt.segment_id() = segment_id;
-	evt.level() = level;
-	evt.device_id() = sincos_generator::filter_id;
-	return mOutput.Send(evt);
-}
-
-bool CSinCos_Generator::Emit_Shut_Down() {
-	glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Shut_Down };
-	evt.device_id() = sincos_generator::filter_id;
-	return mOutput.Send(evt);
-}
-
-HRESULT IfaceCalling CSinCos_Generator::Configure(glucose::IFilter_Configuration* configuration) {
-
-	auto shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
-
-	mIG_Params.offset = shared_configuration.Read_Double(rsGen_IG_Offset);
-	mIG_Params.amplitude = shared_configuration.Read_Double(rsGen_IG_Amplitude);
-	mIG_Params.period = shared_configuration.Read_Double(rsGen_IG_Sin_Period);
-	mIG_Params.samplingPeriod = shared_configuration.Read_Double(rsGen_IG_Sampling_Period);
-
-	mBG_Params.offset = shared_configuration.Read_Double(rsGen_BG_Level_Offset);
-	mBG_Params.amplitude = shared_configuration.Read_Double(rsGen_BG_Amplitude);
-	mBG_Params.period = shared_configuration.Read_Double(rsGen_BG_Cos_Period);
-	mBG_Params.samplingPeriod = shared_configuration.Read_Double(rsGen_BG_Sampling_Period);
-
-	mTotal_Time = shared_configuration.Read_Double(rsGen_Total_Time);
-	mShutdownAfterLast = shared_configuration.Read_Bool(rsShutdown_After_Last);
-
-	return S_OK;
-}
-
-HRESULT IfaceCalling CSinCos_Generator::Execute() {
-
 	Start_Generator();
 
-	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
-		if (!evt) break;
+	return S_OK;
+}
 
-		if (evt.event_code() == glucose::NDevice_Event_Code::Warm_Reset) {
-			Terminate_Generator();
-			Start_Generator();
-		}
-
-		if (!mOutput.Send(evt))
-			break;
+HRESULT IfaceCalling CSinCos_Generator::Do_Execute(glucose::UDevice_Event event) {
+	if (event.event_code() == glucose::NDevice_Event_Code::Warm_Reset) {
+		Terminate_Generator();
+		Start_Generator();
 	}
 
-	Terminate_Generator();
-
-	return S_OK;
+	return Send(event);
 }
 
 void CSinCos_Generator::Start_Generator()

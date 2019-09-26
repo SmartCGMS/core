@@ -59,13 +59,8 @@ using TSegment_Limits = std::pair<size_t, size_t>;
 /*
  * Filter class for loading and extracting file, and sending values to chain
  */
-class CFile_Reader : public glucose::IFilter, public virtual refcnt::CReferenced {
+class CFile_Reader : public glucose::CBase_Filter {
 	protected:
-		// input pipe
-		glucose::SEvent_Receiver mInput;
-		// output pipe
-		glucose::SEvent_Sender mOutput;
-
 		// original filename from configuration
 		std::wstring mFileName;
 		// segment spacing as julian date
@@ -83,9 +78,7 @@ class CFile_Reader : public glucose::IFilter, public virtual refcnt::CReferenced
 		std::unique_ptr<std::thread> mReaderThread;
 
 		// reader main method
-		void Run_Reader();
-		// thread function
-		void Run_Main();
+		void Run_Reader();	
 
 		// send event to filter chain
 		bool Send_Event(glucose::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID* signalId = nullptr, double value = 0.0);
@@ -97,12 +90,12 @@ class CFile_Reader : public glucose::IFilter, public virtual refcnt::CReferenced
 		// resolves segments of given value vector
 		void Resolve_Segments(TValue_Vector const& src, std::list<TSegment_Limits>& targetList) const;
 
+	protected:
+		virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
+		HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
 	public:
-		CFile_Reader(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe);
+		CFile_Reader(glucose::IFilter *output);
 		virtual ~CFile_Reader();
-
-		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
-		virtual HRESULT IfaceCalling Execute() override final;
 };
 
 #pragma warning( pop )

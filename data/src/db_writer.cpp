@@ -75,7 +75,12 @@ namespace db_writer
 	const wchar_t* Subject_Base_Name = L"Subject";
 }
 
-CDb_Writer::CDb_Writer(glucose::SEvent_Receiver in_pipe, glucose::SEvent_Sender out_pipe) : mInput(in_pipe), mOutput(out_pipe) {
+CDb_Writer::CDb_Writer(glucose::IFilter *output) : CBase_Filter(output) {
+	//
+}
+
+CDb_Writer::~CDb_Writer() {
+	Flush_Levels();
 }
 
 HRESULT IfaceCalling CDb_Writer::QueryInterface(const GUID*  riid, void ** ppvObj) {
@@ -244,20 +249,19 @@ bool CDb_Writer::Store_Parameters(const glucose::UDevice_Event& evt) {
 	return result;
 }
 
-HRESULT IfaceCalling CDb_Writer::Configure(glucose::IFilter_Configuration* configuration) {
-	glucose::SFilter_Parameters shared_conf = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
+HRESULT IfaceCalling CDb_Writer::Do_Configure(glucose::SFilter_Configuration configuration) {
 
-	mDbHost = shared_conf.Read_String(rsDb_Host);
-	mDbProvider = shared_conf.Read_String(rsDb_Provider);
-	mDbPort = shared_conf.Read_Int(rsDb_Port);
-	mDbDatabaseName = shared_conf.Read_String(rsDb_Name);
-	mDbUsername = shared_conf.Read_String(rsDb_User_Name);
-	mDbPassword = shared_conf.Read_String(rsDb_Password);
-	mSubject_Id = shared_conf.Read_Int(rsSubject_Id);
+	mDbHost = configuration.Read_String(rsDb_Host);
+	mDbProvider = configuration.Read_String(rsDb_Provider);
+	mDbPort = configuration.Read_Int(rsDb_Port);
+	mDbDatabaseName = configuration.Read_String(rsDb_Name);
+	mDbUsername = configuration.Read_String(rsDb_User_Name);
+	mDbPassword = configuration.Read_String(rsDb_Password);
+	mSubject_Id = configuration.Read_Int(rsSubject_Id);
 
-	mGenerate_Primary_Keys = shared_conf.Read_Bool(rsGenerate_Primary_Keys);
-	mStore_Data = shared_conf.Read_Bool(rsStore_Data);
-	mStore_Parameters = shared_conf.Read_Bool(rsStore_Parameters);
+	mGenerate_Primary_Keys = configuration.Read_Bool(rsGenerate_Primary_Keys);
+	mStore_Data = configuration.Read_Bool(rsStore_Data);
+	mStore_Parameters = configuration.Read_Bool(rsStore_Parameters);
 
 	// The combination of (mStore_Data && !mGenerate_Primary_Keys) may be potentially wrong (this would save the data to an existing segment),
 	// should we warn the user somehow?
@@ -272,12 +276,6 @@ HRESULT IfaceCalling CDb_Writer::Configure(glucose::IFilter_Configuration* confi
 	for (const auto& id : glucose::signal_Virtual)
 		mIgnored_Signals.insert(id);
 
-	return S_OK;
-}
-
-
-HRESULT IfaceCalling CDb_Writer::Execute() {
-
 	if (mDb_Connector)
 		mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
 	if (!mDb_Connection)
@@ -285,59 +283,56 @@ HRESULT IfaceCalling CDb_Writer::Execute() {
 
 	switch (mSubject_Id)
 	{
-		case db::Anonymous_Subject_Identifier:
-			// TODO: select this from DB
-			mSubject_Id = db_writer::Anonymous_Subject_Id;
-			break;
-		case db::New_Subject_Identifier:
-			mSubject_Id = Create_Subject(db_writer::Subject_Base_Name);
-			break;
-		default:
-			// TODO: just verify, that the subject exists
-			break;
+	case db::Anonymous_Subject_Identifier:
+		// TODO: select this from DB
+		mSubject_Id = db_writer::Anonymous_Subject_Id;
+		break;
+	case db::New_Subject_Identifier:
+		mSubject_Id = Create_Subject(db_writer::Subject_Base_Name);
+		break;
+	default:
+		// TODO: just verify, that the subject exists
+		break;
 	}
-
-	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
-		if (!evt) break;
-
-		switch (evt.event_code()) {
-			case glucose::NDevice_Event_Code::Level:
-			case glucose::NDevice_Event_Code::Masked_Level:		if (mStore_Data && (mIgnored_Signals.find(evt.signal_id()) == mIgnored_Signals.end())) {
-																	if (!Store_Level(evt)) {
-																		dprintf(__FILE__);
-																		dprintf(", ");
-																		dprintf(__LINE__);
-																		dprintf(", ");
-																		dprintf(__func__);
-																		dprintf(" has failed!\n");
-																	}
-																}
-																break;
-
-			case glucose::NDevice_Event_Code::Parameters:		if (mStore_Parameters) {
-																	if (!Store_Parameters(evt)) {
-																		dprintf(__FILE__);
-																		dprintf(", ");
-																		dprintf(__LINE__);
-																		dprintf(", ");
-																		dprintf(__func__);
-																		dprintf(" has failed!\n");
-																	}
-																}
-																break;
-
-			case glucose::NDevice_Event_Code::Time_Segment_Stop:	Flush_Levels();
-																	break;
-			default:	break;
-		}
-
-		if (!mOutput.Send(evt))
-			break;
-	}
-
-	Flush_Levels();
 
 	return S_OK;
+}
+
+
+HRESULT IfaceCalling CDb_Writer::Do_Execute(glucose::UDevice_Event event) {
+
+	switch (event.event_code()) {
+		case glucose::NDevice_Event_Code::Level:
+		case glucose::NDevice_Event_Code::Masked_Level:		if (mStore_Data && (mIgnored_Signals.find(event.signal_id()) == mIgnored_Signals.end())) {
+																if (!Store_Level(event)) {
+																	dprintf(__FILE__);
+																	dprintf(", ");
+																	dprintf(__LINE__);
+																	dprintf(", ");
+																	dprintf(__func__);
+																	dprintf(" has failed!\n");
+																}
+															}
+															break;
+
+		case glucose::NDevice_Event_Code::Parameters:		if (mStore_Parameters) {
+																if (!Store_Parameters(event)) {
+																	dprintf(__FILE__);
+																	dprintf(", ");
+																	dprintf(__LINE__);
+																	dprintf(", ");
+																	dprintf(__func__);
+																	dprintf(" has failed!\n");
+																}
+															}
+															break;
+
+		case glucose::NDevice_Event_Code::Time_Segment_Stop:	Flush_Levels();
+																break;
+		default:	break;
+	}
+
+	return Send(event);
 }
 
 HRESULT IfaceCalling CDb_Writer::Set_Connector(db::IDb_Connector *connector)

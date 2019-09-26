@@ -57,12 +57,15 @@ namespace file_reader
 	constexpr double Default_Segment_Spacing = 600.0 * 1000.0 * InvMSecsPerDay;
 }
 
-CFile_Reader::CFile_Reader(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe) : mInput(inpipe), mOutput(outpipe), mSegmentSpacing(file_reader::Default_Segment_Spacing) {
+CFile_Reader::CFile_Reader(glucose::IFilter *output) : mSegmentSpacing(file_reader::Default_Segment_Spacing), CBase_Filter(output) {
 	//
 }
 
-CFile_Reader::~CFile_Reader()
-{
+CFile_Reader::~CFile_Reader() {
+
+	if (mReaderThread->joinable())
+		mReaderThread->join();
+
 	// cleanup loaded values
 	for (auto& vals : mMergedValues)
 	{
@@ -82,7 +85,7 @@ bool CFile_Reader::Send_Event(glucose::NDevice_Event_Code code, double device_ti
 	if (signalId)
 		evt.signal_id() = *signalId;
 
-	return mOutput.Send(evt);
+	return Send(evt) == S_OK;
 }
 
 void CFile_Reader::Resolve_Segments(TValue_Vector const& src, std::list<TSegment_Limits>& targetList) const
@@ -200,24 +203,8 @@ void CFile_Reader::Run_Reader()
 		glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Shut_Down };
 
 		evt.device_id() = file_reader::File_Reader_Device_GUID;
-		mOutput.Send(evt);
+		Send(evt);
 	}
-}
-
-void CFile_Reader::Run_Main() {
-
-	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
-		if (!evt) break;
-	
-		// just fall through in main filter thread
-		// there also may be some control code handling (i.e. pausing value sending, etc.)
-
-		if (!mOutput.Send(evt))
-			break;
-	}
-
-	if (mReaderThread->joinable())
-		mReaderThread->join();
 }
 
 void CFile_Reader::Merge_Values(ExtractionResult& result)
@@ -274,20 +261,13 @@ HRESULT CFile_Reader::Extract(ExtractionResult &values)
 }
 
 
-HRESULT IfaceCalling CFile_Reader::Configure(glucose::IFilter_Configuration* configuration) {
-	auto conf = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
+HRESULT IfaceCalling CFile_Reader::Do_Configure(glucose::SFilter_Configuration configuration) {
+	mFileName = configuration.Read_String(rsInput_Values_File);
+	mSegmentSpacing = configuration.Read_Int(rsInput_Segment_Spacing) * 1000.0 * InvMSecsPerDay;
+	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
+	mMinValueCount = static_cast<size_t>(configuration.Read_Int(rsMinimum_Segment_Levels));
+	mRequireBG_IG = configuration.Read_Bool(rsRequire_IG_BG);
 
-	mFileName = conf.Read_String(rsInput_Values_File);
-	mSegmentSpacing = conf.Read_Int(rsInput_Segment_Spacing) * 1000.0 * InvMSecsPerDay;
-	mShutdownAfterLast = conf.Read_Bool(rsShutdown_After_Last);
-	mMinValueCount = static_cast<size_t>(conf.Read_Int(rsMinimum_Segment_Levels));
-	mRequireBG_IG = conf.Read_Bool(rsRequire_IG_BG);
-
-	return S_OK;
-}
-
-HRESULT IfaceCalling CFile_Reader::Execute() {
-	
 	if (mFileName.empty())
 		return ENOENT;
 
@@ -299,7 +279,10 @@ HRESULT IfaceCalling CFile_Reader::Execute() {
 	Merge_Values(values);
 
 	mReaderThread = std::make_unique<std::thread>(&CFile_Reader::Run_Reader, this);
-	Run_Main();
-
+	
 	return S_OK;
+}
+
+HRESULT IfaceCalling CFile_Reader::Do_Execute(glucose::UDevice_Event event) {	
+	return Send(event);
 }

@@ -62,42 +62,36 @@ struct TGenerator_Signal_Parameters
 /*
  * Class that generates sinus/cosinus functions as IG/BG signals
  */
-class CSinCos_Generator : public glucose::IFilter, public virtual refcnt::CReferenced {
-	protected:
-		glucose::SEvent_Receiver mInput;
-		glucose::SEvent_Sender mOutput;
+class CSinCos_Generator : public glucose::CBase_Filter {
+protected:
+	// do we need to send shutdown after last value?
+	bool mShutdownAfterLast = false;
 
-		// do we need to send shutdown after last value?
-		bool mShutdownAfterLast = false;
+	std::unique_ptr<std::thread> mGenerator_Thread;
+	std::atomic<bool> mExit_Flag;
 
-		std::unique_ptr<std::thread> mGenerator_Thread;
-		std::atomic<bool> mExit_Flag;
+	// generator parameters for IG
+	TGenerator_Signal_Parameters mIG_Params;
+	// generator parameters for BG
+	TGenerator_Signal_Parameters mBG_Params;
+	// total time to be generated
+	double mTotal_Time;
 
-		// generator parameters for IG
-		TGenerator_Signal_Parameters mIG_Params;
-		// generator parameters for BG
-		TGenerator_Signal_Parameters mBG_Params;
-		// total time to be generated
-		double mTotal_Time;
+protected:
+	void Run_Generator();
 
-	protected:
-		void Run_Generator();
-		bool Configure(glucose::SFilter_Parameters configuration);
+	bool Emit_Segment_Marker(uint64_t segment_id, bool start);
+	bool Emit_Signal_Level(GUID signal_id, double time, double level, uint64_t segment_id);
+	bool Emit_Shut_Down();
 
-		bool Emit_Segment_Marker(uint64_t segment_id, bool start);
-		bool Emit_Signal_Level(GUID signal_id, double time, double level, uint64_t segment_id);
-		bool Emit_Shut_Down();
-
-		void Start_Generator();
-		void Terminate_Generator();
-
-	public:
-		CSinCos_Generator(glucose::SEvent_Receiver in_pipe, glucose::SEvent_Sender out_pipe);
-		virtual ~CSinCos_Generator() {};
-
-		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
-		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
-		virtual HRESULT IfaceCalling Execute() override final;
+	void Start_Generator();
+	void Terminate_Generator();
+protected:
+	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
+	HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+public:
+	CSinCos_Generator(glucose::IFilter *output);
+	virtual ~CSinCos_Generator();
 };
 
 #pragma warning( pop )

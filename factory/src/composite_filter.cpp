@@ -65,10 +65,10 @@ HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configurati
 			if (rc != S_OK) return rc;
 
 			std::unique_ptr<CFilter_Executor> new_executor = std::make_unique<CFilter_Executor>(filter_id, mCommunication_Guard, last_filter, on_filter_created, on_filter_created_data);
-			//try to configure the filter
+			//try to configure the filter 			
 			rc = new_executor->Configure(link);
 			if (rc != S_OK) return rc;
-
+			
 			//filter is configured, insert it into the chain			
 			mExecutors.insert(mExecutors.begin(), std::move(new_executor));
 			last_filter = new_executor.get();
@@ -79,6 +79,7 @@ HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configurati
 		mExecutors.clear();
 		return E_FAIL;
 	}
+	
 
 	return S_OK;
 }
@@ -93,4 +94,8 @@ HRESULT CComposite_Filter::Execute(glucose::IDevice_Event *event) {
 void CComposite_Filter::Clear() {
 	std::lock_guard<std::recursive_mutex> guard{ mCommunication_Guard };
 	mExecutors.clear();
+}
+
+bool CComposite_Filter::Empty() {
+	return mExecutors.empty();
 }

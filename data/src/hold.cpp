@@ -46,40 +46,11 @@
 #include <chrono>
 #include <cmath>
 
-CHold_Filter::CHold_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe)
-	: mInput(inpipe), mOutput(outpipe), mNotified(0), mSimulationOffset(0.0), mMsWait(0)
-{
+CHold_Filter::CHold_Filter(glucose::IFilter *output) : mNotified(0), mSimulationOffset(0.0), mMsWait(0), CBase_Filter(output) {
 	//
 }
 
-void CHold_Filter::Run_Main() {
-	bool hold;
-
-	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
-		if (!evt) break;
-
-		hold = true;
-		switch (evt.event_code()) {
-			case glucose::NDevice_Event_Code::Solve_Parameters:
-			case glucose::NDevice_Event_Code::Suspend_Parameter_Solving:
-			case glucose::NDevice_Event_Code::Resume_Parameter_Solving:
-			case glucose::NDevice_Event_Code::Information:
-			case glucose::NDevice_Event_Code::Warning:
-			case glucose::NDevice_Event_Code::Error:
-				hold = false;
-				break;
-			default:
-				break;
-		}
-
-		if (hold) {
-			mQueue.push(evt.release());
-		} else {
-			if (!mOutput.Send(evt) )
-				break;
-		}
-	}
-
+CHold_Filter::~CHold_Filter() {
 	mRunning = false;
 
 	mQueue.abort();
@@ -142,7 +113,7 @@ void CHold_Filter::Run_Hold()
 				}
 			}
 
-			if (!mOutput.Send(evt) )
+			if (!Send(evt) != S_OK)
 				break;
 
 		}
@@ -161,20 +132,38 @@ void CHold_Filter::Simulation_Step(size_t stepcount)
 	mHoldCv.notify_all();
 }
 
-HRESULT IfaceCalling CHold_Filter::Configure(glucose::IFilter_Configuration* configuration) {
-	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
-	mMsWait = shared_configuration.Read_Int(rsHold_Values_Delay);
-
-	return S_OK;
-}
-
-HRESULT IfaceCalling CHold_Filter::Execute() {
-
+HRESULT IfaceCalling CHold_Filter::Do_Configure(glucose::SFilter_Configuration configuration) {	
+	mMsWait = configuration.Read_Int(rsHold_Values_Delay);
 	mRunning = true;
 
 	mHoldThread = std::make_unique<std::thread>(&CHold_Filter::Run_Hold, this);
 
-	Run_Main();
-
 	return S_OK;
+}
+
+HRESULT IfaceCalling CHold_Filter::Do_Execute(glucose::UDevice_Event event) {
+
+
+	switch (event.event_code()) {
+		case glucose::NDevice_Event_Code::Solve_Parameters:
+		case glucose::NDevice_Event_Code::Suspend_Parameter_Solving:
+		case glucose::NDevice_Event_Code::Resume_Parameter_Solving:
+		case glucose::NDevice_Event_Code::Information:
+		case glucose::NDevice_Event_Code::Warning:
+		case glucose::NDevice_Event_Code::Error:
+			mHold = false;
+			break;
+
+		default:
+			break;
+		}
+
+	if (mHold) {
+		mQueue.push(event.release());
+		return S_OK;
+	}
+	else {
+		return Send(event);
+	}
+	
 };
