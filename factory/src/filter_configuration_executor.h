@@ -42,8 +42,8 @@
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
 
-#include "filter_communicator.h"
 #include "executor.h"
+#include "composite_filter.h"
 
 
 #pragma warning( push )
@@ -52,12 +52,13 @@
 
 class CFilter_Configuration_Executor : public virtual glucose::IFilter_Executor, public virtual refcnt::CReferenced {
 protected:
-	CFilter_Communicator mCommunicator;
-	glucose::SFilter mComposite_Filter;
+	std::recursive_mutex mCommunication_Guard;
+	CComposite_Filter mComposite_Filter{ mCommunication_Guard };
 	CTerminal_Filter mTerminal_Filter;
-public:	
-	CFilter_Configuration_Executor(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
+public:			
 	virtual ~CFilter_Configuration_Executor();
+
+	HRESULT Build_Filter_Chain(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
 
 	virtual HRESULT IfaceCalling Execute(glucose::IDevice_Event *event) override final;
 	virtual HRESULT IfaceCalling Wait_For_Shutdown_and_Terminate() override final;

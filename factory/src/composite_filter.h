@@ -47,31 +47,18 @@
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
 	
-class CComposite_Filter : public virtual glucose::IFilter, public virtual refcnt::CReferenced {
+class CComposite_Filter  {
 protected:
-	glucose::SFilter_Communicator mCommunicator;
-	glucose::SFilter mNext_Filter;
-	std::vector<glucose::SFilter> mExecutors;
+	std::recursive_mutex &mCommunication_Guard;		
+	std::vector<std::unique_ptr<CFilter_Executor>> mExecutors;
 public:
-	CComposite_Filter(glucose::IFilter_Communicator* communicator, glucose::IFilter *next_filter);
-	virtual ~CComposite_Filter();
+	CComposite_Filter(std::recursive_mutex &communication_guard);	
 
-	HRESULT Build_Filter_Chain(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
-
-	virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
-	virtual HRESULT IfaceCalling Execute(glucose::IDevice_Event *event) override final;
+	HRESULT Build_Filter_Chain(glucose::IFilter_Chain_Configuration *configuration, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
+	HRESULT Execute(glucose::IDevice_Event *event);
+	void Clear();
+	
 };
 
 #pragma warning( pop )
 
-#ifdef _WIN32
-	extern "C" __declspec(dllexport) HRESULT IfaceCalling create_composite_filter(glucose::IFilter_Chain_Configuration *configuration,
-																				  glucose::IFilter_Communicator* communicator, glucose::IFilter *next_filter, 
-																				  glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, 
-																				  glucose::IFilter **filter);
-#else
-extern "C" HRESULT IfaceCalling create_composite_filter(glucose::IFilter_Chain_Configuration *configuration,
-	glucose::IFilter_Communicator* communicator, glucose::IFilter *next_filter,
-	glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data,
-	glucose::IFilter **filter);
-#endif

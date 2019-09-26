@@ -41,17 +41,17 @@
 #include "../../../common/rtl/FilterLib.h"
 
 
-#include <thread>
+
 #include <mutex>
 
-class CFilter_Executor : public virtual glucose::IFilter, public virtual refcnt::CReferenced {
-protected:	
-	glucose::SFilter_Communicator mCommunicator;
+class CFilter_Executor : public virtual glucose::IFilter, public virtual refcnt::CNotReferenced {
+protected:		
+	std::recursive_mutex &mCommunication_Guard;
 	glucose::SFilter mFilter;
 	glucose::TOn_Filter_Created mOn_Filter_Created;
 	const void* mOn_Filter_Created_Data;
 public:
-	CFilter_Executor(const GUID filter_id, glucose::SFilter_Communicator communicator, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
+	CFilter_Executor(const GUID filter_id, std::recursive_mutex &communication_guard, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
 	virtual ~CFilter_Executor() {};
 
 	virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
@@ -62,10 +62,10 @@ public:
 class CTerminal_Filter : public virtual glucose::IFilter, public virtual refcnt::CNotReferenced {
 	//executer designed to consume events only and to signal the shutdown event
 protected:
-	glucose::SFilter_Communicator mCommunicator;
+	std::mutex mShutdown_Guard;
+	std::condition_variable mShutdown_Condition;
 	bool mShutdown_Received = false;
-public:	
-	void Set_Communicator(glucose::SFilter_Communicator communicator);
+public:		
 	virtual ~CTerminal_Filter() {};	
 
 	void Wait_For_Shutdown();	//blocking wait, until it receives the shutdown event

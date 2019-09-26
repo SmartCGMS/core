@@ -39,8 +39,8 @@
 #include "executor.h"
 #include "filters.h"
 
-CFilter_Executor::CFilter_Executor(const GUID filter_id, glucose::SFilter_Communicator communicator, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) :
-	mCommunicator(communicator),  mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data) {
+CFilter_Executor::CFilter_Executor(const GUID filter_id, std::recursive_mutex &communication_guard, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) :
+	mCommunication_Guard(communication_guard),  mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data) {
 	
 	mFilter = create_filter(filter_id, next_filter);			
 }
@@ -58,19 +58,18 @@ HRESULT IfaceCalling CFilter_Executor::Configure(glucose::IFilter_Configuration*
 
 HRESULT IfaceCalling CFilter_Executor::Execute(glucose::IDevice_Event *event) {
 	//Simply acquire the lock and then call execute method of the filter
-	glucose::CFilter_Communicator_Lock scoped_lock(mCommunicator);
+	std::lock_guard<std::recursive_mutex> guard{ mCommunication_Guard };
+
 	return mFilter->Execute(event);
 }
 
 
-void CTerminal_Filter::Set_Communicator(glucose::SFilter_Communicator communicator) {
-	mCommunicator = communicator;
-}
-
-
 void CTerminal_Filter::Wait_For_Shutdown() {
-	while (!mShutdown_Received)
-		mCommunicator->Wait_For_Channel();
+	while (!mShutdown_Received) {
+		std::unique_lock<std::mutex> guard{ mShutdown_Guard };
+		mShutdown_Condition.wait(guard);
+
+	}
 }
 
 
@@ -80,13 +79,18 @@ HRESULT IfaceCalling CTerminal_Filter::Configure(glucose::IFilter_Configuration*
 
 HRESULT IfaceCalling CTerminal_Filter::Execute(glucose::IDevice_Event *event) {
 	
+	if (!event) return E_INVALIDARG;
+
 	glucose::TDevice_Event *raw_event;
 	HRESULT rc = event->Raw(&raw_event);
-	if (rc != S_OK) return rc;
+	if (rc != S_OK) {
+		event->Release();
+		return rc;
+	}
 
 	if (raw_event->event_code == glucose::NDevice_Event_Code::Shut_Down) {
 		mShutdown_Received = true;
-		mCommunicator->Notify_Channel();
+		mShutdown_Condition.notify_all();
 	}
 		
 	event->Release(); 

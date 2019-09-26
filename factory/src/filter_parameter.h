@@ -21,7 +21,7 @@ protected:
 		int64_t int64;
 		bool boolean;
 		GUID guid;		
-	} mData;
+	} mData = {0.0};
 
 	template <typename TSRC, typename TDST>
 	HRESULT Get_Container(TSRC src, TDST dst) {

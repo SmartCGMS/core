@@ -40,21 +40,16 @@
 #include "device_event.h"
 #include "filters.h"
 
-CComposite_Filter::CComposite_Filter(glucose::IFilter_Communicator* communicator, glucose::IFilter *next_filter) : 
-	mNext_Filter(next_filter), mCommunicator(refcnt::make_shared_reference_ext<glucose::SFilter_Communicator, glucose::IFilter_Communicator>(communicator, true)) {
+CComposite_Filter::CComposite_Filter(std::recursive_mutex &communication_guard) : mCommunication_Guard(communication_guard) {
 	//
 }
 
 
-CComposite_Filter::~CComposite_Filter() {
-}
-
-
-HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) {
+HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configuration *configuration, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) {
 	if (!mExecutors.empty()) return E_ILLEGAL_METHOD_CALL;	//so far, we are able to configure the chain just once
 
-	glucose::CFilter_Communicator_Lock communicator_lock(mCommunicator);
-	glucose::IFilter *last_filter = mNext_Filter.get();
+	std::lock_guard<std::recursive_mutex> guard{ mCommunication_Guard };
+	glucose::IFilter *last_filter = next_filter;
 	
 	glucose::IFilter_Configuration_Link **link_begin, **link_end;
 	HRESULT rc = configuration->get(&link_begin, &link_end);
@@ -69,48 +64,33 @@ HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configurati
 			rc = link->Get_Filter_Id(&filter_id);
 			if (rc != S_OK) return rc;
 
-			std::unique_ptr<CFilter_Executor> new_executor_raw = std::make_unique<CFilter_Executor>(filter_id, mCommunicator, last_filter, on_filter_created, on_filter_created_data);
+			std::unique_ptr<CFilter_Executor> new_executor = std::make_unique<CFilter_Executor>(filter_id, mCommunication_Guard, last_filter, on_filter_created, on_filter_created_data);
 			//try to configure the filter
-			rc = new_executor_raw->Configure(link);
+			rc = new_executor->Configure(link);
 			if (rc != S_OK) return rc;
 
-			//filter is configured, insert it into the chain
-			last_filter = new_executor_raw.get();			
-			mExecutors.insert(mExecutors.begin(), glucose::SFilter(new_executor_raw.get()));
-			new_executor_raw.release();
+			//filter is configured, insert it into the chain			
+			mExecutors.insert(mExecutors.begin(), std::move(new_executor));
+			last_filter = new_executor.get();
 
 		} while (link != *link_begin);
 	}
 	catch (...) {
+		mExecutors.clear();
 		return E_FAIL;
 	}
 
 	return S_OK;
 }
 
-HRESULT IfaceCalling CComposite_Filter::Configure(glucose::IFilter_Configuration* configuration) {
-	return E_ILLEGAL_METHOD_CALL;
-}
-
-HRESULT IfaceCalling CComposite_Filter::Execute(glucose::IDevice_Event *event) {
+HRESULT CComposite_Filter::Execute(glucose::IDevice_Event *event) {
 	if (!event) return E_INVALIDARG;
 	if (mExecutors.empty()) return S_FALSE;	
 
 	return mExecutors[0]->Execute(event);	
 }
 
-HRESULT IfaceCalling create_composite_filter(glucose::IFilter_Chain_Configuration *configuration,
-											 glucose::IFilter_Communicator* communicator, glucose::IFilter *next_filter,
-											 glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data,
-											 glucose::IFilter **filter) {
-
-	std::unique_ptr<CComposite_Filter> raw_filter = std::make_unique<CComposite_Filter>(communicator, next_filter);
-	HRESULT rc = raw_filter->Build_Filter_Chain(configuration, on_filter_created, on_filter_created_data);
-	if (!SUCCEEDED(rc)) return rc;
-	
-	*filter = static_cast<glucose::IFilter*>(raw_filter.get());
-	(*filter)->AddRef();
-	raw_filter.release();
-
-	return S_OK;
+void CComposite_Filter::Clear() {
+	std::lock_guard<std::recursive_mutex> guard{ mCommunication_Guard };
+	mExecutors.clear();
 }

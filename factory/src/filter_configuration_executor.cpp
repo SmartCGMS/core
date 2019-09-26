@@ -44,13 +44,8 @@
 #include "executor.h"
 #include "composite_filter.h"
 
-CFilter_Configuration_Executor::CFilter_Configuration_Executor(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) {
-	mTerminal_Filter.Set_Communicator(&mCommunicator);
-
-	glucose::IFilter *raw_composite;
-	if (create_composite_filter(configuration, &mCommunicator, &mTerminal_Filter, on_filter_created, on_filter_created_data, &raw_composite) != S_OK) throw std::runtime_error{"Cannot create the filter chain!"};
-	mComposite_Filter = raw_composite;
-	//from now on, the asynchronous filters are already running	
+HRESULT CFilter_Configuration_Executor::Build_Filter_Chain(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) {
+	return mComposite_Filter.Build_Filter_Chain(configuration, &mTerminal_Filter, on_filter_created, on_filter_created_data);
 }
 
 
@@ -59,9 +54,7 @@ CFilter_Configuration_Executor::~CFilter_Configuration_Executor() {
 }
 
 HRESULT IfaceCalling CFilter_Configuration_Executor::Execute(glucose::IDevice_Event *event) {	
-	if (!mComposite_Filter) return S_FALSE;
-
-	return mComposite_Filter->Execute(event);
+	return mComposite_Filter.Execute(event);
 }
 
 HRESULT IfaceCalling CFilter_Configuration_Executor::Wait_For_Shutdown_and_Terminate() {
@@ -70,18 +63,19 @@ HRESULT IfaceCalling CFilter_Configuration_Executor::Wait_For_Shutdown_and_Termi
 }
 
 HRESULT IfaceCalling CFilter_Configuration_Executor::Terminate() {
-	if (!mComposite_Filter) return E_ILLEGAL_STATE_CHANGE;
-
-	glucose::CFilter_Communicator_Lock scoped_lock(&mCommunicator);
-
-	//temporarily, we add more reference to the raw composite filter so that we can destroy the managing shared_ptr safely
-	//but without destroying the managed object -> hence we can check whether we are really the ones who stops the executor
-	glucose::IFilter *raw_composite = mComposite_Filter.get();
-	raw_composite->AddRef();
-	mComposite_Filter = nullptr;
-	return raw_composite->Release() == 0 ? S_OK : S_FALSE;
+	mComposite_Filter.Clear();
+	return S_OK;
 }
 
 HRESULT IfaceCalling execute_filter_configuration(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, glucose::IFilter_Executor **executor) {
-	return Manufacture_Object<CFilter_Configuration_Executor, glucose::IFilter_Executor>(executor, configuration, on_filter_created, on_filter_created_data);
+	std::unique_ptr<CFilter_Configuration_Executor> raw_executor = std::make_unique<CFilter_Configuration_Executor>();
+
+	HRESULT rc = raw_executor->Build_Filter_Chain(configuration, on_filter_created, on_filter_created_data);
+	 if (!SUCCEEDED(rc)) return rc;
+
+	*executor = static_cast<glucose::IFilter_Executor*>(raw_executor.get());
+	(*executor)->AddRef();
+	raw_executor.release();
+
+	return S_OK;
 }
