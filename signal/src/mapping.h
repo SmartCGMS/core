@@ -52,24 +52,18 @@
 /*
  * Filter class for mapping input signal GUID to another
  */
-class CMapping_Filter : public glucose::IFilter, public virtual refcnt::CReferenced
-{
-	protected:
-		// input pipe
-		glucose::SEvent_Receiver mInput;
-		// output pipe
-		glucose::SEvent_Sender mOutput;
-
-		// source signal ID (what signal will be mapped)
-		GUID mSource_Id = Invalid_GUID;
-		// destination signal ID (to what ID it will be mapped)
-		GUID mDestination_Id = Invalid_GUID;
-	public:
-		CMapping_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe);
-		virtual ~CMapping_Filter() {};
-
-		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) final;
-		virtual HRESULT IfaceCalling Execute() final;
+class CMapping_Filter : public glucose::CBase_Filter, public virtual refcnt::CReferenced {
+protected:
+	// source signal ID (what signal will be mapped)
+	GUID mSource_Id = Invalid_GUID;
+	// destination signal ID (to what ID it will be mapped)
+	GUID mDestination_Id = Invalid_GUID;
+protected:
+	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
+	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+public:
+	CMapping_Filter(glucose::IFilter *output);
+	virtual ~CMapping_Filter() {};
 };
 
 #pragma warning( pop )

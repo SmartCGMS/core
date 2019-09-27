@@ -43,7 +43,7 @@
 
 #include <cmath>
 
-CTime_Segment::CTime_Segment(const int64_t segment_id, const GUID &calculated_signal_id, glucose::SModel_Parameter_Vector &working_parameters, const double prediction_window, glucose::SEvent_Sender output)
+CTime_Segment::CTime_Segment(const int64_t segment_id, const GUID &calculated_signal_id, glucose::SModel_Parameter_Vector &working_parameters, const double prediction_window, glucose::SFilter output)
 	: mOutput(output), mCalculated_Signal_Id(calculated_signal_id), mSegment_id(segment_id), mPrediction_Window(prediction_window) {
 	Clear_Data();
 
@@ -147,7 +147,9 @@ void CTime_Segment::Emit_Levels_At_Pending_Times() {
 				calcEvt.device_id() = calculate::Calculate_Filter_GUID;
 				calcEvt.signal_id() = mCalculated_Signal_Id;
 				calcEvt.segment_id() = mSegment_id;
-				if (mOutput.Send(calcEvt))
+				glucose::IDevice_Event *raw_calcEvt = calcEvt.get();
+				calcEvt.release();
+				if (mOutput->Execute(raw_calcEvt))
 					mEmitted_Times.insert(times[i]);
 			}
 			else

@@ -49,7 +49,7 @@
 
 class CTime_Segment : public glucose::ITime_Segment, public virtual refcnt::CNotReferenced {
 protected:
-	glucose::SEvent_Sender mOutput;
+	glucose::SFilter mOutput;
 	const GUID mCalculated_Signal_Id;
 	GUID mReference_Signal_Id = Invalid_GUID;
 	const int64_t mSegment_id;
@@ -64,7 +64,7 @@ protected:
 	std::set<double> mEmitted_Times;	//to avoid duplicities in the output
 	glucose::SModel_Parameter_Vector mWorking_Parameters;
 public:
-	CTime_Segment(const int64_t segment_id, const GUID &calculated_signal_id, glucose::SModel_Parameter_Vector &working_parameters, const double prediction_window, glucose::SEvent_Sender output);
+	CTime_Segment(const int64_t segment_id, const GUID &calculated_signal_id, glucose::SModel_Parameter_Vector &working_parameters, const double prediction_window, glucose::SFilter output);
 	virtual ~CTime_Segment() {};
 
 	virtual HRESULT IfaceCalling Get_Signal(const GUID *signal_id, glucose::ISignal **signal) override;

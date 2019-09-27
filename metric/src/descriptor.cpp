@@ -86,13 +86,9 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output, glucose::IFilter **filter) {
-	auto shared_input = refcnt::make_shared_reference_ext<glucose::SEvent_Receiver, glucose::IEvent_Receiver>(input, true);
-	auto shared_output = refcnt::make_shared_reference_ext<glucose::SEvent_Sender, glucose::IEvent_Sender>(output, true);
-
-
+extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter *output, glucose::IFilter **filter) {
 	if (*id == errors::Errors_Descriptor.id)
-		return Manufacture_Object<CErrors_Filter>(filter, shared_input, shared_output);
+		return Manufacture_Object<CErrors_Filter>(filter, output);
 
 	return ENOENT;
 }

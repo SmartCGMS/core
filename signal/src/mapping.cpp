@@ -45,32 +45,21 @@
 #include <iostream>
 #include <chrono>
 
-CMapping_Filter::CMapping_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe)
-	: mInput{ inpipe }, mOutput{ outpipe }
-{
+CMapping_Filter::CMapping_Filter(glucose::IFilter *output) : CBase_Filter(output) {
 	//
 }
 
 
-HRESULT IfaceCalling CMapping_Filter::Configure(glucose::IFilter_Configuration* configuration) {
-	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
-	mSource_Id = shared_configuration.Read_GUID(rsSignal_Source_Id);
-	mDestination_Id = shared_configuration.Read_GUID(rsSignal_Destination_Id);
+HRESULT IfaceCalling CMapping_Filter::Do_Configure(glucose::SFilter_Configuration configuration) {	
+	mSource_Id = configuration.Read_GUID(rsSignal_Source_Id);
+	mDestination_Id = configuration.Read_GUID(rsSignal_Destination_Id);
 
 	return S_OK;
 }
 
-HRESULT IfaceCalling CMapping_Filter::Execute() {
-	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
-		if (!evt) break;
+HRESULT IfaceCalling CMapping_Filter::Do_Execute(glucose::UDevice_Event event) {
+	if (event.signal_id() == mSource_Id)
+		event.signal_id() = mDestination_Id;
 
-		if (evt.signal_id() == mSource_Id)
-			evt.signal_id() = mDestination_Id;
-
-		if (!mOutput.Send(evt))
-			break;
-	}
-
-	return S_OK;
-
+	return Send(event);		
 }

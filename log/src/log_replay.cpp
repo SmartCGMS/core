@@ -57,9 +57,20 @@
 #include <cctype>
 #include <codecvt>
 
-CLog_Replay_Filter::CLog_Replay_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe): mInput{ inpipe }, mOutput{ outpipe } {
+CLog_Replay_Filter::CLog_Replay_Filter(glucose::IFilter* output) : CBase_Filter(output) {
 	//
 }
+
+CLog_Replay_Filter::~CLog_Replay_Filter() {
+	if (mLog.is_open())			
+		mLog.close();
+			
+
+	if (mLog_Replay_Thread)
+		if (mLog_Replay_Thread->joinable())
+			mLog_Replay_Thread->join();
+}
+
 
 void CLog_Replay_Filter::Log_Replay()
 {
@@ -91,16 +102,16 @@ void CLog_Replay_Filter::Log_Replay()
 		try
 		{
 			// skip; logical time is not modifiable, and there's not a point in loading it anyways
-			cut_column();
+			auto specificval = cut_column();
 			// device time is parsed as-is using the same format as used when saving
 			const double device_time = Local_Time_WStr_To_Rat_Time(cut_column(), rsLog_Date_Time_Format);
 			// skip; event type name
-			cut_column();
+			specificval = cut_column();
 			// skip; signal name
-			cut_column();
+			specificval = cut_column();
 
 			// specific column (titled "info", but contains parameters or level)
-			auto specificval = cut_column();
+			specificval = cut_column();
 
 			const size_t segment_id = std::stoull(cut_column());
 
@@ -127,7 +138,7 @@ void CLog_Replay_Filter::Log_Replay()
 			evt.device_id() = WString_To_GUID(cut_column());
 			evt.signal_id() = WString_To_GUID(cut_column());
 
-			if (!mOutput.Send(evt))
+			if (Send(evt) != S_OK)
 				return;
 		}
 		catch (...)
@@ -152,46 +163,26 @@ bool CLog_Replay_Filter::Open_Log(const std::wstring &log_filename)
 		result = mLog.is_open();
 		// set decimal point separator
 		if (result)
-			mLog.imbue(std::locale(std::cout.getloc(), new logger::DecimalSeparator<char>('.')));
+			auto unused = mLog.imbue(std::locale(std::cout.getloc(), new logger::DecimalSeparator<char>('.')));
 	}
 
 	return result;
 }
 
-HRESULT IfaceCalling CLog_Replay_Filter::Configure(glucose::IFilter_Configuration* configuration) {
-	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, refcnt::IVector_Container<glucose::TFilter_Parameter>>(configuration, true);
-	mIgnore_Shutdown = shared_configuration.Read_Bool(rsIgnore_Shutdown_Msg, mIgnore_Shutdown);
-	mLog_Filename = shared_configuration.Read_String(rsLog_Output_File);
+HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(glucose::SFilter_Configuration configuration) {	
+	mIgnore_Shutdown = configuration.Read_Bool(rsIgnore_Shutdown_Msg, mIgnore_Shutdown);
+	mLog_Filename = configuration.Read_String(rsLog_Output_File);
 
-	return S_OK;
+	if (Open_Log(mLog_Filename)) {
+		mLog_Replay_Thread = std::make_unique<std::thread>(&CLog_Replay_Filter::Log_Replay, this);
+		return S_OK;
+	} else 
+		return S_FALSE;
 }
 
 
-HRESULT CLog_Replay_Filter::Execute() {
-
-	
-	const bool log_opened = Open_Log(mLog_Filename);
-
-	if (log_opened)
-		mLog_Replay_Thread = std::make_unique<std::thread>(&CLog_Replay_Filter::Log_Replay, this);
-
-	// main loop in log reader main thread - we still need to be able to pass events from input pipe to output, althought we are the source of messages (separate thread)
-	// the reason is the same as in any other "pure-input" filter like db reader - simulation commands comes through input pipe
-	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
-		if (!evt) break;
-		if (!mOutput.Send(evt))
-			break;
-	}
-
-	if (log_opened)
-	{
-		// this should also end log replay thread
-		mLog.close();
-		if (mLog_Replay_Thread->joinable())
-			mLog_Replay_Thread->join();
-	}
-
-	return S_OK;
+HRESULT CLog_Replay_Filter::Do_Execute(glucose::UDevice_Event event) {
+	return Send(event);
 }
 
 void CLog_Replay_Filter::WStr_To_Parameters(const std::wstring& src, glucose::SModel_Parameter_Vector& target)

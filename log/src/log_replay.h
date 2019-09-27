@@ -52,30 +52,27 @@
 /*
  * Filter class for loading previously stored log file and "replay" it through pipe
  */
-class CLog_Replay_Filter : public glucose::IFilter, public virtual refcnt::CReferenced {
-	protected:
-		glucose::SEvent_Receiver mInput;
-		glucose::SEvent_Sender mOutput;
-		std::wifstream mLog;
-		bool mIgnore_Shutdown = false;
-		std::wstring mLog_Filename;
-		std::unique_ptr<std::thread> mLog_Replay_Thread;
+class CLog_Replay_Filter : public glucose::CBase_Filter, public virtual refcnt::CReferenced {
+protected:		
+	std::wifstream mLog;
+	bool mIgnore_Shutdown = false;
+	std::wstring mLog_Filename;
+	std::unique_ptr<std::thread> mLog_Replay_Thread;
+protected:
+	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
+	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+protected:
+	// thread method
+	void Log_Replay();
 
-	protected:
-		// thread method
-		void Log_Replay();
+	// opens log for reading, returns true if success, false if failed
+	bool Open_Log(const std::wstring &log_filename);
+	// converts string to parameters vector; note that this method have no knowledge of models at all (does not validate parameter count, ..)
+	void WStr_To_Parameters(const std::wstring& src, glucose::SModel_Parameter_Vector& target);
 
-		// opens log for reading, returns true if success, false if failed
-		bool Open_Log(const std::wstring &log_filename);
-		// converts string to parameters vector; note that this method have no knowledge of models at all (does not validate parameter count, ..)
-		void WStr_To_Parameters(const std::wstring& src, glucose::SModel_Parameter_Vector& target);
-
-	public:
-		CLog_Replay_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe);
-		virtual ~CLog_Replay_Filter() {};
-
-		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
-		virtual HRESULT IfaceCalling Execute() override final;
+public:
+	CLog_Replay_Filter(glucose::IFilter* output);
+	virtual ~CLog_Replay_Filter();
 };
 
 #pragma warning( pop )

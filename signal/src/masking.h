@@ -54,33 +54,25 @@ constexpr size_t BitmaskMaxBitCount = 64;
 /*
  * Filter class for masking input levels using configured bitmask
  */
-class CMasking_Filter : public glucose::IFilter, public virtual refcnt::CReferenced
-{
-	protected:
-		// input pipe
-		glucose::SEvent_Receiver mInput;
-		// output pipe
-		glucose::SEvent_Sender mOutput;
+class CMasking_Filter : public glucose::CBase_Filter, public virtual refcnt::CReferenced {
+protected:		
+	// masking is performed separatelly for each segment
+	std::map<uint64_t, uint8_t> mSegmentMaskState;
 
-		// masking is performed separatelly for each segment
-		std::map<uint64_t, uint8_t> mSegmentMaskState;
-
-		// signal ID to be masked
-		GUID mSignal_Id = Invalid_GUID;
-		// bitset used for masking
-		std::bitset<BitmaskMaxBitCount> mMask;
-		// real bit count in a given bitmask
-		size_t mBitCount = 0;
-
-	protected:
-		bool Parse_Bitmask(std::wstring in);
-
-	public:
-		CMasking_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe);
-		virtual ~CMasking_Filter() {};
-
-		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) final;
-		virtual HRESULT IfaceCalling Execute() final;
+	// signal ID to be masked
+	GUID mSignal_Id = Invalid_GUID;
+	// bitset used for masking
+	std::bitset<BitmaskMaxBitCount> mMask;
+	// real bit count in a given bitmask
+	size_t mBitCount = 0;
+protected:
+	bool Parse_Bitmask(std::wstring in);
+protected:
+	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
+	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+public:
+	CMasking_Filter(glucose::IFilter *output);
+	virtual ~CMasking_Filter() {};	
 };
 
 #pragma warning( pop )

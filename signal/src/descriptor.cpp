@@ -253,16 +253,13 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output, glucose::IFilter **filter) {
-	auto shared_input = refcnt::make_shared_reference_ext<glucose::SEvent_Receiver, glucose::IEvent_Receiver>(input, true);
-	auto shared_output = refcnt::make_shared_reference_ext<glucose::SEvent_Sender, glucose::IEvent_Sender>(output, true);
-
+extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter *output, glucose::IFilter **filter) {	
 	if (*id == calculate::Calculate_Descriptor.id)
-		return Manufacture_Object<CCalculate_Filter>(filter, shared_input, shared_output);
+		return Manufacture_Object<CCalculate_Filter>(filter, output);
 	else if (*id == masking::Masking_Descriptor.id)
-		return Manufacture_Object<CMasking_Filter>(filter, shared_input, shared_output);
+		return Manufacture_Object<CMasking_Filter>(filter, output);
 	else if (*id == mapping::Mapping_Descriptor.id)
-		return Manufacture_Object<CMapping_Filter>(filter, shared_input, shared_output);
+		return Manufacture_Object<CMapping_Filter>(filter, output);
 
 	return ENOENT;
 }

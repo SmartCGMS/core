@@ -113,12 +113,9 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IEvent_Receiver *input, glucose::IEvent_Sender *output, glucose::IFilter **filter) {
-	glucose::SEvent_Receiver shared_in = refcnt::make_shared_reference_ext<glucose::SEvent_Receiver, glucose::IEvent_Receiver>(input, true);
-	glucose::SEvent_Sender shared_out = refcnt::make_shared_reference_ext<glucose::SEvent_Sender, glucose::IEvent_Sender>(output, true);
-
+extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter *output, glucose::IFilter **filter) {
 	if (*id == drawing::Drawing_Descriptor.id)
-		return Manufacture_Object<CDrawing_Filter>(filter, shared_in, shared_out);
+		return Manufacture_Object<CDrawing_Filter>(filter, output);
 
 	return ENOENT;
 }

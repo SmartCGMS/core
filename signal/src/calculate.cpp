@@ -51,7 +51,12 @@ constexpr unsigned char bool_2_uc(const bool b) {
 }
 
 
-CCalculate_Filter::CCalculate_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe) : mInput{ inpipe }, mOutput{ outpipe }, mReference_Signal_Id(Invalid_GUID) {
+CCalculate_Filter::CCalculate_Filter(glucose::IFilter *output) : mReference_Signal_Id(Invalid_GUID), CBase_Filter(output) {
+	//
+}
+
+CCalculate_Filter::~CCalculate_Filter() {
+	mSolver_Progress.cancelled = TRUE;
 }
 
 HRESULT IfaceCalling CCalculate_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
@@ -72,23 +77,21 @@ std::unique_ptr<CTime_Segment>& CCalculate_Filter::Get_Segment(const uint64_t se
 	}
 }
 
-HRESULT IfaceCalling CCalculate_Filter::Configure(glucose::IFilter_Configuration* configuration) {
-	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
-
-	mCalculated_Signal_Id = shared_configuration.Read_GUID(rsSelected_Signal);
-	mPrediction_Window = shared_configuration.Read_Double(rsPrediction_Window);
-	mSolver_Enabled = shared_configuration.Read_Bool(rsSolve_Parameters);
-	mSolve_On_Calibration = shared_configuration.Read_Bool(rsSolve_On_Calibration);
-	mSolve_On_Time_Segment_End = shared_configuration.Read_Bool(rsSolve_On_Time_Segment_End);
-	mSolve_All_Segments = shared_configuration.Read_Bool(rsSolve_Using_All_Segments);
-	mReference_Level_Threshold_Count = shared_configuration.Read_Int(rsSolve_On_Level_Count);
+HRESULT IfaceCalling CCalculate_Filter::Do_Configure(glucose::SFilter_Configuration configuration) {
+	mCalculated_Signal_Id = configuration.Read_GUID(rsSelected_Signal);
+	mPrediction_Window = configuration.Read_Double(rsPrediction_Window);
+	mSolver_Enabled = configuration.Read_Bool(rsSolve_Parameters);
+	mSolve_On_Calibration = configuration.Read_Bool(rsSolve_On_Calibration);
+	mSolve_On_Time_Segment_End = configuration.Read_Bool(rsSolve_On_Time_Segment_End);
+	mSolve_All_Segments = configuration.Read_Bool(rsSolve_Using_All_Segments);
+	mReference_Level_Threshold_Count = configuration.Read_Int(rsSolve_On_Level_Count);
 	mSolving_Scheduled = false;
 	mReference_Level_Counter = 0;
 
 	mSolver_Status = mSolver_Enabled ? glucose::TSolver_Status::Idle : glucose::TSolver_Status::Disabled;
 
-	mSolver_Id = shared_configuration.Read_GUID(rsSelected_Solver);
-	shared_configuration.Read_Parameters(rsSelected_Model_Bounds, mLower_Bound, mDefault_Parameters, mUpper_Bound);
+	mSolver_Id = configuration.Read_GUID(rsSelected_Solver);
+	configuration.Read_Parameters(rsSelected_Model_Bounds, mLower_Bound, mDefault_Parameters, mUpper_Bound);
 
 	//get reference signal id
 	glucose::TModel_Descriptor desc = glucose::Null_Model_Descriptor;
@@ -123,121 +126,118 @@ HRESULT IfaceCalling CCalculate_Filter::Configure(glucose::IFilter_Configuration
 	}
 
 	const auto metric_tmp = glucose::get_metric_descriptors();
-	mMetric_Id = shared_configuration.Read_GUID(rsSelected_Metric, metric_tmp.empty() ? Invalid_GUID : metric_tmp[0].id);
-	mUse_Relative_Error = shared_configuration.Read_Bool(rsUse_Relative_Error, mUse_Relative_Error);
-	mUse_Squared_Differences = shared_configuration.Read_Bool(rsUse_Squared_Diff, mUse_Squared_Differences);
-	mPrefer_More_Levels = shared_configuration.Read_Bool(rsUse_Prefer_More_Levels, mPrefer_More_Levels);
-	mMetric_Threshold = shared_configuration.Read_Double(rsMetric_Threshold, mMetric_Threshold);
-	mUse_Measured_Levels = shared_configuration.Read_Bool(rsUse_Measured_Levels, mUse_Measured_Levels);
-	mLevels_Required = shared_configuration.Read_Int(rsMetric_Levels_Required, desc.number_of_parameters);
+	mMetric_Id = configuration.Read_GUID(rsSelected_Metric, metric_tmp.empty() ? Invalid_GUID : metric_tmp[0].id);
+	mUse_Relative_Error = configuration.Read_Bool(rsUse_Relative_Error, mUse_Relative_Error);
+	mUse_Squared_Differences = configuration.Read_Bool(rsUse_Squared_Diff, mUse_Squared_Differences);
+	mPrefer_More_Levels = configuration.Read_Bool(rsUse_Prefer_More_Levels, mPrefer_More_Levels);
+	mMetric_Threshold = configuration.Read_Double(rsMetric_Threshold, mMetric_Threshold);
+	mUse_Measured_Levels = configuration.Read_Bool(rsUse_Measured_Levels, mUse_Measured_Levels);
+	mLevels_Required = configuration.Read_Int(rsMetric_Levels_Required, desc.number_of_parameters);
 
 	mSolver_Enabled &= (mSolver_Id != Invalid_GUID) & (mMetric_Id != Invalid_GUID);	//no metric, no solving and metric is no use without a solver anyway
 
 	return S_OK;
 }
 
-HRESULT CCalculate_Filter::Execute()  {
-	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
-		if (!evt) break;
+HRESULT CCalculate_Filter::Do_Execute(glucose::UDevice_Event event)  {
+	
+	bool event_already_sent = false;
+	HRESULT result = E_UNEXPECTED;
 
-		bool event_already_sent = false;
+	switch (event.event_code()) {
+		case glucose::NDevice_Event_Code::Level:
+			{
+				//copy those values, which may be gone once we send the event in the original order
+				const uint64_t segment_id = event.segment_id();
+				const GUID signal_id = event.signal_id();
+				const double level = event.level();
+				const double device_time = event.device_time();
 
-		switch (evt.event_code()) {
-			case glucose::NDevice_Event_Code::Level:
-				{
-					//copy those values, which may be gone once we send the event in the original order
-					const uint64_t segment_id = evt.segment_id();
-					const GUID signal_id = evt.signal_id();
-					const double level = evt.level();
-					const double device_time = evt.device_time();
+				Schedule_Solving(signal_id);
 
-					Schedule_Solving(signal_id);
-
-					//send the original event before other events are emitted
-					if (mOutput.Send(evt)) {
-						//now, evt may be gone!
-						event_already_sent = true;
-						Add_Level(segment_id, signal_id, level, device_time);
-					}
-					else
-						break;
+				//send the original event before other events are emitted
+				result = Send(event);
+				if (result == S_OK) {
+					//now, evt is gone!
+					event_already_sent = true;
+					Add_Level(segment_id, signal_id, level, device_time);
 				}
-				break;
+				else
+					break;
+			}
+			break;
 
-			case glucose::NDevice_Event_Code::Parameters:
+		case glucose::NDevice_Event_Code::Parameters:
 
-				if ((!mWarm_Reset_Done && mSolver_Enabled) || (!mSolver_Enabled))
+			if ((!mWarm_Reset_Done && mSolver_Enabled) || (!mSolver_Enabled))
 
-					//we either do not solve and therefore we do not preserve calculated parameters
-					//or, we calculate parameters and therefore we stop accepting new ones once warm-resetted
+				//we either do not solve and therefore we do not preserve calculated parameters
+				//or, we calculate parameters and therefore we stop accepting new ones once warm-resetted
 
-					if (evt.signal_id() == mCalculated_Signal_Id) {
-						if (evt.segment_id() != glucose::Invalid_Segment_Id){
+				if (event.signal_id() == mCalculated_Signal_Id) {
+					if (event.segment_id() != glucose::Invalid_Segment_Id){
 
-							auto test_and_apply_parameters = [&evt, this](const std::unique_ptr<CTime_Segment> &segment) {
-								//do these parameters improve?
-								glucose::SMetric metric{ glucose::TMetric_Parameters{ mMetric_Id, bool_2_uc(mUse_Relative_Error),  bool_2_uc(mUse_Squared_Differences), bool_2_uc(mPrefer_More_Levels),  mMetric_Threshold } };
-								glucose::ITime_Segment *segment_raw = segment.get();
-								const double current_fitness = Calculate_Fitness(&segment_raw, 1, metric, segment->Get_Parameters().get());
-								const double new_fitness = Calculate_Fitness(&segment_raw, 1, metric, evt.parameters.get());
+						auto test_and_apply_parameters = [&event, this](const std::unique_ptr<CTime_Segment> &segment) {
+							//do these parameters improve?
+							glucose::SMetric metric{ glucose::TMetric_Parameters{ mMetric_Id, bool_2_uc(mUse_Relative_Error),  bool_2_uc(mUse_Squared_Differences), bool_2_uc(mPrefer_More_Levels),  mMetric_Threshold } };
+							glucose::ITime_Segment *segment_raw = segment.get();
+							const double current_fitness = Calculate_Fitness(&segment_raw, 1, metric, segment->Get_Parameters().get());
+							const double new_fitness = Calculate_Fitness(&segment_raw, 1, metric, event.parameters.get());
 
-								if (new_fitness < current_fitness)
-									segment->Set_Parameters(evt.parameters);
-							};
+							if (new_fitness < current_fitness)
+								segment->Set_Parameters(event.parameters);
+						};
 
-							if (evt.segment_id() != glucose::All_Segments_Id) {
-								const auto &segment = Get_Segment(evt.segment_id());
-								if (segment) 
-									test_and_apply_parameters(segment);
-							} else {
-								for (const auto &segment:mSegments)
-									test_and_apply_parameters(segment.second);
-							}
-
-
-							Add_Parameters_Hint(evt.parameters);
+						if (event.segment_id() != glucose::All_Segments_Id) {
+							const auto &segment = Get_Segment(event.segment_id());
+							if (segment) 
+								test_and_apply_parameters(segment);
+						} else {
+							for (const auto &segment:mSegments)
+								test_and_apply_parameters(segment.second);
 						}
-					}
-				break;
 
-			case glucose::NDevice_Event_Code::Parameters_Hint:
-				if (evt.signal_id() == mCalculated_Signal_Id) Add_Parameters_Hint(evt.parameters);
-				break;
 
-			case glucose::NDevice_Event_Code::Time_Segment_Stop:
-				if (mSolver_Enabled && mSolve_On_Time_Segment_End) Run_Solver(evt.segment_id());
-					//in this particular case, we do not preserve the original order of events
-					//to emit the paramters before the time segment actually ends
-				break;
-
-			case glucose::NDevice_Event_Code::Solve_Parameters: {
-					if (evt.signal_id() == glucose::signal_All || evt.signal_id() == mCalculated_Signal_Id) {
-						// note that the Run_Solver method can handle Any_Segment_Id case properly, so we don't need to disambiguate here
-						const auto segment_id = evt.segment_id();
-						event_already_sent = mOutput.Send(evt);	//preserve the original order of the events
-						Run_Solver(segment_id);
+						Add_Parameters_Hint(event.parameters);
 					}
 				}
-				break;
+			break;
 
-			case glucose::NDevice_Event_Code::Warm_Reset:
-				for (const auto &segment : mSegments)
-					segment.second->Clear_Data();
-				mWarm_Reset_Done = true;
-				break;
-			default:
-				break;
-		}
+		case glucose::NDevice_Event_Code::Parameters_Hint:
+			if (event.signal_id() == mCalculated_Signal_Id) Add_Parameters_Hint(event.parameters);
+			break;
 
+		case glucose::NDevice_Event_Code::Time_Segment_Stop:
+			if (mSolver_Enabled && mSolve_On_Time_Segment_End) Run_Solver(event.segment_id());
+				//in this particular case, we do not preserve the original order of events
+				//to emit the paramters before the time segment actually ends
+			break;
 
-		if (!event_already_sent)
-			if (!mOutput.Send(evt))
-				break;
+		case glucose::NDevice_Event_Code::Solve_Parameters: {
+				if (event.signal_id() == glucose::signal_All || event.signal_id() == mCalculated_Signal_Id) {
+					// note that the Run_Solver method can handle Any_Segment_Id case properly, so we don't need to disambiguate here
+					const auto segment_id = event.segment_id();
+					result = Send(event);
+					event_already_sent = result == S_OK;	//preserve the original order of the events
+					Run_Solver(segment_id);
+				}
+			}
+			break;
+
+		case glucose::NDevice_Event_Code::Warm_Reset:
+			for (const auto &segment : mSegments)
+				segment.second->Clear_Data();
+			mWarm_Reset_Done = true;
+			break;
+		default:
+			break;
 	}
 
-	mSolver_Progress.cancelled = TRUE;
 
-	return S_OK;
+	if (!event_already_sent)
+		result = Send(event);
+	
+	return result;
 }
 
 void CCalculate_Filter::Add_Level(const uint64_t segment_id, const GUID &signal_id, const double level, const double time_stamp) {
@@ -418,7 +418,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 				solved_evt.signal_id() = mCalculated_Signal_Id;
 				solved_evt.segment_id() = segment_id;
 				solved_evt.parameters.set(solved_parameters);
-				mOutput.Send(solved_evt);
+				Send(solved_evt);
 			}
 			else {
 				mSolver_Status = glucose::TSolver_Status::Completed_Not_Improved;
@@ -428,7 +428,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 				not_improved_evt.signal_id() = mCalculated_Signal_Id;
 				not_improved_evt.segment_id() = segment_id;
 				not_improved_evt.info.set(rsInfo_Solver_Completed_But_No_Improvement);
-				mOutput.Send(not_improved_evt);
+				Send(not_improved_evt);
 			}
 
 		} else {
@@ -441,7 +441,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 			failed_evt.signal_id() = mCalculated_Signal_Id;
 			failed_evt.segment_id() = segment_id;
 			failed_evt.info.set(rsInfo_Solver_Failed);
-			mOutput.Send(failed_evt);
+			Send(failed_evt);
 		}
 
 	};
@@ -491,8 +491,7 @@ HRESULT IfaceCalling CCalculate_Filter::Get_Solver_Information(GUID* const calcu
 	return S_OK;
 }
 
-HRESULT IfaceCalling CCalculate_Filter::Cancel_Solver()
-{
+HRESULT IfaceCalling CCalculate_Filter::Cancel_Solver() {
 	mSolver_Progress.cancelled = TRUE;
 
 	return S_OK;

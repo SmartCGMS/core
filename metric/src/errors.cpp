@@ -49,8 +49,7 @@
 #include <chrono>
 
 
-CErrors_Filter::CErrors_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe)
-	: mInput{inpipe}, mOutput{outpipe} {
+CErrors_Filter::CErrors_Filter(glucose::IFilter *output) : CBase_Filter(output)	{
 	//
 }
 
@@ -62,54 +61,40 @@ HRESULT IfaceCalling CErrors_Filter::QueryInterface(const GUID*  riid, void ** p
 	return E_NOINTERFACE;
 }
 
-HRESULT IfaceCalling CErrors_Filter::Configure(glucose::IFilter_Configuration* configuration) {
+HRESULT IfaceCalling CErrors_Filter::Do_Configure(glucose::SFilter_Configuration configuration) {
 	return S_OK;
 }
 
-HRESULT CErrors_Filter::Execute() {
-	
-	mErrorCounter = std::make_unique<CError_Marker_Counter>();
-	
-	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
-		if (!evt) break;
-	
-		switch (evt.event_code())
-		{
-			case glucose::NDevice_Event_Code::Level:
-			case glucose::NDevice_Event_Code::Masked_Level:
-				// the internal logic will tell us, if the signal is reference signal, and therefore we need to recalculate errors
-				if (mErrorCounter->Add_Level(evt.segment_id(), evt.signal_id(), evt.device_time(), evt.level()))
-					mErrorCounter->Recalculate_Errors();
-				break;
-			case glucose::NDevice_Event_Code::Parameters:
-				break;
-			case glucose::NDevice_Event_Code::Time_Segment_Stop:
-				mErrorCounter->Recalculate_Errors();
-				break;
-			case glucose::NDevice_Event_Code::Information:
-				if (evt.info == rsSegment_Recalculate_Complete)
-					mErrorCounter->Recalculate_Errors_For(evt.signal_id());
-				else if (evt.info == rsParameters_Reset)
-					mErrorCounter->Reset_Segment(evt.segment_id(), evt.signal_id());
-				break;
-			case glucose::NDevice_Event_Code::Warm_Reset:
-				mErrorCounter->Reset_All();
-				break;
-			default:
-				break;
-		}
-
-		if (!mOutput.Send(evt))
+HRESULT CErrors_Filter::Do_Execute(glucose::UDevice_Event event) {
+	switch (event.event_code())	{
+		case glucose::NDevice_Event_Code::Level:
+		case glucose::NDevice_Event_Code::Masked_Level:
+			// the internal logic will tell us, if the signal is reference signal, and therefore we need to recalculate errors
+			if (mErrorCounter.Add_Level(event.segment_id(), event.signal_id(), event.device_time(), event.level()))
+				mErrorCounter.Recalculate_Errors();
+			break;
+		case glucose::NDevice_Event_Code::Parameters:
+			break;
+		case glucose::NDevice_Event_Code::Time_Segment_Stop:
+			mErrorCounter.Recalculate_Errors();
+			break;
+		case glucose::NDevice_Event_Code::Information:
+			if (event.info == rsSegment_Recalculate_Complete)
+				mErrorCounter.Recalculate_Errors_For(event.signal_id());
+			else if (event.info == rsParameters_Reset)
+				mErrorCounter.Reset_Segment(event.segment_id(), event.signal_id());
+			break;
+		case glucose::NDevice_Event_Code::Warm_Reset:
+			mErrorCounter.Reset_All();
+			break;
+		default:
 			break;
 	}
 
-	return S_OK;
+	return Send(event);			
 }
 
 
 HRESULT IfaceCalling CErrors_Filter::Get_Errors(const GUID *signal_id, const glucose::NError_Type type, glucose::TError_Markers *markers) {
-	if (!mErrorCounter)
-		return E_FAIL;
-
-	return mErrorCounter->Get_Errors(*signal_id, type, *markers);
+	return mErrorCounter.Get_Errors(*signal_id, type, *markers);
 }

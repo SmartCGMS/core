@@ -101,7 +101,7 @@ protected:
 	HRESULT Call_Func(functype funcegetter, Args... args) const {
 		HRESULT rc = E_NOTIMPL;	//not found
 
-		for (auto &iter : mLibraries) {
+		for (const auto &iter : mLibraries) {
 			auto funcptr = funcegetter(iter);
 			if (funcptr != nullptr) {
 				HRESULT local_rc = (funcptr)(args...);

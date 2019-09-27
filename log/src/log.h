@@ -77,10 +77,8 @@ namespace logger {
 /*
  * Filter class for logging all incoming events and dropping them (terminating the chain)
  */
-class CLog_Filter : public glucose::IFilter, public glucose::ILog_Filter_Inspection, public virtual refcnt::CReferenced {
+class CLog_Filter : public glucose::CBase_Filter, public glucose::ILog_Filter_Inspection{
 protected:
-	glucose::SEvent_Receiver mInput;
-	glucose::SEvent_Sender mOutput;
 	std::wofstream mLog;
 	glucose::CSignal_Names mSignal_Names;
 	std::wstring mLog_Filename;
@@ -96,14 +94,14 @@ protected:
 	// vector of model descriptors; stored for parameter formatting
 	std::vector<glucose::TModel_Descriptor> mModelDescriptors;
 	std::wstring Parameters_To_WStr(const glucose::UDevice_Event& evt);
+protected:
+	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
+	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
 public:
-	CLog_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe);
-	virtual ~CLog_Filter() {};
+	CLog_Filter(glucose::IFilter *output);
+	virtual ~CLog_Filter();
 	
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
-
-	virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
-	virtual HRESULT IfaceCalling Execute() override final;
 
 	virtual HRESULT IfaceCalling Pop(refcnt::wstr_list **str) override final;
 };

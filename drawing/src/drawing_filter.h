@@ -57,10 +57,7 @@
 /*
  * Drawing filter class utilizing the code for generating SVGs based on input data
  */
-class CDrawing_Filter : public glucose::IFilter, public glucose::IDrawing_Filter_Inspection, public virtual refcnt::CReferenced {
-protected:
-	glucose::SEvent_Receiver mInput;
-	glucose::SEvent_Sender mOutput;
+class CDrawing_Filter : public glucose::CBase_Filter, public glucose::IDrawing_Filter_Inspection {
 protected:
 	// stored AGP SVG
 	std::string mAGP_SVG;
@@ -130,6 +127,8 @@ protected:
 	// configured canvas height
 	int mCanvasHeight = 768;
 
+	std::set<GUID> mSignalsBeingReset;
+
 	// if the inputs changed, redraw SVGs
 	bool Redraw_If_Changed(const std::unordered_set<uint64_t> &segmentIds = {}, const std::set<GUID> &signalIds = {});
 	// redraw (without locking!)
@@ -152,14 +151,15 @@ protected:
 	void Prepare_Drawing_Map(const std::unordered_set<uint64_t> &segmentIds = {}, const std::set<GUID> &signalIds = {});
 
 	HRESULT Get_Plot(const std::string &plot, refcnt::IVector_Container<char> *svg) const;
+protected:
+	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
+	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
 public:
-	CDrawing_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe);
+	CDrawing_Filter(glucose::IFilter *output);
 	virtual ~CDrawing_Filter() = default;
 
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
-
-	virtual HRESULT Configure(glucose::IFilter_Configuration* configuration) override final;
-	virtual HRESULT Execute() override final;
+	
 
 	virtual HRESULT IfaceCalling Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg, refcnt::IVector_Container<uint64_t> *segmentIds, refcnt::IVector_Container<GUID> *signalIds) override;
 };

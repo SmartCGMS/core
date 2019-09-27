@@ -54,8 +54,15 @@
 #include <map>
 #include <codecvt>
 
-CLog_Filter::CLog_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe)	: mInput{inpipe}, mOutput{outpipe} {	
+CLog_Filter::CLog_Filter(glucose::IFilter *output)	: CBase_Filter(output) {
 	mNew_Log_Records = refcnt::Create_Container_shared<refcnt::wstr_container*>(nullptr, nullptr);
+}
+
+CLog_Filter::~CLog_Filter() {
+	mIs_Terminated = true;
+
+	if (mLog.is_open())
+		mLog.close();	
 }
 
 HRESULT IfaceCalling CLog_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
@@ -107,19 +114,18 @@ std::wstring CLog_Filter::Parameters_To_WStr(const glucose::UDevice_Event& evt) 
 }
 
 bool CLog_Filter::Open_Log(const std::wstring &log_filename) {
-
 	bool result = false;
-	
+
 	// if have output file name
 	if (!log_filename.empty()) {
 		// try to open output file
 		std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converterX;
 		mLog.open(converterX.to_bytes(log_filename));
-
+	
 		result = mLog.is_open();
 		if (result) {
 			//set decimal point and write the header
-			mLog.imbue(std::locale(std::cout.getloc(), new logger::DecimalSeparator<char>('.')));
+			auto unused = mLog.imbue(std::locale(std::cout.getloc(), new logger::DecimalSeparator<char>('.')));
 			mLog << dsLog_Header << std::endl;
 		}
 	}
@@ -127,34 +133,20 @@ bool CLog_Filter::Open_Log(const std::wstring &log_filename) {
 	return result;
 }
 
-HRESULT IfaceCalling CLog_Filter::Configure(glucose::IFilter_Configuration* configuration) {
+HRESULT IfaceCalling CLog_Filter::Do_Configure(glucose::SFilter_Configuration configuration) {
 	// load model descriptors to be able to properly format log outputs of parameters	
 	mModelDescriptors = glucose::get_model_descriptors();
-	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
-	mLog_Filename = shared_configuration.Read_String(rsLog_Output_File);
+	mLog_Filename = configuration.Read_String(rsLog_Output_File);
 
-	return S_OK;
-}
-
-HRESULT IfaceCalling CLog_Filter::Execute() {
 	mIs_Terminated = false;
 
-	const bool log_opened = Open_Log(mLog_Filename);
 
-	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
-		if (!evt) break;
+	return Open_Log(mLog_Filename) ? S_OK : S_FALSE;
+}
 
-		Log_Event(evt);
-
-		if (!mOutput.Send(evt)) break;
-	}	
-
-	mIs_Terminated = true;
-
-	if (log_opened)
-		mLog.close();
-
-	return S_OK;
+HRESULT IfaceCalling CLog_Filter::Do_Execute(glucose::UDevice_Event event) {
+	Log_Event(event);
+	return Send(event);		
 };
 
 

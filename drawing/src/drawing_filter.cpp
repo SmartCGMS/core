@@ -82,7 +82,7 @@ const std::map<GUID, const char*, std::less<GUID>, tbb::tbb_allocator<std::pair<
 	{ glucose::signal_COB, "cob" },
 };
 
-CDrawing_Filter::CDrawing_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe) : mInput{ inpipe }, mOutput{ outpipe }, mGraphMaxValue(-1) {
+CDrawing_Filter::CDrawing_Filter(glucose::IFilter *output) : mGraphMaxValue(-1), CBase_Filter(output) {
 	//
 }
 
@@ -93,141 +93,131 @@ HRESULT IfaceCalling CDrawing_Filter::QueryInterface(const GUID*  riid, void ** 
 	return E_NOINTERFACE;
 }
 
-HRESULT CDrawing_Filter::Execute() {
-
-	std::set<GUID> signalsBeingReset;
-
-	// TODO: get rid of excessive locking (mutexes)
-
+HRESULT CDrawing_Filter::Do_Execute(glucose::UDevice_Event event) {
+	
 	std::unique_lock<std::mutex> lck(mChangedMtx);
 
-	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
-		if (!evt) break;
 
-		// incoming level or calibration - store to appropriate vector
-		if (evt.event_code() == glucose::NDevice_Event_Code::Level )
-		{
-			//std::unique_lock<std::mutex> lck(mChangedMtx);
+	// incoming level or calibration - store to appropriate vector
+	if (event.event_code() == glucose::NDevice_Event_Code::Level )
+	{
+	
+		mInputData[event.signal_id()][event.segment_id()].push_back(Value(event.level(), Rat_Time_To_Unix_Time(event.device_time()), event.segment_id()));
+		// signal is not being reset (recalculated and resent) right now - set changed flag
+		if (mSignalsBeingReset.find(event.signal_id()) == mSignalsBeingReset.end())
+			mChanged = true;
+	}
+	// incoming new parameters
+	else if (event.event_code() == glucose::NDevice_Event_Code::Parameters)
+	{
+		mParameterChanges[event.signal_id()][event.segment_id()].push_back(Value((double)Rat_Time_To_Unix_Time(event.device_time()), Rat_Time_To_Unix_Time(event.device_time()), event.segment_id()));
+	}
+	else if (event.event_code() == glucose::NDevice_Event_Code::Shut_Down)
+	{
+		// when the filter shuts down, store drawings to files
+		Force_Redraw();
 
-			mInputData[evt.signal_id()][evt.segment_id()].push_back(Value(evt.level(), Rat_Time_To_Unix_Time(evt.device_time()), evt.segment_id()));
-			// signal is not being reset (recalculated and resent) right now - set changed flag
-			if (signalsBeingReset.find(evt.signal_id()) == signalsBeingReset.end())
-				mChanged = true;
-		}
-		// incoming new parameters
-		else if (evt.event_code() == glucose::NDevice_Event_Code::Parameters)
+		Store_To_File(mGraph_SVG, mGraph_FilePath);
+		Store_To_File(mClark_SVG, mClark_FilePath);
+		Store_To_File(mDay_SVG, mDay_FilePath);
+		Store_To_File(mAGP_SVG, mAGP_FilePath);
+		Store_To_File(mParkes_type1_SVG, mParkes_FilePath);
+		Store_To_File(mECDF_SVG, mECDF_FilePath);
+		// TODO: store profile drawings
+	}
+	// incoming parameters reset information message
+	else if (event.event_code() == glucose::NDevice_Event_Code::Information)
+	{
+		// we catch parameter reset information message
+		if (event.info == rsParameters_Reset)
 		{
-			mParameterChanges[evt.signal_id()][evt.segment_id()].push_back(Value((double)Rat_Time_To_Unix_Time(evt.device_time()), Rat_Time_To_Unix_Time(evt.device_time()), evt.segment_id()));
-		}
-		else if (evt.event_code() == glucose::NDevice_Event_Code::Shut_Down)
-		{
-			// when the filter shuts down, store drawings to files
-			Force_Redraw();
+			// TODO: verify, if parameter reset came for signal, that is really a calculated signal (not measured)
 
-			Store_To_File(mGraph_SVG, mGraph_FilePath);
-			Store_To_File(mClark_SVG, mClark_FilePath);
-			Store_To_File(mDay_SVG, mDay_FilePath);
-			Store_To_File(mAGP_SVG, mAGP_FilePath);
-			Store_To_File(mParkes_type1_SVG, mParkes_FilePath);
-			Store_To_File(mECDF_SVG, mECDF_FilePath);
-			// TODO: store profile drawings
-		}
-		// incoming parameters reset information message
-		else if (evt.event_code() == glucose::NDevice_Event_Code::Information)
-		{
-			// we catch parameter reset information message
-			if (evt.info == rsParameters_Reset)
+			// reset of specific signal
+			if (event.signal_id() != Invalid_GUID)
 			{
-				// TODO: verify, if parameter reset came for signal, that is really a calculated signal (not measured)
-
-				// reset of specific signal
-				if (evt.signal_id() != Invalid_GUID)
+				Reset_Signal(event.signal_id(), event.segment_id());
+				mSignalsBeingReset.insert(event.signal_id());
+			}
+			else // reset of all calculated signals (signal == Invalid_GUID)
+			{
+				for (auto& data : mInputData)
 				{
-					Reset_Signal(evt.signal_id(), evt.segment_id());
-					signalsBeingReset.insert(evt.signal_id());
-				}
-				else // reset of all calculated signals (signal == Invalid_GUID)
-				{
-					for (auto& data : mInputData)
+					if (Signal_Mapping.find(data.first) == Signal_Mapping.end())
 					{
-						if (Signal_Mapping.find(data.first) == Signal_Mapping.end())
-						{
-							Reset_Signal(data.first, evt.segment_id());
-							signalsBeingReset.insert(evt.signal_id());
-						}
+						Reset_Signal(data.first, event.segment_id());
+						mSignalsBeingReset.insert(event.signal_id());
 					}
 				}
 			}
-			else if (evt.info == rsSegment_Recalculate_Complete)
-			{
-				signalsBeingReset.erase(evt.signal_id());
-				mChanged = true;
-			}
-			else if (refcnt::WChar_Container_Equals_WString(evt.info.get(), L"DrawingResize", 0, 13))
-			{
-				std::wstring str = refcnt::WChar_Container_To_WString(evt.info.get());
-				auto rpos = str.find(L'=');
-				auto cpos = str.find(L',');
+		}
+		else if (event.info == rsSegment_Recalculate_Complete)
+		{
+			mSignalsBeingReset.erase(event.signal_id());
+			mChanged = true;
+		}
+		else if (refcnt::WChar_Container_Equals_WString(event.info.get(), L"DrawingResize", 0, 13))
+		{
+			std::wstring str = refcnt::WChar_Container_To_WString(event.info.get());
+			auto rpos = str.find(L'=');
+			auto cpos = str.find(L',');
 				
-				auto drawingId = static_cast<glucose::TDrawing_Image_Type>(std::stoull(str.substr(rpos + 1, rpos - cpos - 1)));
-				str = str.substr(cpos + 1);
-				rpos = str.find(L'=');
-				cpos = str.find(L',');
+			auto drawingId = static_cast<glucose::TDrawing_Image_Type>(std::stoull(str.substr(rpos + 1, rpos - cpos - 1)));
+			str = str.substr(cpos + 1);
+			rpos = str.find(L'=');
+			cpos = str.find(L',');
 
-				int width = static_cast<int>(std::stoull(str.substr(rpos + 1, rpos - cpos - 1)));
-				str = str.substr(cpos + 1);
-				rpos = str.find(L'=');
+			int width = static_cast<int>(std::stoull(str.substr(rpos + 1, rpos - cpos - 1)));
+			str = str.substr(cpos + 1);
+			rpos = str.find(L'=');
 
-				int height = static_cast<int>(std::stoull(str.substr(rpos + 1)));
+			int height = static_cast<int>(std::stoull(str.substr(rpos + 1)));
 
-				switch (drawingId)
-				{
-					case glucose::TDrawing_Image_Type::Graph:
-						CGraph_Generator::Set_Canvas_Size(width, height);
-						break;
-					case glucose::TDrawing_Image_Type::Day:
-						CDay_Generator::Set_Canvas_Size(width, height);
-						break;
-					case glucose::TDrawing_Image_Type::Parkes:
-						CParkes_Generator::Set_Canvas_Size(width, height);
-						break;
-					case glucose::TDrawing_Image_Type::Clark:
-						CClark_Generator::Set_Canvas_Size(width, height);
-						break;
-					case glucose::TDrawing_Image_Type::AGP:
-						CAGP_Generator::Set_Canvas_Size(width, height);
-						break;
-					case glucose::TDrawing_Image_Type::ECDF:
-						CECDF_Generator::Set_Canvas_Size(width, height);
-						break;
-					case glucose::TDrawing_Image_Type::Profile_Glucose:
-						CMobile_Glucose_Generator::Set_Canvas_Size(width, height);
-						break;
-					case glucose::TDrawing_Image_Type::Profile_Carbs:
-						CMobile_Carbs_Generator::Set_Canvas_Size(width, height);
-						break;
-					case glucose::TDrawing_Image_Type::Profile_Insulin:
-						CMobile_Insulin_Generator::Set_Canvas_Size(width, height);
-						break;
-					default:
-						break;
-				}
+			switch (drawingId)
+			{
+				case glucose::TDrawing_Image_Type::Graph:
+					CGraph_Generator::Set_Canvas_Size(width, height);
+					break;
+				case glucose::TDrawing_Image_Type::Day:
+					CDay_Generator::Set_Canvas_Size(width, height);
+					break;
+				case glucose::TDrawing_Image_Type::Parkes:
+					CParkes_Generator::Set_Canvas_Size(width, height);
+					break;
+				case glucose::TDrawing_Image_Type::Clark:
+					CClark_Generator::Set_Canvas_Size(width, height);
+					break;
+				case glucose::TDrawing_Image_Type::AGP:
+					CAGP_Generator::Set_Canvas_Size(width, height);
+					break;
+				case glucose::TDrawing_Image_Type::ECDF:
+					CECDF_Generator::Set_Canvas_Size(width, height);
+					break;
+				case glucose::TDrawing_Image_Type::Profile_Glucose:
+					CMobile_Glucose_Generator::Set_Canvas_Size(width, height);
+					break;
+				case glucose::TDrawing_Image_Type::Profile_Carbs:
+					CMobile_Carbs_Generator::Set_Canvas_Size(width, height);
+					break;
+				case glucose::TDrawing_Image_Type::Profile_Insulin:
+					CMobile_Insulin_Generator::Set_Canvas_Size(width, height);
+					break;
+				default:
+					break;
 			}
 		}
-		else if (evt.event_code() == glucose::NDevice_Event_Code::Time_Segment_Start || evt.event_code() == glucose::NDevice_Event_Code::Time_Segment_Stop)
-		{
-			mSegmentMarkers.push_back(Value(0, Rat_Time_To_Unix_Time(evt.device_time()), evt.segment_id()));
-		}
-		else if (evt.event_code() == glucose::NDevice_Event_Code::Warm_Reset)
-		{
-			mInputData.clear();
-			mParameterChanges.clear();
-		}
-
-		if (!mOutput.Send(evt)) break;
+	}
+	else if (event.event_code() == glucose::NDevice_Event_Code::Time_Segment_Start || event.event_code() == glucose::NDevice_Event_Code::Time_Segment_Stop)
+	{
+		mSegmentMarkers.push_back(Value(0, Rat_Time_To_Unix_Time(event.device_time()), event.segment_id()));
+	}
+	else if (event.event_code() == glucose::NDevice_Event_Code::Warm_Reset)
+	{
+		mInputData.clear();
+		mParameterChanges.clear();
 	}
 
-	return S_OK;
+	return Send(event);
 }
 
 bool CDrawing_Filter::Force_Redraw(const std::unordered_set<uint64_t> &segmentIds, const std::set<GUID> &signalIds)
@@ -401,18 +391,15 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 	mDataMap = vectorsMap;
 }
 
-HRESULT CDrawing_Filter::Configure(glucose::IFilter_Configuration* const configuration) {
-
-	auto conf = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
-
-	mCanvasWidth = static_cast<int>(conf.Read_Int(rsDrawing_Filter_Canvas_Width, mCanvasWidth));
-	mCanvasHeight = static_cast<int>(conf.Read_Int(rsDrawing_Filter_Canvas_Height, mCanvasHeight));
-	mAGP_FilePath = conf.Read_String(rsDrawing_Filter_Filename_AGP);
-	mClark_FilePath = conf.Read_String(rsDrawing_Filter_Filename_Clark);
-	mDay_FilePath = conf.Read_String(rsDrawing_Filter_Filename_Day);
-	mGraph_FilePath = conf.Read_String(rsDrawing_Filter_Filename_Graph);
-	mParkes_FilePath = conf.Read_String(rsDrawing_Filter_Filename_Parkes);
-	mECDF_FilePath = conf.Read_String(rsDrawing_Filter_Filename_ECDF);
+HRESULT CDrawing_Filter::Do_Configure(glucose::SFilter_Configuration configuration) {
+	mCanvasWidth = static_cast<int>(configuration.Read_Int(rsDrawing_Filter_Canvas_Width, mCanvasWidth));
+	mCanvasHeight = static_cast<int>(configuration.Read_Int(rsDrawing_Filter_Canvas_Height, mCanvasHeight));
+	mAGP_FilePath = configuration.Read_String(rsDrawing_Filter_Filename_AGP);
+	mClark_FilePath = configuration.Read_String(rsDrawing_Filter_Filename_Clark);
+	mDay_FilePath = configuration.Read_String(rsDrawing_Filter_Filename_Day);
+	mGraph_FilePath = configuration.Read_String(rsDrawing_Filter_Filename_Graph);
+	mParkes_FilePath = configuration.Read_String(rsDrawing_Filter_Filename_Parkes);
+	mECDF_FilePath = configuration.Read_String(rsDrawing_Filter_Filename_ECDF);
 
 	if (mCanvasWidth != 0 && mCanvasHeight != 0)
 	{
@@ -443,6 +430,8 @@ HRESULT CDrawing_Filter::Configure(glucose::IFilter_Configuration* const configu
 		mCalcSignalNameMap[glucose::signal_Virtual[i]] = std::string("virtual ") + std::to_string(i);
 
 	Fill_Localization_Map(mLocaleMap);
+
+	mSignalsBeingReset.clear();
 
 	return S_OK;
 }

@@ -56,27 +56,21 @@
 /*
  * Filter class for calculating error metrics
  */
-class CErrors_Filter : public glucose::IFilter, public glucose::IError_Filter_Inspection, public virtual refcnt::CReferenced
-{
-	protected:
-		// input pipe
-		glucose::SEvent_Receiver mInput;
-		// output pipe
-		glucose::SEvent_Sender mOutput;
-
-		// currently used error counter instance; TODO: in future, we need to consider more segments at once
-		std::unique_ptr<CError_Marker_Counter> mErrorCounter;
-	public:
-		CErrors_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe);
-		virtual ~CErrors_Filter() {};
+class CErrors_Filter : public glucose::CBase_Filter, public glucose::IError_Filter_Inspection {
+protected:		
+	// currently used error counter instance; TODO: in future, we need to consider more segments at once
+	CError_Marker_Counter mErrorCounter;
+protected:
+	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
+	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+public:
+	CErrors_Filter(glucose::IFilter *output);
+	virtual ~CErrors_Filter() {};
 		
-		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
+	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
 
-		virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
-		virtual HRESULT IfaceCalling Execute() override final;
-
-		// retrieves the only instance of errors filter
-		virtual HRESULT IfaceCalling Get_Errors(const GUID *signal_id, const glucose::NError_Type type, glucose::TError_Markers *markers) override final;
+	// retrieves the only instance of errors filter
+	virtual HRESULT IfaceCalling Get_Errors(const GUID *signal_id, const glucose::NError_Type type, glucose::TError_Markers *markers) override final;
 };
 
 

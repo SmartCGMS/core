@@ -46,9 +46,7 @@
 #include <codecvt>
 #include <locale>
 
-CMasking_Filter::CMasking_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe)
-	: mInput{ inpipe }, mOutput{ outpipe }
-{
+CMasking_Filter::CMasking_Filter(glucose::IFilter *output) : CBase_Filter(output) {
 	//
 }
 
@@ -85,41 +83,34 @@ bool CMasking_Filter::Parse_Bitmask(std::wstring inw)
 	return true;
 }
 
-HRESULT IfaceCalling CMasking_Filter::Configure(glucose::IFilter_Configuration* configuration) {
-	glucose::SFilter_Parameters shared_configuration = refcnt::make_shared_reference_ext<glucose::SFilter_Parameters, glucose::IFilter_Configuration>(configuration, true);
-	mSignal_Id = shared_configuration.Read_GUID(rsSignal_Masked_Id);
+HRESULT IfaceCalling CMasking_Filter::Do_Configure(glucose::SFilter_Configuration configuration) {
+	mSignal_Id = configuration.Read_GUID(rsSignal_Masked_Id);
 
-	if (!Parse_Bitmask(shared_configuration.Read_String(rsSignal_Value_Bitmask)))
+	if (!Parse_Bitmask(configuration.Read_String(rsSignal_Value_Bitmask)))
 		return E_FAIL;
 
 	return S_OK;
 }
 
-HRESULT IfaceCalling CMasking_Filter::Execute() {
-	for (; glucose::UDevice_Event evt = mInput.Receive(); ) {
-		if (!evt) break;
+HRESULT IfaceCalling CMasking_Filter::Do_Execute(glucose::UDevice_Event event) {
+	// mask only configured signal and event of type "Level"
+	if (event.event_code() == glucose::NDevice_Event_Code::Level && event.signal_id() == mSignal_Id) {
+		auto itr = mSegmentMaskState.find(event.segment_id());
+		if (itr == mSegmentMaskState.end())
+			mSegmentMaskState[event.segment_id()] = 0;
 
-		// mask only configured signal and event of type "Level"
-		if (evt.event_code() == glucose::NDevice_Event_Code::Level && evt.signal_id() == mSignal_Id) {
-			auto itr = mSegmentMaskState.find(evt.segment_id());
-			if (itr == mSegmentMaskState.end())
-				mSegmentMaskState[evt.segment_id()] = 0;
-
-			if (mMask.test(mSegmentMaskState[evt.segment_id()]))
-			{
-				// This is certainly not nice, but we want to avoid creating a new device event, because it will generate new logical clock value, which would be
-				// out of order with the rest of levels; also Level and Masked_Level uses the same union value, so it's fine to just change the type
-				glucose::TDevice_Event* raw;
-				if (evt.get()->Raw(&raw) == S_OK)
-					raw->event_code = glucose::NDevice_Event_Code::Masked_Level;
-			}
-
-			mSegmentMaskState[evt.segment_id()] = (mSegmentMaskState[evt.segment_id()] + 1) % mBitCount;
+		if (mMask.test(mSegmentMaskState[event.segment_id()]))
+		{
+			// This is certainly not nice, but we want to avoid creating a new device event, because it will generate new logical clock value, which would be
+			// out of order with the rest of levels; also Level and Masked_Level uses the same union value, so it's fine to just change the type
+			glucose::TDevice_Event* raw;
+			if (event.get()->Raw(&raw) == S_OK)
+				raw->event_code = glucose::NDevice_Event_Code::Masked_Level;
 		}
 
-		if (!mOutput.Send(evt))
-			break;
+		mSegmentMaskState[event.segment_id()] = (mSegmentMaskState[event.segment_id()] + 1) % mBitCount;
 	}
 
-	return S_OK;
+
+	return Send(event);
 }

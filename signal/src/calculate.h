@@ -53,10 +53,7 @@
 /*
  * Filter class for calculating signals from incoming parameters
  */
-class CCalculate_Filter : public glucose::IFilter, public glucose::ICalculate_Filter_Inspection, public virtual refcnt::CReferenced {
-protected:
-	glucose::SEvent_Receiver mInput;
-	glucose::SEvent_Sender mOutput;
+class CCalculate_Filter : public glucose::CBase_Filter, public glucose::ICalculate_Filter_Inspection {
 protected:
 	// calculated signal ID
 	GUID mCalculated_Signal_Id = Invalid_GUID;
@@ -92,13 +89,12 @@ protected:
 	std::unique_ptr<CTime_Segment>& Get_Segment(const uint64_t segment_id);
 	void Add_Level(const uint64_t segment_id, const GUID &signal_id, const double level, const double time_stamp);	
 	void Add_Parameters_Hint(glucose::SModel_Parameter_Vector parameters);
+protected:
+	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
+	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
 public:
-	CCalculate_Filter(glucose::SEvent_Receiver inpipe, glucose::SEvent_Sender outpipe);
-	virtual ~CCalculate_Filter() {};
-
-	virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) final;
-	virtual HRESULT IfaceCalling Execute() final;
-
+	CCalculate_Filter(glucose::IFilter *output);
+	virtual ~CCalculate_Filter();
 
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
 	virtual HRESULT IfaceCalling Get_Solver_Progress(solver::TSolver_Progress* const progress) override;

@@ -56,9 +56,10 @@ HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configurati
 	if (rc != S_OK) return rc;
 
 	//we have to create the filter executors from the last one
-	glucose::IFilter_Configuration_Link *link = *(link_end-1);	
 	try {
 		do {
+			glucose::IFilter_Configuration_Link* &link = *(link_end-1);
+
 			//let's find out if this filter is synchronous or asynchronous
 			GUID filter_id;
 			rc = link->Get_Filter_Id(&filter_id);
@@ -70,16 +71,16 @@ HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configurati
 			if (rc != S_OK) return rc;
 			
 			//filter is configured, insert it into the chain			
-			mExecutors.insert(mExecutors.begin(), std::move(new_executor));
 			last_filter = new_executor.get();
-
-		} while (link != *link_begin);
+			mExecutors.insert(mExecutors.begin(), std::move(new_executor));			
+			
+			link_end--;	
+		} while (*link_end != *link_begin);
 	}
 	catch (...) {
 		mExecutors.clear();
 		return E_FAIL;
 	}
-	
 
 	return S_OK;
 }
