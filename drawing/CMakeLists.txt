@@ -6,13 +6,20 @@ CONFIGURE_COMMON(${PROJ})
 
 FILE(GLOB SRC_FILES "src/*.cpp" "src/*.c" "src/*.h")
 IF(WIN32)
-	FILE(GLOB SRC_WIN_FILES "src/win/*.cpp" "src/win/*.h" "src/win/*.def")
-	SET(SRC_FILES "${SRC_FILES};${SRC_WIN_FILES}")
+    FILE(GLOB SRC_WIN_FILES "src/win/*.cpp" "src/win/*.h" "src/win/*.def")
+    SET(SRC_FILES "${SRC_FILES};${SRC_WIN_FILES}")
 ENDIF()
+
+SET(DRAWING_UTILS_SRC )
+ADD_UTILS_FILE(DRAWING_UTILS_SRC "drawing/IRenderer.h")
+ADD_UTILS_FILE(DRAWING_UTILS_SRC "drawing/Drawing.cpp")
+ADD_UTILS_FILE(DRAWING_UTILS_SRC "drawing/Drawing.h")
+ADD_UTILS_FILE(DRAWING_UTILS_SRC "drawing/SVGRenderer.cpp")
+ADD_UTILS_FILE(DRAWING_UTILS_SRC "drawing/SVGRenderer.h")
 
 FILE(GLOB_RECURSE SRC_DRAWING_FILES "src/drawing/*.cpp" "src/drawing/*.c" "src/drawing/*.h")
 
-ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES};${COMMON_FILES};${SRC_DRAWING_FILES})
+ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES};${COMMON_FILES};${SRC_DRAWING_FILES};${DRAWING_UTILS_SRC})
 CONFIGURE_FILTER_OUTPUT(${PROJ})
 
 TARGET_LINK_LIBRARIES(${PROJ} factory)
