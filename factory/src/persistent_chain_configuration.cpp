@@ -128,65 +128,56 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 						//does the value exists?
 						const wchar_t* str_value = mIni.GetValue(section_name.pItem, desc.config_parameter_name[i]);
 						if (str_value) {
-							refcnt::SReferenced<glucose::IFilter_Parameter> filter_parameter{ new CFilter_Parameter{ desc.parameter_type[i], desc.config_parameter_name[i] } };
+							glucose::SFilter_Parameter filter_parameter;
+							{
+								std::unique_ptr<CFilter_Parameter> raw_filter_parameter = std::make_unique<CFilter_Parameter>(desc.parameter_type[i], desc.config_parameter_name[i]);
+								filter_parameter = refcnt::make_shared_reference_ext<glucose::SFilter_Parameter, glucose::IFilter_Parameter>(raw_filter_parameter.get(), true);
+								raw_filter_parameter.release();
+							}
+														
 
-							bool valid = true;
+							bool valid = false;
 
 							//yes, there is something stored under this key
 							switch (desc.parameter_type[i]) {
 
-							case glucose::NParameter_Type::ptWChar_Container:
-								{
-									refcnt::wstr_container *wstr = refcnt::WString_To_WChar_Container(str_value);
-									valid = filter_parameter->Set_WChar_Container(wstr) == S_OK;
-									wstr->Release();
-								}
-								break;
+								case glucose::NParameter_Type::ptWChar_Container:								
+									valid = filter_parameter.set_wstring(str_value) == S_OK;
+									break;
 
-							case glucose::NParameter_Type::ptSelect_Time_Segment_ID:
-								{
-									glucose::time_segment_id_container *ids = WString_To_Select_Time_Segments_Id(str_value);
-									valid = filter_parameter->Set_Time_Segment_Id_Container(ids) == S_OK;
-									ids->Release();
-								}
-								break;
+								case glucose::NParameter_Type::ptSelect_Time_Segment_ID:								
+									valid = filter_parameter.int_array_from_wstring(str_value) == S_OK;
+									break;
 
-							case glucose::NParameter_Type::ptRatTime:
-							case glucose::NParameter_Type::ptDouble:
-								valid = filter_parameter->Set_Double(mIni.GetDoubleValue(section_name.pItem, desc.config_parameter_name[i])) == S_OK;
-								break;
+								case glucose::NParameter_Type::ptRatTime:
+								case glucose::NParameter_Type::ptDouble:
+									valid = filter_parameter->Set_Double(mIni.GetDoubleValue(section_name.pItem, desc.config_parameter_name[i])) == S_OK;
+									break;
 
-							case glucose::NParameter_Type::ptInt64:
-							case glucose::NParameter_Type::ptSubject_Id:
-								valid = filter_parameter->Set_Int64(mIni.GetLongValue(section_name.pItem, desc.config_parameter_name[i])) == S_OK;
-								break;
+								case glucose::NParameter_Type::ptInt64:
+								case glucose::NParameter_Type::ptSubject_Id:
+									valid = filter_parameter->Set_Int64(mIni.GetLongValue(section_name.pItem, desc.config_parameter_name[i])) == S_OK;
+									break;
 
-							case glucose::NParameter_Type::ptBool:
-								valid = filter_parameter->Set_Bool(mIni.GetBoolValue(section_name.pItem, desc.config_parameter_name[i]) ? 0 : static_cast<uint8_t>(-1)) == S_OK;
-								break;
+								case glucose::NParameter_Type::ptBool:
+									valid = filter_parameter.set_bool(mIni.GetBoolValue(section_name.pItem, desc.config_parameter_name[i])) == S_OK;									
+									break;
 
-							case glucose::NParameter_Type::ptModel_Id:
-							case glucose::NParameter_Type::ptMetric_Id:
-							case glucose::NParameter_Type::ptModel_Signal_Id:
-							case glucose::NParameter_Type::ptSignal_Id:
-							case glucose::NParameter_Type::ptSolver_Id:
-							case glucose::NParameter_Type::ptDevice_Driver_Id:
-								{
-									const GUID tmp_guid = WString_To_GUID(str_value);
-									valid = filter_parameter->Set_GUID(&tmp_guid) == S_OK;
-								}
-								break;
+								case glucose::NParameter_Type::ptModel_Id:
+								case glucose::NParameter_Type::ptMetric_Id:
+								case glucose::NParameter_Type::ptModel_Signal_Id:
+								case glucose::NParameter_Type::ptSignal_Id:
+								case glucose::NParameter_Type::ptSolver_Id:
+								case glucose::NParameter_Type::ptDevice_Driver_Id:
+									valid = filter_parameter.guid_from_wstring(str_value) == S_OK;								
+									break;
 
-							case glucose::NParameter_Type::ptModel_Bounds:
-								{
-									glucose::IModel_Parameter_Vector *parameters = WString_To_Model_Parameters(str_value);
-									valid = filter_parameter->Set_Model_Parameters(parameters) == S_OK;
-									parameters->Release();
-								}
-								break;
+								case glucose::NParameter_Type::ptModel_Bounds:
+									valid = filter_parameter.double_array_from_wstring(str_value) == S_OK;
+									break;
 
-							default:
-								valid = false;
+								default:
+									valid = false;
 							} //switch (desc.parameter_type[i])	{
 
 							if (valid) {

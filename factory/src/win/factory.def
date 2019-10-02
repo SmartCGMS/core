@@ -17,3 +17,4 @@ EXPORTS
 	create_device_event
 	create_persistent_filter_chain_configuration
 	execute_filter_configuration
+	create_filter_parameter

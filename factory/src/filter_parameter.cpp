@@ -1,5 +1,7 @@
 #include "filter_parameter.h"
 
+#include "../../../common/rtl/manufactory.h"
+
 CFilter_Parameter::CFilter_Parameter(const glucose::NParameter_Type type, const wchar_t *config_name) : mType(type), mConfig_Name(config_name) {
 	//
 }
@@ -82,3 +84,7 @@ HRESULT IfaceCalling CFilter_Parameter::Set_Model_Parameters(glucose::IModel_Par
 	return S_OK;
 }
 
+
+HRESULT IfaceCalling create_filter_parameter(const glucose::NParameter_Type type, const wchar_t *config_name, glucose::IFilter_Parameter **parameter) {
+	return Manufacture_Object<CFilter_Parameter, glucose::IFilter_Parameter>(parameter, type, config_name);
+}
