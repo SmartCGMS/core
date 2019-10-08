@@ -214,7 +214,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 		glucose::IFilter_Configuration_Link **filter_begin, **filter_end;		
 		HRESULT rc = get(&filter_begin, &filter_end);
 		if (rc != S_OK) return rc;
-		for (auto filter=*filter_begin; filter != *filter_end; filter++) {
+		for (; filter_begin != filter_end; filter_begin++) {
+			auto filter = *filter_begin;
 			GUID filter_id;
 			rc = filter->Get_Filter_Id(&filter_id);
 			if (rc != S_OK) return rc;
@@ -230,9 +231,10 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 
 			glucose::IFilter_Parameter **parameter_begin, **parameter_end;
 			rc = filter->get(&parameter_begin, &parameter_end);
-			if (rc != S_OK) return rc;
+			if (!SUCCEEDED(rc)) return rc;	//rc may be also S_FALSE if no parameter has been set yet
 
-			for (auto parameter = *parameter_begin; parameter != *parameter_end; parameter++) {
+			for (; parameter_begin != parameter_end; parameter_begin++) {
+				auto parameter = *parameter_begin;
 				glucose::NParameter_Type param_type;
 				rc = parameter->Get_Type(&param_type);
 				if (rc != S_OK) return rc;

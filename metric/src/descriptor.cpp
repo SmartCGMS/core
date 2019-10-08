@@ -68,7 +68,7 @@ namespace errors
 
 	const glucose::TFilter_Descriptor Errors_Descriptor = {
 		glucose::Error_Filter,
-		glucose::NFilter_Flags::Synchronous,
+		glucose::NFilter_Flags::None,
 		dsErrors_Filter,
 		param_count,
 		nullptr,

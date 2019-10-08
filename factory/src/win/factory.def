@@ -18,3 +18,4 @@ EXPORTS
 	create_persistent_filter_chain_configuration
 	execute_filter_configuration
 	create_filter_parameter
+	create_filter_configuration_link

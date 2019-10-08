@@ -19,3 +19,9 @@ public:
 };
 
 #pragma warning( pop )
+
+#ifdef _WIN32
+	extern "C" __declspec(dllexport) HRESULT IfaceCalling create_filter_configuration_link(const GUID *id, glucose::IFilter_Configuration_Link **link);
+#else
+	extern "C" HRESULT IfaceCalling create_filter_configuration_link(const GUID *id, glucose::IFilter_Configuration_Link **link);
+#endif

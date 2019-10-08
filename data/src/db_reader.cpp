@@ -243,14 +243,12 @@ HRESULT IfaceCalling CDb_Reader::Do_Configure(glucose::SFilter_Configuration con
 	mDbTimeSegmentIds = configuration.Read_Int_Array(rsTime_Segment_ID);	
 	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
 
-	// we need at least these parameters
-	HRESULT rc = (!(mDbHost.empty() || mDbProvider.empty() || mDbTimeSegmentIds.empty())) ? S_OK : E_INVALIDARG;
 	
-	if (rc == S_OK) 
+	//if (rc == S_OK) 
 		//run the db-reader thread and meanwhile jsut forward the messages as they come
-		mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
+		//mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
 
-	return rc;
+	return S_OK;
 }
 
 HRESULT IfaceCalling CDb_Reader::Do_Execute(glucose::UDevice_Event event) {
@@ -277,6 +275,13 @@ HRESULT IfaceCalling CDb_Reader::QueryInterface(const GUID*  riid, void ** ppvOb
 }
 
 HRESULT IfaceCalling CDb_Reader::Set_Connector(db::IDb_Connector *connector) {
+	if (!connector) return E_INVALIDARG;
 	mDb_Connector = refcnt::make_shared_reference_ext<db::SDb_Connector, db::IDb_Connector>(connector, true);
-	return connector != nullptr ? S_OK : S_FALSE;
+	
+	// we need at least these parameters
+	HRESULT rc = (!(mDbHost.empty() || mDbProvider.empty() || mDbTimeSegmentIds.empty())) ? S_OK : E_INVALIDARG;
+	if (rc == S_OK)
+		mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
+
+	return rc;
 }

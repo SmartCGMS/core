@@ -73,13 +73,19 @@ HRESULT IfaceCalling CFilter_Configuration_Executor::Terminate() {
 
 HRESULT IfaceCalling execute_filter_configuration(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, glucose::IFilter_Executor **executor) {
 	std::unique_ptr<CFilter_Configuration_Executor> raw_executor = std::make_unique<CFilter_Configuration_Executor>();
+	//increase the reference just in a case that we would be released prematurely in the Build_Filter_Chain call
+	*executor = static_cast<glucose::IFilter_Executor*>(raw_executor.get());
+	(*executor)->AddRef();	
 
 	HRESULT rc = raw_executor->Build_Filter_Chain(configuration, on_filter_created, on_filter_created_data);
-	 if (!SUCCEEDED(rc)) return rc;
+	raw_executor.release();	//can release the unique pointer as it did its job and is needed no more
 
-	*executor = static_cast<glucose::IFilter_Executor*>(raw_executor.get());
-	(*executor)->AddRef();
-	raw_executor.release();
+	if (!SUCCEEDED(rc)) {
+		(*executor)->Release();
+		return rc;
+	}
+
+	
 
 	return S_OK;
 }
