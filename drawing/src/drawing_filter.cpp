@@ -535,8 +535,12 @@ HRESULT CDrawing_Filter::Get_Plot(const std::string &plot, refcnt::IVector_Conta
 	return svg->set(plot_ptr, plot_ptr + plot.size());
 }
 
-HRESULT IfaceCalling CDrawing_Filter::Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg, refcnt::IVector_Container<uint64_t> *segmentIds, refcnt::IVector_Container<GUID> *signalIds) {
 
+HRESULT IfaceCalling CDrawing_Filter::New_Data_Available() {
+	return mChanged ? S_OK : S_FALSE;
+}
+
+HRESULT IfaceCalling CDrawing_Filter::Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg, refcnt::IVector_Container<uint64_t> *segmentIds, refcnt::IVector_Container<GUID> *signalIds) {	
 	std::unordered_set<uint64_t> segmentSet{};
 	std::set<GUID> signalSet{};
 

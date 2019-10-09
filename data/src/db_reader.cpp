@@ -108,7 +108,7 @@ bool CDb_Reader::Emit_Segment_Marker(glucose::NDevice_Event_Code code, int64_t s
 	evt.device_id() = Db_Reader_Device_GUID;
 	evt.segment_id() = segment_id;
 
-	return Send(evt);
+	return SUCCEEDED(Send(evt));
 }
 
 bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
@@ -224,7 +224,7 @@ void CDb_Reader::Db_Reader() {
 	for (const auto segment_index : mDbTimeSegmentIds) {
 		if (!Emit_Segment_Marker(glucose::NDevice_Event_Code::Time_Segment_Start, segment_index)) break;
 		if (!Emit_Segment_Parameters(segment_index)) break;
-		if (!Emit_Segment_Levels(segment_index)) break;
+		Emit_Segment_Levels(segment_index);
 		if (!Emit_Segment_Marker(glucose::NDevice_Event_Code::Time_Segment_Stop, segment_index)) break;
 	}
 
@@ -243,20 +243,21 @@ HRESULT IfaceCalling CDb_Reader::Do_Configure(glucose::SFilter_Configuration con
 	mDbTimeSegmentIds = configuration.Read_Int_Array(rsTime_Segment_ID);	
 	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
 
-	
-	//if (rc == S_OK) 
-		//run the db-reader thread and meanwhile jsut forward the messages as they come
-		//mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
-
 	return S_OK;
 }
 
 HRESULT IfaceCalling CDb_Reader::Do_Execute(glucose::UDevice_Event event) {
 
-	if (event.event_code() == glucose::NDevice_Event_Code::Warm_Reset) {
-		//recreate the reader thread
-		End_Db_Reader();
-		mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
+	switch (event.event_code()) {
+		case glucose::NDevice_Event_Code::Warm_Reset: 
+			//recreate the reader thread
+			End_Db_Reader();
+			mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);					
+			break;
+
+		case glucose::NDevice_Event_Code::Shut_Down:
+			mQuit_Flag = true;
+			break;
 	}
 
 	return Send(event);

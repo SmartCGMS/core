@@ -66,7 +66,7 @@ HRESULT IfaceCalling CFilter_Executor::Execute(glucose::IDevice_Event *event) {
 
 void CTerminal_Filter::Wait_For_Shutdown() {	
 	std::unique_lock<std::mutex> guard{ mShutdown_Guard };
-	mShutdown_Condition.wait(guard, [this]() {return !mShutdown_Received; });
+	mShutdown_Condition.wait(guard, [this]() {return mShutdown_Received; });
 }
 
 

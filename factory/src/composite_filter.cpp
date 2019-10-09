@@ -75,7 +75,7 @@ HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configurati
 			mExecutors.insert(mExecutors.begin(), std::move(new_executor));			
 			
 			link_end--;	
-		} while (*link_end != *link_begin);
+		} while (link_end != link_begin);
 	}
 	catch (...) {
 		mExecutors.clear();

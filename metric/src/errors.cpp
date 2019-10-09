@@ -66,26 +66,36 @@ HRESULT IfaceCalling CErrors_Filter::Do_Configure(glucose::SFilter_Configuration
 }
 
 HRESULT CErrors_Filter::Do_Execute(glucose::UDevice_Event event) {
+	std::lock_guard<std::mutex> local_gaurd{ mError_Counter_Guard };	
+
 	switch (event.event_code())	{
 		case glucose::NDevice_Event_Code::Level:
 		case glucose::NDevice_Event_Code::Masked_Level:
 			// the internal logic will tell us, if the signal is reference signal, and therefore we need to recalculate errors
 			if (mErrorCounter.Add_Level(event.segment_id(), event.signal_id(), event.device_time(), event.level()))
-				mErrorCounter.Recalculate_Errors();
+				//mErrorCounter.Recalculate_Errors();
+				mChange_Available = true;
 			break;
 		case glucose::NDevice_Event_Code::Parameters:
 			break;
 		case glucose::NDevice_Event_Code::Time_Segment_Stop:
-			mErrorCounter.Recalculate_Errors();
+			//mErrorCounter.Recalculate_Errors();			
 			break;
 		case glucose::NDevice_Event_Code::Information:
-			if (event.info == rsSegment_Recalculate_Complete)
-				mErrorCounter.Recalculate_Errors_For(event.signal_id());
-			else if (event.info == rsParameters_Reset)
+
+			if (event.info == rsSegment_Recalculate_Complete) 
+				mChange_Available = true;
+				//mErrorCounter.Recalculate_Errors_For(event.signal_id());
+			else if (event.info == rsParameters_Reset) {
+				std::lock_guard<std::mutex> local_gaurd{ mError_Counter_Guard };
 				mErrorCounter.Reset_Segment(event.segment_id(), event.signal_id());
+				mChange_Available = true;
+			}
 			break;
-		case glucose::NDevice_Event_Code::Warm_Reset:
-			mErrorCounter.Reset_All();
+		case glucose::NDevice_Event_Code::Warm_Reset: {				
+				mErrorCounter.Reset_All();
+				mChange_Available = true;
+			}
 			break;
 		default:
 			break;
@@ -95,6 +105,17 @@ HRESULT CErrors_Filter::Do_Execute(glucose::UDevice_Event event) {
 }
 
 
+HRESULT IfaceCalling CErrors_Filter::New_Data_Available() {
+	return mChange_Available ? S_OK : S_FALSE;
+}
+
 HRESULT IfaceCalling CErrors_Filter::Get_Errors(const GUID *signal_id, const glucose::NError_Type type, glucose::TError_Markers *markers) {
+	std::lock_guard<std::mutex> local_gaurd{ mError_Counter_Guard };
+
+	if (mChange_Available) {		
+		mErrorCounter.Recalculate_Errors();
+		mChange_Available = false;
+	}
+
 	return mErrorCounter.Get_Errors(*signal_id, type, *markers);
 }

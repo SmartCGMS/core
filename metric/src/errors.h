@@ -59,6 +59,8 @@
 class CErrors_Filter : public glucose::CBase_Filter, public glucose::IError_Filter_Inspection {
 protected:		
 	// currently used error counter instance; TODO: in future, we need to consider more segments at once
+	bool mChange_Available;
+	std::mutex mError_Counter_Guard;
 	CError_Marker_Counter mErrorCounter;
 protected:
 	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
@@ -69,6 +71,7 @@ public:
 		
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
 
+	virtual HRESULT IfaceCalling New_Data_Available() override final;
 	// retrieves the only instance of errors filter
 	virtual HRESULT IfaceCalling Get_Errors(const GUID *signal_id, const glucose::NError_Type type, glucose::TError_Markers *markers) override final;
 };

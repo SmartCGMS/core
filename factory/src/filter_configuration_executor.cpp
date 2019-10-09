@@ -43,6 +43,7 @@
 
 #include "executor.h"
 #include "composite_filter.h"
+#include "device_event.h"
 
 HRESULT CFilter_Configuration_Executor::Build_Filter_Chain(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) {
 	return mComposite_Filter.Build_Filter_Chain(configuration, &mTerminal_Filter, on_filter_created, on_filter_created_data);
@@ -63,11 +64,20 @@ HRESULT IfaceCalling CFilter_Configuration_Executor::Execute(glucose::IDevice_Ev
 HRESULT IfaceCalling CFilter_Configuration_Executor::Wait_For_Shutdown_and_Terminate() {
 	if (mComposite_Filter.Empty()) return S_FALSE;
 	mTerminal_Filter.Wait_For_Shutdown();
-	return Terminate();		
+	mComposite_Filter.Clear();
+	return S_OK;		
 }
 
 HRESULT IfaceCalling CFilter_Configuration_Executor::Terminate() {
-	mComposite_Filter.Clear();
+	glucose::IDevice_Event *shutdown_event = new CDevice_Event{ glucose::NDevice_Event_Code::Shut_Down };
+	HRESULT rc = Execute(shutdown_event);
+	if (rc != S_OK) return rc;
+
+	std::thread t{ [this]() {
+		Wait_For_Shutdown_and_Terminate();
+	} };
+	t.join();
+	
 	return S_OK;
 }
 
