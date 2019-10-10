@@ -60,8 +60,8 @@ CCalculate_Filter::~CCalculate_Filter() {
 }
 
 HRESULT IfaceCalling CCalculate_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
-	if (Internal_Query_Interface<glucose::IFilter>(glucose::Log_Filter, *riid, ppvObj)) return S_OK;
-	if (Internal_Query_Interface<glucose::ICalculate_Filter_Inspection>(glucose::Calculate_Filter_Inspection, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<glucose::IFilter>(glucose::IID_Log_Filter, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<glucose::ICalculate_Filter_Inspection>(glucose::IID_Calculate_Filter_Inspection, *riid, ppvObj)) return S_OK;
 
 	return E_NOINTERFACE;
 }

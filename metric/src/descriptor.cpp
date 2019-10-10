@@ -67,7 +67,7 @@ namespace errors
 	constexpr size_t param_count = 0;
 
 	const glucose::TFilter_Descriptor Errors_Descriptor = {
-		glucose::Error_Filter,
+		glucose::IID_Error_Filter,
 		glucose::NFilter_Flags::None,
 		dsErrors_Filter,
 		param_count,

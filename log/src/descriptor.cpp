@@ -67,7 +67,7 @@ namespace logger
 	};
 
 	const glucose::TFilter_Descriptor Log_Descriptor = {
-		glucose::Log_Filter,
+		glucose::IID_Log_Filter,
 		glucose::NFilter_Flags::None,
 		dsLog_Filter,
 		param_count,

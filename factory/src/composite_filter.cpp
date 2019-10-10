@@ -40,6 +40,8 @@
 #include "device_event.h"
 #include "filters.h"
 
+#include <map>
+
 CComposite_Filter::CComposite_Filter(std::recursive_mutex &communication_guard) : mCommunication_Guard(communication_guard) {
 	//
 }
@@ -58,6 +60,7 @@ HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configurati
 
 	//we have to create the filter executors from the last one
 	try {
+		//1st round - create the filters
 		do {
 			glucose::IFilter_Configuration_Link* &link = *(link_end-1);
 
@@ -77,6 +80,34 @@ HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configurati
 			
 			link_end--;	
 		} while (link_end != link_begin);
+
+		//2nd round - gather information about the feedback receivers
+		std::map<std::wstring, std::shared_ptr<glucose::IFilter_Feedback_Receiver>> feedback_map;
+		for (auto &possible_receiver : mExecutors) {
+			std::shared_ptr<glucose::IFilter_Feedback_Receiver> feedback_receiver;
+			refcnt::Query_Interface<glucose::IFilter, glucose::IFilter_Feedback_Receiver>(possible_receiver.get(), glucose::IID_Filter_Feedback_Receiver, feedback_receiver);
+			if (feedback_receiver) {
+				wchar_t *name;
+				if (feedback_receiver->Name(&name) == S_OK) {
+					feedback_map[name] = feedback_receiver;
+				}
+			}				
+		}
+
+		//3nd round - set the receivers to the senders
+		for (auto &possible_sender : mExecutors) {
+			std::shared_ptr<glucose::IFilter_Feedback_Sender> feedback_sender;
+			refcnt::Query_Interface<glucose::IFilter, glucose::IFilter_Feedback_Sender>(possible_sender.get(), glucose::IID_Filter_Feedback_Sender, feedback_sender);
+			if (feedback_sender) {
+				wchar_t *name;
+				if (feedback_sender->Name(&name) == S_OK) {
+
+					auto feedback_receiver = feedback_map.find(name);
+					if (feedback_receiver != feedback_map.end()) 						
+						feedback_sender->Sink(feedback_receiver->second.get());					
+				}
+			}
+		}
 	}
 	catch (...) {
 		mExecutors.clear();

@@ -87,8 +87,8 @@ CDrawing_Filter::CDrawing_Filter(glucose::IFilter *output) : mGraphMaxValue(-1),
 }
 
 HRESULT IfaceCalling CDrawing_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
-	if (Internal_Query_Interface<glucose::IFilter>(glucose::Drawing_Filter, *riid, ppvObj)) return S_OK;
-	if (Internal_Query_Interface<glucose::IDrawing_Filter_Inspection>(glucose::Drawing_Filter_Inspection, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<glucose::IFilter>(glucose::IID_Drawing_Filter, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<glucose::IDrawing_Filter_Inspection>(glucose::IID_Drawing_Filter_Inspection, *riid, ppvObj)) return S_OK;
 
 	return E_NOINTERFACE;
 }

@@ -66,8 +66,8 @@ CLog_Filter::~CLog_Filter() {
 }
 
 HRESULT IfaceCalling CLog_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
-	if (Internal_Query_Interface<glucose::IFilter>(glucose::Log_Filter, *riid, ppvObj)) return S_OK;
-	if (Internal_Query_Interface<glucose::ILog_Filter_Inspection>(glucose::Log_Filter_Inspection, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<glucose::IFilter>(glucose::IID_Log_Filter, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<glucose::ILog_Filter_Inspection>(glucose::IID_Log_Filter_Inspection, *riid, ppvObj)) return S_OK;
 
 	return E_NOINTERFACE;
 }

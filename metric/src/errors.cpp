@@ -55,8 +55,8 @@ CErrors_Filter::CErrors_Filter(glucose::IFilter *output) : CBase_Filter(output)	
 
 HRESULT IfaceCalling CErrors_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
 	
-	if (Internal_Query_Interface<glucose::IFilter>(glucose::Error_Filter, *riid, ppvObj)) return S_OK;
-	if (Internal_Query_Interface<glucose::IError_Filter_Inspection>(glucose::Error_Filter_Inspection, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<glucose::IFilter>(glucose::IID_Error_Filter, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<glucose::IError_Filter_Inspection>(glucose::IID_Error_Filter_Inspection, *riid, ppvObj)) return S_OK;
 	
 	return E_NOINTERFACE;
 }

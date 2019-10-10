@@ -96,7 +96,7 @@ namespace drawing
 	};
 
 	const glucose::TFilter_Descriptor Drawing_Descriptor = {
-		glucose::Drawing_Filter,
+		glucose::IID_Drawing_Filter,
 		glucose::NFilter_Flags::None,
 		dsDrawing_Filter,
 		param_count,
