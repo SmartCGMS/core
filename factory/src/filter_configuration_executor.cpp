@@ -68,17 +68,8 @@ HRESULT IfaceCalling CFilter_Configuration_Executor::Wait_For_Shutdown_and_Termi
 	return S_OK;		
 }
 
-HRESULT IfaceCalling CFilter_Configuration_Executor::Terminate() {
-	glucose::IDevice_Event *shutdown_event = new CDevice_Event{ glucose::NDevice_Event_Code::Shut_Down };
-	HRESULT rc = Execute(shutdown_event);
-	if (rc != S_OK) return rc;
-
-	std::thread t{ [this]() {
-		Wait_For_Shutdown_and_Terminate();
-	} };
-	t.join();
-	
-	return S_OK;
+HRESULT IfaceCalling CFilter_Configuration_Executor::Terminate() {	
+	return mComposite_Filter.Clear();
 }
 
 HRESULT IfaceCalling execute_filter_configuration(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, glucose::IFilter_Executor **executor) {

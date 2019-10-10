@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SmartCGMS - continuous glucose monitoring and controlling framework
  * https://diabetes.zcu.cz/
  *
@@ -49,6 +49,7 @@
 	
 class CComposite_Filter  {
 protected:
+	bool mRefuse_Execute = false;
 	std::recursive_mutex &mCommunication_Guard;		
 	std::vector<std::unique_ptr<CFilter_Executor>> mExecutors;
 public:
@@ -56,7 +57,7 @@ public:
 
 	HRESULT Build_Filter_Chain(glucose::IFilter_Chain_Configuration *configuration, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
 	HRESULT Execute(glucose::IDevice_Event *event);
-	void Clear();
+	HRESULT Clear();
 	bool Empty();
 	
 };

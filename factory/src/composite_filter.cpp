@@ -46,6 +46,7 @@ CComposite_Filter::CComposite_Filter(std::recursive_mutex &communication_guard) 
 
 
 HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configuration *configuration, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) {
+	mRefuse_Execute = true;
 	if (!mExecutors.empty()) return E_ILLEGAL_METHOD_CALL;	//so far, we are able to configure the chain just once
 
 	std::lock_guard<std::recursive_mutex> guard{ mCommunication_Guard };
@@ -82,6 +83,7 @@ HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configurati
 		return E_FAIL;
 	}
 
+	mRefuse_Execute = false;
 	return S_OK;
 }
 
@@ -89,12 +91,32 @@ HRESULT CComposite_Filter::Execute(glucose::IDevice_Event *event) {
 	if (!event) return E_INVALIDARG;
 	if (mExecutors.empty()) return S_FALSE;	
 
+	std::lock_guard<std::recursive_mutex> lock_guard{ mCommunication_Guard };
+	if (mRefuse_Execute) return E_ILLEGAL_METHOD_CALL;
+
 	return mExecutors[0]->Execute(event);	
 }
 
-void CComposite_Filter::Clear() {
-	std::lock_guard<std::recursive_mutex> guard{ mCommunication_Guard };
-	mExecutors.clear();
+HRESULT CComposite_Filter::Clear() {
+		//obtain the communication guard/lock to ensure that no new communication will be accepted
+		//via the execute method
+	try {
+		{
+			std::lock_guard<std::recursive_mutex> guard{ mCommunication_Guard };
+			mRefuse_Execute = true;
+		}
+
+		//once we refuse any communication from the Execute method, we can safely release the filters
+		//assuming that they terminate any threads they have spawned
+		for (size_t i = 0; i < mExecutors.size(); i++)
+			mExecutors[i].reset();
+		mExecutors.clear();
+	}
+	catch (...) {
+		return E_FAIL;
+	}
+
+	return S_OK;
 }
 
 bool CComposite_Filter::Empty() {
