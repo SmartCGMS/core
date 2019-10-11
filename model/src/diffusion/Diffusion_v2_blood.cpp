@@ -38,11 +38,11 @@
 
 #include "Diffusion_v2_blood.h"
 
-#include "descriptor.h"
+#include "../descriptor.h"
 
 #undef max
 
-CDiffusion_v2_blood::CDiffusion_v2_blood(glucose::WTime_Segment segment) : CCommon_Calculation(segment, glucose::signal_IG), mIst(segment.Get_Signal(glucose::signal_IG)) {
+CDiffusion_v2_blood::CDiffusion_v2_blood(glucose::WTime_Segment segment) : CCommon_Calculed_Signal(segment), mIst(segment.Get_Signal(glucose::signal_IG)) {
 	if (!refcnt::Shared_Valid_All(mIst)) throw std::exception{};
 }
 

@@ -38,11 +38,11 @@
 
 #include "Steil_Rebrin_Diffusion_Prediction.h"
 
-#include "descriptor.h"
+#include "../descriptor.h"
 
 #include <cmath>
 
-CSteil_Rebrin_Diffusion_Prediction::CSteil_Rebrin_Diffusion_Prediction(glucose::WTime_Segment segment) : CCommon_Calculation(segment, glucose::signal_IG), mIst(segment.Get_Signal(glucose::signal_IG)) {
+CSteil_Rebrin_Diffusion_Prediction::CSteil_Rebrin_Diffusion_Prediction(glucose::WTime_Segment segment) : CCommon_Calculed_Signal(segment), mIst(segment.Get_Signal(glucose::signal_IG)) {
 	if (!mIst) throw std::exception{};
 }
 

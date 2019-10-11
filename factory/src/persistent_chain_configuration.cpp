@@ -141,11 +141,11 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 							//yes, there is something stored under this key
 							switch (desc.parameter_type[i]) {
 
-								case glucose::NParameter_Type::ptWChar_Container:								
+								case glucose::NParameter_Type::ptWChar_Array:								
 									valid = filter_parameter.set_wstring(str_value) == S_OK;
 									break;
 
-								case glucose::NParameter_Type::ptSelect_Time_Segment_ID:								
+								case glucose::NParameter_Type::ptInt64_Array:								
 									valid = filter_parameter.int_array_from_wstring(str_value) == S_OK;
 									break;
 
@@ -167,12 +167,11 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 								case glucose::NParameter_Type::ptMetric_Id:
 								case glucose::NParameter_Type::ptModel_Signal_Id:
 								case glucose::NParameter_Type::ptSignal_Id:
-								case glucose::NParameter_Type::ptSolver_Id:
-								case glucose::NParameter_Type::ptDevice_Driver_Id:
+								case glucose::NParameter_Type::ptSolver_Id:								
 									valid = filter_parameter.guid_from_wstring(str_value) == S_OK;								
 									break;
 
-								case glucose::NParameter_Type::ptModel_Bounds:
+								case glucose::NParameter_Type::ptDouble_Array:
 									valid = filter_parameter.double_array_from_wstring(str_value) == S_OK;
 									break;
 
@@ -245,7 +244,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 
 
 				switch (param_type) {
-				case glucose::NParameter_Type::ptWChar_Container:
+				case glucose::NParameter_Type::ptWChar_Array:
 
 					refcnt::wstr_container *wstr;
 					rc = parameter->Get_WChar_Container(&wstr);
@@ -255,7 +254,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 					wstr->Release();
 					break;
 
-				case glucose::NParameter_Type::ptSelect_Time_Segment_ID:
+				case glucose::NParameter_Type::ptInt64_Array:
 					glucose::time_segment_id_container *ids;
 					rc = parameter->Get_Time_Segment_Id_Container(&ids);
 					if (rc != S_OK) return rc;
@@ -298,8 +297,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 				case glucose::NParameter_Type::ptMetric_Id:
 				case glucose::NParameter_Type::ptModel_Signal_Id:
 				case glucose::NParameter_Type::ptSignal_Id:
-				case glucose::NParameter_Type::ptSolver_Id:
-				case glucose::NParameter_Type::ptDevice_Driver_Id:
+				case glucose::NParameter_Type::ptSolver_Id:				
 				{
 					GUID val;
 					rc = parameter->Get_GUID(&val);
@@ -309,7 +307,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 				}
 				break;
 
-				case glucose::NParameter_Type::ptModel_Bounds:
+				case glucose::NParameter_Type::ptDouble_Array:
 					glucose::IModel_Parameter_Vector *model_parameters;
 					rc = parameter->Get_Model_Parameters(&model_parameters);
 					if (rc != S_OK) return rc;

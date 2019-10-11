@@ -56,13 +56,13 @@ namespace db_reader {
 	constexpr size_t param_count = 8;
 
 	constexpr glucose::NParameter_Type param_type[param_count] = {
-		glucose::NParameter_Type::ptWChar_Container,
+		glucose::NParameter_Type::ptWChar_Array,
 		glucose::NParameter_Type::ptInt64,
-		glucose::NParameter_Type::ptWChar_Container,
-		glucose::NParameter_Type::ptWChar_Container,
-		glucose::NParameter_Type::ptWChar_Container,
-		glucose::NParameter_Type::ptWChar_Container,
-		glucose::NParameter_Type::ptSelect_Time_Segment_ID,
+		glucose::NParameter_Type::ptWChar_Array,
+		glucose::NParameter_Type::ptWChar_Array,
+		glucose::NParameter_Type::ptWChar_Array,
+		glucose::NParameter_Type::ptWChar_Array,
+		glucose::NParameter_Type::ptInt64_Array,
 		glucose::NParameter_Type::ptBool
 	};
 
@@ -117,12 +117,12 @@ namespace db_writer {
 	constexpr size_t param_count = 10;
 
 	constexpr glucose::NParameter_Type param_type[param_count] = {
-		glucose::NParameter_Type::ptWChar_Container,
+		glucose::NParameter_Type::ptWChar_Array,
 		glucose::NParameter_Type::ptInt64,
-		glucose::NParameter_Type::ptWChar_Container,
-		glucose::NParameter_Type::ptWChar_Container,
-		glucose::NParameter_Type::ptWChar_Container,
-		glucose::NParameter_Type::ptWChar_Container,
+		glucose::NParameter_Type::ptWChar_Array,
+		glucose::NParameter_Type::ptWChar_Array,
+		glucose::NParameter_Type::ptWChar_Array,
+		glucose::NParameter_Type::ptWChar_Array,
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptBool,
@@ -187,7 +187,7 @@ namespace file_reader
 	constexpr size_t param_count = 5;
 
 	constexpr glucose::NParameter_Type param_type[param_count] = {
-		glucose::NParameter_Type::ptWChar_Container,
+		glucose::NParameter_Type::ptWChar_Array,
 		glucose::NParameter_Type::ptInt64,
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptInt64,

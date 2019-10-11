@@ -38,7 +38,7 @@
 
 #include "Diffusion_v2_ist.h"
 
-#include "descriptor.h"
+#include "../descriptor.h"
 
 #include <cmath>
 #include <nlopt.hpp>
@@ -67,8 +67,7 @@ double present_time_objective(unsigned, const double *present_time, double *, vo
 };
 
 CDiffusion_v2_ist::CDiffusion_v2_ist(glucose::WTime_Segment segment) : CDiffusion_v2_blood(segment), mBlood(segment.Get_Signal(glucose::signal_BG)) {
-	mSource_Signal = segment.Get_Signal(glucose::signal_IG);
-	if (!refcnt::Shared_Valid_All(mBlood, mSource_Signal)) throw std::exception{};
+	if (!refcnt::Shared_Valid_All(mBlood)) throw std::exception{};
 }
 
 

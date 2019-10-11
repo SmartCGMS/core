@@ -41,9 +41,9 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/descriptor_utils.h"
 #include "../../../common/rtl/manufactory.h"
-#include "Diffusion_v2_blood.h"
-#include "Diffusion_v2_ist.h"
-#include "Steil_Rebrin_blood.h"
+#include "diffusion/Diffusion_v2_blood.h"
+#include "diffusion/Diffusion_v2_ist.h"
+#include "steil_rebrin/Steil_Rebrin_blood.h"
 #include <vector>
 
 namespace diffusion_v2_model {
@@ -219,7 +219,71 @@ namespace constant_model {
 	};
 }
 
-const std::array<glucose::TModel_Descriptor, 5> model_descriptions = { { diffusion_v2_model::desc, steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc, diffusion_prediction::desc, constant_model::desc } };
+
+namespace bergman_model {
+
+	const wchar_t *model_param_ui_names[model_param_count] = {
+	dsBergman_p1,
+	dsBergman_p2,
+	dsBergman_p3,
+	dsBergman_p4,
+	dsBergman_Vi,
+	dsBergman_BW,
+	dsBergman_VgDist,
+	dsBergman_d1rate,
+	dsBergman_d2rate,
+	dsBergman_irate,
+	dsBergman_Gb,
+	dsBergman_Ib,
+	dsBergman_G0,
+	dsBergman_diff2_p,
+	dsBergman_diff2_cg,
+	dsBergman_diff2_c
+	};
+
+	const glucose::NModel_Parameter_Value model_param_types[model_param_count] = {
+		glucose::NModel_Parameter_Value::mptDouble,
+		glucose::NModel_Parameter_Value::mptDouble,
+		glucose::NModel_Parameter_Value::mptDouble,
+		glucose::NModel_Parameter_Value::mptDouble,
+		glucose::NModel_Parameter_Value::mptDouble,
+		glucose::NModel_Parameter_Value::mptDouble,
+		glucose::NModel_Parameter_Value::mptDouble,
+		glucose::NModel_Parameter_Value::mptDouble,
+		glucose::NModel_Parameter_Value::mptDouble,
+		glucose::NModel_Parameter_Value::mptDouble,
+		glucose::NModel_Parameter_Value::mptDouble,
+		glucose::NModel_Parameter_Value::mptDouble,
+		glucose::NModel_Parameter_Value::mptDouble,
+		glucose::NModel_Parameter_Value::mptDouble,
+		glucose::NModel_Parameter_Value::mptDouble,
+		glucose::NModel_Parameter_Value::mptDouble
+	};
+
+	glucose::TModel_Descriptor desc = {
+		model_id,
+		dsBergman_Minimal_Model,
+		nullptr,
+		model_param_count,
+		model_param_types,
+		model_param_ui_names,
+		nullptr,
+		lower_bounds.vector,
+		default_parameters.vector,
+		upper_bounds.vector,
+
+		//the data below should be corrected
+		1,
+		&glucose::signal_BG,
+		&dsBlood,
+		&glucose::signal_BG,
+	};
+}
+
+const std::array<glucose::TModel_Descriptor, 6> model_descriptions = { { diffusion_v2_model::desc, 
+																		 steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc, diffusion_prediction::desc, 
+																		 constant_model::desc,
+																		 bergman_model::desc} };
 
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end) {

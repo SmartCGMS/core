@@ -51,7 +51,7 @@ namespace logger
 	constexpr size_t param_count = 1;
 
 	constexpr glucose::NParameter_Type param_type[param_count] = {
-		glucose::NParameter_Type::ptWChar_Container		
+		glucose::NParameter_Type::ptWChar_Array		
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
@@ -83,7 +83,7 @@ namespace log_replay
 	constexpr size_t param_count = 2;
 
 	constexpr glucose::NParameter_Type param_type[param_count] = {
-		glucose::NParameter_Type::ptWChar_Container,
+		glucose::NParameter_Type::ptWChar_Array,
 		glucose::NParameter_Type::ptBool
 	};
 

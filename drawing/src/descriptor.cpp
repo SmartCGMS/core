@@ -54,12 +54,12 @@ namespace drawing
 	constexpr glucose::NParameter_Type param_type[param_count] = {
 		glucose::NParameter_Type::ptInt64,
 		glucose::NParameter_Type::ptInt64,
-		glucose::NParameter_Type::ptWChar_Container,
-		glucose::NParameter_Type::ptWChar_Container,
-		glucose::NParameter_Type::ptWChar_Container,
-		glucose::NParameter_Type::ptWChar_Container,
-		glucose::NParameter_Type::ptWChar_Container,
-		glucose::NParameter_Type::ptWChar_Container
+		glucose::NParameter_Type::ptWChar_Array,
+		glucose::NParameter_Type::ptWChar_Array,
+		glucose::NParameter_Type::ptWChar_Array,
+		glucose::NParameter_Type::ptWChar_Array,
+		glucose::NParameter_Type::ptWChar_Array,
+		glucose::NParameter_Type::ptWChar_Array
 	};
 
 	const wchar_t* ui_param_name[param_count] = {

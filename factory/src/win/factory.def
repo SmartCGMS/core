@@ -3,7 +3,6 @@ LIBRARY factory.dll
 EXPORTS
 	create_metric
 	create_signal
-	create_device_driver
 	solve_model_parameters
 	solve_generic
 	create_approximator
@@ -12,7 +11,6 @@ EXPORTS
 	get_model_descriptors
 	get_solver_descriptors
 	get_approx_descriptors
-	get_device_driver_descriptors
 	add_filters
 	create_device_event
 	create_persistent_filter_chain_configuration

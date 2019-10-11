@@ -38,12 +38,12 @@
 
 #include "factory.h"
 
-#include "Diffusion_v2_blood.h"
-#include "Diffusion_v2_ist.h"
-#include "Steil_Rebrin_blood.h"
-#include "Steil_Rebrin_Diffusion_Prediction.h"
-#include "Diffusion_Prediction.h"
-#include "Constant_Model.h"
+#include "diffusion/Diffusion_v2_blood.h"
+#include "diffusion/Diffusion_v2_ist.h"
+#include "steil_rebrin/Steil_Rebrin_blood.h"
+#include "steil_rebrin/Steil_Rebrin_Diffusion_Prediction.h"
+#include "diffusion/Diffusion_Prediction.h"
+#include "constant/Constant_Model.h"
 #include "descriptor.h"
 
 #include <map>

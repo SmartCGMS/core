@@ -59,7 +59,7 @@ namespace calculate {
 		glucose::NParameter_Type::ptNull,
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptSolver_Id,
-		glucose::NParameter_Type::ptModel_Bounds,
+		glucose::NParameter_Type::ptDouble_Array,
 		glucose::NParameter_Type::ptInt64,
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptBool,
@@ -197,7 +197,7 @@ namespace masking
 
 	constexpr glucose::NParameter_Type param_type[param_count] = {
 		glucose::NParameter_Type::ptSignal_Id,
-		glucose::NParameter_Type::ptWChar_Container // TODO: some type for bitmask?
+		glucose::NParameter_Type::ptWChar_Array// TODO: some type for bitmask?
 	};
 
 	const wchar_t* ui_param_name[param_count] = {

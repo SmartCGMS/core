@@ -113,4 +113,34 @@ namespace constant_model {
 	};
 }
 
+namespace bergman_model {
+	constexpr GUID model_id = { 0x8114b2a6, 0xb4b2, 0x4c8d, { 0xa0, 0x29, 0x62, 0x5c, 0xbd, 0xb6, 0x82, 0xef } };
+
+
+	constexpr size_t model_param_count = 16;
+
+	struct TParameters {
+		union {
+			struct {
+				double p1, p2, p3, p4;
+				double Vi;
+				double BodyWeight;
+				double VgDist;
+				double d1rate, d2rate;
+				double irate;
+				double Gb, Ib;
+				double G0;
+				double p, cg, c;
+			};
+			double vector[model_param_count];
+		};
+	};
+
+	constexpr TParameters lower_bounds = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5, -5.0 };
+	constexpr TParameters default_parameters = { 0.028735, 0.028344, 5.035e-05, 0.3, 12.0, 70.0, 0.22, 0.05, 0.05, 0.04, 95.0, 9.2, 100.0, 0.929, -0.037, 1.308 };
+	constexpr TParameters upper_bounds = { 1.0, 1.0, 1.0, 1.0, 20.0, 10.0, 1.0, 1.0, 1.0, 1.0, 200.0, 20.0, 200.0, 2.0, 0.0, 5.0 };
+}
+
+
+
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end);

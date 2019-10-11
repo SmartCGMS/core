@@ -50,11 +50,9 @@ namespace imported {
 	const char* rsGet_Model_Descriptors = "do_get_model_descriptors";
 	const char* rsGet_Solvers_Descriptors = "do_get_solver_descriptors";
 	const char* rsGet_Approx_Descriptors = "do_get_approximator_descriptors";
-	const char* rsGet_Device_Driver_Descriptors = "do_get_device_driver_descriptors";
 	const char* rsDo_Create_Filter = "do_create_filter";
 	const char* rsDo_Create_Metric = "do_create_metric";
 	const char* rsDo_Create_Signal = "do_create_signal";
-	const char* rsDo_Create_Device_Driver = "do_create_device_driver";
 	const char* rsDo_Solve_Model_Parameters = "do_solve_model_parameters";
 	const char* rsDo_Create_Approximator = "do_create_approximator";
 	const char* rsDo_Solve_Generic = "do_solve_generic";
@@ -87,20 +85,12 @@ HRESULT get_approx_descriptors(glucose::TApprox_Descriptor **begin, glucose::TAp
 	return loaded_filters.get_approx_descriptors(begin, end);
 }
 
-HRESULT get_device_driver_descriptors(glucose::TDevice_Driver_Descriptor **begin, glucose::TDevice_Driver_Descriptor **end) {
-	return loaded_filters.get_device_driver_descriptors(begin, end);
-}
-
 HRESULT IfaceCalling create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric) {
 	return loaded_filters.create_metric(parameters, metric);
 }
 
 HRESULT IfaceCalling create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
 	return loaded_filters.create_signal(calc_id, segment, signal);
-}
-
-HRESULT IfaceCalling create_device_driver(const GUID *calc_id, glucose::IFilter* output, glucose::IDevice_Driver** device_driver) {
-	return loaded_filters.create_device_driver(calc_id, output, device_driver);
 }
 
 HRESULT IfaceCalling solve_model_parameters(const glucose::TSolver_Setup *setup) {
@@ -134,7 +124,6 @@ void CLoaded_Filters::load_libraries() {
 				lib_used |= Resolve_Func<glucose::TCreate_Metric>(lib.create_metric, lib.library, imported::rsDo_Create_Metric);
 				lib_used |= Resolve_Func<glucose::TCreate_Signal>(lib.create_signal, lib.library, imported::rsDo_Create_Signal);
 				lib_used |= Resolve_Func<glucose::TCreate_Approximator>(lib.create_approximator, lib.library, imported::rsDo_Create_Approximator);
-				lib_used |= Resolve_Func<glucose::TCreate_Device_Driver>(lib.create_device_driver, lib.library, imported::rsDo_Create_Device_Driver);
 				lib_used |= Resolve_Func<solver::TGeneric_Solver>(lib.solve_generic, lib.library, imported::rsDo_Solve_Generic);
 
 				lib_used |= Load_Descriptors<glucose::TGet_Filter_Descriptors, glucose::TFilter_Descriptor>(mFilter_Descriptors, lib.library, imported::rsGet_Filter_Descriptors);
@@ -142,7 +131,6 @@ void CLoaded_Filters::load_libraries() {
 				lib_used |= Load_Descriptors<glucose::TGet_Model_Descriptors, glucose::TModel_Descriptor>(mModel_Descriptors, lib.library, imported::rsGet_Model_Descriptors);
 				lib_used |= Load_Descriptors<glucose::TGet_Solver_Descriptors, glucose::TSolver_Descriptor>(mSolver_Descriptors, lib.library, imported::rsGet_Solvers_Descriptors);
 				lib_used |= Load_Descriptors<glucose::TGet_Approx_Descriptors, glucose::TApprox_Descriptor>(mApprox_Descriptors, lib.library, imported::rsGet_Approx_Descriptors);
-				lib_used |= Load_Descriptors<glucose::TGet_Device_Driver_Descriptors, glucose::TDevice_Driver_Descriptor>(mDevice_Driver_Descriptors, lib.library, imported::rsGet_Device_Driver_Descriptors);
 
 				if (lib_used)
 					mLibraries.push_back(std::move(lib));
@@ -158,8 +146,7 @@ HRESULT CLoaded_Filters::add_filters(const glucose::TFilter_Descriptor *begin, c
 	imported::TLibraryInfo lib;	
 	lib.create_approximator = nullptr;
 	lib.create_signal = nullptr;
-	lib.create_metric = nullptr;
-	lib.create_device_driver = nullptr;
+	lib.create_metric = nullptr;	
 	lib.solve_model_parameters = nullptr;
 	lib.create_filter = create_filter;	
 
@@ -185,11 +172,6 @@ HRESULT CLoaded_Filters::create_metric(const glucose::TMetric_Parameters *parame
 HRESULT CLoaded_Filters::create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
 	auto call_create_signal = [](const imported::TLibraryInfo &info) { return info.create_signal; };
 	return Call_Func(call_create_signal, calc_id, segment, signal);
-}
-
-HRESULT CLoaded_Filters::create_device_driver(const GUID *id, glucose::IFilter* output, glucose::IDevice_Driver** device_driver) {
-	auto call_create_device_driver = [](const imported::TLibraryInfo &info) { return info.create_device_driver; };
-	return Call_Func(call_create_device_driver, id, output, device_driver);
 }
 
 HRESULT CLoaded_Filters::solve_model_parameters(const glucose::TSolver_Setup *setup) {
@@ -280,11 +262,6 @@ HRESULT CLoaded_Filters::get_solver_descriptors(glucose::TSolver_Descriptor **be
 HRESULT CLoaded_Filters::get_approx_descriptors(glucose::TApprox_Descriptor **begin, glucose::TApprox_Descriptor **end) {
 	return do_get_descriptors<glucose::TApprox_Descriptor>(mApprox_Descriptors, begin, end);
 }
-
-HRESULT CLoaded_Filters::get_device_driver_descriptors(glucose::TDevice_Driver_Descriptor **begin, glucose::TDevice_Driver_Descriptor **end) {
-	return do_get_descriptors<glucose::TDevice_Driver_Descriptor>(mDevice_Driver_Descriptors, begin, end);
-}
-
 
 glucose::SFilter create_filter(const GUID &id, glucose::IFilter *next_filter) {
 	glucose::SFilter result;

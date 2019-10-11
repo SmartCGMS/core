@@ -38,11 +38,11 @@
 
 #include "Steil_Rebrin_blood.h"
 
-#include "descriptor.h"
+#include "../descriptor.h"
 
 #include <cmath>
 
-CSteil_Rebrin_blood::CSteil_Rebrin_blood(glucose::WTime_Segment segment) : CCommon_Calculation(segment, glucose::signal_IG), mIst(segment.Get_Signal(glucose::signal_IG)), mCalibration(segment.Get_Signal(glucose::signal_Calibration)) {
+CSteil_Rebrin_blood::CSteil_Rebrin_blood(glucose::WTime_Segment segment) : CCommon_Calculed_Signal(segment), mIst(segment.Get_Signal(glucose::signal_IG)), mCalibration(segment.Get_Signal(glucose::signal_Calibration)) {
 	if (!refcnt::Shared_Valid_All(mIst, mCalibration)) throw std::exception{};
 }
 

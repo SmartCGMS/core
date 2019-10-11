@@ -36,31 +36,25 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "Constant_Model.h"
-#include "descriptor.h"
+#pragma once
 
-#include <cmath>
+#include "../../../../common/rtl/Common_Calculated_Signal.h"
 
-CConstant_Model::CConstant_Model(glucose::WTime_Segment segment) : CCommon_Calculation(segment, glucose::signal_BG) {
-	//
-}
 
-HRESULT IfaceCalling CConstant_Model::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
-	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
-{
-	constant_model::TParameters &parameters = Convert_Parameters<constant_model::TParameters>(params, constant_model::default_parameters);
+#pragma warning( push )
+#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-	// for all input times (reference signal times), output constant value
-	// this comes in handy for e.g. measuring quality of regulation - metrics then can tell us, how good the regulation actually was,
-	// how many values were in target range, etc.
+class CDiffusion_v2_blood : public virtual CCommon_Calculed_Signal {
+protected:
+	glucose::SSignal mIst;
+public:
+	CDiffusion_v2_blood(glucose::WTime_Segment segment);
+	virtual ~CDiffusion_v2_blood() {};
 
-	for (size_t i = 0; i < count; i++)
-		levels[i] = parameters.c;
+	//glucose::ISignal iface
+	virtual HRESULT IfaceCalling Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+		const double* times, double* const levels, const size_t count, const size_t derivation_order) const override;
+	virtual HRESULT IfaceCalling Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const override;
+};
 
-	return S_OK;
-}
-
-HRESULT IfaceCalling CConstant_Model::Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const {
-	double *params = const_cast<double*>(constant_model::default_parameters);
-	return parameters->set(params, params + constant_model::param_count);
-}
+#pragma warning( pop )

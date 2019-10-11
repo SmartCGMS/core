@@ -38,12 +38,12 @@
 
 #pragma once
 
-#include "../../../common/rtl/Common_Calculation.h"
+#include "../../../../common/rtl/Common_Calculated_Signal.h"
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CSteil_Rebrin_Diffusion_Prediction : public virtual CCommon_Calculation {
+class CSteil_Rebrin_Diffusion_Prediction : public virtual CCommon_Calculed_Signal {
 protected:
 	glucose::SSignal mIst;	
 public:
