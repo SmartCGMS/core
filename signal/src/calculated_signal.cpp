@@ -36,7 +36,7 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "calculate.h"
+#include "calculated_signal.h"
 
 #include "descriptor.h"
 

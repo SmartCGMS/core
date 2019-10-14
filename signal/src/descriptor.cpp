@@ -37,10 +37,11 @@
  */
 
 #include "descriptor.h"
-#include "calculate.h"
+#include "calculated_signal.h"
 #include "mapping.h"
 #include "masking.h"
 #include "Measured_Signal.h"
+#include "signal_generator.h"
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
@@ -75,7 +76,7 @@ namespace calculate {
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
-		dsCalculation,
+		dsCalculated_Signal,
 		dsSelected_Model,
 		dsSelected_Signal,
 		dsPrediction_Window,
@@ -227,6 +228,60 @@ namespace masking
 	};
 }
 
+namespace signal_generator {
+
+	constexpr size_t filter_param_count = 7;
+	const wchar_t *filter_ui_names[filter_param_count] = {
+		dsSelected_Model,
+		dsFeedback_Name,
+		dsSynchronize_to_Signal,
+		dsSynchronization_Signal,
+		dsStepping,
+		dsMaximum_Time
+	};
+
+	const wchar_t *filter_config_names[filter_param_count] = {
+		rsSelected_Model,
+		rsFeedback_Name,
+		rsSynchronize_to_Signal,
+		rsSynchronization_Signal,
+		rsStepping,
+		rsMaximum_Time
+	};
+
+	const wchar_t *filter_tooltips[filter_param_count] = {
+		dsSelected_Model_Tooltip,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr
+	};
+
+	constexpr glucose::NParameter_Type filter_param_types[filter_param_count] = {
+		glucose::NParameter_Type::ptModel_Id,
+		glucose::NParameter_Type::ptWChar_Array,
+		glucose::NParameter_Type::ptBool,
+		glucose::NParameter_Type::ptSignal_Id,
+		glucose::NParameter_Type::ptRatTime,
+		glucose::NParameter_Type::ptRatTime,
+		glucose::NParameter_Type::ptDouble_Array
+	};
+
+	glucose::TFilter_Descriptor desc = {
+		{ 0x9eeb3451, 0x2a9d, 0x49c1, { 0xba, 0x37, 0x2e, 0xc0, 0xb0, 0xe, 0x5e, 0x6d } },
+		glucose::NFilter_Flags::None,
+		dsSignal_Generator,
+		filter_param_count,
+		filter_param_types,
+		filter_ui_names,
+		filter_config_names,
+		filter_tooltips
+	};
+}
+
+
 namespace measured_signal
 {
 	constexpr size_t supported_count = 11;
@@ -245,7 +300,7 @@ namespace measured_signal
 		glucose::signal_Physical_Activity
 	};
 }
-const std::array<glucose::TFilter_Descriptor, 3> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, masking::Masking_Descriptor } };
+const std::array<glucose::TFilter_Descriptor, 4> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, masking::Masking_Descriptor, signal_generator::desc } };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
 	*begin = const_cast<glucose::TFilter_Descriptor*>(filter_descriptions.data());
@@ -260,6 +315,8 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilte
 		return Manufacture_Object<CMasking_Filter>(filter, output);
 	else if (*id == mapping::Mapping_Descriptor.id)
 		return Manufacture_Object<CMapping_Filter>(filter, output);
+	else if (*id == signal_generator::desc.id)
+		return Manufacture_Object<CSignal_Generator>(filter, output);
 
 	return ENOENT;
 }
@@ -268,8 +325,7 @@ extern "C" HRESULT IfaceCalling do_create_signal(const GUID *signal_id, glucose:
 	if ((signal_id == nullptr) || (segment == nullptr))
 		return E_INVALIDARG;
 
-	for (size_t i = 0; i < measured_signal::supported_count; i++)
-	{
+	for (size_t i = 0; i < measured_signal::supported_count; i++) {
 		if (measured_signal::supported_signal_ids[i] == *signal_id)
 			return Manufacture_Object<CMeasured_Signal>(signal);
 	}
