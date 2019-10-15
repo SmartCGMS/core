@@ -39,6 +39,7 @@
 #include "descriptor.h"
 
 #include "errors.h"
+#include "signal_error.h"
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/descriptor_utils.h"
@@ -78,7 +79,72 @@ namespace errors
 	};
 }
 
-static const std::array<glucose::TFilter_Descriptor, 1> filter_descriptions = { { errors::Errors_Descriptor } };
+namespace signal_error {
+
+	constexpr size_t param_count = 9;
+
+	const glucose::NParameter_Type parameter_type[param_count] = {
+		glucose::NParameter_Type::ptSignal_Id,
+		glucose::NParameter_Type::ptSignal_Id,
+		glucose::NParameter_Type::ptMetric_Id,
+		glucose::NParameter_Type::ptInt64,
+		glucose::NParameter_Type::ptBool,
+		glucose::NParameter_Type::ptBool,
+		glucose::NParameter_Type::ptBool,
+		glucose::NParameter_Type::ptBool,
+		glucose::NParameter_Type::ptDouble
+	};
+
+	const wchar_t* ui_parameter_name[param_count] = {
+		dsReference_Signal,
+		dsEvaluated_Signal,
+		dsSelected_Metric,
+		dsMetric_Levels_Required,
+		dsUse_Measured_Levels,
+		dsUse_Relative_Error,
+		dsUse_Squared_Diff,
+		dsUse_Prefer_More_Levels,
+		dsMetric_Threshold
+	};
+
+	const wchar_t* config_parameter_name[param_count] = {
+		rsReference_Signal,
+		rsEvaluated_Signal,
+		rsSelected_Metric,
+		rsMetric_Levels_Required,
+		rsUse_Measured_Levels,
+		rsUse_Relative_Error,
+		rsUse_Squared_Diff,
+		rsUse_Prefer_More_Levels,
+		rsMetric_Threshold
+	};
+
+	const wchar_t* ui_parameter_tooltip[param_count] = {
+		nullptr,
+		nullptr,
+		nullptr,
+		dsMetric_Levels_Required_Hint,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr
+	};
+
+	const glucose::TFilter_Descriptor desc = {
+		{ 0x690fbc95, 0x84ca, 0x4627, { 0xb4, 0x7c, 0x99, 0x55, 0xea, 0x81, 0x7a, 0x4f } },
+		glucose::NFilter_Flags::None,
+		dsSignal_Error,
+		param_count,
+		parameter_type,
+		ui_parameter_name,
+		config_parameter_name,
+		ui_parameter_tooltip
+	};
+}
+
+
+static const std::array<glucose::TFilter_Descriptor, 2> filter_descriptions = { { errors::Errors_Descriptor, signal_error::desc } };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
 	*begin = const_cast<glucose::TFilter_Descriptor*>(filter_descriptions.data());
@@ -87,8 +153,8 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 }
 
 extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter *output, glucose::IFilter **filter) {
-	if (*id == errors::Errors_Descriptor.id)
-		return Manufacture_Object<CErrors_Filter>(filter, output);
+	if (*id == errors::Errors_Descriptor.id) return Manufacture_Object<CErrors_Filter>(filter, output);
+		else if (*id == signal_error::desc.id) return Manufacture_Object<CSignal_Error>(filter, output);
 
 	return ENOENT;
 }
