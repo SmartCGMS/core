@@ -54,6 +54,7 @@ namespace imported {
 		glucose::TCreate_Metric create_metric = nullptr;
 		glucose::TCreate_Signal create_signal = nullptr;		
 		glucose::TCreate_Approximator create_approximator = nullptr;
+		glucose::TCreate_Discrete_Model create_discrete_model = nullptr;
 		glucose::TSolve_Model_Parameters solve_model_parameters = nullptr;
 		solver::TGeneric_Solver solve_generic = nullptr;
 	};
@@ -121,6 +122,7 @@ public:
 	HRESULT solve_model_parameters(const glucose::TSolver_Setup *setup);
 	HRESULT solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress);
 	HRESULT create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApprox_Parameters_Vector* configuration, glucose::IApproximator **approx);
+	HRESULT create_discrete_model(const GUID *model_id, glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output, glucose::IDiscrete_Model **model);
 
 	HRESULT get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end);
 	HRESULT get_metric_descriptors(glucose::TMetric_Descriptor **begin, glucose::TMetric_Descriptor **end);
@@ -133,6 +135,7 @@ public:
 
 extern "C" HRESULT IfaceCalling create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric);
 extern "C" HRESULT IfaceCalling create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
+extern "C" HRESULT IfaceCalling create_discrete_model(const GUID *model_id, glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output, glucose::IDiscrete_Model **model);
 extern "C" HRESULT IfaceCalling solve_model_parameters(const glucose::TSolver_Setup *setup);
 extern "C" HRESULT IfaceCalling solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress);
 extern "C" HRESULT IfaceCalling create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApprox_Parameters_Vector* configuration, glucose::IApproximator **approx);

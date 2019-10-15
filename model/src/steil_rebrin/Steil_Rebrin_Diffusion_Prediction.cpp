@@ -40,6 +40,8 @@
 
 #include "../descriptor.h"
 
+#include "../../../../common/rtl/SolverLib.h"
+
 #include <cmath>
 
 CSteil_Rebrin_Diffusion_Prediction::CSteil_Rebrin_Diffusion_Prediction(glucose::WTime_Segment segment) : CCommon_Calculed_Signal(segment), mIst(segment.Get_Signal(glucose::signal_IG)) {
@@ -49,7 +51,7 @@ CSteil_Rebrin_Diffusion_Prediction::CSteil_Rebrin_Diffusion_Prediction(glucose::
 HRESULT IfaceCalling CSteil_Rebrin_Diffusion_Prediction::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 
-	steil_rebrin_diffusion_prediction::TParameters &parameters = Convert_Parameters<steil_rebrin_diffusion_prediction::TParameters>(params, steil_rebrin_diffusion_prediction::default_parameters);
+	steil_rebrin_diffusion_prediction::TParameters &parameters = solver::Convert_Parameters<steil_rebrin_diffusion_prediction::TParameters>(params, steil_rebrin_diffusion_prediction::default_parameters);
 
 	Eigen::Map<TVector1D> converted_times{ Map_Double_To_Eigen<TVector1D>(times, count) };
 	//into the dt vector, we put times to get ist to calculate future ist aka levels at the future times

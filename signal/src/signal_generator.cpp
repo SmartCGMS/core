@@ -88,8 +88,9 @@ HRESULT CSignal_Generator::Do_Configure(glucose::SFilter_Configuration configura
 	mSync_To_Signal = configuration.Read_Bool(rsSynchronize_to_Signal);
 	mSync_Signal = configuration.Read_GUID(rsSynchronization_Signal);
 	mFeedback_Name = configuration.Read_String(rsFeedback_Name);
-	mStepping = configuration.Read_Double(rsStepping);
+	mFixed_Stepping = configuration.Read_Double(rsStepping);
 	mMax_Time = configuration.Read_Double(rsMaximum_Time);
+	mEmit_Shutdown = configuration.Read_Bool(rsShutdown_After_Last);
 
 	glucose::SModel_Parameter_Vector lower, parameters, upper;
 	configuration.Read_Parameters(rsParameters, lower, parameters, upper);
@@ -104,11 +105,17 @@ HRESULT CSignal_Generator::Do_Configure(glucose::SFilter_Configuration configura
 	if (!mSync_To_Signal) {
 		mThread = std::make_unique<std::thread>([this]() {			
 			while (!mQuitting) {
-				mModel->Step(mStepping);
+				mModel->Step(mFixed_Stepping);
 
-				mTotal_Time += mStepping;
-				mQuitting |= mTotal_Time >= mMax_Time;
+				mTotal_Time += mFixed_Stepping;
+				if (mMax_Time>0.0) mQuitting |= mTotal_Time >= mMax_Time;
 			}
+
+			if ((mTotal_Time >= mMax_Time) && mEmit_Shutdown) {
+				auto evt = glucose::UDevice_Event{ glucose::NDevice_Event_Code::Shut_Down };
+				Send(evt);
+			}
+
 		});
 	}
 

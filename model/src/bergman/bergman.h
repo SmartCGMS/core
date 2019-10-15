@@ -38,39 +38,24 @@
 
 #pragma once
 
-#include "descriptor.h"
-#include "../../../common/rtl/FilterLib.h"
-
-#include <thread>
-#include <mutex>
+#include "../descriptor.h"
+#include "../../../../common/rtl/FilterLib.h"
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-/*
- * T1DMS device driver (pump setting to, and data source from T1DMS simulator)
- */
-class CBergman_Device_Driver : public glucose::IDevice_Driver, public virtual refcnt::CReferenced
-{
-	private:
-		glucose::SFilter_Pipe mInput;
-		glucose::SFilter_Pipe mOutput;
+class CBergman_Discrete_Model : public virtual glucose::CBase_Filter, public virtual glucose::IDiscrete_Model { 
+protected:
+	bergman_model::TParameters mParameters;
+	HRESULT Emit_Signal_Level(const GUID& signal_id, double device_time, double level);
+protected:
+	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
+	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+public:
+	CBergman_Discrete_Model(glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output);
+	virtual ~CBergman_Discrete_Model();
 
-		std::unique_ptr<CFeedback_Receiver_Base> mFeedback;
-
-	protected:
-		void Emit_Signal_Level(const GUID& id, double device_time, double level);
-		void Emit_Sync_Request(double device_time);
-
-	public:
-		CBergman_Device_Driver(glucose::SFilter_Pipe& output);
-		virtual ~CBergman_Device_Driver();
-
-		// glucose::IAsynchronnous_Filter (glucose::IDevice_Driver) iface
-		virtual HRESULT IfaceCalling Run(glucose::IFilter_Configuration* const configuration) override;
-
-		// CNetwork_Feedback_Receiver iface
-		//virtual void Handle_Synchronized(glucose::UDevice_Event& evt) override;
+	virtual HRESULT Step(const double time_advance_delta) override final;
 };
 
 #pragma warning( pop )

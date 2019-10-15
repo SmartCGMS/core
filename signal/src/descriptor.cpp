@@ -147,7 +147,7 @@ namespace calculate {
 	const glucose::TFilter_Descriptor Calculate_Descriptor = {
 		{ 0x14a25f4c, 0xe1b1, 0x85c4,{ 0x12, 0x74, 0x9a, 0x0d, 0x11, 0xe0, 0x98, 0x13 } },  // {14A25F4C-E1B1-85C4-1274-9A0D11E09813}
 		glucose::NFilter_Flags::None,
-		dsCalculate_Filter,
+		dsCalculated_Signal_Filter,
 		param_count,
 		param_type,
 		ui_param_name,
@@ -230,14 +230,16 @@ namespace masking
 
 namespace signal_generator {
 
-	constexpr size_t filter_param_count = 7;
+	constexpr size_t filter_param_count = 8;
 	const wchar_t *filter_ui_names[filter_param_count] = {
 		dsSelected_Model,
 		dsFeedback_Name,
 		dsSynchronize_to_Signal,
 		dsSynchronization_Signal,
 		dsStepping,
-		dsMaximum_Time
+		dsMaximum_Time,
+		dsShutdown_After_Last,
+		dsParameters
 	};
 
 	const wchar_t *filter_config_names[filter_param_count] = {
@@ -246,11 +248,14 @@ namespace signal_generator {
 		rsSynchronize_to_Signal,
 		rsSynchronization_Signal,
 		rsStepping,
-		rsMaximum_Time
+		rsMaximum_Time,
+		rsShutdown_After_Last,
+		rsParameters
 	};
 
 	const wchar_t *filter_tooltips[filter_param_count] = {
 		dsSelected_Model_Tooltip,
+		nullptr,
 		nullptr,
 		nullptr,
 		nullptr,
@@ -266,6 +271,7 @@ namespace signal_generator {
 		glucose::NParameter_Type::ptSignal_Id,
 		glucose::NParameter_Type::ptRatTime,
 		glucose::NParameter_Type::ptRatTime,
+		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptDouble_Array
 	};
 

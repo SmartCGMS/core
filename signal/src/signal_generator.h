@@ -55,10 +55,11 @@ class CSignal_Generator : public virtual glucose::CBase_Filter, public virtual g
 protected:
 	bool mSync_To_Signal = false;
 	GUID mSync_Signal;
-	double mStepping;
+	double mFixed_Stepping;
 	double mMax_Time;			//maximum time, for which the generator can run
 	double mTotal_Time = 0.0;	//time for which the generator runs
 	double mLast_Device_Time = std::numeric_limits<double>::quiet_NaN();
+	bool mEmit_Shutdown;
 protected:
 	std::wstring mFeedback_Name;
 	glucose::SDiscrete_Model mModel;

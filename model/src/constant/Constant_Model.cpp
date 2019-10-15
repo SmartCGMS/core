@@ -39,6 +39,8 @@
 #include "Constant_Model.h"
 #include "../descriptor.h"
 
+#include "../../../../common/rtl/SolverLib.h"
+
 #include <cmath>
 
 CConstant_Model::CConstant_Model(glucose::WTime_Segment segment) : CCommon_Calculed_Signal(segment) {
@@ -48,7 +50,7 @@ CConstant_Model::CConstant_Model(glucose::WTime_Segment segment) : CCommon_Calcu
 HRESULT IfaceCalling CConstant_Model::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	constant_model::TParameters &parameters = Convert_Parameters<constant_model::TParameters>(params, constant_model::default_parameters);
+	constant_model::TParameters &parameters = solver::Convert_Parameters<constant_model::TParameters>(params, constant_model::default_parameters);
 
 	// for all input times (reference signal times), output constant value
 	// this comes in handy for e.g. measuring quality of regulation - metrics then can tell us, how good the regulation actually was,

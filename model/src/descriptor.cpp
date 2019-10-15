@@ -44,6 +44,8 @@
 #include "diffusion/Diffusion_v2_blood.h"
 #include "diffusion/Diffusion_v2_ist.h"
 #include "steil_rebrin/Steil_Rebrin_blood.h"
+#include "bergman/bergman.h"
+
 #include <vector>
 
 namespace diffusion_v2_model {
@@ -286,8 +288,14 @@ const std::array<glucose::TModel_Descriptor, 6> model_descriptions = { { diffusi
 																		 bergman_model::desc} };
 
 
-extern "C" HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end) {
+HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end) {
 	*begin = const_cast<glucose::TModel_Descriptor*>(model_descriptions.data());
 	*end = *begin + model_descriptions.size();
 	return S_OK;
+}
+
+
+HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output, glucose::IDiscrete_Model **model) {
+	if (*model_id == bergman_model::model_id) return Manufacture_Object<CBergman_Discrete_Model>(model, parameters, output);
+		else return E_NOTIMPL;
 }

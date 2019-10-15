@@ -136,11 +136,12 @@ namespace bergman_model {
 		};
 	};
 
-	constexpr TParameters lower_bounds = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5, -5.0 };
-	constexpr TParameters default_parameters = { 0.028735, 0.028344, 5.035e-05, 0.3, 12.0, 70.0, 0.22, 0.05, 0.05, 0.04, 95.0, 9.2, 100.0, 0.929, -0.037, 1.308 };
-	constexpr TParameters upper_bounds = { 1.0, 1.0, 1.0, 1.0, 20.0, 10.0, 1.0, 1.0, 1.0, 1.0, 200.0, 20.0, 200.0, 2.0, 0.0, 5.0 };
+	constexpr bergman_model::TParameters lower_bounds = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5, -5.0 };
+	constexpr bergman_model::TParameters default_parameters = { 0.028735, 0.028344, 5.035e-05, 0.3, 12.0, 70.0, 0.22, 0.05, 0.05, 0.04, 95.0, 9.2, 100.0, 0.929, -0.037, 1.308 };
+	constexpr bergman_model::TParameters upper_bounds = { 1.0, 1.0, 1.0, 1.0, 20.0, 10.0, 1.0, 1.0, 1.0, 1.0, 200.0, 20.0, 200.0, 2.0, 0.0, 5.0 };
 }
 
 
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end);
+extern "C" HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output, glucose::IDiscrete_Model **model);

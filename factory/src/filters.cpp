@@ -53,6 +53,7 @@ namespace imported {
 	const char* rsDo_Create_Filter = "do_create_filter";
 	const char* rsDo_Create_Metric = "do_create_metric";
 	const char* rsDo_Create_Signal = "do_create_signal";
+	const char* rsDo_Create_Discrete_model = "do_create_discrete_model";
 	const char* rsDo_Solve_Model_Parameters = "do_solve_model_parameters";
 	const char* rsDo_Create_Approximator = "do_create_approximator";
 	const char* rsDo_Solve_Generic = "do_solve_generic";
@@ -93,6 +94,10 @@ HRESULT IfaceCalling create_signal(const GUID *calc_id, glucose::ITime_Segment *
 	return loaded_filters.create_signal(calc_id, segment, signal);
 }
 
+HRESULT IfaceCalling create_discrete_model(const GUID *model_id, glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output, glucose::IDiscrete_Model **model) {
+	return loaded_filters.create_discrete_model(model_id, parameters, output, model);
+}
+
 HRESULT IfaceCalling solve_model_parameters(const glucose::TSolver_Setup *setup) {
 	return loaded_filters.solve_model_parameters(setup);
 }
@@ -123,6 +128,7 @@ void CLoaded_Filters::load_libraries() {
 				
 				lib_used |= Resolve_Func<glucose::TCreate_Metric>(lib.create_metric, lib.library, imported::rsDo_Create_Metric);
 				lib_used |= Resolve_Func<glucose::TCreate_Signal>(lib.create_signal, lib.library, imported::rsDo_Create_Signal);
+				lib_used |= Resolve_Func<glucose::TCreate_Discrete_Model>(lib.create_discrete_model, lib.library, imported::rsDo_Create_Discrete_model);
 				lib_used |= Resolve_Func<glucose::TCreate_Approximator>(lib.create_approximator, lib.library, imported::rsDo_Create_Approximator);
 				lib_used |= Resolve_Func<solver::TGeneric_Solver>(lib.solve_generic, lib.library, imported::rsDo_Solve_Generic);
 
@@ -147,6 +153,7 @@ HRESULT CLoaded_Filters::add_filters(const glucose::TFilter_Descriptor *begin, c
 	lib.create_approximator = nullptr;
 	lib.create_signal = nullptr;
 	lib.create_metric = nullptr;	
+	lib.create_discrete_model = nullptr;
 	lib.solve_model_parameters = nullptr;
 	lib.create_filter = create_filter;	
 
@@ -172,6 +179,11 @@ HRESULT CLoaded_Filters::create_metric(const glucose::TMetric_Parameters *parame
 HRESULT CLoaded_Filters::create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
 	auto call_create_signal = [](const imported::TLibraryInfo &info) { return info.create_signal; };
 	return Call_Func(call_create_signal, calc_id, segment, signal);
+}
+
+HRESULT CLoaded_Filters::create_discrete_model(const GUID *model_id, glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output, glucose::IDiscrete_Model **model) {
+	auto call_create_discrete_model = [](const imported::TLibraryInfo &info) { return info.create_discrete_model; };
+	return Call_Func(call_create_discrete_model, model_id, parameters, output, model);
 }
 
 HRESULT CLoaded_Filters::solve_model_parameters(const glucose::TSolver_Setup *setup) {

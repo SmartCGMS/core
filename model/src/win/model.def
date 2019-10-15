@@ -3,4 +3,5 @@ LIBRARY model.dll
 
 EXPORTS
   	do_get_model_descriptors
-	do_create_signal	
+	do_create_signal
+	do_create_discrete_model
