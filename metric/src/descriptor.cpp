@@ -81,14 +81,13 @@ namespace errors
 
 namespace signal_error {
 
-	constexpr size_t param_count = 9;
+	constexpr size_t param_count = 8;
 
 	const glucose::NParameter_Type parameter_type[param_count] = {
 		glucose::NParameter_Type::ptSignal_Id,
 		glucose::NParameter_Type::ptSignal_Id,
 		glucose::NParameter_Type::ptMetric_Id,
-		glucose::NParameter_Type::ptInt64,
-		glucose::NParameter_Type::ptBool,
+		glucose::NParameter_Type::ptInt64,		
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptBool,
 		glucose::NParameter_Type::ptBool,
@@ -97,10 +96,9 @@ namespace signal_error {
 
 	const wchar_t* ui_parameter_name[param_count] = {
 		dsReference_Signal,
-		dsEvaluated_Signal,
+		dsError_Signal,
 		dsSelected_Metric,
 		dsMetric_Levels_Required,
-		dsUse_Measured_Levels,
 		dsUse_Relative_Error,
 		dsUse_Squared_Diff,
 		dsUse_Prefer_More_Levels,
@@ -109,10 +107,9 @@ namespace signal_error {
 
 	const wchar_t* config_parameter_name[param_count] = {
 		rsReference_Signal,
-		rsEvaluated_Signal,
+		rsError_Signal,
 		rsSelected_Metric,
-		rsMetric_Levels_Required,
-		rsUse_Measured_Levels,
+		rsMetric_Levels_Required,		
 		rsUse_Relative_Error,
 		rsUse_Squared_Diff,
 		rsUse_Prefer_More_Levels,
@@ -123,8 +120,7 @@ namespace signal_error {
 		nullptr,
 		nullptr,
 		nullptr,
-		dsMetric_Levels_Required_Hint,
-		nullptr,
+		dsMetric_Levels_Required_Hint,		
 		nullptr,
 		nullptr,
 		nullptr,
