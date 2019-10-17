@@ -57,7 +57,7 @@ CSignal_Error::~CSignal_Error() {
 
 HRESULT IfaceCalling CSignal_Error::QueryInterface(const GUID*  riid, void ** ppvObj) {
 
-	if (Internal_Query_Interface<glucose::ISignal_Error>(glucose::IID_Signal_Error, *riid, ppvObj)) return S_OK;	
+	if (Internal_Query_Interface<glucose::ISignal_Error_Inspection>(glucose::IID_Signal_Error_Inspection, *riid, ppvObj)) return S_OK;	
 
 	return E_NOINTERFACE;
 }
@@ -158,29 +158,8 @@ HRESULT IfaceCalling CSignal_Error::Peek_New_Data_Available() {
 	return rc;
 }
 
-HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(const glucose::NError_Type error_type, glucose::TSignal_Error &signal_error) {
-	std::vector<double> abs_differences;
-	std::vector<double> reference_levels;
-	std::vector<double> error_levels;
-
-	std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
-	if (Prepare_Levels(abs_differences, reference_levels, error_levels)) {
-
-		//1. calculate sum and count
-		signal_error.count = 0;
-		for (size_t i = 0; i < abs_differences.size(); i++) {
-			if (!isnan(reference_levels[i]) && !isnan(error_levels[i])) {
-				//both levels are not nan, so we can calcualte the error here
-				abs_differences[i] = fabs(reference_levels[i] - error_levels[i]);
-
-				signal_error.sum += abs_differences[i];
-				signal_error.count++;
-			}
-		}
-		//2. test the count and if OK, calculate avg and others
-		if (signal_error.count < 1) return S_FALSE;
-		signal_error.avg = signal_error.sum / static_cast<double>(signal_error.count);
-
+HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(glucose::TSignal_Error &absolute_error, glucose::TSignal_Error &relative_error) {
+	auto Calculate_StdDev_And_ECDF = [](const std::vector<double> &differences, glucose::TSignal_Error &signal_error) {
 		//3. calculate stddev
 		{
 			double corrected_count = static_cast<double>(signal_error.count);
@@ -189,7 +168,7 @@ HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(const glucose::NError
 
 			const double corrected_avg = signal_error.avg / corrected_count;
 			signal_error.stddev = 0.0;
-			for (const auto & difference : abs_differences) {
+			for (const auto & difference : differences) {
 				const double tmp = difference - corrected_avg;
 				signal_error.stddev += tmp * tmp;
 			}
@@ -197,16 +176,65 @@ HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(const glucose::NError
 			signal_error.stddev /= corrected_count;
 		}
 
-		//4. calculate the ECDF
-		{			
-			const double stepping = static_cast<double>(signal_error.count) /  (static_cast<double>(glucose::NECDF::max_value)+1.0);
-			std::sort(abs_differences.begin(), abs_differences.end());
+		//4. calculate ECDF
 
-			size_t index = static_cast<size_t>(glucose::NECDF::min_value);
-			do {				
-				index++;
-			} while (static_cast<glucose::NECDF>(index) != glucose::NECDF::max_value+1);
+		//fill min and max precisely as we will be rounding for the other values
+		signal_error.ecdf[0] = differences[0];
+		signal_error.ecdf[static_cast<size_t>(glucose::NECDF::max_value)] = differences[differences.size() - 1];
+
+		const double stepping = static_cast<double>(signal_error.count) / (static_cast<double>(glucose::NECDF::max_value) + 1.0);
+		const size_t ECDF_offset = static_cast<size_t>(glucose::NECDF::min_value);
+		for (size_t i = 1; i < static_cast<size_t>(glucose::NECDF::max_value) - ECDF_offset; i++)
+			signal_error.ecdf[i + ECDF_offset] = differences[static_cast<size_t>(round(static_cast<double>(i)*stepping))];
+	};
+
+
+	std::vector<double> times;
+	std::vector<double> reference_levels;
+	std::vector<double> error_levels;
+
+	std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
+	if (Prepare_Levels(times, reference_levels, error_levels)) {
+
+		//let's reuse the already allocated memory
+		decltype(error_levels) &absolute_differences = error_levels;			//has to be error level not to overwrite reference too soon
+		decltype(reference_levels) &relative_differences = reference_levels;		
+
+		//1. calculate sum and count
+		absolute_error.count = 0;
+		relative_error.count = 0;
+		for (size_t i = 0; i < reference_levels.size(); i++) {
+			if (!isnan(reference_levels[i]) && !isnan(error_levels[i])) {
+				//both levels are not nan, so we can calcualte the error here
+				absolute_differences[absolute_error.count] = fabs(reference_levels[i] - error_levels[i]);				
+				absolute_error.sum += absolute_differences[absolute_error.count];
+				absolute_error.count++;
+
+				if (reference_levels[i] != 0.0) {
+					relative_differences[relative_error.count] = absolute_differences[absolute_error.count] / reference_levels[i];
+					relative_error.sum += relative_differences[relative_error.count];
+					relative_error.count++;
+				}
+			}
 		}
+		//2. test the count and if OK, calculate avg and others
+		if (absolute_error.count < 1) return S_FALSE;
+		absolute_error.avg = absolute_error.sum / static_cast<double>(absolute_error.count);
+		Calculate_StdDev_And_ECDF(absolute_differences, absolute_error);
+
+		if (relative_error.count > 0) {
+			Calculate_StdDev_And_ECDF(relative_differences, relative_error);
+		} else {
+			relative_error.sum = 0.0;
+			relative_error.avg = std::numeric_limits<double>::quiet_NaN();
+			relative_error.stddev = std::numeric_limits<double>::quiet_NaN();
+
+			const size_t ECDF_offset = static_cast<size_t>(glucose::NECDF::min_value);
+			for (size_t i=0; i <= static_cast<size_t>(glucose::NECDF::max_value) - ECDF_offset; i++)
+				relative_error.ecdf[ECDF_offset + i] = std::numeric_limits<double>::quiet_NaN();
+		}
+
+	
 
 		return S_OK;
 	}

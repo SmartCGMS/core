@@ -52,7 +52,7 @@
 /*
  * Filter class for calculating error metrics
  */
-class CSignal_Error : public glucose::CBase_Filter, public virtual glucose::ISignal_Error {
+class CSignal_Error : public glucose::CBase_Filter, public virtual glucose::ISignal_Error_Inspection {
 protected:
 	GUID mReference_Signal_ID;
 	GUID mError_Signal_ID;
@@ -84,7 +84,7 @@ public:
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
 	virtual HRESULT IfaceCalling Promise_Metric(double* const metric_value, bool defer_to_dtor) override final;
 	virtual HRESULT IfaceCalling Peek_New_Data_Available() override final;
-	virtual HRESULT IfaceCalling Calculate_Signal_Error(const glucose::NError_Type error_type, glucose::TSignal_Error &signal_error) override final;
+	virtual HRESULT IfaceCalling Calculate_Signal_Error(glucose::TSignal_Error &absolute_error, glucose::TSignal_Error &relative_error) override final;
 };
 
 
