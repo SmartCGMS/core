@@ -57,6 +57,8 @@ protected:
 	GUID mReference_Signal_ID;
 	GUID mError_Signal_ID;
 
+	std::wstring mDescription;
+
 	std::mutex mSeries_Gaurd;
 
 	/*struct TSignal_Point { double level; double date_time; };
@@ -85,6 +87,7 @@ public:
 	virtual HRESULT IfaceCalling Promise_Metric(double* const metric_value, bool defer_to_dtor) override final;
 	virtual HRESULT IfaceCalling Peek_New_Data_Available() override final;
 	virtual HRESULT IfaceCalling Calculate_Signal_Error(glucose::TSignal_Error *absolute_error, glucose::TSignal_Error *relative_error) override final;
+	virtual HRESULT IfaceCalling Get_Description(wchar_t** const desc) override final;
 };
 
 

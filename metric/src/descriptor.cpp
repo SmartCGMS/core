@@ -81,9 +81,10 @@ namespace errors
 
 namespace signal_error {
 
-	constexpr size_t param_count = 8;
+	constexpr size_t param_count = 9;
 
 	const glucose::NParameter_Type parameter_type[param_count] = {
+		glucose::NParameter_Type::ptWChar_Array,
 		glucose::NParameter_Type::ptSignal_Id,
 		glucose::NParameter_Type::ptSignal_Id,
 		glucose::NParameter_Type::ptMetric_Id,
@@ -95,6 +96,7 @@ namespace signal_error {
 	};
 
 	const wchar_t* ui_parameter_name[param_count] = {
+		dsDescription,
 		dsReference_Signal,
 		dsError_Signal,
 		dsSelected_Metric,
@@ -106,6 +108,7 @@ namespace signal_error {
 	};
 
 	const wchar_t* config_parameter_name[param_count] = {
+		rsDescription,
 		rsReference_Signal,
 		rsError_Signal,
 		rsSelected_Metric,
@@ -117,6 +120,7 @@ namespace signal_error {
 	};
 
 	const wchar_t* ui_parameter_tooltip[param_count] = {
+		nullptr,
 		nullptr,
 		nullptr,
 		nullptr,

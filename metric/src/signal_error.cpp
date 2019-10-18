@@ -40,6 +40,7 @@
 
 
 #include "../../../common/lang/dstrings.h"
+#include "../../../common/rtl/UILib.h"
 
 constexpr unsigned char bool_2_uc(const bool b) {
 	return b ? static_cast<unsigned char>(1) : static_cast<unsigned char>(0);
@@ -84,6 +85,8 @@ HRESULT CSignal_Error::Do_Configure(glucose::SFilter_Configuration configuration
 	mError_Signal_ID = configuration.Read_GUID(rsError_Signal, Invalid_GUID);
 	if ((mReference_Signal_ID == Invalid_GUID) || (mError_Signal_ID == Invalid_GUID)) return E_INVALIDARG;
 
+	mDescription = configuration.Read_String(rsDescription, GUID_To_WString(mReference_Signal_ID).append(L" - ").append(GUID_To_WString(mError_Signal_ID)));
+
 	const glucose::TMetric_Parameters metric_parameters{ configuration.Read_GUID(rsSelected_Metric),
 		bool_2_uc(configuration.Read_Bool(rsUse_Relative_Error)),
 		bool_2_uc(configuration.Read_Bool(rsUse_Squared_Diff)),
@@ -99,7 +102,7 @@ HRESULT CSignal_Error::Do_Configure(glucose::SFilter_Configuration configuration
 	
 bool CSignal_Error::Prepare_Levels(std::vector<double> &times, std::vector<double> &reference, std::vector<double> &error) {
 	size_t reference_count = 0;
-	if (mReference_Signal->Get_Discrete_Bounds(nullptr, nullptr, &reference_count)) {
+	if (SUCCEEDED(mReference_Signal->Get_Discrete_Bounds(nullptr, nullptr, &reference_count))) {
 		if (reference_count > 0) {
 
 			times.resize(reference_count);
@@ -114,6 +117,8 @@ bool CSignal_Error::Prepare_Levels(std::vector<double> &times, std::vector<doubl
 			}
 
 		}
+		else
+			return true;	//no error, but simply no data yet
 	}
 	return false;
 }
@@ -190,6 +195,17 @@ HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(glucose::TSignal_Erro
 			signal_error.ecdf[i + ECDF_offset] = differences[static_cast<size_t>(round(static_cast<double>(i)*stepping))];
 	};
 
+	auto Set_Error_To_No_Data = [](glucose::TSignal_Error &signal_error) {
+		signal_error.count = 0;
+		signal_error.sum = 0.0;
+		signal_error.avg = std::numeric_limits<double>::quiet_NaN();
+		signal_error.stddev = std::numeric_limits<double>::quiet_NaN();
+
+		const size_t ECDF_offset = static_cast<size_t>(glucose::NECDF::min_value);
+		for (size_t i = 0; i <= static_cast<size_t>(glucose::NECDF::max_value) - ECDF_offset; i++)
+			signal_error.ecdf[ECDF_offset + i] = std::numeric_limits<double>::quiet_NaN();
+	};
+
 
 	std::vector<double> times;
 	std::vector<double> reference_levels;
@@ -220,25 +236,24 @@ HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(glucose::TSignal_Erro
 			}
 		}
 		//2. test the count and if OK, calculate avg and others
-		if (absolute_error->count < 1) return S_FALSE;
+		if (absolute_error->count < 1) {
+			Set_Error_To_No_Data(*absolute_error);
+			Set_Error_To_No_Data(*relative_error);
+			return S_FALSE;
+		}
 		absolute_error->avg = absolute_error->sum / static_cast<double>(absolute_error->count);
 		Calculate_StdDev_And_ECDF(absolute_differences, *absolute_error);
 
-		if (relative_error->count > 0) {
-			Calculate_StdDev_And_ECDF(relative_differences, *relative_error);
-		} else {
-			relative_error->sum = 0.0;
-			relative_error->avg = std::numeric_limits<double>::quiet_NaN();
-			relative_error->stddev = std::numeric_limits<double>::quiet_NaN();
-
-			const size_t ECDF_offset = static_cast<size_t>(glucose::NECDF::min_value);
-			for (size_t i=0; i <= static_cast<size_t>(glucose::NECDF::max_value) - ECDF_offset; i++)
-				relative_error->ecdf[ECDF_offset + i] = std::numeric_limits<double>::quiet_NaN();
-		}
-
+		if (relative_error->count > 0) Calculate_StdDev_And_ECDF(relative_differences, *relative_error);
+			else Set_Error_To_No_Data(*relative_error);		
 	
 
 		return S_OK;
 	}
 	else return E_FAIL;
+}
+
+HRESULT IfaceCalling CSignal_Error::Get_Description(wchar_t** const desc) {
+	*desc = const_cast<wchar_t*>(mDescription.c_str());
+	return S_OK;
 }

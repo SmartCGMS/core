@@ -328,7 +328,7 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilte
 }
 
 extern "C" HRESULT IfaceCalling do_create_signal(const GUID *signal_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
-	if ((signal_id == nullptr) || (segment == nullptr))
+	if ((signal_id == nullptr)/* || (segment == nullptr)*/)	//signal error sets segment to nullptr as it does not need it
 		return E_INVALIDARG;
 
 	for (size_t i = 0; i < measured_signal::supported_count; i++) {
