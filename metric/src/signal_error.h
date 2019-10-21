@@ -72,7 +72,7 @@ protected:
 	glucose::SMetric mMetric;
 
 	double *mPromised_Metric = nullptr;
-	bool mNew_Data_Available = false;
+	std::atomic<bool> mNew_Data_Available{false};	
 
 	bool Prepare_Levels(std::vector<double> &times, std::vector<double> &reference, std::vector<double> &error);
 	double Calculate_Metric();	//returns metric or NaN if could not calculate

@@ -69,13 +69,32 @@ HRESULT CSignal_Error::Do_Execute(glucose::UDevice_Event event) {
 
 	auto add_level = [&raw_event, this](glucose::SSignal &signal) {
 		std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
-		mNew_Data_Available |= signal->Add_Levels(&raw_event->device_time, &raw_event->level, 1) == S_OK;
+		if (signal->Add_Levels(&raw_event->device_time, &raw_event->level, 1) == S_OK)
+			mNew_Data_Available = true;
 	};
 
-	if (event->Raw(&raw_event) == S_OK) 
-		if (raw_event->event_code == glucose::NDevice_Event_Code::Level)
-			if (raw_event->event_code == glucose::NDevice_Event_Code::Level) add_level(mReference_Signal);
-				else if (raw_event->signal_id == mError_Signal_ID) add_level(mError_Signal);			
+	if (event->Raw(&raw_event) == S_OK)
+		switch (raw_event->event_code) {
+		
+			case glucose::NDevice_Event_Code::Level:
+				if (raw_event->signal_id == mReference_Signal_ID) add_level(mReference_Signal);
+					else if (raw_event->signal_id == mError_Signal_ID) add_level(mError_Signal);
+			break;
+
+
+			case glucose::NDevice_Event_Code::Warm_Reset:
+				{
+					std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
+					mReference_Signal = glucose::SSignal{ glucose::STime_Segment{}, glucose::signal_BG };
+					mError_Signal = glucose::SSignal{ glucose::STime_Segment{}, glucose::signal_BG };
+					mNew_Data_Available = true;
+				}
+				break;
+
+
+	}
+
+
 
 	return Send(event);
 }
@@ -158,9 +177,7 @@ HRESULT IfaceCalling CSignal_Error::Promise_Metric(double* const metric_value, b
 }
 
 HRESULT IfaceCalling CSignal_Error::Peek_New_Data_Available() {
-	HRESULT rc = mNew_Data_Available ? S_OK : S_FALSE;
-	mNew_Data_Available = false;
-	return rc;
+	return mNew_Data_Available.exchange(false) ? S_OK : S_FALSE;
 }
 
 HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(glucose::TSignal_Error *absolute_error, glucose::TSignal_Error *relative_error) {
@@ -189,7 +206,7 @@ HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(glucose::TSignal_Erro
 		signal_error.ecdf[0] = differences[0];
 		signal_error.ecdf[static_cast<size_t>(glucose::NECDF::max_value)] = differences[differences.size() - 1];
 
-		const double stepping = static_cast<double>(signal_error.count) / (static_cast<double>(glucose::NECDF::max_value) + 1.0);
+		const double stepping = static_cast<double>(signal_error.count-1) / (static_cast<double>(glucose::NECDF::max_value) + 1.0);
 		const size_t ECDF_offset = static_cast<size_t>(glucose::NECDF::min_value);
 		for (size_t i = 1; i < static_cast<size_t>(glucose::NECDF::max_value) - ECDF_offset; i++)
 			signal_error.ecdf[i + ECDF_offset] = differences[static_cast<size_t>(round(static_cast<double>(i)*stepping))];
@@ -225,14 +242,15 @@ HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(glucose::TSignal_Erro
 			if (!isnan(reference_levels[i]) && !isnan(error_levels[i])) {
 				//both levels are not nan, so we can calcualte the error here
 				absolute_differences[absolute_error->count] = fabs(reference_levels[i] - error_levels[i]);
-				absolute_error->sum += absolute_differences[absolute_error->count];
-				absolute_error->count++;
+				absolute_error->sum += absolute_differences[absolute_error->count];				
 
 				if (reference_levels[i] != 0.0) {
 					relative_differences[relative_error->count] = absolute_differences[absolute_error->count] / reference_levels[i];
 					relative_error->sum += relative_differences[relative_error->count];
 					relative_error->count++;
 				}
+
+				absolute_error->count++;
 			}
 		}
 		//2. test the count and if OK, calculate avg and others

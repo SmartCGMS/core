@@ -38,7 +38,6 @@
 
 #include "descriptor.h"
 
-#include "errors.h"
 #include "signal_error.h"
 
 #include "../../../common/lang/dstrings.h"
@@ -61,22 +60,6 @@ HRESULT IfaceCalling do_get_metric_descriptors(glucose::TMetric_Descriptor **beg
 	*begin = const_cast<glucose::TMetric_Descriptor*>(metric_descriptor.data());
 	*end = *begin + metric_descriptor.size();
 	return S_OK;
-}
-
-namespace errors
-{
-	constexpr size_t param_count = 0;
-
-	const glucose::TFilter_Descriptor Errors_Descriptor = {
-		glucose::IID_Error_Filter,
-		glucose::NFilter_Flags::None,
-		dsErrors_Filter,
-		param_count,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr
-	};
 }
 
 namespace signal_error {
@@ -144,7 +127,7 @@ namespace signal_error {
 }
 
 
-static const std::array<glucose::TFilter_Descriptor, 2> filter_descriptions = { { errors::Errors_Descriptor, signal_error::desc } };
+static const std::array<glucose::TFilter_Descriptor, 1> filter_descriptions = { { signal_error::desc } };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
 	*begin = const_cast<glucose::TFilter_Descriptor*>(filter_descriptions.data());
@@ -153,8 +136,7 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descr
 }
 
 extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter *output, glucose::IFilter **filter) {
-	if (*id == errors::Errors_Descriptor.id) return Manufacture_Object<CErrors_Filter>(filter, output);
-		else if (*id == signal_error::desc.id) return Manufacture_Object<CSignal_Error>(filter, output);
+	if (*id == signal_error::desc.id) return Manufacture_Object<CSignal_Error>(filter, output);
 
 	return ENOENT;
 }
