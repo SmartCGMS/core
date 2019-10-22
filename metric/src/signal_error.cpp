@@ -183,7 +183,8 @@ HRESULT IfaceCalling CSignal_Error::Peek_New_Data_Available() {
 HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(glucose::TSignal_Error *absolute_error, glucose::TSignal_Error *relative_error) {
 	if (!absolute_error || !relative_error) return E_INVALIDARG;
 
-	auto Calculate_StdDev_And_ECDF = [](const std::vector<double> &differences, glucose::TSignal_Error &signal_error) {
+		//be aware that it sorts the differences vector
+	auto Calculate_StdDev_And_ECDF = [](std::vector<double> &differences, glucose::TSignal_Error &signal_error) {
 		//3. calculate stddev
 		{
 			double corrected_count = static_cast<double>(signal_error.count);
@@ -201,6 +202,7 @@ HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(glucose::TSignal_Erro
 		}
 
 		//4. calculate ECDF
+		std::sort(differences.begin(), differences.end());
 
 		//fill min and max precisely as we will be rounding for the other values
 		signal_error.ecdf[0] = differences[0];
@@ -262,8 +264,10 @@ HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(glucose::TSignal_Erro
 		absolute_error->avg = absolute_error->sum / static_cast<double>(absolute_error->count);
 		Calculate_StdDev_And_ECDF(absolute_differences, *absolute_error);
 
-		if (relative_error->count > 0) Calculate_StdDev_And_ECDF(relative_differences, *relative_error);
-			else Set_Error_To_No_Data(*relative_error);		
+		if (relative_error->count > 0) {
+			relative_error->avg = relative_error->sum / static_cast<double>(relative_error->count);
+			Calculate_StdDev_And_ECDF(relative_differences, *relative_error);
+			} else Set_Error_To_No_Data(*relative_error);		
 	
 
 		return S_OK;
