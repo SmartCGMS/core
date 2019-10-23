@@ -38,24 +38,126 @@
 
 #pragma once
 
+#include <functional>
+
 #include "../descriptor.h"
 #include "../../../../common/rtl/FilterLib.h"
+
+#include "ode_solvers.h"
+#include "ode_solver_parameters.h"
+
+// single uptake event to be taken into account
+struct Uptake_Event
+{
+	double t_min;		// device time of start
+	double t_max;		// device time offset of end from start
+	double amount;		// [UNITS/min] - unit could be anything (U, g, ...)
+};
+
+// container of uptake events
+class Uptake_Accumulator : public std::vector<Uptake_Event>
+{
+	public:
+		// adds a new uptake record
+		void Add_Uptake(double t, double t_delta_end, double amount);
+
+		// retrieves sum of all disturbaces at given time point
+		double Get_Disturbance(double t) const;
+
+		// retrieves the most recent disturbance at given time point
+		double Get_Recent(double t) const;
+
+		// cleans up everything that has taken place before given time point
+		void Cleanup(double t);
+
+		// cleans up everything that is not a recent record
+		void Cleanup_Not_Recent(double t);
+};
+
+// state of bergman minimal model equation system
+struct CBergman_State
+{
+	double lastTime;
+
+	double G;
+	double X;
+	double I;
+	double D1;
+	double D2;
+	double Isc;
+	double Gsc;
+};
+
+class CBergman_Discrete_Model;
+
+using TDiff_Eq_Fnc = double (CBergman_Discrete_Model::*)(const double, const double) const;
+using TDiff_Eq = decltype(std::bind<double>(std::declval<TDiff_Eq_Fnc>(), std::declval<CBergman_Discrete_Model*>(), std::declval<const decltype(std::placeholders::_1)&>(), std::declval<const decltype(std::placeholders::_2)&>()));
+
+// helper structure for equation binding
+struct CEquation_Binding
+{
+	double& x;
+	TDiff_Eq fnc;
+};
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CBergman_Discrete_Model : public virtual glucose::CBase_Filter, public virtual glucose::IDiscrete_Model { 
-protected:
-	bergman_model::TParameters mParameters;
-	HRESULT Emit_Signal_Level(const GUID& signal_id, double device_time, double level);
-protected:
-	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
-public:
-	CBergman_Discrete_Model(glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output);
-	virtual ~CBergman_Discrete_Model();
+class CBergman_Discrete_Model : public virtual glucose::CBase_Filter, public virtual glucose::IDiscrete_Model
+{
+	private:
+		// maximum accepted error estimate for ODE solvers for this model
+		const double ODE_epsilon0 = 0.001;
 
-	virtual HRESULT Step(const double time_advance_delta) override final;
+	private:
+		bergman_model::TParameters mParameters;
+
+		// meal uptake accumulator
+		Uptake_Accumulator mMeal_Ext;
+		// bolus uptake accumulator
+		Uptake_Accumulator mBolus_Ext;
+		// basal uptake accumulator
+		Uptake_Accumulator mBasal_Ext;
+		// current state of Bergman model (all quantities)
+		CBergman_State mState;
+		// bound equations in a single vector - quantity and equation bound together
+		const std::vector<CEquation_Binding> mEquation_Binding;
+
+		// different ODE solvers we might want to use; we prefer Dormand-Prince parametrization with binary subdivision adaptive step strategy (best balance of speed and precision)
+		//ode::euler::CSolver ODE_Solver;
+		//ode::heun::CSolver ODE_Solver;
+		//ode::kutta::CSolver ODE_Solver;
+		//ode::rule38::CSolver ODE_Solver;
+		//ode::dormandprince::CSolver_Non_Adaptive ODE_Solver;
+		ode::dormandprince::CSolver<CRunge_Kuttta_Adaptive_Strategy_Binary_Subdivision<4>> ODE_Solver{ ODE_epsilon0 };
+		//ode::dormandprince::CSolver<CRunge_Kuttta_Adaptive_Strategy_Optimal_Estimation<4>> ODE_Solver{ ODE_epsilon0 };
+
+	private:
+		// particular differential equations; they are bound to a specific CBergman_State (mState) field in mEquation_Binding upon model construction
+		// they are never meant to change internal state - the model's Step method does it itself using ODE solver Step method result
+		double eq_dG(const double _T, const double _G) const;
+		double eq_dX(const double _T, const double _G) const;
+		double eq_dI(const double _T, const double _G) const;
+		double eq_dD1(const double _T, const double _G) const;
+		double eq_dD2(const double _T, const double _G) const;
+		double eq_dIsc(const double _T, const double _G) const;
+		double eq_dGsc(const double _T, const double _G) const;
+
+	protected:
+		HRESULT Emit_Signal_Level(const GUID& signal_id, double device_time, double level);
+		void Emit_All_Signals(double time_advance_delta);
+
+	protected:
+		// glucose::CBase_Filter iface implementation
+		virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
+		virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+
+	public:
+		CBergman_Discrete_Model(glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output);
+		virtual ~CBergman_Discrete_Model() = default;
+
+		// glucose::IDiscrete_Model iface
+		virtual HRESULT Step(const double time_advance_delta) override final;
 };
 
 #pragma warning( pop )

@@ -4,7 +4,7 @@ SET(PROJ "model")
 
 CONFIGURE_COMMON(${PROJ})
 
-FILE(GLOB SRC_FILES "src/*.cpp" "src/*.c" "src/*.h")
+FILE(GLOB_RECURSE SRC_FILES "src/*.cpp" "src/*.c" "src/*.h")
 IF(WIN32)
 	FILE(GLOB SRC_WIN_FILES "src/win/*.cpp" "src/win/*.h" "src/win/*.def")
 	SET(SRC_FILES "${SRC_FILES};${SRC_WIN_FILES}")

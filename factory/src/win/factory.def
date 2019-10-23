@@ -17,3 +17,4 @@ EXPORTS
 	execute_filter_configuration
 	create_filter_parameter
 	create_filter_configuration_link
+	create_discrete_model

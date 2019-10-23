@@ -106,7 +106,8 @@ class CRunge_Kutta_ODE_Solver_Base
 
 	protected:
 		// Evaluates the K function and stores the outputs into kfunc array
-		void Evaluate_K_Func(std::function<double(double, double)>& objectiveFnc, TK_Coef_Array& kfunc, const double T, const double X, const double stepSize) const
+		template<typename _ObjFunc>
+		void Evaluate_K_Func(_ObjFunc& objectiveFnc, TK_Coef_Array& kfunc, const double T, const double X, const double stepSize) const
 		{
 			kfunc[0] = 0;
 
@@ -127,7 +128,7 @@ class CRunge_Kutta_ODE_Solver_Base
 		}
 
 		// Perform one step of RK ODE solver - returns new value of input variable
-		virtual double Step(std::function<double(double, double)>& objectiveFnc, const double T, const double X, const double stepSize) = 0;
+		//virtual double Step(std::function<double(double, double)>& objectiveFnc, const double T, const double X, const double stepSize) = 0;
 };
 
 /*
@@ -143,7 +144,7 @@ class CRunge_Kutta_ODE_Solver_NonAdaptive : public CRunge_Kutta_ODE_Solver_Base<
 
 	protected:
 		// Evaluates K coefficients and performs K-summation to estimate process variable difference
-		double Evaluate_K_Coefs(const TK_Coef_Array& kfunc, const double stepSize)
+		double Evaluate_K_Coefs(const TK_Coef_Array& kfunc, const double stepSize) const
 		{
 			double sumK = 0;
 			for (size_t j = 0; j < N; j++)
@@ -158,7 +159,8 @@ class CRunge_Kutta_ODE_Solver_NonAdaptive : public CRunge_Kutta_ODE_Solver_Base<
 		{
 		}
 
-		virtual double Step(std::function<double(double, double)>& objectiveFnc, const double T, const double X, const double stepSize) override final
+		template<typename _ObjFunc>
+		double Step(_ObjFunc& objectiveFnc, const double T, const double X, const double stepSize) const
 		{
 			TK_Coef_Array kfunc;
 			CRunge_Kutta_ODE_Solver_Base<N>::Evaluate_K_Func(objectiveFnc, kfunc, T, X, stepSize);
@@ -211,7 +213,8 @@ class CRunge_Kutta_ODE_Solver_Adaptive : public CRunge_Kutta_ODE_Solver_Base<N>
 		{
 		}
 
-		virtual double Step(std::function<double(double, double)>& objectiveFnc, const double T, const double X, const double stepSize) override final
+		template<typename _ObjFunc>
+		double Step(_ObjFunc& objectiveFnc, const double T, const double X, const double stepSize) const
 		{
 			size_t stepCnt;
 			double xDiff;

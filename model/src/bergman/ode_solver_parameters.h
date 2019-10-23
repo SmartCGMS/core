@@ -26,12 +26,12 @@ namespace ode
 	{
 		constexpr size_t order = 1;
 
-		const std::array<std::array<double, order>, order> rkmatrix = { {
+		static const std::array<std::array<double, order>, order> rkmatrix = { {
 			{ 0 }
 		} };
 
-		const std::array<double, order> weights = { 1 };
-		const std::array<double, order> nodes = { 0 };
+		static const std::array<double, order> weights = { 1 };
+		static const std::array<double, order> nodes = { 0 };
 
 		DEFINE_ODE_SOLVER_NONADAPTIVE(CSolver);
 	}
@@ -41,13 +41,13 @@ namespace ode
 	{
 		constexpr size_t order = 2;
 
-		std::array<std::array<double, order>, order> rkmatrix = { {
+		static std::array<std::array<double, order>, order> rkmatrix = { {
 			{ 0,         0 },
 			{ 1. / 2.,   0 }
 		} };
 
-		const std::array<double, order> weights = { 0, 1 };
-		const std::array<double, order> nodes = { 0, 1. / 2. };
+		static const std::array<double, order> weights = { 0, 1 };
+		static const std::array<double, order> nodes = { 0, 1. / 2. };
 
 		DEFINE_ODE_SOLVER_NONADAPTIVE(CSolver);
 	}
@@ -57,14 +57,14 @@ namespace ode
 	{
 		constexpr size_t order = 3;
 
-		std::array<std::array<double, order>, order> rkmatrix = { {
+		static std::array<std::array<double, order>, order> rkmatrix = { {
 			{ 0,       0, 0 },
 			{ 1. / 2., 0, 0 },
 			{ -1,      2, 0 }
 		} };
 
-		const std::array<double, order> weights = { 1. / 6., 2. / 3., 1. / 6. };
-		const std::array<double, order> nodes = { 0, 1. / 2., 1 };
+		static const std::array<double, order> weights = { 1. / 6., 2. / 3., 1. / 6. };
+		static const std::array<double, order> nodes = { 0, 1. / 2., 1 };
 
 		DEFINE_ODE_SOLVER_NONADAPTIVE(CSolver);
 	}
@@ -74,15 +74,15 @@ namespace ode
 	{
 		constexpr size_t order = 4;
 
-		std::array<std::array<double, order>, order> rkmatrix = { {
+		static std::array<std::array<double, order>, order> rkmatrix = { {
 			{ 0,         0, 0, 0 },
 			{ 1. / 3.,   0, 0, 0 },
 			{ -1. / 3.,  1, 0, 0 },
 			{ 1,        -1, 1, 0 }
 		} };
 
-		const std::array<double, order> weights = { 1. / 8., 3. / 8., 3. / 8., 1. / 8. };
-		const std::array<double, order> nodes = { 0, 1. / 3., 2. / 3., 1 };
+		static const std::array<double, order> weights = { 1. / 8., 3. / 8., 3. / 8., 1. / 8. };
+		static const std::array<double, order> nodes = { 0, 1. / 3., 2. / 3., 1 };
 
 		DEFINE_ODE_SOLVER_NONADAPTIVE(CSolver);
 	}
@@ -92,7 +92,7 @@ namespace ode
 	{
 		constexpr size_t order = 7;
 
-		std::array<std::array<double, order>, order> rkmatrix = { {
+		static std::array<std::array<double, order>, order> rkmatrix = { {
 			{{ 0, 0, 0, 0, 0, 0, 0 }},
 			{{ 1. / 5., 0, 0, 0, 0, 0, 0 }},
 			{{ 3. / 40., 9. / 40., 0, 0, 0, 0, 0 }},
@@ -102,9 +102,9 @@ namespace ode
 			{{ 35. / 384., 0, 500. / 1113., 125. / 192., -2187. / 6784., 11. / 84., 0 }}
 		} };
 
-		const std::array<double, order> weights = { { 35. / 384., 0, 500. / 1113., 125. / 192., -2187. / 6784., 11. / 84., 0 } };
-		const std::array<double, order> weights_alt = { { 5179. / 57600., 0., 7571. / 16695., 393. / 640., -92097. / 339200., 187. / 2100., 1. / 40. } };
-		const std::array<double, order> nodes = { { 0, 1. / 5., 3. / 10., 4. / 5., 8. / 9., 1, 1 } };
+		static const std::array<double, order> weights = { { 35. / 384., 0, 500. / 1113., 125. / 192., -2187. / 6784., 11. / 84., 0 } };
+		static const std::array<double, order> weights_alt = { { 5179. / 57600., 0., 7571. / 16695., 393. / 640., -92097. / 339200., 187. / 2100., 1. / 40. } };
+		static const std::array<double, order> nodes = { { 0, 1. / 5., 3. / 10., 4. / 5., 8. / 9., 1, 1 } };
 
 		DEFINE_ODE_SOLVER_ADAPTIVE(CSolver);
 

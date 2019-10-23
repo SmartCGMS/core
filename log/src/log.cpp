@@ -146,7 +146,7 @@ HRESULT IfaceCalling CLog_Filter::Do_Configure(glucose::SFilter_Configuration co
 
 HRESULT IfaceCalling CLog_Filter::Do_Execute(glucose::UDevice_Event event) {
 	Log_Event(event);
-	return Send(event);		
+	return Send(event);
 };
 
 
