@@ -197,11 +197,11 @@ namespace constant_model {
 	const double lower_bound[param_count] = { 0.0 };
 	const double upper_bound[param_count] = {  100.0 };
 
-	const size_t signal_count = 2;
+	const size_t signal_count = 1;
 
-	const GUID signal_ids[signal_count] = { glucose::signal_Constant_BG, glucose::signal_Constant_Insulin };
-	const wchar_t *signal_names[signal_count] = { dsConstant_Blood_Signal, dsConstant_Insulin };
-	const GUID reference_signal_ids[signal_count] = { glucose::signal_BG, glucose::signal_Basal_Insulin };
+	const GUID signal_ids[signal_count] = { constant_model::signal_Constant };
+	const wchar_t *signal_names[signal_count] = { dsConstant_Signal};
+	const GUID reference_signal_ids[signal_count] = { glucose::signal_All };
 
 	const glucose::TModel_Descriptor desc = {
 		id,
@@ -276,6 +276,35 @@ namespace bergman_model {
 		glucose::NModel_Parameter_Value::mptDouble
 	};
 
+	constexpr size_t number_of_calculated_signals = 6;
+
+	const GUID calculated_signal_ids[number_of_calculated_signals] = {
+		signal_Bergman_BG,
+		signal_Bergman_IG,
+		signal_Bergman_IOB,
+		signal_Bergman_COB,
+		signal_Bergman_Basal_Insulin,
+		signal_Bergman_Insulin_Activity,
+	};
+
+	const wchar_t* calculated_signal_names[number_of_calculated_signals] = {
+		dsBergman_Signal_BG,
+		dsBergman_Signal_IG,
+		dsBergman_Signal_IOB,
+		dsBergman_Signal_COB,
+		dsBergman_Signal_Basal_Insulin,
+		dsBergman_Signal_Insulin_Activity
+	};
+
+	const GUID reference_signal_ids[number_of_calculated_signals] = {
+		glucose::signal_BG,
+		glucose::signal_IG,
+		glucose::signal_IOB,
+		glucose::signal_COB,
+		glucose::signal_Basal_Insulin,
+		glucose::signal_Insulin_Activity,
+	};
+
 	glucose::TModel_Descriptor desc = {
 		model_id,
 		dsBergman_Minimal_Model,
@@ -288,11 +317,10 @@ namespace bergman_model {
 		default_parameters.vector,
 		upper_bounds.vector,
 
-		//the data below should be corrected
-		1,
-		&glucose::signal_BG,
-		&dsBlood,
-		&glucose::signal_BG,
+		number_of_calculated_signals,
+		calculated_signal_ids,
+		calculated_signal_names,
+		reference_signal_ids,
 	};
 }
 

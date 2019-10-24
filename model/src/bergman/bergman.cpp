@@ -193,32 +193,27 @@ void CBergman_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 	const double _T = mState.lastTime + time_advance_delta;
 
 	// blood glucose
-	Emit_Signal_Level(glucose::signal_BG, _T, mState.G * glucose::mgdl_2_mmoll);
+	Emit_Signal_Level(bergman_model::signal_Bergman_BG, _T, mState.G * glucose::mgdl_2_mmoll);
 
 	// interstitial fluid glucose
-	Emit_Signal_Level(glucose::signal_IG, _T, mState.Gsc * glucose::mgdl_2_mmoll);
+	Emit_Signal_Level(bergman_model::signal_Bergman_IG, _T, mState.Gsc * glucose::mgdl_2_mmoll);
 
 	// dosed basal insulin - sum of all basal insulin dosed per time_advance_delta
 	// TODO: this might be a bit more precise if we calculate the actual sum during ODE solving, but the basal rate is very unlikely to change within a step, so it does not matter
-	Emit_Signal_Level(glucose::signal_Basal_Insulin, _T, (time_advance_delta / glucose::One_Minute) * (mBasal_Ext.Get_Recent(_T) + mBolus_Ext.Get_Disturbance(_T)) / 1000.0);
+	Emit_Signal_Level(bergman_model::signal_Bergman_Basal_Insulin, _T, (time_advance_delta / glucose::One_Minute) * (mBasal_Ext.Get_Recent(_T) + mBolus_Ext.Get_Disturbance(_T)) / 1000.0);
 
 	// IOB = all insulin in system (except remote pool)
-	Emit_Signal_Level(glucose::signal_IOB, _T, (mState.I + mState.Isc) / (1000.0/mParameters.Vi));
+	Emit_Signal_Level(bergman_model::signal_Bergman_IOB, _T, (mState.I + mState.Isc) / (1000.0/mParameters.Vi));
 
 	// insulin activity = "derivative" of IOB - immediate insulin effect
 	// TODO: revisit this
-	Emit_Signal_Level(glucose::signal_Insulin_Activity, _T, mState.I / (1000.0/mParameters.Vi));
+	Emit_Signal_Level(bergman_model::signal_Bergman_Insulin_Activity, _T, mState.I / (1000.0/mParameters.Vi));
 
 	// COB = all CHO in system (colon and stomach) - divide by bioavailability, as the CHO is physically in colon/stomach, but the body discards a part of it without absorption (determined by bioavailability ratio)
-	Emit_Signal_Level(glucose::signal_COB, _T, (1.0 / Ag)*(mState.D1 + mState.D2) / 1000.0);
+	Emit_Signal_Level(bergman_model::signal_Bergman_COB, _T, (1.0 / Ag)*(mState.D1 + mState.D2) / 1000.0);
 }
 
 HRESULT CBergman_Discrete_Model::Do_Execute(glucose::UDevice_Event event) {
-
-	// store last time on first reference signal
-	if (mState.lastTime < 0 && event.event_code() == glucose::NDevice_Event_Code::Level && event.signal_id() == glucose::signal_IG)
-		mState.lastTime = event.device_time();
-
 	if (mState.lastTime > 0)
 	{
 		if (event.event_code() == glucose::NDevice_Event_Code::Level)
@@ -248,16 +243,14 @@ HRESULT CBergman_Discrete_Model::Do_Execute(glucose::UDevice_Event event) {
 	return Send(event);
 }
 
-HRESULT CBergman_Discrete_Model::Do_Configure(glucose::SFilter_Configuration configuration)
-{
+HRESULT CBergman_Discrete_Model::Do_Configure(glucose::SFilter_Configuration configuration) {
 	// configured in the constructor
 	return E_NOTIMPL;
 }
 
-HRESULT CBergman_Discrete_Model::Step(const double time_advance_delta)
-{
+HRESULT IfaceCalling CBergman_Discrete_Model::Step(const double time_advance_delta) {
 	// we need to be synchronized prior Step call (signal generator will send appropriate events, but this class needs to implement the synchronization part)
-	assert(mState.lastTime > 0);
+	assert(mState.lastTime > 0.0);
 
 	// perform a few microsteps within advancement delta
 	// we expect the spacing to be 5 minutes (between IG values) +- few seconds; however, bolus, basal intake and CHO intake may vary during this time period
@@ -298,4 +291,13 @@ HRESULT CBergman_Discrete_Model::Emit_Signal_Level(const GUID& signal_id, double
 	evt.segment_id() = reinterpret_cast<std::remove_reference<decltype(evt.segment_id())>::type>(this);
 
 	return Send(evt);
+}
+
+HRESULT IfaceCalling CBergman_Discrete_Model::Set_Current_Time(const double new_current_time) {
+	if (mState.lastTime < 0.0) {
+		mState.lastTime = new_current_time;
+		return S_OK;
+	}
+	else
+		return E_ILLEGAL_STATE_CHANGE;
 }

@@ -38,43 +38,7 @@
 
 #pragma once
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/referencedImpl.h"
-#include "../../../common/rtl/SolverLib.h"
+#include "../../../common/iface/FilterIface.h"
+#include "../../../common/iface/SolverIface.h"
 
-#include "error_metric_counter.h"
-
-#include <memory>
-#include <thread>
-#include <mutex>
-#include <atomic>
-#include <condition_variable>
-
-#pragma warning( push )
-#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
-
-/*
- * Filter class for calculating error metrics
- */
-class CErrors_Filter : public glucose::CBase_Filter, public glucose::IError_Filter_Inspection {
-protected:		
-	// currently used error counter instance; TODO: in future, we need to consider more segments at once
-	bool mChange_Available;
-	std::mutex mError_Counter_Guard;
-	CError_Marker_Counter mErrorCounter;
-protected:
-	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
-public:
-	CErrors_Filter(glucose::IFilter *output);
-	virtual ~CErrors_Filter() {};
-		
-	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
-
-	virtual HRESULT IfaceCalling New_Data_Available() override final;
-	// retrieves the only instance of errors filter
-	virtual HRESULT IfaceCalling Get_Errors(const GUID *signal_id, const glucose::NError_Type type, glucose::TError_Markers *markers) override final;
-};
-
-
-#pragma warning( pop )
+extern "C" HRESULT IfaceCalling Optimize_Parameters(glucose::IFilter_Chain_Configuration *configuration, const size_t filter_index, const wchar_t *parameters_name, solver::TSolver_Setup &solver_setup);

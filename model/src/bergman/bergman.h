@@ -157,7 +157,8 @@ class CBergman_Discrete_Model : public virtual glucose::CBase_Filter, public vir
 		virtual ~CBergman_Discrete_Model() = default;
 
 		// glucose::IDiscrete_Model iface
-		virtual HRESULT Step(const double time_advance_delta) override final;
+		virtual HRESULT IfaceCalling Set_Current_Time(const double new_current_time);
+		virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
 };
 
 #pragma warning( pop )
