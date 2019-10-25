@@ -59,7 +59,7 @@ namespace diffusion_v2_model {
 
 	const size_t signal_count = 2;
 	
-	const GUID signal_ids[signal_count] = { glucose::signal_Diffusion_v2_Blood, glucose::signal_Diffusion_v2_Ist };
+	const GUID signal_ids[signal_count] = { signal_Diffusion_v2_Blood, signal_Diffusion_v2_Ist };
 	const wchar_t *signal_names[signal_count] = { dsBlood, dsInterstitial };
 	const GUID reference_signal_ids[signal_count] = { glucose::signal_BG, glucose::signal_IG };
 
@@ -92,7 +92,7 @@ namespace steil_rebrin {
 	const double upper_bound[param_count] = { 1000.0, 1000.0, 1000.0, 1000.0 };
 
 	const size_t signal_count = 1;	
-	const GUID signal_ids[signal_count] = { glucose::signal_Steil_Rebrin_Blood };
+	const GUID signal_ids[signal_count] = { signal_Steil_Rebrin_Blood };
 	const wchar_t *signal_names[signal_count] = { dsBlood };
 	const GUID reference_signal_ids[signal_count] = { glucose::signal_BG };
 
@@ -127,7 +127,7 @@ namespace steil_rebrin_diffusion_prediction {
 	const double upper_bound[param_count] = { 2.0, 0.0, 10.0, glucose::One_Hour, 1000.0, 1000.0};
 
 	const size_t signal_count = 1;
-	const GUID signal_ids[signal_count] = { glucose::signal_Steil_Rebrin_Diffusion_Prediction };
+	const GUID signal_ids[signal_count] = { signal_Steil_Rebrin_Diffusion_Prediction };
 	const wchar_t *signal_names[signal_count] = { dsInterstitial };
 	const GUID reference_signal_ids[signal_count] = { glucose::signal_IG };
 
@@ -164,7 +164,7 @@ namespace diffusion_prediction {
 
 	const size_t signal_count = 1;
 
-	const GUID signal_ids[signal_count] = { glucose::signal_Diffusion_Prediction };
+	const GUID signal_ids[signal_count] = { signal_Diffusion_Prediction };
 	const wchar_t *signal_names[signal_count] = { dsInterstitial };
 	const GUID reference_signal_ids[signal_count] = { glucose::signal_IG };
 
@@ -301,7 +301,7 @@ namespace bergman_model {
 		glucose::signal_IG,
 		glucose::signal_IOB,
 		glucose::signal_COB,
-		glucose::signal_Basal_Insulin,
+		glucose::signal_Delivered_Insulin_Basal,
 		glucose::signal_Insulin_Activity,
 	};
 

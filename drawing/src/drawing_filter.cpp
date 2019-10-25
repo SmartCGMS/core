@@ -72,10 +72,10 @@ const std::map<GUID, const char*, std::less<GUID>, tbb::tbb_allocator<std::pair<
 	{ glucose::signal_BG, "blood" },
 	{ glucose::signal_Calibration, "bloodCalibration" },
 	{ glucose::signal_ISIG, "isig" },
-	{ glucose::signal_Bolus_Insulin, "insulin" },
-	{ glucose::signal_Calculated_Bolus_Insulin, "calcd_insulin" },
-	{ glucose::signal_Basal_Insulin, "basal_insulin" },
-	{ glucose::signal_Basal_Insulin_Rate, "basal_insulin_rate" },
+	{ glucose::signal_Delivered_Insulin_Bolus, "insulin" },
+	{ glucose::signal_Requested_Insulin_Bolus, "calcd_insulin" },
+	{ glucose::signal_Delivered_Insulin_Basal, "basal_insulin" },
+	{ glucose::signal_Requested_Basal_Insulin_Rate, "basal_insulin_rate" },
 	{ glucose::signal_Insulin_Activity, "insulin_activity" },
 	{ glucose::signal_Carb_Intake, "carbs" },
 	{ glucose::signal_IOB, "iob" },
@@ -330,7 +330,7 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 
 						// several signals are excluded from maximum value determining, since their values are not in mmol/l, and are drawn in a different way
 						// TODO: more generic way to determine value units
-						if (presentData.first != glucose::signal_Carb_Intake && presentData.first != glucose::signal_Bolus_Insulin && presentData.first != glucose::signal_Basal_Insulin && presentData.first != glucose::signal_Physical_Activity
+						if (presentData.first != glucose::signal_Carb_Intake && presentData.first != glucose::signal_Delivered_Insulin_Bolus && presentData.first != glucose::signal_Delivered_Insulin_Basal && presentData.first != glucose::signal_Physical_Activity
 							&& presentData.first != glucose::signal_ISIG)
 						{
 							if (val.value > mGraphMaxValue)

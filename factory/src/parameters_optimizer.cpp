@@ -39,17 +39,24 @@
 #pragma once
 
 #include "parameters_optimizer.h"
-
+#include "../../../common/rtl/FilterLib.h"
 
 class  CParameters_Optimizer {
+protected:
+	glucose::SFilter_Chain_Configuration mConfiguration;
 public:
-	double Calculate_Fitness(const void* solution) {
+	CParameters_Optimizer(glucose::IFilter_Chain_Configuration *configuration) :
+		mConfiguration(refcnt::make_shared_reference_ext<glucose::SFilter_Chain_Configuration, glucose::IFilter_Chain_Configuration>(configuration, true)) {
 
+	}
+
+	double Calculate_Fitness(const void* solution) {
+		return std::numeric_limits<double>::quiet_NaN();
 	}
 };
 
 
-double IfaceCalling Fitness_Wrapper(const void *data, const double *solution) {
+double IfaceCalling Parameters_Fitness_Wrapper(const void *data, const double *solution) {
 	CParameters_Optimizer *fitness = reinterpret_cast<CParameters_Optimizer*>(const_cast<void*>(data));
 	return fitness->Calculate_Fitness(solution);
 }

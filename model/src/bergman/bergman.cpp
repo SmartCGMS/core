@@ -218,11 +218,11 @@ HRESULT CBergman_Discrete_Model::Do_Execute(glucose::UDevice_Event event) {
 	{
 		if (event.event_code() == glucose::NDevice_Event_Code::Level)
 		{
-			if (event.signal_id() == glucose::signal_Basal_Insulin_Rate)
+			if (event.signal_id() == glucose::signal_Requested_Basal_Insulin_Rate)
 			{
 				mBasal_Ext.Add_Uptake(event.device_time(), std::numeric_limits<double>::max(), 1000.0 * (event.level() / 60.0));
 			}
-			else if (event.signal_id() == glucose::signal_Bolus_Insulin || event.signal_id() == glucose::signal_Calculated_Bolus_Insulin)
+			else if (event.signal_id() == glucose::signal_Delivered_Insulin_Bolus || event.signal_id() == glucose::signal_Requested_Insulin_Bolus)
 			{
 				// we assume that bolus is spread to 5-minute rate
 				constexpr double MinsBolusing = 5.0;

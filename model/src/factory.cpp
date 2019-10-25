@@ -74,11 +74,11 @@ protected:
 	}
 public:
 	CId_Dispatcher() {
-		Add_Signal<CDiffusion_v2_blood>(glucose::signal_Diffusion_v2_Blood);
-		Add_Signal<CDiffusion_v2_ist>(glucose::signal_Diffusion_v2_Ist);
-		Add_Signal<CSteil_Rebrin_blood>(glucose::signal_Steil_Rebrin_Blood);
-		Add_Signal<CSteil_Rebrin_Diffusion_Prediction>(glucose::signal_Steil_Rebrin_Diffusion_Prediction);
-		Add_Signal<CDiffusion_Prediction>(glucose::signal_Diffusion_Prediction);
+		Add_Signal<CDiffusion_v2_blood>(diffusion_v2_model::signal_Diffusion_v2_Blood);
+		Add_Signal<CDiffusion_v2_ist>(diffusion_v2_model::signal_Diffusion_v2_Ist);
+		Add_Signal<CSteil_Rebrin_blood>(steil_rebrin::signal_Steil_Rebrin_Blood);
+		Add_Signal<CSteil_Rebrin_Diffusion_Prediction>(steil_rebrin_diffusion_prediction::signal_Steil_Rebrin_Diffusion_Prediction);
+		Add_Signal<CDiffusion_Prediction>(diffusion_prediction::signal_Diffusion_Prediction);
 		Add_Signal<CConstant_Model>(constant_model::signal_Constant);
 	}
 

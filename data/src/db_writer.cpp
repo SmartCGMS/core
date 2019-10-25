@@ -172,8 +172,8 @@ void CDb_Writer::Flush_Levels()
 		sigCondBind(glucose::signal_BG);
 		sigCondBind(glucose::signal_IG);
 		sigCondBind(glucose::signal_ISIG);
-		sigCondBind(glucose::signal_Bolus_Insulin);
-		sigCondBind(glucose::signal_Basal_Insulin_Rate);
+		sigCondBind(glucose::signal_Delivered_Insulin_Bolus);
+		sigCondBind(glucose::signal_Requested_Basal_Insulin_Rate);
 		sigCondBind(glucose::signal_Carb_Intake);
 		sigCondBind(glucose::signal_Calibration);
 
