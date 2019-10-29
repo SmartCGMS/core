@@ -57,7 +57,7 @@ CFilter_Configuration_Executor::~CFilter_Configuration_Executor() {
 HRESULT IfaceCalling CFilter_Configuration_Executor::Execute(glucose::IDevice_Event *event) {	
 	if (!event) return E_INVALIDARG;
 	HRESULT rc = mComposite_Filter.Execute(event);
-	if (rc != S_OK)  event->Release();	//in the case of a failure, we consume the event anyway
+	if (rc != S_OK) event->Release();	//in the case of a failure, we consume the event anyway
 	return rc;
 }
 
