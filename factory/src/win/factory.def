@@ -18,3 +18,4 @@ EXPORTS
 	create_filter_parameter
 	create_filter_configuration_link
 	create_discrete_model
+	optimize_parameters

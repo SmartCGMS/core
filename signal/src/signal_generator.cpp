@@ -96,7 +96,7 @@ HRESULT CSignal_Generator::Do_Configure(glucose::SFilter_Configuration configura
 	mMax_Time = configuration.Read_Double(rsMaximum_Time);
 	mEmit_Shutdown = configuration.Read_Bool(rsShutdown_After_Last);
 
-	glucose::SModel_Parameter_Vector lower, parameters, upper;
+	std::vector<double> lower, parameters, upper;
 	configuration.Read_Parameters(rsParameters, lower, parameters, upper);
 
 	const GUID model_id = configuration.Read_GUID(rsSelected_Model);

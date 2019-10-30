@@ -122,34 +122,34 @@ protected:
 
 				bool found_parameters = false;
 				src_link.for_each([&raw_link_to_add, &result, this](glucose::SFilter_Parameter src_parameter) {
-					wchar_t *src_name;
-					if (src_parameter->Get_Config_Name(&src_name) == S_OK) {
+					
+					glucose::IFilter_Parameter* raw_parameter = src_parameter.get();
 
-						glucose::IFilter_Parameter* raw_parameter = src_parameter.get();
+					if (mParameters_Config_Name == src_parameter.configuration_name()) {
+						//parameters - we need to create a new copy
 
-						if (mParameters_Config_Name == src_name) {
-							raw_parameter = static_cast<glucose::IFilter_Parameter*>(new CFilter_Parameter{glucose::NParameter_Type::ptDouble_Array, src_name});
-							glucose::IModel_Parameter_Vector *src_parameters, *dst_parameters;
-							if (src_parameter->Get_Model_Parameters(&src_parameters) == S_OK) {
-								dst_parameters = refcnt::Copy_Container<double>(src_parameters);
-								if (raw_parameter->Set_Model_Parameters(dst_parameters) != S_OK) result.failed = true;	//increases RC by 1
-								dst_parameters->Release();
+						raw_parameter = static_cast<glucose::IFilter_Parameter*>(new CFilter_Parameter{glucose::NParameter_Type::ptDouble_Array, mParameters_Config_Name.c_str()});
+						glucose::IModel_Parameter_Vector *src_parameters, *dst_parameters;
+						if (src_parameter->Get_Model_Parameters(&src_parameters) == S_OK) {
+							dst_parameters = refcnt::Copy_Container<double>(src_parameters);
+							if (raw_parameter->Set_Model_Parameters(dst_parameters) != S_OK) result.failed = true;	//increases RC by 1
+							dst_parameters->Release();
 
-								//find the very first number to overwrite later on with new values
-								double *begin, *end;
-								if (dst_parameters->get(&begin, &end) == S_OK) {
-									result.first_parameter = begin + mProblem_Size;
-								}
-								else
-									result.failed = true;
+							//find the very first number to overwrite later on with new values
+							double *begin, *end;
+							if (dst_parameters->get(&begin, &end) == S_OK) {
+								result.first_parameter = begin + mProblem_Size;
 							}
 							else
 								result.failed = true;
 						}
-
-						if (raw_link_to_add->add(&raw_parameter, &raw_parameter + 1) != S_OK) result.failed = true;
-
+						else
+							result.failed = true;
 					}
+
+					if (raw_link_to_add->add(&raw_parameter, &raw_parameter + 1) != S_OK) result.failed = true;
+
+					
 				});
 
 				if (!found_parameters) result.failed = true;	//we need the parameters, because they also include the bounds!
@@ -164,31 +164,7 @@ protected:
 		return result;
 	}
 
-	//static so that we can use to to initialize the const member-variable mProblem_Size
-	HRESULT Initialize_Solver_Structures() {		
-
-		//OK, let's determine the problem size from the parameters
-		glucose::IFilter_Configuration_Link **link_begin, **link_end;
-		HRESULT rc = mConfiguration->get(&link_begin, &link_end);
-		if (rc != S_OK) return rc;
-
-		glucose::SFilter_Configuration_Link link_parameters = refcnt::make_shared_reference_ext<glucose::SFilter_Configuration_Link, glucose::IFilter_Configuration_Link>(*link_begin + mFilter_Index, true);
-		glucose::SModel_Parameter_Vector lower_bound, default_parameters, upper_bound;
-		link_parameters.Read_Parameters(mParameters_Config_Name.c_str(), lower_bound, default_parameters, upper_bound);
-		double *param_begin, *param_end;
-		rc = default_parameters->get(&param_begin, &param_end);
-		if (rc != S_OK) return rc;
-
-		mProblem_Size = std::distance(param_begin, param_end);
-		if (mProblem_Size == 0) return S_FALSE;
-
-
-		mLower_Bound = refcnt::Container_To_Vector(lower_bound.get());		
-		mUpper_Bound = refcnt::Container_To_Vector(upper_bound.get());
-		mFound_Parameters = refcnt::Container_To_Vector(default_parameters.get());
-
-		return S_OK;
-	}
+	
 
 public:
 	CParameters_Optimizer(glucose::IFilter_Chain_Configuration *configuration, const size_t filter_index, const wchar_t *parameters_config_name, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) :
@@ -199,8 +175,11 @@ public:
 	}
 
 	HRESULT Optimize(const GUID solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress &progress) {
-		HRESULT rc = Initialize_Solver_Structures();
-		if (rc != S_OK) return rc;
+		glucose::SFilter_Configuration_Link configuration_link_parameters = mConfiguration.operator[](mFilter_Index);
+		if (!configuration_link_parameters || !configuration_link_parameters.Read_Parameters(mParameters_Config_Name.c_str(), mLower_Bound, mFound_Parameters, mUpper_Bound))
+			return E_INVALIDARG;
+
+		mProblem_Size = mFound_Parameters.size();
 
 		//create initial pool-configuration to determine problem size
 		//and to verify that we are able to clone the configuration
@@ -221,7 +200,13 @@ public:
 		};
 
 
-		return solve_generic(&solver_id, &solver_setup, &progress);
+		HRESULT rc = solve_generic(&solver_id, &solver_setup, &progress);		
+
+		//eventually, we need to copy the parameters to the original configuration - on success
+		if (rc == S_OK)
+			rc = configuration_link_parameters.Write_Parameters(mParameters_Config_Name.c_str(), mLower_Bound, mFound_Parameters, mUpper_Bound) ? rc : E_FAIL;		
+
+		return rc;
 	}
 
 
@@ -264,7 +249,7 @@ double IfaceCalling internal::Parameters_Fitness_Wrapper(const void *data, const
 }
 
 
-HRESULT IfaceCalling Optimize_Parameters(glucose::IFilter_Chain_Configuration *configuration, const size_t filter_index, const wchar_t *parameters_configuration_name, 
+HRESULT IfaceCalling optimize_parameters(glucose::IFilter_Chain_Configuration *configuration, const size_t filter_index, const wchar_t *parameters_configuration_name, 
 										 glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data,
 									     const GUID solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress *progress) {
 

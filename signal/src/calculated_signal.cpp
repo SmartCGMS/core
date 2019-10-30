@@ -91,31 +91,23 @@ HRESULT IfaceCalling CCalculate_Filter::Do_Configure(glucose::SFilter_Configurat
 	mSolver_Status = mSolver_Enabled ? glucose::TSolver_Status::Idle : glucose::TSolver_Status::Disabled;
 
 	mSolver_Id = configuration.Read_GUID(rsSelected_Solver);
-	configuration.Read_Parameters(rsSelected_Model_Bounds, mLower_Bound, mDefault_Parameters, mUpper_Bound);
 
 	//get reference signal id
 	glucose::TModel_Descriptor desc = glucose::Null_Model_Descriptor;
 	if (glucose::get_model_descriptor_by_signal_id(mCalculated_Signal_Id, desc)) {
 
-		auto set_params = [](glucose::SModel_Parameter_Vector &parameters, const double *begin, const size_t count) {
-			if (!parameters) parameters = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(const_cast<double*>(begin), const_cast<double*>(begin) + count);
-			else parameters->set(const_cast<double*>(begin), const_cast<double*>(begin) + count);
-		};
+		std::vector<double> lower_bound, default_parameters, upper_bound;
 
-		auto get_container_size = [](glucose::SModel_Parameter_Vector const& vec) -> size_t {
-			double *begin, *end;
-			if (vec->get(&begin, &end) != S_OK)
-				return 0;
-			return std::distance(begin, end);
-		};
-
-		if (mLower_Bound.empty() || get_container_size(mLower_Bound) != desc.number_of_parameters)
-			set_params(mLower_Bound, desc.lower_bound, desc.number_of_parameters);
-		if (mDefault_Parameters.empty() || get_container_size(mDefault_Parameters) != desc.number_of_parameters)
-			set_params(mDefault_Parameters, desc.default_values, desc.number_of_parameters);
-		if (mUpper_Bound.empty() || get_container_size(mUpper_Bound) != desc.number_of_parameters)
-			set_params(mUpper_Bound, desc.upper_bound, desc.number_of_parameters);
-
+		if (!configuration.Read_Parameters(rsSelected_Model_Bounds, lower_bound, default_parameters, upper_bound)) {
+			lower_bound.assign(desc.lower_bound, desc.lower_bound + desc.number_of_parameters);
+			default_parameters.assign(desc.default_values, desc.default_values + desc.number_of_parameters);
+			upper_bound.assign(desc.upper_bound, desc.upper_bound + desc.number_of_parameters);
+		}
+		
+		mLower_Bound = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(lower_bound.data(), lower_bound.data() + lower_bound.size());
+		mDefault_Parameters = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(default_parameters.data(), default_parameters.data() + default_parameters.size());
+		mUpper_Bound = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(upper_bound.data(), upper_bound.data() + upper_bound.size());
+		
 		//find the proper reference id
 		for (size_t i = 0; i < desc.number_of_calculated_signals; i++) {
 			if (desc.calculated_signal_ids[i] == mCalculated_Signal_Id) {
