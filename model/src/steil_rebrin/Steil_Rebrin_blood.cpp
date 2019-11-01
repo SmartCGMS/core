@@ -53,7 +53,7 @@ CSteil_Rebrin_blood::CSteil_Rebrin_blood(glucose::WTime_Segment segment) : CComm
 HRESULT IfaceCalling CSteil_Rebrin_blood::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 
-	steil_rebrin::TParameters &parameters = solver::Convert_Parameters<steil_rebrin::TParameters>(params, steil_rebrin::default_parameters);
+	steil_rebrin::TParameters &parameters = glucose::Convert_Parameters<steil_rebrin::TParameters>(params, steil_rebrin::default_parameters);
 	if (parameters.alpha == 0.0) return E_INVALIDARG;	//this parameter cannot be zero
 
 	CPooled_Buffer<TVector1D> ist = mVector1D_Pool.pop( count );

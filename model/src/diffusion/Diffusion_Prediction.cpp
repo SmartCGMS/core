@@ -52,7 +52,7 @@ CDiffusion_Prediction::CDiffusion_Prediction(glucose::WTime_Segment segment) : C
 HRESULT IfaceCalling CDiffusion_Prediction::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 
-	diffusion_prediction::TParameters &parameters = solver::Convert_Parameters<diffusion_prediction::TParameters>(params, diffusion_prediction::default_parameters);
+	diffusion_prediction::TParameters &parameters = glucose::Convert_Parameters<diffusion_prediction::TParameters>(params, diffusion_prediction::default_parameters);
 
 	//destination times
 	Eigen::Map<TVector1D> converted_times{ Map_Double_To_Eigen<TVector1D>(times, count) };

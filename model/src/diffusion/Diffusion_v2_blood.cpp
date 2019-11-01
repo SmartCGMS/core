@@ -53,7 +53,7 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 																const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 	assert((times != nullptr) && (levels != nullptr) && (count>0));
 
-	diffusion_v2_model::TParameters &parameters = solver::Convert_Parameters<diffusion_v2_model::TParameters>(params, diffusion_v2_model::default_parameters);
+	diffusion_v2_model::TParameters &parameters = glucose::Convert_Parameters<diffusion_v2_model::TParameters>(params, diffusion_v2_model::default_parameters);
 	
 	CPooled_Buffer<TVector1D> present_ist = mVector1D_Pool.pop( count );
 	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, times, present_ist.element().data(), count, glucose::apxNo_Derivation);

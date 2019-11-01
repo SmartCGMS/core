@@ -129,7 +129,7 @@ void Uptake_Accumulator::Cleanup_Not_Recent(double t)
 
 CBergman_Discrete_Model::CBergman_Discrete_Model(glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output) : 
 	CBase_Filter(output),
-	mParameters(solver::Convert_Parameters<bergman_model::TParameters>(parameters, bergman_model::default_parameters.vector)),
+	mParameters(glucose::Convert_Parameters<bergman_model::TParameters>(parameters, bergman_model::default_parameters.vector)),
 	mEquation_Binding{
 		{ mState.G,   std::bind<double>(&CBergman_Discrete_Model::eq_dG, this, std::placeholders::_1, std::placeholders::_2) },
 		{ mState.X,   std::bind<double>(&CBergman_Discrete_Model::eq_dX, this, std::placeholders::_1, std::placeholders::_2) },
