@@ -96,7 +96,8 @@ protected:
 
 	TFast_Configuration Clone_Configuration() {
 		TFast_Configuration result;
-
+		result.configuration = refcnt::Create_Container_shared<glucose::IFilter_Configuration_Link*, glucose::SFilter_Chain_Configuration>(nullptr, nullptr);
+		
 		//we do not need to do a complete copy -> we just need to 
 		// 1. create the root configuration container, because the we can
 		// 2. create a new link configuration for the given filter
@@ -121,7 +122,7 @@ protected:
 				//now, we need to emplace new configuration-parameters
 
 				bool found_parameters = false;
-				src_link.for_each([&raw_link_to_add, &result, this](glucose::SFilter_Parameter src_parameter) {
+				src_link.for_each([&raw_link_to_add, &found_parameters, &result, this](glucose::SFilter_Parameter src_parameter) {
 					
 					glucose::IFilter_Parameter* raw_parameter = src_parameter.get();
 
@@ -131,14 +132,17 @@ protected:
 						raw_parameter = static_cast<glucose::IFilter_Parameter*>(new CFilter_Parameter{glucose::NParameter_Type::ptDouble_Array, mParameters_Config_Name.c_str()});
 						glucose::IModel_Parameter_Vector *src_parameters, *dst_parameters;
 						if (src_parameter->Get_Model_Parameters(&src_parameters) == S_OK) {
-							dst_parameters = refcnt::Copy_Container<double>(src_parameters);
-							if (raw_parameter->Set_Model_Parameters(dst_parameters) != S_OK) result.failed = true;	//increases RC by 1
+							dst_parameters = refcnt::Copy_Container<double>(src_parameters);							
+							if (raw_parameter->Set_Model_Parameters(dst_parameters) != S_OK) 
+									result.failed = true;	//increases RC by 1
+							src_parameters->Release();
 							dst_parameters->Release();
 
 							//find the very first number to overwrite later on with new values
 							double *begin, *end;
 							if (dst_parameters->get(&begin, &end) == S_OK) {
 								result.first_parameter = begin + mProblem_Size;
+								found_parameters = true;
 							}
 							else
 								result.failed = true;
@@ -147,12 +151,14 @@ protected:
 							result.failed = true;
 					}
 
-					if (raw_link_to_add->add(&raw_parameter, &raw_parameter + 1) != S_OK) result.failed = true;
+					if (raw_link_to_add->add(&raw_parameter, &raw_parameter + 1) != S_OK) 
+							result.failed = true;
 
 					
 				});
 
-				if (!found_parameters) result.failed = true;	//we need the parameters, because they also include the bounds!
+				if (!found_parameters) 
+						result.failed = true;	//we need the parameters, because they also include the bounds!
 
 			}
 
@@ -160,7 +166,7 @@ protected:
 			link_counter++;
 
 		});
-
+		
 		return result;
 	}
 
@@ -184,7 +190,7 @@ public:
 		//create initial pool-configuration to determine problem size
 		//and to verify that we are able to clone the configuration
 		TFast_Configuration configuration = Clone_Configuration();
-		if (configuration.failed) return E_FAIL;
+		if (configuration.failed) return E_FAIL;		
 
 		//succeeded, later on, we should push it to the configuration pool here - once it is implemented
 		const double* default_parameters = mFound_Parameters.data();
@@ -251,8 +257,8 @@ double IfaceCalling internal::Parameters_Fitness_Wrapper(const void *data, const
 
 HRESULT IfaceCalling optimize_parameters(glucose::IFilter_Chain_Configuration *configuration, const size_t filter_index, const wchar_t *parameters_configuration_name, 
 										 glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data,
-									     const GUID solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress *progress) {
+									     const GUID *solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress *progress) {
 
 	CParameters_Optimizer optimizer{ configuration, filter_index, parameters_configuration_name, on_filter_created, on_filter_created_data };
-	return optimizer.Optimize(solver_id, population_size, max_generations, *progress);
+	return optimizer.Optimize(*solver_id, population_size, max_generations, *progress);
 }

@@ -124,12 +124,12 @@ class CBergman_Discrete_Model : public virtual glucose::CBase_Filter, public vir
 		const std::vector<CEquation_Binding> mEquation_Binding;
 
 		// different ODE solvers we might want to use; we prefer Dormand-Prince parametrization with binary subdivision adaptive step strategy (best balance of speed and precision)
-		//ode::euler::CSolver ODE_Solver;
+		ode::euler::CSolver ODE_Solver;
 		//ode::heun::CSolver ODE_Solver;
 		//ode::kutta::CSolver ODE_Solver;
 		//ode::rule38::CSolver ODE_Solver;
 		//ode::dormandprince::CSolver_Non_Adaptive ODE_Solver;
-		ode::dormandprince::CSolver<CRunge_Kuttta_Adaptive_Strategy_Binary_Subdivision<4>> ODE_Solver{ ODE_epsilon0 };
+//		ode::dormandprince::CSolver<CRunge_Kuttta_Adaptive_Strategy_Binary_Subdivision<4>> ODE_Solver{ ODE_epsilon0 };
 		//ode::dormandprince::CSolver<CRunge_Kuttta_Adaptive_Strategy_Optimal_Estimation<4>> ODE_Solver{ ODE_epsilon0 };
 
 	private:
