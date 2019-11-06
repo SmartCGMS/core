@@ -56,26 +56,30 @@
 #include <algorithm> 
 #include <cctype>
 #include <codecvt>
+#include <fstream>
 
 CLog_Replay_Filter::CLog_Replay_Filter(glucose::IFilter* output) : CBase_Filter(output) {
 	//
 }
 
 CLog_Replay_Filter::~CLog_Replay_Filter() {
-	if (mLog.is_open())			
-		mLog.close();
-			
-
 	if (mLog_Replay_Thread)
 		if (mLog_Replay_Thread->joinable())
 			mLog_Replay_Thread->join();
 }
 
 
-void CLog_Replay_Filter::Log_Replay()
-{
+void CLog_Replay_Filter::Log_Replay() {
+	while (Step() == S_OK);
+}
+
+HRESULT IfaceCalling CLog_Replay_Filter::Enforce_Stepping() {
+}
+
+HRESULT IfaceCalling CLog_Replay_Filter::Step() {
+
+
 	std::wstring line;
-	std::wstring column;
 
 	// read header and validate
 	// NOTE: this assumes identical header (as the one used when generating log); maybe we could consider adaptive log parsing later
@@ -158,12 +162,16 @@ bool CLog_Replay_Filter::Open_Log(const std::wstring &log_filename)
 	{
 		// try to open file for reading
 		std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converterX;
-		mLog.open(converterX.to_bytes(log_filename));
+	
+		std::wifstream log_file{ converterX.to_bytes(log_filename) };
+		result = log_file.is_open();
+		if (result) {
+			log_file.imbue(std::locale(std::cout.getloc(), new logger::DecimalSeparator<char>('.')));
+			mLog << log_file.rdbuf();
+			log_file.close();
 
-		result = mLog.is_open();
-		// set decimal point separator
-		if (result)
-			auto unused = mLog.imbue(std::locale(std::cout.getloc(), new logger::DecimalSeparator<char>('.')));
+			mLog.seekg(0, std::ios::beg);
+		}
 	}
 
 	return result;

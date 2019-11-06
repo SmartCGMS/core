@@ -205,14 +205,16 @@ protected:
 	}
 
 	void Fill_Population_From_Candidates(const size_t initialized_count, const TAligned_Solution_Vector<TUsed_Solution> &candidates) {
-		std::vector<double> fitness;
-		std::vector<size_t> indexes;
+		std::vector<double> fitness(candidates.size());
+		std::vector<size_t> indexes(candidates.size());
+		
+		tbb::parallel_for(tbb::blocked_range<size_t>(size_t(0), candidates.size()), [&fitness, &candidates, this](const tbb::blocked_range<size_t> &r) {
+			const size_t rend = r.end();
+			for (size_t iter = r.begin(); iter != rend; iter++)
+				fitness[iter] = mSetup.objective(mSetup.data, candidates[iter].data());
+		});
 
-		for (size_t i = 0; i < candidates.size(); i++) {
-			fitness.push_back(mSetup.objective(mSetup.data, candidates[i].data()));
-			indexes.push_back(i);
-		}
-
+		std::iota(indexes.begin(), indexes.end(), 0);		
 		std::partial_sort(indexes.begin(), indexes.begin() + mSetup.population_size - initialized_count, indexes.end(), [&fitness](const size_t a, const size_t b) {return fitness[a] < fitness[b]; });
 
 		for (size_t i = initialized_count; i < mSetup.population_size; i++)

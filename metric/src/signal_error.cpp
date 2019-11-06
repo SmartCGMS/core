@@ -110,7 +110,7 @@ HRESULT CSignal_Error::Do_Configure(glucose::SFilter_Configuration configuration
 		bool_2_uc(configuration.Read_Bool(rsUse_Relative_Error)),
 		bool_2_uc(configuration.Read_Bool(rsUse_Squared_Diff)),
 		bool_2_uc(configuration.Read_Bool(rsUse_Prefer_More_Levels)),
-		configuration.Read_Double(dsMetric_Threshold)
+		configuration.Read_Double(dsMetric_Threshold, 0.0)
 	};
 	
 	mMetric = glucose::SMetric{ metric_parameters };	

@@ -48,6 +48,7 @@
 #include "../../../common/rtl/FilterLib.h"
 
 #include <mutex>
+#include <set>
 
 struct TFast_Configuration {
 	bool failed;
@@ -60,20 +61,22 @@ protected:
 	const glucose::TOn_Filter_Created mOn_Filter_Created;
 	const void* mOn_Filter_Created_Data;	
 	double mError_Metric;
+	bool mError_Metric_Available = false;
 public:
 	CError_Metric_Future(glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) : mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data) {};
 
 	HRESULT On_Filter_Created(glucose::IFilter *filter) {
 
 		if (glucose::SSignal_Error_Inspection insp = glucose::SSignal_Error_Inspection{ glucose::SFilter{filter} }) {
-			insp->Promise_Metric(&mError_Metric, true);
+			mError_Metric_Available = insp->Promise_Metric(&mError_Metric, true) == S_OK;
+			if (!mError_Metric_Available) return E_FAIL;
 		}
 
 		return mOn_Filter_Created(filter, mOn_Filter_Created_Data);
 	}
 
 	double Get_Error_Metric() {
-		return mError_Metric;
+		return mError_Metric_Available ? mError_Metric : std::numeric_limits<double>::quiet_NaN();
 	}
 };
 
@@ -97,7 +100,9 @@ protected:
 	TFast_Configuration Clone_Configuration() {
 		TFast_Configuration result;
 		result.configuration = refcnt::Create_Container_shared<glucose::IFilter_Configuration_Link*, glucose::SFilter_Chain_Configuration>(nullptr, nullptr);
-		
+
+		const std::set<GUID> ui_filters = { glucose::IID_Drawing_Filter, glucose::IID_Log_Filter };	//let's optimize away thos filters, which would only slow down
+
 		//we do not need to do a complete copy -> we just need to 
 		// 1. create the root configuration container, because the we can
 		// 2. create a new link configuration for the given filter
@@ -106,19 +111,27 @@ protected:
 
 		result.failed = false;
 		size_t link_counter = 0;
-		mConfiguration.for_each([&link_counter, &result, this](glucose::SFilter_Configuration_Link src_link) {
+		mConfiguration.for_each([&link_counter, &result, &ui_filters, this](glucose::SFilter_Configuration_Link src_link) {
 			if (result.failed) return;
+
+
+			GUID filter_id = Invalid_GUID;
+			if (src_link->Get_Filter_Id(&filter_id) == S_OK) {
+				if (ui_filters.find(filter_id) != ui_filters.end()) {
+					link_counter++;
+					return;
+				}
+			}
 
 			glucose::IFilter_Configuration_Link* raw_link_to_add = src_link.get();
 
-			if (link_counter == mFilter_Index) {
-				GUID id = Invalid_GUID;
-				if (src_link->Get_Filter_Id(&id) != S_OK) {
-					result.failed = true;	
+			if (link_counter == mFilter_Index) {				
+				if (filter_id == Invalid_GUID) {
+					result.failed = true;
 					return;
 				}
-
-				raw_link_to_add = static_cast<glucose::IFilter_Configuration_Link*>(new CFilter_Configuration_Link(id)); //so far, zero RC which is correct right now because we do not call dtor here
+				
+				raw_link_to_add = static_cast<glucose::IFilter_Configuration_Link*>(new CFilter_Configuration_Link(filter_id)); //so far, zero RC which is correct right now because we do not call dtor here
 				//now, we need to emplace new configuration-parameters
 
 				bool found_parameters = false;
@@ -187,12 +200,15 @@ public:
 
 		mProblem_Size = mFound_Parameters.size();
 
+
 		//create initial pool-configuration to determine problem size
 		//and to verify that we are able to clone the configuration
-		TFast_Configuration configuration = Clone_Configuration();
-		if (configuration.failed) return E_FAIL;		
+		{
+			TFast_Configuration configuration = Clone_Configuration();
+			if (configuration.failed) return E_FAIL;
+		}
+		//succeeded, later on, we should push it to the configuration pool here - once it is implemented		
 
-		//succeeded, later on, we should push it to the configuration pool here - once it is implemented
 		const double* default_parameters = mFound_Parameters.data();
 
 		solver::TSolver_Setup solver_setup{
@@ -222,7 +238,7 @@ public:
 		
 
 		TFast_Configuration configuration = Clone_Configuration();	//later on, we will replace this with a pool
-
+		
 		//set the experimental parameters
 		std::copy(reinterpret_cast<const double*>(solution), reinterpret_cast<const double*>(solution) + mProblem_Size, configuration.first_parameter);
 
@@ -230,17 +246,19 @@ public:
 		//Have the means to pickup the final metric
 		CError_Metric_Future error_metric_future{ mOn_Filter_Created, mOn_Filter_Created_Data };
 		
-
+		
 		//run the configuration
 		std::recursive_mutex mCommunication_Guard;
-		CComposite_Filter mComposite_Filter{ mCommunication_Guard };
+		std::unique_ptr<CComposite_Filter> mComposite_Filter = std::make_unique<CComposite_Filter>( mCommunication_Guard );	//must be on the heap so that we can precisely 
+																										//call its dtor to get the future error properly
 		CTerminal_Filter mTerminal_Filter;
 		
-		if (mComposite_Filter.Build_Filter_Chain(configuration.configuration.get(), &mTerminal_Filter, On_Filter_Created_Wrapper, &error_metric_future) != S_OK)
+		if (mComposite_Filter->Build_Filter_Chain(configuration.configuration.get(), &mTerminal_Filter, On_Filter_Created_Wrapper, &error_metric_future) != S_OK)
 			return std::numeric_limits<double>::quiet_NaN();
 
 		//wait for the result
-		mTerminal_Filter.Wait_For_Shutdown();		
+		mTerminal_Filter.Wait_For_Shutdown();	
+		mComposite_Filter.reset();			//calls dtor of the signal error filter, thus filling the future error metric
 
 		//once implemented, we should return the configuration back to the pool
 
