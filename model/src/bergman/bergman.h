@@ -108,7 +108,7 @@ class CBergman_Discrete_Model : public virtual glucose::CBase_Filter, public vir
 	private:
 		// maximum accepted error estimate for ODE solvers for this model
 		const double ODE_epsilon0 = 0.001;
-
+		const size_t mODE_Max_Steps = 100;
 	private:
 		bergman_model::TParameters mParameters;
 
@@ -125,11 +125,11 @@ class CBergman_Discrete_Model : public virtual glucose::CBase_Filter, public vir
 
 		// different ODE solvers we might want to use; we prefer Dormand-Prince parametrization with binary subdivision adaptive step strategy (best balance of speed and precision)
 		//ode::euler::CSolver ODE_Solver;
-		ode::heun::CSolver ODE_Solver;
+		//ode::heun::CSolver ODE_Solver;
 		//ode::kutta::CSolver ODE_Solver;
 		//ode::rule38::CSolver ODE_Solver;
 		//ode::dormandprince::CSolver_Non_Adaptive ODE_Solver;
-//		ode::dormandprince::CSolver<CRunge_Kuttta_Adaptive_Strategy_Binary_Subdivision<4>> ODE_Solver{ ODE_epsilon0 };
+		ode::dormandprince::CSolver<CRunge_Kuttta_Adaptive_Strategy_Binary_Subdivision<4>> ODE_Solver{ ODE_epsilon0, mODE_Max_Steps };
 		//ode::dormandprince::CSolver<CRunge_Kuttta_Adaptive_Strategy_Optimal_Estimation<4>> ODE_Solver{ ODE_epsilon0 };
 
 	private:

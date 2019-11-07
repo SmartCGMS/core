@@ -95,8 +95,8 @@ HRESULT IfaceCalling CDrawing_Filter::QueryInterface(const GUID*  riid, void ** 
 
 HRESULT CDrawing_Filter::Do_Execute(glucose::UDevice_Event event) {
 	
-	std::unique_lock<std::mutex> lck(mChangedMtx);
-
+	std::unique_lock<std::mutex> lck(mChangedMtx);	
+	mChanged = true;
 
 	// incoming level or calibration - store to appropriate vector
 	if (event.event_code() == glucose::NDevice_Event_Code::Level )
@@ -104,8 +104,8 @@ HRESULT CDrawing_Filter::Do_Execute(glucose::UDevice_Event event) {
 	
 		mInputData[event.signal_id()][event.segment_id()].push_back(Value(event.level(), Rat_Time_To_Unix_Time(event.device_time()), event.segment_id()));
 		// signal is not being reset (recalculated and resent) right now - set changed flag
-		if (mSignalsBeingReset.find(event.signal_id()) == mSignalsBeingReset.end())
-			mChanged = true;
+//		if (mSignalsBeingReset.find(event.signal_id()) == mSignalsBeingReset.end())
+//			mChanged = true;
 	}
 	// incoming new parameters
 	else if (event.event_code() == glucose::NDevice_Event_Code::Parameters)
@@ -154,7 +154,7 @@ HRESULT CDrawing_Filter::Do_Execute(glucose::UDevice_Event event) {
 		else if (event.info == rsSegment_Recalculate_Complete)
 		{
 			mSignalsBeingReset.erase(event.signal_id());
-			mChanged = true;
+//			mChanged = true;
 		}
 		else if (refcnt::WChar_Container_Equals_WString(event.info.get(), L"DrawingResize", 0, 13))
 		{
@@ -222,7 +222,7 @@ HRESULT CDrawing_Filter::Do_Execute(glucose::UDevice_Event event) {
 
 bool CDrawing_Filter::Force_Redraw(const std::unordered_set<uint64_t> &segmentIds, const std::set<GUID> &signalIds)
 {
-	mChanged = false;
+	//mChanged = false;
 
 	mDataMap.clear();
 	Prepare_Drawing_Map(segmentIds, signalIds);
@@ -537,7 +537,7 @@ HRESULT CDrawing_Filter::Get_Plot(const std::string &plot, refcnt::IVector_Conta
 
 
 HRESULT IfaceCalling CDrawing_Filter::New_Data_Available() {
-	return mChanged ? S_OK : S_FALSE;
+	return mChanged.exchange(false) ? S_OK : S_FALSE;	
 }
 
 HRESULT IfaceCalling CDrawing_Filter::Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg, refcnt::IVector_Container<uint64_t> *segmentIds, refcnt::IVector_Container<GUID> *signalIds) {	

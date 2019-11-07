@@ -10,8 +10,8 @@
  * Faculty of Applied Sciences, University of West Bohemia
  * Univerzitni 8
  * 301 00, Pilsen
- * 
- * 
+ *
+ *
  * Purpose of this software:
  * This software is intended to demonstrate work of the diabetes.zcu.cz research
  * group to other scientists, to complement our published papers. It is strictly
@@ -56,30 +56,26 @@
 #include <algorithm> 
 #include <cctype>
 #include <codecvt>
-#include <fstream>
 
 CLog_Replay_Filter::CLog_Replay_Filter(glucose::IFilter* output) : CBase_Filter(output) {
 	//
 }
 
 CLog_Replay_Filter::~CLog_Replay_Filter() {
+	if (mLog.is_open())
+		mLog.close();
+
+
 	if (mLog_Replay_Thread)
 		if (mLog_Replay_Thread->joinable())
 			mLog_Replay_Thread->join();
 }
 
 
-void CLog_Replay_Filter::Log_Replay() {
-	while (Step() == S_OK);
-}
-
-HRESULT IfaceCalling CLog_Replay_Filter::Enforce_Stepping() {
-}
-
-HRESULT IfaceCalling CLog_Replay_Filter::Step() {
-
-
+void CLog_Replay_Filter::Log_Replay()
+{
 	std::wstring line;
+	std::wstring column;
 
 	// read header and validate
 	// NOTE: this assumes identical header (as the one used when generating log); maybe we could consider adaptive log parsing later
@@ -130,7 +126,7 @@ HRESULT IfaceCalling CLog_Replay_Filter::Step() {
 
 			evt.device_time() = device_time;
 			evt.segment_id() = segment_id;
-			
+
 
 			// do not send shutdown event through pipes - it's a job for outer code (GUI, ..)
 			// furthermore, sending this event would cancel and stop simulation - we don't want that
@@ -156,35 +152,32 @@ HRESULT IfaceCalling CLog_Replay_Filter::Step() {
 
 bool CLog_Replay_Filter::Open_Log(const std::wstring &log_filename)
 {
-	bool result = false;	
+	bool result = false;
 	// do we have input file name?
 	if (!log_filename.empty())
 	{
 		// try to open file for reading
 		std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converterX;
-	
-		std::wifstream log_file{ converterX.to_bytes(log_filename) };
-		result = log_file.is_open();
-		if (result) {
-			log_file.imbue(std::locale(std::cout.getloc(), new logger::DecimalSeparator<char>('.')));
-			mLog << log_file.rdbuf();
-			log_file.close();
+		mLog.open(converterX.to_bytes(log_filename));
 
-			mLog.seekg(0, std::ios::beg);
-		}
+		result = mLog.is_open();
+		// set decimal point separator
+		if (result)
+			auto unused = mLog.imbue(std::locale(std::cout.getloc(), new logger::DecimalSeparator<char>('.')));
 	}
 
 	return result;
 }
 
-HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(glucose::SFilter_Configuration configuration) {	
+HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(glucose::SFilter_Configuration configuration) {
 	mIgnore_Shutdown = configuration.Read_Bool(rsIgnore_Shutdown_Msg, mIgnore_Shutdown);
 	mLog_Filename = configuration.Read_String(rsLog_Output_File);
 
 	if (Open_Log(mLog_Filename)) {
 		mLog_Replay_Thread = std::make_unique<std::thread>(&CLog_Replay_Filter::Log_Replay, this);
 		return S_OK;
-	} else 
+	}
+	else
 		return S_FALSE;
 }
 

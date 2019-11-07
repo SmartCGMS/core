@@ -38,6 +38,7 @@
 
 #include "executor.h"
 #include "filters.h"
+#include "device_event.h"
 
 CFilter_Executor::CFilter_Executor(const GUID filter_id, std::recursive_mutex &communication_guard, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) :
 	mCommunication_Guard(communication_guard),  mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data) {
@@ -98,3 +99,13 @@ HRESULT IfaceCalling CTerminal_Filter::Execute(glucose::IDevice_Event *event) {
 	
 	return S_OK; 
 };
+
+
+CCopying_Terminal_Filter::CCopying_Terminal_Filter(std::vector<glucose::IDevice_Event*> &events) : mEvents(events) {
+
+}
+
+HRESULT IfaceCalling CCopying_Terminal_Filter::Execute(glucose::IDevice_Event *event) {
+	mEvents.push_back(static_cast<glucose::IDevice_Event*> (new CDevice_Event{ event }));
+	return CTerminal_Filter::Execute(event);
+}

@@ -10,8 +10,8 @@
  * Faculty of Applied Sciences, University of West Bohemia
  * Univerzitni 8
  * 301 00, Pilsen
- * 
- * 
+ *
+ *
  * Purpose of this software:
  * This software is intended to demonstrate work of the diabetes.zcu.cz research
  * group to other scientists, to complement our published papers. It is strictly
@@ -43,21 +43,18 @@
 
 #include <memory>
 #include <thread>
-#include <sstream>
+#include <fstream>
 #include <vector>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-/*
- * Filter class for loading previously stored log file and "replay" it through pipe
- */
-class CLog_Replay_Filter : public glucose::CBase_Filter, public virtual glucose::IID_Log_Replay_Inspection, public virtual refcnt::CReferenced {
-protected:		
-	std::wstringstream mLog;	//We read the entire log into the memory, because we might want to use it 
-								//to optimize simulation parameters. In such a case, many concurrent accesses
-								//to the file may lead to a deadlock.
-
+ /*
+  * Filter class for loading previously stored log file and "replay" it through pipe
+  */
+class CLog_Replay_Filter : public glucose::CBase_Filter, public virtual refcnt::CReferenced {
+protected:
+	std::wifstream mLog;
 	bool mIgnore_Shutdown = false;
 	std::wstring mLog_Filename;
 	std::unique_ptr<std::thread> mLog_Replay_Thread;
@@ -76,9 +73,6 @@ protected:
 public:
 	CLog_Replay_Filter(glucose::IFilter* output);
 	virtual ~CLog_Replay_Filter();
-	
-	virtual HRESULT IfaceCalling Enforce_Stepping() override;
-	virtual HRESULT IfaceCalling Step() override;
 };
 
 #pragma warning( pop )

@@ -73,5 +73,13 @@ public:
 	void Wait_For_Shutdown();	//blocking wait, until it receives the shutdown event
 
 	virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
+	virtual HRESULT IfaceCalling Execute(glucose::IDevice_Event *event) override;
+};
+
+class CCopying_Terminal_Filter : public virtual CTerminal_Filter {
+protected:
+	std::vector<glucose::IDevice_Event*> &mEvents;
+public:
+	CCopying_Terminal_Filter(std::vector<glucose::IDevice_Event*> &events);
 	virtual HRESULT IfaceCalling Execute(glucose::IDevice_Event *event) override final;
 };

@@ -65,7 +65,33 @@ CDevice_Event::CDevice_Event(glucose::NDevice_Event_Code code) {
 
 		default:mRaw.level = std::numeric_limits<double>::quiet_NaN();
 			break;
+	}
 }
+
+
+CDevice_Event::CDevice_Event(glucose::IDevice_Event *event) {
+	glucose::TDevice_Event *src_raw;
+
+	if (event->Raw(&src_raw) == S_OK) {
+		memcpy(&mRaw, src_raw, sizeof(mRaw));
+		mRaw.logical_time = global_logical_time.fetch_add(1);
+
+		switch (mRaw.event_code) {
+			case glucose::NDevice_Event_Code::Information:
+			case glucose::NDevice_Event_Code::Warning:
+			case glucose::NDevice_Event_Code::Error:			mRaw.info->AddRef();
+				break;
+
+			case glucose::NDevice_Event_Code::Parameters:
+			case glucose::NDevice_Event_Code::Parameters_Hint:	mRaw.parameters->AddRef();
+				break;
+
+			default: break;	//just keeping the checkers happy
+		}
+	}
+	else {
+		throw std::exception{ "Cannot get source event!" };
+	}
 }
 
 CDevice_Event::~CDevice_Event() {

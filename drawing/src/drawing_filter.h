@@ -95,7 +95,7 @@ protected:
 	std::wstring mECDF_FilePath;
 
 	// input data changed
-	bool mChanged = false;
+	std::atomic<bool> mChanged = false;
 	// mutex guard for changed variable
 	std::mutex mChangedMtx;
 	// scheduler condition variable

@@ -46,6 +46,7 @@ protected:
 	glucose::TDevice_Event mRaw;
 public:
 	CDevice_Event(glucose::NDevice_Event_Code code);
+	CDevice_Event(glucose::IDevice_Event *event);
 	virtual ~CDevice_Event();
 	virtual ULONG IfaceCalling Release() override;
 	virtual HRESULT IfaceCalling Raw(glucose::TDevice_Event **dst) override;

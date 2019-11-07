@@ -44,6 +44,7 @@
 #include "filters.h"
 #include "executor.h"
 #include "composite_filter.h"
+#include "device_event.h"
 
 #include "../../../common/rtl/FilterLib.h"
 
@@ -90,6 +91,62 @@ protected:
 	size_t mProblem_Size = 0;
 	std::vector<double> mLower_Bound, mUpper_Bound, mFound_Parameters;
 protected:
+	std::vector<glucose::IDevice_Event*> mEvents_To_Replay;	
+
+	bool Copy_Reduced_Configuration(const size_t end_index, glucose::SFilter_Chain_Configuration &reduced_filter_configuration) {
+		reduced_filter_configuration = refcnt::Create_Container_shared<glucose::IFilter_Configuration_Link*, glucose::SFilter_Chain_Configuration>(nullptr, nullptr);
+
+		for (size_t link_counter = 0; link_counter < end_index; link_counter++) {
+			glucose::SFilter_Configuration_Link single_filter = mConfiguration.operator[](link_counter);
+			if (!single_filter)  return false;
+			auto raw_filter = single_filter.get();
+			if (reduced_filter_configuration->add(&raw_filter, &raw_filter + 1) != S_OK) return false;
+		}
+
+		return true;
+	}
+
+
+	//returns position of the least receiver or std::numeric_limits<size_t>::max() in a case of error
+	size_t Execute_Reduced_Configuration(glucose::SFilter_Chain_Configuration &reduced_filter_configuration) {
+		mEvents_To_Replay.clear();
+
+		std::recursive_mutex communication_guard;
+		CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely 
+																		//call its dtor to get the future error properly
+		CCopying_Terminal_Filter terminal_filter{ mEvents_To_Replay };
+
+		if (composite_filter.Build_Filter_Chain(reduced_filter_configuration.get(), &terminal_filter, mOn_Filter_Created, mOn_Filter_Created_Data) != S_OK) {
+			mEvents_To_Replay.clear();
+			return std::numeric_limits<size_t>::max();
+		}
+		else {
+			terminal_filter.Wait_For_Shutdown();
+			return composite_filter.Least_Receiver();
+		}
+	}
+
+	void Fetch_Events_To_Replay() {	
+		mEvents_To_Replay.clear();
+
+		glucose::SFilter_Chain_Configuration reduced_filter_configuration;
+		if (Copy_Reduced_Configuration(mFilter_Index, reduced_filter_configuration)) {
+			const size_t least_receiver = Execute_Reduced_Configuration(reduced_filter_configuration);
+			if (least_receiver == std::numeric_limits<size_t>::max()) {
+				//error
+				mEvents_To_Replay.clear();	//sanitize as it might have been filled partially
+			} else if (least_receiver < mFilter_Index) {
+				mEvents_To_Replay.clear();
+				if (Copy_Reduced_Configuration(least_receiver, reduced_filter_configuration)) {
+					if (Execute_Reduced_Configuration(reduced_filter_configuration) == std::numeric_limits<size_t>::max())
+						mEvents_To_Replay.clear();	//sanitize after an error
+				}
+
+			}// else OK				
+		}
+		
+	}
+protected:
 	const glucose::TOn_Filter_Created mOn_Filter_Created;
 	const void* mOn_Filter_Created_Data;
 protected:
@@ -107,12 +164,18 @@ protected:
 		// 1. create the root configuration container, because the we can
 		// 2. create a new link configuration for the given filter
 		// 3. where, we insert new configuration-parameters
-		//thus all other objects stays the same, we only increase their reference counters
+		//thus all other objects stays the same, we only increase their reference counters		
 
 		result.failed = false;
 		size_t link_counter = 0;
 		mConfiguration.for_each([&link_counter, &result, &ui_filters, this](glucose::SFilter_Configuration_Link src_link) {
 			if (result.failed) return;
+
+			if ((link_counter < mFilter_Index) && !mEvents_To_Replay.empty()) {
+				//we will replay events produced by the first filters
+				link_counter++;
+				return;
+			}
 
 
 			GUID filter_id = Invalid_GUID;
@@ -125,7 +188,7 @@ protected:
 
 			glucose::IFilter_Configuration_Link* raw_link_to_add = src_link.get();
 
-			if (link_counter == mFilter_Index) {				
+			if (link_counter == mFilter_Index) {
 				if (filter_id == Invalid_GUID) {
 					result.failed = true;
 					return;
@@ -139,7 +202,7 @@ protected:
 					
 					glucose::IFilter_Parameter* raw_parameter = src_parameter.get();
 
-					if (mParameters_Config_Name == src_parameter.configuration_name()) {
+					if (!found_parameters && (mParameters_Config_Name == src_parameter.configuration_name())) {
 						//parameters - we need to create a new copy
 
 						raw_parameter = static_cast<glucose::IFilter_Parameter*>(new CFilter_Parameter{glucose::NParameter_Type::ptDouble_Array, mParameters_Config_Name.c_str()});
@@ -193,6 +256,13 @@ public:
 
 	}
 
+
+	~CParameters_Optimizer() {
+		for (auto &event : mEvents_To_Replay)
+			event->Release();
+	}
+
+
 	HRESULT Optimize(const GUID solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress &progress) {
 		glucose::SFilter_Configuration_Link configuration_link_parameters = mConfiguration.operator[](mFilter_Index);
 		if (!configuration_link_parameters || !configuration_link_parameters.Read_Parameters(mParameters_Config_Name.c_str(), mLower_Bound, mFound_Parameters, mUpper_Bound))
@@ -208,6 +278,8 @@ public:
 			if (configuration.failed) return E_FAIL;
 		}
 		//succeeded, later on, we should push it to the configuration pool here - once it is implemented		
+
+		Fetch_Events_To_Replay();
 
 		const double* default_parameters = mFound_Parameters.data();
 
@@ -248,17 +320,22 @@ public:
 		
 		
 		//run the configuration
-		std::recursive_mutex mCommunication_Guard;
-		std::unique_ptr<CComposite_Filter> mComposite_Filter = std::make_unique<CComposite_Filter>( mCommunication_Guard );	//must be on the heap so that we can precisely 
-																										//call its dtor to get the future error properly
-		CTerminal_Filter mTerminal_Filter;
-		
-		if (mComposite_Filter->Build_Filter_Chain(configuration.configuration.get(), &mTerminal_Filter, On_Filter_Created_Wrapper, &error_metric_future) != S_OK)
-			return std::numeric_limits<double>::quiet_NaN();
+		{
+			std::recursive_mutex communication_guard;
+			CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely 
+																			//call its dtor to get the future error properly
+			CTerminal_Filter terminal_filter;
 
-		//wait for the result
-		mTerminal_Filter.Wait_For_Shutdown();	
-		mComposite_Filter.reset();			//calls dtor of the signal error filter, thus filling the future error metric
+			if (composite_filter.Build_Filter_Chain(configuration.configuration.get(), &terminal_filter, On_Filter_Created_Wrapper, &error_metric_future) != S_OK)
+				return std::numeric_limits<double>::quiet_NaN();
+
+			//wait for the result
+			if (mEvents_To_Replay.empty()) terminal_filter.Wait_For_Shutdown();		//no pre-calculated events can be replayed=> we need to go the old-fashioned way
+				else for (size_t i = 0; i < mEvents_To_Replay.size(); i++) {		//we can replay the pre-calculated events
+						glucose::IDevice_Event *event_to_replay = static_cast<glucose::IDevice_Event*> (new CDevice_Event{ mEvents_To_Replay[i] });
+						if (composite_filter.Execute(event_to_replay) != S_OK) break;
+				}
+		}	//calls terminal_filter of the signal error filter, thus filling the future error metric
 
 		//once implemented, we should return the configuration back to the pool
 
