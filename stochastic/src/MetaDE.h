@@ -77,7 +77,7 @@ namespace metade {
 	template <typename TUsed_Solution>
 	struct TMetaDE_Candidate_Solution {
 		NStrategy strategy;
-		double CR, F;
+		double CR = 0.5, F = 1.0;
 		TUsed_Solution current, next;
 		double current_fitness = std::numeric_limits<double>::max();
 		double next_fitness = std::numeric_limits<double>::max();

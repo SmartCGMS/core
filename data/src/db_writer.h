@@ -80,7 +80,7 @@ class CDb_Writer : public glucose::CBase_Filter, public db::IDb_Sink {
 		// password to be used
 		std::wstring mDbPassword;
 		// subject id to be used
-		int64_t mSubject_Id;
+		int64_t mSubject_Id = db::New_Subject_Identifier;
 
 		// generate new primary keys for all incoming data intended to be stored?
 		bool mGenerate_Primary_Keys;

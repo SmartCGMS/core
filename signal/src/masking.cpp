@@ -108,7 +108,7 @@ HRESULT IfaceCalling CMasking_Filter::Do_Execute(glucose::UDevice_Event event) {
 				raw->event_code = glucose::NDevice_Event_Code::Masked_Level;
 		}
 
-		mSegmentMaskState[event.segment_id()] = (mSegmentMaskState[event.segment_id()] + 1) % mBitCount;
+		mSegmentMaskState[event.segment_id()] = (mSegmentMaskState[event.segment_id()] + static_cast<uint64_t>(1)) % mBitCount;
 	}
 
 

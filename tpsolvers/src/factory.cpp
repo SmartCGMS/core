@@ -66,7 +66,7 @@ bool Solve_Pagmo(solver::TSolver_Setup &setup, solver::TSolver_Progress &progres
 using  TSolver_Func = std::function<bool(solver::TSolver_Setup &, solver::TSolver_Progress&)>;
 
 struct TSolver_Info{
-	GUID id;
+	GUID id = Invalid_GUID;
 	TSolver_Func func;
 };
 

@@ -149,7 +149,7 @@ void CTime_Segment::Emit_Levels_At_Pending_Times() {
 				calcEvt.segment_id() = mSegment_id;
 				glucose::IDevice_Event *raw_calcEvt = calcEvt.get();
 				calcEvt.release();
-				if (mOutput->Execute(raw_calcEvt))
+				if (mOutput->Execute(raw_calcEvt) == S_OK)
 					mEmitted_Times.insert(times[i]);
 			}
 			else

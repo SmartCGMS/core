@@ -50,7 +50,6 @@
 class CComposite_Filter  {
 protected:
 	bool mRefuse_Execute = false;
-	size_t mLeast_Receiver;
 	std::recursive_mutex &mCommunication_Guard;		
 	std::vector<std::unique_ptr<CFilter_Executor>> mExecutors;
 public:
@@ -59,8 +58,7 @@ public:
 	HRESULT Build_Filter_Chain(glucose::IFilter_Chain_Configuration *configuration, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
 	HRESULT Execute(glucose::IDevice_Event *event);
 	HRESULT Clear();
-	bool Empty();
-	size_t Least_Receiver();
+	bool Empty();	
 	
 };
 

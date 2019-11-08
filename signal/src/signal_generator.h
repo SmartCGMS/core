@@ -54,7 +54,7 @@
 class CSignal_Generator : public virtual glucose::CBase_Filter, public virtual glucose::IFilter_Feedback_Receiver {
 protected:
 	bool mSync_To_Signal = false;
-	GUID mSync_Signal;
+	GUID mSync_Signal = Invalid_GUID;
 	double mFixed_Stepping;
 	double mMax_Time;			//maximum time, for which the generator can run
 	double mTotal_Time = 0.0;	//time for which the generator runs

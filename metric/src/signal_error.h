@@ -54,8 +54,8 @@
  */
 class CSignal_Error : public glucose::CBase_Filter, public virtual glucose::ISignal_Error_Inspection {
 protected:
-	GUID mReference_Signal_ID;
-	GUID mError_Signal_ID;
+	GUID mReference_Signal_ID = Invalid_GUID;
+	GUID mError_Signal_ID = Invalid_GUID;
 
 	std::wstring mDescription;
 

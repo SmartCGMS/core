@@ -82,18 +82,14 @@ HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configurati
 		} while (link_end != link_begin);
 
 		//2nd round - gather information about the feedback receivers
-		std::map<std::wstring, std::shared_ptr<glucose::IFilter_Feedback_Receiver>> feedback_map;		
-		mLeast_Receiver = mExecutors.size();
-		for (size_t i=0; i< mExecutors.size(); i++) {
-			auto &possible_receiver = mExecutors[i];
-
+		std::map<std::wstring, std::shared_ptr<glucose::IFilter_Feedback_Receiver>> feedback_map;				
+		for (auto &possible_receiver : mExecutors) {			
 			std::shared_ptr<glucose::IFilter_Feedback_Receiver> feedback_receiver;
 			refcnt::Query_Interface<glucose::IFilter, glucose::IFilter_Feedback_Receiver>(possible_receiver.get(), glucose::IID_Filter_Feedback_Receiver, feedback_receiver);
 			if (feedback_receiver) {
 				wchar_t *name;
 				if (feedback_receiver->Name(&name) == S_OK) {
-					feedback_map[name] = feedback_receiver;
-					mLeast_Receiver = std::min(mLeast_Receiver, i);
+					feedback_map[name] = feedback_receiver;					
 				}
 			}				
 		}
@@ -156,8 +152,4 @@ HRESULT CComposite_Filter::Clear() {
 
 bool CComposite_Filter::Empty() {
 	return mExecutors.empty();
-}
-
-size_t CComposite_Filter::Least_Receiver() {
-	return mLeast_Receiver;
 }

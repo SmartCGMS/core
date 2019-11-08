@@ -52,16 +52,16 @@
 #include <set>
 
 struct TFast_Configuration {
-	bool failed;
+	bool failed = true;
 	glucose::SFilter_Chain_Configuration configuration;
-	double *first_parameter;	//no RC, just for a fast access
+	double *first_parameter = nullptr;	//no RC, just for a fast access
 };
 
 class CError_Metric_Future {
 protected:
 	const glucose::TOn_Filter_Created mOn_Filter_Created;
 	const void* mOn_Filter_Created_Data;	
-	double mError_Metric;
+	double mError_Metric = std::numeric_limits<double>::quiet_NaN();
 	bool mError_Metric_Available = false;
 public:
 	CError_Metric_Future(glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) : mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data) {};
@@ -93,58 +93,66 @@ protected:
 protected:
 	std::vector<glucose::IDevice_Event*> mEvents_To_Replay;	
 
-	bool Copy_Reduced_Configuration(const size_t end_index, glucose::SFilter_Chain_Configuration &reduced_filter_configuration) {
-		reduced_filter_configuration = refcnt::Create_Container_shared<glucose::IFilter_Configuration_Link*, glucose::SFilter_Chain_Configuration>(nullptr, nullptr);
+	glucose::SFilter_Chain_Configuration Copy_Reduced_Configuration(const size_t end_index) {
+		glucose::SFilter_Chain_Configuration reduced_filter_configuration = refcnt::Create_Container_shared<glucose::IFilter_Configuration_Link*, glucose::SFilter_Chain_Configuration>(nullptr, nullptr);
 
+		bool success = true;
 		for (size_t link_counter = 0; link_counter < end_index; link_counter++) {
 			glucose::SFilter_Configuration_Link single_filter = mConfiguration.operator[](link_counter);
-			if (!single_filter)  return false;
+			if (!single_filter) {
+				success = false;
+				break;
+			}
 			auto raw_filter = single_filter.get();
-			if (reduced_filter_configuration->add(&raw_filter, &raw_filter + 1) != S_OK) return false;
+			if (reduced_filter_configuration->add(&raw_filter, &raw_filter + 1) != S_OK) {
+				success = false;
+				break;
+			}
 		}
 
-		return true;
+		return success ? reduced_filter_configuration : refcnt::Create_Container_shared<glucose::IFilter_Configuration_Link*, glucose::SFilter_Chain_Configuration>(nullptr, nullptr);
+	}
+
+	size_t Find_Minimal_Receiver_Index_End() {
+		size_t minimal_index_end = 0;
+		bool found = false;
+		CTerminal_Filter terminal;
+
+		mConfiguration.for_each([this, &terminal, &found, &minimal_index_end](glucose::SFilter_Configuration_Link link) {
+			if (found) return;
+
+
+			GUID id;
+			found = link->Get_Filter_Id(&id) != S_OK;
+			if (!found) {
+				glucose::SFilter filter = create_filter(id, &terminal);
+				found = !filter.operator bool();
+				if (!found) {
+					std::shared_ptr<glucose::IFilter_Feedback_Receiver> feedback_receiver;
+					refcnt::Query_Interface<glucose::IFilter, glucose::IFilter_Feedback_Receiver>(filter.get(), glucose::IID_Filter_Feedback_Receiver, feedback_receiver);
+					found = feedback_receiver.operator bool();
+				}
+			}			
+
+			if (!found) minimal_index_end++;
+		});
+
+		return minimal_index_end;
 	}
 
 
-	//returns position of the least receiver or std::numeric_limits<size_t>::max() in a case of error
-	size_t Execute_Reduced_Configuration(glucose::SFilter_Chain_Configuration &reduced_filter_configuration) {
+	void Fetch_Events_To_Replay() {	
 		mEvents_To_Replay.clear();
+		const size_t minimal_replay_index_end = std::min(mFilter_Index, Find_Minimal_Receiver_Index_End());
+		glucose::SFilter_Chain_Configuration reduced_filter_configuration = Copy_Reduced_Configuration(minimal_replay_index_end);
+
 
 		std::recursive_mutex communication_guard;
 		CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely 
 																		//call its dtor to get the future error properly
 		CCopying_Terminal_Filter terminal_filter{ mEvents_To_Replay };
-
-		if (composite_filter.Build_Filter_Chain(reduced_filter_configuration.get(), &terminal_filter, mOn_Filter_Created, mOn_Filter_Created_Data) != S_OK) {
-			mEvents_To_Replay.clear();
-			return std::numeric_limits<size_t>::max();
-		}
-		else {
-			terminal_filter.Wait_For_Shutdown();
-			return composite_filter.Least_Receiver();
-		}
-	}
-
-	void Fetch_Events_To_Replay() {	
-		mEvents_To_Replay.clear();
-
-		glucose::SFilter_Chain_Configuration reduced_filter_configuration;
-		if (Copy_Reduced_Configuration(mFilter_Index, reduced_filter_configuration)) {
-			const size_t least_receiver = Execute_Reduced_Configuration(reduced_filter_configuration);
-			if (least_receiver == std::numeric_limits<size_t>::max()) {
-				//error
-				mEvents_To_Replay.clear();	//sanitize as it might have been filled partially
-			} else if (least_receiver < mFilter_Index) {
-				mEvents_To_Replay.clear();
-				if (Copy_Reduced_Configuration(least_receiver, reduced_filter_configuration)) {
-					if (Execute_Reduced_Configuration(reduced_filter_configuration) == std::numeric_limits<size_t>::max())
-						mEvents_To_Replay.clear();	//sanitize after an error
-				}
-
-			}// else OK				
-		}
-		
+		if (composite_filter.Build_Filter_Chain(reduced_filter_configuration.get(), &terminal_filter, mOn_Filter_Created, mOn_Filter_Created_Data) == S_OK)  terminal_filter.Wait_For_Shutdown(); 
+			else mEvents_To_Replay.clear(); //sanitize as this might have been filled partially				
 	}
 protected:
 	const glucose::TOn_Filter_Created mOn_Filter_Created;
@@ -335,7 +343,7 @@ public:
 						glucose::IDevice_Event *event_to_replay = static_cast<glucose::IDevice_Event*> (new CDevice_Event{ mEvents_To_Replay[i] });
 						if (composite_filter.Execute(event_to_replay) != S_OK) break;
 				}
-		}	//calls terminal_filter of the signal error filter, thus filling the future error metric
+		}	//calls dtor of the signal error filter, thus filling the future error metric
 
 		//once implemented, we should return the configuration back to the pool
 

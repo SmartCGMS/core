@@ -76,7 +76,7 @@ enum class NColumn_Pos : size_t
 // increment operator to allow using for loop
 NColumn_Pos& operator++(NColumn_Pos& ref)
 {
-	ref = static_cast<NColumn_Pos>(static_cast<int>(ref) + 1);
+	ref = static_cast<NColumn_Pos>(static_cast<size_t>(ref) + 1);
 	return ref;
 }
 
@@ -93,13 +93,10 @@ CDb_Reader::~CDb_Reader() {
 	End_Db_Reader();
 }
 
-bool CDb_Reader::Emit_Shut_Down()
-{
+bool CDb_Reader::Emit_Shut_Down() {
 	glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Shut_Down };
-
 	evt.device_id() = Db_Reader_Device_GUID;
-
-	return Send(evt);
+	return Send(evt) == S_OK;
 }
 
 bool CDb_Reader::Emit_Segment_Marker(glucose::NDevice_Event_Code code, int64_t segment_id) {

@@ -55,7 +55,7 @@ namespace pathfinder_internal {
 	template <typename TUsed_Solution>
 	struct TCandidate {
 		TUsed_Solution current, next;
-		size_t direction_index;
+		size_t direction_index = 0;
 		double velocity;
 		double current_fitness, next_fitness;
 	};

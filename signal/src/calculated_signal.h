@@ -82,7 +82,7 @@ protected:
 protected:
 	bool mWarm_Reset_Done = false;
 	solver::TSolver_Progress mSolver_Progress;
-	glucose::TSolver_Status mSolver_Status;
+	glucose::TSolver_Status mSolver_Status = glucose::TSolver_Status::Disabled;
 protected:
 	std::map<int64_t, std::unique_ptr<CTime_Segment>> mSegments;
 	std::vector<glucose::SModel_Parameter_Vector> mParameter_Hints;
