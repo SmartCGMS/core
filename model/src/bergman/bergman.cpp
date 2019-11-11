@@ -190,7 +190,7 @@ double CBergman_Discrete_Model::eq_dGsc(const double _T, const double _Gsc) cons
 
 void CBergman_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 {
-	const double _T = mState.lastTime + time_advance_delta;
+	const double _T = mState.lastTime + time_advance_delta;	//locally-scoped because we might have been asked to emit the current state only
 
 	// blood glucose
 	Emit_Signal_Level(bergman_model::signal_Bergman_BG, _T, mState.G * glucose::mgdl_2_mmoll);
@@ -249,35 +249,42 @@ HRESULT CBergman_Discrete_Model::Do_Configure(glucose::SFilter_Configuration con
 }
 
 HRESULT IfaceCalling CBergman_Discrete_Model::Step(const double time_advance_delta) {
-	// we need to be synchronized prior Step call (signal generator will send appropriate events, but this class needs to implement the synchronization part)
-	assert(mState.lastTime > 0.0);
+	HRESULT rc = E_FAIL;
+	if (time_advance_delta > 0.0) {	
+		// perform a few microsteps within advancement delta
+		// we expect the spacing to be 5 minutes (between IG values) +- few seconds; however, bolus, basal intake and CHO intake may vary during this time period
+		// therefore, this spreads single 5min step to 5 one-minute steps in ideal case; in less-than-ideal case (spacing greater than 5 mins), this still proceeds
+		// to simulate steps shorter than 5mins (as our limit for segment extraction is maximum spacing of 15 minutes), so the intakes remain more-less consistent
+		// and error remain in acceptable range
+		constexpr size_t microStepCount = 5;
+		const double microStepSize = time_advance_delta / static_cast<double>(microStepCount);
 
-	// perform a few microsteps within advancement delta
-	// we expect the spacing to be 5 minutes (between IG values) +- few seconds; however, bolus, basal intake and CHO intake may vary during this time period
-	// therefore, this spreads single 5min step to 5 one-minute steps in ideal case; in less-than-ideal case (spacing greater than 5 mins), this still proceeds
-	// to simulate steps shorter than 5mins (as our limit for segment extraction is maximum spacing of 15 minutes), so the intakes remain more-less consistent
-	// and error remain in acceptable range
-	constexpr size_t microStepCount = 5;
-	const double microStepSize = time_advance_delta / static_cast<double>(microStepCount);
+		for (size_t i = 0; i < microStepCount; i++)
+		{
+			const double nowTime = mState.lastTime + static_cast<double>(i)*microStepSize;
 
-	for (size_t i = 0; i < microStepCount; i++)
-	{
-		const double nowTime = mState.lastTime + static_cast<double>(i)*microStepSize;
+			// Note: times in ODE solver is represented in minutes (and its fractions), as original Bergman model parameters are tuned to one minute unit
+			for (auto& binding : mEquation_Binding)
+				binding.x = ODE_Solver.Step(binding.fnc, nowTime / glucose::One_Minute, binding.x, microStepSize / glucose::One_Minute);
+		}
 
-		// Note: times in ODE solver is represented in minutes (and its fractions), as original Bergman model parameters are tuned to one minute unit
-		for (auto& binding : mEquation_Binding)
-			binding.x = ODE_Solver.Step(binding.fnc, nowTime / glucose::One_Minute, binding.x, microStepSize / glucose::One_Minute);
+		Emit_All_Signals(time_advance_delta);
+
+		mMeal_Ext.Cleanup(mState.lastTime);
+		mBolus_Ext.Cleanup(mState.lastTime);
+		mBasal_Ext.Cleanup_Not_Recent(mState.lastTime);
+
+		mState.lastTime += time_advance_delta;
+
+		rc = S_OK;
 	}
+	else if (time_advance_delta == 0.0) {
+		//emiting only the current state
+		Emit_All_Signals(time_advance_delta);
+		rc = S_OK;
+	} //else we return E_FAIL
 
-	Emit_All_Signals(time_advance_delta);
-
-	mMeal_Ext.Cleanup(mState.lastTime);
-	mBolus_Ext.Cleanup(mState.lastTime);
-	mBasal_Ext.Cleanup_Not_Recent(mState.lastTime);
-
-	mState.lastTime += time_advance_delta;
-
-	return S_OK;
+	return rc;
 }
 
 HRESULT CBergman_Discrete_Model::Emit_Signal_Level(const GUID& signal_id, double device_time, double level)

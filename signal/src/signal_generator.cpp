@@ -63,12 +63,12 @@ void CSignal_Generator::Stop_Generator() {
 
 HRESULT CSignal_Generator::Do_Execute(glucose::UDevice_Event event) {
 	if ((mSync_To_Signal) && ((mTotal_Time < mMax_Time) || (mMax_Time <= 0.0))) {
-		bool advance_the_model = event.signal_id() == mSync_Signal;
-		double dynamic_stepping = std::numeric_limits<double>::quiet_NaN();
-		if (advance_the_model) {
+		const bool step_the_model = event.signal_id() == mSync_Signal;
+		double dynamic_stepping = 0.0;			//means "emit current state"
+		if (step_the_model) {
 			if (!isnan(mLast_Device_Time)) dynamic_stepping = event.device_time() - mLast_Device_Time;
 				else {
-					advance_the_model = false;	//cannot advance the model because this is the very first event, thus we do not have the delta
+																	//cannot advance the model because this is the very first event, thus we do not have the delta
 					mModel->Set_Current_Time(event.device_time());	//for which we need to set the current time
 				}
 
@@ -79,7 +79,7 @@ HRESULT CSignal_Generator::Do_Execute(glucose::UDevice_Event event) {
 		event.release();
 		HRESULT rc = mModel->Execute(raw_event);
 		
-		if (advance_the_model) rc = mModel->Step(dynamic_stepping);
+		if (step_the_model) rc = mModel->Step(dynamic_stepping);
 
 		return rc;
 	}
@@ -109,7 +109,7 @@ HRESULT CSignal_Generator::Do_Configure(glucose::SFilter_Configuration configura
 	if (!mSync_To_Signal) {
 		mThread = std::make_unique<std::thread>([this]() {			
 			if (SUCCEEDED(mModel->Set_Current_Time(Unix_Time_To_Rat_Time(time(nullptr))))) {
-
+				mModel->Step(0.0);	//emit the initial state as this is the current state now
 				while (!mQuitting) {
 					mModel->Step(mFixed_Stepping);
 

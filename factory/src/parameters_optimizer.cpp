@@ -68,7 +68,8 @@ public:
 
 	HRESULT On_Filter_Created(glucose::IFilter *filter) {
 
-		if (glucose::SSignal_Error_Inspection insp = glucose::SSignal_Error_Inspection{ glucose::SFilter{filter} }) {
+		glucose::SSignal_Error_Inspection insp = glucose::SSignal_Error_Inspection{ glucose::SFilter{filter} };
+		if (insp) {
 			mError_Metric_Available = insp->Promise_Metric(&mError_Metric, true) == S_OK;
 			if (!mError_Metric_Available) return E_FAIL;
 		}
@@ -98,7 +99,7 @@ protected:
 
 		bool success = true;
 		for (size_t link_counter = 0; link_counter < end_index; link_counter++) {
-			glucose::SFilter_Configuration_Link single_filter = mConfiguration.operator[](link_counter);
+			glucose::SFilter_Configuration_Link single_filter = mConfiguration[link_counter];
 			if (!single_filter) {
 				success = false;
 				break;
@@ -143,16 +144,21 @@ protected:
 
 	void Fetch_Events_To_Replay() {	
 		mEvents_To_Replay.clear();
-		const size_t minimal_replay_index_end = std::min(mFilter_Index, Find_Minimal_Receiver_Index_End());
-		glucose::SFilter_Chain_Configuration reduced_filter_configuration = Copy_Reduced_Configuration(minimal_replay_index_end);
+		mFirst_Effective_Filter_Index = std::min(mFilter_Index, Find_Minimal_Receiver_Index_End());
+		glucose::SFilter_Chain_Configuration reduced_filter_configuration = Copy_Reduced_Configuration(mFirst_Effective_Filter_Index);
 
 
 		std::recursive_mutex communication_guard;
-		CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely 
-																		//call its dtor to get the future error properly
 		CCopying_Terminal_Filter terminal_filter{ mEvents_To_Replay };
+		{
+		CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely 
+																		//call its dtor to get the future error properly		
 		if (composite_filter.Build_Filter_Chain(reduced_filter_configuration.get(), &terminal_filter, mOn_Filter_Created, mOn_Filter_Created_Data) == S_OK)  terminal_filter.Wait_For_Shutdown(); 
-			else mEvents_To_Replay.clear(); //sanitize as this might have been filled partially				
+			else {
+				composite_filter.Clear();	//terminite for sure
+				mEvents_To_Replay.clear(); //sanitize as this might have been filled partially				
+			}
+		}
 	}
 protected:
 	const glucose::TOn_Filter_Created mOn_Filter_Created;
@@ -160,9 +166,10 @@ protected:
 protected:
 	glucose::SFilter_Chain_Configuration mConfiguration;
 	const size_t mFilter_Index;
+	size_t mFirst_Effective_Filter_Index = 0;
 	const std::wstring mParameters_Config_Name;
 
-	TFast_Configuration Clone_Configuration() {
+	TFast_Configuration Clone_Configuration(const size_t first_effective_filter) {
 		TFast_Configuration result;
 		result.configuration = refcnt::Create_Container_shared<glucose::IFilter_Configuration_Link*, glucose::SFilter_Chain_Configuration>(nullptr, nullptr);
 
@@ -176,10 +183,10 @@ protected:
 
 		result.failed = false;
 		size_t link_counter = 0;
-		mConfiguration.for_each([&link_counter, &result, &ui_filters, this](glucose::SFilter_Configuration_Link src_link) {
+		mConfiguration.for_each([&link_counter, &result, &ui_filters, this, first_effective_filter](glucose::SFilter_Configuration_Link src_link) {
 			if (result.failed) return;
 
-			if ((link_counter < mFilter_Index) && !mEvents_To_Replay.empty()) {
+			if ((link_counter < first_effective_filter) && !mEvents_To_Replay.empty()) {
 				//we will replay events produced by the first filters
 				link_counter++;
 				return;
@@ -272,7 +279,7 @@ public:
 
 
 	HRESULT Optimize(const GUID solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress &progress) {
-		glucose::SFilter_Configuration_Link configuration_link_parameters = mConfiguration.operator[](mFilter_Index);
+		glucose::SFilter_Configuration_Link configuration_link_parameters = mConfiguration[mFilter_Index];
 		if (!configuration_link_parameters || !configuration_link_parameters.Read_Parameters(mParameters_Config_Name.c_str(), mLower_Bound, mFound_Parameters, mUpper_Bound))
 			return E_INVALIDARG;
 
@@ -282,10 +289,9 @@ public:
 		//create initial pool-configuration to determine problem size
 		//and to verify that we are able to clone the configuration
 		{
-			TFast_Configuration configuration = Clone_Configuration();
-			if (configuration.failed) return E_FAIL;
-		}
-		//succeeded, later on, we should push it to the configuration pool here - once it is implemented		
+			TFast_Configuration configuration = Clone_Configuration(0);
+			if (configuration.failed) return E_FAIL;	//we release this configuration, because it has not used mFirst_Effective_Filter_Index
+		}		
 
 		Fetch_Events_To_Replay();
 
@@ -317,7 +323,7 @@ public:
 	double Calculate_Fitness(const void* solution) {
 		
 
-		TFast_Configuration configuration = Clone_Configuration();	//later on, we will replace this with a pool
+		TFast_Configuration configuration = Clone_Configuration(mFirst_Effective_Filter_Index);	//later on, we will replace this with a pool
 		
 		//set the experimental parameters
 		std::copy(reinterpret_cast<const double*>(solution), reinterpret_cast<const double*>(solution) + mProblem_Size, configuration.first_parameter);
@@ -328,12 +334,11 @@ public:
 		
 		
 		//run the configuration
-		{
-			std::recursive_mutex communication_guard;
+		std::recursive_mutex communication_guard;
+		CTerminal_Filter terminal_filter;
+		{			
 			CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely 
-																			//call its dtor to get the future error properly
-			CTerminal_Filter terminal_filter;
-
+																			//call its dtor to get the future error properly		
 			if (composite_filter.Build_Filter_Chain(configuration.configuration.get(), &terminal_filter, On_Filter_Created_Wrapper, &error_metric_future) != S_OK)
 				return std::numeric_limits<double>::quiet_NaN();
 
