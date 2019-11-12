@@ -63,6 +63,10 @@ void CSignal_Generator::Stop_Generator() {
 
 HRESULT CSignal_Generator::Do_Execute(glucose::UDevice_Event event) {
 	if ((mSync_To_Signal) && ((mTotal_Time < mMax_Time) || (mMax_Time <= 0.0))) {
+
+		if (event.event_code() == glucose::NDevice_Event_Code::Time_Segment_Start) 
+			mLast_Device_Time = std::numeric_limits<double>::quiet_NaN();
+
 		const bool step_the_model = event.signal_id() == mSync_Signal;
 		double dynamic_stepping = 0.0;			//means "emit current state"
 		if (step_the_model) {

@@ -47,6 +47,7 @@
 #include "device_event.h"
 
 #include "../../../common/rtl/FilterLib.h"
+#include "..\..\..\common\utils\DebugHelper.h"
 
 #include <mutex>
 #include <set>
@@ -151,13 +152,13 @@ protected:
 		std::recursive_mutex communication_guard;
 		CCopying_Terminal_Filter terminal_filter{ mEvents_To_Replay };
 		{
-		CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely 
+			CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely 
 																		//call its dtor to get the future error properly		
-		if (composite_filter.Build_Filter_Chain(reduced_filter_configuration.get(), &terminal_filter, mOn_Filter_Created, mOn_Filter_Created_Data) == S_OK)  terminal_filter.Wait_For_Shutdown(); 
-			else {
-				composite_filter.Clear();	//terminite for sure
-				mEvents_To_Replay.clear(); //sanitize as this might have been filled partially				
-			}
+			if (composite_filter.Build_Filter_Chain(reduced_filter_configuration.get(), &terminal_filter, mOn_Filter_Created, mOn_Filter_Created_Data) == S_OK)  terminal_filter.Wait_For_Shutdown(); 
+				else {
+					composite_filter.Clear();	//terminite for sure
+					mEvents_To_Replay.clear(); //sanitize as this might have been filled partially				
+				}
 		}
 	}
 protected:
@@ -169,7 +170,11 @@ protected:
 	size_t mFirst_Effective_Filter_Index = 0;
 	const std::wstring mParameters_Config_Name;
 
+	std::mutex mClone_Guard;
+
 	TFast_Configuration Clone_Configuration(const size_t first_effective_filter) {
+		std::lock_guard<std::mutex> lg{ mClone_Guard };
+
 		TFast_Configuration result;
 		result.configuration = refcnt::Create_Container_shared<glucose::IFilter_Configuration_Link*, glucose::SFilter_Chain_Configuration>(nullptr, nullptr);
 
@@ -277,12 +282,11 @@ public:
 			event->Release();
 	}
 
-
 	HRESULT Optimize(const GUID solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress &progress) {
-		glucose::SFilter_Configuration_Link configuration_link_parameters = mConfiguration[mFilter_Index];
+		glucose::SFilter_Configuration_Link configuration_link_parameters = mConfiguration[mFilter_Index];		
 		if (!configuration_link_parameters || !configuration_link_parameters.Read_Parameters(mParameters_Config_Name.c_str(), mLower_Bound, mFound_Parameters, mUpper_Bound))
 			return E_INVALIDARG;
-
+		
 		mProblem_Size = mFound_Parameters.size();
 
 
