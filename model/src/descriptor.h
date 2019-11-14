@@ -166,6 +166,30 @@ namespace bergman_model {
 }
 
 
+namespace ge_model {
+	//grammatical evolution model
+	constexpr GUID model_id = { 0x39932e74, 0x7fc3, 0x4965, { 0x9e, 0x55, 0xee, 0x33, 0xf6, 0x3, 0x5a, 0xcb } };
+
+	//single output signal
+	constexpr GUID ge_signal_id = { 0x2c8c1272, 0x4b01, 0x4c66, { 0xb6, 0xb3, 0x31, 0xc4, 0xf7, 0x34, 0x99, 0x5a } };
+
+	constexpr size_t ge_variables_count = 20;
+	constexpr size_t max_instruction_count = 200;
+	constexpr size_t model_param_count = ge_variables_count + max_instruction_count;
+
+	struct TParameters {
+		union {
+			struct {
+				//initial state
+				double data[ge_variables_count]; //ge-specific variables
+				double instructions[max_instruction_count];
+			};
+			double vector[model_param_count];
+		};
+	};
+
+}
+
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end);
 extern "C" HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output, glucose::IDiscrete_Model **model);

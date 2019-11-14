@@ -287,8 +287,7 @@ HRESULT IfaceCalling CBergman_Discrete_Model::Step(const double time_advance_del
 	return rc;
 }
 
-HRESULT CBergman_Discrete_Model::Emit_Signal_Level(const GUID& signal_id, double device_time, double level)
-{
+HRESULT CBergman_Discrete_Model::Emit_Signal_Level(const GUID& signal_id, double device_time, double level) {
 	glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Level };
 
 	evt.device_id() = bergman_model::model_id;
