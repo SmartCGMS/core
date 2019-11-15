@@ -100,7 +100,7 @@ protected:
 	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
 public:
 	CGE_Discrete_Model(glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output);
-	virtual ~CGE_Discrete_Model() = default;
+	virtual ~CGE_Discrete_Model();
 
 	// glucose::IDiscrete_Model iface
 	virtual HRESULT IfaceCalling Set_Current_Time(const double new_current_time);
