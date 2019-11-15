@@ -37,15 +37,15 @@
  */
 
 #include "cob.h"
-#include "descriptor.h"
+#include "..\descriptor.h"
 
 #include <numeric>
 
-#include "../../../common/rtl/rattime.h"
+#include "../../../../common/rtl/rattime.h"
+#include "../../../../common/rtl/SolverLib.h"
 
 CCarbohydrates_On_Board::CCarbohydrates_On_Board(glucose::WTime_Segment segment)
-	: CCommon_Calculation(segment, glucose::signal_Carb_Intake)
-{
+	: CCommon_Calculated_Signal(segment), mSource_Signal(segment.Get_Signal(glucose::signal_Carb_Intake)) {
 }
 
 double CCarbohydrates_On_Board_Bilinear::Calculate_Signal(double bolusTime, double bolusValue, double nowTime, double peak, double dia) const
@@ -122,7 +122,7 @@ double CCarbohydrates_On_Board::Calculate_Total_COB(double nowTime, double peak,
 HRESULT CCarbohydrates_On_Board::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	iob::TParameters &parameters = Convert_Parameters<iob::TParameters>(params, iob::default_parameters);
+	iob::TParameters &parameters = glucose::Convert_Parameters<iob::TParameters>(params, iob::default_parameters);
 
 	for (size_t i = 0; i < count; i++)
 	{

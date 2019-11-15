@@ -46,7 +46,7 @@
 /*
  *
  */
-class CConstant_Model : public virtual CCommon_Calculed_Signal {
+class CConstant_Model : public virtual CCommon_Calculated_Signal {
 	public:
 		CConstant_Model(glucose::WTime_Segment segment);
 		virtual ~CConstant_Model() = default;

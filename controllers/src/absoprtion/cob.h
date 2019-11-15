@@ -50,7 +50,7 @@ class CCarbohydrates_On_Board : public CCommon_Calculated_Signal {
 		virtual double Calculate_Signal(double bolusTime, double bolusValue, double nowTime, double peak, double dia) const = 0;
 
 	protected:
-		glucose::SSignal mBasal_Insulin;
+		glucose::SSignal mSource_Signal;
 
 	public:
 		CCarbohydrates_On_Board(glucose::WTime_Segment segment);

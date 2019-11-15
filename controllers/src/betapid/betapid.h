@@ -58,7 +58,7 @@ class CBetaPID_Insulin_Regulation : public CCommon_Calculated_Signal {
 		virtual HRESULT IfaceCalling Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const override;
 };
 
-class CBetaPID2_Insulin_Regulation : public CCommon_Calculation {
+class CBetaPID2_Insulin_Regulation : public CCommon_Calculated_Signal {
 
 	private:
 		glucose::SSignal mIOB;
@@ -74,7 +74,7 @@ class CBetaPID2_Insulin_Regulation : public CCommon_Calculation {
 		virtual HRESULT IfaceCalling Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const override;
 };
 
-class CBetaPID3_Insulin_Regulation : public CCommon_Calculation {
+class CBetaPID3_Insulin_Regulation : public CCommon_Calculated_Signal {
 
 	private:
 		glucose::SSignal mIOB;

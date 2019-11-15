@@ -43,7 +43,7 @@
 
 #include <cmath>
 
-CConstant_Model::CConstant_Model(glucose::WTime_Segment segment) : CCommon_Calculed_Signal(segment) {
+CConstant_Model::CConstant_Model(glucose::WTime_Segment segment) : CCommon_Calculated_Signal(segment) {
 	//
 }
 

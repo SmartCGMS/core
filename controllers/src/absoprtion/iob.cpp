@@ -37,13 +37,14 @@
  */
 
 #include "iob.h"
-#include "descriptor.h"
+#include "../descriptor.h"
 
 #include <numeric>
 
-#include "../../../common/rtl/rattime.h"
+#include "../../../../common/rtl/rattime.h"
+#include "../../../../common/rtl/SolverLib.h"
 
-CInsulin_Absorption::CInsulin_Absorption(glucose::WTime_Segment segment, NInsulin_Calc_Mode mode) : CCommon_Calculation(segment, glucose::signal_Bolus_Insulin), mBasal_Insulin(segment.Get_Signal(glucose::signal_Basal_Insulin)),
+CInsulin_Absorption::CInsulin_Absorption(glucose::WTime_Segment segment, NInsulin_Calc_Mode mode) : CCommon_Calculated_Signal(segment, glucose::signal_Bolus_Insulin), mBasal_Insulin(segment.Get_Signal(glucose::signal_Basal_Insulin)),
 	mMode(mode) {
 	if (!refcnt::Shared_Valid_All(mBasal_Insulin)) throw std::exception{};
 }
@@ -200,7 +201,7 @@ IOB_Combined CInsulin_Absorption::Calculate_Total_IOB(double nowTime, double pea
 HRESULT CInsulin_Absorption::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	iob::TParameters &parameters = Convert_Parameters<iob::TParameters>(params, iob::default_parameters);
+	iob::TParameters &parameters = glucose::Convert_Parameters<iob::TParameters>(params, iob::default_parameters);
 
 	for (size_t i = 0; i < count; i++)
 	{

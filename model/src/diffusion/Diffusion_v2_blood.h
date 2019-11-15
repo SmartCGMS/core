@@ -44,7 +44,7 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CDiffusion_v2_blood : public virtual CCommon_Calculed_Signal {
+class CDiffusion_v2_blood : public virtual CCommon_Calculated_Signal {
 protected:
 	glucose::SSignal mIst;
 public:

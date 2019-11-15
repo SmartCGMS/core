@@ -40,8 +40,7 @@
 
 #include "../../../../common/rtl/Common_Calculated_Signal.h"
 
-enum class NInsulin_Calc_Mode
-{
+enum class NInsulin_Calc_Mode {
 	Activity,
 	IOB
 };

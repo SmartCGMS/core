@@ -44,7 +44,7 @@
 
 #undef max
 
-CDiffusion_v2_blood::CDiffusion_v2_blood(glucose::WTime_Segment segment) : CCommon_Calculed_Signal(segment), mIst(segment.Get_Signal(glucose::signal_IG)) {
+CDiffusion_v2_blood::CDiffusion_v2_blood(glucose::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(glucose::signal_IG)) {
 	if (!refcnt::Shared_Valid_All(mIst)) throw std::exception{};
 }
 

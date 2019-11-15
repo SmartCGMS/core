@@ -37,22 +37,23 @@
  */
 
 #include "betapid.h"
-#include "descriptor.h"
+#include "../descriptor.h"
 
 #include <iostream>
 #include <numeric>
 
-#include "../../../common/rtl/rattime.h"
+#include "../../../../common/rtl/rattime.h"
+#include "../../../../common/rtl/SolverLib.h"
 
 CBetaPID_Insulin_Regulation::CBetaPID_Insulin_Regulation(glucose::WTime_Segment segment)
-	: CCommon_Calculation(segment, glucose::signal_BG), mIOB(segment.Get_Signal(glucose::signal_IOB)) {
+	: CCommon_Calculated_Signal(segment, glucose::signal_BG), mIOB(segment.Get_Signal(glucose::signal_IOB)) {
 	//
 }
 
 HRESULT CBetaPID_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	betapid_insulin_regulation::TParameters &parameters = Convert_Parameters<betapid_insulin_regulation::TParameters>(params, betapid_insulin_regulation::default_parameters);
+	betapid_insulin_regulation::TParameters &parameters = glucose::Convert_Parameters<betapid_insulin_regulation::TParameters>(params, betapid_insulin_regulation::default_parameters);
 
 	const double h = glucose::One_Minute * 1.0;
 	const size_t integral_history = 30;
@@ -142,14 +143,14 @@ HRESULT CBetaPID_Insulin_Regulation::Get_Default_Parameters(glucose::IModel_Para
 ////////////////////////////////////// BetaPID2
 
 CBetaPID2_Insulin_Regulation::CBetaPID2_Insulin_Regulation(glucose::WTime_Segment segment)
-	: CCommon_Calculation(segment, glucose::signal_IG), mIOB(segment.Get_Signal(glucose::signal_IOB)), mCOB(segment.Get_Signal(glucose::signal_COB)) {
+	: CCommon_Calculated_Signal(segment, glucose::signal_IG), mIOB(segment.Get_Signal(glucose::signal_IOB)), mCOB(segment.Get_Signal(glucose::signal_COB)) {
 	//
 }
 
 HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	betapid_insulin_regulation::TParameters &parameters = Convert_Parameters<betapid_insulin_regulation::TParameters>(params, betapid_insulin_regulation::default_parameters);
+	betapid_insulin_regulation::TParameters &parameters = glucose::Convert_Parameters<betapid_insulin_regulation::TParameters>(params, betapid_insulin_regulation::default_parameters);
 
 	const double h = glucose::One_Minute * 1.0;
 	const size_t integral_history = 30;
@@ -259,14 +260,14 @@ HRESULT CBetaPID2_Insulin_Regulation::Get_Default_Parameters(glucose::IModel_Par
 ////////////////////////////////////// BetaPID3
 
 CBetaPID3_Insulin_Regulation::CBetaPID3_Insulin_Regulation(glucose::WTime_Segment segment)
-	: CCommon_Calculation(segment, glucose::signal_IG), mIOB(segment.Get_Signal(glucose::signal_IOB)), mCOB(segment.Get_Signal(glucose::signal_COB)), mISF(segment.Get_Signal(glucose::signal_Insulin_Sensitivity)), mCR(segment.Get_Signal(glucose::signal_Carb_Ratio)) {
+	: CCommon_Calculated_Signal(segment, glucose::signal_IG), mIOB(segment.Get_Signal(glucose::signal_IOB)), mCOB(segment.Get_Signal(glucose::signal_COB)), mISF(segment.Get_Signal(glucose::signal_Insulin_Sensitivity)), mCR(segment.Get_Signal(glucose::signal_Carb_Ratio)) {
 	//
 }
 
 HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	betapid3_insulin_regulation::TParameters &parameters = Convert_Parameters<betapid3_insulin_regulation::TParameters>(params, betapid3_insulin_regulation::default_parameters);
+	betapid3_insulin_regulation::TParameters &parameters = glucose::Convert_Parameters<betapid3_insulin_regulation::TParameters>(params, betapid3_insulin_regulation::default_parameters);
 
 	const double h = glucose::One_Minute * 5.0;
 	const size_t integral_history = 12;
