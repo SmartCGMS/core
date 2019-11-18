@@ -43,7 +43,6 @@
 #include "../../../common/rtl/manufactory.h"
 
 #include "../../../common/rtl/descriptor_utils.h"
-#include <tbb/tbb_allocator.h>
 
 #include <vector>
 
@@ -107,7 +106,7 @@ namespace drawing
 	};
 }
 
-static const std::vector<glucose::TFilter_Descriptor, tbb::tbb_allocator<glucose::TFilter_Descriptor>> filter_descriptions = { drawing::Drawing_Descriptor };
+static const std::array<glucose::TFilter_Descriptor, 1> filter_descriptions = { drawing::Drawing_Descriptor };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
 	return do_get_descriptors(filter_descriptions, begin, end);

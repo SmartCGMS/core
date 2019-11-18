@@ -53,14 +53,12 @@
 #include "../../../common/rtl/manufactory.h"
 #include "../../../common/rtl/DeviceLib.h"
 
-#include <tbb/tbb_allocator.h>
 
 using TCreate_Signal = std::function<HRESULT(glucose::ITime_Segment *segment, glucose::ISignal **signal)>;
-using TAlloc = tbb::tbb_allocator<std::pair<const GUID, TCreate_Signal>>;
 
 class CId_Dispatcher {
 protected:
-	std::map <const GUID, TCreate_Signal, std::less<GUID>, TAlloc> id_map;
+	std::map <const GUID, TCreate_Signal, std::less<GUID>> id_map;
 
 	template <typename T>
 	HRESULT Create_X(glucose::ITime_Segment *segment, glucose::ISignal **signal) const {

@@ -91,7 +91,7 @@ const std::array<TSolver_Info, 14> solvers = {	TSolver_Info{nlopt::newuoa_id, So
 extern "C" HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, solver::TSolver_Setup *setup, solver::TSolver_Progress *progress) {
 	
 	//instead of traversing an array, we could have used map
-	//but with map, we would have to use TBB allocator, which is useless for us at the moment
+	//but we no longe have the desire to use these solvers as the Pathfinder outperforms them
 	//hence traversing the array is easy to write and the overhead is neglible compared to the work of a solver
 	for (const auto &solver : solvers) {
 		if (solver.id == *solver_id)

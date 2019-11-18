@@ -46,10 +46,6 @@
 #include <thread>
 #include <vector>
 
-#include <QtSql/QSqlDatabase>
-#include <QtSql/QSqlQuery>
-#include <QtSql/QSqlQueryModel>
-
 struct TStored_Model_Params {
 	const GUID model_id;
 	glucose::SModel_Parameter_Vector params;

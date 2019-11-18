@@ -42,10 +42,11 @@
 #include "fitness.h"
 #include "../../../common/rtl/referencedImpl.h"
 
+thread_local glucose::SMetric CFitness::mMetric_Per_Thread;
 
 CFitness::CFitness(const glucose::TSolver_Setup &setup, const size_t solution_size) : mLevels_Required (setup.levels_required), mSolution_Size(solution_size){
 
-	setup.metric->Get_Parameters(&mMetric);	//shall it fail, it will fail down there
+	setup.metric->Get_Parameters(&mMetric_Params);	//shall it fail, it will fail down there
 
 	mMax_Levels_Per_Segment = 0;	
 
@@ -101,13 +102,12 @@ double CFitness::Calculate_Fitness(const double *solution) {
 	//caller has to supply the metric to allow parallelization without inccuring an overhead
 	//of creating new metric calculator instead of its mere resetting	
 
-	std::shared_ptr<glucose::IMetric> metric;
-	if (!mMetric_Pool.try_pop(metric)) {
-		glucose::TMetric_Parameters params = glucose::Null_Metric_Parameters;
-		glucose::IMetric *raw_metric;
-		if (create_metric(&mMetric, &raw_metric) != S_OK) return std::numeric_limits<double>::max();
-		metric = refcnt::make_shared_reference<glucose::IMetric>(raw_metric, false);
-	} 
+	glucose::IMetric *metric = mMetric_Per_Thread.get();	//caching to avoid TLS calls
+	if (!metric) {
+		mMetric_Per_Thread = glucose::SMetric{ mMetric_Params };
+		metric = mMetric_Per_Thread.get();
+		if (!metric) return std::numeric_limits<double>::quiet_NaN();
+	}
 
 	metric->Reset();	//could have been called by else, but it would happen only few times in the beginning => save code size and BTB slots
 
@@ -129,8 +129,6 @@ double CFitness::Calculate_Fitness(const double *solution) {
 	double result;
 	size_t tmp_size;
 	if (metric->Calculate(&result, &tmp_size, mLevels_Required) != S_OK) result = std::numeric_limits<double>::max();
-
-	mMetric_Pool.push(metric);
 
 	return result;
 }

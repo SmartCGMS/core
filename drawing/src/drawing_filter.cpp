@@ -57,7 +57,6 @@
 #include "drawing/Generators/Mobile_InsulinGenerator.h"
 
 #include <map>
-#include <tbb/tbb_allocator.h>
 
 #include <iostream>
 #include <chrono>
@@ -67,7 +66,7 @@
 
 #undef min
 
-const std::map<GUID, const char*, std::less<GUID>, tbb::tbb_allocator<std::pair<const GUID, const char*>>> Signal_Mapping = {
+const std::map<GUID, const char*, std::less<GUID>> Signal_Mapping = {
 	{ glucose::signal_IG, "ist" },
 	{ glucose::signal_BG, "blood" },
 	{ glucose::signal_Calibration, "bloodCalibration" },

@@ -43,8 +43,6 @@
 #include <vector>
 #include <array>
 
-//The array declarations are needed to prevent memory leaks, which occur when combined with TBB due to use of different allocators simultaneously
-
 /** General **/
 
 extern const std::array<TCoordinate, 9> Coords_a;

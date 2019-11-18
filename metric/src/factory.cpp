@@ -44,16 +44,13 @@
 #include <map>
 #include <functional>
 
-//other factors forces us to use tbb allocator to avoid memory leak, which would result from having a global instance of a class with a member map
-#include <tbb/tbb_allocator.h>
-
 #include "../../../common/rtl/manufactory.h"
 
 using TCreate_Metric = std::function<HRESULT(const glucose::TMetric_Parameters &parameters, glucose::IMetric **metric)>;
 
 class CId_Dispatcher {
 protected:
-	std::map <const GUID, TCreate_Metric, std::less<GUID>, tbb::tbb_allocator<std::pair<const GUID, TCreate_Metric>>> id_map;
+	std::map <const GUID, TCreate_Metric, std::less<GUID>> id_map;
 
 	template <typename T>
 	HRESULT Create_X(const glucose::TMetric_Parameters &params, glucose::IMetric **metric) const {

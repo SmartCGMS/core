@@ -40,14 +40,12 @@
 #include "db_reader.h"
 #include "db_writer.h"
 #include "file_reader.h"
-#include "hold.h"
 #include "sincos_generator.h"
 #include "../../../common/rtl/descriptor_utils.h"
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
 
-#include <tbb/tbb_allocator.h>
 
 #include <vector>
 
@@ -230,38 +228,6 @@ namespace file_reader
 	};
 }
 
-namespace hold
-{
-	constexpr size_t param_count = 1;
-
-	constexpr glucose::NParameter_Type param_type[param_count] = {
-		glucose::NParameter_Type::ptInt64
-	};
-
-	const wchar_t* ui_param_name[param_count] = {
-		dsHold_Values_Delay
-	};
-
-	const wchar_t* config_param_name[param_count] = {
-		rsHold_Values_Delay
-	};
-
-	const wchar_t* ui_param_tooltips[param_count] = {
-		dsHold_Values_Delay_Tooltip
-	};
-
-	const glucose::TFilter_Descriptor Hold_Descriptor = {
-		{ 0xc0e942b9, 0x3928, 0x4b81,{ 0x9b, 0x43, 0xa3, 0x47, 0x66, 0x82, 0x0, 0xAA } }, //// {C0E942B9-3928-4B81-9B43-A347668200AA}
-		glucose::NFilter_Flags::None,
-		dsHold_Filter,
-		param_count,
-		param_type,
-		ui_param_name,
-		config_param_name,
-		ui_param_tooltips
-	};
-}
-
 namespace sincos_generator {
 
 	constexpr size_t param_count = 10;
@@ -331,7 +297,7 @@ namespace sincos_generator {
 
 }
 
-static const std::vector<glucose::TFilter_Descriptor, tbb::tbb_allocator<glucose::TFilter_Descriptor>> filter_descriptions = { db_reader::Db_Reader_Descriptor, db_writer::Db_Writer_Descriptor, file_reader::File_Reader_Descriptor, hold::Hold_Descriptor, sincos_generator::SinCos_Generator_Descriptor };
+static const std::array<glucose::TFilter_Descriptor, 4> filter_descriptions = { db_reader::Db_Reader_Descriptor, db_writer::Db_Writer_Descriptor, file_reader::File_Reader_Descriptor, sincos_generator::SinCos_Generator_Descriptor };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
 	return do_get_descriptors(filter_descriptions, begin, end);
@@ -345,8 +311,6 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilte
 		return Manufacture_Object<CDb_Writer>(filter, next_filter);
 	else if (*id == file_reader::File_Reader_Descriptor.id)
 		return Manufacture_Object<CFile_Reader>(filter, next_filter);
-	else if (*id == hold::Hold_Descriptor.id)
-		return Manufacture_Object<CHold_Filter>(filter, next_filter);
 	else if (*id == sincos_generator::SinCos_Generator_Descriptor.id)
 		return Manufacture_Object<CSinCos_Generator>(filter, next_filter);
 

@@ -39,11 +39,8 @@
 #pragma once
 
 
-#include "../../../common/iface/SolverIface.h"
-#include "../../../common/rtl/Buffer_Pool.h"
+#include "../../../common/rtl/SolverLib.h"
 #include "../../../common/rtl/AlignmentAllocator.h"
-
-#include <tbb/concurrent_queue.h>
 
 #include <vector>
 
@@ -65,8 +62,8 @@ struct TSegment_Info {
 class CFitness {
 protected:
 	const size_t mSolution_Size;
-	glucose::TMetric_Parameters mMetric = glucose::Null_Metric_Parameters;	
-	tbb::concurrent_queue<std::shared_ptr<glucose::IMetric>> mMetric_Pool;
+	glucose::TMetric_Parameters mMetric_Params = glucose::Null_Metric_Parameters;		
+	static thread_local glucose::SMetric mMetric_Per_Thread;
 protected:
 	std::vector<TSegment_Info> mSegment_Info;	
 	size_t mLevels_Required;

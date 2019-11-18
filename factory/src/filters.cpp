@@ -116,7 +116,7 @@ HRESULT IfaceCalling add_filters(const glucose::TFilter_Descriptor *begin, const
 
 void CLoaded_Filters::load_libraries() {
 	auto appdir = Get_Application_Dir();	
-	auto allFiles = List_Directory/*<tbb::tbb_allocator<std::wstring>>*/(Path_Append(appdir, rsSolversDir));
+	auto allFiles = List_Directory(Path_Append(appdir, rsSolversDir));
 
 	for (const auto& filepath : allFiles) {
 

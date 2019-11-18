@@ -39,8 +39,6 @@
 #pragma once
 
 
-#include <tbb/parallel_for.h>
-
 #include <math.h>
 
 #include "../../../common/rtl/AlignmentAllocator.h"
@@ -76,14 +74,12 @@ protected:
 	void Fill_Population_From_Candidates(const TAligned_Solution_Vector<TUsed_Solution> &candidates) {
 		std::vector<double> fitness(candidates.size());
 		std::vector<size_t> indexes(candidates.size());
-
-		tbb::parallel_for(tbb::blocked_range<size_t>(size_t(0), candidates.size()), [&fitness, &candidates, this](const tbb::blocked_range<size_t> &r) {
-			const size_t rend = r.end();
-			for (size_t iter = r.begin(); iter != rend; iter++)		
-				fitness[iter] = mSetup.objective(mSetup.data, candidates[iter].data());
-		});
-
+	
 		std::iota(indexes.begin(), indexes.end(), 0);
+		std::for_each(std::execution::par_unseq, indexes.begin(), indexes.end(), [&fitness, &candidates, this](auto &index) {
+				fitness[index] = mSetup.objective(mSetup.data, candidates[index].data());
+		});
+		
 		std::partial_sort(indexes.begin(), indexes.begin() + mSetup.population_size, indexes.end(), [&fitness](const size_t a, const size_t b) {return fitness[a] < fitness[b]; });
 
 		for (size_t i = 0; i < mSetup.population_size; i++) {
@@ -289,26 +285,21 @@ protected:
 			//2. Calculate the next vectors and their fitness 
 			//In this step, current is read-only and next is write-only => no locking is needed
 			//as each next will be written just once.
-			//We assume that parallelization cost will get amortized
-			tbb::parallel_for(tbb::blocked_range<size_t>(size_t(0), mSetup.population_size), [=](const tbb::blocked_range<size_t> &r) {
+			//We assume that parallelization cost will get amortized			
+			std::for_each(std::execution::par_unseq, mPopulation.begin(), mPopulation.end(), [=](auto &candidate_solution) {
+						
+				if (!Evolve_Solution(candidate_solution, mPopulation[candidate_solution.leader_index])) {
 
+					candidate_solution.leader_index++;
+					if (candidate_solution.leader_index >= mPopulation.size()) candidate_solution.leader_index = 0;
 
-				const size_t rend = r.end();
-				for (size_t iter = r.begin(); iter != rend; iter++) {
-					auto &candidate_solution = mPopulation[iter];
-
-					if (!Evolve_Solution(candidate_solution, mPopulation[candidate_solution.leader_index])) {
-
-						candidate_solution.leader_index++;
-						if (candidate_solution.leader_index >= mPopulation.size()) candidate_solution.leader_index = 0;
-
-						if (!Evolve_Solution(candidate_solution, *global_best))
-							for (size_t i = 0; i < mSetup.problem_size; i++) {
-								candidate_solution.direction_index[i]++;
-								if (candidate_solution.direction_index[i] >= mDirections.size()) candidate_solution.direction_index[i] = 0;
-							}
-					}
+					if (!Evolve_Solution(candidate_solution, *global_best))
+						for (size_t i = 0; i < mSetup.problem_size; i++) {
+							candidate_solution.direction_index[i]++;
+							if (candidate_solution.direction_index[i] >= mDirections.size()) candidate_solution.direction_index[i] = 0;
+						}
 				}
+				
 			});
 
 

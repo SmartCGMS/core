@@ -42,7 +42,6 @@
 #include "../../../common/rtl/descriptor_utils.h"
 #include <vector>
 
-#include <tbb/tbb_allocator.h>
 
 
 namespace mt_metade {
@@ -58,21 +57,13 @@ namespace rnd_metade {
 }
 
 
-namespace halton_sequence {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsHalton_Zooming);
-}
 
 namespace pathfinder {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsPathfinder);
-	const glucose::TSolver_Descriptor desc_LD_Dir = Describe_Non_Specialized_Solver(id_LD_Dir, dsPathfinder_LD_Directions);
-	const glucose::TSolver_Descriptor desc_LD_Pop = Describe_Non_Specialized_Solver(id_LD_Dir, dsPathfinder_LD_Population);
-	const glucose::TSolver_Descriptor desc_LD_Dir_Pop = Describe_Non_Specialized_Solver(id_LD_Dir, dsPathfinder_LD_Directions_Population);
 	const glucose::TSolver_Descriptor desc_fast = Describe_Non_Specialized_Solver(id_fast, dsPathfinder_Fast);
 }
 
 
-const std::vector<glucose::TSolver_Descriptor, tbb::tbb_allocator<glucose::TSolver_Descriptor>> solver_descriptions = { mt_metade::desc, halton_sequence::desc, halton_metade::desc, rnd_metade::desc, 
-																														pathfinder::desc,  pathfinder::desc_LD_Dir, pathfinder::desc_LD_Pop, pathfinder::desc_LD_Dir_Pop, pathfinder::desc_fast};
+const std::array<glucose::TSolver_Descriptor, 4> solver_descriptions = { mt_metade::desc, halton_metade::desc, rnd_metade::desc, pathfinder::desc_fast};
 
 
 HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {

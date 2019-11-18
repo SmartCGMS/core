@@ -46,10 +46,7 @@
 #include <thread>
 #include <vector>
 #include <set>
-
-#include <QtSql/QSqlDatabase>
-#include <QtSql/QSqlQuery>
-#include <QtSql/QSqlQueryModel>
+#include <list>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance

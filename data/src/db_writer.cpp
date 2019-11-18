@@ -52,8 +52,6 @@
 #include "third party/iso8601.h"
 #include "descriptor.h"
 
-#include <tbb/tbb_allocator.h>
-
 #include <map>
 #include <ctime>
 
@@ -253,7 +251,7 @@ HRESULT IfaceCalling CDb_Writer::Do_Configure(glucose::SFilter_Configuration con
 
 	mDbHost = configuration.Read_String(rsDb_Host);
 	mDbProvider = configuration.Read_String(rsDb_Provider);
-	mDbPort = configuration.Read_Int(rsDb_Port);
+	mDbPort = static_cast<decltype(mDbPort)>(configuration.Read_Int(rsDb_Port));
 	mDbDatabaseName = configuration.Read_String(rsDb_Name);
 	mDbUsername = configuration.Read_String(rsDb_User_Name);
 	mDbPassword = configuration.Read_String(rsDb_Password);
