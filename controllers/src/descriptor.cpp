@@ -89,9 +89,7 @@ namespace iob {
 		signal_count,
 		signal_ids,
 		signal_names,
-		reference_signal_ids,
-		false,
-		nullptr
+		reference_signal_ids
 	};
 }
 
@@ -128,10 +126,7 @@ namespace cob {
 		signal_count,
 		signal_ids,
 		signal_names,
-		reference_signal_ids,
-		false,
-		nullptr,
-		nullptr
+		reference_signal_ids,		
 	};
 }
 
@@ -167,10 +162,7 @@ namespace betapid_insulin_regulation {
 		signal_count,
 		signal_ids,
 		signal_names,
-		reference_signal_ids,
-		false,
-		nullptr,
-		nullptr
+		reference_signal_ids,		
 	};
 }
 
@@ -192,7 +184,7 @@ namespace betapid3_insulin_regulation {
 	const wchar_t *signal_names[signal_count] = { dsInsulin_BetaPID3_Rate };
 	const GUID reference_signal_ids[signal_count] = { glucose::signal_Carb_Ratio };
 
-	const GUID effect_reference_signal_ids[signal_count] = { glucose::signal_Constant_BG };
+	//const GUID effect_reference_signal_ids[signal_count] = { glucose::signal_Constant_BG };
 	const GUID effect_signal_ids[signal_count] = { glucose::signal_IG };
 
 	const glucose::TModel_Descriptor desc = {
@@ -209,14 +201,11 @@ namespace betapid3_insulin_regulation {
 		signal_count,
 		signal_ids,
 		signal_names,
-		reference_signal_ids,
-		true,
-		effect_reference_signal_ids,
-		effect_signal_ids,
+		reference_signal_ids,		
 	};
 }
 
-const std::array<glucose::TModel_Descriptor, 2> model_descriptions = { { iob::desc, cob::desc, betapid_insulin_regulation::desc, betapid3_insulin_regulation::desc } };
+const std::array<glucose::TModel_Descriptor, 4> model_descriptions = { { iob::desc, cob::desc, betapid_insulin_regulation::desc, betapid3_insulin_regulation::desc } };
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end) {
 	*begin = const_cast<glucose::TModel_Descriptor*>(model_descriptions.data());
@@ -229,15 +218,15 @@ extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, glucose::I
 
 	glucose::WTime_Segment weak_segment{ segment };
 
-	if (*calc_id == glucose::signal_Insulin_Activity_Bilinear)
+	if (*calc_id == iob::signal_Insulin_Activity_Bilinear)
 		return Manufacture_Object<CInsulin_Absorption_Bilinear, glucose::ISignal>(signal, weak_segment, NInsulin_Calc_Mode::Activity);
-	else if (*calc_id == glucose::signal_Insulin_Activity_Exponential)
+	else if (*calc_id == iob::signal_Insulin_Activity_Exponential)
 		return Manufacture_Object<CInsulin_Absorption_Exponential, glucose::ISignal>(signal, weak_segment, NInsulin_Calc_Mode::Activity);
-	else if (*calc_id == glucose::signal_IOB_Bilinear)
+	else if (*calc_id == iob::signal_IOB_Bilinear)
 		return Manufacture_Object<CInsulin_Absorption_Bilinear, glucose::ISignal>(signal, weak_segment, NInsulin_Calc_Mode::IOB);
-	else if (*calc_id == glucose::signal_IOB_Exponential)
+	else if (*calc_id == iob::signal_IOB_Exponential)
 		return Manufacture_Object<CInsulin_Absorption_Exponential, glucose::ISignal>(signal, weak_segment, NInsulin_Calc_Mode::IOB);
-	else if (*calc_id == glucose::signal_COB_Bilinear)
+	else if (*calc_id == cob::signal_COB_Bilinear)
 		return Manufacture_Object<CCarbohydrates_On_Board_Bilinear, glucose::ISignal>(signal, weak_segment);
 	else if (*calc_id == betapid_insulin_regulation::betapid_signal_id)
 		return Manufacture_Object<CBetaPID_Insulin_Regulation, glucose::ISignal>(signal, weak_segment);

@@ -46,7 +46,7 @@
 class CBetaPID_Insulin_Regulation : public CCommon_Calculated_Signal {
 
 	private:
-		glucose::SSignal mIOB;
+		glucose::SSignal mIOB, mBG;
 
 	public:
 		CBetaPID_Insulin_Regulation(glucose::WTime_Segment segment);
@@ -61,8 +61,7 @@ class CBetaPID_Insulin_Regulation : public CCommon_Calculated_Signal {
 class CBetaPID2_Insulin_Regulation : public CCommon_Calculated_Signal {
 
 	private:
-		glucose::SSignal mIOB;
-		glucose::SSignal mCOB;
+		glucose::SSignal mIOB, mCOB, mIG;		
 
 	public:
 		CBetaPID2_Insulin_Regulation(glucose::WTime_Segment segment);
@@ -77,11 +76,7 @@ class CBetaPID2_Insulin_Regulation : public CCommon_Calculated_Signal {
 class CBetaPID3_Insulin_Regulation : public CCommon_Calculated_Signal {
 
 	private:
-		glucose::SSignal mIOB;
-		glucose::SSignal mCOB;
-		glucose::SSignal mISF;
-		glucose::SSignal mCR;
-
+		glucose::SSignal mIOB, mCOB, mISF, mCR, mIG;
 	public:
 		CBetaPID3_Insulin_Regulation(glucose::WTime_Segment segment);
 		virtual ~CBetaPID3_Insulin_Regulation() = default;

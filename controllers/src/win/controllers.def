@@ -1,4 +1,4 @@
-LIBRARY absorption.dll
+LIBRARY controllers.dll
 
 EXPORTS
 	do_get_model_descriptors

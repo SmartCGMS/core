@@ -44,7 +44,7 @@
 #include "../../../../common/rtl/rattime.h"
 #include "../../../../common/rtl/SolverLib.h"
 
-CInsulin_Absorption::CInsulin_Absorption(glucose::WTime_Segment segment, NInsulin_Calc_Mode mode) : CCommon_Calculated_Signal(segment, glucose::signal_Bolus_Insulin), mBasal_Insulin(segment.Get_Signal(glucose::signal_Basal_Insulin)),
+CInsulin_Absorption::CInsulin_Absorption(glucose::WTime_Segment segment, NInsulin_Calc_Mode mode) : CCommon_Calculated_Signal(segment)/*, mBolus_Insulin(segment.Get_Signal(glucose::signal_Delivered_Insulin_Bolus)), */, mBasal_Insulin(segment.Get_Signal(glucose::signal_Delivered_Insulin_Basal)),
 	mMode(mode) {
 	if (!refcnt::Shared_Valid_All(mBasal_Insulin)) throw std::exception{};
 }
