@@ -40,6 +40,7 @@
 #include "Extractor.h"
 #include "TimeRoutines.h"
 #include "../../../../common/rtl/rattime.h"
+#include "../../../../common/utils/string_utils.h"
 
 #include <sstream>
 #include <iomanip>
@@ -79,7 +80,7 @@ const std::array<const char*, static_cast<size_t>(NKnownDateFormat::UNKNOWN_DATE
 
 NKnownDateFormat Recognize_Date_Format(const wchar_t *str) {
 	if (str == nullptr) return NKnownDateFormat::UNKNOWN_DATEFORMAT;
-	std::string date_time_str{ str, str + wcslen(str) };
+	std::string date_time_str { Narrow_WChar(str)};
 	return Recognize_Date_Format(date_time_str);
 };
 
@@ -116,7 +117,7 @@ NKnownDateFormat Recognize_Date_Format(std::string& str)
 
 bool Str_Time_To_Unix_Time(const wchar_t *src, NKnownDateFormat fmtIdx, std::string outFormatStr, const char* outFormat, time_t& target) {
 	if (src == nullptr) return false;
-	std::string tmp{ src, src + wcslen(src) };
+	std::string tmp{ Narrow_WChar(src)};
 	return Str_Time_To_Unix_Time(tmp, fmtIdx, outFormatStr, outFormat, target);
 }
 

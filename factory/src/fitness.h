@@ -41,6 +41,7 @@
 
 #include "../../../common/rtl/SolverLib.h"
 #include "../../../common/rtl/AlignmentAllocator.h"
+#include "../../../common/rtl/Buffer_Pool.h"
 
 #include <vector>
 

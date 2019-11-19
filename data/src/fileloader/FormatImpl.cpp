@@ -38,12 +38,13 @@
 
 #include "FormatImpl.h"
 
-#include <locale>
-#include <codecvt>
+
 #include <memory>
 #ifdef _WIN32
 	#include <windows.h>
 #endif
+
+#include "../../../../common/utils/string_utils.h"
 
 // we assume cp1250 in Excel XLS formats for now; TODO: find some recognition pattern
 const int assumedCodepage = 1250;
@@ -117,20 +118,6 @@ std::string IHierarchy_File::Read_Datetime(TreePosition& position)
 FileOrganizationStructure IHierarchy_File::Get_File_Organization() const
 {
 	return FileOrganizationStructure::HIERARCHY;
-}
-
-// converts widestring to UTF-8 to allow comparison with patterns, etc.
-inline std::string WStringToUTF8(const std::wstring& str)
-{
-	try
-	{
-		std::wstring_convert<std::codecvt_utf8<wchar_t>> myconv;
-		return myconv.to_bytes(str);
-	}
-	catch (std::exception &)
-	{
-		return std::string(str.begin(), str.end());
-	}
 }
 
 // converts codepage encoded string to unicode; needed due to mixed mode XLS files
@@ -316,12 +303,12 @@ std::string CXls_File::Read(int row, int col)
 		{
 			// unfortunatelly, Excel in XLS format saves several strings in codepage encoding
 			std::wstring tmp = CodePageToUnicode(assumedCodepage, cell->GetString());
-			return WStringToUTF8(tmp);
+			return Narrow_WString(tmp);
 		}
 		case ExcelFormat::BasicExcelCell::WSTRING:
 		{
 			std::wstring tmp = cell->GetWString();
-			return WStringToUTF8(tmp);
+			return Narrow_WString(tmp);
 		}
 		case ExcelFormat::BasicExcelCell::DOUBLE:
 			return std::to_string(cell->GetDouble());
@@ -359,7 +346,7 @@ double CXls_File::Read_Double(int row, int col)
 			}
 			case ExcelFormat::BasicExcelCell::WSTRING:
 			{
-				std::string str(WStringToUTF8(std::wstring(cell->GetWString())));
+				std::string str(Narrow_WString(std::wstring(cell->GetWString())));
 				return stod_custom(str);
 			}
 			case ExcelFormat::BasicExcelCell::DOUBLE:
@@ -399,9 +386,8 @@ void CXlsx_File::Init(std::wstring &path)
 	mOriginalPath = path;
 	mFile = std::make_unique<xlnt::workbook>();
 
-	using convert_typeX = std::codecvt_utf8<wchar_t>;
-	std::wstring_convert<convert_typeX, wchar_t> converterX;
-	std::string spath = converterX.to_bytes(path);
+	
+	std::string spath = Narrow_WString(path);
 
 	mFile->load(spath);
 }

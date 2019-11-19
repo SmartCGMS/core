@@ -46,6 +46,7 @@
 #include "../../../common/rtl/manufactory.h"
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/utils/SimpleIni.h" 
+#include "../../../common/utils/string_utils.h" 
 
 #include <fstream>
 
@@ -65,9 +66,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 	std::vector<char> buf;
 	std::ifstream configfile;
 
-	try {
-		std::wstring_convert<std::codecvt_utf8<wchar_t>> myconv;
-		configfile.open(myconv.to_bytes(mFile_Path));
+	try {		
+		configfile.open(Narrow_WString(mFile_Path));
 
 		if (configfile.is_open()) {
 			buf.assign(std::istreambuf_iterator<char>(configfile), std::istreambuf_iterator<char>());
@@ -323,9 +323,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 
 
 		std::string content;
-		ini.Save(content);
-		std::wstring_convert<std::codecvt_utf8<wchar_t>> myconv;
-		std::ofstream config_file(myconv.to_bytes(mFile_Path));
+		ini.Save(content);		
+		std::ofstream config_file(Narrow_WString(mFile_Path));
 		if (config_file.is_open()) {
 			config_file << content;
 			config_file.close();

@@ -43,6 +43,7 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/rattime.h"
+#include "../../../common/utils/string_utils.h"
 
 #include <iostream>
 #include <iomanip>
@@ -52,7 +53,6 @@
 #include <vector>
 #include <string>
 #include <map>
-#include <codecvt>
 
 CLog_Filter::CLog_Filter(glucose::IFilter *output)	: CBase_Filter(output) {
 	mNew_Log_Records = refcnt::Create_Container_shared<refcnt::wstr_container*>(nullptr, nullptr);
@@ -119,8 +119,7 @@ bool CLog_Filter::Open_Log(const std::wstring &log_filename) {
 	// if have output file name
 	if (!log_filename.empty()) {
 		// try to open output file
-		std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converterX;
-		mLog.open(converterX.to_bytes(log_filename));
+		mLog.open(Narrow_WChar(log_filename.c_str()));
 	
 		result = mLog.is_open();
 		if (result) {

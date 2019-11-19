@@ -44,6 +44,7 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/rattime.h"
+#include "../../../common/utils/string_utils.h"
 
 #include "log.h"
 
@@ -55,7 +56,7 @@
 #include <vector>
 #include <algorithm> 
 #include <cctype>
-#include <codecvt>
+
 
 CLog_Replay_Filter::CLog_Replay_Filter(glucose::IFilter* output) : CBase_Filter(output) {
 	//
@@ -79,20 +80,20 @@ void CLog_Replay_Filter::Log_Replay()
 
 	// read header and validate
 	// NOTE: this assumes identical header (as the one used when generating log); maybe we could consider adaptive log parsing later
-	if (!std::getline(mLog, line) || line != dsLog_Header)
+	if (!std::getline(mLog, line) || line != std::wstring(dsLog_Header))
 		return;
 
 	// cuts a single column from input line
 	auto cut_column = [&line]() -> std::wstring {
 		std::wstring retstr{ L"" };
-
+		
 		auto pos = line.find(rsLog_CSV_Separator);
 		if (pos != std::string::npos) {
 			retstr = line.substr(0, pos);
 			line.erase(0, pos + wcslen(rsLog_CSV_Separator));
 		}
 		else retstr = line;
-
+		
 		return retstr;
 	};
 
@@ -147,7 +148,7 @@ void CLog_Replay_Filter::Log_Replay()
 			// this should not happen, when the log was correctly written and not manually modified ever since
 			return;
 		}
-	}
+	}	
 }
 
 bool CLog_Replay_Filter::Open_Log(const std::wstring &log_filename)
@@ -156,9 +157,8 @@ bool CLog_Replay_Filter::Open_Log(const std::wstring &log_filename)
 	// do we have input file name?
 	if (!log_filename.empty())
 	{
-		// try to open file for reading
-		std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converterX;
-		mLog.open(converterX.to_bytes(log_filename));
+		// try to open file for reading		
+		mLog.open(Narrow_WChar(log_filename.c_str()));
 
 		result = mLog.is_open();
 		// set decimal point separator

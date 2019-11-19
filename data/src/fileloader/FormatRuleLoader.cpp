@@ -39,12 +39,12 @@
 #include "FormatRuleLoader.h"
 #include "../../../../common/utils/SimpleIni.h"
 #include "../../../../common/rtl/FilesystemLib.h"
+#include "../../../../common/utils/string_utils.h"
 
 #include "FormatRecognizer.h"
 #include "Extractor.h"
 
-#include <codecvt>
-#include <locale>
+
 
 const wchar_t* dsPatternConfigurationFileName = L"patterns.ini";
 const wchar_t* dsFormatRuleTemplatesFileName = L"format_rule_templates.ini";
@@ -64,9 +64,8 @@ bool CFormat_Rule_Loader::Load_Format_Pattern_Config()
 	CSimpleIniA ini;
 	SI_Error err;
 	ini.SetUnicode();
-
-	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converterX;
-	std::string convPath = converterX.to_bytes(Resolve_Config_File_Path(dsPatternConfigurationFileName));
+	
+	std::string convPath = Narrow_WChar(Resolve_Config_File_Path(dsPatternConfigurationFileName).c_str());
 
 	err = ini.LoadFile(convPath.c_str());
 
@@ -102,9 +101,8 @@ bool CFormat_Rule_Loader::Load_Format_Rule_Templates()
 	CSimpleIniA ini;
 	SI_Error err;
 	ini.SetUnicode();
-
-	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converterX;
-	std::string convPath = converterX.to_bytes(Resolve_Config_File_Path(dsFormatRuleTemplatesFileName));
+	
+	std::string convPath = Narrow_WString(Resolve_Config_File_Path(dsFormatRuleTemplatesFileName));
 
 	err = ini.LoadFile(convPath.c_str());
 
@@ -161,9 +159,8 @@ bool CFormat_Rule_Loader::Load_Format_Rules()
 	CSimpleIniA ini;
 	SI_Error err;
 	ini.SetUnicode();
-
-	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converterX;
-	std::string convPath = converterX.to_bytes(Resolve_Config_File_Path(dsFormatRulesFileName));
+	
+	std::string convPath = Narrow_WString(Resolve_Config_File_Path(dsFormatRulesFileName));
 
 	err = ini.LoadFile(convPath.c_str());
 
