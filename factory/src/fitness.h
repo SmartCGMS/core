@@ -41,7 +41,6 @@
 
 #include "../../../common/rtl/SolverLib.h"
 #include "../../../common/rtl/AlignmentAllocator.h"
-#include "../../../common/rtl/Buffer_Pool.h"
 
 #include <vector>
 
@@ -69,9 +68,8 @@ protected:
 	std::vector<TSegment_Info> mSegment_Info;	
 	size_t mLevels_Required;
 	size_t mMax_Levels_Per_Segment;	//to avoid multiple resize of memory block when calculating the error
-	CBuffer_Pool<aligned_double_vector> mTemporal_Levels{ [](auto &container, auto minimum_size) {
-		if (container.size() < minimum_size) container.resize(minimum_size);
-	} };
+	static inline thread_local aligned_double_vector mTemporal_Levels;
+	double* Reserve_Temporal_Levels_Data();
 public:
 	CFitness(const glucose::TSolver_Setup &setup, const size_t solution_size);
 	double Calculate_Fitness(const double *solution);

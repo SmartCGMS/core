@@ -39,13 +39,16 @@
 #pragma once
 
 #include "../../../../common/rtl/Common_Calculated_Signal.h"
+#include "../../../../common/rtl/Eigen_Buffer.h"
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 class CDiffusion_Prediction : public virtual CCommon_Calculated_Signal {
 protected:
-	glucose::SSignal mIst;	
+	glucose::SSignal mIst;
+protected:
+	inline static thread_local TVector1D mRetrospective_Present_Ist, mRetrospective_Dt, mBeta;
 public:
 	CDiffusion_Prediction(glucose::WTime_Segment segment);
 	virtual ~CDiffusion_Prediction() {};

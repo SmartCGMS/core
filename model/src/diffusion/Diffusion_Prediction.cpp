@@ -59,30 +59,30 @@ HRESULT IfaceCalling CDiffusion_Prediction::Get_Continuous_Levels(glucose::IMode
 	Eigen::Map<TVector1D> converted_levels{ Map_Double_To_Eigen<TVector1D>(levels, count) };
 
 	//1. we calculate retrospective BG		
-	CPooled_Buffer<TVector1D> retrospective_present_ist = mVector1D_Pool.pop(count);	
+	auto retrospective_present_ist = Reserve_Eigen_Buffer(mRetrospective_Present_Ist, count);
 	auto &retrospective_future_ist = converted_levels;
-	CPooled_Buffer<TVector1D> retrospective_dt = mVector1D_Pool.pop(count);	
+	auto retrospective_dt = Reserve_Eigen_Buffer(mRetrospective_Dt, count);
 
 	//converted_times is the future we want to calculate
 	//=>therefore, we need to calculate BG back in time by both retro- and pred- dts
 	//and use converted_times - pred.dt
 
-	retrospective_dt.element() = converted_times - parameters.predictive.dt;	
-	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, retrospective_dt.element().data(), retrospective_future_ist.data(), count, glucose::apxNo_Derivation);
+	retrospective_dt = converted_times - parameters.predictive.dt;	
+	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, retrospective_dt.data(), retrospective_future_ist.data(), count, glucose::apxNo_Derivation);
 	if (rc != S_OK) return rc;
-	retrospective_dt.element() -= parameters.retrospective.dt;
-	rc = mIst->Get_Continuous_Levels(nullptr, retrospective_dt.element().data(), retrospective_present_ist.element().data(), count, glucose::apxNo_Derivation);
+	retrospective_dt -= parameters.retrospective.dt;
+	rc = mIst->Get_Continuous_Levels(nullptr, retrospective_dt.data(), retrospective_present_ist.data(), count, glucose::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 	
 	
 
 	if (parameters.retrospective.cg != 0.0) {		
-		CPooled_Buffer<TVector1D> beta = mVector1D_Pool.pop(count);
-		beta.element() = parameters.retrospective.p - parameters.retrospective.cg * retrospective_present_ist.element();	
-		converted_levels = beta.element().square() - 4.0*parameters.retrospective.cg*(parameters.retrospective.c - retrospective_future_ist);
+		auto beta = Reserve_Eigen_Buffer(mBeta, count);
+		beta = parameters.retrospective.p - parameters.retrospective.cg * retrospective_present_ist;	
+		converted_levels = beta.square() - 4.0*parameters.retrospective.cg*(parameters.retrospective.c - retrospective_future_ist);
 		for (size_t i = 0; i < count; i++)
 			if (converted_levels[i] < 0.0) converted_levels[i] = 0.0;	//max would be nice solution, but it fails for some reason
-		converted_levels = (converted_levels.sqrt() - beta.element())*0.5 / parameters.retrospective.cg;
+		converted_levels = (converted_levels.sqrt() - beta)*0.5 / parameters.retrospective.cg;
 	} else {
 		if (parameters.retrospective.p != 0.0) 
 			converted_levels = (retrospective_future_ist - parameters.retrospective.c) / parameters.retrospective.p; 
@@ -93,7 +93,7 @@ HRESULT IfaceCalling CDiffusion_Prediction::Get_Continuous_Levels(glucose::IMode
 	//2. from that BG, we calculate future IG
 	const auto &retro_present_BG = converted_levels;
 	converted_levels =  parameters.predictive.p*retro_present_BG
-					  + parameters.predictive.cg*retro_present_BG*(retro_present_BG - retrospective_present_ist.element())
+					  + parameters.predictive.cg*retro_present_BG*(retro_present_BG - retrospective_present_ist)
 					  + parameters.predictive.c;
 	
 	return S_OK;

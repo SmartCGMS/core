@@ -43,7 +43,7 @@
 #include "../../../../common/rtl/SolverLib.h"
 
 #include <cmath>
-#include <nlopt.hpp>
+#include <algorithm>
 
 #undef max
 
@@ -80,10 +80,10 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Pa
 
 	Eigen::Map<TVector1D> converted_times{ Map_Double_To_Eigen<TVector1D>(times, count) };
 	Eigen::Map<TVector1D> converted_levels{ Map_Double_To_Eigen<TVector1D>(levels, count) };
-	CPooled_Buffer<TVector1D> dt = mVector1D_Pool.pop( count );
+	auto dt = Reserve_Eigen_Buffer(mDt, count);
 
 	//into the dt vector, we put times to get blood and ist to calculate future ist aka levels at the future times
-	dt.element() = converted_times - parameters.dt;
+	dt = converted_times - parameters.dt;
 	if ((parameters.k != 0.0) && (parameters.h != 0.0)) {
 		//here comes the tricky part that the future distances will vary in the dt vector
 
@@ -102,45 +102,54 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Pa
 			//we need to minimize the difference between times[i] and estimate_future_time(estimated_present_time), whereas estimated_present_time we try to determine using some other algorithm
 			//we could either try to (recursively with increasing detail) step through all the combinations, or try more sophisticated algoritm - e.g., NewUOA
 			//we chose NewUOA as the number of instruction could be approximately the same and NewUOA is more intelligent approach than brute force search, even recursive one
+			//since we no longer actually use this algorithm, we replaced NewUOA with a brute force => if ever needed more than this, we should replace the successive
+			//mIst->Get_Continuous_Levels with a single call
+			
+			const double dt_stepping = glucose::One_Second;
+			double current_dt = dt[i] - 15.0*glucose::One_Minute;
+			double max_dt = dt[i] + 15.0 * glucose::One_Minute;
+			double best_dt = current_dt;
+			double least_error = std::numeric_limits<double>::max();
 
-			double minf;
-			std::vector<double> estimated_present_time(1);
-			TIst_Estimate_Data estimatation_data{ mIst, times[i], kh, parameters.h, parameters.dt, times };
+			while (current_dt <= max_dt) {
 
-			// we need initial estimate to fit lower and upper bounds passed to nlopt
-			estimated_present_time[0] = dt.element()[i];
+				auto calculate_current_error= [&parameters, this, kh](const double present_time, const double reference_time) {
+					const double ist_times[2] = { present_time - parameters.h, present_time };
+					double ist_levels[2];
+					if (mIst->Get_Continuous_Levels(nullptr, ist_times, ist_levels, 2, glucose::apxNo_Derivation) != S_OK) return std::numeric_limits<double>::max();
+					if (std::isnan(ist_levels[0]) || std::isnan(ist_levels[1])) return std::numeric_limits<double>::max();
 
-			nlopt::opt opt(nlopt::LN_BOBYQA, 1); //just one double - NewUOA requires at least 2 parameters, may be Simplex/Nelder-Mead would do the job as well?
-			opt.set_min_objective(present_time_objective, &estimatation_data);
+					double estimated_present_time = present_time + parameters.dt + kh * ist_levels[1] * (ist_levels[1] - ist_levels[0]);
 
-			opt.set_lower_bounds(dt.element()[i] - glucose::One_Hour);
-			opt.set_upper_bounds(dt.element()[i] + glucose::One_Hour);
-			opt.set_xtol_rel(0.1*glucose::One_Second);
-			try
-			{
-				/*nlopt::result result = */opt.optimize(estimated_present_time, minf);
+					return fabs(estimated_present_time - reference_time);
+				};
+
+				double current_error = calculate_current_error(current_dt, times[i]);
+				if (current_error < least_error) {
+					best_dt = current_dt;
+					least_error = current_error;
+				}
+
+				current_dt += dt_stepping;
 			}
-			catch (nlopt::roundoff_limited&)
-			{
-				//
-			}
+			
 
-			dt.element()[i] = estimated_present_time[0];
+			dt[i] = current_dt;
 		}
 
 		//by now, all dt elements should be estimated
 	}
 
-	CPooled_Buffer<TVector1D> present_blood = mVector1D_Pool.pop(count );
-	HRESULT rc = mBlood->Get_Continuous_Levels(nullptr, dt.element().data(), present_blood.element().data(), count, glucose::apxNo_Derivation);
+	auto present_blood = Reserve_Eigen_Buffer(mPresent_Blood,  count );
+	HRESULT rc = mBlood->Get_Continuous_Levels(nullptr, dt.data(), present_blood.data(), count, glucose::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 
-	CPooled_Buffer<TVector1D> present_ist = mVector1D_Pool.pop ( count );
-	rc = mIst->Get_Continuous_Levels(nullptr, dt.element().data(), present_ist.element().data(), count, glucose::apxNo_Derivation);
+	auto present_ist = Reserve_Eigen_Buffer(mPresent_Ist, count );
+	rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), present_ist.data(), count, glucose::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 
-	converted_levels =  parameters.p*present_blood.element()
-					  + parameters.cg*present_blood.element()*(present_blood.element() - present_ist.element())
+	converted_levels =  parameters.p*present_blood
+					  + parameters.cg*present_blood*(present_blood - present_ist)
 					  + parameters.c;
 
 	return S_OK;

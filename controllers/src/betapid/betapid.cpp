@@ -102,8 +102,8 @@ HRESULT CBetaPID_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Param
 		if (!SUCCEEDED(rc)) return rc;
 
 		// approximate integral of error, int_0^t e(tau) dtau =~= sum_i=0^hist e(t-i*h)*h
-		for (size_t i = 0; i < integral_history; i++)
-			eintegral += std::isnan(historyBGs[i]) ? 0.0 : (targetBG - historyBGs[i]); // *h --> omit the width parameter, as its constant, and would still be included in Ki parameter
+		for (size_t j = 0; j < integral_history; j++)
+			eintegral += std::isnan(historyBGs[j]) ? 0.0 : (targetBG - historyBGs[j]); // *h --> omit the width parameter, as its constant, and would still be included in Ki parameter
 
 		rc = mBG->Get_Continuous_Levels(nullptr, &times[i], &ederivative, 1, glucose::apxFirst_Order_Derivation);
 		if (SUCCEEDED(rc)) {
@@ -214,8 +214,8 @@ HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Para
 		if (!SUCCEEDED(rc)) return rc;
 
 		// approximate integral of error, int_0^t e(tau) dtau =~= sum_i=0^hist e(t-i*h)*h
-		for (size_t i = 0; i < integral_history; i++)
-			eintegral += std::isnan(historyIGs[i]) ? 0.0 : e(historyIGs[i]); // *h --> omit the width parameter, as its constant, and would still be included in Ki parameter
+		for (size_t j = 0; j < integral_history; j++)
+			eintegral += std::isnan(historyIGs[j]) ? 0.0 : e(historyIGs[j]); // *h --> omit the width parameter, as its constant, and would still be included in Ki parameter
 
 		double derTimes[derivative_smooth_history];
 		double valArray[derivative_smooth_history];

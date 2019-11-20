@@ -98,6 +98,12 @@ CFitness::CFitness(const glucose::TSolver_Setup &setup, const size_t solution_si
 
 } //ctor's end
 
+double* CFitness::Reserve_Temporal_Levels_Data() {
+	if (mTemporal_Levels.size() < mMax_Levels_Per_Segment) mTemporal_Levels.resize(mMax_Levels_Per_Segment);
+
+	return mTemporal_Levels.data();
+}
+
 double CFitness::Calculate_Fitness(const double *solution) {
 	//caller has to supply the metric to allow parallelization without inccuring an overhead
 	//of creating new metric calculator instead of its mere resetting	
@@ -112,14 +118,14 @@ double CFitness::Calculate_Fitness(const double *solution) {
 	metric->Reset();	//could have been called by else, but it would happen only few times in the beginning => save code size and BTB slots
 
 	//let's pick a memory block for calculated
-	CPooled_Buffer<aligned_double_vector> tmp_levels = mTemporal_Levels.pop( mMax_Levels_Per_Segment );
+	double* const tmp_levels = Reserve_Temporal_Levels_Data();
 
 	refcnt::internal::CVector_View<double> solution_view{ solution, solution + mSolution_Size };
 
 	for (auto &info : mSegment_Info) {
-		if (info.calculated_signal->Get_Continuous_Levels(&solution_view, info.reference_time.data(), tmp_levels.element().data(), info.reference_time.size(), glucose::apxNo_Derivation) == S_OK) {
+		if (info.calculated_signal->Get_Continuous_Levels(&solution_view, info.reference_time.data(), tmp_levels, info.reference_time.size(), glucose::apxNo_Derivation) == S_OK) {
 			//levels got, calculate the metric
-			metric->Accumulate(info.reference_time.data(), info.reference_level.data(), tmp_levels.element().data(), info.reference_time.size());
+			metric->Accumulate(info.reference_time.data(), info.reference_level.data(), tmp_levels, info.reference_time.size());
 		} else
 			//quit immediatelly as the paramters must be valid for all segments
 			return std::numeric_limits<double>::max();

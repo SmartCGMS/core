@@ -39,6 +39,7 @@
 #pragma once
 
 #include "../../../../common/rtl/Common_Calculated_Signal.h"
+#include "../../../../common/rtl/Eigen_Buffer.h"
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
@@ -47,6 +48,8 @@ class CSteil_Rebrin_blood : public virtual CCommon_Calculated_Signal {
 protected:
 	glucose::SSignal mIst;
 	glucose::SSignal mCalibration;
+protected:
+	static inline thread_local TVector1D mPresent_Ist, mDerived_Ist, mCalibration_Offsets;
 public:
 	CSteil_Rebrin_blood(glucose::WTime_Segment segment);
 	virtual ~CSteil_Rebrin_blood() {};

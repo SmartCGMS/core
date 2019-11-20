@@ -55,24 +55,24 @@ HRESULT IfaceCalling CSteil_Rebrin_Diffusion_Prediction::Get_Continuous_Levels(g
 
 	Eigen::Map<TVector1D> converted_times{ Map_Double_To_Eigen<TVector1D>(times, count) };
 	//into the dt vector, we put times to get ist to calculate future ist aka levels at the future times
-	CPooled_Buffer<TVector1D> dt = mVector1D_Pool.pop(count);
-	dt.element() = converted_times - parameters.dt;
+	auto dt = Reserve_Eigen_Buffer(mDt, count);
+	dt = converted_times - parameters.dt;
 
-	CPooled_Buffer<TVector1D> ist = mVector1D_Pool.pop( count );
-	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, dt.element().data(), ist.element().data(), count, glucose::apxNo_Derivation);
+	auto present_ist = Reserve_Eigen_Buffer(mPresent_Ist,  count );
+	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), present_ist.data(), count, glucose::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 
-	CPooled_Buffer<TVector1D> derived_ist = mVector1D_Pool.pop( count );
-	rc = mIst->Get_Continuous_Levels(nullptr, dt.element().data(), derived_ist.element().data(), count, glucose::apxFirst_Order_Derivation);
+	auto derived_ist = Reserve_Eigen_Buffer(mDeriveed_Ist, count );
+	rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), derived_ist.data(), count, glucose::apxFirst_Order_Derivation);
 	if (rc != S_OK) return rc;
 
 	
 	//we have all the signals, let's calculate blood
 	auto &blood = dt;	//reused old bfuffer
-	blood.element() = parameters.inv_g*parameters.tau*derived_ist.element() + parameters.inv_g*ist.element();
+	blood = parameters.inv_g*parameters.tau*derived_ist + parameters.inv_g*present_ist;
 
 	Eigen::Map<TVector1D> converted_levels{ Map_Double_To_Eigen<TVector1D>(levels, count) };
-	converted_levels = parameters.p*blood.element() + parameters.cg*blood.element()*(blood.element() - ist.element()) + parameters.c;	
+	converted_levels = parameters.p*blood + parameters.cg*blood*(blood - present_ist) + parameters.c;	
 	
 	return S_OK;
 }

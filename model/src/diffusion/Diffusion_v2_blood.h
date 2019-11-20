@@ -39,6 +39,7 @@
 #pragma once
 
 #include "../../../../common/rtl/Common_Calculated_Signal.h"
+#include "../../../../common/rtl/Eigen_Buffer.h"
 
 
 #pragma warning( push )
@@ -46,7 +47,8 @@
 
 class CDiffusion_v2_blood : public virtual CCommon_Calculated_Signal {
 protected:
-	glucose::SSignal mIst;
+	glucose::SSignal mIst;	
+	static inline thread_local TVector1D mPresent_Ist, mFuture_Ist, mDt;
 public:
 	CDiffusion_v2_blood(glucose::WTime_Segment segment);
 	virtual ~CDiffusion_v2_blood() {};

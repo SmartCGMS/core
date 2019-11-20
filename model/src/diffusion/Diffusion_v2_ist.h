@@ -47,6 +47,8 @@
 class CDiffusion_v2_ist : public virtual CDiffusion_v2_blood {
 protected:
 	glucose::SSignal mBlood;
+protected:
+	static inline thread_local TVector1D mDt, mPresent_Blood, mPresent_Ist;
 public:
 	CDiffusion_v2_ist(glucose::WTime_Segment segment);
 	virtual ~CDiffusion_v2_ist() {};

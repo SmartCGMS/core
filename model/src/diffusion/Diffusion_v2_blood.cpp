@@ -55,30 +55,30 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 
 	diffusion_v2_model::TParameters &parameters = glucose::Convert_Parameters<diffusion_v2_model::TParameters>(params, diffusion_v2_model::default_parameters);
 	
-	CPooled_Buffer<TVector1D> present_ist = mVector1D_Pool.pop( count );
-	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, times, present_ist.element().data(), count, glucose::apxNo_Derivation);
+	auto present_ist = Reserve_Eigen_Buffer(mPresent_Ist, count );
+	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, times, present_ist.data(), count, glucose::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 
 
-	CPooled_Buffer<TVector1D> future_ist = mVector1D_Pool.pop( count );
-	CPooled_Buffer<TVector1D> dt = mVector1D_Pool.pop( count );
+	auto future_ist = Reserve_Eigen_Buffer(mFuture_Ist, count );
+	auto dt = Reserve_Eigen_Buffer(mDt, count );
 	const Eigen::Map<TVector1D> converted_times{ Map_Double_To_Eigen<TVector1D>(times, count) };
 	Eigen::Map<TVector1D> converted_levels{ Map_Double_To_Eigen<TVector1D>(levels, count) };
 
 	if ((parameters.k != 0.0) && (parameters.h != 0.0)) {
 		//reuse dt to obtain h_back_ist
-		dt.element() = converted_times - parameters.h;
+		dt = converted_times - parameters.h;
 
 		auto &h_back_ist = future_ist;	//temporarily re-use this buffer to calculate dt vector
-		rc = mIst->Get_Continuous_Levels(nullptr, dt.element().data(), h_back_ist.element().data(), count, glucose::apxNo_Derivation);
+		rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), h_back_ist.data(), count, glucose::apxNo_Derivation);
 		if (rc != S_OK) return rc;
 
-		dt.element() = converted_times + parameters.dt + parameters.k*present_ist.element()*(present_ist.element() - h_back_ist.element())/parameters.h;
+		dt = converted_times + parameters.dt + parameters.k*present_ist*(present_ist - h_back_ist)/parameters.h;
 	}
 	else
-		dt.element() = converted_times + parameters.dt;
+		dt = converted_times + parameters.dt;
 
-	rc = mIst->Get_Continuous_Levels(nullptr, dt.element().data(), future_ist.element().data(), count, glucose::apxNo_Derivation);
+	rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), future_ist.data(), count, glucose::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 
 	//floattype alpha = params.cg;
@@ -94,7 +94,7 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 		//prepare aliases that re-use the already allocated buffers
 		//as we won't use the buffers under their original names anymore
 		//actual values will be calcualted in respective branches to avoid unnecessary calculations
-		TVector1D &beta = present_ist.element();
+		auto &beta = present_ist;
 		//auto &gamma = future_ist.element;
 		//auto &D = dt.element;
 
@@ -103,7 +103,7 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 		//note that zero ist would mean long-term dead body
 
 		//gamma = parameters.c - future_ist.element;
-		beta = parameters.p - parameters.cg * present_ist.element();	//!!! BEWARE - we no longer have present ist !!!
+		beta = parameters.p - parameters.cg * present_ist;	//!!! BEWARE - we no longer have present ist !!!
 		//D = beta * beta - 4.0*alpha*gamma;	-- no need to stora gamma for just one expression
 		//D = beta * beta - 4.0*alpha*(parameters.c - future_ist.element);	-- will expand the final equation later, at the end
 
@@ -116,7 +116,7 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 		//now, we have non-negative D and non-zero alpha => let's calculate blood
 		//converted_levels = (D.sqrt() - beta)*0.5 / alpha; -- will expand the final equation later, at the end
 
-		converted_levels = beta.square() - 4.0*parameters.cg*(parameters.c - future_ist.element());
+		converted_levels = beta.square() - 4.0*parameters.cg*(parameters.c - future_ist);
 		//converted_levels.max(0.0);	//max cannot be inlined to make a one large equation
 		for (size_t i = 0; i < count; i++)
 			if (converted_levels[i] < 0.0) return E_FAIL; // shouldn't we fail rather? converted_levels[i] = 0.0;	//max would be nice solution, but it fails for some reason
@@ -128,7 +128,7 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 		if (parameters.p != 0.0) {
 			//gamma = parameters.c - future_ist.element;
 			//converted_levels = gamma / parameters.p; --let's rather expand to full expression
-			converted_levels = (future_ist.element() - parameters.c) / parameters.p; //and that's it - we have degraded to linear regression
+			converted_levels = (future_ist - parameters.c) / parameters.p; //and that's it - we have degraded to linear regression
 
 			//actually, now we have collapsed into simple linear reqression, which could be a valid solution
 			//if the input signal is very-close to the reference signal so that it already covers that
