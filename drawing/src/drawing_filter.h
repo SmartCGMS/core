@@ -94,8 +94,10 @@ protected:
 	// ECDF file path
 	std::wstring mECDF_FilePath;
 
-	// input data changed
+	// input data changed (external state to indicate future redraw intent)
 	std::atomic<bool> mChanged = false;
+	// internal data changed flag (to not redraw multiple times)
+	bool mChangedInternal = false;
 	// mutex guard for changed variable
 	std::mutex mChangedMtx;
 	// scheduler condition variable

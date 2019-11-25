@@ -44,6 +44,7 @@
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/rattime.h"
+#include "../../../common/utils/string_utils.h"
 
 #include "drawing/Generators/IGenerator.h"
 #include "drawing/Generators/GraphGenerator.h"
@@ -94,17 +95,14 @@ HRESULT IfaceCalling CDrawing_Filter::QueryInterface(const GUID*  riid, void ** 
 
 HRESULT CDrawing_Filter::Do_Execute(glucose::UDevice_Event event) {
 	
-	std::unique_lock<std::mutex> lck(mChangedMtx);	
+	std::unique_lock<std::mutex> lck(mChangedMtx);
 	mChanged = true;
+	mChangedInternal = true;
 
 	// incoming level or calibration - store to appropriate vector
 	if (event.event_code() == glucose::NDevice_Event_Code::Level )
 	{
-	
 		mInputData[event.signal_id()][event.segment_id()].push_back(Value(event.level(), Rat_Time_To_Unix_Time(event.device_time()), event.segment_id()));
-		// signal is not being reset (recalculated and resent) right now - set changed flag
-//		if (mSignalsBeingReset.find(event.signal_id()) == mSignalsBeingReset.end())
-//			mChanged = true;
 	}
 	// incoming new parameters
 	else if (event.event_code() == glucose::NDevice_Event_Code::Parameters)
@@ -221,7 +219,7 @@ HRESULT CDrawing_Filter::Do_Execute(glucose::UDevice_Event event) {
 
 bool CDrawing_Filter::Force_Redraw(const std::unordered_set<uint64_t> &segmentIds, const std::set<GUID> &signalIds)
 {
-	//mChanged = false;
+	mChangedInternal = false;
 
 	mDataMap.clear();
 	Prepare_Drawing_Map(segmentIds, signalIds);
@@ -235,7 +233,7 @@ bool CDrawing_Filter::Redraw_If_Changed(const std::unordered_set<uint64_t> &segm
 {
 	std::unique_lock<std::mutex> lck(mChangedMtx);
 
-	if (mChanged || !segmentIds.empty() || !signalIds.empty())
+	if (mChangedInternal || !segmentIds.empty() || !signalIds.empty())
 		return Force_Redraw(segmentIds, signalIds);
 
 	return false;
@@ -435,11 +433,6 @@ HRESULT CDrawing_Filter::Do_Configure(glucose::SFilter_Configuration configurati
 	return S_OK;
 }
 
-inline std::string WToMB(std::wstring in)
-{
-	return std::string(in.begin(), in.end());
-}
-
 void CDrawing_Filter::Store_To_File(std::string& str, std::wstring& filePath)
 {
 	if (filePath.empty())
@@ -536,7 +529,7 @@ HRESULT CDrawing_Filter::Get_Plot(const std::string &plot, refcnt::IVector_Conta
 
 
 HRESULT IfaceCalling CDrawing_Filter::New_Data_Available() {
-	return mChanged.exchange(false) ? S_OK : S_FALSE;	
+	return mChanged.exchange(false) ? S_OK : S_FALSE;
 }
 
 HRESULT IfaceCalling CDrawing_Filter::Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg, refcnt::IVector_Container<uint64_t> *segmentIds, refcnt::IVector_Container<GUID> *signalIds) {	
@@ -601,51 +594,51 @@ HRESULT IfaceCalling CDrawing_Filter::Draw(glucose::TDrawing_Image_Type type, gl
 
 void CDrawing_Filter::Set_Locale_Title(LocalizationMap& locales, std::wstring title) const
 {
-	locales[WToMB(rsDrawingLocaleTitle)] = WToMB(title);
+	locales[Narrow_WChar(rsDrawingLocaleTitle)] = Narrow_WString(title);
 }
 
 void CDrawing_Filter::Fill_Localization_Map(LocalizationMap& locales)
 {
-	locales[WToMB(rsDrawingLocaleTitle)] = WToMB(dsDrawingLocaleTitle);
-	locales[WToMB(rsDrawingLocaleTitleDay)] = WToMB(dsDrawingLocaleTitleDay);
-	locales[WToMB(rsDrawingLocaleSubtitle)] = WToMB(dsDrawingLocaleSubtitle);
-	locales[WToMB(rsDrawingLocaleDiabetes1)] = WToMB(dsDrawingLocaleDiabetes1);
-	locales[WToMB(rsDrawingLocaleDiabetes2)] = WToMB(dsDrawingLocaleDiabetes2);
-	locales[WToMB(rsDrawingLocaleTime)] = WToMB(dsDrawingLocaleTime);
-	locales[WToMB(rsDrawingLocaleTimeDay)] = WToMB(dsDrawingLocaleTimeDay);
-	locales[WToMB(rsDrawingLocaleConcentration)] = WToMB(dsDrawingLocaleConcentration);
-	locales[WToMB(rsDrawingLocaleHypoglycemy)] = WToMB(dsDrawingLocaleHypoglycemy);
-	locales[WToMB(rsDrawingLocaleHyperglycemy)] = WToMB(dsDrawingLocaleHyperglycemy);
-	locales[WToMB(rsDrawingLocaleBlood)] = WToMB(dsDrawingLocaleBlood);
-	locales[WToMB(rsDrawingLocaleBloodCalibration)] = WToMB(dsDrawingLocaleBloodCalibration);
-	locales[WToMB(rsDrawingLocaleIst)] = WToMB(dsDrawingLocaleIst);
-	locales[WToMB(rsDrawingLocaleResults)] = WToMB(dsDrawingLocaleResults);
-	locales[WToMB(rsDrawingLocaleDiff2)] = WToMB(dsDrawingLocaleDiff2);
-	locales[WToMB(rsDrawingLocaleDiff3)] = WToMB(dsDrawingLocaleDiff3);
-	locales[WToMB(rsDrawingLocaleQuantile)] = WToMB(dsDrawingLocaleQuantile);
-	locales[WToMB(rsDrawingLocaleRelative)] = WToMB(dsDrawingLocaleRelative);
-	locales[WToMB(rsDrawingLocaleAbsolute)] = WToMB(dsDrawingLocaleAbsolute);
-	locales[WToMB(rsDrawingLocaleAverage)] = WToMB(dsDrawingLocaleAverage);
-	locales[WToMB(rsDrawingLocaleType)] = WToMB(dsDrawingLocaleType);
-	locales[WToMB(rsDrawingLocaleError)] = WToMB(dsDrawingLocaleError);
-	locales[WToMB(rsDrawingLocaleDescription)] = WToMB(dsDrawingLocaleDescription);
-	locales[WToMB(rsDrawingLocaleColor)] = WToMB(dsDrawingLocaleColor);
-	locales[WToMB(rsDrawingLocaleCounted)] = WToMB(dsDrawingLocaleCounted);
-	locales[WToMB(rsDrawingLocaleMeasured)] = WToMB(dsDrawingLocaleMeasured);
-	locales[WToMB(rsDrawingLocaleAxisX)] = WToMB(dsDrawingLocaleAxisX);
-	locales[WToMB(rsDrawingLocaleAxisY)] = WToMB(dsDrawingLocaleAxisY);
-	locales[WToMB(rsDrawingLocaleSvgDatetimeTitle)] = WToMB(dsDrawingLocaleSvgDatetimeTitle);
-	locales[WToMB(rsDrawingLocaleSvgIstTitle)] = WToMB(dsDrawingLocaleSvgIstTitle);
-	locales[WToMB(rsDrawingLocaleSvgBloodTitle)] = WToMB(dsDrawingLocaleSvgBloodTitle);
-	locales[WToMB(rsDrawingLocaleSvgBloodCalibrationTitle)] = WToMB(dsDrawingLocaleSvgBloodCalibrationTitle);
-	locales[WToMB(rsDrawingLocaleSvgInsulinTitle)] = WToMB(dsDrawingLocaleSvgInsulinTitle);
-	locales[WToMB(rsDrawingLocaleSvgCarbohydratesTitle)] = WToMB(dsDrawingLocaleSvgCarbohydratesTitle);
-	locales[WToMB(rsDrawingLocaleSvgISIGTitle)] = WToMB(dsDrawingLocaleSvgISIGTitle);
-	locales[WToMB(rsDrawingLocaleSvgDiff2Title)] = WToMB(dsDrawingLocaleSvgDiff2Title);
-	locales[WToMB(rsDrawingLocaleSvgDiff3Title)] = WToMB(dsDrawingLocaleSvgDiff3Title);
-	locales[WToMB(rsDrawingLocaleRelativeError)] = WToMB(dsDrawingLocaleRelativeError);
-	locales[WToMB(rsDrawingLocaleCummulativeProbability)] = WToMB(dsDrawingLocaleCummulativeProbability);
-	locales[WToMB(rsDrawingLocaleElevatedGlucose)] = WToMB(dsDrawingLocaleElevatedGlucose);
+	locales[Narrow_WChar(rsDrawingLocaleTitle)] = Narrow_WChar(dsDrawingLocaleTitle);
+	locales[Narrow_WChar(rsDrawingLocaleTitleDay)] = Narrow_WChar(dsDrawingLocaleTitleDay);
+	locales[Narrow_WChar(rsDrawingLocaleSubtitle)] = Narrow_WChar(dsDrawingLocaleSubtitle);
+	locales[Narrow_WChar(rsDrawingLocaleDiabetes1)] = Narrow_WChar(dsDrawingLocaleDiabetes1);
+	locales[Narrow_WChar(rsDrawingLocaleDiabetes2)] = Narrow_WChar(dsDrawingLocaleDiabetes2);
+	locales[Narrow_WChar(rsDrawingLocaleTime)] = Narrow_WChar(dsDrawingLocaleTime);
+	locales[Narrow_WChar(rsDrawingLocaleTimeDay)] = Narrow_WChar(dsDrawingLocaleTimeDay);
+	locales[Narrow_WChar(rsDrawingLocaleConcentration)] = Narrow_WChar(dsDrawingLocaleConcentration);
+	locales[Narrow_WChar(rsDrawingLocaleHypoglycemy)] = Narrow_WChar(dsDrawingLocaleHypoglycemy);
+	locales[Narrow_WChar(rsDrawingLocaleHyperglycemy)] = Narrow_WChar(dsDrawingLocaleHyperglycemy);
+	locales[Narrow_WChar(rsDrawingLocaleBlood)] = Narrow_WChar(dsDrawingLocaleBlood);
+	locales[Narrow_WChar(rsDrawingLocaleBloodCalibration)] = Narrow_WChar(dsDrawingLocaleBloodCalibration);
+	locales[Narrow_WChar(rsDrawingLocaleIst)] = Narrow_WChar(dsDrawingLocaleIst);
+	locales[Narrow_WChar(rsDrawingLocaleResults)] = Narrow_WChar(dsDrawingLocaleResults);
+	locales[Narrow_WChar(rsDrawingLocaleDiff2)] = Narrow_WChar(dsDrawingLocaleDiff2);
+	locales[Narrow_WChar(rsDrawingLocaleDiff3)] = Narrow_WChar(dsDrawingLocaleDiff3);
+	locales[Narrow_WChar(rsDrawingLocaleQuantile)] = Narrow_WChar(dsDrawingLocaleQuantile);
+	locales[Narrow_WChar(rsDrawingLocaleRelative)] = Narrow_WChar(dsDrawingLocaleRelative);
+	locales[Narrow_WChar(rsDrawingLocaleAbsolute)] = Narrow_WChar(dsDrawingLocaleAbsolute);
+	locales[Narrow_WChar(rsDrawingLocaleAverage)] = Narrow_WChar(dsDrawingLocaleAverage);
+	locales[Narrow_WChar(rsDrawingLocaleType)] = Narrow_WChar(dsDrawingLocaleType);
+	locales[Narrow_WChar(rsDrawingLocaleError)] = Narrow_WChar(dsDrawingLocaleError);
+	locales[Narrow_WChar(rsDrawingLocaleDescription)] = Narrow_WChar(dsDrawingLocaleDescription);
+	locales[Narrow_WChar(rsDrawingLocaleColor)] = Narrow_WChar(dsDrawingLocaleColor);
+	locales[Narrow_WChar(rsDrawingLocaleCounted)] = Narrow_WChar(dsDrawingLocaleCounted);
+	locales[Narrow_WChar(rsDrawingLocaleMeasured)] = Narrow_WChar(dsDrawingLocaleMeasured);
+	locales[Narrow_WChar(rsDrawingLocaleAxisX)] = Narrow_WChar(dsDrawingLocaleAxisX);
+	locales[Narrow_WChar(rsDrawingLocaleAxisY)] = Narrow_WChar(dsDrawingLocaleAxisY);
+	locales[Narrow_WChar(rsDrawingLocaleSvgDatetimeTitle)] = Narrow_WChar(dsDrawingLocaleSvgDatetimeTitle);
+	locales[Narrow_WChar(rsDrawingLocaleSvgIstTitle)] = Narrow_WChar(dsDrawingLocaleSvgIstTitle);
+	locales[Narrow_WChar(rsDrawingLocaleSvgBloodTitle)] = Narrow_WChar(dsDrawingLocaleSvgBloodTitle);
+	locales[Narrow_WChar(rsDrawingLocaleSvgBloodCalibrationTitle)] = Narrow_WChar(dsDrawingLocaleSvgBloodCalibrationTitle);
+	locales[Narrow_WChar(rsDrawingLocaleSvgInsulinTitle)] = Narrow_WChar(dsDrawingLocaleSvgInsulinTitle);
+	locales[Narrow_WChar(rsDrawingLocaleSvgCarbohydratesTitle)] = Narrow_WChar(dsDrawingLocaleSvgCarbohydratesTitle);
+	locales[Narrow_WChar(rsDrawingLocaleSvgISIGTitle)] = Narrow_WChar(dsDrawingLocaleSvgISIGTitle);
+	locales[Narrow_WChar(rsDrawingLocaleSvgDiff2Title)] = Narrow_WChar(dsDrawingLocaleSvgDiff2Title);
+	locales[Narrow_WChar(rsDrawingLocaleSvgDiff3Title)] = Narrow_WChar(dsDrawingLocaleSvgDiff3Title);
+	locales[Narrow_WChar(rsDrawingLocaleRelativeError)] = Narrow_WChar(dsDrawingLocaleRelativeError);
+	locales[Narrow_WChar(rsDrawingLocaleCummulativeProbability)] = Narrow_WChar(dsDrawingLocaleCummulativeProbability);
+	locales[Narrow_WChar(rsDrawingLocaleElevatedGlucose)] = Narrow_WChar(dsDrawingLocaleElevatedGlucose);
 	locales["basal_insulin_rate"] = "Suggested basal rate";
 	locales["cob"] = "Carbohydrates on board";
 	locales["iob"] = "Insulin on board";

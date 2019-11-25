@@ -16,6 +16,8 @@ ADD_UTILS_FILE(DRAWING_UTILS_SRC "drawing/Drawing.cpp")
 ADD_UTILS_FILE(DRAWING_UTILS_SRC "drawing/Drawing.h")
 ADD_UTILS_FILE(DRAWING_UTILS_SRC "drawing/SVGRenderer.cpp")
 ADD_UTILS_FILE(DRAWING_UTILS_SRC "drawing/SVGRenderer.h")
+ADD_UTILS_FILE(DRAWING_UTILS_SRC "string_utils.h")
+ADD_UTILS_FILE(DRAWING_UTILS_SRC "string_utils.cpp") 
 
 FILE(GLOB_RECURSE SRC_DRAWING_FILES "src/drawing/*.cpp" "src/drawing/*.c" "src/drawing/*.h")
 

@@ -43,6 +43,7 @@
 #include "../../../common/utils/string_utils.h"
 
 #include <algorithm>
+#include <cctype>
 
 CMasking_Filter::CMasking_Filter(glucose::IFilter *output) : CBase_Filter(output) {
 	//
@@ -56,7 +57,7 @@ bool CMasking_Filter::Parse_Bitmask(std::wstring inw)
 	std::string in = Narrow_WString(inw);
 
 	// erase spaces - typically the string is split to groups
-	in.erase(std::remove_if(in.begin(), in.end(), [](unsigned char x) {return std::isspace((int)x); }), in.end());
+	in.erase(std::remove_if(in.begin(), in.end(), [](unsigned char x) { return std::isspace(static_cast<int>(x)); }), in.end());
 
 	mBitCount = in.length();
 

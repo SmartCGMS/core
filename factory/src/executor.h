@@ -40,19 +40,20 @@
 
 #include "../../../common/rtl/FilterLib.h"
 
-
-
 #include <mutex>
 
+#pragma warning( push )
+#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
+
 class CFilter_Executor : public virtual glucose::IFilter, public virtual refcnt::CNotReferenced {
-protected:		
+protected:
 	std::recursive_mutex &mCommunication_Guard;
 	glucose::SFilter mFilter;
 	glucose::TOn_Filter_Created mOn_Filter_Created;
 	const void* mOn_Filter_Created_Data;
 public:
 	CFilter_Executor(const GUID filter_id, std::recursive_mutex &communication_guard, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
-	virtual ~CFilter_Executor() {};
+	virtual ~CFilter_Executor() = default;
 
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj);
 
@@ -60,15 +61,14 @@ public:
 	virtual HRESULT IfaceCalling Execute(glucose::IDevice_Event *event) override final;
 };
 
-
 class CTerminal_Filter : public virtual glucose::IFilter, public virtual refcnt::CNotReferenced {
 	//executer designed to consume events only and to signal the shutdown event
 protected:
 	std::mutex mShutdown_Guard;
 	std::condition_variable mShutdown_Condition;
 	bool mShutdown_Received = false;
-public:		
-	virtual ~CTerminal_Filter() {};	
+public:
+	virtual ~CTerminal_Filter() = default;
 
 	void Wait_For_Shutdown();	//blocking wait, until it receives the shutdown event
 
@@ -83,3 +83,5 @@ public:
 	CCopying_Terminal_Filter(std::vector<glucose::IDevice_Event*> &events);
 	virtual HRESULT IfaceCalling Execute(glucose::IDevice_Event *event) override final;
 };
+
+#pragma warning( pop )
