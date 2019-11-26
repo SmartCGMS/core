@@ -41,7 +41,6 @@
 #include "../../../../common/rtl/rattime.h"
 
 #include <type_traits>
-#include <cassert>
 
 // TODO: this should be meal parameter (CHO intake)
 constexpr double Ag = 0.95; // CHO bioavailability ratio []; this may vary with different types of meals (their glycemic index, sacharide type and distribution, ...)

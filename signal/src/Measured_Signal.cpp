@@ -42,7 +42,6 @@
 #undef min
 
 #include <algorithm>
-#include <assert.h>
 
 CMeasured_Signal::CMeasured_Signal(): mApprox(nullptr) {
 	// TODO: proper approximator configuration
@@ -108,9 +107,8 @@ HRESULT IfaceCalling CMeasured_Signal::Add_Levels(const double *times, const dou
 }
 
 HRESULT IfaceCalling CMeasured_Signal::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params, const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
-	assert(times != nullptr);
-	assert(levels != nullptr);
-	assert(count > 0);
+	if (count == 0) return S_FALSE;
+	if ((times == nullptr) || (levels == nullptr)) return E_INVALIDARG;
 	return mApprox ? mApprox->GetLevels(times, levels, count, derivation_order) : E_FAIL;
 }
 
