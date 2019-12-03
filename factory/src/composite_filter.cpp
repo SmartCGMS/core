@@ -140,8 +140,8 @@ HRESULT CComposite_Filter::Clear() {
 		//once we refuse any communication from the Execute method, we can safely release the filters
 		//assuming that they terminate any threads they have spawned
 		for (size_t i = 0; i < mExecutors.size(); i++)
-			mExecutors[i].reset();
-		mExecutors.clear();
+			mExecutors[i]->Release_Filter();
+		mExecutors.clear();	//calls reset on all contained unique ptr's
 	}
 	catch (...) {
 		return E_FAIL;

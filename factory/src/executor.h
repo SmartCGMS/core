@@ -55,6 +55,8 @@ public:
 	CFilter_Executor(const GUID filter_id, std::recursive_mutex &communication_guard, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
 	virtual ~CFilter_Executor() = default;
 
+	void Release_Filter();
+
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj);
 
 	virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;

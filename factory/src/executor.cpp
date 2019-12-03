@@ -46,6 +46,10 @@ CFilter_Executor::CFilter_Executor(const GUID filter_id, std::recursive_mutex &c
 	mFilter = create_filter(filter_id, next_filter);			
 }
 
+void CFilter_Executor::Release_Filter() {
+	if (mFilter) mFilter.reset();
+}
+
 
 HRESULT IfaceCalling CFilter_Executor::Configure(glucose::IFilter_Configuration* configuration) {
 	if (!mFilter) return E_FAIL;	
@@ -66,7 +70,7 @@ HRESULT IfaceCalling CFilter_Executor::Execute(glucose::IDevice_Event *event) {
 
 
 HRESULT IfaceCalling CFilter_Executor::QueryInterface(const GUID*  riid, void ** ppvObj) {
-	return mFilter->QueryInterface(riid, ppvObj);
+	return mFilter ? E_FAIL : mFilter->QueryInterface(riid, ppvObj);
 }
 
 void CTerminal_Filter::Wait_For_Shutdown() {	
