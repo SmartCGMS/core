@@ -172,7 +172,7 @@ void CFile_Reader::Run_Reader()
 				if (cur->mBlood.has_value())
 					errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_BG, cur->mBlood.value());
 				if (cur->mInsulinBolus.has_value())
-					errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Delivered_Insulin_Bolus, cur->mInsulinBolus.value());
+					errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Requested_Insulin_Bolus, cur->mInsulinBolus.value());
 				if (cur->mInsulinBasalRate.has_value())
 					errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Requested_Basal_Insulin_Rate, cur->mInsulinBasalRate.value());
 				if (cur->mCarbohydrates.has_value())

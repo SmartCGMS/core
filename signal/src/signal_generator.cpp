@@ -42,7 +42,6 @@
 #include "../../../common/rtl/rattime.h"
 #include "../../../common/lang/dstrings.h"
 
-
 CSignal_Generator::CSignal_Generator(glucose::IFilter *output) : CBase_Filter(output) {
 	//
 }
@@ -62,6 +61,9 @@ void CSignal_Generator::Stop_Generator() {
 }
 
 HRESULT CSignal_Generator::Do_Execute(glucose::UDevice_Event event) {
+
+	HRESULT rc = E_UNEXPECTED;
+
 	if ((mSync_To_Signal) && ((mTotal_Time < mMax_Time) || (mMax_Time <= 0.0))) {
 
 		if (event.event_code() == glucose::NDevice_Event_Code::Time_Segment_Start) 
@@ -76,7 +78,7 @@ HRESULT CSignal_Generator::Do_Execute(glucose::UDevice_Event event) {
 					mModel->Set_Current_Time(event.device_time());	//for which we need to set the current time
 				}
 
-			mLast_Device_Time = event.device_time();			
+			mLast_Device_Time = event.device_time();
 		}
 
 		glucose::IDevice_Event *raw_event = event.get();
@@ -84,10 +86,22 @@ HRESULT CSignal_Generator::Do_Execute(glucose::UDevice_Event event) {
 		HRESULT rc = mModel->Execute(raw_event);
 		
 		if (step_the_model) rc = mModel->Step(dynamic_stepping);
-
-		return rc;
 	}
-		else return Send(event);
+	else {
+
+		bool shutdown = (event.event_code() == glucose::NDevice_Event_Code::Shut_Down);
+
+		glucose::IDevice_Event *raw_event = event.get();
+		event.release();
+		rc = mModel->Execute(raw_event);
+
+		if (shutdown) {
+			Stop_Generator();
+			mModel.reset();
+		}
+	}
+
+	return rc;
 }
 
 HRESULT CSignal_Generator::Do_Configure(glucose::SFilter_Configuration configuration) {
@@ -105,13 +119,18 @@ HRESULT CSignal_Generator::Do_Configure(glucose::SFilter_Configuration configura
 
 	const GUID model_id = configuration.Read_GUID(rsSelected_Model);
 	mModel = glucose::SDiscrete_Model { model_id, parameters, mOutput };
-	if (!mModel) return E_FAIL;
+	if (!mModel)
+		return E_FAIL;
+
+	HRESULT rc = mModel->Configure(configuration.get());
+	if (!SUCCEEDED(rc))
+		return rc;
 
 	mTotal_Time = 0.0;
 	mQuitting = false;
 
 	if (!mSync_To_Signal) {
-		mThread = std::make_unique<std::thread>([this]() {			
+		mThread = std::make_unique<std::thread>([this]() {
 			if (SUCCEEDED(mModel->Set_Current_Time(Unix_Time_To_Rat_Time(time(nullptr))))) {
 				mModel->Step(0.0);	//emit the initial state as this is the current state now
 				while (!mQuitting) {
@@ -123,7 +142,9 @@ HRESULT CSignal_Generator::Do_Configure(glucose::SFilter_Configuration configura
 
 				if ((mTotal_Time >= mMax_Time) && mEmit_Shutdown) {
 					auto evt = glucose::UDevice_Event{ glucose::NDevice_Event_Code::Shut_Down };
-					Send(evt);
+					glucose::IDevice_Event *raw_event = evt.get();
+					evt.release();
+					mModel->Execute(raw_event);
 				}
 			}
 
@@ -131,6 +152,12 @@ HRESULT CSignal_Generator::Do_Configure(glucose::SFilter_Configuration configura
 	}
 
 	return S_OK;
+}
+
+HRESULT IfaceCalling CSignal_Generator::QueryInterface(const GUID* riid, void** ppvObj)
+{
+	if (Internal_Query_Interface<glucose::IFilter_Feedback_Receiver>(glucose::IID_Filter_Feedback_Receiver, *riid, ppvObj)) return S_OK;
+	return E_NOINTERFACE;
 }
 
 HRESULT IfaceCalling CSignal_Generator::Name(wchar_t** const name) {

@@ -42,6 +42,7 @@
 #include "masking.h"
 #include "Measured_Signal.h"
 #include "signal_generator.h"
+#include "signal_feedback.h"
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
@@ -306,7 +307,46 @@ namespace measured_signal
 		glucose::signal_Physical_Activity
 	};
 }
-const std::array<glucose::TFilter_Descriptor, 4> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, masking::Masking_Descriptor, signal_generator::desc } };
+
+namespace feedback_sender {
+	constexpr size_t param_count = 3;
+
+	constexpr glucose::NParameter_Type param_type[param_count] = {
+		glucose::NParameter_Type::ptSignal_Id,
+		glucose::NParameter_Type::ptBool,
+		glucose::NParameter_Type::ptWChar_Array,
+	};
+
+	const wchar_t* ui_param_name[param_count] = {
+		dsSignal_Source_Id,
+		dsForward_Clone,
+		dsFeedback_Name,
+	};
+
+	const wchar_t* config_param_name[param_count] = {
+		rsSignal_Source_Id,
+		rsForward_Clone,
+		rsFeedback_Name,
+	};
+
+	const wchar_t* ui_param_tooltips[param_count] = {
+		nullptr,
+		nullptr,
+	};
+
+	const glucose::TFilter_Descriptor desc = {
+			{ 0x5d29ea43, 0x4fac, 0x4141, { 0xa0, 0x3f, 0x73, 0x3b, 0x10, 0x29, 0x67, 0x27 } }, //// {5D29EA43-4FAC-4141-A03F-733B10296727},
+		glucose::NFilter_Flags::None,
+		dsSignal_Feedback,
+		param_count,
+		param_type,
+		ui_param_name,
+		config_param_name,
+		ui_param_tooltips
+	};
+} 
+
+const std::array<glucose::TFilter_Descriptor, 5> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, masking::Masking_Descriptor, signal_generator::desc, feedback_sender::desc } };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
 	*begin = const_cast<glucose::TFilter_Descriptor*>(filter_descriptions.data());
@@ -323,6 +363,8 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilte
 		return Manufacture_Object<CMapping_Filter>(filter, output);
 	else if (*id == signal_generator::desc.id)
 		return Manufacture_Object<CSignal_Generator>(filter, output);
+	else if (*id == feedback_sender::desc.id)
+		return Manufacture_Object<CSignal_Feedback>(filter, output);
 
 	return ENOENT;
 }

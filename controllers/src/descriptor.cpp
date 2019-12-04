@@ -45,9 +45,10 @@
 
 #include "descriptor.h"
 
-#include "absoprtion/iob.h"
-#include "absoprtion/cob.h"
+#include "absorption/iob.h"
+#include "absorption/cob.h"
 #include "betapid/betapid.h"
+#include "lgs/lgs.h"
 
 #include <vector>
 
@@ -162,7 +163,7 @@ namespace betapid_insulin_regulation {
 		signal_count,
 		signal_ids,
 		signal_names,
-		reference_signal_ids,		
+		reference_signal_ids,
 	};
 }
 
@@ -184,9 +185,6 @@ namespace betapid3_insulin_regulation {
 	const wchar_t *signal_names[signal_count] = { dsInsulin_BetaPID3_Rate };
 	const GUID reference_signal_ids[signal_count] = { glucose::signal_Carb_Ratio };
 
-	//const GUID effect_reference_signal_ids[signal_count] = { glucose::signal_Constant_BG };
-	const GUID effect_signal_ids[signal_count] = { glucose::signal_IG };
-
 	const glucose::TModel_Descriptor desc = {
 		id,
 		dsBetaPID3,
@@ -201,11 +199,43 @@ namespace betapid3_insulin_regulation {
 		signal_count,
 		signal_ids,
 		signal_names,
-		reference_signal_ids,		
+		reference_signal_ids,
 	};
 }
 
-const std::array<glucose::TModel_Descriptor, 4> model_descriptions = { { iob::desc, cob::desc, betapid_insulin_regulation::desc, betapid3_insulin_regulation::desc } };
+namespace lgs_basal_insulin {
+	const GUID id = { 0x9740d031, 0x8b14, 0x4c76, { 0xb2, 0x16, 0x29, 0x51, 0xf8, 0xd5, 0x51, 0x6e } };	// {9740D031-8B14-4C76-B216-2951F8D5516E}
+
+	const glucose::NModel_Parameter_Value param_types[param_count] = { glucose::NModel_Parameter_Value::mptDouble, glucose::NModel_Parameter_Value::mptDouble, glucose::NModel_Parameter_Value::mptDouble };
+
+	const wchar_t *param_names[param_count] = { dsBIN, dsLGS_Lower_Threshold, dsLGS_Suspend_Duration };
+	const wchar_t *param_columns[param_count] = { rsBIN, rsLGS_Lower_Threshold, rsLGS_Suspend_Duration };
+
+	const size_t signal_count = 1;
+
+	const GUID signal_ids[signal_count] = { lgs_basal_insulin_signal_id };
+	const wchar_t *signal_names[signal_count] = { dsInsulin_LGS_Rate };
+	const GUID reference_signal_ids[signal_count] = { glucose::signal_IOB };
+
+	const glucose::TModel_Descriptor desc = {
+		id,
+		dsLGS_Basal_Insulin_Model,
+		rsLGS_Basal_Insulin_Model,
+		param_count,
+		param_types,
+		param_names,
+		param_columns,
+		lower_bound,
+		default_parameters,
+		upper_bound,
+		signal_count,
+		signal_ids,
+		signal_names,
+		reference_signal_ids
+	};
+}
+
+const std::array<glucose::TModel_Descriptor, 5> model_descriptions = { { iob::desc, cob::desc, betapid_insulin_regulation::desc, betapid3_insulin_regulation::desc, lgs_basal_insulin::desc } };
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end) {
 	*begin = const_cast<glucose::TModel_Descriptor*>(model_descriptions.data());
@@ -234,6 +264,8 @@ extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, glucose::I
 		return Manufacture_Object<CBetaPID2_Insulin_Regulation, glucose::ISignal>(signal, weak_segment);
 	else if (*calc_id == betapid3_insulin_regulation::betapid3_signal_id)
 		return Manufacture_Object<CBetaPID3_Insulin_Regulation, glucose::ISignal>(signal, weak_segment);
+	else if (*calc_id == lgs_basal_insulin::lgs_basal_insulin_signal_id)
+		return Manufacture_Object<CConstant_Basal_LGS_Insulin_Rate_Model, glucose::ISignal>(signal, weak_segment);
 
 	return E_NOTIMPL;
 }

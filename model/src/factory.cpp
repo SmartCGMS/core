@@ -44,6 +44,7 @@
 #include "steil_rebrin/Steil_Rebrin_Diffusion_Prediction.h"
 #include "diffusion/Diffusion_Prediction.h"
 #include "constant/Constant_Model.h"
+#include "sensitivity/sensitivity.h"
 #include "descriptor.h"
 
 #include <map>
@@ -78,6 +79,8 @@ public:
 		Add_Signal<CSteil_Rebrin_Diffusion_Prediction>(steil_rebrin_diffusion_prediction::signal_Steil_Rebrin_Diffusion_Prediction);
 		Add_Signal<CDiffusion_Prediction>(diffusion_prediction::signal_Diffusion_Prediction);
 		Add_Signal<CConstant_Model>(constant_model::signal_Constant);
+		Add_Signal<CConstant_Insulin_Sensitivity_Model>(const_isf::const_isf_signal_id);
+		Add_Signal<CConstant_Carb_Ratio_Model>(const_cr::const_cr_signal_id);
 	}
 
 	HRESULT Create_Signal(const GUID &calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) const {

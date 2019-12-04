@@ -80,7 +80,7 @@ NColumn_Pos& operator++(NColumn_Pos& ref)
 
 // array of DB columns - signal GUIDs used
 std::array<GUID, static_cast<size_t>(NColumn_Pos::_Count)> ColumnSignalMap = { {
-	glucose::signal_BG, glucose::signal_IG, glucose::signal_ISIG, glucose::signal_Delivered_Insulin_Bolus, glucose::signal_Requested_Basal_Insulin_Rate, glucose::signal_Carb_Intake, glucose::signal_Calibration
+	glucose::signal_BG, glucose::signal_IG, glucose::signal_ISIG, glucose::signal_Requested_Insulin_Bolus, glucose::signal_Requested_Basal_Insulin_Rate, glucose::signal_Carb_Intake, glucose::signal_Calibration
 } };
 
 CDb_Reader::CDb_Reader(glucose::IFilter *output) : mDbPort(0), CBase_Filter(output) {

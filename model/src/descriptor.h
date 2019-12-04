@@ -138,21 +138,20 @@ namespace bergman_model {
 	constexpr GUID signal_Bergman_Basal_Insulin = { 0xfc556839, 0xd6c0, 0x4646, { 0xa3, 0x46, 0x8, 0x21, 0xd2, 0x5f, 0x7e, 0x29 } };	// {FC556839-D6C0-4646-A346-0821D25F7E29}
 	constexpr GUID signal_Bergman_Insulin_Activity = { 0x755cfd08, 0x2b12, 0x43b6, { 0xa4, 0x55, 0x58, 0x6, 0x15, 0x68, 0x44, 0x6e } };	// {755CFD08-2B12-43B6-A455-58061568446E}
 
-
-
-	constexpr size_t model_param_count = 23;
+	constexpr size_t model_param_count = 26;
 
 	struct TParameters {
 		union {
 			struct {
 				double p1, p2, p3, p4;
+				double k12, k21;
 				double Vi;
 				double BodyWeight;
 				double VgDist;
 				double d1rate, d2rate;
 				double irate;
-				double Gb, Ib;
-				double G0, X0, I0, D10, D20, Isc0, Gsc0;
+				double Qb, Ib;
+				double Q10, Q20, X0, I0, D10, D20, Isc0, Gsc0;
 				double BasalRate0;
 				double p, cg, c;
 			};
@@ -160,9 +159,45 @@ namespace bergman_model {
 		};
 	};
 
-	constexpr bergman_model::TParameters lower_bounds = { 0.0, 0.0, 0.0, 0.0, 8.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5, -5.0 };
-	constexpr bergman_model::TParameters default_parameters = { 0.028735, 0.028344, 5.035e-05, 0.3, 12.0, 70.0, 0.22, 0.05, 0.05, 0.04, 95.0, 9.2, 100.0, 0, 0, 0, 0, 0, 95.0, 0, 0.929, -0.037, 1.308 };
-	constexpr bergman_model::TParameters upper_bounds = { 0.1, 0.1, 0.05, 1.0, 18.0, 100.0, 1.0, 1.0, 1.0, 1.0, 200.0, 20.0, 300.0, 100.0, 200.0, 150.0, 150.0, 50.0, 300.0, 5.0, 2.0, 0.0, 5.0 };
+	constexpr bergman_model::TParameters lower_bounds = {
+		0.005, 0.005, 5.0e-07, 0.1,					// p1, p2, p3, p4
+		0.001, 0.001,								// k12, k21
+		8.0,										// Vi
+		10.0,										// BodyWeight
+		0.05,										// VgDist
+		0.01, 0.01,									// d1rate, d2rate
+		0.01,										// irate
+		0.0, 0.0,									// Qb, Ib
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,		// Q10, Q20, X0, I0, D10, D20, Isc0, Gsc0
+		0.0,										// BasalRate0
+		0, -0.5, -10.0								// p, cg, c
+	};
+	constexpr bergman_model::TParameters default_parameters = {
+		0.028735, 0.028344, 5.035e-05, 0.3,			// p1, p2, p3, p4
+		0.1, 0.1,									// k12, k21
+		12.0,										// Vi
+		70.0,										// BodyWeight
+		0.22,										// VgDist
+		0.05, 0.05,									// d1rate, d2rate
+		0.04,										// irate
+		95.0, 9.2,									// Qb, Ib
+		100.0, 100.0, 0, 0, 0, 0, 0, 95.0,			// Q10, Q20, X0, I0, D10, D20, Isc0, Gsc0
+		0,											// BasalRate0
+		0.929, -0.037, 1.308						// p, cg, c
+	};
+	constexpr bergman_model::TParameters upper_bounds = {
+		0.1, 0.1, 0.05, 1.0,										// p1, p2, p3, p4
+		0.3, 0.3,													// k12, k21
+		18.0,														// Vi
+		100.0,														// BodyWeight
+		1.0,														// VgDist
+		1.0, 1.0,													// d1rate, d2rate
+		1.0,														// irate
+		200.0, 20.0,												// Qb, Ib
+		300.0, 300.0, 100.0, 200.0, 150.0, 150.0, 50.0, 300.0,		// Q10, Q20, X0, I0, D10, D20, Isc0, Gsc0
+		5.0,														// BasalRate0
+		2.0, 0.0, 5.0												// p, cg, c
+	};
 }
 
 
@@ -188,6 +223,55 @@ namespace ge_model {
 		};
 	};
 
+}
+
+namespace insulin_bolus
+{
+	const size_t param_count = 1;
+	const double default_parameters[param_count] = { 0.0666 };
+
+	struct TParameters {
+		union {
+			struct {
+				double csr;
+			};
+			double vector[param_count];
+		};
+	};
+}
+
+namespace const_isf
+{
+	constexpr const GUID const_isf_signal_id = { 0x9e76e1d9, 0x7dec, 0x4ffd, { 0xa3, 0xd0, 0xad, 0x4e, 0x4e, 0xc0, 0x31, 0x32 } };	// {9E76E1D9-7DEC-4FFD-A3D0-AD4E4EC03132}
+
+	const size_t param_count = 1;
+	const double default_parameters[param_count] = { 0.36 };
+
+	struct TParameters {
+		union {
+			struct {
+				double isf;
+			};
+			double vector[param_count];
+		};
+	};
+}
+
+namespace const_cr
+{
+	constexpr const GUID const_cr_signal_id = { 0xb09dea1f, 0xae22, 0x4e27, { 0x90, 0x25, 0xc7, 0x69, 0xc2, 0x7d, 0x50, 0x74 } };	// {B09DEA1F-AE22-4E27-9025-C769C27D5074}
+
+	const size_t param_count = 1;
+	const double default_parameters[param_count] = { 0.0667 };
+
+	struct TParameters {
+		union {
+			struct {
+				double cr;
+			};
+			double vector[param_count];
+		};
+	};
 }
 
 

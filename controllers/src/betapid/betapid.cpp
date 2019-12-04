@@ -39,7 +39,6 @@
 #include "betapid.h"
 #include "../descriptor.h"
 
-#include <iostream>
 #include <numeric>
 
 #include "../../../../common/rtl/rattime.h"

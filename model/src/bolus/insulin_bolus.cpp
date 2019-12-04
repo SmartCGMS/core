@@ -10,8 +10,8 @@
  * Faculty of Applied Sciences, University of West Bohemia
  * Univerzitni 8
  * 301 00, Pilsen
- * 
- * 
+ *
+ *
  * Purpose of this software:
  * This software is intended to demonstrate work of the diabetes.zcu.cz research
  * group to other scientists, to complement our published papers. It is strictly
@@ -36,45 +36,44 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
+#include "insulin_bolus.h"
+#include "..\..\..\..\common\rtl\SolverLib.h"
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/referencedImpl.h"
+CDiscrete_Insulin_Bolus_Calculator::CDiscrete_Insulin_Bolus_Calculator(glucose::IModel_Parameter_Vector* parameters, glucose::IFilter* output) : 
+       CBase_Filter(output), mParameters(glucose::Convert_Parameters<insulin_bolus::TParameters>(parameters, insulin_bolus::default_parameters)) {
+
+}
 
 
-#include <memory>
-#include <thread>
+HRESULT CDiscrete_Insulin_Bolus_Calculator::Do_Execute(glucose::UDevice_Event event) {
+    if (event.event_code() == glucose::NDevice_Event_Code::Level) {
+        if (event.signal_id() == glucose::signal_Carb_Intake) {
+            const double bolus_level = event.level() * mParameters.csr; //compute while we still own the event
+            HRESULT rc = Send(event);
+            if (SUCCEEDED(rc)) {
+                glucose::UDevice_Event bolus{ glucose::NDevice_Event_Code::Level };
+                bolus.level() = bolus_level;
+                bolus.signal_id() = glucose::signal_Requested_Insulin_Bolus;
+                rc = Send(bolus);
+            }
 
-#pragma warning( push )
-#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
+            return rc;
+        }
+    }
 
-/*
- * Filter class for generating signals using a specific model 
- */
-class CSignal_Generator : public virtual glucose::CBase_Filter, public virtual glucose::IFilter_Feedback_Receiver {
-protected:
-	bool mSync_To_Signal = false;
-	GUID mSync_Signal = Invalid_GUID;
-	double mFixed_Stepping;
-	double mMax_Time;			//maximum time, for which the generator can run
-	double mTotal_Time = 0.0;	//time for which the generator runs
-	double mLast_Device_Time = std::numeric_limits<double>::quiet_NaN();
-	bool mEmit_Shutdown;
-protected:
-	std::wstring mFeedback_Name;
-	glucose::SDiscrete_Model mModel;
-	std::unique_ptr<std::thread> mThread;
-	bool mQuitting = false;
-	void Stop_Generator();
-protected:
-	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
-public:
-	CSignal_Generator(glucose::IFilter *output);
-	virtual ~CSignal_Generator();
+    return Send(event);
+}
 
-	virtual HRESULT IfaceCalling Name(wchar_t** const name) override final;
-	virtual HRESULT IfaceCalling QueryInterface(const GUID* riid, void** ppvObj) override;
-};
+HRESULT CDiscrete_Insulin_Bolus_Calculator::Do_Configure(glucose::SFilter_Configuration configuration) {
+    // configured in the constructor
+    return E_NOTIMPL;
+}
 
-#pragma warning( pop )
+
+HRESULT IfaceCalling CDiscrete_Insulin_Bolus_Calculator::Set_Current_Time(const double new_current_time) {
+    return S_OK;    //time independet for now
+}
+
+HRESULT IfaceCalling CDiscrete_Insulin_Bolus_Calculator::Step(const double time_advance_delta) {
+    return S_OK;    //time independet for now
+}

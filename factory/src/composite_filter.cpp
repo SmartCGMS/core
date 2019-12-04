@@ -70,41 +70,42 @@ HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configurati
 			if (rc != S_OK) return rc;
 
 			std::unique_ptr<CFilter_Executor> new_executor = std::make_unique<CFilter_Executor>(filter_id, mCommunication_Guard, last_filter, on_filter_created, on_filter_created_data);
-			//try to configure the filter 			
+			//try to configure the filter 
 			rc = new_executor->Configure(link);
 			if (rc != S_OK) return rc;
-			
-			//filter is configured, insert it into the chain			
+
+			//filter is configured, insert it into the chain
 			last_filter = new_executor.get();
-			mExecutors.insert(mExecutors.begin(), std::move(new_executor));			
+			mExecutors.insert(mExecutors.begin(), std::move(new_executor));
 			
-			link_end--;	
+			link_end--;
 		} while (link_end != link_begin);
 
 		//2nd round - gather information about the feedback receivers
-		std::map<std::wstring, std::shared_ptr<glucose::IFilter_Feedback_Receiver>> feedback_map;				
-		for (auto &possible_receiver : mExecutors) {			
-			std::shared_ptr<glucose::IFilter_Feedback_Receiver> feedback_receiver;
+		std::map<std::wstring, glucose::SFilter_Feedback_Receiver> feedback_map;
+		for (auto &possible_receiver : mExecutors) {
+			glucose::SFilter_Feedback_Receiver feedback_receiver;
 			refcnt::Query_Interface<glucose::IFilter, glucose::IFilter_Feedback_Receiver>(possible_receiver.get(), glucose::IID_Filter_Feedback_Receiver, feedback_receiver);
 			if (feedback_receiver) {
 				wchar_t *name;
 				if (feedback_receiver->Name(&name) == S_OK) {
-					feedback_map[name] = feedback_receiver;					
+					feedback_map[name] = feedback_receiver;
 				}
-			}				
+			}
 		}
 
 		//3nd round - set the receivers to the senders
+		//multiple senders can connect to a single receiver (so that we can have a single feedback filter)
 		for (auto &possible_sender : mExecutors) {
-			std::shared_ptr<glucose::IFilter_Feedback_Sender> feedback_sender;
+			refcnt::SReferenced<glucose::IFilter_Feedback_Sender> feedback_sender;
 			refcnt::Query_Interface<glucose::IFilter, glucose::IFilter_Feedback_Sender>(possible_sender.get(), glucose::IID_Filter_Feedback_Sender, feedback_sender);
 			if (feedback_sender) {
 				wchar_t *name;
 				if (feedback_sender->Name(&name) == S_OK) {
 
 					auto feedback_receiver = feedback_map.find(name);
-					if (feedback_receiver != feedback_map.end()) 						
-						feedback_sender->Sink(feedback_receiver->second.get());					
+					if (feedback_receiver != feedback_map.end())
+						feedback_sender->Sink(feedback_receiver->second.get());
 				}
 			}
 		}
@@ -120,12 +121,12 @@ HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configurati
 
 HRESULT CComposite_Filter::Execute(glucose::IDevice_Event *event) {
 	if (!event) return E_INVALIDARG;
-	if (mExecutors.empty()) return S_FALSE;	
+	if (mExecutors.empty()) return S_FALSE;
 
 	std::lock_guard<std::recursive_mutex> lock_guard{ mCommunication_Guard };
 	if (mRefuse_Execute) return E_ILLEGAL_METHOD_CALL;
 
-	return mExecutors[0]->Execute(event);	
+	return mExecutors[0]->Execute(event);
 }
 
 HRESULT CComposite_Filter::Clear() {

@@ -41,6 +41,7 @@
 #include "../../../../common/rtl/rattime.h"
 
 #include <type_traits>
+#include <cassert>
 
 // TODO: this should be meal parameter (CHO intake)
 constexpr double Ag = 0.95; // CHO bioavailability ratio []; this may vary with different types of meals (their glycemic index, sacharide type and distribution, ...)
@@ -130,30 +131,40 @@ CBergman_Discrete_Model::CBergman_Discrete_Model(glucose::IModel_Parameter_Vecto
 	CBase_Filter(output),
 	mParameters(glucose::Convert_Parameters<bergman_model::TParameters>(parameters, bergman_model::default_parameters.vector)),
 	mEquation_Binding{
-		{ mState.G,   std::bind<double>(&CBergman_Discrete_Model::eq_dG, this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.X,   std::bind<double>(&CBergman_Discrete_Model::eq_dX, this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.I,   std::bind<double>(&CBergman_Discrete_Model::eq_dI, this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.Q1,  std::bind<double>(&CBergman_Discrete_Model::eq_dQ1,  this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.Q2,  std::bind<double>(&CBergman_Discrete_Model::eq_dQ2,  this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.X,   std::bind<double>(&CBergman_Discrete_Model::eq_dX,   this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.I,   std::bind<double>(&CBergman_Discrete_Model::eq_dI,   this, std::placeholders::_1, std::placeholders::_2) },
 		{ mState.Isc, std::bind<double>(&CBergman_Discrete_Model::eq_dIsc, this, std::placeholders::_1, std::placeholders::_2) },
 		{ mState.Gsc, std::bind<double>(&CBergman_Discrete_Model::eq_dGsc, this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.D1,  std::bind<double>(&CBergman_Discrete_Model::eq_dD1, this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.D2,  std::bind<double>(&CBergman_Discrete_Model::eq_dD2, this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.D1,  std::bind<double>(&CBergman_Discrete_Model::eq_dD1,  this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.D2,  std::bind<double>(&CBergman_Discrete_Model::eq_dD2,  this, std::placeholders::_1, std::placeholders::_2) },
 	}
 {
 	mState.lastTime = -1;
-	mState.G = mParameters.G0;
+	mState.Q1 = mParameters.Q10;
+	mState.Q2 = mParameters.Q20;
 	mState.X = mParameters.X0;
 	mState.I = mParameters.I0;
 	mState.D1 = mParameters.D10;
 	mState.D2 = mParameters.D20;
 	mState.Isc = mParameters.Isc0;
-	mState.Gsc = mParameters.Gsc0;
+	mState.Gsc = mParameters.Gsc0 * glucose::mgdl_2_mmoll;
+
+	mLastBG = mState.Q1 * glucose::mgdl_2_mmoll / (10.0 * mParameters.VgDist);
+	mLastIG = mState.Gsc;
 
 	mBasal_Ext.Add_Uptake(0, std::numeric_limits<double>::infinity(), mParameters.BasalRate0);
 }
 
-double CBergman_Discrete_Model::eq_dG(const double _T, const double _G) const
+double CBergman_Discrete_Model::eq_dQ1(const double _T, const double _Q1) const
 {
-	return -(mParameters.p1 + mState.X)*_G + mParameters.p1 * mParameters.Gb + mParameters.d1rate * mState.D1 / (10.0 * mParameters.BodyWeight * mParameters.VgDist);
+	return -(mParameters.p1 + mParameters.k21 + mState.X)*_Q1 + mParameters.k12*mState.Q2 + mParameters.p1 * mParameters.Qb + mParameters.d1rate * mState.D1 / mParameters.BodyWeight;
+}
+
+double CBergman_Discrete_Model::eq_dQ2(const double _T, const double _Q2) const
+{
+	return mParameters.k21*mState.Q1 - mParameters.k12*_Q2;
 }
 
 double CBergman_Discrete_Model::eq_dX(const double _T, const double _X) const
@@ -183,19 +194,24 @@ double CBergman_Discrete_Model::eq_dIsc(const double _T, const double _Isc) cons
 
 double CBergman_Discrete_Model::eq_dGsc(const double _T, const double _Gsc) const
 {
+	// TODO: delta_t = step size for now (assuming 5 min in general, but depends on configuration); allow variable delta_t
 	// TODO: resolve case, when _T == mState.lastTime; for now, add 0.05, which is clearly not correct
-	return (((mParameters.p*mState.G + mParameters.cg * mState.G*mState.G + mParameters.c) / (1.0 + mParameters.cg * mState.G)) - _Gsc) / (0.05 + _T - mState.lastTime/glucose::One_Minute);
+	return ((mParameters.p * mLastBG + mParameters.cg * mLastBG * (mLastBG - mLastIG) + mParameters.c) - _Gsc) / (0.05 + _T - mState.lastTime / glucose::One_Minute);
 }
 
 void CBergman_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 {
 	const double _T = mState.lastTime + time_advance_delta;	//locally-scoped because we might have been asked to emit the current state only
 
-	// blood glucose
-	Emit_Signal_Level(bergman_model::signal_Bergman_BG, _T, mState.G * glucose::mgdl_2_mmoll);
-
 	// interstitial fluid glucose
-	Emit_Signal_Level(bergman_model::signal_Bergman_IG, _T, mState.Gsc * glucose::mgdl_2_mmoll);
+	const double iglevel = mState.Gsc;
+	Emit_Signal_Level(bergman_model::signal_Bergman_IG, _T, iglevel);
+	mLastIG = iglevel;
+
+	// blood glucose
+	const double bglevel = mState.Q1 * glucose::mgdl_2_mmoll / (10.0 * mParameters.VgDist);
+	Emit_Signal_Level(bergman_model::signal_Bergman_BG, _T, bglevel);
+	mLastBG = bglevel;
 
 	// dosed basal insulin - sum of all basal insulin dosed per time_advance_delta
 	// TODO: this might be a bit more precise if we calculate the actual sum during ODE solving, but the basal rate is very unlikely to change within a step, so it does not matter
@@ -221,7 +237,7 @@ HRESULT CBergman_Discrete_Model::Do_Execute(glucose::UDevice_Event event) {
 			{
 				mBasal_Ext.Add_Uptake(event.device_time(), std::numeric_limits<double>::max(), 1000.0 * (event.level() / 60.0));
 			}
-			else if (event.signal_id() == glucose::signal_Delivered_Insulin_Bolus || event.signal_id() == glucose::signal_Requested_Insulin_Bolus)
+			else if (event.signal_id() == glucose::signal_Requested_Insulin_Bolus)
 			{
 				// we assume that bolus is spread to 5-minute rate
 				constexpr double MinsBolusing = 5.0;

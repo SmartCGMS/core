@@ -152,12 +152,12 @@ protected:
 		std::recursive_mutex communication_guard;
 		CCopying_Terminal_Filter terminal_filter{ mEvents_To_Replay };
 		{
-			CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely 
-																		//call its dtor to get the future error properly		
+			CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely
+																		//call its dtor to get the future error properly
 			if (composite_filter.Build_Filter_Chain(reduced_filter_configuration.get(), &terminal_filter, mOn_Filter_Created, mOn_Filter_Created_Data) == S_OK)  terminal_filter.Wait_For_Shutdown(); 
 				else {
-					composite_filter.Clear();	//terminite for sure
-					mEvents_To_Replay.clear(); //sanitize as this might have been filled partially				
+					composite_filter.Clear();	//terminate for sure
+					mEvents_To_Replay.clear(); //sanitize as this might have been filled partially
 				}
 		}
 	}
@@ -283,9 +283,13 @@ public:
 	}
 
 	HRESULT Optimize(const GUID solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress &progress) {
-		glucose::SFilter_Configuration_Link configuration_link_parameters = mConfiguration[mFilter_Index];		
-		if (!configuration_link_parameters || !configuration_link_parameters.Read_Parameters(mParameters_Config_Name.c_str(), mLower_Bound, mFound_Parameters, mUpper_Bound))
+
+		glucose::SFilter_Configuration_Link configuration_link_parameters = mConfiguration[mFilter_Index];
+
+		if (!configuration_link_parameters)
 			return E_INVALIDARG;
+		if (!configuration_link_parameters.Read_Parameters(mParameters_Config_Name.c_str(), mLower_Bound, mFound_Parameters, mUpper_Bound))
+			return E_FAIL;
 		
 		mProblem_Size = mFound_Parameters.size();
 
@@ -316,7 +320,7 @@ public:
 
 		//eventually, we need to copy the parameters to the original configuration - on success
 		if (rc == S_OK)
-			rc = configuration_link_parameters.Write_Parameters(mParameters_Config_Name.c_str(), mLower_Bound, mFound_Parameters, mUpper_Bound) ? rc : E_FAIL;		
+			rc = configuration_link_parameters.Write_Parameters(mParameters_Config_Name.c_str(), mLower_Bound, mFound_Parameters, mUpper_Bound) ? rc : E_FAIL;
 
 		return rc;
 	}

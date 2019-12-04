@@ -106,5 +106,27 @@ namespace betapid3_insulin_regulation
 	};
 }
 
+namespace lgs_basal_insulin
+{
+	constexpr const GUID lgs_basal_insulin_signal_id = { 0x6957caf0, 0x797, 0x442b, { 0xa0, 0x0, 0xe3, 0x94, 0xbb, 0x1e, 0x7d, 0x3d } };	// {6957CAF0-0797-442B-A000-E394BB1E7D3D}
+
+	const size_t param_count = 3;
+
+	const double lower_bound[param_count] = { 0.0, 0.0, 0.0 };
+	const double default_parameters[param_count] = { 1.3, 4.0, 30.0 * (1.0 / (24.0*60.0)) };
+	const double upper_bound[param_count] = { 3.0, 8.0, 120.0 * (1.0 / (24.0*60.0)) };
+
+	struct TParameters {
+		union {
+			struct {
+				double bin;
+				double lower_threshold;
+				double suspend_duration;
+			};
+			double vector[param_count];
+		};
+	};
+}
+
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end);
 extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);

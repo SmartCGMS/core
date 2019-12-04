@@ -36,45 +36,37 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
-
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
 
-
-#include <memory>
-#include <thread>
+#include <vector>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-/*
- * Filter class for generating signals using a specific model 
- */
-class CSignal_Generator : public virtual glucose::CBase_Filter, public virtual glucose::IFilter_Feedback_Receiver {
-protected:
-	bool mSync_To_Signal = false;
-	GUID mSync_Signal = Invalid_GUID;
-	double mFixed_Stepping;
-	double mMax_Time;			//maximum time, for which the generator can run
-	double mTotal_Time = 0.0;	//time for which the generator runs
-	double mLast_Device_Time = std::numeric_limits<double>::quiet_NaN();
-	bool mEmit_Shutdown;
-protected:
-	std::wstring mFeedback_Name;
-	glucose::SDiscrete_Model mModel;
-	std::unique_ptr<std::thread> mThread;
-	bool mQuitting = false;
-	void Stop_Generator();
-protected:
-	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
-public:
-	CSignal_Generator(glucose::IFilter *output);
-	virtual ~CSignal_Generator();
+ /*
+  * Class that reads selected segments from the db produces the events
+  * i.e., it mimicks CGMS
+  */
+class CSignal_Feedback : public glucose::CBase_Filter, public glucose::IFilter_Feedback_Sender {
 
-	virtual HRESULT IfaceCalling Name(wchar_t** const name) override final;
-	virtual HRESULT IfaceCalling QueryInterface(const GUID* riid, void** ppvObj) override;
+	protected:
+		glucose::SFilter_Feedback_Receiver mReceiver;
+		std::wstring mFeedback_Name;
+        GUID mSignal_ID = Invalid_GUID;
+        bool mForward_Clone = false;
+	protected:
+		virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
+		HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+
+	public:
+        CSignal_Feedback(glucose::IFilter *output);
+		virtual ~CSignal_Feedback();
+
+		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
+		virtual HRESULT IfaceCalling Sink(glucose::IFilter_Feedback_Receiver *receiver) override final;
+		virtual HRESULT IfaceCalling Name(wchar_t** const name) override final;
 };
 
 #pragma warning( pop )
+

@@ -38,43 +38,27 @@
 
 #pragma once
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/referencedImpl.h"
-
-
-#include <memory>
-#include <thread>
+#include "../../../../common/rtl/Common_Calculated_Signal.h"
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 /*
- * Filter class for generating signals using a specific model 
+ * Model that emits constant basal rate and suspends infusion when CGM readings are below certain point (parametrized)
  */
-class CSignal_Generator : public virtual glucose::CBase_Filter, public virtual glucose::IFilter_Feedback_Receiver {
-protected:
-	bool mSync_To_Signal = false;
-	GUID mSync_Signal = Invalid_GUID;
-	double mFixed_Stepping;
-	double mMax_Time;			//maximum time, for which the generator can run
-	double mTotal_Time = 0.0;	//time for which the generator runs
-	double mLast_Device_Time = std::numeric_limits<double>::quiet_NaN();
-	bool mEmit_Shutdown;
-protected:
-	std::wstring mFeedback_Name;
-	glucose::SDiscrete_Model mModel;
-	std::unique_ptr<std::thread> mThread;
-	bool mQuitting = false;
-	void Stop_Generator();
-protected:
-	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
-public:
-	CSignal_Generator(glucose::IFilter *output);
-	virtual ~CSignal_Generator();
+class CConstant_Basal_LGS_Insulin_Rate_Model : public virtual CCommon_Calculated_Signal
+{
+	protected:
+		glucose::SSignal mIG;
 
-	virtual HRESULT IfaceCalling Name(wchar_t** const name) override final;
-	virtual HRESULT IfaceCalling QueryInterface(const GUID* riid, void** ppvObj) override;
+	public:
+		CConstant_Basal_LGS_Insulin_Rate_Model(glucose::WTime_Segment segment);
+		virtual ~CConstant_Basal_LGS_Insulin_Rate_Model() = default;
+
+		//glucose::ISignal iface
+		virtual HRESULT IfaceCalling Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+			const double* times, double* const levels, const size_t count, const size_t derivation_order) const override final;
+		virtual HRESULT IfaceCalling Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const override final;
 };
 
 #pragma warning( pop )

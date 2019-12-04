@@ -10,8 +10,8 @@
  * Faculty of Applied Sciences, University of West Bohemia
  * Univerzitni 8
  * 301 00, Pilsen
- * 
- * 
+ *
+ *
  * Purpose of this software:
  * This software is intended to demonstrate work of the diabetes.zcu.cz research
  * group to other scientists, to complement our published papers. It is strictly
@@ -38,43 +38,26 @@
 
 #pragma once
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/referencedImpl.h"
-
-
-#include <memory>
-#include <thread>
+#include "../../../../common/rtl/FilterLib.h"
+#include "..\descriptor.h"
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-/*
- * Filter class for generating signals using a specific model 
- */
-class CSignal_Generator : public virtual glucose::CBase_Filter, public virtual glucose::IFilter_Feedback_Receiver {
+class CDiscrete_Insulin_Bolus_Calculator : public virtual glucose::CBase_Filter, public virtual glucose::IDiscrete_Model {
 protected:
-	bool mSync_To_Signal = false;
-	GUID mSync_Signal = Invalid_GUID;
-	double mFixed_Stepping;
-	double mMax_Time;			//maximum time, for which the generator can run
-	double mTotal_Time = 0.0;	//time for which the generator runs
-	double mLast_Device_Time = std::numeric_limits<double>::quiet_NaN();
-	bool mEmit_Shutdown;
+    insulin_bolus::TParameters mParameters;
 protected:
-	std::wstring mFeedback_Name;
-	glucose::SDiscrete_Model mModel;
-	std::unique_ptr<std::thread> mThread;
-	bool mQuitting = false;
-	void Stop_Generator();
-protected:
-	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+    // glucose::CBase_Filter iface implementation
+    virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
+    virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
 public:
-	CSignal_Generator(glucose::IFilter *output);
-	virtual ~CSignal_Generator();
+    CDiscrete_Insulin_Bolus_Calculator(glucose::IModel_Parameter_Vector* parameters, glucose::IFilter* output);
+	virtual ~CDiscrete_Insulin_Bolus_Calculator() = default;
 
-	virtual HRESULT IfaceCalling Name(wchar_t** const name) override final;
-	virtual HRESULT IfaceCalling QueryInterface(const GUID* riid, void** ppvObj) override;
+    // glucose::IDiscrete_Model iface
+    virtual HRESULT IfaceCalling Set_Current_Time(const double new_current_time) final;
+    virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
 };
 
 #pragma warning( pop )

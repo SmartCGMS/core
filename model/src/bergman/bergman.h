@@ -79,7 +79,8 @@ struct CBergman_State
 {
 	double lastTime;
 
-	double G;
+	double Q1;
+	double Q2;
 	double X;
 	double I;
 	double D1;
@@ -123,6 +124,8 @@ class CBergman_Discrete_Model : public virtual glucose::CBase_Filter, public vir
 		// bound equations in a single vector - quantity and equation bound together
 		const std::vector<CEquation_Binding> mEquation_Binding;
 
+		double mLastBG, mLastIG;
+
 		// different ODE solvers we might want to use; we prefer Dormand-Prince parametrization with binary subdivision adaptive step strategy (best balance of speed and precision)
 		//ode::euler::CSolver ODE_Solver;
 		//ode::heun::CSolver ODE_Solver;
@@ -135,7 +138,8 @@ class CBergman_Discrete_Model : public virtual glucose::CBase_Filter, public vir
 	private:
 		// particular differential equations; they are bound to a specific CBergman_State (mState) field in mEquation_Binding upon model construction
 		// they are never meant to change internal state - the model's Step method does it itself using ODE solver Step method result
-		double eq_dG(const double _T, const double _G) const;
+		double eq_dQ1(const double _T, const double _G) const;
+		double eq_dQ2(const double _T, const double _G) const;
 		double eq_dX(const double _T, const double _G) const;
 		double eq_dI(const double _T, const double _G) const;
 		double eq_dD1(const double _T, const double _G) const;

@@ -328,11 +328,11 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 						// several signals are excluded from maximum value determining, since their values are not in mmol/l, and are drawn in a different way
 						// TODO: more generic way to determine value units
 						if (presentData.first != glucose::signal_Carb_Intake && presentData.first != glucose::signal_Delivered_Insulin_Bolus && presentData.first != glucose::signal_Delivered_Insulin_Basal && presentData.first != glucose::signal_Physical_Activity
-							&& presentData.first != glucose::signal_ISIG)
+							&& presentData.first != glucose::signal_ISIG && presentData.first != glucose::signal_COB && presentData.first != glucose::signal_IOB)
 						{
 							if (val.value > mGraphMaxValue)
 								mGraphMaxValue = std::min(val.value, 150.0); //http://www.guinnessworldrecords.com/world-records/highest-blood-sugar-level/
-						}
+						} 
 					}
 				}
 			}

@@ -37,7 +37,6 @@
  */
 
 #include "Measured_Signal.h"
-#include "descriptor.h"
 
 #undef min
 

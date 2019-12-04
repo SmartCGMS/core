@@ -45,6 +45,7 @@
 #include "diffusion/Diffusion_v2_ist.h"
 #include "steil_rebrin/Steil_Rebrin_blood.h"
 #include "bergman/bergman.h"
+#include "bolus/insulin_bolus.h"
 
 #include <vector>
 
@@ -229,15 +230,18 @@ namespace bergman_model {
 		dsBergman_p2,
 		dsBergman_p3,
 		dsBergman_p4,
+		dsBergman_k12,
+		dsBergman_k21,
 		dsBergman_Vi,
 		dsBergman_BW,
 		dsBergman_VgDist,
 		dsBergman_d1rate,
 		dsBergman_d2rate,
 		dsBergman_irate,
-		dsBergman_Gb,
+		dsBergman_Qb,
 		dsBergman_Ib,
-		dsBergman_G0,
+		dsBergman_Q10,
+		dsBergman_Q20,
 		dsBergman_X0,
 		dsBergman_I0,
 		dsBergman_D10,
@@ -251,6 +255,9 @@ namespace bergman_model {
 	};
 
 	const glucose::NModel_Parameter_Value model_param_types[model_param_count] = {
+		glucose::NModel_Parameter_Value::mptDouble,
+		glucose::NModel_Parameter_Value::mptDouble,
+		glucose::NModel_Parameter_Value::mptDouble,
 		glucose::NModel_Parameter_Value::mptDouble,
 		glucose::NModel_Parameter_Value::mptDouble,
 		glucose::NModel_Parameter_Value::mptDouble,
@@ -324,10 +331,118 @@ namespace bergman_model {
 	};
 }
 
-const std::array<glucose::TModel_Descriptor, 6> model_descriptions = { { diffusion_v2_model::desc, 
+namespace insulin_bolus {
+	const GUID model_id = { 0x17f68d4, 0x5161, 0x454c, { 0x93, 0xd9, 0x96, 0x9d, 0xe5, 0x78, 0x4d, 0xd9 } };// {017F68D4-5161-454C-93D9-969DE5784DD9}
+
+	const glucose::NModel_Parameter_Value param_types[param_count] = { glucose::NModel_Parameter_Value::mptDouble };
+
+	const wchar_t *param_names[param_count] = { dsCSR };
+	const wchar_t *param_columns[param_count] = { rsCSR };
+
+	const double lower_bound[param_count] = { 0.0 };
+	const double upper_bound[param_count] = { 2.0 };
+
+	const size_t signal_count = 1;
+
+	const GUID signal_ids[signal_count] = { glucose::signal_Requested_Insulin_Bolus };
+	const wchar_t *signal_names[signal_count] = { dsCalculated_Bolus_Insulin };
+	const GUID reference_signal_ids[signal_count] = { glucose::signal_Delivered_Insulin_Bolus };
+
+	const glucose::TModel_Descriptor desc = {
+		model_id,
+		dsBolus_Calculator,
+		rsBolus_Calculator,
+		param_count,
+		param_types,
+		param_names,
+		param_columns,
+		lower_bound,
+		default_parameters,
+		upper_bound,
+		signal_count,
+		signal_ids,
+		signal_names,
+		reference_signal_ids
+	};
+}
+
+namespace const_isf {
+	const GUID id = { 0x2399912b, 0x54a3, 0x4a54, { 0xad, 0x70, 0xf2, 0xa5, 0xb6, 0xe8, 0x1e, 0x2 } };	// {2399912B-54A3-4A54-AD70-F2A5B6E81E02}
+
+	const glucose::NModel_Parameter_Value param_types[param_count] = { glucose::NModel_Parameter_Value::mptDouble };
+
+	const wchar_t *param_names[param_count] = { dsISF };
+	const wchar_t *param_columns[param_count] = { rsISF };
+
+	const double lower_bound[param_count] = { 0.0 };
+	const double upper_bound[param_count] = { 5.0 };
+
+	const size_t signal_count = 1;
+
+	const GUID signal_ids[signal_count] = { const_isf_signal_id };
+	const wchar_t *signal_names[signal_count] = { dsConst_ISF };
+	const GUID reference_signal_ids[signal_count] = { glucose::signal_IOB }; // maybe IOB is a good fit
+
+	const glucose::TModel_Descriptor desc = {
+		id,
+		dsConst_ISF_Model,
+		rsConst_ISF,
+		param_count,
+		param_types,
+		param_names,
+		param_columns,
+		lower_bound,
+		default_parameters,
+		upper_bound,
+		signal_count,
+		signal_ids,
+		signal_names,
+		reference_signal_ids
+	};
+}
+
+namespace const_cr {
+	const GUID id = { 0xefd71f27, 0x6f47, 0x463d, { 0xb1, 0x69, 0x96, 0x82, 0xff, 0x67, 0x63, 0xf } };// {EFD71F27-6F47-463D-B169-9682FF67630F}
+
+	const glucose::NModel_Parameter_Value param_types[param_count] = { glucose::NModel_Parameter_Value::mptDouble };
+
+	const wchar_t *param_names[param_count] = { dsCSR };
+	const wchar_t *param_columns[param_count] = { rsCSR };
+
+	const double lower_bound[param_count] = { 0.0 };
+	const double upper_bound[param_count] = { 2.0 };
+
+	const size_t signal_count = 1;
+
+	const GUID signal_ids[signal_count] = { const_cr_signal_id };
+	const wchar_t *signal_names[signal_count] = { dsConst_CR };
+	const GUID reference_signal_ids[signal_count] = { glucose::signal_IOB }; // maybe IOB is a good fit
+
+	const glucose::TModel_Descriptor desc = {
+		id,
+		dsConst_CR_Model,
+		rsConst_CR,
+		param_count,
+		param_types,
+		param_names,
+		param_columns,
+		lower_bound,
+		default_parameters,
+		upper_bound,
+		signal_count,
+		signal_ids,
+		signal_names,
+		reference_signal_ids
+	};
+}
+
+
+const std::array<glucose::TModel_Descriptor, 9> model_descriptions = { { diffusion_v2_model::desc, 
 																		 steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc, diffusion_prediction::desc, 
 																		 constant_model::desc,
-																		 bergman_model::desc} };
+																		 bergman_model::desc,
+																		 insulin_bolus::desc,
+																		 const_isf::desc, const_cr::desc } };
 
 
 HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end) {
@@ -339,5 +454,6 @@ HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin
 
 HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output, glucose::IDiscrete_Model **model) {
 	if (*model_id == bergman_model::model_id) return Manufacture_Object<CBergman_Discrete_Model>(model, parameters, output);
+	else if (*model_id == insulin_bolus::model_id) return Manufacture_Object<CDiscrete_Insulin_Bolus_Calculator>(model, parameters, output);
 		else return E_NOTIMPL;
 }
