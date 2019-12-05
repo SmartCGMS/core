@@ -1,0 +1,17 @@
+LIBRARY external.dll
+;LIBRARY libeng.dll
+
+EXPORTS
+	do_get_model_descriptors
+	do_create_discrete_model
+
+	engClose=PROXY_engClose @7
+	engEvalString=PROXY_engEvalString @8
+	engGetVariable=PROXY_engGetVariable @9
+	engGetVisible=PROXY_engGetVisible @10
+	engOpen=PROXY_engOpen @11
+	engOpenSingleUse=PROXY_engOpenSingleUse @12
+	engOutputBuffer=PROXY_engOutputBuffer @13
+	engPutVariable=PROXY_engPutVariable @14
+	engSetVisible=PROXY_engSetVisible @15
+

@@ -121,12 +121,18 @@ HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configurati
 
 HRESULT CComposite_Filter::Execute(glucose::IDevice_Event *event) {
 	if (!event) return E_INVALIDARG;
-	if (mExecutors.empty()) return S_FALSE;
+	if (mExecutors.empty()) {
+		event->Release();
+		return S_FALSE;
+	}
 
 	std::lock_guard<std::recursive_mutex> lock_guard{ mCommunication_Guard };
-	if (mRefuse_Execute) return E_ILLEGAL_METHOD_CALL;
+	if (mRefuse_Execute) {
+		event->Release();
+		return E_ILLEGAL_METHOD_CALL;
+	}
 
-	return mExecutors[0]->Execute(event);
+	return mExecutors[0]->Execute(event);	//and by this, we delegate event's release to the filters
 }
 
 HRESULT CComposite_Filter::Clear() {
