@@ -97,7 +97,7 @@
 			</meal>
 		</control>
 		<control type="MatPluginControlElement" name="smartCGMS" inSignalNames="BG,CGM">
-			<matFilename>c:\Program Files\The Epsilon Group\DMMS.R\config\smartcgm.m</matFilename>
+			<matFilename>c:\Programy\glucose3\core\external\src\dmms\smartcgm.m</matFilename>
 		</control>
 	</controlElements>
 	<deliveryElements/>

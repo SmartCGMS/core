@@ -260,7 +260,17 @@ bool CDMMS_Discrete_Model::Initialize_DMMS()
 
 	std::wstring cmdLine = mRun_Cmd + L" " + mDMMS_Scenario_File + L" " + mDMMS_Out_File;
 
-	return CreateProcessW(NULL, (LPWSTR)cmdLine.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &mDMMS_Proc_Info) != 0;
+	const bool executed = CreateProcessW(NULL, (LPWSTR)cmdLine.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &mDMMS_Proc_Info) != 0;
+	if (executed) {
+		HWND error_wnd = NULL;
+		
+		while (error_wnd == NULL)
+			error_wnd = FindWindowW(L"Qt5QWindowIcon", L"Error");
+
+		SendMessage(error_wnd, WM_CLOSE, 0, 0);		
+	}
+
+	return executed;
 }
 
 HRESULT CDMMS_Discrete_Model::Do_Execute(glucose::UDevice_Event event)
@@ -299,7 +309,7 @@ HRESULT CDMMS_Discrete_Model::Do_Execute(glucose::UDevice_Event event)
 HRESULT IfaceCalling CDMMS_Discrete_Model::Step(const double time_advance_delta)
 {
 	if (!mRunning)
-		return S_FALSE;
+		return E_ILLEGAL_STATE_CHANGE;
 
 /*
 	if (!mDMMS_Initialized)

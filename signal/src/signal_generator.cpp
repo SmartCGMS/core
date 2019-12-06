@@ -134,7 +134,7 @@ HRESULT CSignal_Generator::Do_Configure(glucose::SFilter_Configuration configura
 			if (SUCCEEDED(mModel->Set_Current_Time(Unix_Time_To_Rat_Time(time(nullptr))))) {
 				mModel->Step(0.0);	//emit the initial state as this is the current state now
 				while (!mQuitting) {
-					mModel->Step(mFixed_Stepping);
+					if (!SUCCEEDED(mModel->Step(mFixed_Stepping))) break;
 
 					mTotal_Time += mFixed_Stepping;
 					if (mMax_Time > 0.0) mQuitting |= mTotal_Time >= mMax_Time;
