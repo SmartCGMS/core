@@ -50,9 +50,12 @@
 #include "../../../common/rtl/FilesystemLib.h"
 #include "../../../common/utils/XMLParser.h"
 
-static std::mutex gGlobal_DMMS_Mtx;
-static std::condition_variable gGlobal_DMMS_Cv;
-static int gGlobal_DMMS_Instance_Cnt = 0;
+//#define DSINGLE_DMMS
+#ifdef DSINGLE_DMMS
+	static std::mutex gGlobal_DMMS_Mtx;
+	static std::condition_variable gGlobal_DMMS_Cv;
+	static int gGlobal_DMMS_Instance_Cnt = 0;
+#endif
 
 CDMMS_Discrete_Model::CDMMS_Discrete_Model(glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output)
 	: CBase_Filter(output),
@@ -62,12 +65,7 @@ CDMMS_Discrete_Model::CDMMS_Discrete_Model(glucose::IModel_Parameter_Vector *par
 	mToSend.bolus_rate = 0.0;
 	mToSend.carbs_rate = 0.0;
 
-	filebuf_DataToSmartCGMS = nullptr;
-	filebuf_DataFromSmartCGMS = nullptr;
-	file_DataToSmartCGMS = INVALID_HANDLE_VALUE;
-	file_DataFromSmartCGMS = INVALID_HANDLE_VALUE;
-	event_DataToSmartCGMS = INVALID_HANDLE_VALUE;
-	event_DataFromSmartCGMS = INVALID_HANDLE_VALUE;
+	Clear_DMMS_IPC(mDMMS_ipc);
 	mDMMS_Proc_Info.hProcess = INVALID_HANDLE_VALUE;
 }
 
@@ -76,48 +74,38 @@ CDMMS_Discrete_Model::~CDMMS_Discrete_Model()
 	Deinitialize_DMMS();
 }
 
-void CDMMS_Discrete_Model::Deinitialize_DMMS()
-{
-	if (filebuf_DataToSmartCGMS)
-		UnmapViewOfFile(filebuf_DataToSmartCGMS);
-	if (filebuf_DataFromSmartCGMS)
-		UnmapViewOfFile(filebuf_DataFromSmartCGMS);
+void CDMMS_Discrete_Model::Deinitialize_DMMS() {
 
-	if (file_DataToSmartCGMS != INVALID_HANDLE_VALUE)
-		CloseHandle(file_DataToSmartCGMS);
-	if (file_DataFromSmartCGMS != INVALID_HANDLE_VALUE)
-		CloseHandle(file_DataFromSmartCGMS);
-	if (event_DataToSmartCGMS != INVALID_HANDLE_VALUE)
-		CloseHandle(event_DataToSmartCGMS);
-	if (event_DataFromSmartCGMS != INVALID_HANDLE_VALUE)
-		CloseHandle(event_DataFromSmartCGMS);
-
+	Release_DMMS_IPC(mDMMS_ipc);
+	
 	if (mDMMS_Proc_Info.hProcess != INVALID_HANDLE_VALUE)
 	{
 		TerminateProcess(mDMMS_Proc_Info.hProcess, 0);
 		WaitForSingleObject(mDMMS_Proc_Info.hProcess, INFINITE);
 	}
 
-	filebuf_DataToSmartCGMS = NULL;
-	filebuf_DataFromSmartCGMS = NULL;
-	file_DataToSmartCGMS = INVALID_HANDLE_VALUE;
-	file_DataFromSmartCGMS = INVALID_HANDLE_VALUE;
-	event_DataToSmartCGMS = INVALID_HANDLE_VALUE;
-	event_DataFromSmartCGMS = INVALID_HANDLE_VALUE;
+	
 	mDMMS_Proc_Info.hProcess = INVALID_HANDLE_VALUE;
 	mDMMS_Proc_Info.hProcess = INVALID_HANDLE_VALUE;
 
 	if (mDMMS_Initialized)
 	{
+#ifdef DSINGLE_DMMS
 		std::unique_lock<std::mutex> lck(gGlobal_DMMS_Mtx);
 		gGlobal_DMMS_Instance_Cnt = 0;
 		gGlobal_DMMS_Cv.notify_one();
+#endif
 
 		mDMMS_Initialized = false;
 	}
 }
 
 HRESULT CDMMS_Discrete_Model::Do_Configure(glucose::SFilter_Configuration configuration) {
+	//return S_OK;
+	return Configure_DMMS() ? S_OK : E_FAIL;
+}
+
+bool CDMMS_Discrete_Model::Configure_DMMS() {
 	std::filesystem::path root_path = Get_Application_Dir();
 
 	auto path_to_absolute = [&root_path](const std::wstring& src_path)->std::wstring {
@@ -130,36 +118,35 @@ HRESULT CDMMS_Discrete_Model::Do_Configure(glucose::SFilter_Configuration config
 
 	
 	std::filesystem::path mainfest_path = root_path / L"dmms_manifest.xml";
-
-	//path = Path_Append(path, L"dmms_manifest.xml");	
-
+	
 	CXML_Parser<wchar_t> parser(mainfest_path);
 	if (!parser.Is_Valid())
-		return E_FAIL;
+		return false;
 
 	mRun_Cmd = path_to_absolute(parser.Get_Parameter(L"manifest.dmms:exepath", L""));
 	mDMMS_Scenario_File = path_to_absolute(parser.Get_Parameter(L"manifest.dmms:scenariofile", L""));
 	mDMMS_Out_File = path_to_absolute(parser.Get_Parameter(L"manifest.dmms:logfile", L""));
 
 	mRunning = mDMMS_Initialized = Initialize_DMMS();
-	return mRunning ? S_OK : E_FAIL;
+	
+	return mRunning;	
 }
 
 void CDMMS_Discrete_Model::Receive_From_DMMS()
 {
-	DMMS_To_SmartCGMS received;
+	TDMMS_To_SmartCGMS received;
 
 	if (!mRunning)
 		return;
 
-	WaitForSingleObject(event_DataToSmartCGMS, INFINITE);
+	WaitForSingleObject(mDMMS_ipc.event_DataToSmartCGMS, INFINITE);
 
-	ResetEvent(event_DataToSmartCGMS);
+	ResetEvent(mDMMS_ipc.event_DataToSmartCGMS);
 
 	if (!mRunning)
 		return;
 
-	CopyMemory(&received, filebuf_DataToSmartCGMS, sizeof(received));
+	CopyMemory(&received, mDMMS_ipc.filebuf_DataToSmartCGMS, sizeof(received));
 	int res = sizeof(received);
 
 	if (res == sizeof(received))
@@ -235,22 +222,13 @@ void CDMMS_Discrete_Model::Receive_From_DMMS()
 
 bool CDMMS_Discrete_Model::Initialize_DMMS()
 {
+#ifdef DSINGLE_DMMS
 	std::unique_lock<std::mutex> lck(gGlobal_DMMS_Mtx);
 	while (gGlobal_DMMS_Instance_Cnt != 0)
 		gGlobal_DMMS_Cv.wait(lck);
 
 	gGlobal_DMMS_Instance_Cnt = 1;
-
-	file_DataToSmartCGMS = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 256, memMapFileName_DataToSmartCGMS);
-	file_DataFromSmartCGMS = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 256, memMapFileName_DataFromSmartCGMS);
-	event_DataToSmartCGMS = CreateEventW(NULL, TRUE, FALSE, eventName_DataToSmartCGMS);
-	event_DataFromSmartCGMS = CreateEventW(NULL, TRUE, FALSE, eventName_DataFromSmartCGMS);
-
-	filebuf_DataToSmartCGMS = reinterpret_cast<LPTSTR>(MapViewOfFile(file_DataToSmartCGMS, FILE_MAP_ALL_ACCESS, 0, 0, 256));
-	filebuf_DataFromSmartCGMS = reinterpret_cast<LPTSTR>(MapViewOfFile(file_DataFromSmartCGMS, FILE_MAP_ALL_ACCESS, 0, 0, 256));
-
-	ResetEvent(event_DataToSmartCGMS);
-	ResetEvent(event_DataFromSmartCGMS);
+#endif
 
 	STARTUPINFOW si;
 
@@ -262,10 +240,21 @@ bool CDMMS_Discrete_Model::Initialize_DMMS()
 
 	const bool executed = CreateProcessW(NULL, (LPWSTR)cmdLine.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &mDMMS_Proc_Info) != 0;
 	if (executed) {
+
+		mDMMS_ipc = Establish_DMMS_IPC(mDMMS_Proc_Info.dwProcessId);
+
 		HWND error_wnd = NULL;
 		
-		while (error_wnd == NULL)
+		while (error_wnd == NULL) {
 			error_wnd = FindWindowW(L"Qt5QWindowIcon", L"Error");
+			if (error_wnd) {
+				//verify that this window belongs to our process!
+
+				DWORD proc_id;
+				GetWindowThreadProcessId(error_wnd, &proc_id);
+				if (proc_id != mDMMS_Proc_Info.dwProcessId) error_wnd = NULL;
+			}
+		}
 
 		SendMessage(error_wnd, WM_CLOSE, 0, 0);		
 	}
@@ -295,7 +284,7 @@ HRESULT CDMMS_Discrete_Model::Do_Execute(glucose::UDevice_Event event)
 	{
 		mRunning = false;
 
-		SetEvent(event_DataToSmartCGMS);
+		SetEvent(mDMMS_ipc.event_DataToSmartCGMS);
 
 		Deinitialize_DMMS();
 	}
@@ -311,19 +300,14 @@ HRESULT IfaceCalling CDMMS_Discrete_Model::Step(const double time_advance_delta)
 	if (!mRunning)
 		return E_ILLEGAL_STATE_CHANGE;
 
-/*
-	if (!mDMMS_Initialized)
-	{
-		Initialize_DMMS();
-		mDMMS_Initialized = true;
-	}
-	*/
+	//if (!mDMMS_Initialized) Configure_DMMS();
+
 	mToSend.device_time = mLastTime + time_advance_delta;
 
 	// copy to shared memory
-	memcpy(filebuf_DataFromSmartCGMS, &mToSend, sizeof(mToSend));	
+	memcpy(mDMMS_ipc.filebuf_DataFromSmartCGMS, &mToSend, sizeof(mToSend));
 	// signal SmartCGMS event
-	SetEvent(event_DataFromSmartCGMS);
+	SetEvent(mDMMS_ipc.event_DataFromSmartCGMS);
 
 	// bolus is one-time delivery - cancel it in next simulation step
 	mToSend.bolus_rate = 0;

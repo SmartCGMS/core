@@ -62,21 +62,14 @@ class CDMMS_Discrete_Model : public glucose::CBase_Filter, public glucose::IDisc
 		bool mDMMS_Initialized = false;
 		bool mRunning = false;
 
-		SmartCGMS_To_DMMS mToSend;
+		TSmartCGMS_To_DMMS mToSend;
 
 		std::wstring mRun_Cmd;
 		std::wstring mDMMS_Scenario_File;
 		std::wstring mDMMS_Out_File;
 
 
-
-		HANDLE file_DataToSmartCGMS;
-		void* filebuf_DataToSmartCGMS;
-		HANDLE file_DataFromSmartCGMS;
-		void* filebuf_DataFromSmartCGMS;
-		HANDLE event_DataToSmartCGMS;
-		HANDLE event_DataFromSmartCGMS;
-
+		TDMMS_IPC mDMMS_ipc;		
 		PROCESS_INFORMATION mDMMS_Proc_Info;
 
 		dmms_model::TParameters mParameters;
@@ -88,6 +81,8 @@ class CDMMS_Discrete_Model : public glucose::CBase_Filter, public glucose::IDisc
 		// starting time
 		double mTimeStart;
 
+
+		bool Configure_DMMS();
 	protected:
 		struct DMMS_Announced_Events
 		{

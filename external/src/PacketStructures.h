@@ -39,16 +39,12 @@
 #pragma once
 
 #include <cstdint>
-
-extern const wchar_t* memMapFileName_DataToSmartCGMS;
-extern const wchar_t* memMapFileName_DataFromSmartCGMS;
-extern const wchar_t* eventName_DataToSmartCGMS;
-extern const wchar_t* eventName_DataFromSmartCGMS;
+#include <Windows.h>
 
 #pragma pack(push, 1)
 
 // packet structure of DMMS --> SmartCGMS
-struct DMMS_To_SmartCGMS
+struct TDMMS_To_SmartCGMS
 {
 	double glucose_ig;
 	double glucose_bg;
@@ -68,7 +64,7 @@ struct DMMS_To_SmartCGMS
 };
 
 // packet structure of SmartCGMS --> DMMS
-struct SmartCGMS_To_DMMS
+struct TSmartCGMS_To_DMMS
 {
 	double basal_rate;
 	double bolus_rate;
@@ -77,3 +73,17 @@ struct SmartCGMS_To_DMMS
 };
 
 #pragma pack(pop)
+
+
+struct TDMMS_IPC{
+    HANDLE file_DataToSmartCGMS;
+    void* filebuf_DataToSmartCGMS;
+    HANDLE file_DataFromSmartCGMS;
+    void* filebuf_DataFromSmartCGMS;
+    HANDLE event_DataToSmartCGMS;
+    HANDLE event_DataFromSmartCGMS;
+};
+
+TDMMS_IPC Establish_DMMS_IPC(const DWORD process_id);
+void Clear_DMMS_IPC(TDMMS_IPC& dmms_ipc);
+void Release_DMMS_IPC(TDMMS_IPC &dmms_ipc);

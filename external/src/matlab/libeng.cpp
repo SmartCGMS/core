@@ -17,12 +17,8 @@ double basalInsulin = 0;
 double bolusInsulin = 0;
 double carbs = 0;
 
-HANDLE file_DataToSmartCGMS;
-void* filebuf_DataToSmartCGMS;
-HANDLE file_DataFromSmartCGMS;
-void* filebuf_DataFromSmartCGMS;
-HANDLE event_DataToSmartCGMS;
-HANDLE event_DataFromSmartCGMS;
+
+TDMMS_IPC dmms_ipc;	//global variable for a particular DMMS instance, which loaded us
 
 mxArray* getv__smartcgms_settings()
 {
@@ -101,11 +97,11 @@ mxArray* getv__modelInputsToModObject()
 }
 
 static bool gInitialized = false;
-static SOCKET gSocket;
+/*static SOCKET gSocket;
 static sockaddr_in gSrcAddr;
 static sockaddr_in gAddr;
-
-static SmartCGMS_To_DMMS lastValues{ 0, 0, 0 };
+*/
+static TSmartCGMS_To_DMMS lastValues{ 0, 0, 0 };
 static size_t counter = 0;
 
 static double prevBolus = 0;
@@ -124,8 +120,8 @@ struct
 
 void eval__SmartCGMS()
 {
-	DMMS_To_SmartCGMS toSend;
-	SmartCGMS_To_DMMS received;
+	TDMMS_To_SmartCGMS toSend;
+	TSmartCGMS_To_DMMS received;
 
 	if (dTime[0] != dTime[1])
 		iDose = 0;
@@ -196,18 +192,18 @@ void eval__SmartCGMS()
 		//sendto(gSocket, reinterpret_cast<char*>(&toSend), sizeof(toSend), 0, (sockaddr*)&gAddr, sizeof(gAddr));
 
 		// copy to shared memory
-		memcpy(filebuf_DataToSmartCGMS, &toSend, sizeof(toSend));
+		memcpy(dmms_ipc.filebuf_DataToSmartCGMS, &toSend, sizeof(toSend));
 		// signal SmartCGMS
-		SetEvent(event_DataToSmartCGMS);
+		SetEvent(dmms_ipc.event_DataToSmartCGMS);
 
 		// wait for SmartCGMS to signal us
-		WaitForSingleObject(event_DataFromSmartCGMS, INFINITE);
+		WaitForSingleObject(dmms_ipc.event_DataFromSmartCGMS, INFINITE);
 
 		// receive from shared memory
-		memcpy(&received, filebuf_DataFromSmartCGMS, sizeof(received));
+		memcpy(&received, dmms_ipc.filebuf_DataFromSmartCGMS, sizeof(received));
 
 		// reset signal state of event from SmartCGMS (the other one is cleared by SmartCGMS)
-		ResetEvent(event_DataFromSmartCGMS);
+		ResetEvent(dmms_ipc.event_DataFromSmartCGMS);
 
 		lastValues = received;
 	}
@@ -227,32 +223,11 @@ void eval__SmartCGMS()
 }
 
 void Libeng_Process_Atach() {
-	file_DataToSmartCGMS = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 256, memMapFileName_DataToSmartCGMS);
-	file_DataFromSmartCGMS = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 256, memMapFileName_DataFromSmartCGMS);
-	event_DataToSmartCGMS = CreateEventW(NULL, TRUE, FALSE, eventName_DataToSmartCGMS);
-	event_DataFromSmartCGMS = CreateEventW(NULL, TRUE, FALSE, eventName_DataFromSmartCGMS);
-
-	filebuf_DataToSmartCGMS = MapViewOfFile(file_DataToSmartCGMS, FILE_MAP_ALL_ACCESS, 0, 0, 256);
-	filebuf_DataFromSmartCGMS = MapViewOfFile(file_DataFromSmartCGMS, FILE_MAP_ALL_ACCESS, 0, 0, 256);
-
-	ResetEvent(event_DataToSmartCGMS);
-	ResetEvent(event_DataFromSmartCGMS);
+	dmms_ipc = Establish_DMMS_IPC(GetProcessId(GetCurrentProcess()));	
 }
 
 void Libeng_Process_Detach() {
-	if (filebuf_DataToSmartCGMS)
-		UnmapViewOfFile(filebuf_DataToSmartCGMS);
-	if (filebuf_DataFromSmartCGMS)
-		UnmapViewOfFile(filebuf_DataFromSmartCGMS);
-
-	if (file_DataToSmartCGMS)
-		CloseHandle(file_DataToSmartCGMS);
-	if (file_DataFromSmartCGMS)
-		CloseHandle(file_DataFromSmartCGMS);
-	if (event_DataToSmartCGMS)
-		CloseHandle(event_DataToSmartCGMS);
-	if (event_DataFromSmartCGMS)
-		CloseHandle(event_DataFromSmartCGMS);
+	Release_DMMS_IPC(dmms_ipc);
 }
 
 extern "C"
