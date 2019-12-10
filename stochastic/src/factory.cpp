@@ -45,6 +45,25 @@
 #include "fast_pathfinder.h"
 
 template <typename TSolver, typename TUsed_Solution>
+HRESULT Solve_Pathfinder_Spiral(solver::TSolver_Setup& setup, solver::TSolver_Progress& progress) {
+	solver::TSolver_Setup spiral_setup{
+		setup.problem_size,
+		setup.lower_bound, setup.upper_bound,
+		setup.hints, setup.hint_count,
+		setup.solution,
+		setup.data, setup.objective,
+		0,
+		setup.population_size,
+		setup.tolerance
+	};
+		
+	TSolver solver{ spiral_setup };
+	TUsed_Solution result = solver.Solve(progress);
+	std::copy(result.data(), result.data() + result.cols(), setup.solution);
+	return progress.cancelled == 0 ? S_OK : E_ABORT;
+}
+
+template <typename TSolver, typename TUsed_Solution>
 HRESULT Solve_By_Class(solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
 	TSolver solver{ setup };
 	TUsed_Solution result = solver.Solve(progress);
@@ -121,6 +140,9 @@ public:
 		//mSolver_Id_Map[pathfinder::id] = std::bind(&Eval_Pathfinder_Angle<TUsed_Solution>, std::placeholders::_1, std::placeholders::_2); -- diagnostic
 		mSolver_Id_Map[pathfinder::id_fast] = std::bind(&Solve_By_Class<CFast_Pathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 		//mSolver_Id_Map[pathfinder::id_fast] = std::bind(&Eval_Pathfinder_Angle<CFast_Pathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);  -- diagnostic
+
+
+		mSolver_Id_Map[pathfinder::id_spiral] = std::bind(&Solve_Pathfinder_Spiral<CFast_Pathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 	}
 
 	HRESULT Solve(const GUID &solver_id, solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {

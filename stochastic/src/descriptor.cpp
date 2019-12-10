@@ -60,10 +60,11 @@ namespace rnd_metade {
 
 namespace pathfinder {
 	const glucose::TSolver_Descriptor desc_fast = Describe_Non_Specialized_Solver(id_fast, dsPathfinder_Fast);
+    const glucose::TSolver_Descriptor desc_spiral = Describe_Non_Specialized_Solver(id_spiral, dsPathfinder_Spiral);
 }
 
 
-const std::array<glucose::TSolver_Descriptor, 4> solver_descriptions = { mt_metade::desc, halton_metade::desc, rnd_metade::desc, pathfinder::desc_fast};
+const std::array<glucose::TSolver_Descriptor, 5> solver_descriptions = { mt_metade::desc, halton_metade::desc, rnd_metade::desc, pathfinder::desc_fast, pathfinder::desc_spiral };
 
 
 HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {

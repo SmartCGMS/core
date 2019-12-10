@@ -63,6 +63,8 @@ namespace pagmo {
 }
 
 
-
+namespace ppr {
+    constexpr GUID spo_id = { 0xf8461a8e, 0x365, 0x4b90, { 0x8c, 0x99, 0xad, 0x54, 0x3a, 0x0, 0xa7, 0x8c } };
+}
 
 extern "C" HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end);

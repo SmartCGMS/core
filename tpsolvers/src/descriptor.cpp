@@ -62,10 +62,23 @@ namespace pagmo {
 }
 
 
+namespace ppr {
+    /*
+    [1] K. Tamura and K. Yasuda. Spiral optimization -a new multipoint search method.
+        In 2011 IEEE International Conference on Systems, Man, and Cybernetics,
+        pages 1759–1764, Oct 2011.
+    [2] Kenichi Tamura and Keiichiro Yasuda.Primary study of spiral dynamics inspired
+        optimization.IEEJ Transactions on Electrical and Electronic Engineering,
+        6(S1) : S98–S100, 2011.        
+        */
 
-const std::array<glucose::TSolver_Descriptor, 13> solver_descriptions = { nlopt::newuoa_desc, nlopt::bobyqa_desc, nlopt::simplex_desc, nlopt::subplex_desc, nlopt::praxis_desc,
+    const wchar_t* dsSPO = L"Spiral Optimization";
+    const glucose::TSolver_Descriptor spo = Describe_Non_Specialized_Solver(spo_id, dsSPO);
+}
+
+const std::array<glucose::TSolver_Descriptor, 14> solver_descriptions = { nlopt::newuoa_desc, nlopt::bobyqa_desc, nlopt::simplex_desc, nlopt::subplex_desc, nlopt::praxis_desc,
 																		 pagmo::pso_desc, pagmo::sade_desc, pagmo::de1220_desc, pagmo::abc_desc, pagmo::cmaes_desc, pagmo::xnes_desc,
-																		 pagmo::gpso_desc, pagmo::ihs_desc};
+																		 pagmo::gpso_desc, pagmo::ihs_desc, ppr::spo};
 
 
 HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {
