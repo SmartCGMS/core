@@ -158,7 +158,8 @@ protected:
 				A(i, 0) = x * x; A(i, 1) = x;
 			}
 
-			const Eigen::Vector3d coeff = A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);
+			//const Eigen::Vector3d coeff = A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);	--Beware this one looses precision!
+			const Eigen::Vector3d coeff = A.fullPivHouseholderQr().solve(b);				//this one works the best so far
 
 			//now, we have calculated a*x*x + b*x +c = y,  hence first derivative is
 			//2a*x +b = 0 => -b/2a gives the extreme position - the x^2 member must be positive in order for the polynomial to has a minimum
@@ -233,7 +234,8 @@ protected:
 			A(1, 0) = x2 * x2; A(1, 1) = x2;
 			A(2, 0) = x3 * x3; A(2, 1) = x3;
 
-			coeff = A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);
+			//coeff = A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);
+			coeff = A.fullPivHouseholderQr().solve(b);
 
 			//now, we have calculated a*x*x + b*x +c = y,  hence the first derivative is
 			//2a*x +b = 0 => -b/2a gives the extreme position - the x^2 member must be positive in order for the polynomial to has a minimum
@@ -385,7 +387,7 @@ protected:
 					solution.next_fitness = solution.current_fitness;// = mSetup.objective(mSetup.data, solution.current.data());
 					solution.next = solution.current;
 				}
-
+				
 				//find the best as the next offset - needs recalculation
 				auto global_best = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
 
