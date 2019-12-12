@@ -74,8 +74,8 @@ const std::map<GUID, const char*, std::less<GUID>> Signal_Mapping = {
 	{ glucose::signal_ISIG, "isig" },
 	{ glucose::signal_Delivered_Insulin_Bolus, "insulin" },
 	{ glucose::signal_Requested_Insulin_Bolus, "calcd_insulin" },
-	{ glucose::signal_Delivered_Insulin_Basal, "basal_insulin" },
-	{ glucose::signal_Requested_Basal_Insulin_Rate, "basal_insulin_rate" },
+	{ glucose::signal_Delivered_Insulin_Basal_Rate, "basal_insulin" },
+	{ glucose::signal_Requested_Insulin_Basal_Rate, "basal_insulin_rate" },
 	{ glucose::signal_Insulin_Activity, "insulin_activity" },
 	{ glucose::signal_Carb_Intake, "carbs" },
 	{ glucose::signal_IOB, "iob" },
@@ -327,7 +327,7 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 
 						// several signals are excluded from maximum value determining, since their values are not in mmol/l, and are drawn in a different way
 						// TODO: more generic way to determine value units
-						if (presentData.first != glucose::signal_Carb_Intake && presentData.first != glucose::signal_Delivered_Insulin_Bolus && presentData.first != glucose::signal_Delivered_Insulin_Basal && presentData.first != glucose::signal_Physical_Activity
+						if (presentData.first != glucose::signal_Carb_Intake && presentData.first != glucose::signal_Delivered_Insulin_Bolus && presentData.first != glucose::signal_Delivered_Insulin_Basal_Rate && presentData.first != glucose::signal_Physical_Activity
 							&& presentData.first != glucose::signal_ISIG && presentData.first != glucose::signal_COB && presentData.first != glucose::signal_IOB)
 						{
 							if (val.value > mGraphMaxValue)
@@ -418,7 +418,7 @@ HRESULT CDrawing_Filter::Do_Configure(glucose::SFilter_Configuration configurati
 		for (size_t i = 0; i < model.number_of_calculated_signals; i++)
 		{
 			std::wstring wname = std::wstring(model.description) + L" - " + model.calculated_signal_names[i];
-			mCalcSignalNameMap[model.calculated_signal_ids[i]] = std::string{wname.begin(), wname.end()};
+			mCalcSignalNameMap[model.calculated_signal_ids[i]] = Narrow_WString(wname);
 			mReferenceForCalcMap[model.calculated_signal_ids[i]] = model.reference_signal_ids[i];
 		}
 	}
@@ -438,9 +438,7 @@ void CDrawing_Filter::Store_To_File(std::string& str, std::wstring& filePath)
 	if (filePath.empty())
 		return;
 
-	std::string sbase(filePath.begin(), filePath.end());
-
-	std::ofstream ofs(sbase);
+	std::ofstream ofs(Narrow_WString(filePath));
 	ofs << str;
 }
 

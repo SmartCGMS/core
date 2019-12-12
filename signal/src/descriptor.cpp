@@ -298,7 +298,7 @@ namespace measured_signal
 		glucose::signal_BG,
 		glucose::signal_ISIG,
 		glucose::signal_Delivered_Insulin_Bolus,
-		glucose::signal_Delivered_Insulin_Basal,
+		glucose::signal_Delivered_Insulin_Basal_Rate,
 		glucose::signal_Insulin_Activity,
 		glucose::signal_IOB,
 		glucose::signal_COB,

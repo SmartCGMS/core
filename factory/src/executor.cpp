@@ -70,7 +70,7 @@ HRESULT IfaceCalling CFilter_Executor::Execute(glucose::IDevice_Event *event) {
 
 
 HRESULT IfaceCalling CFilter_Executor::QueryInterface(const GUID*  riid, void ** ppvObj) {
-	return mFilter ? E_FAIL : mFilter->QueryInterface(riid, ppvObj);
+	return mFilter ? mFilter->QueryInterface(riid, ppvObj) : E_FAIL;
 }
 
 void CTerminal_Filter::Wait_For_Shutdown() {	

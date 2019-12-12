@@ -96,19 +96,20 @@ HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configurati
 
 		//3nd round - set the receivers to the senders
 		//multiple senders can connect to a single receiver (so that we can have a single feedback filter)
-		for (auto &possible_sender : mExecutors) {
-			refcnt::SReferenced<glucose::IFilter_Feedback_Sender> feedback_sender;
-			refcnt::Query_Interface<glucose::IFilter, glucose::IFilter_Feedback_Sender>(possible_sender.get(), glucose::IID_Filter_Feedback_Sender, feedback_sender);
-			if (feedback_sender) {
-				wchar_t *name;
-				if (feedback_sender->Name(&name) == S_OK) {
+		if (!feedback_map.empty())
+			for (auto &possible_sender : mExecutors) {
+				refcnt::SReferenced<glucose::IFilter_Feedback_Sender> feedback_sender;
+				refcnt::Query_Interface<glucose::IFilter, glucose::IFilter_Feedback_Sender>(possible_sender.get(), glucose::IID_Filter_Feedback_Sender, feedback_sender);
+				if (feedback_sender) {
+					wchar_t *name;
+					if (feedback_sender->Name(&name) == S_OK) {
 
-					auto feedback_receiver = feedback_map.find(name);
-					if (feedback_receiver != feedback_map.end())
-						feedback_sender->Sink(feedback_receiver->second.get());
+						auto feedback_receiver = feedback_map.find(name);
+						if (feedback_receiver != feedback_map.end())
+							feedback_sender->Sink(feedback_receiver->second.get());
+					}
 				}
 			}
-		}
 	}
 	catch (...) {
 		mExecutors.clear();

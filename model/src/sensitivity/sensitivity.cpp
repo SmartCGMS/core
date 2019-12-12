@@ -56,7 +56,8 @@ HRESULT IfaceCalling CConstant_Insulin_Sensitivity_Model::Get_Continuous_Levels(
 	// for all input times (reference signal times), output constant value
 	// this is generally not true for ISF - may vary with time of the day and excercise
 
-    std::fill(levels, levels + count, parameters.isf);
+    const double val = derivation_order == glucose::apxNo_Derivation ? parameters.isf : 0.0;
+    std::fill(levels, levels + count, val);
 
 	return S_OK;
 }
@@ -80,7 +81,8 @@ HRESULT IfaceCalling CConstant_Carb_Ratio_Model::Get_Continuous_Levels(glucose::
 	// for all input times (reference signal times), output constant value
 	// this is generally not true for CR - may vary with time of the day and other physiological aspects
 	
-    std::fill(levels, levels + count, parameters.cr);
+    const double val = derivation_order == glucose::apxNo_Derivation ? parameters.cr : 0.0;
+    std::fill(levels, levels + count, val);
 
 	return S_OK;
 }

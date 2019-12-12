@@ -69,7 +69,7 @@ HRESULT CGE_Discrete_Model::Do_Execute(glucose::UDevice_Event event) {
 
 	if (event.event_code() == glucose::NDevice_Event_Code::Level) {
 		if (event.signal_id() == glucose::signal_Carb_Intake) mWaiting_CHO += event.level();
-		else if (event.signal_id() == glucose::signal_Requested_Basal_Insulin_Rate) {
+		else if (event.signal_id() == glucose::signal_Requested_Insulin_Basal_Rate) {
 			//TODO
 		}
 	}

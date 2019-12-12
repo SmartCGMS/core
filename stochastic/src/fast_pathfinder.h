@@ -71,15 +71,15 @@ protected:
 	double mLinear_Attractor_Factor = 0.25;
 	const std::array<double, 9> mDirections = { 0.9, -0.9, 0.0, 0.45, 0.45, 0.3, -0.3, 0.9 / 4.0, -0.9 / 4.0 };
 
-	void Fill_Population_From_Candidates(const TAligned_Solution_Vector<TUsed_Solution> &candidates) {
+	void Fill_Population_From_Candidates(const TAligned_Solution_Vector<TUsed_Solution>& candidates) {
 		std::vector<double> fitness(candidates.size());
 		std::vector<size_t> indexes(candidates.size());
-	
+
 		std::iota(indexes.begin(), indexes.end(), 0);
-		std::for_each(std::execution::par_unseq, indexes.begin(), indexes.end(), [&fitness, &candidates, this](auto &index) {
-				fitness[index] = mSetup.objective(mSetup.data, candidates[index].data());
-		});
-		
+		std::for_each(std::execution::par_unseq, indexes.begin(), indexes.end(), [&fitness, &candidates, this](auto& index) {
+			fitness[index] = mSetup.objective(mSetup.data, candidates[index].data());
+			});
+
 		std::partial_sort(indexes.begin(), indexes.begin() + mSetup.population_size, indexes.end(), [&fitness](const size_t a, const size_t b) {return fitness[a] < fitness[b]; });
 
 		for (size_t i = 0; i < mSetup.population_size; i++) {
@@ -88,7 +88,7 @@ protected:
 		}
 	}
 
-	TAligned_Solution_Vector<TUsed_Solution> Generate_Spheric_Population(const TUsed_Solution &unit_offset) {
+	TAligned_Solution_Vector<TUsed_Solution> Generate_Spheric_Population(const TUsed_Solution& unit_offset) {
 
 		const auto bounds_range = mUpper_Bound - mLower_Bound;
 
@@ -135,6 +135,67 @@ protected:
 	}
 
 protected:
+
+	using TXY = struct { double x, y; };
+
+	double Find_Extreme(const std::vector<double>& src_x, const std::vector<double>& src_y) {
+		if ((src_x.size() != src_y.size()) || src_x.empty()) return std::numeric_limits<double>::quiet_NaN();
+
+		//first, sort the src x and y so that we can re-adjust x position towards zero for the minimum y
+		//i.e., to maximize the likehood that extreme is near zero
+		std::vector<TXY> vals;
+		for (size_t i = 0; i < src_x.size(); i++) {
+			vals.push_back(TXY{ src_x[i], src_y[i]});
+		}
+
+		std::sort(vals.begin(), vals.end(), [](const TXY& a, const TXY& b) {return a.x < b.x; });
+		auto vals_min = std::min_element(vals.begin(), vals.end(), [](const TXY& a, const TXY& b) {return a.y != b.y ? a.y < b.y : a.x < b.x; });		
+		const double x_offset = vals_min->x;
+		const double y_offset = vals_min->y;
+
+		//shift the x and y values towards the origin
+		for (TXY& xy : vals) {
+			xy.x -= x_offset;
+			xy.y -= y_offset;
+		}
+
+		double result = vals[0].x;
+		double result_fitness = std::numeric_limits<double>::max();
+
+		//first, calculate exact fit per-partes
+		for (size_t i = 1; i < vals.size() - 2; i++) {
+			Eigen::Matrix<double, 3, 3> A;
+			Eigen::Matrix<double, 3, 1> b;			
+			A.setConstant(1.0);
+			
+			for (size_t j = i; j < i + 3; j++) {
+				const double x = vals[j].x;
+				A(j-i, 0) = x * x; A(j-i, 1) = x; b(j-i) = vals[j].y;
+			}
+
+			const Eigen::Vector3d coeff = A.fullPivHouseholderQr().solve(b);
+			if (coeff[0] > 0.0) {
+				const double local_result = -coeff[1] / (2.0 * coeff[0]);
+				const double local_result_fitness = coeff[0] * local_result * local_result + coeff[1] * local_result + coeff[2];
+
+				dprintf(i);
+				dprintf(": [");
+				dprintf(local_result);
+				dprintf(", ");
+				dprintf(local_result_fitness);
+				dprintf("]\n");
+
+				if (local_result_fitness < result_fitness) {
+					result_fitness = local_result_fitness;
+					result = local_result;
+				}
+			}
+		}
+
+		return result+x_offset;
+	}
+
+protected:
 	TAligned_Solution_Vector<fast_pathfinder_internal::TCandidate<TUsed_Solution>> mPopulation;
 
 	TUsed_Solution Calculate_Quadratic_Candidate_From_Population() {
@@ -148,14 +209,21 @@ protected:
 		A.setConstant(1.0);
 		b.resize(mPopulation.size(), Eigen::NoChange);
 
+		std::vector<double> src_x, src_y;
 
-		for (size_t i = 0; i < mPopulation.size(); i++)
+		for (size_t i = 0; i < mPopulation.size(); i++) {
 			b(i) = mPopulation[i].next_fitness;
+			src_y.push_back(b(i));
+		}
 
 		for (size_t j = 0; j < mSetup.problem_size; j++) {
+			src_x.clear();
+
 			for (size_t i = 0; i < mPopulation.size(); i++) {
 				const double x = mPopulation[i].next[j];
 				A(i, 0) = x * x; A(i, 1) = x;
+
+				src_x.push_back(x);
 			}
 
 			//const Eigen::Vector3d coeff = A.jacobiSvd(Eigen::ComputeFullV | Eigen::ComputeFullU).solve(b);	--Beware this one looses precision!
@@ -165,6 +233,9 @@ protected:
 			//2a*x +b = 0 => -b/2a gives the extreme position - the x^2 member must be positive in order for the polynomial to has a minimum
 			if (coeff[0] > 0.0) quadratic[j] = -coeff[1] / (2.0*coeff[0]);				//if not, we preserve the better parameters only																					
 				else quadratic[j] = std::numeric_limits<double>::quiet_NaN();
+
+
+			quadratic[j] = Find_Extreme(src_x, src_y);
 		}
 
 		quadratic = mUpper_Bound.min(mLower_Bound.max(quadratic));

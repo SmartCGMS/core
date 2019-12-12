@@ -54,8 +54,7 @@
 /*
  * DMMS discrete model (pump setting to, and data source from T1DMS simulator)
  */
-class CDMMS_Discrete_Model : public glucose::CBase_Filter, public glucose::IDiscrete_Model
-{
+class CDMMS_Discrete_Model : public glucose::CBase_Filter, public virtual glucose::IDiscrete_Model {
 	private:
 		std::unique_ptr<std::thread> mReceiver_Thread;
 
@@ -83,6 +82,7 @@ class CDMMS_Discrete_Model : public glucose::CBase_Filter, public glucose::IDisc
 
 
 		bool Configure_DMMS();
+		
 	protected:
 		struct DMMS_Announced_Events
 		{

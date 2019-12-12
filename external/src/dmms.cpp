@@ -268,7 +268,7 @@ HRESULT CDMMS_Discrete_Model::Do_Execute(glucose::UDevice_Event event)
 
 	if (event.event_code() == glucose::NDevice_Event_Code::Level)
 	{
-		if (event.signal_id() == glucose::signal_Requested_Basal_Insulin_Rate)
+		if (event.signal_id() == glucose::signal_Requested_Insulin_Basal_Rate)
 		{
 			mToSend.basal_rate = event.level();
 			rc = S_OK;

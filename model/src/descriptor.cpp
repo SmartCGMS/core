@@ -308,7 +308,7 @@ namespace bergman_model {
 		glucose::signal_IG,
 		glucose::signal_IOB,
 		glucose::signal_COB,
-		glucose::signal_Delivered_Insulin_Basal,
+		glucose::signal_Delivered_Insulin_Basal_Rate,
 		glucose::signal_Insulin_Activity,
 	};
 

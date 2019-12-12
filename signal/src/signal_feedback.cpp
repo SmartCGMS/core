@@ -55,6 +55,8 @@ HRESULT IfaceCalling CSignal_Feedback::QueryInterface(const GUID*  riid, void **
 HRESULT CSignal_Feedback::Do_Execute(glucose::UDevice_Event event) {
 
     auto send_to_receiver = [this](glucose::UDevice_Event &event)->HRESULT {
+        if (!mReceiver) return ERROR_DS_DRA_EXTN_CONNECTION_FAILED;
+
         glucose::IDevice_Event* raw_event = event.get();
         event.release();
         return mReceiver->Execute(raw_event);

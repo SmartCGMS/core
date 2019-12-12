@@ -68,13 +68,13 @@ namespace dmms_model {
 	const wchar_t* calculated_signal_names[number_of_calculated_signals] = {
 		L"blood glucose",
 		L"interst. glucose",
-		L"delivered basal insulin"
+		L"delivered basal insulin rate"
 	};
 
 	const GUID reference_signal_ids[number_of_calculated_signals] = {
 		glucose::signal_BG,
 		glucose::signal_IG,
-		glucose::signal_Delivered_Insulin_Basal
+		glucose::signal_Delivered_Insulin_Basal_Rate
 	};
 
 	glucose::TModel_Descriptor desc = {
