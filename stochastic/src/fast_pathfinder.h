@@ -54,9 +54,11 @@ namespace fast_pathfinder_internal {
 		std::vector<size_t> direction_index;
 
 		//the following members guarantee thread safety and avoid memory allocations
+/*
 		TUsed_Solution quadratic;
 		Eigen::Matrix3d A;
 		Eigen::Vector3d b, coeff;
+*/
 	};
 }
 
@@ -68,8 +70,10 @@ protected:
 	solver::TSolver_Setup mSetup;
 protected:
 	double mAngle_Stepping = 0.45;
-	double mLinear_Attractor_Factor = 0.25;
-	const std::array<double, 9> mDirections = { 0.9, -0.9, 0.0, 0.45, 0.45, 0.3, -0.3, 0.9 / 4.0, -0.9 / 4.0 };
+	//double mLinear_Attractor_Factor = 0.25;
+	double mLinear_Attractor_Factor = 0.5;
+	//const std::array<double, 9> mDirections = { 0.9, -0.9, 0.0, 0.45, 0.45, 0.3, -0.3, 0.9 / 4.0, -0.9 / 4.0 };
+	const std::array<double, 1> mDirections = { 0.5 };
 
 	void Fill_Population_From_Candidates(const TAligned_Solution_Vector<TUsed_Solution> &candidates) {
 		std::vector<double> fitness(candidates.size());
@@ -136,8 +140,9 @@ protected:
 
 
 protected:
-	double Solve_Extreme(std::array<double, 3> x, std::array<double, 3> y) { //assumes sorted values
-		const size_t x_min_index = std::distance(x.begin(), std::min_element(x.begin(), x.end()));
+	double Solve_Extreme_convex(std::array<double, 3> x, std::array<double, 3> y) { //assumes sorted values
+		const size_t x_min_index = std::distance(x.begin(), std::min_element(x.begin(), x.end()));		
+
 		const double x_offset = x[x_min_index];
 		const double y_offset = y[x_min_index];
 
@@ -160,6 +165,51 @@ protected:
 
 		return result + x_offset;
 	}
+
+	double Solve_Extreme(std::array<double, 3> x, std::array<double, 3> y) { 
+		Eigen::Matrix<double, 3, 3> A;
+		Eigen::Vector3d b;
+
+		for (size_t row = 0; row < 3; row++) {
+			A(row, 0) = x[row] * x[row]; 
+			A(row, 1) = x[row];
+			A(row, 2) = 1.0;
+
+			b(row) = y[row];
+		}
+
+
+		const Eigen::Vector3d coeff = A.fullPivHouseholderQr().solve(b);
+		double result = std::numeric_limits<double>::quiet_NaN();
+
+		if (coeff[0] > 0.0) {
+			//convex function - let's calculate the analytical minimum
+			//result = -0.5 * coeff[1] / coeff[0]; - symbolically OK, but let's use a more numerically stable solution
+			result = Solve_Extreme_convex(x, y);
+		}
+		else {
+			//concave function - let's expand beyond the least value
+			//we're just guessing at this moment
+			double min_y_value = y[0];
+			double min_x_value = x[0];
+			double avg_x = x[0];
+			for (size_t i = 1; i < 3; i++) {
+				avg_x += x[i];
+				if (y[i] < min_y_value) {
+					min_y_value = y[i];
+					min_x_value = x[i];
+				}
+			}
+
+			avg_x /= 3.0;
+
+			const double difference = min_x_value - avg_x;
+			result = min_x_value + difference*mLinear_Attractor_Factor;
+		}
+
+		return result;
+	}
+
 
 	TUsed_Solution Calculate_Quadratic_Candidate_From_Population(const TAligned_Solution_Vector< fast_pathfinder_internal::TCandidate<TUsed_Solution>> &original_population) {
 
@@ -403,8 +453,8 @@ protected:
 
 				//try to improve by quadratic
 				TUsed_Solution quadratic = Calculate_Quadratic_Candidate_From_Population(mPopulation);
-				for (size_t j = 0; j < mSetup.problem_size; j++)
-					if (isnan(quadratic[j])) quadratic[j] = global_best->current[j];
+//				for (size_t j = 0; j < mSetup.problem_size; j++)
+//					if (isnan(quadratic[j])) quadratic[j] = global_best->current[j];
 
 				const double q_f = mSetup.objective(mSetup.data, quadratic.data());
 				if (q_f < global_best->current_fitness) {
@@ -450,8 +500,8 @@ protected:
 			solution.next = solution.current;
 			solution.next_fitness = solution.current_fitness;
 
-			solution.quadratic.resize(Eigen::NoChange, mSetup.problem_size);
-			solution.A.setConstant(1.0);
+//			solution.quadratic.resize(Eigen::NoChange, mSetup.problem_size);
+//			solution.A.setConstant(1.0);
 
 			solution.direction_index.assign(mSetup.problem_size, 0);
 		}
