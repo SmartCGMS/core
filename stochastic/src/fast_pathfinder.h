@@ -71,7 +71,7 @@ protected:
 protected:
 	double mAngle_Stepping = 0.45;
 	//double mLinear_Attractor_Factor = 0.25;
-	double mLinear_Attractor_Factor = 0.5;
+	//double mLinear_Attractor_Factor = 0.5;
 	//const std::array<double, 9> mDirections = { 0.9, -0.9, 0.0, 0.45, 0.45, 0.3, -0.3, 0.9 / 4.0, -0.9 / 4.0 };
 	const std::array<double, 1> mDirections = { 0.5 };
 
@@ -161,9 +161,25 @@ protected:
 		}
 
 		const Eigen::Vector2d coeff = A.fullPivHouseholderQr().solve(b);
-		const double result = -coeff[1] / (2.0 * coeff[0]);
+		double result = std::numeric_limits<double>::quiet_NaN();
+		if (coeff[0] != 0.0) {
+			result = -coeff[1] / (2.0 * coeff[0]) + x_offset;	//convex polynom
+		}
+		else {
+			//line - let's mirror it
+			auto x_max = std::max_element(x.begin(), x.end());
 
-		return result + x_offset;
+			const double x_diff = *x_max - x_offset;
+
+			if (coeff[1] > 0.0) {
+				result = *x_max + x_diff;				
+			}
+			else
+				result = x_offset - x_diff;			
+		}
+		
+
+		return result;// +x_offset;
 	}
 
 	double Solve_Extreme(std::array<double, 3> x, std::array<double, 3> y) { 
@@ -182,14 +198,16 @@ protected:
 		const Eigen::Vector3d coeff = A.fullPivHouseholderQr().solve(b);
 		double result = std::numeric_limits<double>::quiet_NaN();
 
-		if (coeff[0] > 0.0) {
-			//convex function - let's calculate the analytical minimum
+		if (coeff[0] >= 0.0) {
+			//convex or line function - let's calculate the analytical minimum
 			//result = -0.5 * coeff[1] / coeff[0]; - symbolically OK, but let's use a more numerically stable solution
 			result = Solve_Extreme_convex(x, y);
 		}
 		else {
 			//concave function - let's expand beyond the least value
 			//we're just guessing at this moment
+
+			
 			double min_y_value = y[0];
 			double min_x_value = x[0];
 			double avg_x = x[0];
@@ -204,7 +222,7 @@ protected:
 			avg_x /= 3.0;
 
 			const double difference = min_x_value - avg_x;
-			result = min_x_value + difference*mLinear_Attractor_Factor;
+			result = min_x_value + difference;// *mLinear_Attractor_Factor;
 		}
 
 		return result;
@@ -305,10 +323,42 @@ protected:
 	bool Evolve_Solution(fast_pathfinder_internal::TCandidate<TUsed_Solution>& candidate_solution, const fast_pathfinder_internal::TCandidate<TUsed_Solution>& leading_solution) {
 		//returns true, if found_solution has better found fitness than the current fitness of the candidate_solution
 
+		bool improved = false;
+
 		TAligned_Solution_Vector< fast_pathfinder_internal::TCandidate<TUsed_Solution>> temporal_population;
 		temporal_population.push_back(candidate_solution);
 		temporal_population.push_back(leading_solution);
 
+		TUsed_Solution difference = candidate_solution.current - leading_solution.current;
+
+		auto push_sample = [&](const double offset) {
+			fast_pathfinder_internal::TCandidate<TUsed_Solution> sample;
+			sample.current = candidate_solution.current + offset * difference;
+			sample.next = sample.current = mUpper_Bound.min(mLower_Bound.max(sample.current));
+			sample.current_fitness = sample.next_fitness = mSetup.objective(mSetup.data, sample.current.data());			
+			temporal_population.push_back(sample);
+
+			if (sample.current_fitness < candidate_solution.next_fitness) {
+				candidate_solution.next = sample.current;
+				candidate_solution.next_fitness = sample.current_fitness;
+				improved = true;
+			}
+		};
+
+
+		push_sample(-0.25);
+		//push_sample(-0.125);
+		//push_sample(0.125);
+		push_sample(0.25);
+		//push_sample(0.375);
+		push_sample(0.5);
+		//push_sample(0.625);
+		push_sample(0.75);
+		//push_sample(0.875);
+		//push_sample(1.15);
+		push_sample(1.25);
+
+		/*
 		fast_pathfinder_internal::TCandidate<TUsed_Solution> quadratic_candidate;
 		{
 			const TUsed_Solution difference = candidate_solution.current - leading_solution.current;
@@ -323,14 +373,17 @@ protected:
 
 		temporal_population.push_back(quadratic_candidate);
 
+		*/
+
 
 		TUsed_Solution eval = Calculate_Quadratic_Candidate_From_Population(temporal_population);
 		const double eval_fitness = mSetup.objective(mSetup.data, eval.data());
 
-		bool improved = eval_fitness < candidate_solution.current_fitness;
-		if (improved) {
+		
+		if (eval_fitness < candidate_solution.next_fitness) {
 			candidate_solution.next_fitness = eval_fitness;
 			candidate_solution.next = eval;
+			improved = true;
 		}
 
 		return improved;
@@ -352,7 +405,11 @@ protected:
 			//as each next will be written just once.
 			//We assume that parallelization cost will get amortized			
 			std::for_each(std::execution::par_unseq, mPopulation.begin(), mPopulation.end(), [=](auto &candidate_solution) {
-						
+					
+				//for (size_t i = 0; i < mPopulation.size(); i++) 
+				//	Evolve_Solution(candidate_solution, mPopulation[i]);
+				
+
 				if (!Evolve_Solution(candidate_solution, mPopulation[candidate_solution.leader_index])) {
 
 					candidate_solution.leader_index++;
@@ -364,6 +421,8 @@ protected:
 							if (candidate_solution.direction_index[i] >= mDirections.size()) candidate_solution.direction_index[i] = 0;
 						}
 				}
+
+				
 				
 			});
 
