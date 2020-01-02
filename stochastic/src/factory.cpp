@@ -43,6 +43,7 @@
 #include "HaltonDevice.h"
 #include "MetaDE.h"
 #include "fast_pathfinder.h"
+#include "landscape_pathfinder.h"
 
 template <typename TSolver, typename TUsed_Solution>
 HRESULT Solve_Pathfinder_Spiral(solver::TSolver_Setup& setup, solver::TSolver_Progress& progress) {
@@ -141,8 +142,9 @@ public:
 		mSolver_Id_Map[pathfinder::id_fast] = std::bind(&Solve_By_Class<CFast_Pathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 		//mSolver_Id_Map[pathfinder::id_fast] = std::bind(&Eval_Pathfinder_Angle<CFast_Pathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);  -- diagnostic
 
-
 		mSolver_Id_Map[pathfinder::id_spiral] = std::bind(&Solve_Pathfinder_Spiral<CFast_Pathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+		mSolver_Id_Map[pathfinder::id_landscape] = std::bind(&Solve_By_Class<CLandscape_Pathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+		
 	}
 
 	HRESULT Solve(const GUID &solver_id, solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
