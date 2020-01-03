@@ -213,7 +213,7 @@ protected:
 		double result = std::numeric_limits<double>::quiet_NaN();
 		if (coeff[0] != 0.0) {
 			result = -coeff[1] / (2.0 * coeff[0]) + x_offset;	//convex polynom
-		}
+		}		
 
 		return result;
 	}
@@ -239,7 +239,8 @@ protected:
 
 		double result = std::numeric_limits<double>::quiet_NaN();
 		if ((y[1] < y[0]) && (y[1] < y[2])) {
-			//by all means, this should be a convex function
+			//by all means, this should be a convex function 
+			//its extreme should lie between x[0] and x[2] - but do not trust finite precision arithmetic!
 
 			result = Solve_Extreme_convex(x, y);
 				//result still may be set to NaN if the function was found to be concave or line					
@@ -266,166 +267,6 @@ protected:
 	
 
 		return result;			
-	}
-
-
-protected:
-	double Estimate_Extreme_fast_but_fails_Griewank(const size_t index, const size_t dim) {
-		TUsed_Solution reference = mPopulation[index]->current;
-
-		std::array<double, 3> x = { mPopulation[index - 1]->current[dim],
-										  mPopulation[index]->current[dim],
-										  mPopulation[index + 1]->current[dim] };
-
-		std::array<double, 3> y;
-
-		auto process = [&](const size_t index) {
-			//if (index != 1) x[index] = 0.5*(x[index] + x[1]);
-			x[index] = std::min(mUpper_Bound[dim], std::max(mLower_Bound[dim], x[index]));
-			reference[dim] = x[index];
-			y[index] = mSetup.objective(mSetup.data, reference.data());
-		};
-
-		constexpr double one_third = 1.0 / 3.0;
-		constexpr double two_third = 2.0 / 3.0;
-		x[0] += one_third * (x[1] - x[0]);
-		x[1] += two_third * (x[2] - x[1]);
-		process(0);
-		process(1);
-
-
-		return y[0] < y[1] ? x[0] : x[1];
-
-		
-		{			
-			reference[dim] = x[0];
-			y[0] = mSetup.objective(mSetup.data, reference.data());
-
-			y[1] = mPopulation[index]->current_fitness;
-
-			reference[dim] = x[2];
-			y[2] = mSetup.objective(mSetup.data, reference.data());
-		}
-
-		double result = std::numeric_limits<double>::quiet_NaN();
-		if ((y[1] < y[0]) && (y[1] < y[2])) {
-			//by all means, this should be a convex function
-
-//			result = Solve_Extreme_convex(x, y);
-				//result still may be set to NaN if the function was found to be concave or line			
-
-			auto explore = [&](const size_t index) {
-				if (index != 1) x[index] = 0.5*(x[index] + x[1]);
-				x[index] = std::min(mUpper_Bound[dim], std::max(mLower_Bound[dim], x[index]));
-				reference[dim] = x[index];
-				y[index] = mSetup.objective(mSetup.data, reference.data());
-			};
-
-			explore(0);
-			explore(2);
-
-			result = y[0] < y[2] ? x[0] : x[2];
-		}
-
-
-		if (isnan(result)) {
-			//it seems that the extreme lies out of x[0] and x[2]
-			//let's probe on each side and select the one with better fitness
-
-			auto explore = [&](const size_t index) {
-				x[index] += x[index] - x[1];
-				x[index] = std::min(mUpper_Bound[dim], std::max(mLower_Bound[dim], x[index]));
-				reference[dim] = x[index];
-				y[index] = mSetup.objective(mSetup.data, reference.data());
-			};
-
-			explore(0);
-			explore(2);
-
-			result = y[0] < y[2] ? x[0] : x[2];
-		}
-
-		/*
-		else {
-			//let's try to improve anyway as not all functions behave like x^2
-
-			auto explore = [&](const size_t index) {
-				if (index != 1) x[index] = 0.5*(x[index] + x[1]);
-				x[index] = std::min(mUpper_Bound[dim], std::max(mLower_Bound[dim], x[index]));
-				reference[dim] = x[index];
-				y[index] = mSetup.objective(mSetup.data, reference.data());
-			};
-
-			explore(0);
-			x[1] = result;
-			explore(1);
-			explore(2);
-			
-			const size_t result_index = std::distance(y.begin(), std::min_element(y.begin(), y.end()));
-			result = x[result_index];			
-		}
-		*/
-
-		return result;
-	}
-	
-
-	double Estimate_Extreme_old(const size_t index, const size_t dim) {
-		const std::array<double, 3> x = { mPopulation[index - 1]->current[dim],
-										  mPopulation[index    ]->current[dim],
-										  mPopulation[index + 1]->current[dim]};
-
-		std::array<double, 3> y;
-		{
-			TUsed_Solution reference = mPopulation[index]->current;
-			reference[dim] = x[0];
-			y[0] = mSetup.objective(mSetup.data, reference.data());
-
-			y[1] = mPopulation[index]->current_fitness;
-
-			reference[dim] = x[2];
-			y[2] = mSetup.objective(mSetup.data, reference.data());
-		}
-
-
-			
-		Eigen::Matrix<double, 3, 3> A;
-		Eigen::Vector3d b;
-
-
-		for (size_t row = 0; row < 3; row++) {
-			const double x_val = x[row];
-			A(row, 0) = x_val*x_val;
-			A(row, 1) = x_val;
-			A(row, 2) = 1.0;
-			
-			b(row) = y[row];
-		}
-
-		const Eigen::Vector3d coeff = A.fullPivHouseholderQr().solve(b);
-		double result = std::numeric_limits<double>::quiet_NaN();
-
-		if (coeff[0] > 0.0) {
-			//seems like a convex function - let's calculate the analytical minimum
-			//result = -0.5 * coeff[1] / coeff[0]; - symbolically OK, but let's use a more numerically stable solution
-			result = Solve_Extreme_convex(x, y);
-				//result still may be set to NaN if the function was found to be concave or line
-		}
-
-		if (isnan(result)) {
-			//Being this concanve or line, we prefere to move by two thirds closer
-			//to the less fitness value.
-			//We move by two thirs to avoid a premature degradation of two candidate 
-			//values to a single value, if two adjacent neighbors would move towards each other
-			//and would use 1/2 instead of 2/3.
-
-			constexpr double one_third = 1.0 / 3.0;
-			constexpr double two_third = 2.0 / 3.0;
-			if (y[0] < y[2]) result = x[0] + one_third * (x[1] - x[0]);
-			else result = x[1] + two_third * (x[2] - x[1]);
-		}
-
-		return result;
 	}
 
 protected:
