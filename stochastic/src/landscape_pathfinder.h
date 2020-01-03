@@ -136,57 +136,57 @@ protected:
 		return candidate;
 	}
 
-	void Create_And_Initialize_Population() {		
-		std::map<double, TCandidate> unique_by_fitness;
-			//we need to see a variable landscape so that we can identify the extremes
+void Create_And_Initialize_Population() {
+	std::map<double, TCandidate> unique_by_fitness;
+	//we need to see a variable landscape so that we can identify the extremes
 
-		//1.a insert any available hint
-		for (size_t i = 0; i < mSetup.hint_count; i++) {			
-			TCandidate hint = Raw_To_Candidate_No_Fitness(mSetup.hints[i]);
-			hint->current_fitness = hint->next_fitness = mSetup.objective(mSetup.data, hint->current.data());
-			unique_by_fitness[hint->current_fitness] = std::move(hint);			
-		}
-
-		//1.b insert a hyper-cube center
-		{
-			TCandidate center = std::make_unique<TCandidate_Data>();
-			center->current = center->next = 0.5 * (mUpper_Bound + mLower_Bound);
-			center->current_fitness = center->next_fitness = mSetup.objective(mSetup.data, center->current.data());
-			unique_by_fitness[center->current_fitness] = std::move(center);
-		}
-	
-		
-
-		//2. and try to improve with the spiral, which will also generate the rest of the population
-		//we do not throw away any known solution here to maximize the search-space coverage
-		double best_fitness = std::numeric_limits<double>::max();
-		for (size_t zoom_index = 0; zoom_index < 100; zoom_index++) {
-			//find the best solution as the next spiral center
-			auto global_best = std::min_element(unique_by_fitness.begin(), unique_by_fitness.end(), 
-				[](const auto &a, const auto &b) {
-				return a.first < b.first; }
-			);
-			if (global_best->first >= best_fitness) break;	//improves no more
-
-			const TUsed_Solution unit_offset = Solution_To_Unit_Offset(global_best->second->current);
-			auto solutions = Generate_Spheric_Population(unit_offset);
-
-			//move the solutions to the main population 
-			for (auto &solution : solutions)
-				unique_by_fitness[solution->current_fitness] = std::move(solution);			
-		}
-
-		//3. eventually, keep only the desired-population-size count of the best solutions
-		for (auto &solution : unique_by_fitness)
-			mPopulation.push_back(std::move(solution.second));
-		std::partial_sort(mPopulation.begin(), mPopulation.begin() + mSetup.population_size, mPopulation.end(), Compare_Current_Fitness);
-		mPopulation.resize(mSetup.population_size);
-
-		//4. and insert the bounds to simplify further programming		
-		mPopulation.insert(mPopulation.begin(), std::move(Raw_To_Candidate_No_Fitness(mLower_Bound.data())));
-		mPopulation.push_back(std::move(Raw_To_Candidate_No_Fitness(mUpper_Bound.data())));
-			//note that we do not care about their fitness values as they won't be never used
+//1.a insert any available hint
+	for (size_t i = 0; i < mSetup.hint_count; i++) {
+		TCandidate hint = Raw_To_Candidate_No_Fitness(mSetup.hints[i]);
+		hint->current_fitness = hint->next_fitness = mSetup.objective(mSetup.data, hint->current.data());
+		unique_by_fitness[hint->current_fitness] = std::move(hint);
 	}
+
+	//1.b insert a hyper-cube center
+	{
+		TCandidate center = std::make_unique<TCandidate_Data>();
+		center->current = center->next = 0.5 * (mUpper_Bound + mLower_Bound);
+		center->current_fitness = center->next_fitness = mSetup.objective(mSetup.data, center->current.data());
+		unique_by_fitness[center->current_fitness] = std::move(center);
+	}
+
+
+
+	//2. and try to improve with the spiral, which will also generate the rest of the population
+	//we do not throw away any known solution here to maximize the search-space coverage
+	double best_fitness = std::numeric_limits<double>::max();
+	for (size_t zoom_index = 0; zoom_index < 100; zoom_index++) {
+		//find the best solution as the next spiral center
+		auto global_best = std::min_element(unique_by_fitness.begin(), unique_by_fitness.end(),
+			[](const auto &a, const auto &b) {
+			return a.first < b.first; }
+		);
+		if (global_best->first >= best_fitness) break;	//improves no more
+
+		const TUsed_Solution unit_offset = Solution_To_Unit_Offset(global_best->second->current);
+		auto solutions = Generate_Spheric_Population(unit_offset);
+
+		//move the solutions to the main population 
+		for (auto &solution : solutions)
+			unique_by_fitness[solution->current_fitness] = std::move(solution);
+	}
+
+	//3. eventually, keep only the desired-population-size count of the best solutions
+	for (auto &solution : unique_by_fitness)
+		mPopulation.push_back(std::move(solution.second));
+	std::partial_sort(mPopulation.begin(), mPopulation.begin() + mSetup.population_size, mPopulation.end(), Compare_Current_Fitness);
+	mPopulation.resize(mSetup.population_size);
+
+	//4. and insert the bounds to simplify further programming		
+	mPopulation.insert(mPopulation.begin(), std::move(Raw_To_Candidate_No_Fitness(mLower_Bound.data())));
+	mPopulation.push_back(std::move(Raw_To_Candidate_No_Fitness(mUpper_Bound.data())));
+	//note that we do not care about their fitness values as they won't be never used
+}
 
 
 protected:
@@ -214,11 +214,163 @@ protected:
 		if (coeff[0] != 0.0) {
 			result = -coeff[1] / (2.0 * coeff[0]) + x_offset;	//convex polynom
 		}
+
+		return result;
+	}
+
+	double Estimate_Extreme(const size_t index, const size_t dim) {
+		TUsed_Solution reference = mPopulation[index]->current;
+
+		std::array<double, 3> x = { mPopulation[index - 1]->current[dim],
+										  mPopulation[index]->current[dim],
+										  mPopulation[index + 1]->current[dim] };
+
+		std::array<double, 3> y;
+
+		{
+			reference[dim] = x[0];
+			y[0] = mSetup.objective(mSetup.data, reference.data());
+
+			y[1] = mPopulation[index]->current_fitness;
+
+			reference[dim] = x[2];
+			y[2] = mSetup.objective(mSetup.data, reference.data());
+		}
+
+		double result = std::numeric_limits<double>::quiet_NaN();
+		if ((y[1] < y[0]) && (y[1] < y[2])) {
+			//by all means, this should be a convex function
+
+			result = Solve_Extreme_convex(x, y);
+				//result still may be set to NaN if the function was found to be concave or line					
+		}
+
+
+		if (isnan(result)) {
+			//it seems that the extreme lies out of x[0] and x[2]
+			//let's probe on each side and select the one with better fitness
+
+			auto explore = [&](const size_t index) {
+				x[index] += x[index] - x[1];
+				x[index] = std::min(mUpper_Bound[dim], std::max(mLower_Bound[dim], x[index]));
+				reference[dim] = x[index];
+				y[index] = mSetup.objective(mSetup.data, reference.data());
+			};
+
+			explore(0);
+			explore(2);
+
+			result = y[0] < y[2] ? x[0] : x[2];
+		} else
+			result = std::min(mUpper_Bound[dim], std::max(mLower_Bound[dim], result));
+	
+
+		return result;			
+	}
+
+
+protected:
+	double Estimate_Extreme_fast_but_fails_Griewank(const size_t index, const size_t dim) {
+		TUsed_Solution reference = mPopulation[index]->current;
+
+		std::array<double, 3> x = { mPopulation[index - 1]->current[dim],
+										  mPopulation[index]->current[dim],
+										  mPopulation[index + 1]->current[dim] };
+
+		std::array<double, 3> y;
+
+		auto process = [&](const size_t index) {
+			//if (index != 1) x[index] = 0.5*(x[index] + x[1]);
+			x[index] = std::min(mUpper_Bound[dim], std::max(mLower_Bound[dim], x[index]));
+			reference[dim] = x[index];
+			y[index] = mSetup.objective(mSetup.data, reference.data());
+		};
+
+		constexpr double one_third = 1.0 / 3.0;
+		constexpr double two_third = 2.0 / 3.0;
+		x[0] += one_third * (x[1] - x[0]);
+		x[1] += two_third * (x[2] - x[1]);
+		process(0);
+		process(1);
+
+
+		return y[0] < y[1] ? x[0] : x[1];
+
 		
+		{			
+			reference[dim] = x[0];
+			y[0] = mSetup.objective(mSetup.data, reference.data());
+
+			y[1] = mPopulation[index]->current_fitness;
+
+			reference[dim] = x[2];
+			y[2] = mSetup.objective(mSetup.data, reference.data());
+		}
+
+		double result = std::numeric_limits<double>::quiet_NaN();
+		if ((y[1] < y[0]) && (y[1] < y[2])) {
+			//by all means, this should be a convex function
+
+//			result = Solve_Extreme_convex(x, y);
+				//result still may be set to NaN if the function was found to be concave or line			
+
+			auto explore = [&](const size_t index) {
+				if (index != 1) x[index] = 0.5*(x[index] + x[1]);
+				x[index] = std::min(mUpper_Bound[dim], std::max(mLower_Bound[dim], x[index]));
+				reference[dim] = x[index];
+				y[index] = mSetup.objective(mSetup.data, reference.data());
+			};
+
+			explore(0);
+			explore(2);
+
+			result = y[0] < y[2] ? x[0] : x[2];
+		}
+
+
+		if (isnan(result)) {
+			//it seems that the extreme lies out of x[0] and x[2]
+			//let's probe on each side and select the one with better fitness
+
+			auto explore = [&](const size_t index) {
+				x[index] += x[index] - x[1];
+				x[index] = std::min(mUpper_Bound[dim], std::max(mLower_Bound[dim], x[index]));
+				reference[dim] = x[index];
+				y[index] = mSetup.objective(mSetup.data, reference.data());
+			};
+
+			explore(0);
+			explore(2);
+
+			result = y[0] < y[2] ? x[0] : x[2];
+		}
+
+		/*
+		else {
+			//let's try to improve anyway as not all functions behave like x^2
+
+			auto explore = [&](const size_t index) {
+				if (index != 1) x[index] = 0.5*(x[index] + x[1]);
+				x[index] = std::min(mUpper_Bound[dim], std::max(mLower_Bound[dim], x[index]));
+				reference[dim] = x[index];
+				y[index] = mSetup.objective(mSetup.data, reference.data());
+			};
+
+			explore(0);
+			x[1] = result;
+			explore(1);
+			explore(2);
+			
+			const size_t result_index = std::distance(y.begin(), std::min_element(y.begin(), y.end()));
+			result = x[result_index];			
+		}
+		*/
+
 		return result;
 	}
 	
-	double Estimate_Extreme(const size_t index, const size_t dim) {
+
+	double Estimate_Extreme_old(const size_t index, const size_t dim) {
 		const std::array<double, 3> x = { mPopulation[index - 1]->current[dim],
 										  mPopulation[index    ]->current[dim],
 										  mPopulation[index + 1]->current[dim]};
@@ -298,7 +450,7 @@ protected:
 				//attempt to improve in this particular dimension
 				std::for_each(std::execution::par_unseq, indexes.begin(), indexes.end(), [dim, this](const size_t index) {					
 					double estimate = Estimate_Extreme(index, dim);
-					estimate = std::min(mUpper_Bound[dim], std::max(mLower_Bound[dim], estimate));
+					//estimate = std::min(mUpper_Bound[dim], std::max(mLower_Bound[dim], estimate));
 					mPopulation[index]->next[dim] = estimate;
 					mPopulation[index]->next_fitness = mSetup.objective(mSetup.data, mPopulation[index]->next.data());
 				});
