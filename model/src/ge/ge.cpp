@@ -40,7 +40,7 @@
 
 #include "ge.h"
 
-CGE_Discrete_Model::CGE_Discrete_Model(glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output) : CBase_Filter(output) {
+CGE_Discrete_Model::CGE_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output) : CBase_Filter(output) {
 
 }
 
@@ -53,7 +53,7 @@ void CGE_Discrete_Model::Fixed_Step() {
 }
 
 void CGE_Discrete_Model::Emit_Current_State() {
-	glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Level };
+	scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
 
 	evt.device_id() = ge_model::model_id;
 	evt.device_time() = mCurrent_Time;
@@ -65,11 +65,11 @@ void CGE_Discrete_Model::Emit_Current_State() {
 }
 
 
-HRESULT CGE_Discrete_Model::Do_Execute(glucose::UDevice_Event event) {
+HRESULT CGE_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 
-	if (event.event_code() == glucose::NDevice_Event_Code::Level) {
-		if (event.signal_id() == glucose::signal_Carb_Intake) mWaiting_CHO += event.level();
-		else if (event.signal_id() == glucose::signal_Requested_Insulin_Basal_Rate) {
+	if (event.event_code() == scgms::NDevice_Event_Code::Level) {
+		if (event.signal_id() == scgms::signal_Carb_Intake) mWaiting_CHO += event.level();
+		else if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate) {
 			//TODO
 		}
 	}
@@ -77,7 +77,7 @@ HRESULT CGE_Discrete_Model::Do_Execute(glucose::UDevice_Event event) {
 	return Send(event);
 }
 
-HRESULT CGE_Discrete_Model::Do_Configure(glucose::SFilter_Configuration configuration) {
+HRESULT CGE_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration) {
 	return E_NOTIMPL;
 }
 

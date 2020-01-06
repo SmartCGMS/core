@@ -52,9 +52,9 @@ namespace dmms_model {
 		L"Excercise announce delta",
 	};
 
-	const glucose::NModel_Parameter_Value model_param_types[model_param_count] = {
-		glucose::NModel_Parameter_Value::mptTime,
-		glucose::NModel_Parameter_Value::mptTime,
+	const scgms::NModel_Parameter_Value model_param_types[model_param_count] = {
+		scgms::NModel_Parameter_Value::mptTime,
+		scgms::NModel_Parameter_Value::mptTime,
 	};
 
 	constexpr size_t number_of_calculated_signals = 3;
@@ -72,12 +72,12 @@ namespace dmms_model {
 	};
 
 	const GUID reference_signal_ids[number_of_calculated_signals] = {
-		glucose::signal_BG,
-		glucose::signal_IG,
-		glucose::signal_Delivered_Insulin_Basal_Rate
+		scgms::signal_BG,
+		scgms::signal_IG,
+		scgms::signal_Delivered_Insulin_Basal_Rate
 	};
 
-	glucose::TModel_Descriptor desc = {
+	scgms::TModel_Descriptor desc = {
 		model_id,
 		L"DMMS discrete model",
 		nullptr,
@@ -96,17 +96,17 @@ namespace dmms_model {
 	};
 }
 
-const std::array<glucose::TModel_Descriptor, 1> model_descriptions = { { dmms_model::desc } };
+const std::array<scgms::TModel_Descriptor, 1> model_descriptions = { { dmms_model::desc } };
 
 
-HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end) {
-	*begin = const_cast<glucose::TModel_Descriptor*>(model_descriptions.data());
+HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
+	*begin = const_cast<scgms::TModel_Descriptor*>(model_descriptions.data());
 	*end = *begin + model_descriptions.size();
 	return S_OK;
 }
 
 
-HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output, glucose::IDiscrete_Model **model) {
+HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
 	if (*model_id == dmms_model::model_id) return Manufacture_Object<CDMMS_Discrete_Model>(model, parameters, output);
 	else return E_NOTIMPL;
 }

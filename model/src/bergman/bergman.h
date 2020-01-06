@@ -104,7 +104,7 @@ struct CEquation_Binding
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CBergman_Discrete_Model : public virtual glucose::CBase_Filter, public virtual glucose::IDiscrete_Model
+class CBergman_Discrete_Model : public virtual scgms::CBase_Filter, public virtual scgms::IDiscrete_Model
 {
 	private:
 		// maximum accepted error estimate for ODE solvers for this model
@@ -152,15 +152,15 @@ class CBergman_Discrete_Model : public virtual glucose::CBase_Filter, public vir
 		void Emit_All_Signals(double time_advance_delta);
 
 	protected:
-		// glucose::CBase_Filter iface implementation
-		virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
-		virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+		// scgms::CBase_Filter iface implementation
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
 
 	public:
-		CBergman_Discrete_Model(glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output);
+		CBergman_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output);
 		virtual ~CBergman_Discrete_Model() = default;
 
-		// glucose::IDiscrete_Model iface
+		// scgms::IDiscrete_Model iface
 		virtual HRESULT IfaceCalling Set_Current_Time(const double new_current_time);
 		virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
 };

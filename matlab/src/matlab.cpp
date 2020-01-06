@@ -86,7 +86,7 @@ void CMatlab_Factory::Parse_Manifest() {
 	Parse_Solvers(parser);
 }
 
-HRESULT CMatlab_Factory::Create_Signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal** signal) {
+HRESULT CMatlab_Factory::Create_Signal(const GUID *calc_id, scgms::ITime_Segment *segment, scgms::ISignal** signal) {
 
 	for (const auto& model : mModels) {
 		for (size_t i = 0; i < model.second.signalGUIDs.size(); i++) {
@@ -98,7 +98,7 @@ HRESULT CMatlab_Factory::Create_Signal(const GUID *calc_id, glucose::ITime_Segme
 	return E_NOTIMPL;
 }
 
-HRESULT CMatlab_Factory::Solve(const glucose::TSolver_Setup *setup) {
+HRESULT CMatlab_Factory::Solve(const scgms::TSolver_Setup *setup) {
 	if (setup->segment_count == 0) return E_INVALIDARG;
 	if (mSolvers.find(setup->solver_id) == mSolvers.end()) return E_NOTIMPL;
 
@@ -106,17 +106,17 @@ HRESULT CMatlab_Factory::Solve(const glucose::TSolver_Setup *setup) {
 
 	try
 	{
-		auto shared_segments = refcnt::Referenced_To_Vector<glucose::STime_Segment, glucose::ITime_Segment>(setup->segments, setup->segment_count);
-		const auto shared_lower = refcnt::make_shared_reference_ext<glucose::SModel_Parameter_Vector, glucose::IModel_Parameter_Vector>(setup->lower_bound, true);
-		const auto shared_upper = refcnt::make_shared_reference_ext<glucose::SModel_Parameter_Vector, glucose::IModel_Parameter_Vector>(setup->upper_bound, true);
-		auto shared_solved = refcnt::make_shared_reference_ext<glucose::SModel_Parameter_Vector, glucose::IModel_Parameter_Vector>(setup->solved_parameters, true);
-		auto shared_hints = refcnt::Referenced_To_Vector<glucose::SModel_Parameter_Vector, glucose::IModel_Parameter_Vector>(setup->solution_hints, setup->hint_count);
+		auto shared_segments = refcnt::Referenced_To_Vector<scgms::STime_Segment, scgms::ITime_Segment>(setup->segments, setup->segment_count);
+		const auto shared_lower = refcnt::make_shared_reference_ext<scgms::SModel_Parameter_Vector, scgms::IModel_Parameter_Vector>(setup->lower_bound, true);
+		const auto shared_upper = refcnt::make_shared_reference_ext<scgms::SModel_Parameter_Vector, scgms::IModel_Parameter_Vector>(setup->upper_bound, true);
+		auto shared_solved = refcnt::make_shared_reference_ext<scgms::SModel_Parameter_Vector, scgms::IModel_Parameter_Vector>(setup->solved_parameters, true);
+		auto shared_hints = refcnt::Referenced_To_Vector<scgms::SModel_Parameter_Vector, scgms::IModel_Parameter_Vector>(setup->solution_hints, setup->hint_count);
 
-		glucose::SModel_Parameter_Vector default_parameters;
+		scgms::SModel_Parameter_Vector default_parameters;
 		if (shared_hints.empty()) {
 			auto signal = shared_segments[0].Get_Signal(setup->calculated_signal_id);
 			if (signal) {
-				default_parameters = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(nullptr, nullptr);
+				default_parameters = refcnt::Create_Container_shared<double, scgms::SModel_Parameter_Vector>(nullptr, nullptr);
 				if (signal->Get_Default_Parameters(default_parameters.get()) == S_OK)
 					shared_hints.push_back(default_parameters);
 			}
@@ -130,7 +130,7 @@ HRESULT CMatlab_Factory::Solve(const glucose::TSolver_Setup *setup) {
 		size_t paramCnt = 0;
 		double *pbegin, *pend;
 
-		const auto appendParamContents = [&paramCnt](const glucose::SModel_Parameter_Vector& vec, std::vector<double>& target) {
+		const auto appendParamContents = [&paramCnt](const scgms::SModel_Parameter_Vector& vec, std::vector<double>& target) {
 			double *pbegin, *pend;
 			if (vec->get(&pbegin, &pend) != S_OK)
 				return;
@@ -321,7 +321,7 @@ bool CMatlab_Factory::Parse_Models(CXML_Parser<wchar_t> &parser)
 			target.paramNames_Proxy.push_back(target.paramNames[i].c_str());
 			target.paramDBColumnNames_Proxy.push_back(target.paramDBColumnNames[i].c_str());
 			// TODO: allow user to define his own parameter type in model XML file
-			target.paramTypes.push_back(glucose::NModel_Parameter_Value::mptDouble);
+			target.paramTypes.push_back(scgms::NModel_Parameter_Value::mptDouble);
 		}
 
 		for (const auto& itr : target.signalNames)

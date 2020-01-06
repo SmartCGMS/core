@@ -44,17 +44,17 @@
 #include "../../../../common/rtl/rattime.h"
 #include "../../../../common/rtl/SolverLib.h"
 
-CBetaPID_Insulin_Regulation::CBetaPID_Insulin_Regulation(glucose::WTime_Segment segment)
-	: CCommon_Calculated_Signal(segment), mBG(segment.Get_Signal(glucose::signal_BG)), mIOB(segment.Get_Signal(glucose::signal_IOB)) {
+CBetaPID_Insulin_Regulation::CBetaPID_Insulin_Regulation(scgms::WTime_Segment segment)
+	: CCommon_Calculated_Signal(segment), mBG(segment.Get_Signal(scgms::signal_BG)), mIOB(segment.Get_Signal(scgms::signal_IOB)) {
 	//
 }
 
-HRESULT CBetaPID_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+HRESULT CBetaPID_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	betapid_insulin_regulation::TParameters &parameters = glucose::Convert_Parameters<betapid_insulin_regulation::TParameters>(params, betapid_insulin_regulation::default_parameters);
+	betapid_insulin_regulation::TParameters &parameters = scgms::Convert_Parameters<betapid_insulin_regulation::TParameters>(params, betapid_insulin_regulation::default_parameters);
 
-	const double h = glucose::One_Minute * 1.0;
+	const double h = scgms::One_Minute * 1.0;
 	const size_t integral_history = 30;
 	const double targetBG = 5.0;
 
@@ -62,12 +62,12 @@ HRESULT CBetaPID_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Param
 
 	std::vector<double> BGs(count);
 	std::fill(BGs.begin(), BGs.end(), std::numeric_limits<double>::quiet_NaN());
-	HRESULT rc = mBG->Get_Continuous_Levels(nullptr, times, BGs.data(), count, glucose::apxNo_Derivation);
+	HRESULT rc = mBG->Get_Continuous_Levels(nullptr, times, BGs.data(), count, scgms::apxNo_Derivation);
 	if (!SUCCEEDED(rc)) return rc;
 
 	std::vector<double> IOBs(count);
 	std::fill(IOBs.begin(), IOBs.end(), 0.0);
-	rc = mIOB->Get_Continuous_Levels(nullptr, times, IOBs.data(), count, glucose::apxNo_Derivation);
+	rc = mIOB->Get_Continuous_Levels(nullptr, times, IOBs.data(), count, scgms::apxNo_Derivation);
 	if (!SUCCEEDED(rc)) return rc;
 
 	for (size_t i = 0; i < count; i++)
@@ -97,14 +97,14 @@ HRESULT CBetaPID_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Param
 		std::fill(historyBGs.begin(), historyBGs.end(), std::numeric_limits<double>::quiet_NaN());
 
 		// retrieve history
-		rc = mBG->Get_Continuous_Levels(nullptr, historyTimes.data(), historyBGs.data(), integral_history, glucose::apxNo_Derivation);
+		rc = mBG->Get_Continuous_Levels(nullptr, historyTimes.data(), historyBGs.data(), integral_history, scgms::apxNo_Derivation);
 		if (!SUCCEEDED(rc)) return rc;
 
 		// approximate integral of error, int_0^t e(tau) dtau =~= sum_i=0^hist e(t-i*h)*h
 		for (size_t j = 0; j < integral_history; j++)
 			eintegral += std::isnan(historyBGs[j]) ? 0.0 : (targetBG - historyBGs[j]); // *h --> omit the width parameter, as its constant, and would still be included in Ki parameter
 
-		rc = mBG->Get_Continuous_Levels(nullptr, &times[i], &ederivative, 1, glucose::apxFirst_Order_Derivation);
+		rc = mBG->Get_Continuous_Levels(nullptr, &times[i], &ederivative, 1, scgms::apxFirst_Order_Derivation);
 		if (SUCCEEDED(rc)) {
 			// error trend has exactly opposite sign than current BG trend
 			ederivative *= -1;
@@ -137,7 +137,7 @@ HRESULT CBetaPID_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Param
 	return S_OK;
 }
 
-HRESULT CBetaPID_Insulin_Regulation::Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const
+HRESULT CBetaPID_Insulin_Regulation::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const
 {
 	double *params = const_cast<double*>(betapid_insulin_regulation::default_parameters);
 	return parameters->set(params, params + betapid_insulin_regulation::param_count);
@@ -145,17 +145,17 @@ HRESULT CBetaPID_Insulin_Regulation::Get_Default_Parameters(glucose::IModel_Para
 
 ////////////////////////////////////// BetaPID2
 
-CBetaPID2_Insulin_Regulation::CBetaPID2_Insulin_Regulation(glucose::WTime_Segment segment)
-	: CCommon_Calculated_Signal(segment), mIG(segment.Get_Signal(glucose::signal_IG)), mIOB(segment.Get_Signal(glucose::signal_IOB)), mCOB(segment.Get_Signal(glucose::signal_COB)) {
+CBetaPID2_Insulin_Regulation::CBetaPID2_Insulin_Regulation(scgms::WTime_Segment segment)
+	: CCommon_Calculated_Signal(segment), mIG(segment.Get_Signal(scgms::signal_IG)), mIOB(segment.Get_Signal(scgms::signal_IOB)), mCOB(segment.Get_Signal(scgms::signal_COB)) {
 	//
 }
 
-HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	betapid_insulin_regulation::TParameters &parameters = glucose::Convert_Parameters<betapid_insulin_regulation::TParameters>(params, betapid_insulin_regulation::default_parameters);
+	betapid_insulin_regulation::TParameters &parameters = scgms::Convert_Parameters<betapid_insulin_regulation::TParameters>(params, betapid_insulin_regulation::default_parameters);
 
-	const double h = glucose::One_Minute * 1.0;
+	const double h = scgms::One_Minute * 1.0;
 	const size_t integral_history = 30;
 	const size_t derivative_smooth_history = 5;
 	const double targetBG = 6.66;
@@ -164,17 +164,17 @@ HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Para
 
 	std::vector<double> IGs(count);
 	std::fill(IGs.begin(), IGs.end(), std::numeric_limits<double>::quiet_NaN());
-	HRESULT rc = mIG->Get_Continuous_Levels(nullptr, times, IGs.data(), count, glucose::apxNo_Derivation);
+	HRESULT rc = mIG->Get_Continuous_Levels(nullptr, times, IGs.data(), count, scgms::apxNo_Derivation);
 	if (!SUCCEEDED(rc)) return rc;
 
 	std::vector<double> IOBs(count);
 	std::fill(IOBs.begin(), IOBs.end(), 0.0);
-	rc = mIOB->Get_Continuous_Levels(nullptr, times, IOBs.data(), count, glucose::apxNo_Derivation);
+	rc = mIOB->Get_Continuous_Levels(nullptr, times, IOBs.data(), count, scgms::apxNo_Derivation);
 	if (!SUCCEEDED(rc)) return rc;
 
 	std::vector<double> COBs(count);
 	std::fill(COBs.begin(), COBs.end(), 0.0);
-	rc = mCOB->Get_Continuous_Levels(nullptr, times, COBs.data(), count, glucose::apxNo_Derivation);
+	rc = mCOB->Get_Continuous_Levels(nullptr, times, COBs.data(), count, scgms::apxNo_Derivation);
 	if (!SUCCEEDED(rc)) return rc;
 
 	const auto e = [targetBG](const double v) {
@@ -209,7 +209,7 @@ HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Para
 		std::fill(historyIGs.begin(), historyIGs.end(), std::numeric_limits<double>::quiet_NaN());
 
 		// retrieve history
-		rc = mIG->Get_Continuous_Levels(nullptr, historyTimes.data(), historyIGs.data(), integral_history, glucose::apxNo_Derivation);
+		rc = mIG->Get_Continuous_Levels(nullptr, historyTimes.data(), historyIGs.data(), integral_history, scgms::apxNo_Derivation);
 		if (!SUCCEEDED(rc)) return rc;
 
 		// approximate integral of error, int_0^t e(tau) dtau =~= sum_i=0^hist e(t-i*h)*h
@@ -219,9 +219,9 @@ HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Para
 		double derTimes[derivative_smooth_history];
 		double valArray[derivative_smooth_history];
 		for (size_t j = 1; j <= derivative_smooth_history; j++)
-			derTimes[j - 1] = times[i] - (glucose::One_Minute * 5 * (derivative_smooth_history - j));
+			derTimes[j - 1] = times[i] - (scgms::One_Minute * 5 * (derivative_smooth_history - j));
 
-		rc = mIG->Get_Continuous_Levels(nullptr, derTimes, valArray, derivative_smooth_history, glucose::apxNo_Derivation);
+		rc = mIG->Get_Continuous_Levels(nullptr, derTimes, valArray, derivative_smooth_history, scgms::apxNo_Derivation);
 		if (SUCCEEDED(rc))
 		{
 			bool valid = true;
@@ -229,7 +229,7 @@ HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Para
 				valid &= !std::isnan(valArray[j]);
 
 			if (valid)
-				ederivative = (-e(valArray[derivative_smooth_history - 1]) + 8 * e(valArray[derivative_smooth_history - 2]) - 8 * e(valArray[derivative_smooth_history - 4]) + e(valArray[derivative_smooth_history - 5])) / (12 * glucose::One_Minute * 5);
+				ederivative = (-e(valArray[derivative_smooth_history - 1]) + 8 * e(valArray[derivative_smooth_history - 2]) - 8 * e(valArray[derivative_smooth_history - 4]) + e(valArray[derivative_smooth_history - 5])) / (12 * scgms::One_Minute * 5);
 		} else
 			return rc;
 
@@ -260,7 +260,7 @@ HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Para
 	return S_OK;
 }
 
-HRESULT CBetaPID2_Insulin_Regulation::Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const
+HRESULT CBetaPID2_Insulin_Regulation::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const
 {
 	double *params = const_cast<double*>(betapid_insulin_regulation::default_parameters);
 	return parameters->set(params, params + betapid_insulin_regulation::param_count);
@@ -268,17 +268,17 @@ HRESULT CBetaPID2_Insulin_Regulation::Get_Default_Parameters(glucose::IModel_Par
 
 ////////////////////////////////////// BetaPID3
 
-CBetaPID3_Insulin_Regulation::CBetaPID3_Insulin_Regulation(glucose::WTime_Segment segment)
-	: CCommon_Calculated_Signal(segment), mIG(segment.Get_Signal(glucose::signal_IG)), mIOB(segment.Get_Signal(glucose::signal_IOB)), mCOB(segment.Get_Signal(glucose::signal_COB)), mISF(segment.Get_Signal(glucose::signal_Insulin_Sensitivity)), mCR(segment.Get_Signal(glucose::signal_Carb_Ratio)) {
+CBetaPID3_Insulin_Regulation::CBetaPID3_Insulin_Regulation(scgms::WTime_Segment segment)
+	: CCommon_Calculated_Signal(segment), mIG(segment.Get_Signal(scgms::signal_IG)), mIOB(segment.Get_Signal(scgms::signal_IOB)), mCOB(segment.Get_Signal(scgms::signal_COB)), mISF(segment.Get_Signal(scgms::signal_Insulin_Sensitivity)), mCR(segment.Get_Signal(scgms::signal_Carb_Ratio)) {
 	//
 }
 
-HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	betapid3_insulin_regulation::TParameters &parameters = glucose::Convert_Parameters<betapid3_insulin_regulation::TParameters>(params, betapid3_insulin_regulation::default_parameters);
+	betapid3_insulin_regulation::TParameters &parameters = scgms::Convert_Parameters<betapid3_insulin_regulation::TParameters>(params, betapid3_insulin_regulation::default_parameters);
 
-	const double h = glucose::One_Minute * 5.0;
+	const double h = scgms::One_Minute * 5.0;
 	const size_t integral_history = 12;
 	const size_t derivative_smooth_history = 5;
 	const double targetBG = 5.5;
@@ -287,27 +287,27 @@ HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Para
 
 	std::vector<double> BGs(count);
 	std::fill(BGs.begin(), BGs.end(), std::numeric_limits<double>::quiet_NaN());
-	HRESULT rc =mIG->Get_Continuous_Levels(nullptr, times, BGs.data(), count, glucose::apxNo_Derivation);
+	HRESULT rc =mIG->Get_Continuous_Levels(nullptr, times, BGs.data(), count, scgms::apxNo_Derivation);
 	if (!SUCCEEDED(rc)) return rc;
 
 	std::vector<double> IOBs(count);
 	std::fill(IOBs.begin(), IOBs.end(), 0.0);
-	rc = mIOB->Get_Continuous_Levels(nullptr, times, IOBs.data(), count, glucose::apxNo_Derivation);
+	rc = mIOB->Get_Continuous_Levels(nullptr, times, IOBs.data(), count, scgms::apxNo_Derivation);
 	if (!SUCCEEDED(rc)) return rc;
 
 	std::vector<double> COBs(count);
 	std::fill(COBs.begin(), COBs.end(), 0.0);
-	rc = mCOB->Get_Continuous_Levels(nullptr, times, COBs.data(), count, glucose::apxNo_Derivation);
+	rc = mCOB->Get_Continuous_Levels(nullptr, times, COBs.data(), count, scgms::apxNo_Derivation);
 	if (!SUCCEEDED(rc)) return rc;
 
 	std::vector<double> ISFs(count);
 	std::fill(ISFs.begin(), ISFs.end(), 0.0);
-	rc = mISF->Get_Continuous_Levels(nullptr, times, ISFs.data(), count, glucose::apxNo_Derivation);
+	rc = mISF->Get_Continuous_Levels(nullptr, times, ISFs.data(), count, scgms::apxNo_Derivation);
 	if (!SUCCEEDED(rc)) return rc;
 
 	std::vector<double> CRs(count);
 	std::fill(CRs.begin(), CRs.end(), 0.0);
-	rc = mCR->Get_Continuous_Levels(nullptr, times, CRs.data(), count, glucose::apxNo_Derivation);
+	rc = mCR->Get_Continuous_Levels(nullptr, times, CRs.data(), count, scgms::apxNo_Derivation);
 	if (!SUCCEEDED(rc)) return rc;
 
 	double derTimes[derivative_smooth_history];
@@ -350,7 +350,7 @@ HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Para
 			std::fill(historyBGs.begin(), historyBGs.end(), std::numeric_limits<double>::quiet_NaN());
 
 			// retrieve history
-			rc = mIG->Get_Continuous_Levels(nullptr, historyTimes.data(), historyBGs.data(), integral_history, glucose::apxNo_Derivation);
+			rc = mIG->Get_Continuous_Levels(nullptr, historyTimes.data(), historyBGs.data(), integral_history, scgms::apxNo_Derivation);
 			if (!SUCCEEDED(rc)) return rc;
 
 			// approximate integral of error (Riemann), int_0^t e(tau) dtau =~= sum_i=0^hist e(t-i*h)*h
@@ -366,9 +366,9 @@ HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Para
 		// calculate derivative part
 		{
 			for (size_t j = 1; j <= derivative_smooth_history; j++)
-				derTimes[j - 1] = times[i] - (glucose::One_Minute * 5 * (derivative_smooth_history - j));
+				derTimes[j - 1] = times[i] - (scgms::One_Minute * 5 * (derivative_smooth_history - j));
 
-			rc = mIG->Get_Continuous_Levels(nullptr, derTimes, valArray, derivative_smooth_history, glucose::apxNo_Derivation);
+			rc = mIG->Get_Continuous_Levels(nullptr, derTimes, valArray, derivative_smooth_history, scgms::apxNo_Derivation);
 			if (SUCCEEDED(rc))
 			{
 				valid = true;
@@ -379,7 +379,7 @@ HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Para
 
 				// five-point method of derivative approximation
 				if (valid)
-					ederivative = (-e(valArray[derivative_smooth_history - 1]) + 8 * e(valArray[derivative_smooth_history - 2]) - 8 * e(valArray[derivative_smooth_history - 4]) + e(valArray[derivative_smooth_history - 5])) / (12 * glucose::One_Minute * 5);
+					ederivative = (-e(valArray[derivative_smooth_history - 1]) + 8 * e(valArray[derivative_smooth_history - 2]) - 8 * e(valArray[derivative_smooth_history - 4]) + e(valArray[derivative_smooth_history - 5])) / (12 * scgms::One_Minute * 5);
 			}
 			else return rc;
 
@@ -422,7 +422,7 @@ HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(glucose::IModel_Para
 	return S_OK;
 }
 
-HRESULT CBetaPID3_Insulin_Regulation::Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const
+HRESULT CBetaPID3_Insulin_Regulation::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const
 {
 	double *params = const_cast<double*>(betapid3_insulin_regulation::default_parameters);
 	return parameters->set(params, params + betapid3_insulin_regulation::param_count);

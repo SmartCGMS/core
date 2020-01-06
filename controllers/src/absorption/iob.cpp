@@ -44,7 +44,7 @@
 #include "../../../../common/rtl/rattime.h"
 #include "../../../../common/rtl/SolverLib.h"
 
-CInsulin_Absorption::CInsulin_Absorption(glucose::WTime_Segment segment, NInsulin_Calc_Mode mode) : CCommon_Calculated_Signal(segment)/*, mBolus_Insulin(segment.Get_Signal(glucose::signal_Delivered_Insulin_Bolus)), */, mBasal_Insulin(segment.Get_Signal(glucose::signal_Delivered_Insulin_Basal_Rate)),
+CInsulin_Absorption::CInsulin_Absorption(scgms::WTime_Segment segment, NInsulin_Calc_Mode mode) : CCommon_Calculated_Signal(segment)/*, mBolus_Insulin(segment.Get_Signal(scgms::signal_Delivered_Insulin_Bolus)), */, mBasal_Insulin(segment.Get_Signal(scgms::signal_Delivered_Insulin_Basal_Rate)),
 	mMode(mode) {
 	if (!refcnt::Shared_Valid_All(mBasal_Insulin)) throw std::exception{};
 }
@@ -62,13 +62,13 @@ double CInsulin_Absorption_Bilinear::Calculate_Signal(double bolusTime, double b
 	// Scale minsAgo by the ratio of the default dia / the user's dia 
 	// so the calculations for activityContrib and iobContrib work for 
 	// other dia values (while using the constants specified above)
-	const double scaledTime = (default_dia / (dia/glucose::One_Minute)) * ((nowTime - bolusTime) / glucose::One_Minute);
+	const double scaledTime = (default_dia / (dia/scgms::One_Minute)) * ((nowTime - bolusTime) / scgms::One_Minute);
 
 	// Calc percent of insulin activity at peak, and slopes up to and down from peak
 	// Based on area of triangle, because area under the insulin action "curve" must sum to 1
 	// (length * height) / 2 = area of triangle (1), therefore height (activityPeak) = 2 / length (which in this case is dia, in minutes)
 	// activityPeak scales based on user's dia even though peak and end remain fixed
-	const double activityPeak = 2.0 / (dia / glucose::One_Minute);
+	const double activityPeak = 2.0 / (dia / scgms::One_Minute);
 
 	if (scaledTime < default_peak)
 	{
@@ -104,9 +104,9 @@ double CInsulin_Absorption_Exponential::Calculate_Signal(double bolusTime, doubl
 
 	// NOTE: oref0 math assumes inputs in minutes (so the coefficients would work)
 
-	const double end = dia / glucose::One_Minute;  // end of insulin activity, in minutes
-	const double minsAgo = (nowTime - bolusTime) / glucose::One_Minute;
-	const double scaledPeak = peak / glucose::One_Minute;
+	const double end = dia / scgms::One_Minute;  // end of insulin activity, in minutes
+	const double minsAgo = (nowTime - bolusTime) / scgms::One_Minute;
+	const double scaledPeak = peak / scgms::One_Minute;
 
 	if (minsAgo < end) {
 
@@ -198,10 +198,10 @@ IOB_Combined CInsulin_Absorption::Calculate_Total_IOB(double nowTime, double pea
 	return totalIob;
 }
 
-HRESULT CInsulin_Absorption::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+HRESULT CInsulin_Absorption::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	iob::TParameters &parameters = glucose::Convert_Parameters<iob::TParameters>(params, iob::default_parameters);
+	iob::TParameters &parameters = scgms::Convert_Parameters<iob::TParameters>(params, iob::default_parameters);
 
 	for (size_t i = 0; i < count; i++)
 	{
@@ -213,7 +213,7 @@ HRESULT CInsulin_Absorption::Get_Continuous_Levels(glucose::IModel_Parameter_Vec
 	return S_OK;
 }
 
-HRESULT CInsulin_Absorption::Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const
+HRESULT CInsulin_Absorption::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const
 {
 	double *params = const_cast<double*>(iob::default_parameters);
 	return parameters->set(params, params + iob::param_count);

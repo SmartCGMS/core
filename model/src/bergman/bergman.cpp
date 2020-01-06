@@ -127,9 +127,9 @@ void Uptake_Accumulator::Cleanup_Not_Recent(double t)
  * Bergman enhanced minimal model implementation *
  *************************************************/
 
-CBergman_Discrete_Model::CBergman_Discrete_Model(glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output) : 
+CBergman_Discrete_Model::CBergman_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output) : 
 	CBase_Filter(output),
-	mParameters(glucose::Convert_Parameters<bergman_model::TParameters>(parameters, bergman_model::default_parameters.vector)),
+	mParameters(scgms::Convert_Parameters<bergman_model::TParameters>(parameters, bergman_model::default_parameters.vector)),
 	mEquation_Binding{
 		{ mState.Q1,  std::bind<double>(&CBergman_Discrete_Model::eq_dQ1,  this, std::placeholders::_1, std::placeholders::_2) },
 		{ mState.Q2,  std::bind<double>(&CBergman_Discrete_Model::eq_dQ2,  this, std::placeholders::_1, std::placeholders::_2) },
@@ -149,9 +149,9 @@ CBergman_Discrete_Model::CBergman_Discrete_Model(glucose::IModel_Parameter_Vecto
 	mState.D1 = mParameters.D10;
 	mState.D2 = mParameters.D20;
 	mState.Isc = mParameters.Isc0;
-	mState.Gsc = mParameters.Gsc0 * glucose::mgdl_2_mmoll;
+	mState.Gsc = mParameters.Gsc0 * scgms::mgdl_2_mmoll;
 
-	mLastBG = mState.Q1 * glucose::mgdl_2_mmoll / (10.0 * mParameters.VgDist);
+	mLastBG = mState.Q1 * scgms::mgdl_2_mmoll / (10.0 * mParameters.VgDist);
 	mLastIG = mState.Gsc;
 
 	mBasal_Ext.Add_Uptake(0, std::numeric_limits<double>::infinity(), mParameters.BasalRate0);
@@ -184,19 +184,19 @@ double CBergman_Discrete_Model::eq_dD1(const double _T, const double _D1) const
 
 double CBergman_Discrete_Model::eq_dD2(const double _T, const double _D2) const
 {
-	return -mParameters.d2rate * _D2 + Ag * mMeal_Ext.Get_Disturbance(_T * glucose::One_Minute);
+	return -mParameters.d2rate * _D2 + Ag * mMeal_Ext.Get_Disturbance(_T * scgms::One_Minute);
 }
 
 double CBergman_Discrete_Model::eq_dIsc(const double _T, const double _Isc) const
 {
-	return -mParameters.irate * _Isc + (mBasal_Ext.Get_Recent(_T * glucose::One_Minute) + mBolus_Ext.Get_Disturbance(_T * glucose::One_Minute)) / mParameters.Vi;
+	return -mParameters.irate * _Isc + (mBasal_Ext.Get_Recent(_T * scgms::One_Minute) + mBolus_Ext.Get_Disturbance(_T * scgms::One_Minute)) / mParameters.Vi;
 }
 
 double CBergman_Discrete_Model::eq_dGsc(const double _T, const double _Gsc) const
 {
 	// TODO: delta_t = step size for now (assuming 5 min in general, but depends on configuration); allow variable delta_t
 	// TODO: resolve case, when _T == mState.lastTime; for now, add 0.05, which is clearly not correct
-	return ((mParameters.p * mLastBG + mParameters.cg * mLastBG * (mLastBG - mLastIG) + mParameters.c) - _Gsc) / (0.05 + _T - mState.lastTime / glucose::One_Minute);
+	return ((mParameters.p * mLastBG + mParameters.cg * mLastBG * (mLastBG - mLastIG) + mParameters.c) - _Gsc) / (0.05 + _T - mState.lastTime / scgms::One_Minute);
 }
 
 void CBergman_Discrete_Model::Emit_All_Signals(double time_advance_delta)
@@ -209,13 +209,13 @@ void CBergman_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 	mLastIG = iglevel;
 
 	// blood glucose
-	const double bglevel = mState.Q1 * glucose::mgdl_2_mmoll / (10.0 * mParameters.VgDist);
+	const double bglevel = mState.Q1 * scgms::mgdl_2_mmoll / (10.0 * mParameters.VgDist);
 	Emit_Signal_Level(bergman_model::signal_Bergman_BG, _T, bglevel);
 	mLastBG = bglevel;
 
 	// dosed basal insulin - sum of all basal insulin dosed per time_advance_delta
 	// TODO: this might be a bit more precise if we calculate the actual sum during ODE solving, but the basal rate is very unlikely to change within a step, so it does not matter
-	Emit_Signal_Level(bergman_model::signal_Bergman_Basal_Insulin, _T, (time_advance_delta / glucose::One_Minute) * (mBasal_Ext.Get_Recent(_T) + mBolus_Ext.Get_Disturbance(_T)) / 1000.0);
+	Emit_Signal_Level(bergman_model::signal_Bergman_Basal_Insulin, _T, (time_advance_delta / scgms::One_Minute) * (mBasal_Ext.Get_Recent(_T) + mBolus_Ext.Get_Disturbance(_T)) / 1000.0);
 
 	// IOB = all insulin in system (except remote pool)
 	Emit_Signal_Level(bergman_model::signal_Bergman_IOB, _T, (mState.I + mState.Isc) / (1000.0/mParameters.Vi));
@@ -228,29 +228,29 @@ void CBergman_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 	Emit_Signal_Level(bergman_model::signal_Bergman_COB, _T, (1.0 / Ag)*(mState.D1 + mState.D2) / 1000.0);
 }
 
-HRESULT CBergman_Discrete_Model::Do_Execute(glucose::UDevice_Event event) {
+HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 	if (mState.lastTime > 0)
 	{
-		if (event.event_code() == glucose::NDevice_Event_Code::Level)
+		if (event.event_code() == scgms::NDevice_Event_Code::Level)
 		{
-			if (event.signal_id() == glucose::signal_Requested_Insulin_Basal_Rate)
+			if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate)
 			{
 				mBasal_Ext.Add_Uptake(event.device_time(), std::numeric_limits<double>::max(), 1000.0 * (event.level() / 60.0));
 			}
-			else if (event.signal_id() == glucose::signal_Requested_Insulin_Bolus)
+			else if (event.signal_id() == scgms::signal_Requested_Insulin_Bolus)
 			{
 				// we assume that bolus is spread to 5-minute rate
 				constexpr double MinsBolusing = 5.0;
 
-				mBolus_Ext.Add_Uptake(event.device_time(), MinsBolusing * glucose::One_Minute, 1000.0 * (event.level() / MinsBolusing));
+				mBolus_Ext.Add_Uptake(event.device_time(), MinsBolusing * scgms::One_Minute, 1000.0 * (event.level() / MinsBolusing));
 			}
-			else if (event.signal_id() == glucose::signal_Carb_Intake)
+			else if (event.signal_id() == scgms::signal_Carb_Intake)
 			{
 				// we assume 10-minute eating period
 				// TODO: this should be a parameter of CHO intake
 				constexpr double MinsEating = 10.0;
 
-				mMeal_Ext.Add_Uptake(event.device_time(), MinsEating * glucose::One_Minute, (1.0 / MinsEating) * 1000.0 * event.level());
+				mMeal_Ext.Add_Uptake(event.device_time(), MinsEating * scgms::One_Minute, (1.0 / MinsEating) * 1000.0 * event.level());
 			}
 		}
 	}
@@ -258,7 +258,7 @@ HRESULT CBergman_Discrete_Model::Do_Execute(glucose::UDevice_Event event) {
 	return Send(event);
 }
 
-HRESULT CBergman_Discrete_Model::Do_Configure(glucose::SFilter_Configuration configuration) {
+HRESULT CBergman_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration) {
 	// configured in the constructor
 	return E_NOTIMPL;
 }
@@ -280,7 +280,7 @@ HRESULT IfaceCalling CBergman_Discrete_Model::Step(const double time_advance_del
 
 			// Note: times in ODE solver is represented in minutes (and its fractions), as original Bergman model parameters are tuned to one minute unit
 			for (auto& binding : mEquation_Binding)
-				binding.x = ODE_Solver.Step(binding.fnc, nowTime / glucose::One_Minute, binding.x, microStepSize / glucose::One_Minute);
+				binding.x = ODE_Solver.Step(binding.fnc, nowTime / scgms::One_Minute, binding.x, microStepSize / scgms::One_Minute);
 		}
 
 		Emit_All_Signals(time_advance_delta);
@@ -303,7 +303,7 @@ HRESULT IfaceCalling CBergman_Discrete_Model::Step(const double time_advance_del
 }
 
 HRESULT CBergman_Discrete_Model::Emit_Signal_Level(const GUID& signal_id, double device_time, double level) {
-	glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Level };
+	scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
 
 	evt.device_id() = bergman_model::model_id;
 	evt.device_time() = device_time;

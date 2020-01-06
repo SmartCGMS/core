@@ -47,16 +47,16 @@
 
 std::atomic<int64_t> global_logical_time{ 0 };
 
-void Clone_Raw(const glucose::TDevice_Event& src_raw, glucose::TDevice_Event& dst_raw) {
+void Clone_Raw(const scgms::TDevice_Event& src_raw, scgms::TDevice_Event& dst_raw) {
 
 	memcpy(&dst_raw, &src_raw, sizeof(dst_raw));
 	dst_raw.logical_time = global_logical_time.fetch_add(1);
 
-	switch (glucose::UDevice_Event_internal::major_type(dst_raw.event_code)) {
-		case glucose::UDevice_Event_internal::NDevice_Event_Major_Type::info:			dst_raw.info->AddRef();
+	switch (scgms::UDevice_Event_internal::major_type(dst_raw.event_code)) {
+		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::info:			dst_raw.info->AddRef();
 			break;
 
-		case glucose::UDevice_Event_internal::NDevice_Event_Major_Type::parameters:	dst_raw.parameters->AddRef();
+		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::parameters:	dst_raw.parameters->AddRef();
 			break;
 
 		default: break;	//just keeping the checkers happy
@@ -65,18 +65,18 @@ void Clone_Raw(const glucose::TDevice_Event& src_raw, glucose::TDevice_Event& ds
 
 
 
-CDevice_Event::CDevice_Event(glucose::NDevice_Event_Code code) {
+CDevice_Event::CDevice_Event(scgms::NDevice_Event_Code code) {
 	memset(&mRaw, 0, sizeof(mRaw));
 	mRaw.logical_time = global_logical_time.fetch_add(1);
 	mRaw.event_code = code;
 	mRaw.device_time = Unix_Time_To_Rat_Time(time(nullptr));
-	mRaw.segment_id = glucose::Invalid_Segment_Id;
+	mRaw.segment_id = scgms::Invalid_Segment_Id;
 
-	switch (glucose::UDevice_Event_internal::major_type(code)) {		
-		case glucose::UDevice_Event_internal::NDevice_Event_Major_Type::info: mRaw.info = refcnt::WString_To_WChar_Container(nullptr);
+	switch (scgms::UDevice_Event_internal::major_type(code)) {		
+		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::info: mRaw.info = refcnt::WString_To_WChar_Container(nullptr);
 			break;
 
-		case glucose::UDevice_Event_internal::NDevice_Event_Major_Type::parameters: mRaw.parameters = refcnt::Create_Container<double>(nullptr, nullptr);
+		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::parameters: mRaw.parameters = refcnt::Create_Container<double>(nullptr, nullptr);
 			break;
 
 		default:mRaw.level = std::numeric_limits<double>::quiet_NaN();
@@ -85,19 +85,19 @@ CDevice_Event::CDevice_Event(glucose::NDevice_Event_Code code) {
 }
 
 
-CDevice_Event::CDevice_Event(glucose::IDevice_Event *event) {
-	glucose::TDevice_Event *src_raw;
+CDevice_Event::CDevice_Event(scgms::IDevice_Event *event) {
+	scgms::TDevice_Event *src_raw;
 
 	if (event->Raw(&src_raw) == S_OK)  Clone_Raw(*src_raw, mRaw);
 		else throw std::exception{ "Cannot get source event!" };
 }
 
 CDevice_Event::~CDevice_Event() {
-	switch (glucose::UDevice_Event_internal::major_type(mRaw.event_code)) {
-		case glucose::UDevice_Event_internal::NDevice_Event_Major_Type::info:			if (mRaw.info) mRaw.info->Release();
+	switch (scgms::UDevice_Event_internal::major_type(mRaw.event_code)) {
+		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::info:			if (mRaw.info) mRaw.info->Release();
 																						break;
 
-		case glucose::UDevice_Event_internal::NDevice_Event_Major_Type::parameters:		if (mRaw.parameters) mRaw.parameters->Release();
+		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::parameters:		if (mRaw.parameters) mRaw.parameters->Release();
 																						break;
 		default:	break;
 	}
@@ -109,7 +109,7 @@ ULONG IfaceCalling CDevice_Event::Release() {
 	return 0;
 }
 
-HRESULT IfaceCalling CDevice_Event::Raw(glucose::TDevice_Event **dst) {
+HRESULT IfaceCalling CDevice_Event::Raw(scgms::TDevice_Event **dst) {
 	*dst = &mRaw;
 	return S_OK;
 }
@@ -129,9 +129,9 @@ HRESULT IfaceCalling CDevice_Event::Clone(IDevice_Event** event) {
 	return S_OK;
 }
 
-HRESULT IfaceCalling create_device_event(glucose::NDevice_Event_Code code, glucose::IDevice_Event **event) {
+HRESULT IfaceCalling create_device_event(scgms::NDevice_Event_Code code, scgms::IDevice_Event **event) {
 	CDevice_Event *tmp = new CDevice_Event{code};
-	*event = static_cast<glucose::IDevice_Event*> (tmp);
+	*event = static_cast<scgms::IDevice_Event*> (tmp);
 	return S_OK;
 }
 

@@ -42,7 +42,7 @@
 #include <cmath>
 #include <algorithm>
 
-CLine_Approximator::CLine_Approximator(glucose::WSignal signal, glucose::IApprox_Parameters_Vector* configuration)
+CLine_Approximator::CLine_Approximator(scgms::WSignal signal, scgms::IApprox_Parameters_Vector* configuration)
 	: mSignal(signal)
 {
 	Update();
@@ -98,11 +98,11 @@ HRESULT IfaceCalling CLine_Approximator::GetLevels(const double* times, double* 
 			if (knot_index != std::numeric_limits<size_t>::max()) {
 
 				switch (derivation_order) {
-					case glucose::apxNo_Derivation:
+					case scgms::apxNo_Derivation:
 						levels[i] = mSlopes[knot_index] * (times[i] - mInputTimes[knot_index]) + mInputLevels[knot_index];
 						break;
 
-					case glucose::apxFirst_Order_Derivation:
+					case scgms::apxFirst_Order_Derivation:
 						levels[i] = mSlopes[knot_index];
 						break;
 

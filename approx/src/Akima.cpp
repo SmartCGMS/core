@@ -45,7 +45,7 @@
 
 #undef max
 
-CAkima::CAkima(glucose::WSignal signal, glucose::IApprox_Parameters_Vector* configuration) : mSignal(signal) {
+CAkima::CAkima(scgms::WSignal signal, scgms::IApprox_Parameters_Vector* configuration) : mSignal(signal) {
 	Update();
 }
 
@@ -231,7 +231,7 @@ HRESULT IfaceCalling CAkima::GetLevels(const double* times, double* const levels
 
 	if (!Update() || mCoefficients.empty()) return E_FAIL;
 
-	if (derivation_order > glucose::apxFirst_Order_Derivation) return E_INVALIDARG;
+	if (derivation_order > scgms::apxFirst_Order_Derivation) return E_INVALIDARG;
 
 	const size_t measured_size_mul3 = mInputLevels.size() * 3;
 	const size_t measured_size_mul2 = mInputLevels.size() * 2;
@@ -255,14 +255,14 @@ HRESULT IfaceCalling CAkima::GetLevels(const double* times, double* const levels
 			double res = 0.0;
 			switch (derivation_order) {
 				//Horner's evaluation method
-				case glucose::apxNo_Derivation:
+				case scgms::apxNo_Derivation:
 					res = mCoefficients[measured_size_mul3 + knot_index];
 					res = desired_time_knot_offset * res + mCoefficients[measured_size_mul2 + knot_index];
 					res = desired_time_knot_offset * res + mCoefficients[measured_size + knot_index];
 					levels[i] = desired_time_knot_offset * res + mCoefficients[/*measured_size * 0*/ +knot_index];
 					break;
 
-				case glucose::apxFirst_Order_Derivation:
+				case scgms::apxFirst_Order_Derivation:
 					res = 3.0 * mCoefficients[measured_size_mul3 + knot_index];
 					res = desired_time_knot_offset * res + 2.0 * mCoefficients[measured_size_mul2 + knot_index];
 					levels[i] = desired_time_knot_offset * res + mCoefficients[measured_size + knot_index];

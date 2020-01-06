@@ -45,7 +45,7 @@
 #include <algorithm>
 #include <cctype>
 
-CMasking_Filter::CMasking_Filter(glucose::IFilter *output) : CBase_Filter(output) {
+CMasking_Filter::CMasking_Filter(scgms::IFilter *output) : CBase_Filter(output) {
 	//
 }
 
@@ -81,7 +81,7 @@ bool CMasking_Filter::Parse_Bitmask(std::wstring inw)
 	return true;
 }
 
-HRESULT IfaceCalling CMasking_Filter::Do_Configure(glucose::SFilter_Configuration configuration) {
+HRESULT IfaceCalling CMasking_Filter::Do_Configure(scgms::SFilter_Configuration configuration) {
 	mSignal_Id = configuration.Read_GUID(rsSignal_Masked_Id);
 
 	if (!Parse_Bitmask(configuration.Read_String(rsSignal_Value_Bitmask)))
@@ -90,9 +90,9 @@ HRESULT IfaceCalling CMasking_Filter::Do_Configure(glucose::SFilter_Configuratio
 	return S_OK;
 }
 
-HRESULT IfaceCalling CMasking_Filter::Do_Execute(glucose::UDevice_Event event) {
+HRESULT IfaceCalling CMasking_Filter::Do_Execute(scgms::UDevice_Event event) {
 	// mask only configured signal and event of type "Level"
-	if (event.event_code() == glucose::NDevice_Event_Code::Level && event.signal_id() == mSignal_Id) {
+	if (event.event_code() == scgms::NDevice_Event_Code::Level && event.signal_id() == mSignal_Id) {
 		auto itr = mSegmentMaskState.find(event.segment_id());
 		if (itr == mSegmentMaskState.end())
 			mSegmentMaskState[event.segment_id()] = 0;
@@ -101,9 +101,9 @@ HRESULT IfaceCalling CMasking_Filter::Do_Execute(glucose::UDevice_Event event) {
 		{
 			// This is certainly not nice, but we want to avoid creating a new device event, because it will generate new logical clock value, which would be
 			// out of order with the rest of levels; also Level and Masked_Level uses the same union value, so it's fine to just change the type
-			glucose::TDevice_Event* raw;
+			scgms::TDevice_Event* raw;
 			if (event.get()->Raw(&raw) == S_OK)
-				raw->event_code = glucose::NDevice_Event_Code::Masked_Level;
+				raw->event_code = scgms::NDevice_Event_Code::Masked_Level;
 		}
 
 		mSegmentMaskState[event.segment_id()] = (mSegmentMaskState[event.segment_id()] + static_cast<uint64_t>(1)) % mBitCount;

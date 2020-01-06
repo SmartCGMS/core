@@ -44,14 +44,14 @@
 
 #include <cmath>
 
-CSteil_Rebrin_Diffusion_Prediction::CSteil_Rebrin_Diffusion_Prediction(glucose::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(glucose::signal_IG)) {
+CSteil_Rebrin_Diffusion_Prediction::CSteil_Rebrin_Diffusion_Prediction(scgms::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(scgms::signal_IG)) {
 	if (!mIst) throw std::exception{};
 }
 
-HRESULT IfaceCalling CSteil_Rebrin_Diffusion_Prediction::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+HRESULT IfaceCalling CSteil_Rebrin_Diffusion_Prediction::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 
-	steil_rebrin_diffusion_prediction::TParameters &parameters = glucose::Convert_Parameters<steil_rebrin_diffusion_prediction::TParameters>(params, steil_rebrin_diffusion_prediction::default_parameters);
+	steil_rebrin_diffusion_prediction::TParameters &parameters = scgms::Convert_Parameters<steil_rebrin_diffusion_prediction::TParameters>(params, steil_rebrin_diffusion_prediction::default_parameters);
 
 	Eigen::Map<TVector1D> converted_times{ Map_Double_To_Eigen<TVector1D>(times, count) };
 	//into the dt vector, we put times to get ist to calculate future ist aka levels at the future times
@@ -59,11 +59,11 @@ HRESULT IfaceCalling CSteil_Rebrin_Diffusion_Prediction::Get_Continuous_Levels(g
 	dt = converted_times - parameters.dt;
 
 	auto present_ist = Reserve_Eigen_Buffer(mPresent_Ist,  count );
-	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), present_ist.data(), count, glucose::apxNo_Derivation);
+	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), present_ist.data(), count, scgms::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 
 	auto derived_ist = Reserve_Eigen_Buffer(mDeriveed_Ist, count );
-	rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), derived_ist.data(), count, glucose::apxFirst_Order_Derivation);
+	rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), derived_ist.data(), count, scgms::apxFirst_Order_Derivation);
 	if (rc != S_OK) return rc;
 
 	
@@ -77,7 +77,7 @@ HRESULT IfaceCalling CSteil_Rebrin_Diffusion_Prediction::Get_Continuous_Levels(g
 	return S_OK;
 }
 
-HRESULT IfaceCalling CSteil_Rebrin_Diffusion_Prediction::Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const {
+HRESULT IfaceCalling CSteil_Rebrin_Diffusion_Prediction::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const {
 	double *params = const_cast<double*>(steil_rebrin::default_parameters);
 	return parameters->set(params, params + steil_rebrin::param_count);
 }

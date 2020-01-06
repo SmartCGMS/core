@@ -45,7 +45,7 @@
 #include "composite_filter.h"
 #include "device_event.h"
 
-HRESULT CFilter_Configuration_Executor::Build_Filter_Chain(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) {
+HRESULT CFilter_Configuration_Executor::Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) {
 	return mComposite_Filter.Build_Filter_Chain(configuration, &mTerminal_Filter, on_filter_created, on_filter_created_data);
 }
 
@@ -54,7 +54,7 @@ CFilter_Configuration_Executor::~CFilter_Configuration_Executor() {
 	Terminate();
 }
 
-HRESULT IfaceCalling CFilter_Configuration_Executor::Execute(glucose::IDevice_Event *event) {	
+HRESULT IfaceCalling CFilter_Configuration_Executor::Execute(scgms::IDevice_Event *event) {	
 	if (!event) return E_INVALIDARG;
 	return mComposite_Filter.Execute(event);    //also frees the event	
 }
@@ -70,10 +70,10 @@ HRESULT IfaceCalling CFilter_Configuration_Executor::Terminate() {
 	return mComposite_Filter.Clear();
 }
 
-HRESULT IfaceCalling execute_filter_configuration(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, glucose::IFilter_Executor **executor) {
+HRESULT IfaceCalling execute_filter_configuration(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, scgms::IFilter_Executor **executor) {
 	std::unique_ptr<CFilter_Configuration_Executor> raw_executor = std::make_unique<CFilter_Configuration_Executor>();
 	//increase the reference just in a case that we would be released prematurely in the Build_Filter_Chain call
-	*executor = static_cast<glucose::IFilter_Executor*>(raw_executor.get());
+	*executor = static_cast<scgms::IFilter_Executor*>(raw_executor.get());
 	(*executor)->AddRef();	
 
 	HRESULT rc = raw_executor->Build_Filter_Chain(configuration, on_filter_created, on_filter_created_data);

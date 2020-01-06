@@ -80,10 +80,10 @@ NColumn_Pos& operator++(NColumn_Pos& ref)
 
 // array of DB columns - signal GUIDs used
 std::array<GUID, static_cast<size_t>(NColumn_Pos::_Count)> ColumnSignalMap = { {
-	glucose::signal_BG, glucose::signal_IG, glucose::signal_ISIG, glucose::signal_Requested_Insulin_Bolus, glucose::signal_Requested_Insulin_Basal_Rate, glucose::signal_Carb_Intake, glucose::signal_Calibration
+	scgms::signal_BG, scgms::signal_IG, scgms::signal_ISIG, scgms::signal_Requested_Insulin_Bolus, scgms::signal_Requested_Insulin_Basal_Rate, scgms::signal_Carb_Intake, scgms::signal_Calibration
 } };
 
-CDb_Reader::CDb_Reader(glucose::IFilter *output) : mDbPort(0), CBase_Filter(output) {
+CDb_Reader::CDb_Reader(scgms::IFilter *output) : mDbPort(0), CBase_Filter(output) {
 	//
 }
 
@@ -92,13 +92,13 @@ CDb_Reader::~CDb_Reader() {
 }
 
 bool CDb_Reader::Emit_Shut_Down() {
-	glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Shut_Down };
+	scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Shut_Down };
 	evt.device_id() = Db_Reader_Device_GUID;
 	return Send(evt) == S_OK;
 }
 
-bool CDb_Reader::Emit_Segment_Marker(glucose::NDevice_Event_Code code, int64_t segment_id) {
-	glucose::UDevice_Event evt{ code };
+bool CDb_Reader::Emit_Segment_Marker(scgms::NDevice_Event_Code code, int64_t segment_id) {
+	scgms::UDevice_Event evt{ code };
 
 	evt.device_id() = Db_Reader_Device_GUID;
 	evt.segment_id() = segment_id;
@@ -107,7 +107,7 @@ bool CDb_Reader::Emit_Segment_Marker(glucose::NDevice_Event_Code code, int64_t s
 }
 
 bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
-	for (const auto &descriptor : glucose::get_model_descriptors()) {
+	for (const auto &descriptor : scgms::get_model_descriptors()) {
 
 		// skip models without database schema tables
 		if (descriptor.db_table_name == nullptr || wcslen(descriptor.db_table_name) == 0)
@@ -136,7 +136,7 @@ bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
 					// TODO: disambiguate stored parameters for different signals within one model! This i.e. mixes diffusion2 blood and ist parameters
 					for (size_t i = 0; i < descriptor.number_of_calculated_signals; i++)
 					{
-						glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Parameters };
+						scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Parameters };
 						evt.device_id() = Db_Reader_Device_GUID;
 						evt.signal_id() = descriptor.calculated_signal_ids[i];
 						evt.segment_id() = segment_id;
@@ -184,7 +184,7 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 			if (fpcl == FP_NAN || fpcl == FP_INFINITE)
 				continue;
 
-			glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Level };
+			scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
 
 			evt.level() = column;
 			evt.device_id() = Db_Reader_Device_GUID;
@@ -217,17 +217,17 @@ void CDb_Reader::Db_Reader() {
 	
 
 	for (const auto segment_index : mDbTimeSegmentIds) {
-		if (!Emit_Segment_Marker(glucose::NDevice_Event_Code::Time_Segment_Start, segment_index)) break;
+		if (!Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Start, segment_index)) break;
 		if (!Emit_Segment_Parameters(segment_index)) break;
 		Emit_Segment_Levels(segment_index);
-		if (!Emit_Segment_Marker(glucose::NDevice_Event_Code::Time_Segment_Stop, segment_index)) break;
+		if (!Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Stop, segment_index)) break;
 	}
 
 	if (mShutdownAfterLast)
 		Emit_Shut_Down();
 }
 
-HRESULT IfaceCalling CDb_Reader::Do_Configure(glucose::SFilter_Configuration configuration) {
+HRESULT IfaceCalling CDb_Reader::Do_Configure(scgms::SFilter_Configuration configuration) {
 	
 	mDbHost = configuration.Read_String(rsDb_Host);	
 	mDbProvider = configuration.Read_String(rsDb_Provider);
@@ -241,16 +241,16 @@ HRESULT IfaceCalling CDb_Reader::Do_Configure(glucose::SFilter_Configuration con
 	return S_OK;
 }
 
-HRESULT IfaceCalling CDb_Reader::Do_Execute(glucose::UDevice_Event event) {
+HRESULT IfaceCalling CDb_Reader::Do_Execute(scgms::UDevice_Event event) {
 
 	switch (event.event_code()) {
-		case glucose::NDevice_Event_Code::Warm_Reset: 
+		case scgms::NDevice_Event_Code::Warm_Reset: 
 			//recreate the reader thread
 			End_Db_Reader();
 			mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);					
 			break;
 
-		case glucose::NDevice_Event_Code::Shut_Down:
+		case scgms::NDevice_Event_Code::Shut_Down:
 			mQuit_Flag = true;
 			break;
 	}

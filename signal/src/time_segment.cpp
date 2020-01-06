@@ -43,14 +43,14 @@
 
 #include <cmath>
 
-CTime_Segment::CTime_Segment(const int64_t segment_id, const GUID &calculated_signal_id, glucose::SModel_Parameter_Vector &working_parameters, const double prediction_window, glucose::SFilter output)
+CTime_Segment::CTime_Segment(const int64_t segment_id, const GUID &calculated_signal_id, scgms::SModel_Parameter_Vector &working_parameters, const double prediction_window, scgms::SFilter output)
 	: mOutput(output), mCalculated_Signal_Id(calculated_signal_id), mSegment_id(segment_id), mPrediction_Window(prediction_window) {
 	Clear_Data();
 
 	mWorking_Parameters.set(working_parameters);
 
-	glucose::TModel_Descriptor desc = glucose::Null_Model_Descriptor;
-	const bool result = glucose::get_model_descriptor_by_signal_id(calculated_signal_id, desc);
+	scgms::TModel_Descriptor desc = scgms::Null_Model_Descriptor;
+	const bool result = scgms::get_model_descriptor_by_signal_id(calculated_signal_id, desc);
 
 	if (result) {
 		//find the proper reference id
@@ -63,21 +63,21 @@ CTime_Segment::CTime_Segment(const int64_t segment_id, const GUID &calculated_si
 	}
 }
 
-glucose::SSignal CTime_Segment::Get_Signal_Internal(const GUID &signal_id) {
+scgms::SSignal CTime_Segment::Get_Signal_Internal(const GUID &signal_id) {
 	auto itr = mSignals.find(signal_id);
 	if (itr != mSignals.end()) {
 		return itr->second;
 	} else {
 		//we have to create signal's instance for this object
-		glucose::STime_Segment shared_this = refcnt::make_shared_reference_ext<glucose::STime_Segment, glucose::ITime_Segment>(this, true);
-		glucose::SSignal new_signal{shared_this, signal_id };
-		if (!new_signal) return glucose::SSignal{};
+		scgms::STime_Segment shared_this = refcnt::make_shared_reference_ext<scgms::STime_Segment, scgms::ITime_Segment>(this, true);
+		scgms::SSignal new_signal{shared_this, signal_id };
+		if (!new_signal) return scgms::SSignal{};
 		mSignals[signal_id] = new_signal;
 		return new_signal;
 	}
 }
 
-HRESULT IfaceCalling CTime_Segment::Get_Signal(const GUID *signal_id, glucose::ISignal **signal) {
+HRESULT IfaceCalling CTime_Segment::Get_Signal(const GUID *signal_id, scgms::ISignal **signal) {
 	const auto &shared_signal = Get_Signal_Internal(*signal_id);
 	if (shared_signal) {
 		*signal = shared_signal.get();
@@ -111,18 +111,18 @@ bool CTime_Segment::Add_Level(const GUID &signal_id, const double level, const d
 		return false;
 }
 
-bool CTime_Segment::Set_Parameters(glucose::SModel_Parameter_Vector parameters) {
+bool CTime_Segment::Set_Parameters(scgms::SModel_Parameter_Vector parameters) {
 	return mWorking_Parameters.set(parameters);	//make a deep copy to ensure that the shared object will not be gone unexpectedly
 }
 
-glucose::SModel_Parameter_Vector CTime_Segment::Get_Parameters() {
+scgms::SModel_Parameter_Vector CTime_Segment::Get_Parameters() {
 	return mWorking_Parameters;
 }
 
 bool CTime_Segment::Calculate(const std::vector<double> &times, std::vector<double> &levels) {
 	if (mCalculated_Signal) {
 		levels.resize(times.size());
-		return mCalculated_Signal->Get_Continuous_Levels(mWorking_Parameters.get(), times.data(), levels.data(), levels.size(), glucose::apxNo_Derivation) == S_OK;
+		return mCalculated_Signal->Get_Continuous_Levels(mWorking_Parameters.get(), times.data(), levels.data(), levels.size(), scgms::apxNo_Derivation) == S_OK;
 	} 
 
 	return false;
@@ -135,19 +135,19 @@ void CTime_Segment::Emit_Levels_At_Pending_Times() {
 	if (levels.size() != times.size()) return;	//allocation error!
 
 	//auto params_ptr = mWorking_Parameters.operator bool() ? mWorking_Parameters.get() : nullptr;	- mWorking params are always initialized => the same effect as nullptr
-	if (mCalculated_Signal->Get_Continuous_Levels(mWorking_Parameters.get(), times.data(), levels.data(), levels.size(), glucose::apxNo_Derivation) == S_OK) {
+	if (mCalculated_Signal->Get_Continuous_Levels(mWorking_Parameters.get(), times.data(), levels.data(), levels.size(), scgms::apxNo_Derivation) == S_OK) {
 		mPending_Times.clear();
 
 		//send non-NaN values
 		for (size_t i = 0; i < levels.size(); i++) {
 			if (!std::isnan(levels[i])) {
-				glucose::UDevice_Event calcEvt{ glucose::NDevice_Event_Code::Level };
+				scgms::UDevice_Event calcEvt{ scgms::NDevice_Event_Code::Level };
 				calcEvt.device_time() = times[i];
 				calcEvt.level() = levels[i];
 				calcEvt.device_id() = calculate::Calculate_Filter_GUID;
 				calcEvt.signal_id() = mCalculated_Signal_Id;
 				calcEvt.segment_id() = mSegment_id;
-				glucose::IDevice_Event *raw_calcEvt = calcEvt.get();
+				scgms::IDevice_Event *raw_calcEvt = calcEvt.get();
 				calcEvt.release();
 				if (mOutput->Execute(raw_calcEvt) == S_OK)
 					mEmitted_Times.insert(times[i]);

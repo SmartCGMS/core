@@ -44,7 +44,7 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
-class CPersistent_Chain_Configuration : public virtual glucose::IPersistent_Filter_Chain_Configuration, public virtual refcnt::internal::CVector_Container<glucose::IFilter_Configuration_Link*> {
+class CPersistent_Chain_Configuration : public virtual scgms::IPersistent_Filter_Chain_Configuration, public virtual refcnt::internal::CVector_Container<scgms::IFilter_Configuration_Link*> {
 protected:
 	std::wstring mFile_Path;	
 	std::wstring mFile_Name;		// stored filename to be used in e.g. window title
@@ -58,7 +58,7 @@ public:
 #pragma warning( pop )
 
 #ifdef _WIN32
-	extern "C" __declspec(dllexport) HRESULT IfaceCalling create_persistent_filter_chain_configuration(glucose::IPersistent_Filter_Chain_Configuration **configuration);
+	extern "C" __declspec(dllexport) HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersistent_Filter_Chain_Configuration **configuration);
 #else
-	extern "C" HRESULT IfaceCalling create_persistent_filter_chain_configuration(glucose::IPersistent_Filter_Chain_Configuration **configuration);
+	extern "C" HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersistent_Filter_Chain_Configuration **configuration);
 #endif

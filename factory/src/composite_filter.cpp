@@ -47,14 +47,14 @@ CComposite_Filter::CComposite_Filter(std::recursive_mutex &communication_guard) 
 }
 
 
-HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configuration *configuration, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) {
+HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) {
 	mRefuse_Execute = true;
 	if (!mExecutors.empty()) return E_ILLEGAL_METHOD_CALL;	//so far, we are able to configure the chain just once
 
 	std::lock_guard<std::recursive_mutex> guard{ mCommunication_Guard };
-	glucose::IFilter *last_filter = next_filter;
+	scgms::IFilter *last_filter = next_filter;
 	
-	glucose::IFilter_Configuration_Link **link_begin, **link_end;
+	scgms::IFilter_Configuration_Link **link_begin, **link_end;
 	HRESULT rc = configuration->get(&link_begin, &link_end);
 	if (rc != S_OK) return rc;
 
@@ -62,7 +62,7 @@ HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configurati
 	try {
 		//1st round - create the filters
 		do {
-			glucose::IFilter_Configuration_Link* &link = *(link_end-1);
+			scgms::IFilter_Configuration_Link* &link = *(link_end-1);
 
 			//let's find out if this filter is synchronous or asynchronous
 			GUID filter_id;
@@ -82,10 +82,10 @@ HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configurati
 		} while (link_end != link_begin);
 
 		//2nd round - gather information about the feedback receivers
-		std::map<std::wstring, glucose::SFilter_Feedback_Receiver> feedback_map;
+		std::map<std::wstring, scgms::SFilter_Feedback_Receiver> feedback_map;
 		for (auto &possible_receiver : mExecutors) {
-			glucose::SFilter_Feedback_Receiver feedback_receiver;
-			refcnt::Query_Interface<glucose::IFilter, glucose::IFilter_Feedback_Receiver>(possible_receiver.get(), glucose::IID_Filter_Feedback_Receiver, feedback_receiver);
+			scgms::SFilter_Feedback_Receiver feedback_receiver;
+			refcnt::Query_Interface<scgms::IFilter, scgms::IFilter_Feedback_Receiver>(possible_receiver.get(), scgms::IID_Filter_Feedback_Receiver, feedback_receiver);
 			if (feedback_receiver) {
 				wchar_t *name;
 				if (feedback_receiver->Name(&name) == S_OK) {
@@ -98,8 +98,8 @@ HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configurati
 		//multiple senders can connect to a single receiver (so that we can have a single feedback filter)
 		if (!feedback_map.empty())
 			for (auto &possible_sender : mExecutors) {
-				refcnt::SReferenced<glucose::IFilter_Feedback_Sender> feedback_sender;
-				refcnt::Query_Interface<glucose::IFilter, glucose::IFilter_Feedback_Sender>(possible_sender.get(), glucose::IID_Filter_Feedback_Sender, feedback_sender);
+				refcnt::SReferenced<scgms::IFilter_Feedback_Sender> feedback_sender;
+				refcnt::Query_Interface<scgms::IFilter, scgms::IFilter_Feedback_Sender>(possible_sender.get(), scgms::IID_Filter_Feedback_Sender, feedback_sender);
 				if (feedback_sender) {
 					wchar_t *name;
 					if (feedback_sender->Name(&name) == S_OK) {
@@ -120,7 +120,7 @@ HRESULT CComposite_Filter::Build_Filter_Chain(glucose::IFilter_Chain_Configurati
 	return S_OK;
 }
 
-HRESULT CComposite_Filter::Execute(glucose::IDevice_Event *event) {
+HRESULT CComposite_Filter::Execute(scgms::IDevice_Event *event) {
 	if (!event) return E_INVALIDARG;
 	if (mExecutors.empty()) {
 		event->Release();

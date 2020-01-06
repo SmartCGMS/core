@@ -115,12 +115,12 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 				const GUID id = WString_To_GUID(std::wstring{ name_str.begin() + uspos + 1, name_str.end() });
 				//and get the filter descriptor to load the parameters
 
-				glucose::TFilter_Descriptor desc = glucose::Null_Filter_Descriptor;
+				scgms::TFilter_Descriptor desc = scgms::Null_Filter_Descriptor;
 
 
-				refcnt::SReferenced<glucose::IFilter_Configuration_Link> filter_config{ new CFilter_Configuration_Link{id} };
+				refcnt::SReferenced<scgms::IFilter_Configuration_Link> filter_config{ new CFilter_Configuration_Link{id} };
 
-				if (glucose::get_filter_descriptor_by_id(id, desc)) {
+				if (scgms::get_filter_descriptor_by_id(id, desc)) {
 					//so.. now, try to load the filter parameters - aka filter_config
 
 					for (size_t i = 0; i < desc.parameters_count; i++) {
@@ -128,10 +128,10 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 						//does the value exists?
 						const wchar_t* str_value = mIni.GetValue(section_name.pItem, desc.config_parameter_name[i]);
 						if (str_value) {
-							glucose::SFilter_Parameter filter_parameter;
+							scgms::SFilter_Parameter filter_parameter;
 							{
 								std::unique_ptr<CFilter_Parameter> raw_filter_parameter = std::make_unique<CFilter_Parameter>(desc.parameter_type[i], desc.config_parameter_name[i]);
-								filter_parameter = refcnt::make_shared_reference_ext<glucose::SFilter_Parameter, glucose::IFilter_Parameter>(raw_filter_parameter.get(), true);
+								filter_parameter = refcnt::make_shared_reference_ext<scgms::SFilter_Parameter, scgms::IFilter_Parameter>(raw_filter_parameter.get(), true);
 								raw_filter_parameter.release();
 							}
 														
@@ -141,37 +141,37 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 							//yes, there is something stored under this key
 							switch (desc.parameter_type[i]) {
 
-								case glucose::NParameter_Type::ptWChar_Array:								
+								case scgms::NParameter_Type::ptWChar_Array:								
 									valid = filter_parameter.set_wstring(str_value) == S_OK;
 									break;
 
-								case glucose::NParameter_Type::ptInt64_Array:								
+								case scgms::NParameter_Type::ptInt64_Array:								
 									valid = filter_parameter.int_array_from_wstring(str_value) == S_OK;
 									break;
 
-								case glucose::NParameter_Type::ptRatTime:
-								case glucose::NParameter_Type::ptDouble:
+								case scgms::NParameter_Type::ptRatTime:
+								case scgms::NParameter_Type::ptDouble:
 									valid = filter_parameter->Set_Double(mIni.GetDoubleValue(section_name.pItem, desc.config_parameter_name[i])) == S_OK;
 									break;
 
-								case glucose::NParameter_Type::ptInt64:
-								case glucose::NParameter_Type::ptSubject_Id:
+								case scgms::NParameter_Type::ptInt64:
+								case scgms::NParameter_Type::ptSubject_Id:
 									valid = filter_parameter->Set_Int64(mIni.GetLongValue(section_name.pItem, desc.config_parameter_name[i])) == S_OK;
 									break;
 
-								case glucose::NParameter_Type::ptBool:
+								case scgms::NParameter_Type::ptBool:
 									valid = filter_parameter.set_bool(mIni.GetBoolValue(section_name.pItem, desc.config_parameter_name[i])) == S_OK;									
 									break;
 
-								case glucose::NParameter_Type::ptModel_Id:
-								case glucose::NParameter_Type::ptMetric_Id:
-								case glucose::NParameter_Type::ptModel_Signal_Id:
-								case glucose::NParameter_Type::ptSignal_Id:
-								case glucose::NParameter_Type::ptSolver_Id:								
+								case scgms::NParameter_Type::ptModel_Id:
+								case scgms::NParameter_Type::ptMetric_Id:
+								case scgms::NParameter_Type::ptModel_Signal_Id:
+								case scgms::NParameter_Type::ptSignal_Id:
+								case scgms::NParameter_Type::ptSolver_Id:								
 									valid = filter_parameter.guid_from_wstring(str_value) == S_OK;								
 									break;
 
-								case glucose::NParameter_Type::ptDouble_Array:
+								case scgms::NParameter_Type::ptDouble_Array:
 									valid = filter_parameter.double_array_from_wstring(str_value) == S_OK;
 									break;
 
@@ -210,7 +210,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 	uint32_t section_counter = 1;
 
 	try {
-		glucose::IFilter_Configuration_Link **filter_begin, **filter_end;		
+		scgms::IFilter_Configuration_Link **filter_begin, **filter_end;		
 		HRESULT rc = get(&filter_begin, &filter_end);
 		if (rc != S_OK) return rc;
 		for (; filter_begin != filter_end; filter_begin++) {
@@ -223,18 +223,18 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 			auto section = ini.GetSection(id_str.c_str());
 			if (!section) {
 				//if the section does not exist yet, create it by writing a comment there - the filter description
-				glucose::TFilter_Descriptor filter_desc = glucose::Null_Filter_Descriptor;
-				if (glucose::get_filter_descriptor_by_id(filter_id, filter_desc))
+				scgms::TFilter_Descriptor filter_desc = scgms::Null_Filter_Descriptor;
+				if (scgms::get_filter_descriptor_by_id(filter_id, filter_desc))
 					ini.SetValue(id_str.c_str(), nullptr, nullptr, std::wstring{ rsIni_Comment_Prefix }.append(filter_desc.description).c_str());
 			}
 
-			glucose::IFilter_Parameter **parameter_begin, **parameter_end;
+			scgms::IFilter_Parameter **parameter_begin, **parameter_end;
 			rc = filter->get(&parameter_begin, &parameter_end);
 			if (!SUCCEEDED(rc)) return rc;	//rc may be also S_FALSE if no parameter has been set yet
 
 			for (; parameter_begin != parameter_end; parameter_begin++) {
 				auto parameter = *parameter_begin;
-				glucose::NParameter_Type param_type;
+				scgms::NParameter_Type param_type;
 				rc = parameter->Get_Type(&param_type);
 				if (rc != S_OK) return rc;
 
@@ -244,7 +244,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 
 
 				switch (param_type) {
-				case glucose::NParameter_Type::ptWChar_Array:
+				case scgms::NParameter_Type::ptWChar_Array:
 
 					refcnt::wstr_container *wstr;
 					rc = parameter->Get_WChar_Container(&wstr);
@@ -254,8 +254,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 					wstr->Release();
 					break;
 
-				case glucose::NParameter_Type::ptInt64_Array:
-					glucose::time_segment_id_container *ids;
+				case scgms::NParameter_Type::ptInt64_Array:
+					scgms::time_segment_id_container *ids;
 					rc = parameter->Get_Time_Segment_Id_Container(&ids);
 					if (rc != S_OK) return rc;
 
@@ -263,8 +263,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 					ids->Release();
 					break;
 
-				case glucose::NParameter_Type::ptRatTime:
-				case glucose::NParameter_Type::ptDouble:
+				case scgms::NParameter_Type::ptRatTime:
+				case scgms::NParameter_Type::ptDouble:
 				{
 					double val;
 					rc = parameter->Get_Double(&val);
@@ -274,8 +274,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 				}
 				break;
 
-				case glucose::NParameter_Type::ptInt64:
-				case glucose::NParameter_Type::ptSubject_Id:
+				case scgms::NParameter_Type::ptInt64:
+				case scgms::NParameter_Type::ptSubject_Id:
 				{
 					int64_t val;
 					rc = parameter->Get_Int64(&val);
@@ -284,7 +284,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 				}
 				break;
 
-				case glucose::NParameter_Type::ptBool:
+				case scgms::NParameter_Type::ptBool:
 				{
 					uint8_t val;
 					rc = parameter->Get_Bool(&val);
@@ -293,11 +293,11 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 				}
 				break;
 
-				case glucose::NParameter_Type::ptModel_Id:
-				case glucose::NParameter_Type::ptMetric_Id:
-				case glucose::NParameter_Type::ptModel_Signal_Id:
-				case glucose::NParameter_Type::ptSignal_Id:
-				case glucose::NParameter_Type::ptSolver_Id:				
+				case scgms::NParameter_Type::ptModel_Id:
+				case scgms::NParameter_Type::ptMetric_Id:
+				case scgms::NParameter_Type::ptModel_Signal_Id:
+				case scgms::NParameter_Type::ptSignal_Id:
+				case scgms::NParameter_Type::ptSolver_Id:				
 				{
 					GUID val;
 					rc = parameter->Get_GUID(&val);
@@ -307,8 +307,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 				}
 				break;
 
-				case glucose::NParameter_Type::ptDouble_Array:
-					glucose::IModel_Parameter_Vector *model_parameters;
+				case scgms::NParameter_Type::ptDouble_Array:
+					scgms::IModel_Parameter_Vector *model_parameters;
 					rc = parameter->Get_Model_Parameters(&model_parameters);
 					if (rc != S_OK) return rc;
 
@@ -337,6 +337,6 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 	return S_OK;
 }
 
-HRESULT IfaceCalling create_persistent_filter_chain_configuration(glucose::IPersistent_Filter_Chain_Configuration **configuration) {
-	return Manufacture_Object<CPersistent_Chain_Configuration, glucose::IPersistent_Filter_Chain_Configuration>(configuration);
+HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersistent_Filter_Chain_Configuration **configuration) {
+	return Manufacture_Object<CPersistent_Chain_Configuration, scgms::IPersistent_Filter_Chain_Configuration>(configuration);
 }

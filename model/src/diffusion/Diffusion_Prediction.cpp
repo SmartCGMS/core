@@ -44,15 +44,15 @@
 
 #include <cmath>
 
-CDiffusion_Prediction::CDiffusion_Prediction(glucose::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(glucose::signal_IG)) {
+CDiffusion_Prediction::CDiffusion_Prediction(scgms::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(scgms::signal_IG)) {
 	if (!mIst) throw std::exception{};
 }
 
 
-HRESULT IfaceCalling CDiffusion_Prediction::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+HRESULT IfaceCalling CDiffusion_Prediction::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 
-	diffusion_prediction::TParameters &parameters = glucose::Convert_Parameters<diffusion_prediction::TParameters>(params, diffusion_prediction::default_parameters);
+	diffusion_prediction::TParameters &parameters = scgms::Convert_Parameters<diffusion_prediction::TParameters>(params, diffusion_prediction::default_parameters);
 
 	//destination times
 	Eigen::Map<TVector1D> converted_times{ Map_Double_To_Eigen<TVector1D>(times, count) };
@@ -68,10 +68,10 @@ HRESULT IfaceCalling CDiffusion_Prediction::Get_Continuous_Levels(glucose::IMode
 	//and use converted_times - pred.dt
 
 	retrospective_dt = converted_times - parameters.predictive.dt;	
-	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, retrospective_dt.data(), retrospective_future_ist.data(), count, glucose::apxNo_Derivation);
+	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, retrospective_dt.data(), retrospective_future_ist.data(), count, scgms::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 	retrospective_dt -= parameters.retrospective.dt;
-	rc = mIst->Get_Continuous_Levels(nullptr, retrospective_dt.data(), retrospective_present_ist.data(), count, glucose::apxNo_Derivation);
+	rc = mIst->Get_Continuous_Levels(nullptr, retrospective_dt.data(), retrospective_present_ist.data(), count, scgms::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 	
 	
@@ -99,7 +99,7 @@ HRESULT IfaceCalling CDiffusion_Prediction::Get_Continuous_Levels(glucose::IMode
 	return S_OK;
 }
 
-HRESULT IfaceCalling CDiffusion_Prediction::Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const {
+HRESULT IfaceCalling CDiffusion_Prediction::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const {
 	double *params = const_cast<double*>(diffusion_prediction::default_parameters);
 	return parameters->set(params, params + diffusion_prediction::param_count);
 }

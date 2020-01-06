@@ -47,7 +47,7 @@ constexpr unsigned char bool_2_uc(const bool b) {
 }
 
 
-CSignal_Error::CSignal_Error(glucose::IFilter *output) : CBase_Filter(output) {
+CSignal_Error::CSignal_Error(scgms::IFilter *output) : CBase_Filter(output) {
 	//
 }
 
@@ -58,16 +58,16 @@ CSignal_Error::~CSignal_Error() {
 
 HRESULT IfaceCalling CSignal_Error::QueryInterface(const GUID*  riid, void ** ppvObj) {
 
-	if (Internal_Query_Interface<glucose::ISignal_Error_Inspection>(glucose::IID_Signal_Error_Inspection, *riid, ppvObj)) return S_OK;	
+	if (Internal_Query_Interface<scgms::ISignal_Error_Inspection>(scgms::IID_Signal_Error_Inspection, *riid, ppvObj)) return S_OK;	
 
 	return E_NOINTERFACE;
 }
 
 
-HRESULT CSignal_Error::Do_Execute(glucose::UDevice_Event event) {
-	glucose::TDevice_Event *raw_event;
+HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
+	scgms::TDevice_Event *raw_event;
 
-	auto add_level = [&raw_event, this](glucose::SSignal &signal) {
+	auto add_level = [&raw_event, this](scgms::SSignal &signal) {
 		std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
 		if (signal->Add_Levels(&raw_event->device_time, &raw_event->level, 1) == S_OK)
 			mNew_Data_Available = true;
@@ -76,17 +76,17 @@ HRESULT CSignal_Error::Do_Execute(glucose::UDevice_Event event) {
 	if (event->Raw(&raw_event) == S_OK)
 		switch (raw_event->event_code) {
 		
-			case glucose::NDevice_Event_Code::Level:
+			case scgms::NDevice_Event_Code::Level:
 				if (raw_event->signal_id == mReference_Signal_ID) add_level(mReference_Signal);
 					else if (raw_event->signal_id == mError_Signal_ID) add_level(mError_Signal);
 			break;
 
 
-			case glucose::NDevice_Event_Code::Warm_Reset:
+			case scgms::NDevice_Event_Code::Warm_Reset:
 				{
 					std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
-					mReference_Signal = glucose::SSignal{ glucose::STime_Segment{}, glucose::signal_BG };
-					mError_Signal = glucose::SSignal{ glucose::STime_Segment{}, glucose::signal_BG };
+					mReference_Signal = scgms::SSignal{ scgms::STime_Segment{}, scgms::signal_BG };
+					mError_Signal = scgms::SSignal{ scgms::STime_Segment{}, scgms::signal_BG };
 					mNew_Data_Available = true;
 				}
 				break;
@@ -99,21 +99,21 @@ HRESULT CSignal_Error::Do_Execute(glucose::UDevice_Event event) {
 	return Send(event);
 }
 
-HRESULT CSignal_Error::Do_Configure(glucose::SFilter_Configuration configuration) {
+HRESULT CSignal_Error::Do_Configure(scgms::SFilter_Configuration configuration) {
 	mReference_Signal_ID = configuration.Read_GUID(rsReference_Signal, Invalid_GUID);
 	mError_Signal_ID = configuration.Read_GUID(rsError_Signal, Invalid_GUID);
 	if ((mReference_Signal_ID == Invalid_GUID) || (mError_Signal_ID == Invalid_GUID)) return E_INVALIDARG;
 
 	mDescription = configuration.Read_String(rsDescription, GUID_To_WString(mReference_Signal_ID).append(L" - ").append(GUID_To_WString(mError_Signal_ID)));
 
-	const glucose::TMetric_Parameters metric_parameters{ configuration.Read_GUID(rsSelected_Metric),
+	const scgms::TMetric_Parameters metric_parameters{ configuration.Read_GUID(rsSelected_Metric),
 		bool_2_uc(configuration.Read_Bool(rsUse_Relative_Error)),
 		bool_2_uc(configuration.Read_Bool(rsUse_Squared_Diff)),
 		bool_2_uc(configuration.Read_Bool(rsUse_Prefer_More_Levels)),
 		configuration.Read_Double(dsMetric_Threshold, 0.0)
 	};
 	
-	mMetric = glucose::SMetric{ metric_parameters };	
+	mMetric = scgms::SMetric{ metric_parameters };	
 
 	return S_OK;
 }
@@ -131,7 +131,7 @@ bool CSignal_Error::Prepare_Levels(std::vector<double> &times, std::vector<doubl
 			if (mReference_Signal->Get_Discrete_Levels(times.data(), reference.data(), reference_count, &filled) == S_OK) {
 				error.resize(reference_count);
 
-				if (mError_Signal->Get_Continuous_Levels(nullptr, times.data(), error.data(), filled, glucose::apxNo_Derivation) == S_OK) 
+				if (mError_Signal->Get_Continuous_Levels(nullptr, times.data(), error.data(), filled, scgms::apxNo_Derivation) == S_OK) 
 					return true;				
 			}
 
@@ -180,11 +180,11 @@ HRESULT IfaceCalling CSignal_Error::Peek_New_Data_Available() {
 	return mNew_Data_Available.exchange(false) ? S_OK : S_FALSE;
 }
 
-HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(glucose::TSignal_Error *absolute_error, glucose::TSignal_Error *relative_error) {
+HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(scgms::TSignal_Error *absolute_error, scgms::TSignal_Error *relative_error) {
 	if (!absolute_error || !relative_error) return E_INVALIDARG;
 
 		//be aware that it sorts the differences vector
-	auto Calculate_StdDev_And_ECDF = [](std::vector<double> &differences, glucose::TSignal_Error &signal_error) {
+	auto Calculate_StdDev_And_ECDF = [](std::vector<double> &differences, scgms::TSignal_Error &signal_error) {
 		//3. calculate stddev
 		{
 			double corrected_count = static_cast<double>(signal_error.count);
@@ -206,22 +206,22 @@ HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(glucose::TSignal_Erro
 
 		//fill min and max precisely as we will be rounding for the other values
 		signal_error.ecdf[0] = differences[0];
-		signal_error.ecdf[static_cast<size_t>(glucose::NECDF::max_value)] = differences[differences.size() - 1];
+		signal_error.ecdf[static_cast<size_t>(scgms::NECDF::max_value)] = differences[differences.size() - 1];
 
-		const double stepping = static_cast<double>(signal_error.count-1) / (static_cast<double>(glucose::NECDF::max_value) + 1.0);
-		const size_t ECDF_offset = static_cast<size_t>(glucose::NECDF::min_value);
-		for (size_t i = 1; i < static_cast<size_t>(glucose::NECDF::max_value) - ECDF_offset; i++)
+		const double stepping = static_cast<double>(signal_error.count-1) / (static_cast<double>(scgms::NECDF::max_value) + 1.0);
+		const size_t ECDF_offset = static_cast<size_t>(scgms::NECDF::min_value);
+		for (size_t i = 1; i < static_cast<size_t>(scgms::NECDF::max_value) - ECDF_offset; i++)
 			signal_error.ecdf[i + ECDF_offset] = differences[static_cast<size_t>(round(static_cast<double>(i)*stepping))];
 	};
 
-	auto Set_Error_To_No_Data = [](glucose::TSignal_Error &signal_error) {
+	auto Set_Error_To_No_Data = [](scgms::TSignal_Error &signal_error) {
 		signal_error.count = 0;
 		signal_error.sum = 0.0;
 		signal_error.avg = std::numeric_limits<double>::quiet_NaN();
 		signal_error.stddev = std::numeric_limits<double>::quiet_NaN();
 
-		const size_t ECDF_offset = static_cast<size_t>(glucose::NECDF::min_value);
-		for (size_t i = 0; i <= static_cast<size_t>(glucose::NECDF::max_value) - ECDF_offset; i++)
+		const size_t ECDF_offset = static_cast<size_t>(scgms::NECDF::min_value);
+		for (size_t i = 0; i <= static_cast<size_t>(scgms::NECDF::max_value) - ECDF_offset; i++)
 			signal_error.ecdf[ECDF_offset + i] = std::numeric_limits<double>::quiet_NaN();
 	};
 

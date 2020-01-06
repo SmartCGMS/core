@@ -50,8 +50,8 @@ namespace logger
 {
 	constexpr size_t param_count = 1;
 
-	constexpr glucose::NParameter_Type param_type[param_count] = {
-		glucose::NParameter_Type::ptWChar_Array		
+	constexpr scgms::NParameter_Type param_type[param_count] = {
+		scgms::NParameter_Type::ptWChar_Array		
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
@@ -66,9 +66,9 @@ namespace logger
 		dsLog_File_Output_Tooltip,		
 	};
 
-	const glucose::TFilter_Descriptor Log_Descriptor = {
-		glucose::IID_Log_Filter,
-		glucose::NFilter_Flags::None,
+	const scgms::TFilter_Descriptor Log_Descriptor = {
+		scgms::IID_Log_Filter,
+		scgms::NFilter_Flags::None,
 		dsLog_Filter,
 		param_count,
 		param_type,
@@ -82,9 +82,9 @@ namespace log_replay
 {
 	constexpr size_t param_count = 2;
 
-	constexpr glucose::NParameter_Type param_type[param_count] = {
-		glucose::NParameter_Type::ptWChar_Array,
-		glucose::NParameter_Type::ptBool
+	constexpr scgms::NParameter_Type param_type[param_count] = {
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptBool
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
@@ -102,9 +102,9 @@ namespace log_replay
 		nullptr
 	};
 
-	const glucose::TFilter_Descriptor Log_Replay_Descriptor = {
+	const scgms::TFilter_Descriptor Log_Replay_Descriptor = {
 		{ 0x172ea814, 0x9df1, 0x657c,{ 0x12, 0x89, 0xc7, 0x18, 0x93, 0xf1, 0xd0, 0x85 } }, //// {172EA814-9DF1-657C-1289-C71893F1D085}
-		glucose::NFilter_Flags::None,
+		scgms::NFilter_Flags::None,
 		dsLog_Filter_Replay,
 		param_count,
 		param_type,
@@ -114,13 +114,13 @@ namespace log_replay
 	};
 }
 
-const std::array<glucose::TFilter_Descriptor, 2> filter_descriptions = { { logger::Log_Descriptor, log_replay::Log_Replay_Descriptor } };
+const std::array<scgms::TFilter_Descriptor, 2> filter_descriptions = { { logger::Log_Descriptor, log_replay::Log_Replay_Descriptor } };
 
-extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
+extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter *output, glucose::IFilter **filter) {
+extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
 	if (*id == log_replay::Log_Replay_Descriptor.id)
 		return Manufacture_Object<CLog_Replay_Filter>(filter, output);
 	else if (*id == logger::Log_Descriptor.id)

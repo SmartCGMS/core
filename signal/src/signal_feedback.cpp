@@ -39,7 +39,7 @@
 #include "signal_feedback.h"
 #include "../../../common/lang/dstrings.h"
 
-CSignal_Feedback::CSignal_Feedback(glucose::IFilter *output) : CBase_Filter(output) {
+CSignal_Feedback::CSignal_Feedback(scgms::IFilter *output) : CBase_Filter(output) {
 
 }
 
@@ -48,24 +48,24 @@ CSignal_Feedback::~CSignal_Feedback() {
 }
 
 HRESULT IfaceCalling CSignal_Feedback::QueryInterface(const GUID*  riid, void ** ppvObj) {
-	if (Internal_Query_Interface<glucose::IFilter_Feedback_Sender>(glucose::IID_Filter_Feedback_Sender, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<scgms::IFilter_Feedback_Sender>(scgms::IID_Filter_Feedback_Sender, *riid, ppvObj)) return S_OK;
 	return E_NOINTERFACE;
 }
 
-HRESULT CSignal_Feedback::Do_Execute(glucose::UDevice_Event event) {
+HRESULT CSignal_Feedback::Do_Execute(scgms::UDevice_Event event) {
 
-    auto send_to_receiver = [this](glucose::UDevice_Event &event)->HRESULT {
+    auto send_to_receiver = [this](scgms::UDevice_Event &event)->HRESULT {
         if (!mReceiver) return ERROR_DS_DRA_EXTN_CONNECTION_FAILED;
 
-        glucose::IDevice_Event* raw_event = event.get();
+        scgms::IDevice_Event* raw_event = event.get();
         event.release();
         return mReceiver->Execute(raw_event);
     };
 
-	if (event.event_code() == glucose::NDevice_Event_Code::Level) {
+	if (event.event_code() == scgms::NDevice_Event_Code::Level) {
         if (event.signal_id() == mSignal_ID) {
             if (mForward_Clone) {
-                glucose::UDevice_Event clone = event.Clone();                
+                scgms::UDevice_Event clone = event.Clone();                
                 if (clone) {
                     HRESULT rc = send_to_receiver(event);
                     if (SUCCEEDED(rc)) rc = Send(clone);
@@ -76,14 +76,14 @@ HRESULT CSignal_Feedback::Do_Execute(glucose::UDevice_Event event) {
                 return send_to_receiver(event);
         }
 	} 
-    else if (event.event_code() == glucose::NDevice_Event_Code::Shut_Down) {
+    else if (event.event_code() == scgms::NDevice_Event_Code::Shut_Down) {
         mReceiver.reset();
     }
 
 	return Send(event);
 }
 
-HRESULT CSignal_Feedback::Do_Configure(glucose::SFilter_Configuration configuration) {
+HRESULT CSignal_Feedback::Do_Configure(scgms::SFilter_Configuration configuration) {
 	mFeedback_Name = configuration.Read_String(rsFeedback_Name);    
     mSignal_ID = configuration.Read_GUID(rsSignal_Source_Id);
     mForward_Clone = configuration.Read_Bool(rsForward_Clone);
@@ -91,10 +91,10 @@ HRESULT CSignal_Feedback::Do_Configure(glucose::SFilter_Configuration configurat
 	return S_OK;
 }
 
-HRESULT IfaceCalling CSignal_Feedback::Sink(glucose::IFilter_Feedback_Receiver *receiver)
+HRESULT IfaceCalling CSignal_Feedback::Sink(scgms::IFilter_Feedback_Receiver *receiver)
 {
 	if (receiver)
-		mReceiver = refcnt::make_shared_reference_ext<glucose::SFilter_Feedback_Receiver, glucose::IFilter_Feedback_Receiver>(receiver, true);
+		mReceiver = refcnt::make_shared_reference_ext<scgms::SFilter_Feedback_Receiver, scgms::IFilter_Feedback_Receiver>(receiver, true);
 	else
 		mReceiver.reset();
 

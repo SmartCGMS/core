@@ -59,7 +59,7 @@ using TSegment_Limits = std::pair<size_t, size_t>;
 /*
  * Filter class for loading and extracting file, and sending values to chain
  */
-class CFile_Reader : public glucose::CBase_Filter {
+class CFile_Reader : public scgms::CBase_Filter {
 	protected:
 		// original filename from configuration
 		std::wstring mFileName;
@@ -81,7 +81,7 @@ class CFile_Reader : public glucose::CBase_Filter {
 		void Run_Reader();	
 
 		// send event to filter chain
-		bool Send_Event(glucose::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID* signalId = nullptr, double value = 0.0);
+		bool Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID* signalId = nullptr, double value = 0.0);
 		// extracts file to value vector container
 		HRESULT Extract(ExtractionResult &values);
 		// merge values from extraction result to internal vector
@@ -91,10 +91,10 @@ class CFile_Reader : public glucose::CBase_Filter {
 		void Resolve_Segments(TValue_Vector const& src, std::list<TSegment_Limits>& targetList) const;
 
 	protected:
-		virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
-		HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
 	public:
-		CFile_Reader(glucose::IFilter *output);
+		CFile_Reader(scgms::IFilter *output);
 		virtual ~CFile_Reader();
 };
 

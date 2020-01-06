@@ -44,20 +44,20 @@
 
 #undef max
 
-CDiffusion_v2_blood::CDiffusion_v2_blood(glucose::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(glucose::signal_IG)) {
+CDiffusion_v2_blood::CDiffusion_v2_blood(scgms::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(scgms::signal_IG)) {
 	if (!refcnt::Shared_Valid_All(mIst)) throw std::exception{};
 }
 
 
-HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 																const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 	if (count == 0) return S_FALSE;
 	if ((times == nullptr) || (levels == nullptr)) return E_INVALIDARG;
 
-	diffusion_v2_model::TParameters &parameters = glucose::Convert_Parameters<diffusion_v2_model::TParameters>(params, diffusion_v2_model::default_parameters);
+	diffusion_v2_model::TParameters &parameters = scgms::Convert_Parameters<diffusion_v2_model::TParameters>(params, diffusion_v2_model::default_parameters);
 	
 	auto present_ist = Reserve_Eigen_Buffer(mPresent_Ist, count );
-	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, times, present_ist.data(), count, glucose::apxNo_Derivation);
+	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, times, present_ist.data(), count, scgms::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 
 
@@ -71,7 +71,7 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 		dt = converted_times - parameters.h;
 
 		auto &h_back_ist = future_ist;	//temporarily re-use this buffer to calculate dt vector
-		rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), h_back_ist.data(), count, glucose::apxNo_Derivation);
+		rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), h_back_ist.data(), count, scgms::apxNo_Derivation);
 		if (rc != S_OK) return rc;
 
 		dt = converted_times + parameters.dt + parameters.k*present_ist*(present_ist - h_back_ist)/parameters.h;
@@ -79,7 +79,7 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 	else
 		dt = converted_times + parameters.dt;
 
-	rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), future_ist.data(), count, glucose::apxNo_Derivation);
+	rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), future_ist.data(), count, scgms::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 
 	//floattype alpha = params.cg;
@@ -149,7 +149,7 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(glucose::IModel_
 	return S_OK;
 }
 
-HRESULT IfaceCalling CDiffusion_v2_blood::Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const {
+HRESULT IfaceCalling CDiffusion_v2_blood::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const {
 	double *params = const_cast<double*>(diffusion_v2_model::default_parameters);
 	return parameters->set(params, params + diffusion_v2_model::param_count);
 }

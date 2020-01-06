@@ -39,21 +39,21 @@
 #include "insulin_bolus.h"
 #include "..\..\..\..\common\rtl\SolverLib.h"
 
-CDiscrete_Insulin_Bolus_Calculator::CDiscrete_Insulin_Bolus_Calculator(glucose::IModel_Parameter_Vector* parameters, glucose::IFilter* output) : 
-       CBase_Filter(output), mParameters(glucose::Convert_Parameters<insulin_bolus::TParameters>(parameters, insulin_bolus::default_parameters)) {
+CDiscrete_Insulin_Bolus_Calculator::CDiscrete_Insulin_Bolus_Calculator(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output) : 
+       CBase_Filter(output), mParameters(scgms::Convert_Parameters<insulin_bolus::TParameters>(parameters, insulin_bolus::default_parameters)) {
 
 }
 
 
-HRESULT CDiscrete_Insulin_Bolus_Calculator::Do_Execute(glucose::UDevice_Event event) {
-    if (event.event_code() == glucose::NDevice_Event_Code::Level) {
-        if (event.signal_id() == glucose::signal_Carb_Intake) {
+HRESULT CDiscrete_Insulin_Bolus_Calculator::Do_Execute(scgms::UDevice_Event event) {
+    if (event.event_code() == scgms::NDevice_Event_Code::Level) {
+        if (event.signal_id() == scgms::signal_Carb_Intake) {
             const double bolus_level = event.level() * mParameters.csr; //compute while we still own the event
             HRESULT rc = Send(event);
             if (SUCCEEDED(rc)) {
-                glucose::UDevice_Event bolus{ glucose::NDevice_Event_Code::Level };
+                scgms::UDevice_Event bolus{ scgms::NDevice_Event_Code::Level };
                 bolus.level() = bolus_level;
-                bolus.signal_id() = glucose::signal_Requested_Insulin_Bolus;
+                bolus.signal_id() = scgms::signal_Requested_Insulin_Bolus;
                 rc = Send(bolus);
             }
 
@@ -64,7 +64,7 @@ HRESULT CDiscrete_Insulin_Bolus_Calculator::Do_Execute(glucose::UDevice_Event ev
     return Send(event);
 }
 
-HRESULT CDiscrete_Insulin_Bolus_Calculator::Do_Configure(glucose::SFilter_Configuration configuration) {
+HRESULT CDiscrete_Insulin_Bolus_Calculator::Do_Configure(scgms::SFilter_Configuration configuration) {
     // configured in the constructor
     return E_NOTIMPL;
 }

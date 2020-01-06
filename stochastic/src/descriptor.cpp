@@ -45,31 +45,31 @@
 
 
 namespace mt_metade {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsMT_MetaDE);
+	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsMT_MetaDE);
 }
 
 namespace halton_metade {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsHalton_MetaDE);
+	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsHalton_MetaDE);
 }
 
 namespace rnd_metade {
-	const glucose::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsRnd_MetaDE);
+	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsRnd_MetaDE);
 }
 
 
 
 namespace pathfinder {
-	const glucose::TSolver_Descriptor desc_fast = Describe_Non_Specialized_Solver(id_fast, dsPathfinder_Fast);
-    const glucose::TSolver_Descriptor desc_spiral = Describe_Non_Specialized_Solver(id_spiral, dsPathfinder_Spiral);
-	const glucose::TSolver_Descriptor desc_landscape = Describe_Non_Specialized_Solver(id_landscape, dsPathfinder_Landscape);
+	const scgms::TSolver_Descriptor desc_fast = Describe_Non_Specialized_Solver(id_fast, dsPathfinder_Fast);
+    const scgms::TSolver_Descriptor desc_spiral = Describe_Non_Specialized_Solver(id_spiral, dsPathfinder_Spiral);
+	const scgms::TSolver_Descriptor desc_landscape = Describe_Non_Specialized_Solver(id_landscape, dsPathfinder_Landscape);
 }
 
 
-const std::array<glucose::TSolver_Descriptor, 6> solver_descriptions = 
+const std::array<scgms::TSolver_Descriptor, 6> solver_descriptions = 
 	{ mt_metade::desc, halton_metade::desc, rnd_metade::desc, 
 	  pathfinder::desc_fast, pathfinder::desc_spiral, pathfinder::desc_landscape };
 
 
-HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {
+HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end) {
 	return do_get_descriptors(solver_descriptions, begin, end);
 }

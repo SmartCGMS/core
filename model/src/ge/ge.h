@@ -81,7 +81,7 @@ namespace ge_model {
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CGE_Discrete_Model : public virtual glucose::CBase_Filter, public virtual glucose::IDiscrete_Model {
+class CGE_Discrete_Model : public virtual scgms::CBase_Filter, public virtual scgms::IDiscrete_Model {
 protected:
 	double mWaiting_CHO = 0.0;		//for the cho_half instruction
 	double mCurrent_IBR = 0.0;		//for the ibr instruction
@@ -91,18 +91,18 @@ protected:
 	double mCurrent_Time = std::numeric_limits<double>::quiet_NaN();
 	double mTime_Advance_Jitter = 0.0;			//because it will be quite difficult to ge a code that properly calculates with
 												//with a dynamic time stepping => hence we evolve a code for a sufficiently small, fixed step
-	const double mTime_Fixed_Stepping = 5.0*glucose::One_Minute;
+	const double mTime_Fixed_Stepping = 5.0*scgms::One_Minute;
 	void Fixed_Step();							//runs the instrucitons, which execute the fixed step
 	void Emit_Current_State();
 protected:
-	// glucose::CBase_Filter iface implementation
-	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+	// scgms::CBase_Filter iface implementation
+	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
 public:
-	CGE_Discrete_Model(glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output);
+	CGE_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output);
 	virtual ~CGE_Discrete_Model();
 
-	// glucose::IDiscrete_Model iface
+	// scgms::IDiscrete_Model iface
 	virtual HRESULT IfaceCalling Set_Current_Time(const double new_current_time);
 	virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
 };

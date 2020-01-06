@@ -54,7 +54,7 @@
 #include <string>
 #include <map>
 
-CLog_Filter::CLog_Filter(glucose::IFilter *output)	: CBase_Filter(output) {
+CLog_Filter::CLog_Filter(scgms::IFilter *output)	: CBase_Filter(output) {
 	mNew_Log_Records = refcnt::Create_Container_shared<refcnt::wstr_container*>(nullptr, nullptr);
 }
 
@@ -66,13 +66,13 @@ CLog_Filter::~CLog_Filter() {
 }
 
 HRESULT IfaceCalling CLog_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
-	if (Internal_Query_Interface<glucose::IFilter>(glucose::IID_Log_Filter, *riid, ppvObj)) return S_OK;
-	if (Internal_Query_Interface<glucose::ILog_Filter_Inspection>(glucose::IID_Log_Filter_Inspection, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<scgms::IFilter>(scgms::IID_Log_Filter, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<scgms::ILog_Filter_Inspection>(scgms::IID_Log_Filter_Inspection, *riid, ppvObj)) return S_OK;
 
 	return E_NOINTERFACE;
 }
 
-std::wstring CLog_Filter::Parameters_To_WStr(const glucose::UDevice_Event& evt) {
+std::wstring CLog_Filter::Parameters_To_WStr(const scgms::UDevice_Event& evt) {
 	// retrieve params
 	double *begin, *end;
 	if (evt.parameters->get(&begin, &end) != S_OK)
@@ -80,7 +80,7 @@ std::wstring CLog_Filter::Parameters_To_WStr(const glucose::UDevice_Event& evt) 
 
 
 	// find appropriate model descriptor by id
-	glucose::TModel_Descriptor* modelDesc = nullptr;
+	scgms::TModel_Descriptor* modelDesc = nullptr;
 	for (auto& desc : mModelDescriptors)
 	{
 		for (size_t i = 0; i < desc.number_of_calculated_signals; i++) 	{
@@ -132,9 +132,9 @@ bool CLog_Filter::Open_Log(const std::wstring &log_filename) {
 	return result;
 }
 
-HRESULT IfaceCalling CLog_Filter::Do_Configure(glucose::SFilter_Configuration configuration) {
+HRESULT IfaceCalling CLog_Filter::Do_Configure(scgms::SFilter_Configuration configuration) {
 	// load model descriptors to be able to properly format log outputs of parameters	
-	mModelDescriptors = glucose::get_model_descriptors();
+	mModelDescriptors = scgms::get_model_descriptors();
 	mLog_Filename = configuration.Read_String(rsLog_Output_File);
 
 	mIs_Terminated = false;
@@ -143,20 +143,20 @@ HRESULT IfaceCalling CLog_Filter::Do_Configure(glucose::SFilter_Configuration co
 	return Open_Log(mLog_Filename) ? S_OK : S_FALSE;
 }
 
-HRESULT IfaceCalling CLog_Filter::Do_Execute(glucose::UDevice_Event event) {
+HRESULT IfaceCalling CLog_Filter::Do_Execute(scgms::UDevice_Event event) {
 	Log_Event(event);
 	return Send(event);
 };
 
 
-void CLog_Filter::Log_Event(const glucose::UDevice_Event &evt) {
+void CLog_Filter::Log_Event(const scgms::UDevice_Event &evt) {
 	const wchar_t *delim = L"; ";
 
 	std::wostringstream log_line;
 
 	log_line << evt.logical_time() << delim;
 	log_line << Rat_Time_To_Local_Time_WStr(evt.device_time(), rsLog_Date_Time_Format) << delim;
-	log_line << glucose::event_code_text[static_cast<size_t>(evt.event_code())] << delim;
+	log_line << scgms::event_code_text[static_cast<size_t>(evt.event_code())] << delim;
 	if (evt.signal_id() != Invalid_GUID) log_line << mSignal_Names.Get_Name(evt.signal_id());
 	log_line << delim;
 	if (evt.is_level_event()) log_line << evt.level();

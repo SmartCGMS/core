@@ -66,39 +66,39 @@ CLoaded_Filters::CLoaded_Filters() {
 	load_libraries();
 }
 
-HRESULT IfaceCalling get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {	
+HRESULT IfaceCalling get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {	
 	return loaded_filters.get_filter_descriptors(begin, end);
 }
 
-HRESULT IfaceCalling get_metric_descriptors(glucose::TMetric_Descriptor **begin, glucose::TMetric_Descriptor **end) {
+HRESULT IfaceCalling get_metric_descriptors(scgms::TMetric_Descriptor **begin, scgms::TMetric_Descriptor **end) {
 	return loaded_filters.get_metric_descriptors(begin, end);
 }
 
-HRESULT IfaceCalling get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end) {
+HRESULT IfaceCalling get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
 	return loaded_filters.get_model_descriptors(begin, end);
 }
 
-HRESULT IfaceCalling get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {
+HRESULT IfaceCalling get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end) {
 	return loaded_filters.get_solver_descriptors(begin, end);
 }
 
-HRESULT IfaceCalling get_approx_descriptors(glucose::TApprox_Descriptor **begin, glucose::TApprox_Descriptor **end) {
+HRESULT IfaceCalling get_approx_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end) {
 	return loaded_filters.get_approx_descriptors(begin, end);
 }
 
-HRESULT IfaceCalling create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric) {
+HRESULT IfaceCalling create_metric(const scgms::TMetric_Parameters *parameters, scgms::IMetric **metric) {
 	return loaded_filters.create_metric(parameters, metric);
 }
 
-HRESULT IfaceCalling create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
+HRESULT IfaceCalling create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, scgms::ISignal **signal) {
 	return loaded_filters.create_signal(calc_id, segment, signal);
 }
 
-HRESULT IfaceCalling create_discrete_model(const GUID *model_id, glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output, glucose::IDiscrete_Model **model) {
+HRESULT IfaceCalling create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
 	return loaded_filters.create_discrete_model(model_id, parameters, output, model);
 }
 
-HRESULT IfaceCalling solve_model_parameters(const glucose::TSolver_Setup *setup) {
+HRESULT IfaceCalling solve_model_parameters(const scgms::TSolver_Setup *setup) {
 	return loaded_filters.solve_model_parameters(setup);
 }
 
@@ -106,11 +106,11 @@ HRESULT IfaceCalling solve_generic(const GUID *solver_id, const solver::TSolver_
 	return loaded_filters.solve_generic(solver_id, setup, progress);
 }
 
-HRESULT IfaceCalling create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApprox_Parameters_Vector* configuration, glucose::IApproximator **approx) {
+HRESULT IfaceCalling create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApprox_Parameters_Vector* configuration, scgms::IApproximator **approx) {
 	return loaded_filters.create_approximator(approx_id, signal, configuration, approx);
 }
 
-HRESULT IfaceCalling add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Filter create_filter) {
+HRESULT IfaceCalling add_filters(const scgms::TFilter_Descriptor *begin, const scgms::TFilter_Descriptor *end, const scgms::TCreate_Filter create_filter) {
 	return loaded_filters.add_filters(begin, end, create_filter);
 }
 
@@ -124,19 +124,19 @@ void CLoaded_Filters::load_libraries() {
 			imported::TLibraryInfo lib;
 
 			if (lib.library.Load(filepath.c_str())) {
-				bool lib_used = Resolve_Func<glucose::TCreate_Filter>(lib.create_filter, lib.library, imported::rsDo_Create_Filter);
+				bool lib_used = Resolve_Func<scgms::TCreate_Filter>(lib.create_filter, lib.library, imported::rsDo_Create_Filter);
 				
-				lib_used |= Resolve_Func<glucose::TCreate_Metric>(lib.create_metric, lib.library, imported::rsDo_Create_Metric);
-				lib_used |= Resolve_Func<glucose::TCreate_Signal>(lib.create_signal, lib.library, imported::rsDo_Create_Signal);
-				lib_used |= Resolve_Func<glucose::TCreate_Discrete_Model>(lib.create_discrete_model, lib.library, imported::rsDo_Create_Discrete_model);
-				lib_used |= Resolve_Func<glucose::TCreate_Approximator>(lib.create_approximator, lib.library, imported::rsDo_Create_Approximator);
+				lib_used |= Resolve_Func<scgms::TCreate_Metric>(lib.create_metric, lib.library, imported::rsDo_Create_Metric);
+				lib_used |= Resolve_Func<scgms::TCreate_Signal>(lib.create_signal, lib.library, imported::rsDo_Create_Signal);
+				lib_used |= Resolve_Func<scgms::TCreate_Discrete_Model>(lib.create_discrete_model, lib.library, imported::rsDo_Create_Discrete_model);
+				lib_used |= Resolve_Func<scgms::TCreate_Approximator>(lib.create_approximator, lib.library, imported::rsDo_Create_Approximator);
 				lib_used |= Resolve_Func<solver::TGeneric_Solver>(lib.solve_generic, lib.library, imported::rsDo_Solve_Generic);
 
-				lib_used |= Load_Descriptors<glucose::TGet_Filter_Descriptors, glucose::TFilter_Descriptor>(mFilter_Descriptors, lib.library, imported::rsGet_Filter_Descriptors);
-				lib_used |= Load_Descriptors<glucose::TGet_Metric_Descriptors, glucose::TMetric_Descriptor>(mMetric_Descriptors, lib.library, imported::rsGet_Metric_Descriptors);
-				lib_used |= Load_Descriptors<glucose::TGet_Model_Descriptors, glucose::TModel_Descriptor>(mModel_Descriptors, lib.library, imported::rsGet_Model_Descriptors);
-				lib_used |= Load_Descriptors<glucose::TGet_Solver_Descriptors, glucose::TSolver_Descriptor>(mSolver_Descriptors, lib.library, imported::rsGet_Solvers_Descriptors);
-				lib_used |= Load_Descriptors<glucose::TGet_Approx_Descriptors, glucose::TApprox_Descriptor>(mApprox_Descriptors, lib.library, imported::rsGet_Approx_Descriptors);
+				lib_used |= Load_Descriptors<scgms::TGet_Filter_Descriptors, scgms::TFilter_Descriptor>(mFilter_Descriptors, lib.library, imported::rsGet_Filter_Descriptors);
+				lib_used |= Load_Descriptors<scgms::TGet_Metric_Descriptors, scgms::TMetric_Descriptor>(mMetric_Descriptors, lib.library, imported::rsGet_Metric_Descriptors);
+				lib_used |= Load_Descriptors<scgms::TGet_Model_Descriptors, scgms::TModel_Descriptor>(mModel_Descriptors, lib.library, imported::rsGet_Model_Descriptors);
+				lib_used |= Load_Descriptors<scgms::TGet_Solver_Descriptors, scgms::TSolver_Descriptor>(mSolver_Descriptors, lib.library, imported::rsGet_Solvers_Descriptors);
+				lib_used |= Load_Descriptors<scgms::TGet_Approx_Descriptors, scgms::TApprox_Descriptor>(mApprox_Descriptors, lib.library, imported::rsGet_Approx_Descriptors);
 
 				if (lib_used)
 					mLibraries.push_back(std::move(lib));
@@ -147,7 +147,7 @@ void CLoaded_Filters::load_libraries() {
 	}
 }
 
-HRESULT CLoaded_Filters::add_filters(const glucose::TFilter_Descriptor *begin, const glucose::TFilter_Descriptor *end, const glucose::TCreate_Filter create_filter) {
+HRESULT CLoaded_Filters::add_filters(const scgms::TFilter_Descriptor *begin, const scgms::TFilter_Descriptor *end, const scgms::TCreate_Filter create_filter) {
 	if ((begin == end) || (begin == nullptr) || (end == nullptr) || (create_filter == nullptr)) return E_INVALIDARG;
 	imported::TLibraryInfo lib;	
 	lib.create_approximator = nullptr;
@@ -165,34 +165,34 @@ HRESULT CLoaded_Filters::add_filters(const glucose::TFilter_Descriptor *begin, c
 }
 
 
-HRESULT CLoaded_Filters::create_filter(const GUID *id, glucose::IFilter *next_filter, glucose::IFilter **filter) {
+HRESULT CLoaded_Filters::create_filter(const GUID *id, scgms::IFilter *next_filter, scgms::IFilter **filter) {
 	if ((!id) || (!next_filter)) return E_INVALIDARG;	
 	auto call_create_filter = [](const imported::TLibraryInfo &info) { return info.create_filter; }; 
 	return Call_Func(call_create_filter, id, next_filter, filter);
 }
 
-HRESULT CLoaded_Filters::create_metric(const glucose::TMetric_Parameters *parameters, glucose::IMetric **metric) {
+HRESULT CLoaded_Filters::create_metric(const scgms::TMetric_Parameters *parameters, scgms::IMetric **metric) {
 	auto call_create_metric = [](const imported::TLibraryInfo &info) { return info.create_metric; }; 
 	return Call_Func(call_create_metric, parameters, metric);
 }
 
-HRESULT CLoaded_Filters::create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
+HRESULT CLoaded_Filters::create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, scgms::ISignal **signal) {
 	auto call_create_signal = [](const imported::TLibraryInfo &info) { return info.create_signal; };
 	return Call_Func(call_create_signal, calc_id, segment, signal);
 }
 
-HRESULT CLoaded_Filters::create_discrete_model(const GUID *model_id, glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output, glucose::IDiscrete_Model **model) {
+HRESULT CLoaded_Filters::create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
 	auto call_create_discrete_model = [](const imported::TLibraryInfo &info) { return info.create_discrete_model; };
 	return Call_Func(call_create_discrete_model, model_id, parameters, output, model);
 }
 
-HRESULT CLoaded_Filters::solve_model_parameters(const glucose::TSolver_Setup *setup) {
+HRESULT CLoaded_Filters::solve_model_parameters(const scgms::TSolver_Setup *setup) {
 	auto call_solve_model_parameters = [](const imported::TLibraryInfo &info) { return info.solve_model_parameters; }; 
 	HRESULT rc = Call_Func(call_solve_model_parameters, setup);
 
 	if (rc != S_OK) {
 		//let's try to apply the generic filters as well
-		glucose::TModel_Descriptor *model = nullptr;
+		scgms::TModel_Descriptor *model = nullptr;
 		for (size_t desc_idx = 0; desc_idx < mModel_Descriptors.size(); desc_idx++)
 			for (size_t signal_idx = 0; signal_idx < mModel_Descriptors[desc_idx].number_of_calculated_signals; signal_idx++) {
 				if (mModel_Descriptors[desc_idx].calculated_signal_ids[signal_idx] == setup->calculated_signal_id) {
@@ -250,38 +250,38 @@ HRESULT CLoaded_Filters::solve_generic(const GUID *solver_id, const solver::TSol
 	return Call_Func(call_solve_filter, solver_id, setup, progress);
 }
 
-HRESULT CLoaded_Filters::create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApprox_Parameters_Vector* configuration, glucose::IApproximator **approx) {
+HRESULT CLoaded_Filters::create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApprox_Parameters_Vector* configuration, scgms::IApproximator **approx) {
 	auto call_create_approx = [](const imported::TLibraryInfo &info) { return info.create_approximator; };
 	return Call_Func(call_create_approx, approx_id, signal, configuration, approx);
 }
 
-HRESULT CLoaded_Filters::get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
-	return do_get_descriptors<glucose::TFilter_Descriptor>(mFilter_Descriptors, begin, end);
+HRESULT CLoaded_Filters::get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
+	return do_get_descriptors<scgms::TFilter_Descriptor>(mFilter_Descriptors, begin, end);
 }
 
-HRESULT CLoaded_Filters::get_metric_descriptors(glucose::TMetric_Descriptor **begin, glucose::TMetric_Descriptor **end) {
-	return do_get_descriptors<glucose::TMetric_Descriptor>(mMetric_Descriptors, begin, end);
+HRESULT CLoaded_Filters::get_metric_descriptors(scgms::TMetric_Descriptor **begin, scgms::TMetric_Descriptor **end) {
+	return do_get_descriptors<scgms::TMetric_Descriptor>(mMetric_Descriptors, begin, end);
 }
 
-HRESULT CLoaded_Filters::get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end) {
-	return do_get_descriptors<glucose::TModel_Descriptor>(mModel_Descriptors, begin, end);
+HRESULT CLoaded_Filters::get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
+	return do_get_descriptors<scgms::TModel_Descriptor>(mModel_Descriptors, begin, end);
 }
 
-HRESULT CLoaded_Filters::get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {
-	return do_get_descriptors<glucose::TSolver_Descriptor>(mSolver_Descriptors, begin, end);
+HRESULT CLoaded_Filters::get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end) {
+	return do_get_descriptors<scgms::TSolver_Descriptor>(mSolver_Descriptors, begin, end);
 }
 
-HRESULT CLoaded_Filters::get_approx_descriptors(glucose::TApprox_Descriptor **begin, glucose::TApprox_Descriptor **end) {
-	return do_get_descriptors<glucose::TApprox_Descriptor>(mApprox_Descriptors, begin, end);
+HRESULT CLoaded_Filters::get_approx_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end) {
+	return do_get_descriptors<scgms::TApprox_Descriptor>(mApprox_Descriptors, begin, end);
 }
 
-glucose::SFilter create_filter(const GUID &id, glucose::IFilter *next_filter) {
-	glucose::SFilter result;
-	glucose::IFilter *filter;
+scgms::SFilter create_filter(const GUID &id, scgms::IFilter *next_filter) {
+	scgms::SFilter result;
+	scgms::IFilter *filter;
 	
 
 	if (loaded_filters.create_filter(&id, next_filter, &filter) == S_OK)
-		result = refcnt::make_shared_reference_ext<glucose::SFilter, glucose::IFilter>(filter, false);
+		result = refcnt::make_shared_reference_ext<scgms::SFilter, scgms::IFilter>(filter, false);
 
 	return result;
 }

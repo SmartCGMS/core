@@ -51,7 +51,7 @@ constexpr unsigned char bool_2_uc(const bool b) {
 }
 
 
-CCalculate_Filter::CCalculate_Filter(glucose::IFilter *output) : mReference_Signal_Id(Invalid_GUID), CBase_Filter(output) {
+CCalculate_Filter::CCalculate_Filter(scgms::IFilter *output) : mReference_Signal_Id(Invalid_GUID), CBase_Filter(output) {
 	//
 }
 
@@ -60,8 +60,8 @@ CCalculate_Filter::~CCalculate_Filter() {
 }
 
 HRESULT IfaceCalling CCalculate_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
-	if (Internal_Query_Interface<glucose::IFilter>(glucose::IID_Log_Filter, *riid, ppvObj)) return S_OK;
-	if (Internal_Query_Interface<glucose::ICalculate_Filter_Inspection>(glucose::IID_Calculate_Filter_Inspection, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<scgms::IFilter>(scgms::IID_Log_Filter, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<scgms::ICalculate_Filter_Inspection>(scgms::IID_Calculate_Filter_Inspection, *riid, ppvObj)) return S_OK;
 
 	return E_NOINTERFACE;
 }
@@ -77,7 +77,7 @@ std::unique_ptr<CTime_Segment>& CCalculate_Filter::Get_Segment(const uint64_t se
 	}
 }
 
-HRESULT IfaceCalling CCalculate_Filter::Do_Configure(glucose::SFilter_Configuration configuration) {
+HRESULT IfaceCalling CCalculate_Filter::Do_Configure(scgms::SFilter_Configuration configuration) {
 	mCalculated_Signal_Id = configuration.Read_GUID(rsSelected_Signal);
 	mPrediction_Window = configuration.Read_Double(rsPrediction_Window);
 	mSolver_Enabled = configuration.Read_Bool(rsSolve_Parameters);
@@ -88,13 +88,13 @@ HRESULT IfaceCalling CCalculate_Filter::Do_Configure(glucose::SFilter_Configurat
 	mSolving_Scheduled = false;
 	mReference_Level_Counter = 0;
 
-	mSolver_Status = mSolver_Enabled ? glucose::TSolver_Status::Idle : glucose::TSolver_Status::Disabled;
+	mSolver_Status = mSolver_Enabled ? scgms::TSolver_Status::Idle : scgms::TSolver_Status::Disabled;
 
 	mSolver_Id = configuration.Read_GUID(rsSelected_Solver);
 
 	//get reference signal id
-	glucose::TModel_Descriptor desc = glucose::Null_Model_Descriptor;
-	if (glucose::get_model_descriptor_by_signal_id(mCalculated_Signal_Id, desc)) {
+	scgms::TModel_Descriptor desc = scgms::Null_Model_Descriptor;
+	if (scgms::get_model_descriptor_by_signal_id(mCalculated_Signal_Id, desc)) {
 
 		std::vector<double> lower_bound, default_parameters, upper_bound;
 
@@ -104,9 +104,9 @@ HRESULT IfaceCalling CCalculate_Filter::Do_Configure(glucose::SFilter_Configurat
 			upper_bound.assign(desc.upper_bound, desc.upper_bound + desc.number_of_parameters);
 		}
 		
-		mLower_Bound = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(lower_bound.data(), lower_bound.data() + lower_bound.size());
-		mDefault_Parameters = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(default_parameters.data(), default_parameters.data() + default_parameters.size());
-		mUpper_Bound = refcnt::Create_Container_shared<double, glucose::SModel_Parameter_Vector>(upper_bound.data(), upper_bound.data() + upper_bound.size());
+		mLower_Bound = refcnt::Create_Container_shared<double, scgms::SModel_Parameter_Vector>(lower_bound.data(), lower_bound.data() + lower_bound.size());
+		mDefault_Parameters = refcnt::Create_Container_shared<double, scgms::SModel_Parameter_Vector>(default_parameters.data(), default_parameters.data() + default_parameters.size());
+		mUpper_Bound = refcnt::Create_Container_shared<double, scgms::SModel_Parameter_Vector>(upper_bound.data(), upper_bound.data() + upper_bound.size());
 		
 		//find the proper reference id
 		for (size_t i = 0; i < desc.number_of_calculated_signals; i++) {
@@ -117,7 +117,7 @@ HRESULT IfaceCalling CCalculate_Filter::Do_Configure(glucose::SFilter_Configurat
 		}
 	}
 
-	const auto metric_tmp = glucose::get_metric_descriptors();
+	const auto metric_tmp = scgms::get_metric_descriptors();
 	mMetric_Id = configuration.Read_GUID(rsSelected_Metric, metric_tmp.empty() ? Invalid_GUID : metric_tmp[0].id);
 	mUse_Relative_Error = configuration.Read_Bool(rsUse_Relative_Error, mUse_Relative_Error);
 	mUse_Squared_Differences = configuration.Read_Bool(rsUse_Squared_Diff, mUse_Squared_Differences);
@@ -131,13 +131,13 @@ HRESULT IfaceCalling CCalculate_Filter::Do_Configure(glucose::SFilter_Configurat
 	return S_OK;
 }
 
-HRESULT CCalculate_Filter::Do_Execute(glucose::UDevice_Event event)  {
+HRESULT CCalculate_Filter::Do_Execute(scgms::UDevice_Event event)  {
 	
 	bool event_already_sent = false;
 	HRESULT result = E_UNEXPECTED;
 
 	switch (event.event_code()) {
-		case glucose::NDevice_Event_Code::Level:
+		case scgms::NDevice_Event_Code::Level:
 			{
 				//copy those values, which may be gone once we send the event in the original order
 				const uint64_t segment_id = event.segment_id();
@@ -159,7 +159,7 @@ HRESULT CCalculate_Filter::Do_Execute(glucose::UDevice_Event event)  {
 			}
 			break;
 
-		case glucose::NDevice_Event_Code::Parameters:
+		case scgms::NDevice_Event_Code::Parameters:
 
 			if ((!mWarm_Reset_Done && mSolver_Enabled) || (!mSolver_Enabled))
 
@@ -167,12 +167,12 @@ HRESULT CCalculate_Filter::Do_Execute(glucose::UDevice_Event event)  {
 				//or, we calculate parameters and therefore we stop accepting new ones once warm-resetted
 
 				if (event.signal_id() == mCalculated_Signal_Id) {
-					if (event.segment_id() != glucose::Invalid_Segment_Id){
+					if (event.segment_id() != scgms::Invalid_Segment_Id){
 
 						auto test_and_apply_parameters = [&event, this](const std::unique_ptr<CTime_Segment> &segment) {
 							//do these parameters improve?
-							glucose::SMetric metric{ glucose::TMetric_Parameters{ mMetric_Id, bool_2_uc(mUse_Relative_Error),  bool_2_uc(mUse_Squared_Differences), bool_2_uc(mPrefer_More_Levels),  mMetric_Threshold } };
-							glucose::ITime_Segment *segment_raw = segment.get();
+							scgms::SMetric metric{ scgms::TMetric_Parameters{ mMetric_Id, bool_2_uc(mUse_Relative_Error),  bool_2_uc(mUse_Squared_Differences), bool_2_uc(mPrefer_More_Levels),  mMetric_Threshold } };
+							scgms::ITime_Segment *segment_raw = segment.get();
 							const double current_fitness = Calculate_Fitness(&segment_raw, 1, metric, segment->Get_Parameters().get());
 							const double new_fitness = Calculate_Fitness(&segment_raw, 1, metric, event.parameters.get());
 
@@ -180,7 +180,7 @@ HRESULT CCalculate_Filter::Do_Execute(glucose::UDevice_Event event)  {
 								segment->Set_Parameters(event.parameters);
 						};
 
-						if (event.segment_id() != glucose::All_Segments_Id) {
+						if (event.segment_id() != scgms::All_Segments_Id) {
 							const auto &segment = Get_Segment(event.segment_id());
 							if (segment) 
 								test_and_apply_parameters(segment);
@@ -195,18 +195,18 @@ HRESULT CCalculate_Filter::Do_Execute(glucose::UDevice_Event event)  {
 				}
 			break;
 
-		case glucose::NDevice_Event_Code::Parameters_Hint:
+		case scgms::NDevice_Event_Code::Parameters_Hint:
 			if (event.signal_id() == mCalculated_Signal_Id) Add_Parameters_Hint(event.parameters);
 			break;
 
-		case glucose::NDevice_Event_Code::Time_Segment_Stop:
+		case scgms::NDevice_Event_Code::Time_Segment_Stop:
 			if (mSolver_Enabled && mSolve_On_Time_Segment_End) Run_Solver(event.segment_id());
 				//in this particular case, we do not preserve the original order of events
 				//to emit the paramters before the time segment actually ends
 			break;
 
-		case glucose::NDevice_Event_Code::Solve_Parameters: {
-				if (event.signal_id() == glucose::signal_All || event.signal_id() == mCalculated_Signal_Id) {
+		case scgms::NDevice_Event_Code::Solve_Parameters: {
+				if (event.signal_id() == scgms::signal_All || event.signal_id() == mCalculated_Signal_Id) {
 					// note that the Run_Solver method can handle Any_Segment_Id case properly, so we don't need to disambiguate here
 					const auto segment_id = event.segment_id();
 					result = Send(event);
@@ -216,7 +216,7 @@ HRESULT CCalculate_Filter::Do_Execute(glucose::UDevice_Event event)  {
 			}
 			break;
 
-		case glucose::NDevice_Event_Code::Warm_Reset:
+		case scgms::NDevice_Event_Code::Warm_Reset:
 			for (const auto &segment : mSegments)
 				segment.second->Clear_Data();
 			mWarm_Reset_Done = true;
@@ -235,7 +235,7 @@ HRESULT CCalculate_Filter::Do_Execute(glucose::UDevice_Event event)  {
 void CCalculate_Filter::Add_Level(const uint64_t segment_id, const GUID &signal_id, const double level, const double time_stamp) {
 
 	if ((signal_id == Invalid_GUID) || (signal_id == mCalculated_Signal_Id)) return;	//cannot add what unknown signal and cannot add what we have to compute
-	if (segment_id == glucose::Invalid_Segment_Id || segment_id == glucose::All_Segments_Id) return;
+	if (segment_id == scgms::Invalid_Segment_Id || segment_id == scgms::All_Segments_Id) return;
 
 	const auto &segment = Get_Segment(segment_id);
 	if (segment) {
@@ -247,8 +247,8 @@ void CCalculate_Filter::Add_Level(const uint64_t segment_id, const GUID &signal_
 }
 
 
-void CCalculate_Filter::Add_Parameters_Hint(glucose::SModel_Parameter_Vector parameters) {
-	glucose::SModel_Parameter_Vector hint;
+void CCalculate_Filter::Add_Parameters_Hint(scgms::SModel_Parameter_Vector parameters) {
+	scgms::SModel_Parameter_Vector hint;
 	if (hint.set(parameters)) {
 		mParameter_Hints.push_back(hint);	//push deep copy as the source may be gone unexpectedly
 	}
@@ -266,17 +266,17 @@ void CCalculate_Filter::Schedule_Solving(const GUID &level_signal_id) {
 		mSolving_Scheduled = true;
 	}
 
-	if ((level_signal_id == glucose::signal_Calibration) && mSolve_On_Calibration) mSolving_Scheduled = true;
+	if ((level_signal_id == scgms::signal_Calibration) && mSolve_On_Calibration) mSolving_Scheduled = true;
 }
 
-double CCalculate_Filter::Calculate_Fitness(glucose::ITime_Segment **segments, const size_t segment_count, glucose::SMetric metric, glucose::IModel_Parameter_Vector *parameters) {
+double CCalculate_Filter::Calculate_Fitness(scgms::ITime_Segment **segments, const size_t segment_count, scgms::SMetric metric, scgms::IModel_Parameter_Vector *parameters) {
 	metric->Reset();
 
 	size_t real_levels_required = mLevels_Required;
 	size_t global_count = 0;
 	std::vector<double> reference, times, calculated;
 	for (size_t i = 0; i < segment_count; i++) {
-		glucose::STime_Segment segment = refcnt::make_shared_reference_ext<glucose::STime_Segment, glucose::ITime_Segment>(segments[i], true);
+		scgms::STime_Segment segment = refcnt::make_shared_reference_ext<scgms::STime_Segment, scgms::ITime_Segment>(segments[i], true);
 		auto reference_signal = segment.Get_Signal(mReference_Signal_Id);
 		auto calculated_signal = segment.Get_Signal(mCalculated_Signal_Id);
 
@@ -291,10 +291,10 @@ double CCalculate_Filter::Calculate_Fitness(glucose::ITime_Segment **segments, c
 			calculated.resize(count);
 			if (reference_signal->Get_Discrete_Levels(times.data(), reference.data(), count, &filled) == S_OK) {
 				if (!mUse_Measured_Levels)
-					reference_signal->Get_Continuous_Levels(nullptr, times.data(), reference.data(), count, glucose::apxNo_Derivation);
+					reference_signal->Get_Continuous_Levels(nullptr, times.data(), reference.data(), count, scgms::apxNo_Derivation);
 
 
-				if (calculated_signal->Get_Continuous_Levels(parameters, times.data(), calculated.data(), count, glucose::apxNo_Derivation) == S_OK) {
+				if (calculated_signal->Get_Continuous_Levels(parameters, times.data(), calculated.data(), count, scgms::apxNo_Derivation) == S_OK) {
 					metric->Accumulate(times.data(), reference.data(), calculated.data(), count);
 				}
 			}
@@ -322,11 +322,11 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 	//3. subsequently, we calculate fitness of the new parameters
 	//4. eventually, we apply new parameters if they present a better fitness
 
-	mSolver_Status = glucose::TSolver_Status::In_Progress;
+	mSolver_Status = scgms::TSolver_Status::In_Progress;
 
-	glucose::SMetric metric{ glucose::TMetric_Parameters{ mMetric_Id, bool_2_uc(mUse_Relative_Error),  bool_2_uc(mUse_Squared_Differences), bool_2_uc(mPrefer_More_Levels),  mMetric_Threshold } };
+	scgms::SMetric metric{ scgms::TMetric_Parameters{ mMetric_Id, bool_2_uc(mUse_Relative_Error),  bool_2_uc(mUse_Squared_Differences), bool_2_uc(mPrefer_More_Levels),  mMetric_Threshold } };
 
-	auto solve_segment = [this, &metric, segment_id](glucose::ITime_Segment **segments, const size_t segment_count, glucose::SModel_Parameter_Vector working_parameters) {
+	auto solve_segment = [this, &metric, segment_id](scgms::ITime_Segment **segments, const size_t segment_count, scgms::SModel_Parameter_Vector working_parameters) {
 		
 		size_t real_levels_required = 0;
 		{	//get the number of levels required
@@ -335,7 +335,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 				//handle the relative value
 
 				for (size_t i = 0; i < segment_count; i++) {
-					glucose::ISignal *signal;
+					scgms::ISignal *signal;
 					if (segments[i]->Get_Signal(&mReference_Signal_Id, &signal) == S_OK) {
 						size_t local_count = 0;
 						if (signal->Get_Discrete_Bounds(nullptr, nullptr, &local_count) == S_OK)
@@ -347,7 +347,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 		}
 
 		//get the raw hints
-		std::vector<glucose::IModel_Parameter_Vector*> raw_hints;
+		std::vector<scgms::IModel_Parameter_Vector*> raw_hints;
 		{
 			for (auto &hint : mParameter_Hints)
 				raw_hints.push_back(hint.get());
@@ -370,9 +370,9 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 		metric->Reset();
 		mSolver_Progress = solver::Null_Solver_Progress;
 		
-		glucose::SModel_Parameter_Vector solved_parameters{ mDefault_Parameters };
+		scgms::SModel_Parameter_Vector solved_parameters{ mDefault_Parameters };
 
-		glucose::TSolver_Setup setup{
+		scgms::TSolver_Setup setup{
 			mSolver_Id, mCalculated_Signal_Id, mReference_Signal_Id,
 			segments, segment_count,
 			metric.get(), real_levels_required, bool_2_uc(mUse_Measured_Levels),
@@ -382,17 +382,17 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 			&mSolver_Progress
 		};
 
-		if (glucose::Solve_Model_Parameters(setup) == S_OK) {
+		if (scgms::Solve_Model_Parameters(setup) == S_OK) {
 			//calculate and compare the present parameters with the new one
 			
 
 			const double original_fitness = Calculate_Fitness(segments, segment_count, metric, working_parameters.get());
 			const double solved_fitness = Calculate_Fitness(segments, segment_count, metric, solved_parameters.get());
 			if (solved_fitness < original_fitness) {
-				mSolver_Status = glucose::TSolver_Status::Completed_Improved;
+				mSolver_Status = scgms::TSolver_Status::Completed_Improved;
 
 				//OK, we have found better fitness => set it and send respective message
-				if (segment_id != glucose::All_Segments_Id) {
+				if (segment_id != scgms::All_Segments_Id) {
 					const auto &segment = Get_Segment(segment_id);
 					if (segment) 
 						segment->Set_Parameters(solved_parameters);
@@ -404,7 +404,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 
 				Add_Parameters_Hint(solved_parameters);
 
-				glucose::UDevice_Event solved_evt{ glucose::NDevice_Event_Code::Parameters };
+				scgms::UDevice_Event solved_evt{ scgms::NDevice_Event_Code::Parameters };
 				solved_evt.device_time() = Unix_Time_To_Rat_Time(time(nullptr));
 				solved_evt.device_id() = calculate::Calculate_Filter_GUID;
 				solved_evt.signal_id() = mCalculated_Signal_Id;
@@ -413,8 +413,8 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 				Send(solved_evt);
 			}
 			else {
-				mSolver_Status = glucose::TSolver_Status::Completed_Not_Improved;
-				glucose::UDevice_Event not_improved_evt{ glucose::NDevice_Event_Code::Information };
+				mSolver_Status = scgms::TSolver_Status::Completed_Not_Improved;
+				scgms::UDevice_Event not_improved_evt{ scgms::NDevice_Event_Code::Information };
 				not_improved_evt.device_time() = Unix_Time_To_Rat_Time(time(nullptr));
 				not_improved_evt.device_id() = calculate::Calculate_Filter_GUID;
 				not_improved_evt.signal_id() = mCalculated_Signal_Id;
@@ -424,10 +424,10 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 			}
 
 		} else {
-			mSolver_Status = glucose::TSolver_Status::Failed;
+			mSolver_Status = scgms::TSolver_Status::Failed;
 
 			//for some reason, it has failed
-			glucose::UDevice_Event failed_evt{ glucose::NDevice_Event_Code::Information };
+			scgms::UDevice_Event failed_evt{ scgms::NDevice_Event_Code::Information };
 			failed_evt.device_time() = Unix_Time_To_Rat_Time(time(nullptr));
 			failed_evt.device_id() = calculate::Calculate_Filter_GUID;
 			failed_evt.signal_id() = mCalculated_Signal_Id;
@@ -440,17 +440,17 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 
 	//do not forget that CTimeSegment is not reference-counted, so that we can omit all those addrefs and releases
 	if (!mSolve_All_Segments) {
-		if (segment_id != glucose::All_Segments_Id) {
+		if (segment_id != scgms::All_Segments_Id) {
 			//solve just the one, given segment
 			const auto segment = Get_Segment(segment_id).get();
 			if (segment) {
-				glucose::ITime_Segment *raw_segment = static_cast<glucose::ITime_Segment*>(segment);
+				scgms::ITime_Segment *raw_segment = static_cast<scgms::ITime_Segment*>(segment);
 				solve_segment(&raw_segment, 1, segment->Get_Parameters());
 			}
 		} else {
 			//enumerate all known segments and solve them one by one
 			for (auto &segment : mSegments) {
-				glucose::ITime_Segment *raw_segment = static_cast<glucose::ITime_Segment*>(segment.second.get());
+				scgms::ITime_Segment *raw_segment = static_cast<scgms::ITime_Segment*>(segment.second.get());
 				solve_segment(&raw_segment, 1, segment.second.get()->Get_Parameters());
 			}
 		}
@@ -458,9 +458,9 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 	else {
 		//solve using all segments
 		if (!mSegments.empty()) {
-			std::vector<glucose::ITime_Segment*> raw_segments;
+			std::vector<scgms::ITime_Segment*> raw_segments;
 			for (auto &segment : mSegments) 
-				raw_segments.push_back(static_cast<glucose::ITime_Segment*>(segment.second.get()));
+				raw_segments.push_back(static_cast<scgms::ITime_Segment*>(segment.second.get()));
 
 			solve_segment(raw_segments.data(), raw_segments.size(), mSegments.begin()->second->Get_Parameters());
 		}
@@ -475,7 +475,7 @@ HRESULT IfaceCalling CCalculate_Filter::Get_Solver_Progress(solver::TSolver_Prog
 	return S_OK;
 }
 
-HRESULT IfaceCalling CCalculate_Filter::Get_Solver_Information(GUID* const calculated_signal_id, glucose::TSolver_Status* const status) const
+HRESULT IfaceCalling CCalculate_Filter::Get_Solver_Information(GUID* const calculated_signal_id, scgms::TSolver_Status* const status) const
 {
 	*calculated_signal_id = mCalculated_Signal_Id;
 	*status = mSolver_Status;

@@ -73,7 +73,7 @@ namespace db_writer
 	const wchar_t* Subject_Base_Name = L"Subject";
 }
 
-CDb_Writer::CDb_Writer(glucose::IFilter *output) : CBase_Filter(output) {
+CDb_Writer::CDb_Writer(scgms::IFilter *output) : CBase_Filter(output) {
 	//
 }
 
@@ -132,7 +132,7 @@ int64_t CDb_Writer::Get_Db_Segment_Id(int64_t segment_id) {
 	return mSegment_Db_Id_Map[segment_id];
 }
 
-bool CDb_Writer::Store_Level(const glucose::UDevice_Event& evt) {
+bool CDb_Writer::Store_Level(const scgms::UDevice_Event& evt) {
 
 	int64_t id = Get_Db_Segment_Id(evt.segment_id());
 	if (id == db_writer::Error_Id) return false;
@@ -167,13 +167,13 @@ void CDb_Writer::Flush_Levels()
 				qr.Bind_Parameters(nullptr);
 		};
 
-		sigCondBind(glucose::signal_BG);
-		sigCondBind(glucose::signal_IG);
-		sigCondBind(glucose::signal_ISIG);
-		sigCondBind(glucose::signal_Requested_Insulin_Bolus);
-		sigCondBind(glucose::signal_Requested_Insulin_Basal_Rate);
-		sigCondBind(glucose::signal_Carb_Intake);
-		sigCondBind(glucose::signal_Calibration);
+		sigCondBind(scgms::signal_BG);
+		sigCondBind(scgms::signal_IG);
+		sigCondBind(scgms::signal_ISIG);
+		sigCondBind(scgms::signal_Requested_Insulin_Bolus);
+		sigCondBind(scgms::signal_Requested_Insulin_Basal_Rate);
+		sigCondBind(scgms::signal_Carb_Intake);
+		sigCondBind(scgms::signal_Calibration);
 
 		qr.Bind_Parameters(val.segmentId);
 
@@ -183,7 +183,7 @@ void CDb_Writer::Flush_Levels()
 	mPrepared_Values.clear();
 }
 
-bool CDb_Writer::Store_Parameters(const glucose::UDevice_Event& evt) {
+bool CDb_Writer::Store_Parameters(const scgms::UDevice_Event& evt) {
 
 	int64_t id = Get_Db_Segment_Id(evt.segment_id());
 	if (id == db_writer::Error_Id) return false;
@@ -194,7 +194,7 @@ bool CDb_Writer::Store_Parameters(const glucose::UDevice_Event& evt) {
 	if (result) {
 		const size_t paramCnt = std::distance(begin, end);
 
-		auto models = glucose::get_model_descriptors();
+		auto models = scgms::get_model_descriptors();
 		for (const auto& model : models) {
 			for (size_t i = 0; i < model.number_of_calculated_signals; i++) {
 				if (evt.signal_id() == model.calculated_signal_ids[i] && model.number_of_parameters == paramCnt) {
@@ -247,7 +247,7 @@ bool CDb_Writer::Store_Parameters(const glucose::UDevice_Event& evt) {
 	return result;
 }
 
-HRESULT IfaceCalling CDb_Writer::Do_Configure(glucose::SFilter_Configuration configuration) {
+HRESULT IfaceCalling CDb_Writer::Do_Configure(scgms::SFilter_Configuration configuration) {
 
 	mDbHost = configuration.Read_String(rsDb_Host);
 	mDbProvider = configuration.Read_String(rsDb_Provider);
@@ -265,13 +265,13 @@ HRESULT IfaceCalling CDb_Writer::Do_Configure(glucose::SFilter_Configuration con
 	// should we warn the user somehow?
 
 	// do not store any of model signals
-	auto models = glucose::get_model_descriptors();
+	auto models = scgms::get_model_descriptors();
 	for (const auto& model : models)
 		for (size_t i = 0; i < model.number_of_calculated_signals; i++)
 			mIgnored_Signals.insert(model.calculated_signal_ids[i]);
 
 	// do not store virtual signals either
-	for (const auto& id : glucose::signal_Virtual)
+	for (const auto& id : scgms::signal_Virtual)
 		mIgnored_Signals.insert(id);
 
 	if (mDb_Connector)
@@ -297,11 +297,11 @@ HRESULT IfaceCalling CDb_Writer::Do_Configure(glucose::SFilter_Configuration con
 }
 
 
-HRESULT IfaceCalling CDb_Writer::Do_Execute(glucose::UDevice_Event event) {
+HRESULT IfaceCalling CDb_Writer::Do_Execute(scgms::UDevice_Event event) {
 
 	switch (event.event_code()) {
-		case glucose::NDevice_Event_Code::Level:
-		case glucose::NDevice_Event_Code::Masked_Level:		if (mStore_Data && (mIgnored_Signals.find(event.signal_id()) == mIgnored_Signals.end())) {
+		case scgms::NDevice_Event_Code::Level:
+		case scgms::NDevice_Event_Code::Masked_Level:		if (mStore_Data && (mIgnored_Signals.find(event.signal_id()) == mIgnored_Signals.end())) {
 																if (!Store_Level(event)) {
 																	dprintf(__FILE__);
 																	dprintf(", ");
@@ -313,7 +313,7 @@ HRESULT IfaceCalling CDb_Writer::Do_Execute(glucose::UDevice_Event event) {
 															}
 															break;
 
-		case glucose::NDevice_Event_Code::Parameters:		if (mStore_Parameters) {
+		case scgms::NDevice_Event_Code::Parameters:		if (mStore_Parameters) {
 																if (!Store_Parameters(event)) {
 																	dprintf(__FILE__);
 																	dprintf(", ");
@@ -325,7 +325,7 @@ HRESULT IfaceCalling CDb_Writer::Do_Execute(glucose::UDevice_Event event) {
 															}
 															break;
 
-		case glucose::NDevice_Event_Code::Time_Segment_Stop:	Flush_Levels();
+		case scgms::NDevice_Event_Code::Time_Segment_Stop:	Flush_Levels();
 																break;
 		default:	break;
 	}

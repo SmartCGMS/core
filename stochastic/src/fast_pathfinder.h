@@ -140,7 +140,7 @@ protected:
 
 
 protected:
-	double Solve_Extreme_convex(std::array<double, 3> x, std::array<double, 3> y) { //assumes sorted values
+	double Solve_Extreme_convex_old(std::array<double, 3> x, std::array<double, 3> y) { //assumes sorted values
 		const size_t x_min_index = std::distance(x.begin(), std::min_element(x.begin(), x.end()));		
 
 		const double x_offset = x[x_min_index];
@@ -182,7 +182,7 @@ protected:
 		return result;// +x_offset;
 	}
 
-	double Solve_Extreme(std::array<double, 3> x, std::array<double, 3> y) { 
+	double Solve_Extreme_old(std::array<double, 3> x, std::array<double, 3> y) { 
 		Eigen::Matrix<double, 3, 3> A;
 		Eigen::Vector3d b;
 
@@ -229,6 +229,73 @@ protected:
 	}
 
 
+protected:
+
+	double Solve_Extreme_convex(std::array<double, 3> x, std::array<double, 3> y) { //returns NaN if not convex
+		constexpr size_t x_min_index = 1;
+		const double x_offset = x[x_min_index];
+		const double y_offset = y[x_min_index];
+
+
+		Eigen::Matrix<double, 2, 2> A;
+		Eigen::Matrix<double, 2, 1> b;
+
+		size_t row = 0;
+		for (size_t i = 0; i < 3; i++) {
+			if (i != x_min_index) {
+				const double ox = x[i] - x_offset;
+				A(row, 0) = ox * ox;  A(row, 1) = ox; b(row) = y[i] - y_offset;
+
+				row++;
+			}
+		}
+
+		const Eigen::Vector2d coeff = A.fullPivHouseholderQr().solve(b);
+		double result = std::numeric_limits<double>::quiet_NaN();
+		if (coeff[0] != 0.0) {
+			result = -coeff[1] / (2.0 * coeff[0]) + x_offset;	//convex polynom
+		}
+
+		return result;
+	}
+
+	double Solve_Extreme(std::array<double, 3> x, std::array<double, 3> y, TUsed_Solution reference, size_t dim) {
+
+		
+
+		double result = std::numeric_limits<double>::quiet_NaN();
+		if ((y[1] < y[0]) && (y[1] < y[2])) {
+			//by all means, this should be a convex function 
+			//its extreme should lie between x[0] and x[2] - but do not trust finite precision arithmetic!
+
+			result = Solve_Extreme_convex(x, y);
+			//result still may be set to NaN if the function was found to be concave or line					
+		}
+
+
+		if (isnan(result)) {
+			//it seems that the extreme lies out of x[0] and x[2]
+			//let's probe on each side and select the one with better fitness
+
+			auto explore = [&](const size_t index) {
+				x[index] += x[index] - x[1];
+				x[index] = std::min(mUpper_Bound[dim], std::max(mLower_Bound[dim], x[index]));
+				reference[dim] = x[index];
+				y[index] = mSetup.objective(mSetup.data, reference.data());
+			};
+
+			explore(0);
+			explore(2);
+
+			result = y[0] < y[2] ? x[0] : x[2];
+		}
+		else
+			result = std::min(mUpper_Bound[dim], std::max(mLower_Bound[dim], result));
+
+
+		return result;
+	}
+
 	TUsed_Solution Calculate_Quadratic_Candidate_From_Population(const TAligned_Solution_Vector< fast_pathfinder_internal::TCandidate<TUsed_Solution>> &original_population) {
 
 		const auto global_best = std::min_element(original_population.begin(), original_population.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution>& a, const fast_pathfinder_internal::TCandidate<TUsed_Solution>& b) {return a.next_fitness < b.next_fitness; });
@@ -268,7 +335,7 @@ protected:
 					}
 
 
-					const double found_extreme = std::min(mUpper_Bound[dim], std::max(mLower_Bound[dim], Solve_Extreme(x, y)));
+					const double found_extreme = std::min(mUpper_Bound[dim], std::max(mLower_Bound[dim], Solve_Extreme(x, y, greedy_working, dim)));
 
 					candidates.push_back(found_extreme);
 					greedy_working[dim] = found_extreme;

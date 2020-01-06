@@ -52,7 +52,7 @@
 /*
  * Filter class for calculating error metrics
  */
-class CSignal_Error : public glucose::CBase_Filter, public virtual glucose::ISignal_Error_Inspection {
+class CSignal_Error : public scgms::CBase_Filter, public virtual scgms::ISignal_Error_Inspection {
 protected:
 	GUID mReference_Signal_ID = Invalid_GUID;
 	GUID mError_Signal_ID = Invalid_GUID;
@@ -66,10 +66,10 @@ protected:
 	using TSignal_Series = std::set<TSignal_Point, decltype(mPair_Comparator)>;
 	TSignal_Series mReference_Signal;
 	*/
-	glucose::SSignal mReference_Signal{ glucose::STime_Segment{}, glucose::signal_BG };
-	glucose::SSignal mError_Signal{ glucose::STime_Segment{}, glucose::signal_BG };
+	scgms::SSignal mReference_Signal{ scgms::STime_Segment{}, scgms::signal_BG };
+	scgms::SSignal mError_Signal{ scgms::STime_Segment{}, scgms::signal_BG };
 
-	glucose::SMetric mMetric;
+	scgms::SMetric mMetric;
 
 	double *mPromised_Metric = nullptr;
 	std::atomic<bool> mNew_Data_Available{false};	
@@ -77,16 +77,16 @@ protected:
 	bool Prepare_Levels(std::vector<double> &times, std::vector<double> &reference, std::vector<double> &error);
 	double Calculate_Metric();	//returns metric or NaN if could not calculate
 protected:			
-	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
 public:
-	CSignal_Error(glucose::IFilter *output);
+	CSignal_Error(scgms::IFilter *output);
 	virtual ~CSignal_Error();
 
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
 	virtual HRESULT IfaceCalling Promise_Metric(double* const metric_value, bool defer_to_dtor) override final;
 	virtual HRESULT IfaceCalling Peek_New_Data_Available() override final;
-	virtual HRESULT IfaceCalling Calculate_Signal_Error(glucose::TSignal_Error *absolute_error, glucose::TSignal_Error *relative_error) override final;
+	virtual HRESULT IfaceCalling Calculate_Signal_Error(scgms::TSignal_Error *absolute_error, scgms::TSignal_Error *relative_error) override final;
 	virtual HRESULT IfaceCalling Get_Description(wchar_t** const desc) override final;
 };
 

@@ -42,17 +42,17 @@
 
 #include <cmath>
 
-CConstant_Basal_LGS_Insulin_Rate_Model::CConstant_Basal_LGS_Insulin_Rate_Model(glucose::WTime_Segment segment)
-	: CCommon_Calculated_Signal(segment), mIG(segment.Get_Signal(glucose::signal_IG)) {
+CConstant_Basal_LGS_Insulin_Rate_Model::CConstant_Basal_LGS_Insulin_Rate_Model(scgms::WTime_Segment segment)
+	: CCommon_Calculated_Signal(segment), mIG(segment.Get_Signal(scgms::signal_IG)) {
 	//
 }
 
-HRESULT IfaceCalling CConstant_Basal_LGS_Insulin_Rate_Model::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+HRESULT IfaceCalling CConstant_Basal_LGS_Insulin_Rate_Model::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	lgs_basal_insulin::TParameters &parameters = glucose::Convert_Parameters<lgs_basal_insulin::TParameters>(params, lgs_basal_insulin::default_parameters);
+	lgs_basal_insulin::TParameters &parameters = scgms::Convert_Parameters<lgs_basal_insulin::TParameters>(params, lgs_basal_insulin::default_parameters);
 
-	const double historyTimeStep = glucose::One_Minute * 5;	// 5 minute step
+	const double historyTimeStep = scgms::One_Minute * 5;	// 5 minute step
 	const size_t historyTimeCnt = static_cast<size_t>(parameters.suspend_duration / historyTimeStep);
 
 	std::vector<double> htimes(historyTimeCnt);
@@ -63,7 +63,7 @@ HRESULT IfaceCalling CConstant_Basal_LGS_Insulin_Rate_Model::Get_Continuous_Leve
 			htimes[historyTimeCnt - p - 1] = times[i] - static_cast<double>(p)*historyTimeStep;
 
 		std::vector<double> sensor_readings(historyTimeCnt);
-		if (mIG->Get_Continuous_Levels(nullptr, htimes.data(), sensor_readings.data(), historyTimeCnt, glucose::apxNo_Derivation) != S_OK) {
+		if (mIG->Get_Continuous_Levels(nullptr, htimes.data(), sensor_readings.data(), historyTimeCnt, scgms::apxNo_Derivation) != S_OK) {
 			std::fill(sensor_readings.begin(), sensor_readings.end(), std::numeric_limits<double>::quiet_NaN());
 		}
 
@@ -81,7 +81,7 @@ HRESULT IfaceCalling CConstant_Basal_LGS_Insulin_Rate_Model::Get_Continuous_Leve
 	return S_OK;
 }
 
-HRESULT IfaceCalling CConstant_Basal_LGS_Insulin_Rate_Model::Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const {
+HRESULT IfaceCalling CConstant_Basal_LGS_Insulin_Rate_Model::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const {
 	double *params = const_cast<double*>(lgs_basal_insulin::default_parameters);
 	return parameters->set(params, params + lgs_basal_insulin::param_count);
 }

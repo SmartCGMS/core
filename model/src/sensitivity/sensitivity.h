@@ -48,13 +48,13 @@
  */
 class CConstant_Insulin_Sensitivity_Model : public virtual CCommon_Calculated_Signal {
 	public:
-		CConstant_Insulin_Sensitivity_Model(glucose::WTime_Segment segment);
+		CConstant_Insulin_Sensitivity_Model(scgms::WTime_Segment segment);
 		virtual ~CConstant_Insulin_Sensitivity_Model() = default;
 
-		//glucose::ISignal iface
-		virtual HRESULT IfaceCalling Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+		//scgms::ISignal iface
+		virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 			const double* times, double* const levels, const size_t count, const size_t derivation_order) const final;
-		virtual HRESULT IfaceCalling Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const final;
+		virtual HRESULT IfaceCalling Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const final;
 };
 
 /*
@@ -62,13 +62,13 @@ class CConstant_Insulin_Sensitivity_Model : public virtual CCommon_Calculated_Si
  */
 class CConstant_Carb_Ratio_Model : public virtual CCommon_Calculated_Signal {
 	public:
-		CConstant_Carb_Ratio_Model(glucose::WTime_Segment segment);
+		CConstant_Carb_Ratio_Model(scgms::WTime_Segment segment);
 		virtual ~CConstant_Carb_Ratio_Model() = default;
 
-		//glucose::ISignal iface
-		virtual HRESULT IfaceCalling Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+		//scgms::ISignal iface
+		virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 			const double* times, double* const levels, const size_t count, const size_t derivation_order) const final;
-		virtual HRESULT IfaceCalling Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const final;
+		virtual HRESULT IfaceCalling Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const final;
 };
 
 #pragma warning( pop )

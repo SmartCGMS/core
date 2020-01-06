@@ -46,15 +46,15 @@
 
 class CDiffusion_v2_ist : public virtual CDiffusion_v2_blood {
 protected:
-	glucose::SSignal mBlood;
+	scgms::SSignal mBlood;
 protected:
 	static inline thread_local TVector1D mDt, mPresent_Blood, mPresent_Ist;
 public:
-	CDiffusion_v2_ist(glucose::WTime_Segment segment);
+	CDiffusion_v2_ist(scgms::WTime_Segment segment);
 	virtual ~CDiffusion_v2_ist() {};
 
-	//glucose::ISignal iface
-	virtual HRESULT IfaceCalling Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+	//scgms::ISignal iface
+	virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 		const double* times, double* const levels, const size_t count, const size_t derivation_order) const final;
 };
 

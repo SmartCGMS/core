@@ -62,7 +62,7 @@ struct CPrepared_Value
 /*
  * Filter class for writing data and parameters to database
  */
-class CDb_Writer : public glucose::CBase_Filter, public db::IDb_Sink {
+class CDb_Writer : public scgms::CBase_Filter, public db::IDb_Sink {
 	protected:
 		// database host configured
 		std::wstring mDbHost;
@@ -107,17 +107,17 @@ class CDb_Writer : public glucose::CBase_Filter, public db::IDb_Sink {
 		int64_t Create_Subject(std::wstring name);
 
 		// stores incoming level to database
-		bool Store_Level(const glucose::UDevice_Event& evt);
+		bool Store_Level(const scgms::UDevice_Event& evt);
 		// stores incoming parameters to database
-		bool Store_Parameters(const glucose::UDevice_Event& evt);
+		bool Store_Parameters(const scgms::UDevice_Event& evt);
 
 		// flushes cached levels to database
 		void Flush_Levels();
 
-		virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
-		HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
 	public:
-		CDb_Writer(glucose::IFilter *output);
+		CDb_Writer(scgms::IFilter *output);
 		virtual ~CDb_Writer();
 
 		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;		

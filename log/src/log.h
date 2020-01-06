@@ -77,10 +77,10 @@ namespace logger {
 /*
  * Filter class for logging all incoming events and dropping them (terminating the chain)
  */
-class CLog_Filter : public glucose::CBase_Filter, public glucose::ILog_Filter_Inspection{
+class CLog_Filter : public scgms::CBase_Filter, public scgms::ILog_Filter_Inspection{
 protected:
 	std::wofstream mLog;
-	glucose::CSignal_Names mSignal_Names;
+	scgms::CSignal_Names mSignal_Names;
 	std::wstring mLog_Filename;
 
 	bool mIs_Terminated = false;
@@ -89,16 +89,16 @@ protected:
 	std::shared_ptr<refcnt::wstr_list> mNew_Log_Records;
 	
 	bool Open_Log(const std::wstring &log_filename);
-	void Log_Event(const glucose::UDevice_Event &evt);
+	void Log_Event(const scgms::UDevice_Event &evt);
 protected:
 	// vector of model descriptors; stored for parameter formatting
-	std::vector<glucose::TModel_Descriptor> mModelDescriptors;
-	std::wstring Parameters_To_WStr(const glucose::UDevice_Event& evt);
+	std::vector<scgms::TModel_Descriptor> mModelDescriptors;
+	std::wstring Parameters_To_WStr(const scgms::UDevice_Event& evt);
 protected:
-	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
 public:
-	CLog_Filter(glucose::IFilter *output);
+	CLog_Filter(scgms::IFilter *output);
 	virtual ~CLog_Filter();
 	
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;

@@ -50,15 +50,15 @@ namespace drawing
 {
 	constexpr size_t param_count = 8;
 
-	constexpr glucose::NParameter_Type param_type[param_count] = {
-		glucose::NParameter_Type::ptInt64,
-		glucose::NParameter_Type::ptInt64,
-		glucose::NParameter_Type::ptWChar_Array,
-		glucose::NParameter_Type::ptWChar_Array,
-		glucose::NParameter_Type::ptWChar_Array,
-		glucose::NParameter_Type::ptWChar_Array,
-		glucose::NParameter_Type::ptWChar_Array,
-		glucose::NParameter_Type::ptWChar_Array
+	constexpr scgms::NParameter_Type param_type[param_count] = {
+		scgms::NParameter_Type::ptInt64,
+		scgms::NParameter_Type::ptInt64,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
@@ -94,9 +94,9 @@ namespace drawing
 		dsFilename_ECDF_Tooltip
 	};
 
-	const glucose::TFilter_Descriptor Drawing_Descriptor = {
-		glucose::IID_Drawing_Filter,
-		glucose::NFilter_Flags::None,
+	const scgms::TFilter_Descriptor Drawing_Descriptor = {
+		scgms::IID_Drawing_Filter,
+		scgms::NFilter_Flags::None,
 		dsDrawing_Filter,
 		param_count,
 		param_type,
@@ -106,13 +106,13 @@ namespace drawing
 	};
 }
 
-static const std::array<glucose::TFilter_Descriptor, 1> filter_descriptions = { drawing::Drawing_Descriptor };
+static const std::array<scgms::TFilter_Descriptor, 1> filter_descriptions = { drawing::Drawing_Descriptor };
 
-extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
+extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter *output, glucose::IFilter **filter) {
+extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
 	if (*id == drawing::Drawing_Descriptor.id)
 		return Manufacture_Object<CDrawing_Filter>(filter, output);
 

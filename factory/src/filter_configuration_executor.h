@@ -50,7 +50,7 @@
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
 
-class CFilter_Configuration_Executor : public virtual glucose::IFilter_Executor, public virtual refcnt::CReferenced {
+class CFilter_Configuration_Executor : public virtual scgms::IFilter_Executor, public virtual refcnt::CReferenced {
 protected:
 	std::recursive_mutex mCommunication_Guard;
 	CComposite_Filter mComposite_Filter{ mCommunication_Guard };
@@ -58,9 +58,9 @@ protected:
 public:			
 	virtual ~CFilter_Configuration_Executor();
 
-	HRESULT Build_Filter_Chain(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
+	HRESULT Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
 
-	virtual HRESULT IfaceCalling Execute(glucose::IDevice_Event *event) override final;
+	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
 	virtual HRESULT IfaceCalling Wait_For_Shutdown_and_Terminate() override final;
 	virtual HRESULT IfaceCalling Terminate() override final;
 };
@@ -70,7 +70,7 @@ public:
 
 
 #ifdef _WIN32
-	extern "C" __declspec(dllexport) HRESULT IfaceCalling execute_filter_configuration(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, glucose::IFilter_Executor **executor);
+	extern "C" __declspec(dllexport) HRESULT IfaceCalling execute_filter_configuration(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, scgms::IFilter_Executor **executor);
 #else
-	extern "C" HRESULT IfaceCalling execute_filter_configuration(glucose::IFilter_Chain_Configuration *configuration, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, glucose::IFilter_Executor **executor);
+	extern "C" HRESULT IfaceCalling execute_filter_configuration(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, scgms::IFilter_Executor **executor);
 #endif

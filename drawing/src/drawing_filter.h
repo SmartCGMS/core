@@ -57,7 +57,7 @@
 /*
  * Drawing filter class utilizing the code for generating SVGs based on input data
  */
-class CDrawing_Filter : public glucose::CBase_Filter, public glucose::IDrawing_Filter_Inspection {
+class CDrawing_Filter : public scgms::CBase_Filter, public scgms::IDrawing_Filter_Inspection {
 protected:
 	// stored AGP SVG
 	std::string mAGP_SVG;
@@ -154,16 +154,16 @@ protected:
 
 	HRESULT Get_Plot(const std::string &plot, refcnt::IVector_Container<char> *svg) const;
 protected:
-	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
 public:
-	CDrawing_Filter(glucose::IFilter *output);
+	CDrawing_Filter(scgms::IFilter *output);
 	virtual ~CDrawing_Filter() = default;
 
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
 	
 	virtual HRESULT IfaceCalling New_Data_Available() override final;
-	virtual HRESULT IfaceCalling Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg, refcnt::IVector_Container<uint64_t> *segmentIds, refcnt::IVector_Container<GUID> *signalIds) override final;
+	virtual HRESULT IfaceCalling Draw(scgms::TDrawing_Image_Type type, scgms::TDiagnosis diagnosis, refcnt::str_container *svg, refcnt::IVector_Container<uint64_t> *segmentIds, refcnt::IVector_Container<GUID> *signalIds) override final;
 };
 
 #pragma warning( pop )

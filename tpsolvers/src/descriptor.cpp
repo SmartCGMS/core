@@ -43,22 +43,22 @@
 #include <array>
 
 namespace nlopt {
-	const glucose::TSolver_Descriptor newuoa_desc = Describe_Non_Specialized_Solver(newuoa_id, dsNewUOA);
-	const glucose::TSolver_Descriptor bobyqa_desc = Describe_Non_Specialized_Solver(bobyqa_id, dsBOBYQA);
-	const glucose::TSolver_Descriptor simplex_desc = Describe_Non_Specialized_Solver(simplex_id, dsSimplex);
-	const glucose::TSolver_Descriptor subplex_desc = Describe_Non_Specialized_Solver(subplex_id, dsSubplex);
-	const glucose::TSolver_Descriptor praxis_desc = Describe_Non_Specialized_Solver(praxis_id, dsPraxis);
+	const scgms::TSolver_Descriptor newuoa_desc = Describe_Non_Specialized_Solver(newuoa_id, dsNewUOA);
+	const scgms::TSolver_Descriptor bobyqa_desc = Describe_Non_Specialized_Solver(bobyqa_id, dsBOBYQA);
+	const scgms::TSolver_Descriptor simplex_desc = Describe_Non_Specialized_Solver(simplex_id, dsSimplex);
+	const scgms::TSolver_Descriptor subplex_desc = Describe_Non_Specialized_Solver(subplex_id, dsSubplex);
+	const scgms::TSolver_Descriptor praxis_desc = Describe_Non_Specialized_Solver(praxis_id, dsPraxis);
 }
 
 namespace pagmo {
-	const glucose::TSolver_Descriptor pso_desc = Describe_Non_Specialized_Solver(pso_id, dsPSO);
-	const glucose::TSolver_Descriptor sade_desc = Describe_Non_Specialized_Solver(sade_id, dsSADE);
-	const glucose::TSolver_Descriptor de1220_desc = Describe_Non_Specialized_Solver(de1220_id, dsDE1220);
-	const glucose::TSolver_Descriptor abc_desc = Describe_Non_Specialized_Solver(abc_id, dsABC);
-	const glucose::TSolver_Descriptor cmaes_desc = Describe_Non_Specialized_Solver(cmaes_id, dsCMAES);
-	const glucose::TSolver_Descriptor xnes_desc = Describe_Non_Specialized_Solver(xnes_id, dsXNES);
-	const glucose::TSolver_Descriptor gpso_desc = Describe_Non_Specialized_Solver(gpso_id, dsGPSO);
-	const glucose::TSolver_Descriptor ihs_desc = Describe_Non_Specialized_Solver(ihs_id, dsIHS);
+	const scgms::TSolver_Descriptor pso_desc = Describe_Non_Specialized_Solver(pso_id, dsPSO);
+	const scgms::TSolver_Descriptor sade_desc = Describe_Non_Specialized_Solver(sade_id, dsSADE);
+	const scgms::TSolver_Descriptor de1220_desc = Describe_Non_Specialized_Solver(de1220_id, dsDE1220);
+	const scgms::TSolver_Descriptor abc_desc = Describe_Non_Specialized_Solver(abc_id, dsABC);
+	const scgms::TSolver_Descriptor cmaes_desc = Describe_Non_Specialized_Solver(cmaes_id, dsCMAES);
+	const scgms::TSolver_Descriptor xnes_desc = Describe_Non_Specialized_Solver(xnes_id, dsXNES);
+	const scgms::TSolver_Descriptor gpso_desc = Describe_Non_Specialized_Solver(gpso_id, dsGPSO);
+	const scgms::TSolver_Descriptor ihs_desc = Describe_Non_Specialized_Solver(ihs_id, dsIHS);
 }
 
 
@@ -73,14 +73,14 @@ namespace ppr {
         */
 
     const wchar_t* dsSPO = L"Spiral Optimization";
-    const glucose::TSolver_Descriptor spo = Describe_Non_Specialized_Solver(spo_id, dsSPO);
+    const scgms::TSolver_Descriptor spo = Describe_Non_Specialized_Solver(spo_id, dsSPO);
 }
 
-const std::array<glucose::TSolver_Descriptor, 14> solver_descriptions = { nlopt::newuoa_desc, nlopt::bobyqa_desc, nlopt::simplex_desc, nlopt::subplex_desc, nlopt::praxis_desc,
+const std::array<scgms::TSolver_Descriptor, 14> solver_descriptions = { nlopt::newuoa_desc, nlopt::bobyqa_desc, nlopt::simplex_desc, nlopt::subplex_desc, nlopt::praxis_desc,
 																		 pagmo::pso_desc, pagmo::sade_desc, pagmo::de1220_desc, pagmo::abc_desc, pagmo::cmaes_desc, pagmo::xnes_desc,
 																		 pagmo::gpso_desc, pagmo::ihs_desc, ppr::spo};
 
 
-HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {
+HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end) {
 	return do_get_descriptors(solver_descriptions, begin, end);
 }

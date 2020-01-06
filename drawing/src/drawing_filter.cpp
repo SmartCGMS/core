@@ -68,48 +68,48 @@
 #undef min
 
 const std::map<GUID, const char*, std::less<GUID>> Signal_Mapping = {
-	{ glucose::signal_IG, "ist" },
-	{ glucose::signal_BG, "blood" },
-	{ glucose::signal_Calibration, "bloodCalibration" },
-	{ glucose::signal_ISIG, "isig" },
-	{ glucose::signal_Delivered_Insulin_Bolus, "insulin" },
-	{ glucose::signal_Requested_Insulin_Bolus, "calcd_insulin" },
-	{ glucose::signal_Delivered_Insulin_Basal_Rate, "basal_insulin" },
-	{ glucose::signal_Requested_Insulin_Basal_Rate, "basal_insulin_rate" },
-	{ glucose::signal_Insulin_Activity, "insulin_activity" },
-	{ glucose::signal_Carb_Intake, "carbs" },
-	{ glucose::signal_IOB, "iob" },
-	{ glucose::signal_COB, "cob" },
+	{ scgms::signal_IG, "ist" },
+	{ scgms::signal_BG, "blood" },
+	{ scgms::signal_Calibration, "bloodCalibration" },
+	{ scgms::signal_ISIG, "isig" },
+	{ scgms::signal_Delivered_Insulin_Bolus, "insulin" },
+	{ scgms::signal_Requested_Insulin_Bolus, "calcd_insulin" },
+	{ scgms::signal_Delivered_Insulin_Basal_Rate, "basal_insulin" },
+	{ scgms::signal_Requested_Insulin_Basal_Rate, "basal_insulin_rate" },
+	{ scgms::signal_Insulin_Activity, "insulin_activity" },
+	{ scgms::signal_Carb_Intake, "carbs" },
+	{ scgms::signal_IOB, "iob" },
+	{ scgms::signal_COB, "cob" },
 };
 
-CDrawing_Filter::CDrawing_Filter(glucose::IFilter *output) : mGraphMaxValue(-1), CBase_Filter(output) {
+CDrawing_Filter::CDrawing_Filter(scgms::IFilter *output) : mGraphMaxValue(-1), CBase_Filter(output) {
 	//
 }
 
 HRESULT IfaceCalling CDrawing_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
-	if (Internal_Query_Interface<glucose::IFilter>(glucose::IID_Drawing_Filter, *riid, ppvObj)) return S_OK;
-	if (Internal_Query_Interface<glucose::IDrawing_Filter_Inspection>(glucose::IID_Drawing_Filter_Inspection, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<scgms::IFilter>(scgms::IID_Drawing_Filter, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<scgms::IDrawing_Filter_Inspection>(scgms::IID_Drawing_Filter_Inspection, *riid, ppvObj)) return S_OK;
 
 	return E_NOINTERFACE;
 }
 
-HRESULT CDrawing_Filter::Do_Execute(glucose::UDevice_Event event) {
+HRESULT CDrawing_Filter::Do_Execute(scgms::UDevice_Event event) {
 	
 	std::unique_lock<std::mutex> lck(mChangedMtx);
 	mChanged = true;
 	mChangedInternal = true;
 
 	// incoming level or calibration - store to appropriate vector
-	if (event.event_code() == glucose::NDevice_Event_Code::Level )
+	if (event.event_code() == scgms::NDevice_Event_Code::Level )
 	{
 		mInputData[event.signal_id()][event.segment_id()].push_back(Value(event.level(), Rat_Time_To_Unix_Time(event.device_time()), event.segment_id()));
 	}
 	// incoming new parameters
-	else if (event.event_code() == glucose::NDevice_Event_Code::Parameters)
+	else if (event.event_code() == scgms::NDevice_Event_Code::Parameters)
 	{
 		mParameterChanges[event.signal_id()][event.segment_id()].push_back(Value((double)Rat_Time_To_Unix_Time(event.device_time()), Rat_Time_To_Unix_Time(event.device_time()), event.segment_id()));
 	}
-	else if (event.event_code() == glucose::NDevice_Event_Code::Shut_Down)
+	else if (event.event_code() == scgms::NDevice_Event_Code::Shut_Down)
 	{
 		// when the filter shuts down, store drawings to files
 		Force_Redraw();
@@ -123,7 +123,7 @@ HRESULT CDrawing_Filter::Do_Execute(glucose::UDevice_Event event) {
 		// TODO: store profile drawings
 	}
 	// incoming parameters reset information message
-	else if (event.event_code() == glucose::NDevice_Event_Code::Information)
+	else if (event.event_code() == scgms::NDevice_Event_Code::Information)
 	{
 		// we catch parameter reset information message
 		if (event.info == rsParameters_Reset)
@@ -159,7 +159,7 @@ HRESULT CDrawing_Filter::Do_Execute(glucose::UDevice_Event event) {
 			auto rpos = str.find(L'=');
 			auto cpos = str.find(L',');
 				
-			auto drawingId = static_cast<glucose::TDrawing_Image_Type>(std::stoull(str.substr(rpos + 1, rpos - cpos - 1)));
+			auto drawingId = static_cast<scgms::TDrawing_Image_Type>(std::stoull(str.substr(rpos + 1, rpos - cpos - 1)));
 			str = str.substr(cpos + 1);
 			rpos = str.find(L'=');
 			cpos = str.find(L',');
@@ -172,31 +172,31 @@ HRESULT CDrawing_Filter::Do_Execute(glucose::UDevice_Event event) {
 
 			switch (drawingId)
 			{
-				case glucose::TDrawing_Image_Type::Graph:
+				case scgms::TDrawing_Image_Type::Graph:
 					CGraph_Generator::Set_Canvas_Size(width, height);
 					break;
-				case glucose::TDrawing_Image_Type::Day:
+				case scgms::TDrawing_Image_Type::Day:
 					CDay_Generator::Set_Canvas_Size(width, height);
 					break;
-				case glucose::TDrawing_Image_Type::Parkes:
+				case scgms::TDrawing_Image_Type::Parkes:
 					CParkes_Generator::Set_Canvas_Size(width, height);
 					break;
-				case glucose::TDrawing_Image_Type::Clark:
+				case scgms::TDrawing_Image_Type::Clark:
 					CClark_Generator::Set_Canvas_Size(width, height);
 					break;
-				case glucose::TDrawing_Image_Type::AGP:
+				case scgms::TDrawing_Image_Type::AGP:
 					CAGP_Generator::Set_Canvas_Size(width, height);
 					break;
-				case glucose::TDrawing_Image_Type::ECDF:
+				case scgms::TDrawing_Image_Type::ECDF:
 					CECDF_Generator::Set_Canvas_Size(width, height);
 					break;
-				case glucose::TDrawing_Image_Type::Profile_Glucose:
+				case scgms::TDrawing_Image_Type::Profile_Glucose:
 					CMobile_Glucose_Generator::Set_Canvas_Size(width, height);
 					break;
-				case glucose::TDrawing_Image_Type::Profile_Carbs:
+				case scgms::TDrawing_Image_Type::Profile_Carbs:
 					CMobile_Carbs_Generator::Set_Canvas_Size(width, height);
 					break;
-				case glucose::TDrawing_Image_Type::Profile_Insulin:
+				case scgms::TDrawing_Image_Type::Profile_Insulin:
 					CMobile_Insulin_Generator::Set_Canvas_Size(width, height);
 					break;
 				default:
@@ -204,11 +204,11 @@ HRESULT CDrawing_Filter::Do_Execute(glucose::UDevice_Event event) {
 			}
 		}
 	}
-	else if (event.event_code() == glucose::NDevice_Event_Code::Time_Segment_Start || event.event_code() == glucose::NDevice_Event_Code::Time_Segment_Stop)
+	else if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start || event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Stop)
 	{
 		mSegmentMarkers.push_back(Value(0, Rat_Time_To_Unix_Time(event.device_time()), event.segment_id()));
 	}
-	else if (event.event_code() == glucose::NDevice_Event_Code::Warm_Reset)
+	else if (event.event_code() == scgms::NDevice_Event_Code::Warm_Reset)
 	{
 		mInputData.clear();
 		mParameterChanges.clear();
@@ -327,8 +327,8 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 
 						// several signals are excluded from maximum value determining, since their values are not in mmol/l, and are drawn in a different way
 						// TODO: more generic way to determine value units
-						if (presentData.first != glucose::signal_Carb_Intake && presentData.first != glucose::signal_Delivered_Insulin_Bolus && presentData.first != glucose::signal_Delivered_Insulin_Basal_Rate && presentData.first != glucose::signal_Physical_Activity
-							&& presentData.first != glucose::signal_ISIG && presentData.first != glucose::signal_COB && presentData.first != glucose::signal_IOB)
+						if (presentData.first != scgms::signal_Carb_Intake && presentData.first != scgms::signal_Delivered_Insulin_Bolus && presentData.first != scgms::signal_Delivered_Insulin_Basal_Rate && presentData.first != scgms::signal_Physical_Activity
+							&& presentData.first != scgms::signal_ISIG && presentData.first != scgms::signal_COB && presentData.first != scgms::signal_IOB)
 						{
 							if (val.value > mGraphMaxValue)
 								mGraphMaxValue = std::min(val.value, 150.0); //http://www.guinnessworldrecords.com/world-records/highest-blood-sugar-level/
@@ -388,7 +388,7 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 	mDataMap = vectorsMap;
 }
 
-HRESULT CDrawing_Filter::Do_Configure(glucose::SFilter_Configuration configuration) {
+HRESULT CDrawing_Filter::Do_Configure(scgms::SFilter_Configuration configuration) {
 	mCanvasWidth = static_cast<int>(configuration.Read_Int(rsDrawing_Filter_Canvas_Width, mCanvasWidth));
 	mCanvasHeight = static_cast<int>(configuration.Read_Int(rsDrawing_Filter_Canvas_Height, mCanvasHeight));
 	mAGP_FilePath = configuration.Read_String(rsDrawing_Filter_Filename_AGP);
@@ -412,7 +412,7 @@ HRESULT CDrawing_Filter::Do_Configure(glucose::SFilter_Configuration configurati
 	}
 
 	// cache model signal names
-	auto models = glucose::get_model_descriptors();
+	auto models = scgms::get_model_descriptors();
 	for (auto const& model : models)
 	{
 		for (size_t i = 0; i < model.number_of_calculated_signals; i++)
@@ -423,8 +423,8 @@ HRESULT CDrawing_Filter::Do_Configure(glucose::SFilter_Configuration configurati
 		}
 	}
 
-	for (size_t i = 0; i < glucose::signal_Virtual.size(); i++)
-		mCalcSignalNameMap[glucose::signal_Virtual[i]] = std::string("virtual ") + std::to_string(i);
+	for (size_t i = 0; i < scgms::signal_Virtual.size(); i++)
+		mCalcSignalNameMap[scgms::signal_Virtual[i]] = std::string("virtual ") + std::to_string(i);
 
 	Fill_Localization_Map(mLocaleMap);
 
@@ -530,7 +530,7 @@ HRESULT IfaceCalling CDrawing_Filter::New_Data_Available() {
 	return mChanged.exchange(false) ? S_OK : S_FALSE;
 }
 
-HRESULT IfaceCalling CDrawing_Filter::Draw(glucose::TDrawing_Image_Type type, glucose::TDiagnosis diagnosis, refcnt::str_container *svg, refcnt::IVector_Container<uint64_t> *segmentIds, refcnt::IVector_Container<GUID> *signalIds) {	
+HRESULT IfaceCalling CDrawing_Filter::Draw(scgms::TDrawing_Image_Type type, scgms::TDiagnosis diagnosis, refcnt::str_container *svg, refcnt::IVector_Container<uint64_t> *segmentIds, refcnt::IVector_Container<GUID> *signalIds) {	
 	std::unordered_set<uint64_t> segmentSet{};
 	std::set<GUID> signalSet{};
 
@@ -553,35 +553,35 @@ HRESULT IfaceCalling CDrawing_Filter::Draw(glucose::TDrawing_Image_Type type, gl
 
 	switch (type)
 	{
-		case glucose::TDrawing_Image_Type::AGP:
+		case scgms::TDrawing_Image_Type::AGP:
 			return Get_Plot(mAGP_SVG, svg);
-		case glucose::TDrawing_Image_Type::Day:
+		case scgms::TDrawing_Image_Type::Day:
 			return Get_Plot(mDay_SVG, svg);
-		case glucose::TDrawing_Image_Type::Graph:
+		case scgms::TDrawing_Image_Type::Graph:
 			return Get_Plot(mGraph_SVG, svg);
-		case glucose::TDrawing_Image_Type::Clark:
+		case scgms::TDrawing_Image_Type::Clark:
 			return Get_Plot(mClark_SVG, svg);
-		case glucose::TDrawing_Image_Type::Parkes:
+		case scgms::TDrawing_Image_Type::Parkes:
 		{
 			switch (diagnosis)
 			{
-				case glucose::TDiagnosis::Type1:
+				case scgms::TDiagnosis::Type1:
 					return Get_Plot(mParkes_type1_SVG, svg);
-				case glucose::TDiagnosis::Type2:
-				case glucose::TDiagnosis::Gestational:
+				case scgms::TDiagnosis::Type2:
+				case scgms::TDiagnosis::Gestational:
 					return Get_Plot(mParkes_type2_SVG, svg);
 					// TODO: Parkes error grid for gestational diabetes
 				default:
 					break;
 			}
 		}
-		case glucose::TDrawing_Image_Type::ECDF:
+		case scgms::TDrawing_Image_Type::ECDF:
 			return Get_Plot(mECDF_SVG, svg);
-		case glucose::TDrawing_Image_Type::Profile_Glucose:
+		case scgms::TDrawing_Image_Type::Profile_Glucose:
 			return Get_Plot(mProfile_Glucose_SVG, svg);
-		case glucose::TDrawing_Image_Type::Profile_Carbs:
+		case scgms::TDrawing_Image_Type::Profile_Carbs:
 			return Get_Plot(mProfile_Carbs_SVG, svg);
-		case glucose::TDrawing_Image_Type::Profile_Insulin:
+		case scgms::TDrawing_Image_Type::Profile_Insulin:
 			return Get_Plot(mProfile_Insulin_SVG, svg);
 		default:
 			break;

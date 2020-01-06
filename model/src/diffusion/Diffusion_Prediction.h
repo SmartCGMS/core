@@ -46,17 +46,17 @@
 
 class CDiffusion_Prediction : public virtual CCommon_Calculated_Signal {
 protected:
-	glucose::SSignal mIst;
+	scgms::SSignal mIst;
 protected:
 	inline static thread_local TVector1D mRetrospective_Present_Ist, mRetrospective_Dt, mBeta;
 public:
-	CDiffusion_Prediction(glucose::WTime_Segment segment);
+	CDiffusion_Prediction(scgms::WTime_Segment segment);
 	virtual ~CDiffusion_Prediction() {};
 
-	//glucose::ISignal iface
-	virtual HRESULT IfaceCalling Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+	//scgms::ISignal iface
+	virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 		const double* times, double* const levels, const size_t count, const size_t derivation_order) const final;
-	virtual HRESULT IfaceCalling Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const final;
+	virtual HRESULT IfaceCalling Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const final;
 };
 
 #pragma warning( pop )

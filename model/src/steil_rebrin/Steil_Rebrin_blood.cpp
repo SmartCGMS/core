@@ -44,36 +44,36 @@
 
 #include <cmath>
 
-CSteil_Rebrin_blood::CSteil_Rebrin_blood(glucose::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(glucose::signal_IG)), mCalibration(segment.Get_Signal(glucose::signal_Calibration)) {
+CSteil_Rebrin_blood::CSteil_Rebrin_blood(scgms::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(scgms::signal_IG)), mCalibration(segment.Get_Signal(scgms::signal_Calibration)) {
 	if (!refcnt::Shared_Valid_All(mIst, mCalibration)) throw std::exception{};
 }
 
 
 
-HRESULT IfaceCalling CSteil_Rebrin_blood::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+HRESULT IfaceCalling CSteil_Rebrin_blood::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 
-	steil_rebrin::TParameters &parameters = glucose::Convert_Parameters<steil_rebrin::TParameters>(params, steil_rebrin::default_parameters);
+	steil_rebrin::TParameters &parameters = scgms::Convert_Parameters<steil_rebrin::TParameters>(params, steil_rebrin::default_parameters);
 	if (parameters.alpha == 0.0) return E_INVALIDARG;	//this parameter cannot be zero
 
 	auto present_ist = Reserve_Eigen_Buffer(mPresent_Ist, count );
-	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, times, present_ist.data(), count, glucose::apxNo_Derivation);
+	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, times, present_ist.data(), count, scgms::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 
 	auto derived_ist = Reserve_Eigen_Buffer(mDerived_Ist, count );
-	rc = mIst->Get_Continuous_Levels(nullptr, times, derived_ist.data(), count, glucose::apxFirst_Order_Derivation);
+	rc = mIst->Get_Continuous_Levels(nullptr, times, derived_ist.data(), count, scgms::apxFirst_Order_Derivation);
 	if (rc != S_OK) return rc;
 
 	auto calibration_offsets = Reserve_Eigen_Buffer(mCalibration_Offsets, count );
 	//we need to go through the calibration vector and convert it to the time offset of the first calibrations
 	//and for that we need to consider the very first BG measurement as calibration
-	glucose::TBounds time_bounds;
+	scgms::TBounds time_bounds;
 	rc = mIst->Get_Discrete_Bounds(&time_bounds, nullptr, nullptr);
 	if (rc != S_OK) return rc;
 
 	double recent_calibration_time = time_bounds.Min;
 
-	rc = mCalibration->Get_Continuous_Levels(nullptr, times, calibration_offsets.data(), count, glucose::apxNo_Derivation);
+	rc = mCalibration->Get_Continuous_Levels(nullptr, times, calibration_offsets.data(), count, scgms::apxNo_Derivation);
 	if (rc != S_OK) calibration_offsets.setConstant(std::numeric_limits<double>::quiet_NaN());	//if failed, well, let's behave like if there was no calibration at all
 
 	for (size_t i = 0; i < count; i++) {
@@ -93,7 +93,7 @@ HRESULT IfaceCalling CSteil_Rebrin_blood::Get_Continuous_Levels(glucose::IModel_
 	return S_OK;
 }
 
-HRESULT IfaceCalling CSteil_Rebrin_blood::Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const {
+HRESULT IfaceCalling CSteil_Rebrin_blood::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const {
 	double *params = const_cast<double*>(steil_rebrin::default_parameters);
 	return parameters->set(params, params + steil_rebrin::param_count);
 }

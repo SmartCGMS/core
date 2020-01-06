@@ -45,25 +45,25 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CFilter_Executor : public virtual glucose::IFilter, public virtual refcnt::CNotReferenced {
+class CFilter_Executor : public virtual scgms::IFilter, public virtual refcnt::CNotReferenced {
 protected:
 	std::recursive_mutex &mCommunication_Guard;
-	glucose::SFilter mFilter;
-	glucose::TOn_Filter_Created mOn_Filter_Created;
+	scgms::SFilter mFilter;
+	scgms::TOn_Filter_Created mOn_Filter_Created;
 	const void* mOn_Filter_Created_Data;
 public:
-	CFilter_Executor(const GUID filter_id, std::recursive_mutex &communication_guard, glucose::IFilter *next_filter, glucose::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
+	CFilter_Executor(const GUID filter_id, std::recursive_mutex &communication_guard, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
 	virtual ~CFilter_Executor() = default;
 
 	void Release_Filter();
 
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj);
 
-	virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
-	virtual HRESULT IfaceCalling Execute(glucose::IDevice_Event *event) override final;
+	virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration) override final;
+	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
 };
 
-class CTerminal_Filter : public virtual glucose::IFilter, public virtual refcnt::CNotReferenced {
+class CTerminal_Filter : public virtual scgms::IFilter, public virtual refcnt::CNotReferenced {
 	//executer designed to consume events only and to signal the shutdown event
 protected:
 	std::mutex mShutdown_Guard;
@@ -74,16 +74,16 @@ public:
 
 	void Wait_For_Shutdown();	//blocking wait, until it receives the shutdown event
 
-	virtual HRESULT IfaceCalling Configure(glucose::IFilter_Configuration* configuration) override final;
-	virtual HRESULT IfaceCalling Execute(glucose::IDevice_Event *event) override;
+	virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration) override final;
+	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override;
 };
 
 class CCopying_Terminal_Filter : public virtual CTerminal_Filter {
 protected:
-	std::vector<glucose::IDevice_Event*> &mEvents;
+	std::vector<scgms::IDevice_Event*> &mEvents;
 public:
-	CCopying_Terminal_Filter(std::vector<glucose::IDevice_Event*> &events);
-	virtual HRESULT IfaceCalling Execute(glucose::IDevice_Event *event) override final;
+	CCopying_Terminal_Filter(std::vector<scgms::IDevice_Event*> &events);
+	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
 };
 
 #pragma warning( pop )

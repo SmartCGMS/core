@@ -47,11 +47,11 @@
 #include <tbb/tbb_allocator.h>
 
 // this will be filled when the library gets loaded and CMatlab_Factory gets initialized
-std::vector<glucose::TModel_Descriptor, tbb::tbb_allocator<glucose::TModel_Descriptor>> model_descriptors;
+std::vector<scgms::TModel_Descriptor, tbb::tbb_allocator<scgms::TModel_Descriptor>> model_descriptors;
 
 bool add_model_descriptor(TUser_Defined_Model_Descriptor& descriptor)
 {
-	glucose::TModel_Descriptor desc = {
+	scgms::TModel_Descriptor desc = {
 		descriptor.id,
 		descriptor.description.c_str(),
 		descriptor.dbTableName.c_str(),
@@ -73,18 +73,18 @@ bool add_model_descriptor(TUser_Defined_Model_Descriptor& descriptor)
 	return true;
 }
 
-extern "C" HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end)
+extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end)
 {
 	if (model_descriptors.size() == 0)
 		return S_FALSE;
 
-	*begin = const_cast<glucose::TModel_Descriptor*>(model_descriptors.data());
+	*begin = const_cast<scgms::TModel_Descriptor*>(model_descriptors.data());
 	*end = *begin + model_descriptors.size();
 
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal)
+extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, scgms::ISignal **signal)
 {
 	if ((calc_id == nullptr) || (segment == nullptr))
 		return E_INVALIDARG;
@@ -94,11 +94,11 @@ extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, glucose::I
 
 
 // this will be filled when the library gets loaded and CMatlab_Factory gets initialized
-std::vector<glucose::TSolver_Descriptor, tbb::tbb_allocator<glucose::TSolver_Descriptor>> solver_descriptors;
+std::vector<scgms::TSolver_Descriptor, tbb::tbb_allocator<scgms::TSolver_Descriptor>> solver_descriptors;
 
 bool add_solver_descriptor(TUser_Defined_Solver_Descriptor& descriptor)
 {
-	glucose::TSolver_Descriptor desc = {
+	scgms::TSolver_Descriptor desc = {
 		descriptor.id,
 		descriptor.description.data(),
 
@@ -112,18 +112,18 @@ bool add_solver_descriptor(TUser_Defined_Solver_Descriptor& descriptor)
 	return true;
 }
 
-extern "C" HRESULT IfaceCalling do_get_solver_descriptors(glucose::TSolver_Descriptor **begin, glucose::TSolver_Descriptor **end) {
+extern "C" HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end) {
 
 	if (solver_descriptors.size() == 0)
 		return S_FALSE;
 
-	*begin = const_cast<glucose::TSolver_Descriptor*>(solver_descriptors.data());
+	*begin = const_cast<scgms::TSolver_Descriptor*>(solver_descriptors.data());
 	*end = *begin + solver_descriptors.size();
 
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_solve_model_parameters(const glucose::TSolver_Setup *setup)
+extern "C" HRESULT IfaceCalling do_solve_model_parameters(const scgms::TSolver_Setup *setup)
 {
 	return gMatlab_Factory.Solve(setup);
 }

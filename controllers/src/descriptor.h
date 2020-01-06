@@ -44,7 +44,7 @@
 
 namespace iob {
 	constexpr size_t param_count = 2;
-	const double default_parameters[param_count] = { 75.0*glucose::One_Minute, 180.0*glucose::One_Minute };
+	const double default_parameters[param_count] = { 75.0*scgms::One_Minute, 180.0*scgms::One_Minute };
 
 	struct TParameters {
 		union {
@@ -59,7 +59,7 @@ namespace iob {
 
 namespace cob {
 	constexpr size_t param_count = 2;
-	const double default_parameters[param_count] = { 75.0*glucose::One_Minute, 180.0*glucose::One_Minute };
+	const double default_parameters[param_count] = { 75.0*scgms::One_Minute, 180.0*scgms::One_Minute };
 
 	struct TParameters {
 		union {
@@ -128,5 +128,5 @@ namespace lgs_basal_insulin
 	};
 }
 
-extern "C" HRESULT IfaceCalling do_get_model_descriptors(glucose::TModel_Descriptor **begin, glucose::TModel_Descriptor **end);
-extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal);
+extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end);
+extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, scgms::ISignal **signal);

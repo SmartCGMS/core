@@ -48,7 +48,7 @@
 #undef max
 
 struct TIst_Estimate_Data {
-	glucose::SSignal ist;
+	scgms::SSignal ist;
 	const double reference_present_time;
 	const double kh, h, dt;
 	const double *times;
@@ -60,7 +60,7 @@ double present_time_objective(unsigned, const double *present_time, double *, vo
 
 	const double ist_times[2] = { *present_time - estimation_data.h, *present_time };
 	double ist_levels[2];
-	if (estimation_data.ist->Get_Continuous_Levels(nullptr, ist_times, ist_levels, 2, glucose::apxNo_Derivation) != S_OK) return std::numeric_limits<double>::max();
+	if (estimation_data.ist->Get_Continuous_Levels(nullptr, ist_times, ist_levels, 2, scgms::apxNo_Derivation) != S_OK) return std::numeric_limits<double>::max();
 	if (std::isnan(ist_levels[0]) || std::isnan(ist_levels[1])) return std::numeric_limits<double>::max();
 
 	double estimated_present_time = *present_time + estimation_data.dt + estimation_data.kh * ist_levels[1] * (ist_levels[1] - ist_levels[0]);
@@ -68,15 +68,15 @@ double present_time_objective(unsigned, const double *present_time, double *, vo
 	return fabs(estimated_present_time - estimation_data.reference_present_time);
 };
 
-CDiffusion_v2_ist::CDiffusion_v2_ist(glucose::WTime_Segment segment) : CDiffusion_v2_blood(segment), mBlood(segment.Get_Signal(glucose::signal_BG)) {
+CDiffusion_v2_ist::CDiffusion_v2_ist(scgms::WTime_Segment segment) : CDiffusion_v2_blood(segment), mBlood(segment.Get_Signal(scgms::signal_BG)) {
 	if (!refcnt::Shared_Valid_All(mBlood)) throw std::exception{};
 }
 
 
-HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 
-	diffusion_v2_model::TParameters &parameters = glucose::Convert_Parameters<diffusion_v2_model::TParameters>(params, diffusion_v2_model::default_parameters);
+	diffusion_v2_model::TParameters &parameters = scgms::Convert_Parameters<diffusion_v2_model::TParameters>(params, diffusion_v2_model::default_parameters);
 
 	Eigen::Map<TVector1D> converted_times{ Map_Double_To_Eigen<TVector1D>(times, count) };
 	Eigen::Map<TVector1D> converted_levels{ Map_Double_To_Eigen<TVector1D>(levels, count) };
@@ -105,9 +105,9 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Pa
 			//since we no longer actually use this algorithm, we replaced NewUOA with a brute force => if ever needed more than this, we should replace the successive
 			//mIst->Get_Continuous_Levels with a single call
 			
-			const double dt_stepping = glucose::One_Second;
-			double current_dt = dt[i] - 15.0*glucose::One_Minute;
-			double max_dt = dt[i] + 15.0 * glucose::One_Minute;
+			const double dt_stepping = scgms::One_Second;
+			double current_dt = dt[i] - 15.0*scgms::One_Minute;
+			double max_dt = dt[i] + 15.0 * scgms::One_Minute;
 			double best_dt = current_dt;
 			double least_error = std::numeric_limits<double>::max();
 
@@ -116,7 +116,7 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Pa
 				auto calculate_current_error= [&parameters, this, kh](const double present_time, const double reference_time) {
 					const double ist_times[2] = { present_time - parameters.h, present_time };
 					double ist_levels[2];
-					if (mIst->Get_Continuous_Levels(nullptr, ist_times, ist_levels, 2, glucose::apxNo_Derivation) != S_OK) return std::numeric_limits<double>::max();
+					if (mIst->Get_Continuous_Levels(nullptr, ist_times, ist_levels, 2, scgms::apxNo_Derivation) != S_OK) return std::numeric_limits<double>::max();
 					if (std::isnan(ist_levels[0]) || std::isnan(ist_levels[1])) return std::numeric_limits<double>::max();
 
 					double estimated_present_time = present_time + parameters.dt + kh * ist_levels[1] * (ist_levels[1] - ist_levels[0]);
@@ -141,11 +141,11 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(glucose::IModel_Pa
 	}
 
 	auto present_blood = Reserve_Eigen_Buffer(mPresent_Blood,  count );
-	HRESULT rc = mBlood->Get_Continuous_Levels(nullptr, dt.data(), present_blood.data(), count, glucose::apxNo_Derivation);
+	HRESULT rc = mBlood->Get_Continuous_Levels(nullptr, dt.data(), present_blood.data(), count, scgms::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 
 	auto present_ist = Reserve_Eigen_Buffer(mPresent_Ist, count );
-	rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), present_ist.data(), count, glucose::apxNo_Derivation);
+	rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), present_ist.data(), count, scgms::apxNo_Derivation);
 	if (rc != S_OK) return rc;
 
 	converted_levels =  parameters.p*present_blood

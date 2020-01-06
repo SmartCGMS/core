@@ -46,45 +46,45 @@
 class CBetaPID_Insulin_Regulation : public CCommon_Calculated_Signal {
 
 	private:
-		glucose::SSignal mIOB, mBG;
+		scgms::SSignal mIOB, mBG;
 
 	public:
-		CBetaPID_Insulin_Regulation(glucose::WTime_Segment segment);
+		CBetaPID_Insulin_Regulation(scgms::WTime_Segment segment);
 		virtual ~CBetaPID_Insulin_Regulation() = default;
 
-		//glucose::ISignal iface
-		virtual HRESULT IfaceCalling Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+		//scgms::ISignal iface
+		virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 			const double* times, double* const levels, const size_t count, const size_t derivation_order) const override;
-		virtual HRESULT IfaceCalling Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const override;
+		virtual HRESULT IfaceCalling Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const override;
 };
 
 class CBetaPID2_Insulin_Regulation : public CCommon_Calculated_Signal {
 
 	private:
-		glucose::SSignal mIOB, mCOB, mIG;		
+		scgms::SSignal mIOB, mCOB, mIG;		
 
 	public:
-		CBetaPID2_Insulin_Regulation(glucose::WTime_Segment segment);
+		CBetaPID2_Insulin_Regulation(scgms::WTime_Segment segment);
 		virtual ~CBetaPID2_Insulin_Regulation() = default;
 
-		//glucose::ISignal iface
-		virtual HRESULT IfaceCalling Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+		//scgms::ISignal iface
+		virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 			const double* times, double* const levels, const size_t count, const size_t derivation_order) const override;
-		virtual HRESULT IfaceCalling Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const override;
+		virtual HRESULT IfaceCalling Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const override;
 };
 
 class CBetaPID3_Insulin_Regulation : public CCommon_Calculated_Signal {
 
 	private:
-		glucose::SSignal mIOB, mCOB, mISF, mCR, mIG;
+		scgms::SSignal mIOB, mCOB, mISF, mCR, mIG;
 	public:
-		CBetaPID3_Insulin_Regulation(glucose::WTime_Segment segment);
+		CBetaPID3_Insulin_Regulation(scgms::WTime_Segment segment);
 		virtual ~CBetaPID3_Insulin_Regulation() = default;
 
-		//glucose::ISignal iface
-		virtual HRESULT IfaceCalling Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+		//scgms::ISignal iface
+		virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 			const double* times, double* const levels, const size_t count, const size_t derivation_order) const override;
-		virtual HRESULT IfaceCalling Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const override;
+		virtual HRESULT IfaceCalling Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const override;
 };
 
 #pragma warning( pop )

@@ -53,15 +53,15 @@ namespace db_reader {
 
 	constexpr size_t param_count = 8;
 
-	constexpr glucose::NParameter_Type param_type[param_count] = {
-		glucose::NParameter_Type::ptWChar_Array,
-		glucose::NParameter_Type::ptInt64,
-		glucose::NParameter_Type::ptWChar_Array,
-		glucose::NParameter_Type::ptWChar_Array,
-		glucose::NParameter_Type::ptWChar_Array,
-		glucose::NParameter_Type::ptWChar_Array,
-		glucose::NParameter_Type::ptInt64_Array,
-		glucose::NParameter_Type::ptBool
+	constexpr scgms::NParameter_Type param_type[param_count] = {
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptInt64,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptInt64_Array,
+		scgms::NParameter_Type::ptBool
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
@@ -97,9 +97,9 @@ namespace db_reader {
 		dsShutdown_After_Last_Tooltip
 	};
 
-	const glucose::TFilter_Descriptor Db_Reader_Descriptor = {
+	const scgms::TFilter_Descriptor Db_Reader_Descriptor = {
 		filter_id,
-		glucose::NFilter_Flags::None,
+		scgms::NFilter_Flags::None,
 		dsDb_Reader,
 		param_count,
 		param_type,
@@ -114,17 +114,17 @@ namespace db_writer {
 
 	constexpr size_t param_count = 10;
 
-	constexpr glucose::NParameter_Type param_type[param_count] = {
-		glucose::NParameter_Type::ptWChar_Array,
-		glucose::NParameter_Type::ptInt64,
-		glucose::NParameter_Type::ptWChar_Array,
-		glucose::NParameter_Type::ptWChar_Array,
-		glucose::NParameter_Type::ptWChar_Array,
-		glucose::NParameter_Type::ptWChar_Array,
-		glucose::NParameter_Type::ptBool,
-		glucose::NParameter_Type::ptBool,
-		glucose::NParameter_Type::ptBool,
-		glucose::NParameter_Type::ptSubject_Id
+	constexpr scgms::NParameter_Type param_type[param_count] = {
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptInt64,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptSubject_Id
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
@@ -166,9 +166,9 @@ namespace db_writer {
 		nullptr
 	};
 
-	const glucose::TFilter_Descriptor Db_Writer_Descriptor = {
+	const scgms::TFilter_Descriptor Db_Writer_Descriptor = {
 		filter_id,
-		glucose::NFilter_Flags::None,
+		scgms::NFilter_Flags::None,
 		dsDb_Writer,
 		param_count,
 		param_type,
@@ -184,12 +184,12 @@ namespace file_reader
 {
 	constexpr size_t param_count = 5;
 
-	constexpr glucose::NParameter_Type param_type[param_count] = {
-		glucose::NParameter_Type::ptWChar_Array,
-		glucose::NParameter_Type::ptInt64,
-		glucose::NParameter_Type::ptBool,
-		glucose::NParameter_Type::ptInt64,
-		glucose::NParameter_Type::ptBool,
+	constexpr scgms::NParameter_Type param_type[param_count] = {
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptInt64,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptInt64,
+		scgms::NParameter_Type::ptBool,
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
@@ -216,9 +216,9 @@ namespace file_reader
 		dsRequire_IG_BG_Tooltip
 	};
 
-	const glucose::TFilter_Descriptor File_Reader_Descriptor = {
+	const scgms::TFilter_Descriptor File_Reader_Descriptor = {
 		{ 0xc0e942b9, 0x3928, 0x4b81,{ 0x9b, 0x43, 0xa3, 0x47, 0x66, 0x82, 0x0, 0xBB } }, //// {C0E942B9-3928-4B81-9B43-A347668200BB}
-		glucose::NFilter_Flags::None,
+		scgms::NFilter_Flags::None,
 		dsFile_Reader,
 		param_count,
 		param_type,
@@ -232,17 +232,17 @@ namespace sincos_generator {
 
 	constexpr size_t param_count = 10;
 
-	constexpr glucose::NParameter_Type param_type[param_count] = {
-		glucose::NParameter_Type::ptDouble,
-		glucose::NParameter_Type::ptDouble,
-		glucose::NParameter_Type::ptRatTime,
-		glucose::NParameter_Type::ptRatTime,
-		glucose::NParameter_Type::ptDouble,
-		glucose::NParameter_Type::ptDouble,
-		glucose::NParameter_Type::ptRatTime,
-		glucose::NParameter_Type::ptRatTime,
-		glucose::NParameter_Type::ptRatTime,
-		glucose::NParameter_Type::ptBool
+	constexpr scgms::NParameter_Type param_type[param_count] = {
+		scgms::NParameter_Type::ptDouble,
+		scgms::NParameter_Type::ptDouble,
+		scgms::NParameter_Type::ptRatTime,
+		scgms::NParameter_Type::ptRatTime,
+		scgms::NParameter_Type::ptDouble,
+		scgms::NParameter_Type::ptDouble,
+		scgms::NParameter_Type::ptRatTime,
+		scgms::NParameter_Type::ptRatTime,
+		scgms::NParameter_Type::ptRatTime,
+		scgms::NParameter_Type::ptBool
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
@@ -284,9 +284,9 @@ namespace sincos_generator {
 		dsShutdown_After_Last_Tooltip
 	};
 
-	const glucose::TFilter_Descriptor SinCos_Generator_Descriptor = {
+	const scgms::TFilter_Descriptor SinCos_Generator_Descriptor = {
 		filter_id,
-		glucose::NFilter_Flags::None,
+		scgms::NFilter_Flags::None,
 		dsSinCos_Generator,
 		param_count,
 		param_type,
@@ -297,13 +297,13 @@ namespace sincos_generator {
 
 }
 
-static const std::array<glucose::TFilter_Descriptor, 4> filter_descriptions = { db_reader::Db_Reader_Descriptor, db_writer::Db_Writer_Descriptor, file_reader::File_Reader_Descriptor, sincos_generator::SinCos_Generator_Descriptor };
+static const std::array<scgms::TFilter_Descriptor, 4> filter_descriptions = { db_reader::Db_Reader_Descriptor, db_writer::Db_Writer_Descriptor, file_reader::File_Reader_Descriptor, sincos_generator::SinCos_Generator_Descriptor };
 
-extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
+extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter *next_filter, glucose::IFilter **filter) {
+extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *next_filter, scgms::IFilter **filter) {
 
 	if (*id == db_reader::Db_Reader_Descriptor.id)
 		return Manufacture_Object<CDb_Reader>(filter, next_filter);

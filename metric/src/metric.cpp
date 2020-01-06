@@ -82,7 +82,7 @@ double CAbsDiffMaxMetric::Do_Calculate_Metric() {
 	return maximum;
 }
 
-CAbsDiffPercentilMetric::CAbsDiffPercentilMetric(glucose::TMetric_Parameters params) : CCommon_Metric(params) {
+CAbsDiffPercentilMetric::CAbsDiffPercentilMetric(scgms::TMetric_Parameters params) : CCommon_Metric(params) {
 	mInvThreshold = 0.01 * params.threshold;
 };
 
@@ -129,7 +129,7 @@ double CAbsDiffThresholdMetric::Do_Calculate_Metric() {
 }
 
 
-CLeal2010Metric::CLeal2010Metric(glucose::TMetric_Parameters params) : CCommon_Metric({params.metric_id, false, true, params.prefer_more_levels, params.threshold}) {
+CLeal2010Metric::CLeal2010Metric(scgms::TMetric_Parameters params) : CCommon_Metric({params.metric_id, false, true, params.prefer_more_levels, params.threshold}) {
 	//mParameters.use_relative_error = false;
 	//mParameters.use_squared_differences = true;
 }
@@ -168,7 +168,7 @@ double CLeal2010Metric::Do_Calculate_Metric() {
 	return diffsqsum / avgedsqsum;
 }
 
-CAICMetric::CAICMetric(glucose::TMetric_Parameters params) : CAbsDiffAvgMetric({ params.metric_id, false, true, params.prefer_more_levels, params.threshold }){
+CAICMetric::CAICMetric(scgms::TMetric_Parameters params) : CAbsDiffAvgMetric({ params.metric_id, false, true, params.prefer_more_levels, params.threshold }){
 	//mParameters.UseRelativeValues = false;
 	//mParameters.UseSquaredDifferences = true;
 };

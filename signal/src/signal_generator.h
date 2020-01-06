@@ -51,7 +51,7 @@
 /*
  * Filter class for generating signals using a specific model 
  */
-class CSignal_Generator : public virtual glucose::CBase_Filter, public virtual glucose::IFilter_Feedback_Receiver {
+class CSignal_Generator : public virtual scgms::CBase_Filter, public virtual scgms::IFilter_Feedback_Receiver {
 protected:
 	bool mSync_To_Signal = false;
 	GUID mSync_Signal = Invalid_GUID;
@@ -62,15 +62,15 @@ protected:
 	bool mEmit_Shutdown;
 protected:
 	std::wstring mFeedback_Name;
-	glucose::SDiscrete_Model mModel;
+	scgms::SDiscrete_Model mModel;
 	std::unique_ptr<std::thread> mThread;
 	bool mQuitting = false;
 	void Stop_Generator();
 protected:
-	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
 public:
-	CSignal_Generator(glucose::IFilter *output);
+	CSignal_Generator(scgms::IFilter *output);
 	virtual ~CSignal_Generator();
 
 	virtual HRESULT IfaceCalling Name(wchar_t** const name) override final;

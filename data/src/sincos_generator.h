@@ -62,7 +62,7 @@ struct TGenerator_Signal_Parameters
 /*
  * Class that generates sinus/cosinus functions as IG/BG signals
  */
-class CSinCos_Generator : public glucose::CBase_Filter {
+class CSinCos_Generator : public scgms::CBase_Filter {
 protected:
 	// do we need to send shutdown after last value?
 	bool mShutdownAfterLast = false;
@@ -87,10 +87,10 @@ protected:
 	void Start_Generator();
 	void Terminate_Generator();
 protected:
-	virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
-	HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+	HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
 public:
-	CSinCos_Generator(glucose::IFilter *output);
+	CSinCos_Generator(scgms::IFilter *output);
 	virtual ~CSinCos_Generator();
 };
 

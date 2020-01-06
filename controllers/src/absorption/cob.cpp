@@ -44,8 +44,8 @@
 #include "../../../../common/rtl/rattime.h"
 #include "../../../../common/rtl/SolverLib.h"
 
-CCarbohydrates_On_Board::CCarbohydrates_On_Board(glucose::WTime_Segment segment)
-	: CCommon_Calculated_Signal(segment), mSource_Signal(segment.Get_Signal(glucose::signal_Carb_Intake)) {
+CCarbohydrates_On_Board::CCarbohydrates_On_Board(scgms::WTime_Segment segment)
+	: CCommon_Calculated_Signal(segment), mSource_Signal(segment.Get_Signal(scgms::signal_Carb_Intake)) {
 }
 
 double CCarbohydrates_On_Board_Bilinear::Calculate_Signal(double bolusTime, double bolusValue, double nowTime, double peak, double dia) const
@@ -61,13 +61,13 @@ double CCarbohydrates_On_Board_Bilinear::Calculate_Signal(double bolusTime, doub
 	// Scale minsAgo by the ratio of the default dia / the user's dia 
 	// so the calculations for activityContrib and iobContrib work for 
 	// other dia values (while using the constants specified above)
-	const double scaledTime = (default_dia / (dia/glucose::One_Minute)) * ((nowTime - bolusTime) / glucose::One_Minute);
+	const double scaledTime = (default_dia / (dia/scgms::One_Minute)) * ((nowTime - bolusTime) / scgms::One_Minute);
 
 	// Calc percent of insulin activity at peak, and slopes up to and down from peak
 	// Based on area of triangle, because area under the insulin action "curve" must sum to 1
 	// (length * height) / 2 = area of triangle (1), therefore height (activityPeak) = 2 / length (which in this case is dia, in minutes)
 	// activityPeak scales based on user's dia even though peak and end remain fixed
-	//const double activityPeak = 2.0 / (dia / glucose::One_Minute);
+	//const double activityPeak = 2.0 / (dia / scgms::One_Minute);
 
 	if (scaledTime < default_peak)
 	{
@@ -119,10 +119,10 @@ double CCarbohydrates_On_Board::Calculate_Total_COB(double nowTime, double peak,
 	return totalCob;
 }
 
-HRESULT CCarbohydrates_On_Board::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+HRESULT CCarbohydrates_On_Board::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	iob::TParameters &parameters = glucose::Convert_Parameters<iob::TParameters>(params, iob::default_parameters);
+	iob::TParameters &parameters = scgms::Convert_Parameters<iob::TParameters>(params, iob::default_parameters);
 
 	for (size_t i = 0; i < count; i++)
 	{
@@ -134,7 +134,7 @@ HRESULT CCarbohydrates_On_Board::Get_Continuous_Levels(glucose::IModel_Parameter
 	return S_OK;
 }
 
-HRESULT CCarbohydrates_On_Board::Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const
+HRESULT CCarbohydrates_On_Board::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const
 {
 	double *params = const_cast<double*>(cob::default_parameters);
 	return parameters->set(params, params + cob::param_count);

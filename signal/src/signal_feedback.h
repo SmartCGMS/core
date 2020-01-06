@@ -48,23 +48,23 @@
   * Class that reads selected segments from the db produces the events
   * i.e., it mimicks CGMS
   */
-class CSignal_Feedback : public glucose::CBase_Filter, public glucose::IFilter_Feedback_Sender {
+class CSignal_Feedback : public scgms::CBase_Filter, public scgms::IFilter_Feedback_Sender {
 
 	protected:
-		glucose::SFilter_Feedback_Receiver mReceiver;
+		scgms::SFilter_Feedback_Receiver mReceiver;
 		std::wstring mFeedback_Name;
         GUID mSignal_ID = Invalid_GUID;
         bool mForward_Clone = false;
 	protected:
-		virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
-		HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
 
 	public:
-        CSignal_Feedback(glucose::IFilter *output);
+        CSignal_Feedback(scgms::IFilter *output);
 		virtual ~CSignal_Feedback();
 
 		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
-		virtual HRESULT IfaceCalling Sink(glucose::IFilter_Feedback_Receiver *receiver) override final;
+		virtual HRESULT IfaceCalling Sink(scgms::IFilter_Feedback_Receiver *receiver) override final;
 		virtual HRESULT IfaceCalling Name(wchar_t** const name) override final;
 };
 

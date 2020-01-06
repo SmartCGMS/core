@@ -54,7 +54,7 @@
 /*
  * DMMS discrete model (pump setting to, and data source from T1DMS simulator)
  */
-class CDMMS_Discrete_Model : public glucose::CBase_Filter, public virtual glucose::IDiscrete_Model {
+class CDMMS_Discrete_Model : public scgms::CBase_Filter, public virtual scgms::IDiscrete_Model {
 	private:
 		std::unique_ptr<std::thread> mReceiver_Thread;
 
@@ -111,15 +111,15 @@ class CDMMS_Discrete_Model : public glucose::CBase_Filter, public virtual glucos
 		void Deinitialize_DMMS();
 
 	protected:
-		// glucose::CBase_Filter iface implementation
-		virtual HRESULT Do_Execute(glucose::UDevice_Event event) override final;
-		virtual HRESULT Do_Configure(glucose::SFilter_Configuration configuration) override final;
+		// scgms::CBase_Filter iface implementation
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
 
 	public:
-		CDMMS_Discrete_Model(glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output);
+		CDMMS_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output);
 		virtual ~CDMMS_Discrete_Model();
 
-		// glucose::IDiscrete_Model iface
+		// scgms::IDiscrete_Model iface
 		virtual HRESULT IfaceCalling Set_Current_Time(const double new_current_time) override final;
 		virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
 };

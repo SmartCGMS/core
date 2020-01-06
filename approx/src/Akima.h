@@ -47,9 +47,9 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CAkima : public glucose::IApproximator, public virtual refcnt::CReferenced {
+class CAkima : public scgms::IApproximator, public virtual refcnt::CReferenced {
 protected:
-	glucose::WSignal mSignal;
+	scgms::WSignal mSignal;
 	const size_t MINIMUM_NUMBER_POINTS = 5;
 	std::vector<double> mInputTimes, mInputLevels, mCoefficients;
 	bool Update();
@@ -78,7 +78,7 @@ protected:
 	std::vector<double> Interpolate_Hermite_Scalar(std::vector<double> coefsOfPolynFunc);
 public:
 public:
-	CAkima(glucose::WSignal signal, glucose::IApprox_Parameters_Vector* configuration);
+	CAkima(scgms::WSignal signal, scgms::IApprox_Parameters_Vector* configuration);
 	virtual ~CAkima() {};
 
 	virtual HRESULT IfaceCalling GetLevels(const double* times, double* const levels, const size_t count, const size_t derivation_order) override;

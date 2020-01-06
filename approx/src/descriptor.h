@@ -42,5 +42,5 @@
 #include "../../../common/iface/ApproxIface.h"
 #include "../../../common/rtl/hresult.h"
 
-extern "C" HRESULT IfaceCalling do_get_approximator_descriptors(glucose::TApprox_Descriptor **begin, glucose::TApprox_Descriptor **end);
-extern "C" HRESULT IfaceCalling do_create_approximator(const GUID *approx_id, glucose::ISignal *signal, glucose::IApprox_Parameters_Vector* configuration, glucose::IApproximator **approx);
+extern "C" HRESULT IfaceCalling do_get_approximator_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end);
+extern "C" HRESULT IfaceCalling do_create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApprox_Parameters_Vector* configuration, scgms::IApproximator **approx);

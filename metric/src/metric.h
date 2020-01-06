@@ -47,14 +47,14 @@ class CAbsDiffAvgMetric : public CCommon_Metric {
 protected:
   virtual double Do_Calculate_Metric();
 public:
-	CAbsDiffAvgMetric(const glucose::TMetric_Parameters &params) : CCommon_Metric(params) {};
+	CAbsDiffAvgMetric(const scgms::TMetric_Parameters &params) : CCommon_Metric(params) {};
 };
 
 class CAbsDiffMaxMetric : public CCommon_Metric {
 protected:
 	virtual double Do_Calculate_Metric();
 public:
-	CAbsDiffMaxMetric(const glucose::TMetric_Parameters &params) : CCommon_Metric(params) {};
+	CAbsDiffMaxMetric(const scgms::TMetric_Parameters &params) : CCommon_Metric(params) {};
 };
 
 class CAbsDiffPercentilMetric : public CCommon_Metric {
@@ -64,7 +64,7 @@ protected:
 	virtual double Do_Calculate_Metric();
 		//Returns the metric at percentil given by mParameters
 public:
-	CAbsDiffPercentilMetric(glucose::TMetric_Parameters params);
+	CAbsDiffPercentilMetric(scgms::TMetric_Parameters params);
 };
 
 
@@ -73,7 +73,7 @@ protected:
 	virtual double Do_Calculate_Metric();
 		//returns the number of levels which have error greater than mParameters.Threshold
 public:
-	CAbsDiffThresholdMetric(glucose::TMetric_Parameters params) : CCommon_Metric(params) {};
+	CAbsDiffThresholdMetric(scgms::TMetric_Parameters params) : CCommon_Metric(params) {};
 };
 
 
@@ -89,7 +89,7 @@ class CLeal2010Metric : public CCommon_Metric {
 protected:		
 	virtual double Do_Calculate_Metric();
 public:
-	CLeal2010Metric(glucose::TMetric_Parameters params);
+	CLeal2010Metric(scgms::TMetric_Parameters params);
 };
 
 
@@ -97,7 +97,7 @@ class CAICMetric : public CAbsDiffAvgMetric {
 protected:
 	virtual double Do_Calculate_Metric();
 public:
-	CAICMetric(glucose::TMetric_Parameters params);
+	CAICMetric(scgms::TMetric_Parameters params);
 };
 
 class CStdDevMetric : public CAbsDiffPercentilMetric {
@@ -106,13 +106,13 @@ protected:
 	bool mDo_Bessel_Correction;
 	virtual double Do_Calculate_Metric();
 public:
-	CStdDevMetric(glucose::TMetric_Parameters params) : CAbsDiffPercentilMetric(params), mDo_Bessel_Correction(false) {};
+	CStdDevMetric(scgms::TMetric_Parameters params) : CAbsDiffPercentilMetric(params), mDo_Bessel_Correction(false) {};
 };
 
 class CAvgPlusBesselStdDevMetric : public CStdDevMetric {
 	virtual double Do_Calculate_Metric();
 public:
-	CAvgPlusBesselStdDevMetric(glucose::TMetric_Parameters params) : CStdDevMetric(params) { mDo_Bessel_Correction = true; };
+	CAvgPlusBesselStdDevMetric(scgms::TMetric_Parameters params) : CStdDevMetric(params) { mDo_Bessel_Correction = true; };
 };
 
 
@@ -124,20 +124,20 @@ protected:
 	const bool mCalculate_Real_Relative_Difference = false;
 	virtual double Do_Calculate_Metric();
 public:
-	CCrossWalkMetric(glucose::TMetric_Parameters params) : CCommon_Metric(params) {};
+	CCrossWalkMetric(scgms::TMetric_Parameters params) : CCommon_Metric(params) {};
 };
 
 class CPath_Difference : public CCommon_Metric {
 protected:
 	virtual double Do_Calculate_Metric();
 public:
-	CPath_Difference(glucose::TMetric_Parameters params) : CCommon_Metric(params) {};
+	CPath_Difference(scgms::TMetric_Parameters params) : CCommon_Metric(params) {};
 };
 
 class CIntegralCDFMetric : public CAbsDiffPercentilMetric {
 	virtual double Do_Calculate_Metric();
 public:
-	CIntegralCDFMetric(glucose::TMetric_Parameters params) : CAbsDiffPercentilMetric(params) {};
+	CIntegralCDFMetric(scgms::TMetric_Parameters params) : CAbsDiffPercentilMetric(params) {};
 };
 
 

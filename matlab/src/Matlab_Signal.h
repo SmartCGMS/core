@@ -52,7 +52,7 @@
 /*
  * Class representing calculated signal, which is handled by Matlab script
  */
-class CMatlab_Signal : public virtual glucose::ISignal, public virtual refcnt::CReferenced
+class CMatlab_Signal : public virtual scgms::ISignal, public virtual refcnt::CReferenced
 {
 	protected:
 		// the signal itself does not have the knowledge of what kind of signal it is actually represents, so we have to provide default parameters from outer code
@@ -69,13 +69,13 @@ class CMatlab_Signal : public virtual glucose::ISignal, public virtual refcnt::C
 		// these methods returns error code (E_NOTIMPL) since this is a calculated signal
 
 		virtual HRESULT IfaceCalling Get_Discrete_Levels(double* const times, double* const levels, const size_t count, size_t *filled) const override;
-		virtual HRESULT IfaceCalling Get_Discrete_Bounds(glucose::TBounds *time_bounds, glucose::TBounds *level_bounds, size_t *level_count) const override;
+		virtual HRESULT IfaceCalling Get_Discrete_Bounds(scgms::TBounds *time_bounds, scgms::TBounds *level_bounds, size_t *level_count) const override;
 		virtual HRESULT IfaceCalling Add_Levels(const double *times, const double *levels, const size_t count) override;
 
 		// these methods are valid for calculated signal
 
-		virtual HRESULT IfaceCalling Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params, const double* times, double* const levels, const size_t count, const size_t derivation_order) const override;
-		virtual HRESULT IfaceCalling Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const override;
+		virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params, const double* times, double* const levels, const size_t count, const size_t derivation_order) const override;
+		virtual HRESULT IfaceCalling Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const override;
 };
 
 #pragma warning( pop )

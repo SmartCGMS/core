@@ -52,9 +52,9 @@ using aligned_double_vector = std::vector<double, AlignmentAllocator<double>>;	/
 
 
 struct TSegment_Info {
-	std::shared_ptr<glucose::ITime_Segment> segment;
-	std::shared_ptr<glucose::ISignal> calculated_signal;
-	std::shared_ptr<glucose::ISignal> reference_signal;
+	std::shared_ptr<scgms::ITime_Segment> segment;
+	std::shared_ptr<scgms::ISignal> calculated_signal;
+	std::shared_ptr<scgms::ISignal> reference_signal;
 	aligned_double_vector reference_time;
 	aligned_double_vector reference_level;
 };
@@ -62,8 +62,8 @@ struct TSegment_Info {
 class CFitness {
 protected:
 	const size_t mSolution_Size;
-	glucose::TMetric_Parameters mMetric_Params = glucose::Null_Metric_Parameters;		
-	static thread_local glucose::SMetric mMetric_Per_Thread;
+	scgms::TMetric_Parameters mMetric_Params = scgms::Null_Metric_Parameters;		
+	static thread_local scgms::SMetric mMetric_Per_Thread;
 protected:
 	std::vector<TSegment_Info> mSegment_Info;	
 	size_t mLevels_Required;
@@ -71,7 +71,7 @@ protected:
 	static inline thread_local aligned_double_vector mTemporal_Levels;
 	double* Reserve_Temporal_Levels_Data();
 public:
-	CFitness(const glucose::TSolver_Setup &setup, const size_t solution_size);
+	CFitness(const scgms::TSolver_Setup &setup, const size_t solution_size);
 	double Calculate_Fitness(const double *solution);
 
 };

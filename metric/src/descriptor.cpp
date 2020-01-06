@@ -43,21 +43,21 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/descriptor_utils.h"
 
-const std::array < glucose::TMetric_Descriptor, 10 > metric_descriptor = { {
-	 glucose::TMetric_Descriptor{ mtrAvg_Abs, dsAvg_Abs },
-	 glucose::TMetric_Descriptor{ mtrMax_Abs, dsMax_Abs },
-	 glucose::TMetric_Descriptor{ mtrPerc_Abs, dsPerc_Abs },
-	 glucose::TMetric_Descriptor{ mtrThresh_Abs, dsThresh_Abs },
-	 glucose::TMetric_Descriptor{ mtrLeal_2010, dsLeal_2010 },
-	 glucose::TMetric_Descriptor{ mtrAIC, dsAIC },
-	 glucose::TMetric_Descriptor{ mtrStd_Dev, dsStd_Dev },
-	 glucose::TMetric_Descriptor{ mtrCrosswalk, dsCrosswalk },
-	 glucose::TMetric_Descriptor{ mtrIntegral_CDF, dsIntegral_CDF },
-	 glucose::TMetric_Descriptor{ mtrAvg_Plus_Bessel_Std_Dev, dsAvg_Plus_Bessel_Std_Dev }
+const std::array < scgms::TMetric_Descriptor, 10 > metric_descriptor = { {
+	 scgms::TMetric_Descriptor{ mtrAvg_Abs, dsAvg_Abs },
+	 scgms::TMetric_Descriptor{ mtrMax_Abs, dsMax_Abs },
+	 scgms::TMetric_Descriptor{ mtrPerc_Abs, dsPerc_Abs },
+	 scgms::TMetric_Descriptor{ mtrThresh_Abs, dsThresh_Abs },
+	 scgms::TMetric_Descriptor{ mtrLeal_2010, dsLeal_2010 },
+	 scgms::TMetric_Descriptor{ mtrAIC, dsAIC },
+	 scgms::TMetric_Descriptor{ mtrStd_Dev, dsStd_Dev },
+	 scgms::TMetric_Descriptor{ mtrCrosswalk, dsCrosswalk },
+	 scgms::TMetric_Descriptor{ mtrIntegral_CDF, dsIntegral_CDF },
+	 scgms::TMetric_Descriptor{ mtrAvg_Plus_Bessel_Std_Dev, dsAvg_Plus_Bessel_Std_Dev }
 } };
 
-HRESULT IfaceCalling do_get_metric_descriptors(glucose::TMetric_Descriptor **begin, glucose::TMetric_Descriptor **end) {
-	*begin = const_cast<glucose::TMetric_Descriptor*>(metric_descriptor.data());
+HRESULT IfaceCalling do_get_metric_descriptors(scgms::TMetric_Descriptor **begin, scgms::TMetric_Descriptor **end) {
+	*begin = const_cast<scgms::TMetric_Descriptor*>(metric_descriptor.data());
 	*end = *begin + metric_descriptor.size();
 	return S_OK;
 }
@@ -66,16 +66,16 @@ namespace signal_error {
 
 	constexpr size_t param_count = 9;
 
-	const glucose::NParameter_Type parameter_type[param_count] = {
-		glucose::NParameter_Type::ptWChar_Array,
-		glucose::NParameter_Type::ptSignal_Id,
-		glucose::NParameter_Type::ptSignal_Id,
-		glucose::NParameter_Type::ptMetric_Id,
-		glucose::NParameter_Type::ptInt64,		
-		glucose::NParameter_Type::ptBool,
-		glucose::NParameter_Type::ptBool,
-		glucose::NParameter_Type::ptBool,
-		glucose::NParameter_Type::ptDouble
+	const scgms::NParameter_Type parameter_type[param_count] = {
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptMetric_Id,
+		scgms::NParameter_Type::ptInt64,		
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptDouble
 	};
 
 	const wchar_t* ui_parameter_name[param_count] = {
@@ -114,9 +114,9 @@ namespace signal_error {
 		nullptr
 	};
 
-	const glucose::TFilter_Descriptor desc = {
+	const scgms::TFilter_Descriptor desc = {
 		{ 0x690fbc95, 0x84ca, 0x4627, { 0xb4, 0x7c, 0x99, 0x55, 0xea, 0x81, 0x7a, 0x4f } },
-		glucose::NFilter_Flags::None,
+		scgms::NFilter_Flags::None,
 		dsSignal_Error,
 		param_count,
 		parameter_type,
@@ -127,15 +127,15 @@ namespace signal_error {
 }
 
 
-static const std::array<glucose::TFilter_Descriptor, 1> filter_descriptions = { { signal_error::desc } };
+static const std::array<scgms::TFilter_Descriptor, 1> filter_descriptions = { { signal_error::desc } };
 
-extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end) {
-	*begin = const_cast<glucose::TFilter_Descriptor*>(filter_descriptions.data());
+extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
+	*begin = const_cast<scgms::TFilter_Descriptor*>(filter_descriptions.data());
 	*end = *begin + filter_descriptions.size();
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter *output, glucose::IFilter **filter) {
+extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
 	if (*id == signal_error::desc.id) return Manufacture_Object<CSignal_Error>(filter, output);
 
 	return ENOENT;

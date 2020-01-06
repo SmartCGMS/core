@@ -44,50 +44,50 @@
 
 /* Constant ISF */
 
-CConstant_Insulin_Sensitivity_Model::CConstant_Insulin_Sensitivity_Model(glucose::WTime_Segment segment) : CCommon_Calculated_Signal(segment) {
+CConstant_Insulin_Sensitivity_Model::CConstant_Insulin_Sensitivity_Model(scgms::WTime_Segment segment) : CCommon_Calculated_Signal(segment) {
 	//
 }
 
-HRESULT IfaceCalling CConstant_Insulin_Sensitivity_Model::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+HRESULT IfaceCalling CConstant_Insulin_Sensitivity_Model::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	const_isf::TParameters &parameters = glucose::Convert_Parameters<const_isf::TParameters>(params, const_isf::default_parameters);
+	const_isf::TParameters &parameters = scgms::Convert_Parameters<const_isf::TParameters>(params, const_isf::default_parameters);
 
 	// for all input times (reference signal times), output constant value
 	// this is generally not true for ISF - may vary with time of the day and excercise
 
-    const double val = derivation_order == glucose::apxNo_Derivation ? parameters.isf : 0.0;
+    const double val = derivation_order == scgms::apxNo_Derivation ? parameters.isf : 0.0;
     std::fill(levels, levels + count, val);
 
 	return S_OK;
 }
 
-HRESULT IfaceCalling CConstant_Insulin_Sensitivity_Model::Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const {
+HRESULT IfaceCalling CConstant_Insulin_Sensitivity_Model::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const {
 	double *params = const_cast<double*>(const_isf::default_parameters);
 	return parameters->set(params, params + const_isf::param_count);
 }
 
 /* Constant CR */
 
-CConstant_Carb_Ratio_Model::CConstant_Carb_Ratio_Model(glucose::WTime_Segment segment) : CCommon_Calculated_Signal(segment) {
+CConstant_Carb_Ratio_Model::CConstant_Carb_Ratio_Model(scgms::WTime_Segment segment) : CCommon_Calculated_Signal(segment) {
 	//
 }
 
-HRESULT IfaceCalling CConstant_Carb_Ratio_Model::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+HRESULT IfaceCalling CConstant_Carb_Ratio_Model::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	const_cr::TParameters &parameters = glucose::Convert_Parameters<const_cr::TParameters>(params, const_cr::default_parameters);
+	const_cr::TParameters &parameters = scgms::Convert_Parameters<const_cr::TParameters>(params, const_cr::default_parameters);
 
 	// for all input times (reference signal times), output constant value
 	// this is generally not true for CR - may vary with time of the day and other physiological aspects
 	
-    const double val = derivation_order == glucose::apxNo_Derivation ? parameters.cr : 0.0;
+    const double val = derivation_order == scgms::apxNo_Derivation ? parameters.cr : 0.0;
     std::fill(levels, levels + count, val);
 
 	return S_OK;
 }
 
-HRESULT IfaceCalling CConstant_Carb_Ratio_Model::Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const {
+HRESULT IfaceCalling CConstant_Carb_Ratio_Model::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const {
 	double *params = const_cast<double*>(const_cr::default_parameters);
 	return parameters->set(params, params + const_cr::param_count);
 }

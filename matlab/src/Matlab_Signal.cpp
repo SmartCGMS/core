@@ -50,7 +50,7 @@ HRESULT IfaceCalling CMatlab_Signal::Get_Discrete_Levels(double* const times, do
 	return E_NOTIMPL;
 }
 
-HRESULT IfaceCalling CMatlab_Signal::Get_Discrete_Bounds(glucose::TBounds *time_bounds, glucose::TBounds *level_bounds, size_t *level_count) const {
+HRESULT IfaceCalling CMatlab_Signal::Get_Discrete_Bounds(scgms::TBounds *time_bounds, scgms::TBounds *level_bounds, size_t *level_count) const {
 	return E_NOTIMPL;
 }
 
@@ -58,7 +58,7 @@ HRESULT IfaceCalling CMatlab_Signal::Add_Levels(const double *times, const doubl
 	return E_NOTIMPL;
 }
 
-HRESULT IfaceCalling CMatlab_Signal::Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params, const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
+HRESULT IfaceCalling CMatlab_Signal::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params, const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 
 	matlab::data::ArrayFactory factory;
 
@@ -92,7 +92,7 @@ HRESULT IfaceCalling CMatlab_Signal::Get_Continuous_Levels(glucose::IModel_Param
 	return S_OK;
 }
 
-HRESULT IfaceCalling CMatlab_Signal::Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const
+HRESULT IfaceCalling CMatlab_Signal::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const
 {
 	double *params = const_cast<double*>(mDefaultParameters.data());
 	return parameters->set(params, params + mDefaultParameters.size());

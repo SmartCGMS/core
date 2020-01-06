@@ -42,7 +42,7 @@
 #include "../../../common/rtl/rattime.h"
 #include "../../../common/lang/dstrings.h"
 
-CSignal_Generator::CSignal_Generator(glucose::IFilter *output) : CBase_Filter(output) {
+CSignal_Generator::CSignal_Generator(scgms::IFilter *output) : CBase_Filter(output) {
 	//
 }
 
@@ -60,13 +60,13 @@ void CSignal_Generator::Stop_Generator() {
 	}
 }
 
-HRESULT CSignal_Generator::Do_Execute(glucose::UDevice_Event event) {
+HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 
 	HRESULT rc = E_UNEXPECTED;
 
 	if ((mSync_To_Signal) && ((mTotal_Time < mMax_Time) || (mMax_Time <= 0.0))) {
 
-		if (event.event_code() == glucose::NDevice_Event_Code::Time_Segment_Start) 
+		if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start) 
 			mLast_Device_Time = std::numeric_limits<double>::quiet_NaN();
 
 		const bool step_the_model = event.signal_id() == mSync_Signal;
@@ -81,7 +81,7 @@ HRESULT CSignal_Generator::Do_Execute(glucose::UDevice_Event event) {
 			mLast_Device_Time = event.device_time();
 		}
 
-		glucose::IDevice_Event *raw_event = event.get();
+		scgms::IDevice_Event *raw_event = event.get();
 		event.release();
 		HRESULT rc = mModel->Execute(raw_event);
 		
@@ -89,9 +89,9 @@ HRESULT CSignal_Generator::Do_Execute(glucose::UDevice_Event event) {
 	}
 	else {
 
-		bool shutdown = (event.event_code() == glucose::NDevice_Event_Code::Shut_Down);
+		bool shutdown = (event.event_code() == scgms::NDevice_Event_Code::Shut_Down);
 
-		glucose::IDevice_Event *raw_event = event.get();
+		scgms::IDevice_Event *raw_event = event.get();
 		event.release();
 		rc = mModel->Execute(raw_event);
 
@@ -104,7 +104,7 @@ HRESULT CSignal_Generator::Do_Execute(glucose::UDevice_Event event) {
 	return rc;
 }
 
-HRESULT CSignal_Generator::Do_Configure(glucose::SFilter_Configuration configuration) {
+HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configuration) {
 	Stop_Generator();
 
 	mSync_To_Signal = configuration.Read_Bool(rsSynchronize_to_Signal);
@@ -118,7 +118,7 @@ HRESULT CSignal_Generator::Do_Configure(glucose::SFilter_Configuration configura
 	configuration.Read_Parameters(rsParameters, lower, parameters, upper);
 
 	const GUID model_id = configuration.Read_GUID(rsSelected_Model);
-	mModel = glucose::SDiscrete_Model { model_id, parameters, mOutput };
+	mModel = scgms::SDiscrete_Model { model_id, parameters, mOutput };
 	if (!mModel)
 		return E_FAIL;
 
@@ -141,8 +141,8 @@ HRESULT CSignal_Generator::Do_Configure(glucose::SFilter_Configuration configura
 				}
 
 				if ((mTotal_Time >= mMax_Time) && mEmit_Shutdown) {
-					auto evt = glucose::UDevice_Event{ glucose::NDevice_Event_Code::Shut_Down };
-					glucose::IDevice_Event *raw_event = evt.get();
+					auto evt = scgms::UDevice_Event{ scgms::NDevice_Event_Code::Shut_Down };
+					scgms::IDevice_Event *raw_event = evt.get();
 					evt.release();
 					mModel->Execute(raw_event);
 				}
@@ -156,7 +156,7 @@ HRESULT CSignal_Generator::Do_Configure(glucose::SFilter_Configuration configura
 
 HRESULT IfaceCalling CSignal_Generator::QueryInterface(const GUID* riid, void** ppvObj)
 {
-	if (Internal_Query_Interface<glucose::IFilter_Feedback_Receiver>(glucose::IID_Filter_Feedback_Receiver, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<scgms::IFilter_Feedback_Receiver>(scgms::IID_Filter_Feedback_Receiver, *riid, ppvObj)) return S_OK;
 	return E_NOINTERFACE;
 }
 

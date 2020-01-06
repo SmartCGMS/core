@@ -57,9 +57,9 @@
 	static int gGlobal_DMMS_Instance_Cnt = 0;
 #endif
 
-CDMMS_Discrete_Model::CDMMS_Discrete_Model(glucose::IModel_Parameter_Vector *parameters, glucose::IFilter *output)
+CDMMS_Discrete_Model::CDMMS_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output)
 	: CBase_Filter(output),
-	  mParameters(glucose::Convert_Parameters<dmms_model::TParameters>(parameters, dmms_model::default_parameters.vector))
+	  mParameters(scgms::Convert_Parameters<dmms_model::TParameters>(parameters, dmms_model::default_parameters.vector))
 {
 	mToSend.basal_rate = 0.0;
 	mToSend.bolus_rate = 0.0;
@@ -100,7 +100,7 @@ void CDMMS_Discrete_Model::Deinitialize_DMMS() {
 	}
 }
 
-HRESULT CDMMS_Discrete_Model::Do_Configure(glucose::SFilter_Configuration configuration) {
+HRESULT CDMMS_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration) {
 	//return S_OK;
 	return Configure_DMMS() ? S_OK : E_FAIL;
 }
@@ -153,7 +153,7 @@ void CDMMS_Discrete_Model::Receive_From_DMMS()
 	{
 		mLastSimTime = received.simulation_time;
 
-		const double device_time = mTimeStart + glucose::One_Minute * received.simulation_time;
+		const double device_time = mTimeStart + scgms::One_Minute * received.simulation_time;
 
 		if (std::isnan(mAnnounced.announcedMeal.time) && received.announced_meal.grams > 0 && received.announced_meal.time > 0)
 		{
@@ -166,7 +166,7 @@ void CDMMS_Discrete_Model::Receive_From_DMMS()
 			/* T1DMS performs some magic on announced meals; the original T1DMS controller checked for line-approximated
 			   signal intersection with X axis and then calculated bolus; we have completely different logic, so no such
 			   calculations are needed here */
-			const double t1dms_compat = glucose::One_Minute * received.announced_meal.time;
+			const double t1dms_compat = scgms::One_Minute * received.announced_meal.time;
 
 			mAnnounced.announcedMeal.time = device_time + t1dms_compat + mParameters.meal_announce_offset;
 			if (mAnnounced.announcedMeal.time <= mAnnounced.announcedMeal.lastTime)
@@ -178,24 +178,24 @@ void CDMMS_Discrete_Model::Receive_From_DMMS()
 		if (std::isnan(mAnnounced.announcedExcercise.time) && received.announced_excercise.intensity > 0 && received.announced_excercise.time > 0)
 		{
 			/* see note in announced meals */
-			const double t1dms_compat = glucose::One_Minute * received.announced_excercise.time;
+			const double t1dms_compat = scgms::One_Minute * received.announced_excercise.time;
 
 			mAnnounced.announcedExcercise.time = device_time + t1dms_compat + mParameters.excercise_announce_offset;
-			mAnnounced.announcedExcercise.duration = glucose::One_Minute * received.announced_excercise.duration;
+			mAnnounced.announcedExcercise.duration = scgms::One_Minute * received.announced_excercise.duration;
 			if (mAnnounced.announcedExcercise.time <= mAnnounced.announcedExcercise.lastTime)
 				mAnnounced.announcedExcercise.time = std::numeric_limits<double>::quiet_NaN();
 			else
 				mAnnounced.announcedExcercise.intensity = received.announced_excercise.intensity;
 		}
 
-		Emit_Signal_Level(dmms_model::signal_DMMS_IG, device_time, received.glucose_ig * glucose::mgdl_2_mmoll);
-		Emit_Signal_Level(dmms_model::signal_DMMS_BG, device_time, received.glucose_bg * glucose::mgdl_2_mmoll);
+		Emit_Signal_Level(dmms_model::signal_DMMS_IG, device_time, received.glucose_ig * scgms::mgdl_2_mmoll);
+		Emit_Signal_Level(dmms_model::signal_DMMS_BG, device_time, received.glucose_bg * scgms::mgdl_2_mmoll);
 
 		// emit announced carbs, if the time has come
 		if (!std::isnan(mAnnounced.announcedMeal.time) && mAnnounced.announcedMeal.time <= device_time)
 		{
 			mAnnounced.announcedMeal.lastTime = mAnnounced.announcedMeal.time;
-			Emit_Signal_Level(glucose::signal_Carb_Intake, mAnnounced.announcedMeal.time, mAnnounced.announcedMeal.grams);
+			Emit_Signal_Level(scgms::signal_Carb_Intake, mAnnounced.announcedMeal.time, mAnnounced.announcedMeal.grams);
 			mAnnounced.announcedMeal.time = std::numeric_limits<double>::quiet_NaN();
 		}
 
@@ -203,15 +203,15 @@ void CDMMS_Discrete_Model::Receive_From_DMMS()
 		if (!std::isnan(mAnnounced.announcedExcercise.time) && std::isnan(mAnnounced.announcedExcercise.lastTime) && mAnnounced.announcedExcercise.time <= device_time)
 		{
 			mAnnounced.announcedExcercise.lastTime = mAnnounced.announcedExcercise.time;
-			Emit_Signal_Level(glucose::signal_Physical_Activity, device_time, mAnnounced.announcedExcercise.intensity * 1000);
+			Emit_Signal_Level(scgms::signal_Physical_Activity, device_time, mAnnounced.announcedExcercise.intensity * 1000);
 		}
 		else if (!std::isnan(mAnnounced.announcedExcercise.lastTime) && mAnnounced.announcedExcercise.lastTime + mAnnounced.announcedExcercise.duration >= device_time)
 		{
-			Emit_Signal_Level(glucose::signal_Physical_Activity, device_time, mAnnounced.announcedExcercise.intensity * 1000);
+			Emit_Signal_Level(scgms::signal_Physical_Activity, device_time, mAnnounced.announcedExcercise.intensity * 1000);
 		}
 		else
 		{
-			Emit_Signal_Level(glucose::signal_Physical_Activity, device_time, 0);
+			Emit_Signal_Level(scgms::signal_Physical_Activity, device_time, 0);
 			mAnnounced.announcedExcercise.lastTime = std::numeric_limits<double>::quiet_NaN();
 			mAnnounced.announcedExcercise.time = std::numeric_limits<double>::quiet_NaN();
 		}
@@ -262,25 +262,25 @@ bool CDMMS_Discrete_Model::Initialize_DMMS()
 	return executed;
 }
 
-HRESULT CDMMS_Discrete_Model::Do_Execute(glucose::UDevice_Event event)
+HRESULT CDMMS_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 {
 	HRESULT rc = S_FALSE;
 
-	if (event.event_code() == glucose::NDevice_Event_Code::Level)
+	if (event.event_code() == scgms::NDevice_Event_Code::Level)
 	{
-		if (event.signal_id() == glucose::signal_Requested_Insulin_Basal_Rate)
+		if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate)
 		{
 			mToSend.basal_rate = event.level();
 			rc = S_OK;
 		}
-		else if (event.signal_id() == glucose::signal_Requested_Insulin_Bolus)
+		else if (event.signal_id() == scgms::signal_Requested_Insulin_Bolus)
 		{
 			// T1DMS expects bolus rates in U/hr, and we hold the value for 5 mins => "spread" the value to 5 min dosages
 			mToSend.bolus_rate += 60.0*event.level() / 5.0;
 			rc = S_OK;
 		}
 	}
-	else if (event.event_code() == glucose::NDevice_Event_Code::Shut_Down)
+	else if (event.event_code() == scgms::NDevice_Event_Code::Shut_Down)
 	{
 		mRunning = false;
 
@@ -321,7 +321,7 @@ HRESULT IfaceCalling CDMMS_Discrete_Model::Step(const double time_advance_delta)
 
 void CDMMS_Discrete_Model::Emit_Signal_Level(const GUID& id, double device_time, double level)
 {
-	glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Level };
+	scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
 
 	evt.device_id() = dmms_model::model_id;
 	evt.device_time() = device_time;
@@ -334,7 +334,7 @@ void CDMMS_Discrete_Model::Emit_Signal_Level(const GUID& id, double device_time,
 
 void CDMMS_Discrete_Model::Emit_Shut_Down(double device_time)
 {
-	glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Shut_Down };
+	scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Shut_Down };
 
 	evt.device_id() = dmms_model::model_id;
 	evt.device_time() = device_time;

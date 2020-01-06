@@ -50,16 +50,16 @@ class CCarbohydrates_On_Board : public CCommon_Calculated_Signal {
 		virtual double Calculate_Signal(double bolusTime, double bolusValue, double nowTime, double peak, double dia) const = 0;
 
 	protected:
-		glucose::SSignal mSource_Signal;
+		scgms::SSignal mSource_Signal;
 
 	public:
-		CCarbohydrates_On_Board(glucose::WTime_Segment segment);
+		CCarbohydrates_On_Board(scgms::WTime_Segment segment);
 		virtual ~CCarbohydrates_On_Board() {};
 
-		//glucose::ISignal iface
-		virtual HRESULT IfaceCalling Get_Continuous_Levels(glucose::IModel_Parameter_Vector *params,
+		//scgms::ISignal iface
+		virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 			const double* times, double* const levels, const size_t count, const size_t derivation_order) const override;
-		virtual HRESULT IfaceCalling Get_Default_Parameters(glucose::IModel_Parameter_Vector *parameters) const override;
+		virtual HRESULT IfaceCalling Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const override;
 };
 
 class CCarbohydrates_On_Board_Bilinear : public CCarbohydrates_On_Board {
@@ -68,7 +68,7 @@ class CCarbohydrates_On_Board_Bilinear : public CCarbohydrates_On_Board {
 		virtual double Calculate_Signal(double bolusTime, double bolusValue, double nowTime, double peak, double dia) const override;
 
 	public:
-		CCarbohydrates_On_Board_Bilinear(glucose::WTime_Segment segment) : CCarbohydrates_On_Board(segment) {};
+		CCarbohydrates_On_Board_Bilinear(scgms::WTime_Segment segment) : CCarbohydrates_On_Board(segment) {};
 };
 
 #pragma warning( pop )

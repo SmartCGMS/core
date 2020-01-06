@@ -50,16 +50,16 @@
 /*
  * Line approximator class
  */
-class CLine_Approximator : public glucose::IApproximator, public virtual refcnt::CReferenced {
+class CLine_Approximator : public scgms::IApproximator, public virtual refcnt::CReferenced {
 	protected:
-		glucose::WSignal mSignal;
+		scgms::WSignal mSignal;
 
 		std::vector<double> mInputTimes, mInputLevels, mSlopes;
 
 		bool Update();
 
 	public:
-		CLine_Approximator(glucose::WSignal signal, glucose::IApprox_Parameters_Vector* configuration);
+		CLine_Approximator(scgms::WSignal signal, scgms::IApprox_Parameters_Vector* configuration);
 		virtual ~CLine_Approximator() {};
 
 		virtual HRESULT IfaceCalling GetLevels(const double* times, double* const levels, const size_t count, const size_t derivation_order) override;

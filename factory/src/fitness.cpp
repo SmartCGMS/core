@@ -42,9 +42,9 @@
 #include "fitness.h"
 #include "../../../common/rtl/referencedImpl.h"
 
-thread_local glucose::SMetric CFitness::mMetric_Per_Thread;
+thread_local scgms::SMetric CFitness::mMetric_Per_Thread;
 
-CFitness::CFitness(const glucose::TSolver_Setup &setup, const size_t solution_size) : mLevels_Required (setup.levels_required), mSolution_Size(solution_size){
+CFitness::CFitness(const scgms::TSolver_Setup &setup, const size_t solution_size) : mLevels_Required (setup.levels_required), mSolution_Size(solution_size){
 
 	setup.metric->Get_Parameters(&mMetric_Params);	//shall it fail, it will fail down there
 
@@ -53,18 +53,18 @@ CFitness::CFitness(const glucose::TSolver_Setup &setup, const size_t solution_si
 		
 	for (size_t segment_iter=0; segment_iter<setup.segment_count;  segment_iter++) {
 			
-		std::shared_ptr<glucose::ITime_Segment> setup_segment= refcnt::make_shared_reference<glucose::ITime_Segment>(setup.segments[segment_iter], true);
+		std::shared_ptr<scgms::ITime_Segment> setup_segment= refcnt::make_shared_reference<scgms::ITime_Segment>(setup.segments[segment_iter], true);
 
 
 		TSegment_Info info{ nullptr, nullptr, nullptr};
 		info.segment = setup_segment;
 
-		glucose::ISignal *signal;
+		scgms::ISignal *signal;
 		if (setup_segment->Get_Signal(&setup.calculated_signal_id, &signal) == S_OK)
-			info.calculated_signal = refcnt::make_shared_reference<glucose::ISignal>(signal, false);
+			info.calculated_signal = refcnt::make_shared_reference<scgms::ISignal>(signal, false);
 
 		if (setup_segment->Get_Signal(&setup.reference_signal_id, &signal) == S_OK)
-			info.reference_signal = refcnt::make_shared_reference<glucose::ISignal>(signal, false);
+			info.reference_signal = refcnt::make_shared_reference<scgms::ISignal>(signal, false);
 
 
 		if (info.calculated_signal && info.reference_signal) {
@@ -82,7 +82,7 @@ CFitness::CFitness(const glucose::TSolver_Setup &setup, const size_t solution_si
 
 				//if desired, replace them continous signal approdximation
 				if (setup.use_measured_levels == 0) {
-					info.reference_signal->Get_Continuous_Levels(nullptr, info.reference_time.data(), info.reference_level.data(), info.reference_time.size(), glucose::apxNo_Derivation);
+					info.reference_signal->Get_Continuous_Levels(nullptr, info.reference_time.data(), info.reference_level.data(), info.reference_time.size(), scgms::apxNo_Derivation);
 						//we are not interested in checking the possibly error, because we will be left with meeasured levels at least
 				}
 
@@ -108,9 +108,9 @@ double CFitness::Calculate_Fitness(const double *solution) {
 	//caller has to supply the metric to allow parallelization without inccuring an overhead
 	//of creating new metric calculator instead of its mere resetting	
 
-	glucose::IMetric *metric = mMetric_Per_Thread.get();	//caching to avoid TLS calls
+	scgms::IMetric *metric = mMetric_Per_Thread.get();	//caching to avoid TLS calls
 	if (!metric) {
-		mMetric_Per_Thread = glucose::SMetric{ mMetric_Params };
+		mMetric_Per_Thread = scgms::SMetric{ mMetric_Params };
 		metric = mMetric_Per_Thread.get();
 		if (!metric) return std::numeric_limits<double>::quiet_NaN();
 	}
@@ -123,7 +123,7 @@ double CFitness::Calculate_Fitness(const double *solution) {
 	refcnt::internal::CVector_View<double> solution_view{ solution, solution + mSolution_Size };
 
 	for (auto &info : mSegment_Info) {
-		if (info.calculated_signal->Get_Continuous_Levels(&solution_view, info.reference_time.data(), tmp_levels, info.reference_time.size(), glucose::apxNo_Derivation) == S_OK) {
+		if (info.calculated_signal->Get_Continuous_Levels(&solution_view, info.reference_time.data(), tmp_levels, info.reference_time.size(), scgms::apxNo_Derivation) == S_OK) {
 			//levels got, calculate the metric
 			metric->Accumulate(info.reference_time.data(), info.reference_level.data(), tmp_levels, info.reference_time.size());
 		} else

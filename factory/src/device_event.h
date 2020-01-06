@@ -41,20 +41,20 @@
 #include "../../../common/iface/DeviceIface.h"
 
 
-class CDevice_Event : public virtual glucose::IDevice_Event {
+class CDevice_Event : public virtual scgms::IDevice_Event {
 protected:
-	glucose::TDevice_Event mRaw;	
+	scgms::TDevice_Event mRaw;	
 public:
-	CDevice_Event(glucose::NDevice_Event_Code code);
-	CDevice_Event(glucose::IDevice_Event *event);
+	CDevice_Event(scgms::NDevice_Event_Code code);
+	CDevice_Event(scgms::IDevice_Event *event);
 	virtual ~CDevice_Event();
 	virtual ULONG IfaceCalling Release() override;
-	virtual HRESULT IfaceCalling Raw(glucose::TDevice_Event **dst) override;
+	virtual HRESULT IfaceCalling Raw(scgms::TDevice_Event **dst) override;
 	virtual HRESULT IfaceCalling Clone(IDevice_Event** event) override;
 };
 
 #ifdef _WIN32
-	extern "C" __declspec(dllexport) HRESULT IfaceCalling create_device_event(glucose::NDevice_Event_Code code, glucose::IDevice_Event **event);
+	extern "C" __declspec(dllexport) HRESULT IfaceCalling create_device_event(scgms::NDevice_Event_Code code, scgms::IDevice_Event **event);
 #else
-	extern "C" HRESULT IfaceCalling create_device_event(glucose::NDevice_Event_Code code, glucose::IDevice_Event **event);
+	extern "C" HRESULT IfaceCalling create_device_event(scgms::NDevice_Event_Code code, scgms::IDevice_Event **event);
 #endif

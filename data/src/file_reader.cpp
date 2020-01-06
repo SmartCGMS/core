@@ -57,7 +57,7 @@ namespace file_reader
 	constexpr double Default_Segment_Spacing = 600.0 * 1000.0 * InvMSecsPerDay;
 }
 
-CFile_Reader::CFile_Reader(glucose::IFilter *output) : mSegmentSpacing(file_reader::Default_Segment_Spacing), CBase_Filter(output) {
+CFile_Reader::CFile_Reader(scgms::IFilter *output) : mSegmentSpacing(file_reader::Default_Segment_Spacing), CBase_Filter(output) {
 	//
 }
 
@@ -74,9 +74,9 @@ CFile_Reader::~CFile_Reader() {
 	}
 }
 
-bool CFile_Reader::Send_Event(glucose::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID* signalId, double value)
+bool CFile_Reader::Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID* signalId, double value)
 {
-	glucose::UDevice_Event evt{ code };
+	scgms::UDevice_Event evt{ code };
 
 	evt.device_id() = file_reader::File_Reader_Device_GUID;
 	evt.device_time() = device_time;	
@@ -153,7 +153,7 @@ void CFile_Reader::Run_Reader()
 		for (const TSegment_Limits& seg : resolvedSegments)
 		{
 			currentSegmentId++;
-			Send_Event(glucose::NDevice_Event_Code::Time_Segment_Start, vals[seg.first]->mMeasuredAt, currentSegmentId);
+			Send_Event(scgms::NDevice_Event_Code::Time_Segment_Start, vals[seg.first]->mMeasuredAt, currentSegmentId);
 
 			for (size_t i = seg.first; i < seg.second; i++)
 			{
@@ -166,19 +166,19 @@ void CFile_Reader::Run_Reader()
 				bool errorRes = false;
 
 				if (cur->mIst.has_value())
-					errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_IG, cur->mIst.value());
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, &scgms::signal_IG, cur->mIst.value());
 				if (cur->mIsig.has_value())
-					errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_ISIG, cur->mIsig.value());
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, &scgms::signal_ISIG, cur->mIsig.value());
 				if (cur->mBlood.has_value())
-					errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_BG, cur->mBlood.value());
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, &scgms::signal_BG, cur->mBlood.value());
 				if (cur->mInsulinBolus.has_value())
-					errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Requested_Insulin_Bolus, cur->mInsulinBolus.value());
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, &scgms::signal_Requested_Insulin_Bolus, cur->mInsulinBolus.value());
 				if (cur->mInsulinBasalRate.has_value())
-					errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Requested_Insulin_Basal_Rate, cur->mInsulinBasalRate.value());
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, &scgms::signal_Requested_Insulin_Basal_Rate, cur->mInsulinBasalRate.value());
 				if (cur->mCarbohydrates.has_value())
-					errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Carb_Intake, cur->mCarbohydrates.value());
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, &scgms::signal_Carb_Intake, cur->mCarbohydrates.value());
 				if (cur->mCalibration.has_value())
-					errorRes |= !Send_Event(glucose::NDevice_Event_Code::Level, valDate, currentSegmentId, &glucose::signal_Calibration, cur->mCalibration.value());
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, &scgms::signal_Calibration, cur->mCalibration.value());
 
 				if (errorRes)
 				{
@@ -187,7 +187,7 @@ void CFile_Reader::Run_Reader()
 				}
 			}
 
-			if (!Send_Event(glucose::NDevice_Event_Code::Time_Segment_Stop, vals[seg.second - 1]->mMeasuredAt, currentSegmentId))
+			if (!Send_Event(scgms::NDevice_Event_Code::Time_Segment_Stop, vals[seg.second - 1]->mMeasuredAt, currentSegmentId))
 				isError = true;
 
 			if (isError)
@@ -200,7 +200,7 @@ void CFile_Reader::Run_Reader()
 
 	if (mShutdownAfterLast)
 	{
-		glucose::UDevice_Event evt{ glucose::NDevice_Event_Code::Shut_Down };
+		scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Shut_Down };
 
 		evt.device_id() = file_reader::File_Reader_Device_GUID;
 		Send(evt);
@@ -261,7 +261,7 @@ HRESULT CFile_Reader::Extract(ExtractionResult &values)
 }
 
 
-HRESULT IfaceCalling CFile_Reader::Do_Configure(glucose::SFilter_Configuration configuration) {
+HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration configuration) {
 	mFileName = configuration.Read_String(rsInput_Values_File);
 	mSegmentSpacing = configuration.Read_Int(rsInput_Segment_Spacing) * 1000.0 * InvMSecsPerDay;
 	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
@@ -283,6 +283,6 @@ HRESULT IfaceCalling CFile_Reader::Do_Configure(glucose::SFilter_Configuration c
 	return S_OK;
 }
 
-HRESULT IfaceCalling CFile_Reader::Do_Execute(glucose::UDevice_Event event) {	
+HRESULT IfaceCalling CFile_Reader::Do_Execute(scgms::UDevice_Event event) {	
 	return Send(event);
 }

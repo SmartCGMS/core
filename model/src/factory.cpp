@@ -55,16 +55,16 @@
 #include "../../../common/rtl/DeviceLib.h"
 
 
-using TCreate_Signal = std::function<HRESULT(glucose::ITime_Segment *segment, glucose::ISignal **signal)>;
+using TCreate_Signal = std::function<HRESULT(scgms::ITime_Segment *segment, scgms::ISignal **signal)>;
 
 class CId_Dispatcher {
 protected:
 	std::map <const GUID, TCreate_Signal, std::less<GUID>> id_map;
 
 	template <typename T>
-	HRESULT Create_X(glucose::ITime_Segment *segment, glucose::ISignal **signal) const {
-		glucose::WTime_Segment weak_segment{ segment };
-		return Manufacture_Object<T, glucose::ISignal>(signal, weak_segment);
+	HRESULT Create_X(scgms::ITime_Segment *segment, scgms::ISignal **signal) const {
+		scgms::WTime_Segment weak_segment{ segment };
+		return Manufacture_Object<T, scgms::ISignal>(signal, weak_segment);
 	}
 
 	template <typename T>
@@ -83,7 +83,7 @@ public:
 		Add_Signal<CConstant_Carb_Ratio_Model>(const_cr::const_cr_signal_id);
 	}
 
-	HRESULT Create_Signal(const GUID &calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) const {
+	HRESULT Create_Signal(const GUID &calc_id, scgms::ITime_Segment *segment, scgms::ISignal **signal) const {
 		const auto iter = id_map.find(calc_id);
 		if (iter != id_map.end())
 			return iter->second(segment, signal);
@@ -94,7 +94,7 @@ public:
 
 static CId_Dispatcher Id_Dispatcher;
 
-extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal **signal) {
+extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, scgms::ISignal **signal) {
 	if ((calc_id ==nullptr) || (segment == nullptr)) return E_INVALIDARG;
 	return Id_Dispatcher.Create_Signal(*calc_id, segment, signal);
 }

@@ -2,11 +2,11 @@
 
 #include "../../../common/rtl/manufactory.h"
 
-CFilter_Parameter::CFilter_Parameter(const glucose::NParameter_Type type, const wchar_t *config_name) : mType(type), mConfig_Name(config_name) {
+CFilter_Parameter::CFilter_Parameter(const scgms::NParameter_Type type, const wchar_t *config_name) : mType(type), mConfig_Name(config_name) {
 	//
 }
 
-HRESULT IfaceCalling CFilter_Parameter::Get_Type(glucose::NParameter_Type *type) {
+HRESULT IfaceCalling CFilter_Parameter::Get_Type(scgms::NParameter_Type *type) {
 	*type = mType;
 	return S_OK;
 }
@@ -26,11 +26,11 @@ HRESULT IfaceCalling CFilter_Parameter::Set_WChar_Container(refcnt::wstr_contain
 	return S_OK;
 }
 
-HRESULT IfaceCalling CFilter_Parameter::Get_Time_Segment_Id_Container(glucose::time_segment_id_container **ids) {
+HRESULT IfaceCalling CFilter_Parameter::Get_Time_Segment_Id_Container(scgms::time_segment_id_container **ids) {
 	return Get_Container(mTime_Segment_ID, ids);
 }
 
-HRESULT IfaceCalling CFilter_Parameter::Set_Time_Segment_Id_Container(glucose::time_segment_id_container *ids) {
+HRESULT IfaceCalling CFilter_Parameter::Set_Time_Segment_Id_Container(scgms::time_segment_id_container *ids) {
 	mTime_Segment_ID = ids;
 	return S_OK;
 }
@@ -75,16 +75,16 @@ HRESULT IfaceCalling CFilter_Parameter::Set_GUID(const GUID *id) {
 	return S_OK;
 }
 
-HRESULT IfaceCalling CFilter_Parameter::Get_Model_Parameters(glucose::IModel_Parameter_Vector **parameters) {
+HRESULT IfaceCalling CFilter_Parameter::Get_Model_Parameters(scgms::IModel_Parameter_Vector **parameters) {
 	return Get_Container(mModel_Parameters, parameters);
 }
 
-HRESULT IfaceCalling CFilter_Parameter::Set_Model_Parameters(glucose::IModel_Parameter_Vector *parameters) {
+HRESULT IfaceCalling CFilter_Parameter::Set_Model_Parameters(scgms::IModel_Parameter_Vector *parameters) {
 	mModel_Parameters = parameters;
 	return S_OK;
 }
 
 
-HRESULT IfaceCalling create_filter_parameter(const glucose::NParameter_Type type, const wchar_t *config_name, glucose::IFilter_Parameter **parameter) {
-	return Manufacture_Object<CFilter_Parameter, glucose::IFilter_Parameter>(parameter, type, config_name);
+HRESULT IfaceCalling create_filter_parameter(const scgms::NParameter_Type type, const wchar_t *config_name, scgms::IFilter_Parameter **parameter) {
+	return Manufacture_Object<CFilter_Parameter, scgms::IFilter_Parameter>(parameter, type, config_name);
 }

@@ -6,15 +6,15 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
-class CFilter_Parameter : public virtual glucose::IFilter_Parameter, public virtual refcnt::CReferenced {
+class CFilter_Parameter : public virtual scgms::IFilter_Parameter, public virtual refcnt::CReferenced {
 protected:
-	const glucose::NParameter_Type mType;
+	const scgms::NParameter_Type mType;
 	const std::wstring mConfig_Name;
 
 	//the following SReferenced variables are not part of the union to prevent memory corruption
 	refcnt::SReferenced<refcnt::wstr_container> mWChar_Container;
-	refcnt::SReferenced<glucose::time_segment_id_container> mTime_Segment_ID;
-	refcnt::SReferenced<glucose::IModel_Parameter_Vector> mModel_Parameters;
+	refcnt::SReferenced<scgms::time_segment_id_container> mTime_Segment_ID;
+	refcnt::SReferenced<scgms::IModel_Parameter_Vector> mModel_Parameters;
 
 	union {	
 		double dbl;
@@ -36,18 +36,18 @@ protected:
 		}
 	}
 public:
-	CFilter_Parameter(const glucose::NParameter_Type type, const wchar_t *config_name);
+	CFilter_Parameter(const scgms::NParameter_Type type, const wchar_t *config_name);
 	virtual ~CFilter_Parameter() {};
 
-	virtual HRESULT IfaceCalling Get_Type(glucose::NParameter_Type *type) override final;
+	virtual HRESULT IfaceCalling Get_Type(scgms::NParameter_Type *type) override final;
 	virtual HRESULT IfaceCalling Get_Config_Name(wchar_t **config_name) override final;
 
 	//read-write
 	virtual HRESULT IfaceCalling Get_WChar_Container(refcnt::wstr_container **wstr) override final;
 	virtual HRESULT IfaceCalling Set_WChar_Container(refcnt::wstr_container *wstr) override final;
 
-	virtual HRESULT IfaceCalling Get_Time_Segment_Id_Container(glucose::time_segment_id_container **ids) override final;
-	virtual HRESULT IfaceCalling Set_Time_Segment_Id_Container(glucose::time_segment_id_container *ids) override final;
+	virtual HRESULT IfaceCalling Get_Time_Segment_Id_Container(scgms::time_segment_id_container **ids) override final;
+	virtual HRESULT IfaceCalling Set_Time_Segment_Id_Container(scgms::time_segment_id_container *ids) override final;
 
 	virtual HRESULT IfaceCalling Get_Double(double *value) override final;
 	virtual HRESULT IfaceCalling Set_Double(const double value) override final;
@@ -61,15 +61,15 @@ public:
 	virtual HRESULT IfaceCalling Get_GUID(GUID *id) override final;
 	virtual HRESULT IfaceCalling Set_GUID(const GUID *id) override final;
 
-	virtual HRESULT IfaceCalling Get_Model_Parameters(glucose::IModel_Parameter_Vector **parameters) override final;
-	virtual HRESULT IfaceCalling Set_Model_Parameters(glucose::IModel_Parameter_Vector *parameters) override final;
+	virtual HRESULT IfaceCalling Get_Model_Parameters(scgms::IModel_Parameter_Vector **parameters) override final;
+	virtual HRESULT IfaceCalling Set_Model_Parameters(scgms::IModel_Parameter_Vector *parameters) override final;
 };
 
 #pragma warning( pop )
 
 
 #ifdef _WIN32
-	extern "C" __declspec(dllexport) HRESULT IfaceCalling create_filter_parameter(const glucose::NParameter_Type type, const wchar_t *config_name, glucose::IFilter_Parameter **parameter);
+	extern "C" __declspec(dllexport) HRESULT IfaceCalling create_filter_parameter(const scgms::NParameter_Type type, const wchar_t *config_name, scgms::IFilter_Parameter **parameter);
 #else
-	extern "C" HRESULT IfaceCalling create_filter_parameter(const glucose::NParameter_Type type, const wchar_t *config_name, glucose::IFilter_Parameter **parameter);
+	extern "C" HRESULT IfaceCalling create_filter_parameter(const scgms::NParameter_Type type, const wchar_t *config_name, scgms::IFilter_Parameter **parameter);
 #endif

@@ -53,5 +53,5 @@ namespace sincos_generator {
 	constexpr GUID filter_id = { 0xcf42445d, 0x9526, 0x4414, { 0xa1, 0x3d, 0x2f, 0x54, 0xb9, 0x59, 0x27, 0x98 } }; //// {CF42445D-9526-4414-A13D-2F54B9592798}
 }
 
-extern "C" HRESULT IfaceCalling do_get_filter_descriptors(glucose::TFilter_Descriptor **begin, glucose::TFilter_Descriptor **end);
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, glucose::IFilter *next_filter, glucose::IFilter **filter);
+extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end);
+extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *next_filter, scgms::IFilter **filter);

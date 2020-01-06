@@ -54,7 +54,7 @@
 #include "Matlab_Signal.h"
 
 /*
- * User-defined model descriptor structure; note this will be converted to glucose::TModel_Descriptor in order
+ * User-defined model descriptor structure; note this will be converted to scgms::TModel_Descriptor in order
  * to return proper structure via do_get_model_descriptors call
  */
 struct TUser_Defined_Model_Descriptor
@@ -73,13 +73,13 @@ struct TUser_Defined_Model_Descriptor
 	std::vector<double> paramDefaults;
 	std::vector<double> paramLowerBounds;
 	std::vector<double> paramUpperBounds;
-	std::vector<glucose::NModel_Parameter_Value> paramTypes;
+	std::vector<scgms::NModel_Parameter_Value> paramTypes;
 
 	std::vector<std::wstring> getContinuousLevelsScriptNames;
 };
 
 /*
- * User-defined solver descriptor structure; note this will be converted to glucose::TSolver_Descriptor in order
+ * User-defined solver descriptor structure; note this will be converted to scgms::TSolver_Descriptor in order
  * to return proper structure via do_get_solver_descriptors call
  */
 struct TUser_Defined_Solver_Descriptor
@@ -129,8 +129,8 @@ class CMatlab_Factory
 		CMatlab_Factory();
 		virtual ~CMatlab_Factory();
 
-		virtual HRESULT Create_Signal(const GUID *calc_id, glucose::ITime_Segment *segment, glucose::ISignal** signal);
-		virtual HRESULT Solve(const glucose::TSolver_Setup *setup);
+		virtual HRESULT Create_Signal(const GUID *calc_id, scgms::ITime_Segment *segment, scgms::ISignal** signal);
+		virtual HRESULT Solve(const scgms::TSolver_Setup *setup);
 };
 
 // global instance; note this is initialized when this library gets loaded

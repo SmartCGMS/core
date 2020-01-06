@@ -58,7 +58,7 @@
 #include <cctype>
 
 
-CLog_Replay_Filter::CLog_Replay_Filter(glucose::IFilter* output) : CBase_Filter(output) {
+CLog_Replay_Filter::CLog_Replay_Filter(scgms::IFilter* output) : CBase_Filter(output) {
 	//
 }
 
@@ -116,7 +116,7 @@ void CLog_Replay_Filter::Log_Replay()
 
 			const size_t segment_id = std::stoull(cut_column());
 
-			glucose::UDevice_Event evt{ static_cast<glucose::NDevice_Event_Code>(std::stoull(cut_column())) };
+			scgms::UDevice_Event evt{ static_cast<scgms::NDevice_Event_Code>(std::stoull(cut_column())) };
 
 			if (evt.is_info_event())
 				evt.info.set(specificval.c_str());
@@ -132,7 +132,7 @@ void CLog_Replay_Filter::Log_Replay()
 			// do not send shutdown event through pipes - it's a job for outer code (GUI, ..)
 			// furthermore, sending this event would cancel and stop simulation - we don't want that
 			if (mIgnore_Shutdown) {
-				if (evt.event_code() == glucose::NDevice_Event_Code::Shut_Down)
+				if (evt.event_code() == scgms::NDevice_Event_Code::Shut_Down)
 					continue;
 			}
 
@@ -169,7 +169,7 @@ bool CLog_Replay_Filter::Open_Log(const std::wstring &log_filename)
 	return result;
 }
 
-HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(glucose::SFilter_Configuration configuration) {
+HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(scgms::SFilter_Configuration configuration) {
 	mIgnore_Shutdown = configuration.Read_Bool(rsIgnore_Shutdown_Msg, mIgnore_Shutdown);
 	mLog_Filename = configuration.Read_String(rsLog_Output_File);
 
@@ -182,11 +182,11 @@ HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(glucose::SFilter_Configura
 }
 
 
-HRESULT CLog_Replay_Filter::Do_Execute(glucose::UDevice_Event event) {
+HRESULT CLog_Replay_Filter::Do_Execute(scgms::UDevice_Event event) {
 	return Send(event);
 }
 
-void CLog_Replay_Filter::WStr_To_Parameters(const std::wstring& src, glucose::SModel_Parameter_Vector& target)
+void CLog_Replay_Filter::WStr_To_Parameters(const std::wstring& src, scgms::SModel_Parameter_Vector& target)
 {
 	std::vector<double> params;
 

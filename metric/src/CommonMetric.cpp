@@ -46,7 +46,7 @@
 constexpr double Infintity_Diff_Penalty = 1'000.0;	//the more levels that won't be calculated would considerably increase the overall penalty
 													//however, we cannot use double_max to avoid overflow, so we need a small number (yet overly great compared to glucose levels)
 
-CCommon_Metric::CCommon_Metric(const glucose::TMetric_Parameters &params) : mParameters(params) {
+CCommon_Metric::CCommon_Metric(const scgms::TMetric_Parameters &params) : mParameters(params) {
 	Reset();
 }
 
@@ -103,7 +103,7 @@ HRESULT IfaceCalling CCommon_Metric::Calculate(double *metric, size_t *levels_ac
 	return S_OK;
 }
 
-HRESULT IfaceCalling CCommon_Metric::Get_Parameters(glucose::TMetric_Parameters *parameters) {
+HRESULT IfaceCalling CCommon_Metric::Get_Parameters(scgms::TMetric_Parameters *parameters) {
 	//*parameters = mParameters;
 	memcpy(parameters, &mParameters, sizeof(mParameters));
 	return S_OK;
