@@ -93,9 +93,17 @@ double CHalton_Device::advance() {
 CHalton_Device::result_type CHalton_Device::operator()() {
 	const double generated_number = advance();
 
-	const uint64_t result = *(reinterpret_cast<const uint64_t*>(&generated_number));
+	// use union "casting" instead of reinterpret_cast to avoid strict aliasing rules violation by dereferencing type-punned pointer
 
-	return ((result >> 32) ^ result) & max_result;
+	const union {
+		double as_double;
+		uint64_t as_uint64;
+	} resultCast = { generated_number };
+
+	//const uint64_t result = *(reinterpret_cast<const uint64_t*>(&generated_number));
+	//return ((result >> 32) ^ result) & max_result;
+
+	return ((resultCast.as_uint64 >> 32) ^ resultCast.as_uint64) & max_result;
 }
 
 CHalton_Device::result_type CHalton_Device::min() {

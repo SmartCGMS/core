@@ -46,7 +46,8 @@ class CLandscape_Pathfinder {
 protected:
 	struct TCandidate_Data {
 		TUsed_Solution current, next;
-		double current_fitness, next_fitness = std::numeric_limits<double>::quiet_NaN();
+		double current_fitness = std::numeric_limits<double>::quiet_NaN();
+		double next_fitness = std::numeric_limits<double>::quiet_NaN();
 	};
 	
 	using TCandidate = std::unique_ptr<TCandidate_Data>;	//unique_ptr to allow fast sorting	

@@ -52,7 +52,7 @@
 /*
  * Filter class for mapping input signal GUID to another
  */
-class CMapping_Filter : public scgms::CBase_Filter, public virtual refcnt::CReferenced {
+class CMapping_Filter : public virtual scgms::CBase_Filter {
 protected:
 	// source signal ID (what signal will be mapped)
 	GUID mSource_Id = Invalid_GUID;

@@ -280,7 +280,7 @@ public:
 			//as each next will be written just once.
 			//We assume that parallelization cost will get amortized			
 
-			std::for_each(std::execution::par_unseq, mPopulation.begin(), mPopulation.end(), [=](auto &candidate_solution) {
+			std::for_each(std::execution::par_unseq, mPopulation.begin(), mPopulation.end(), [=, &mUniform_Distribution_Solution, &mUniform_Distribution_Population](auto &candidate_solution) {
 
 			
 				auto random_difference_vector = [&]()->TUsed_Solution {

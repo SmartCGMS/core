@@ -38,6 +38,7 @@
 
 #include "signal_error.h"
 
+#include <cmath>
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/UILib.h"
@@ -73,28 +74,30 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 			mNew_Data_Available = true;
 	};
 
-	if (event->Raw(&raw_event) == S_OK)
+	if (event->Raw(&raw_event) == S_OK) {
 		switch (raw_event->event_code) {
-		
 			case scgms::NDevice_Event_Code::Level:
-				if (raw_event->signal_id == mReference_Signal_ID) add_level(mReference_Signal);
-					else if (raw_event->signal_id == mError_Signal_ID) add_level(mError_Signal);
-			break;
+			{
+				if (raw_event->signal_id == mReference_Signal_ID)
+					add_level(mReference_Signal);
+				else if (raw_event->signal_id == mError_Signal_ID)
+					add_level(mError_Signal);
 
-
-			case scgms::NDevice_Event_Code::Warm_Reset:
-				{
-					std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
-					mReference_Signal = scgms::SSignal{ scgms::STime_Segment{}, scgms::signal_BG };
-					mError_Signal = scgms::SSignal{ scgms::STime_Segment{}, scgms::signal_BG };
-					mNew_Data_Available = true;
-				}
 				break;
+			}
+			case scgms::NDevice_Event_Code::Warm_Reset:
+			{
+				std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
+				mReference_Signal = scgms::SSignal{ scgms::STime_Segment{}, scgms::signal_BG };
+				mError_Signal = scgms::SSignal{ scgms::STime_Segment{}, scgms::signal_BG };
+				mNew_Data_Available = true;
 
-
+				break;
+			}
+			default:
+				break;
+		}
 	}
-
-
 
 	return Send(event);
 }
@@ -152,11 +155,13 @@ double CSignal_Error::Calculate_Metric() {
 
 	//1. calculate the difference against the exact reference levels => get their times
 	if (Prepare_Levels(reference_times, reference_levels, error_levels)) {
-		if (mMetric->Reset() == S_OK) {			
+		if (mMetric->Reset() == S_OK) {
 			if (mMetric->Accumulate(reference_times.data(), reference_levels.data(), error_levels.data(), reference_times.size()) == S_OK) {
 				size_t levels_acquired = 0;
+
 				if (mMetric->Calculate(&result, &levels_acquired, 0) == S_OK)
-					if (levels_acquired == 0) result = std::numeric_limits<double>::quiet_NaN();
+					if (levels_acquired == 0)
+						result = std::numeric_limits<double>::quiet_NaN();
 			}
 		}
 	}
@@ -168,7 +173,7 @@ double CSignal_Error::Calculate_Metric() {
 HRESULT IfaceCalling CSignal_Error::Promise_Metric(double* const metric_value, bool defer_to_dtor) {
 	if (!defer_to_dtor) {
 		*metric_value = Calculate_Metric();
-		return isnan(*metric_value) ? S_FALSE : S_OK;
+		return std::isnan(*metric_value) ? S_FALSE : S_OK;
 	}
 	else {
 		mPromised_Metric = metric_value;
@@ -211,7 +216,7 @@ HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(scgms::TSignal_Error 
 		const double stepping = static_cast<double>(signal_error.count-1) / (static_cast<double>(scgms::NECDF::max_value) + 1.0);
 		const size_t ECDF_offset = static_cast<size_t>(scgms::NECDF::min_value);
 		for (size_t i = 1; i < static_cast<size_t>(scgms::NECDF::max_value) - ECDF_offset; i++)
-			signal_error.ecdf[i + ECDF_offset] = differences[static_cast<size_t>(round(static_cast<double>(i)*stepping))];
+			signal_error.ecdf[i + ECDF_offset] = differences[static_cast<size_t>(std::round(static_cast<double>(i)*stepping))];
 	};
 
 	auto Set_Error_To_No_Data = [](scgms::TSignal_Error &signal_error) {
@@ -235,16 +240,16 @@ HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(scgms::TSignal_Error 
 
 		//let's reuse the already allocated memory
 		decltype(error_levels) &absolute_differences = error_levels;			//has to be error level not to overwrite reference too soon
-		decltype(reference_levels) &relative_differences = reference_levels;		
+		decltype(reference_levels) &relative_differences = reference_levels;
 
 		//1. calculate sum and count
 		absolute_error->count = 0;
 		relative_error->count = 0;
 		for (size_t i = 0; i < reference_levels.size(); i++) {
-			if (!isnan(reference_levels[i]) && !isnan(error_levels[i])) {
+			if (!std::isnan(reference_levels[i]) && !std::isnan(error_levels[i])) {
 				//both levels are not nan, so we can calcualte the error here
-				absolute_differences[absolute_error->count] = fabs(reference_levels[i] - error_levels[i]);
-				absolute_error->sum += absolute_differences[absolute_error->count];				
+				absolute_differences[absolute_error->count] = std::fabs(reference_levels[i] - error_levels[i]);
+				absolute_error->sum += absolute_differences[absolute_error->count];
 
 				if (reference_levels[i] != 0.0) {
 					relative_differences[relative_error->count] = absolute_differences[absolute_error->count] / reference_levels[i];

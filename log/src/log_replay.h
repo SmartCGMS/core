@@ -52,7 +52,7 @@
  /*
   * Filter class for loading previously stored log file and "replay" it through pipe
   */
-class CLog_Replay_Filter : public scgms::CBase_Filter, public virtual refcnt::CReferenced {
+class CLog_Replay_Filter : public virtual scgms::CBase_Filter {
 protected:
 	std::wifstream mLog;
 	bool mIgnore_Shutdown = false;

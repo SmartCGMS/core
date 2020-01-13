@@ -84,7 +84,7 @@ class CDb_Writer : public scgms::CBase_Filter, public db::IDb_Sink {
 		// store incoming data (levels, masked levels, ...)?
 		bool mStore_Data;
 		// store parameters?
-		bool mStore_Parameters;
+		bool mStore_Parameters = false;
 
 		// mapping of simulator segment IDs to database IDs
 		std::map<int64_t, int64_t> mSegment_Db_Id_Map;

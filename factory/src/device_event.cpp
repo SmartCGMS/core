@@ -44,6 +44,7 @@
 #include "../../../common/rtl/DeviceLib.h"
 
 #include <atomic>
+#include <stdexcept>
 
 std::atomic<int64_t> global_logical_time{ 0 };
 
@@ -89,7 +90,7 @@ CDevice_Event::CDevice_Event(scgms::IDevice_Event *event) {
 	scgms::TDevice_Event *src_raw;
 
 	if (event->Raw(&src_raw) == S_OK)  Clone_Raw(*src_raw, mRaw);
-		else throw std::exception{ "Cannot get source event!" };
+		else throw std::runtime_error{ "Cannot get source event!" };
 }
 
 CDevice_Event::~CDevice_Event() {

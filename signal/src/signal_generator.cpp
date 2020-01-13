@@ -36,8 +36,6 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
-
 #include "signal_generator.h"
 #include "../../../common/rtl/rattime.h"
 #include "../../../common/lang/dstrings.h"
@@ -54,8 +52,8 @@ CSignal_Generator::~CSignal_Generator() {
 void CSignal_Generator::Stop_Generator() {
 	mQuitting = true;
 	if (mThread) {
-		if (mThread->joinable()) 
-			mThread->join();			
+		if (mThread->joinable())
+			mThread->join();
 		mThread.reset();
 	}
 }
@@ -72,7 +70,7 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 		const bool step_the_model = event.signal_id() == mSync_Signal;
 		double dynamic_stepping = 0.0;			//means "emit current state"
 		if (step_the_model) {
-			if (!isnan(mLast_Device_Time)) dynamic_stepping = event.device_time() - mLast_Device_Time;
+			if (!std::isnan(mLast_Device_Time)) dynamic_stepping = event.device_time() - mLast_Device_Time;
 				else {
 																	//cannot advance the model because this is the very first event, thus we do not have the delta
 					mModel->Set_Current_Time(event.device_time());	//for which we need to set the current time
@@ -84,6 +82,8 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 		scgms::IDevice_Event *raw_event = event.get();
 		event.release();
 		HRESULT rc = mModel->Execute(raw_event);
+		if (!SUCCEEDED(rc))
+			return rc;
 		
 		if (step_the_model) rc = mModel->Step(dynamic_stepping);
 	}

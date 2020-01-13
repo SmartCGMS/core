@@ -36,7 +36,7 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "..\..\..\..\common\utils\string_utils.h"
+#include "../../../../common/utils/string_utils.h"
 
 #include "XMLFormat.h"
 #include "Misc.h"

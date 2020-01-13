@@ -41,6 +41,7 @@
 #include <array>
 #include <iomanip>
 #include <limits>
+#include <cmath>
 
 /*
  * Base for all RK adaptive step methods
@@ -101,7 +102,7 @@ class CRunge_Kuttta_Adaptive_Strategy_Optimal_Estimation : public CRunge_Kutta_A
 		virtual bool Adjust_Step(const double currentError, const double errorThreshold, const double remainingStep, double& step, size_t& remStepCnt) const override final
 		{
 			if (currentError > std::numeric_limits<double>::epsilon())
-				step = Beta * step * pow(errorThreshold / currentError, 1.0 / ((currentError >= errorThreshold) ? N + 1 : N));
+				step = Beta * step * std::pow(errorThreshold / currentError, 1.0 / ((currentError >= errorThreshold) ? N + 1 : N));
 
 			if (step >= remainingStep) // we would exceed the total step
 			{
@@ -249,7 +250,7 @@ class CRunge_Kutta_ODE_Solver_Adaptive : public CRunge_Kutta_ODE_Solver_Base<N>
 
 	public:
 		explicit CRunge_Kutta_ODE_Solver_Adaptive(const TCoef_Matrix& rkMatrix, const TCoef_Array& weights, const TCoef_Array& weights_alt, const TCoef_Array& nodes, const double errThreshold, const size_t max_steps)
-			: CRunge_Kutta_ODE_Solver_Base<N>(rkMatrix, weights, nodes), mWeights_Alt(weights_alt), mError_Threshold(errThreshold), mMax_stepCnt(max_steps) {
+			: CRunge_Kutta_ODE_Solver_Base<N>(rkMatrix, weights, nodes), mMax_stepCnt(max_steps), mWeights_Alt(weights_alt), mError_Threshold(errThreshold) {
 		}
 
 		template<typename _ObjFunc>

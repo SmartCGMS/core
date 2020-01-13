@@ -83,7 +83,7 @@ std::array<GUID, static_cast<size_t>(NColumn_Pos::_Count)> ColumnSignalMap = { {
 	scgms::signal_BG, scgms::signal_IG, scgms::signal_ISIG, scgms::signal_Requested_Insulin_Bolus, scgms::signal_Requested_Insulin_Basal_Rate, scgms::signal_Carb_Intake, scgms::signal_Calibration
 } };
 
-CDb_Reader::CDb_Reader(scgms::IFilter *output) : mDbPort(0), CBase_Filter(output) {
+CDb_Reader::CDb_Reader(scgms::IFilter *output) : CBase_Filter(output) {
 	//
 }
 
@@ -247,11 +247,14 @@ HRESULT IfaceCalling CDb_Reader::Do_Execute(scgms::UDevice_Event event) {
 		case scgms::NDevice_Event_Code::Warm_Reset: 
 			//recreate the reader thread
 			End_Db_Reader();
-			mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);					
+			mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
 			break;
 
 		case scgms::NDevice_Event_Code::Shut_Down:
 			mQuit_Flag = true;
+			break;
+
+		default:
 			break;
 	}
 

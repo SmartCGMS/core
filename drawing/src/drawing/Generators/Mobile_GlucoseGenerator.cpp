@@ -43,6 +43,7 @@
 
 #include <algorithm>
 #include <set>
+#include <cmath>
 
 int CMobile_Glucose_Generator::startX = 90;
 int CMobile_Glucose_Generator::startY = 40 + 52; // header + times
@@ -178,7 +179,7 @@ void CMobile_Glucose_Generator::Write_Body()
 
 	Write_Description();
 
-	double lastX = std::numeric_limits<double>::quiet_NaN(), lastY, curX, curY;
+	double lastX = std::numeric_limits<double>::quiet_NaN(), lastY = 0, curX, curY;
 
 	// ist group scope
 	{
@@ -196,7 +197,7 @@ void CMobile_Glucose_Generator::Write_Body()
 
 			Set_Stroke_By_Value(grp, val.value, 3);
 
-			if (!isnan(lastX))
+			if (!std::isnan(lastX))
 				grp.Add<drawing::Line>(lastX, lastY, curX, curY);
 
 			lastX = curX;

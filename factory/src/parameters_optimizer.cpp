@@ -36,8 +36,6 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
-
 #include "parameters_optimizer.h"
 #include "configuration_link.h"
 #include "filter_parameter.h"
@@ -47,7 +45,7 @@
 #include "device_event.h"
 
 #include "../../../common/rtl/FilterLib.h"
-#include "..\..\..\common\utils\DebugHelper.h"
+#include "../../../common/utils/DebugHelper.h"
 
 #include <mutex>
 #include <set>
@@ -269,10 +267,10 @@ protected:
 	
 
 public:
-	CParameters_Optimizer(scgms::IFilter_Chain_Configuration *configuration, const size_t filter_index, const wchar_t *parameters_config_name, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) :
-		mConfiguration(refcnt::make_shared_reference_ext<scgms::SFilter_Chain_Configuration, scgms::IFilter_Chain_Configuration>(configuration, true)),		
-		mFilter_Index(filter_index), mParameters_Config_Name(parameters_config_name),
-		mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data) {
+	CParameters_Optimizer(scgms::IFilter_Chain_Configuration *configuration, const size_t filter_index, const wchar_t *parameters_config_name, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data)
+		: mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data),
+		mConfiguration(refcnt::make_shared_reference_ext<scgms::SFilter_Chain_Configuration, scgms::IFilter_Chain_Configuration>(configuration, true)),
+		mFilter_Index(filter_index), mParameters_Config_Name(parameters_config_name) 	{
 
 	}
 

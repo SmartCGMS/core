@@ -51,7 +51,7 @@ constexpr unsigned char bool_2_uc(const bool b) {
 }
 
 
-CCalculate_Filter::CCalculate_Filter(scgms::IFilter *output) : mReference_Signal_Id(Invalid_GUID), CBase_Filter(output) {
+CCalculate_Filter::CCalculate_Filter(scgms::IFilter *output) : CBase_Filter(output) {
 	//
 }
 

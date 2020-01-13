@@ -39,7 +39,7 @@
 #pragma once
 
 #include "../../../../common/rtl/FilterLib.h"
-#include "..\descriptor.h"
+#include "../descriptor.h"
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance

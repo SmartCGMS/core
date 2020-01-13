@@ -40,12 +40,13 @@
 #include "../descriptor.h"
 
 #include <numeric>
+#include <cmath>
 
 #include "../../../../common/rtl/rattime.h"
 #include "../../../../common/rtl/SolverLib.h"
 
 CBetaPID_Insulin_Regulation::CBetaPID_Insulin_Regulation(scgms::WTime_Segment segment)
-	: CCommon_Calculated_Signal(segment), mBG(segment.Get_Signal(scgms::signal_BG)), mIOB(segment.Get_Signal(scgms::signal_IOB)) {
+	: CCommon_Calculated_Signal(segment), mIOB(segment.Get_Signal(scgms::signal_IOB)), mBG(segment.Get_Signal(scgms::signal_BG)) {
 	//
 }
 
@@ -146,7 +147,7 @@ HRESULT CBetaPID_Insulin_Regulation::Get_Default_Parameters(scgms::IModel_Parame
 ////////////////////////////////////// BetaPID2
 
 CBetaPID2_Insulin_Regulation::CBetaPID2_Insulin_Regulation(scgms::WTime_Segment segment)
-	: CCommon_Calculated_Signal(segment), mIG(segment.Get_Signal(scgms::signal_IG)), mIOB(segment.Get_Signal(scgms::signal_IOB)), mCOB(segment.Get_Signal(scgms::signal_COB)) {
+	: CCommon_Calculated_Signal(segment), mIOB(segment.Get_Signal(scgms::signal_IOB)), mCOB(segment.Get_Signal(scgms::signal_COB)), mIG(segment.Get_Signal(scgms::signal_IG)) {
 	//
 }
 
@@ -269,7 +270,7 @@ HRESULT CBetaPID2_Insulin_Regulation::Get_Default_Parameters(scgms::IModel_Param
 ////////////////////////////////////// BetaPID3
 
 CBetaPID3_Insulin_Regulation::CBetaPID3_Insulin_Regulation(scgms::WTime_Segment segment)
-	: CCommon_Calculated_Signal(segment), mIG(segment.Get_Signal(scgms::signal_IG)), mIOB(segment.Get_Signal(scgms::signal_IOB)), mCOB(segment.Get_Signal(scgms::signal_COB)), mISF(segment.Get_Signal(scgms::signal_Insulin_Sensitivity)), mCR(segment.Get_Signal(scgms::signal_Carb_Ratio)) {
+	: CCommon_Calculated_Signal(segment), mIOB(segment.Get_Signal(scgms::signal_IOB)), mCOB(segment.Get_Signal(scgms::signal_COB)), mISF(segment.Get_Signal(scgms::signal_Insulin_Sensitivity)), mCR(segment.Get_Signal(scgms::signal_Carb_Ratio)), mIG(segment.Get_Signal(scgms::signal_IG)) {
 	//
 }
 

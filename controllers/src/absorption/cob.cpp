@@ -37,7 +37,7 @@
  */
 
 #include "cob.h"
-#include "..\descriptor.h"
+#include "../descriptor.h"
 
 #include <numeric>
 

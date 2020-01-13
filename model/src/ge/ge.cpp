@@ -36,9 +36,9 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
-
 #include "ge.h"
+
+#include <cmath>
 
 CGE_Discrete_Model::CGE_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output) : CBase_Filter(output) {
 
@@ -84,7 +84,7 @@ HRESULT CGE_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configurat
 
 	
 HRESULT IfaceCalling CGE_Discrete_Model::Set_Current_Time(const double new_current_time) {
-	if (isnan(mCurrent_Time)) {
+	if (std::isnan(mCurrent_Time)) {
 		mCurrent_Time = new_current_time;
 		return S_OK;
 	}

@@ -38,10 +38,10 @@
 
 #pragma once
 
-#include "..\..\..\..\common\iface\DeviceIface.h"
-#include "..\..\..\..\common\rtl\FilterLib.h"
+#include "../../../../common/iface/DeviceIface.h"
+#include "../../../../common/rtl/FilterLib.h"
 
-#include "..\descriptor.h"
+#include "../descriptor.h"
 
 namespace ge_model {
 

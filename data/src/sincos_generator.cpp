@@ -46,7 +46,7 @@
 
 constexpr double PI = 3.141592653589793238462643;
 
-CSinCos_Generator::CSinCos_Generator(scgms::IFilter *output) : mExit_Flag{ false }, CBase_Filter(output) {
+CSinCos_Generator::CSinCos_Generator(scgms::IFilter *output) : CBase_Filter(output), mExit_Flag{ false } {
 }
 
 CSinCos_Generator::~CSinCos_Generator() {

@@ -40,6 +40,7 @@
 #include "../descriptor.h"
 
 #include <numeric>
+#include <cmath>
 
 #include "../../../../common/rtl/rattime.h"
 #include "../../../../common/rtl/SolverLib.h"

@@ -82,7 +82,7 @@ const std::map<GUID, const char*, std::less<GUID>> Signal_Mapping = {
 	{ scgms::signal_COB, "cob" },
 };
 
-CDrawing_Filter::CDrawing_Filter(scgms::IFilter *output) : mGraphMaxValue(-1), CBase_Filter(output) {
+CDrawing_Filter::CDrawing_Filter(scgms::IFilter *output) : CBase_Filter(output), mGraphMaxValue(-1) {
 	//
 }
 

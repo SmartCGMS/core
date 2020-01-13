@@ -57,7 +57,7 @@ namespace file_reader
 	constexpr double Default_Segment_Spacing = 600.0 * 1000.0 * InvMSecsPerDay;
 }
 
-CFile_Reader::CFile_Reader(scgms::IFilter *output) : mSegmentSpacing(file_reader::Default_Segment_Spacing), CBase_Filter(output) {
+CFile_Reader::CFile_Reader(scgms::IFilter *output) : CBase_Filter(output), mSegmentSpacing(file_reader::Default_Segment_Spacing) {
 	//
 }
 

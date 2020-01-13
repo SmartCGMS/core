@@ -242,10 +242,11 @@ bool CDMMS_Discrete_Model::Initialize_DMMS()
 	if (executed) {
 
 		mDMMS_ipc = Establish_DMMS_IPC(mDMMS_Proc_Info.dwProcessId);
-
-		HWND error_wnd = NULL;
 		
-		while (error_wnd == NULL) {
+		HWND error_wnd = NULL;
+
+		size_t max_retries = 100;
+		while ((error_wnd == NULL) && (max_retries--)) {
 			error_wnd = FindWindowW(L"Qt5QWindowIcon", L"Error");
 			if (error_wnd) {
 				//verify that this window belongs to our process!
@@ -257,6 +258,7 @@ bool CDMMS_Discrete_Model::Initialize_DMMS()
 		}
 
 		SendMessage(error_wnd, WM_CLOSE, 0, 0);		
+
 	}
 
 	return executed;

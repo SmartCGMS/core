@@ -134,7 +134,7 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(scgms::IModel_Para
 			}
 			
 
-			dt[i] = current_dt;
+			dt[i] = best_dt;
 		}
 
 		//by now, all dt elements should be estimated

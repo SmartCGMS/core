@@ -36,15 +36,14 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
-
 #include "filters.h"
 #include "fitness.h"
 #include "../../../common/rtl/referencedImpl.h"
 
 thread_local scgms::SMetric CFitness::mMetric_Per_Thread;
 
-CFitness::CFitness(const scgms::TSolver_Setup &setup, const size_t solution_size) : mLevels_Required (setup.levels_required), mSolution_Size(solution_size){
+CFitness::CFitness(const scgms::TSolver_Setup &setup, const size_t solution_size)
+	: mSolution_Size(solution_size), mLevels_Required(setup.levels_required) {
 
 	setup.metric->Get_Parameters(&mMetric_Params);	//shall it fail, it will fail down there
 
@@ -56,7 +55,7 @@ CFitness::CFitness(const scgms::TSolver_Setup &setup, const size_t solution_size
 		std::shared_ptr<scgms::ITime_Segment> setup_segment= refcnt::make_shared_reference<scgms::ITime_Segment>(setup.segments[segment_iter], true);
 
 
-		TSegment_Info info{ nullptr, nullptr, nullptr};
+		TSegment_Info info{ nullptr, nullptr, nullptr, {}, {} };
 		info.segment = setup_segment;
 
 		scgms::ISignal *signal;

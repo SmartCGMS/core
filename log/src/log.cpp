@@ -174,8 +174,10 @@ void CLog_Filter::Log_Event(const scgms::UDevice_Event &evt) {
 	if (mLog.is_open()) mLog << log_line_str << std::endl;
 
 	refcnt::wstr_container* container = refcnt::WString_To_WChar_Container(log_line_str.c_str());
-	std::unique_lock<std::mutex> scoped_lock{ mLog_Records_Guard };
-	mNew_Log_Records->add(&container, &container + 1);
+	{
+		std::unique_lock<std::mutex> scoped_lock{ mLog_Records_Guard };
+		mNew_Log_Records->add(&container, &container + 1);
+	}
 	container->Release();
 }
 

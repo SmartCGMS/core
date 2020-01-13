@@ -54,7 +54,7 @@ constexpr size_t BitmaskMaxBitCount = 64;
 /*
  * Filter class for masking input levels using configured bitmask
  */
-class CMasking_Filter : public scgms::CBase_Filter, public virtual refcnt::CReferenced {
+class CMasking_Filter : public virtual scgms::CBase_Filter {
 protected:		
 	// masking is performed separatelly for each segment
 	std::map<uint64_t, uint8_t> mSegmentMaskState;
