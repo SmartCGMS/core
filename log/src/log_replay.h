@@ -54,19 +54,19 @@
   */
 class CLog_Replay_Filter : public virtual scgms::CBase_Filter {
 protected:
-	std::wifstream mLog;
-	bool mIgnore_Shutdown = false;
-	std::wstring mLog_Filename;
+	//std::wifstream mLog;
+	bool mEmit_Shutdown = false;
+	std::wstring mLog_Filename_Or_Dirpath;  //would prefere wildcard, but this is not covered by C++ standard and do not need that so much to implement it using regex
 	std::unique_ptr<std::thread> mLog_Replay_Thread;
 protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
 protected:
 	// thread method
-	void Log_Replay();
+	void Replay_Log(const std::wstring& log_filename);
 
 	// opens log for reading, returns true if success, false if failed
-	bool Open_Log(const std::wstring &log_filename);
+	void Open_Logs();
 	// converts string to parameters vector; note that this method have no knowledge of models at all (does not validate parameter count, ..)
 	void WStr_To_Parameters(const std::wstring& src, scgms::SModel_Parameter_Vector& target);
 

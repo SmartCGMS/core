@@ -88,13 +88,13 @@ namespace log_replay
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
-		dsLog_Output_File,
-		dsIgnore_Shutdown_Msg
+		dsLog_Input_File_Or_Dir,
+		dsEmit_Shutdown_Msg
 	};
 
 	const wchar_t* config_param_name[param_count] = {
 		rsLog_Output_File,
-		rsIgnore_Shutdown_Msg
+		rsEmit_Shutdown_Msg
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {

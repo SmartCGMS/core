@@ -56,31 +56,34 @@
 #include <vector>
 #include <algorithm> 
 #include <cctype>
-
+#include <filesystem>
 
 CLog_Replay_Filter::CLog_Replay_Filter(scgms::IFilter* output) : CBase_Filter(output) {
 	//
 }
 
 CLog_Replay_Filter::~CLog_Replay_Filter() {
-	if (mLog.is_open())
-		mLog.close();
-
-
 	if (mLog_Replay_Thread)
 		if (mLog_Replay_Thread->joinable())
 			mLog_Replay_Thread->join();
 }
 
 
-void CLog_Replay_Filter::Log_Replay()
-{
+void CLog_Replay_Filter::Replay_Log(const std::wstring& log_filename) {
+	if (log_filename.empty()) return;
+
+	std::wifstream log{ Narrow_WChar(log_filename.c_str()) };
+	if (!log.is_open()) return;
+	
+	auto locale = log.imbue(std::locale(std::cout.getloc(), new logger::DecimalSeparator<char>('.')));
+	
+
 	std::wstring line;
 	std::wstring column;
 
 	// read header and validate
 	// NOTE: this assumes identical header (as the one used when generating log); maybe we could consider adaptive log parsing later
-	if (!std::getline(mLog, line) || line != std::wstring(dsLog_Header))
+	if (!std::getline(log, line) || line != std::wstring(dsLog_Header))
 		return;
 
 	// cuts a single column from input line
@@ -98,7 +101,7 @@ void CLog_Replay_Filter::Log_Replay()
 	};
 
 	// read all lines from log file
-	while (std::getline(mLog, line))
+	while (std::getline(log, line))
 	{
 		try
 		{
@@ -131,10 +134,8 @@ void CLog_Replay_Filter::Log_Replay()
 
 			// do not send shutdown event through pipes - it's a job for outer code (GUI, ..)
 			// furthermore, sending this event would cancel and stop simulation - we don't want that
-			if (mIgnore_Shutdown) {
-				if (evt.event_code() == scgms::NDevice_Event_Code::Shut_Down)
-					continue;
-			}
+			if (evt.event_code() == scgms::NDevice_Event_Code::Shut_Down)
+				continue;			
 
 			evt.device_id() = WString_To_GUID(cut_column());
 			evt.signal_id() = WString_To_GUID(cut_column());
@@ -151,34 +152,30 @@ void CLog_Replay_Filter::Log_Replay()
 	}	
 }
 
-bool CLog_Replay_Filter::Open_Log(const std::wstring &log_filename)
-{
-	bool result = false;
-	// do we have input file name?
-	if (!log_filename.empty())
-	{
-		// try to open file for reading		
-		mLog.open(Narrow_WChar(log_filename.c_str()));
+void CLog_Replay_Filter::Open_Logs() {
+	if (std::filesystem::is_directory(mLog_Filename_Or_Dirpath)) {
 
-		result = mLog.is_open();
-		// set decimal point separator
-		if (result)
-			auto unused = mLog.imbue(std::locale(std::cout.getloc(), new logger::DecimalSeparator<char>('.')));
+		std::filesystem::directory_iterator dir{ mLog_Filename_Or_Dirpath };
+		for (const auto& entry : dir) {
+			if ((dir->is_regular_file()) || (dir->is_symlink()))
+				Replay_Log(dir->path());
+		}
+	} else
+		Replay_Log(mLog_Filename_Or_Dirpath);
+
+	//issue shutdown after the last log, if we were not asked to ignore it
+	if (mEmit_Shutdown) {
+		scgms::UDevice_Event shutdown_evt{ scgms::NDevice_Event_Code::Shut_Down };
+		Send(shutdown_evt);
 	}
-
-	return result;
 }
 
 HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(scgms::SFilter_Configuration configuration) {
-	mIgnore_Shutdown = configuration.Read_Bool(rsIgnore_Shutdown_Msg, mIgnore_Shutdown);
-	mLog_Filename = configuration.Read_String(rsLog_Output_File);
+	mEmit_Shutdown = configuration.Read_Bool(rsEmit_Shutdown_Msg, mEmit_Shutdown);
+	mLog_Filename_Or_Dirpath = configuration.Read_String(rsLog_Output_File);
 
-	if (Open_Log(mLog_Filename)) {
-		mLog_Replay_Thread = std::make_unique<std::thread>(&CLog_Replay_Filter::Log_Replay, this);
-		return S_OK;
-	}
-	else
-		return S_FALSE;
+	mLog_Replay_Thread = std::make_unique<std::thread>(&CLog_Replay_Filter::Open_Logs, this);
+	return S_OK;
 }
 
 
