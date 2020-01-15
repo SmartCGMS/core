@@ -38,13 +38,13 @@
 
 #pragma once
 
-#include "../../../common/rtl/DeviceLib.h"
+
 #include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/SolverLib.h"
 #include "../../../common/rtl/referencedImpl.h"
 
-#include <set>
-#include <mutex>
+
+#include <map>
+#include <vector>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
@@ -52,43 +52,21 @@
 /*
  * Filter class for calculating error metrics
  */
-class CSignal_Error : public virtual scgms::CBase_Filter, public virtual scgms::ISignal_Error_Inspection {
+class CSignal_Stats : public virtual scgms::CBase_Filter {
 protected:
-	GUID mReference_Signal_ID = Invalid_GUID;
-	GUID mError_Signal_ID = Invalid_GUID;
-
-	std::wstring mDescription;
-
-	std::mutex mSeries_Gaurd;
-
-	/*struct TSignal_Point { double level; double date_time; };
-	std::function<bool(TSignal_Point &, TSignal_Point &)> mPair_Comparator = [](const TSignal_Point &lhs, const  TSignal_Point &rhs) {return lhs.date_time < rhs.date_time; };
-	using TSignal_Series = std::set<TSignal_Point, decltype(mPair_Comparator)>;
-	TSignal_Series mReference_Signal;
-	*/
-	scgms::SSignal mReference_Signal{ scgms::STime_Segment{}, scgms::signal_BG };
-	scgms::SSignal mError_Signal{ scgms::STime_Segment{}, scgms::signal_BG };
-
-	scgms::SMetric mMetric;
-
-	double *mPromised_Metric = nullptr;
-	std::atomic<bool> mNew_Data_Available{false};	
-
-	bool Prepare_Levels(std::vector<double> &times, std::vector<double> &reference, std::vector<double> &error);
-	double Calculate_Metric();	//returns metric or NaN if could not calculate
-protected:			
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
+    struct TLevel { double level; double datetime; };
+    using TSegment_Series = std::map<uint64_t, std::vector<TLevel>>;     //int identifies the segment
+protected:
+    std::map<GUID, TSegment_Series> mSignal_Series;                 //GUID identifies the signal
+protected:
+    std::wstring mCSV_Path;
+    void Flush_Stats();
+protected:
+    virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+    virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
 public:
-    CSignal_Error(scgms::IFilter *output);
-	virtual ~CSignal_Error();
-
-	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
-	virtual HRESULT IfaceCalling Promise_Metric(double* const metric_value, bool defer_to_dtor) override final;
-	virtual HRESULT IfaceCalling Peek_New_Data_Available() override final;
-	virtual HRESULT IfaceCalling Calculate_Signal_Error(scgms::TSignal_Error *absolute_error, scgms::TSignal_Error *relative_error) override final;
-	virtual HRESULT IfaceCalling Get_Description(wchar_t** const desc) override final;
+    CSignal_Stats(scgms::IFilter* output);
+    virtual ~CSignal_Stats();
 };
-
 
 #pragma warning( pop )
