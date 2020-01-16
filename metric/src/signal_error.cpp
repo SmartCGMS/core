@@ -37,6 +37,7 @@
  */
 
 #include "signal_error.h"
+#include "stats.h"
 
 #include <cmath>
 
@@ -185,51 +186,8 @@ HRESULT IfaceCalling CSignal_Error::Peek_New_Data_Available() {
 	return mNew_Data_Available.exchange(false) ? S_OK : S_FALSE;
 }
 
-HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(scgms::TSignal_Error *absolute_error, scgms::TSignal_Error *relative_error) {
+HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(scgms::TSignal_Stats *absolute_error, scgms::TSignal_Stats *relative_error) {
 	if (!absolute_error || !relative_error) return E_INVALIDARG;
-
-		//be aware that it sorts the differences vector
-	auto Calculate_StdDev_And_ECDF = [](std::vector<double> &differences, scgms::TSignal_Error &signal_error) {
-		//3. calculate stddev
-		{
-			double corrected_count = static_cast<double>(signal_error.count);
-			if (corrected_count > 1.5) corrected_count -= 1.5;					//Unbiased estimation of standard deviation
-				else if (corrected_count > 1.0) corrected_count -= 1.0;			//Bessel's correction
-
-			const double corrected_avg = signal_error.avg / corrected_count;
-			signal_error.stddev = 0.0;
-			for (const auto & difference : differences) {
-				const double tmp = difference - corrected_avg;
-				signal_error.stddev += tmp * tmp;
-			}
-
-			signal_error.stddev /= corrected_count;
-		}
-
-		//4. calculate ECDF
-		std::sort(differences.begin(), differences.end());
-
-		//fill min and max precisely as we will be rounding for the other values
-		signal_error.ecdf[0] = differences[0];
-		signal_error.ecdf[static_cast<size_t>(scgms::NECDF::max_value)] = differences[differences.size() - 1];
-
-		const double stepping = static_cast<double>(signal_error.count-1) / (static_cast<double>(scgms::NECDF::max_value) + 1.0);
-		const size_t ECDF_offset = static_cast<size_t>(scgms::NECDF::min_value);
-		for (size_t i = 1; i < static_cast<size_t>(scgms::NECDF::max_value) - ECDF_offset; i++)
-			signal_error.ecdf[i + ECDF_offset] = differences[static_cast<size_t>(std::round(static_cast<double>(i)*stepping))];
-	};
-
-	auto Set_Error_To_No_Data = [](scgms::TSignal_Error &signal_error) {
-		signal_error.count = 0;
-		signal_error.sum = 0.0;
-		signal_error.avg = std::numeric_limits<double>::quiet_NaN();
-		signal_error.stddev = std::numeric_limits<double>::quiet_NaN();
-
-		const size_t ECDF_offset = static_cast<size_t>(scgms::NECDF::min_value);
-		for (size_t i = 0; i <= static_cast<size_t>(scgms::NECDF::max_value) - ECDF_offset; i++)
-			signal_error.ecdf[ECDF_offset + i] = std::numeric_limits<double>::quiet_NaN();
-	};
-
 
 	std::vector<double> times;
 	std::vector<double> reference_levels;
@@ -243,38 +201,25 @@ HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(scgms::TSignal_Error 
 		decltype(reference_levels) &relative_differences = reference_levels;
 
 		//1. calculate sum and count
-		absolute_error->count = 0;
-		relative_error->count = 0;
+		size_t absolute_error_count = 0;
+		size_t relative_error_count = 0;
 		for (size_t i = 0; i < reference_levels.size(); i++) {
 			if (!std::isnan(reference_levels[i]) && !std::isnan(error_levels[i])) {
 				//both levels are not nan, so we can calcualte the error here
-				absolute_differences[absolute_error->count] = std::fabs(reference_levels[i] - error_levels[i]);
-				absolute_error->sum += absolute_differences[absolute_error->count];
-
+				absolute_differences[absolute_error_count] = std::fabs(reference_levels[i] - error_levels[i]);
+				
 				if (reference_levels[i] != 0.0) {
-					relative_differences[relative_error->count] = absolute_differences[absolute_error->count] / reference_levels[i];
-					relative_error->sum += relative_differences[relative_error->count];
-					relative_error->count++;
+					relative_differences[relative_error_count] = absolute_differences[absolute_error_count] / reference_levels[i];
+					relative_error_count++;
 				}
 
 				absolute_error->count++;
 			}
 		}
 		//2. test the count and if OK, calculate avg and others
-		if (absolute_error->count < 1) {
-			Set_Error_To_No_Data(*absolute_error);
-			Set_Error_To_No_Data(*relative_error);
-			return S_FALSE;
-		}
-		absolute_error->avg = absolute_error->sum / static_cast<double>(absolute_error->count);
-		Calculate_StdDev_And_ECDF(absolute_differences, *absolute_error);
-
-		if (relative_error->count > 0) {
-			relative_error->avg = relative_error->sum / static_cast<double>(relative_error->count);
-			Calculate_StdDev_And_ECDF(relative_differences, *relative_error);
-			} else Set_Error_To_No_Data(*relative_error);		
-	
-
+		if (!Calculate_Signal_Stats(absolute_differences, *absolute_error)) return S_FALSE;
+		Calculate_Signal_Stats(relative_differences, *relative_error);
+		
 		return S_OK;
 	}
 	else return E_FAIL;

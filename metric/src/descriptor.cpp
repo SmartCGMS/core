@@ -129,22 +129,26 @@ namespace signal_error {
 
 
 namespace signal_stats {
-	constexpr size_t param_count = 1;
+	constexpr size_t param_count = 2;
 
 
 	const scgms::NParameter_Type parameter_type[param_count] = {
+		scgms::NParameter_Type::ptSignal_Id,
 		scgms::NParameter_Type::ptWChar_Array
 	};
 
 	const wchar_t* ui_parameter_name[param_count] = {
+		dsSelected_Signal,
 		dsOutput_CSV_File
 	};
 
 	const wchar_t* config_parameter_name[param_count] = {
+		rsSelected_Signal,
 		rsOutput_CSV_File
 	};
 
 	const wchar_t* ui_parameter_tooltip[param_count] = {
+		nullptr,
 		nullptr
 	};
 

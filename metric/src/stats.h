@@ -38,34 +38,9 @@
 
 #pragma once
 
+#include "../../../common/iface/FilterIface.h"
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/referencedImpl.h"
-
-
-#include <map>
 #include <vector>
 
-#pragma warning( push )
-#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
-
-/*
- * Filter class for calculating selected-signal statistics across n segments
- */
-class CSignal_Stats : public virtual scgms::CBase_Filter {
-protected:
-    struct TLevels { std::vector<double> level; std::vector<double> datetime; };    //vectors to allow memory block operations
-    std::map<uint64_t, TLevels> mSignal_Series;              //int identifies the segment
-protected:
-    GUID mSignal_ID;
-    std::wstring mCSV_Path;
-    void Flush_Stats();
-protected:
-    virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-    virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
-public:
-    CSignal_Stats(scgms::IFilter* output);
-    virtual ~CSignal_Stats();
-};
-
-#pragma warning( pop )
+    //does not check whether series contains NaN, destroys series content
+bool Calculate_Signal_Stats(std::vector<double>& series, scgms::TSignal_Stats& signal_error);

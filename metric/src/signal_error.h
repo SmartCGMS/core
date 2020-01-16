@@ -86,7 +86,7 @@ public:
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
 	virtual HRESULT IfaceCalling Promise_Metric(double* const metric_value, bool defer_to_dtor) override final;
 	virtual HRESULT IfaceCalling Peek_New_Data_Available() override final;
-	virtual HRESULT IfaceCalling Calculate_Signal_Error(scgms::TSignal_Error *absolute_error, scgms::TSignal_Error *relative_error) override final;
+	virtual HRESULT IfaceCalling Calculate_Signal_Error(scgms::TSignal_Stats *absolute_error, scgms::TSignal_Stats *relative_error) override final;
 	virtual HRESULT IfaceCalling Get_Description(wchar_t** const desc) override final;
 };
 
