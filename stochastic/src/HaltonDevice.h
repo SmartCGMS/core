@@ -52,7 +52,7 @@ protected:
 	size_t mBase;	
 	std::atomic<size_t> mLast_Index;
 	size_t Get_Next_Prime(size_t last_number);
-	const static result_type max_result = 0x7FFFffff;
+	static constexpr result_type max_result = 0x7FFFffff;
 public:
 	CHalton_Device();
 	explicit CHalton_Device(const std::string &token) : CHalton_Device() {};
@@ -64,7 +64,7 @@ public:
 
 	double advance();
 
-	static result_type min();
-	static result_type max();
+	static constexpr result_type min() { return 0; }
+	static constexpr result_type max() { return max_result; }
 	double entropy() const noexcept;
 };

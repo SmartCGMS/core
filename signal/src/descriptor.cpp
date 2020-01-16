@@ -370,7 +370,7 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 }
 
 extern "C" HRESULT IfaceCalling do_create_signal(const GUID *signal_id, scgms::ITime_Segment *segment, scgms::ISignal **signal) {
-	if ((signal_id == nullptr)/* || (segment == nullptr)*/)	//signal error sets segment to nullptr as it does not need it
+	if (signal_id == nullptr)	//signal error sets segment to nullptr as it does not need it, so we check signal_id only
 		return E_INVALIDARG;
 
 	for (size_t i = 0; i < measured_signal::supported_count; i++) {

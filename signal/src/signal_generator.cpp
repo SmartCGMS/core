@@ -40,19 +40,20 @@
 #include "../../../common/rtl/rattime.h"
 #include "../../../common/lang/dstrings.h"
 
+#include <cmath>
+
 CSignal_Generator::CSignal_Generator(scgms::IFilter *output) : CBase_Filter(output) {
 	//
 }
 
 CSignal_Generator::~CSignal_Generator() {
-	Stop_Generator();
+	Stop_Generator(true);
 }
 
-
-void CSignal_Generator::Stop_Generator() {
+void CSignal_Generator::Stop_Generator(bool wait) {
 	mQuitting = true;
-	if (mThread) {
-		if (mThread->joinable())
+	if (wait && mThread) {
+		if (mThread->joinable()) 
 			mThread->join();
 		mThread.reset();
 	}
@@ -96,7 +97,7 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 		rc = mModel->Execute(raw_event);
 
 		if (shutdown) {
-			Stop_Generator();
+			Stop_Generator(false);
 			mModel.reset();
 		}
 	}
@@ -105,7 +106,7 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 }
 
 HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configuration) {
-	Stop_Generator();
+	Stop_Generator(true);
 
 	mSync_To_Signal = configuration.Read_Bool(rsSynchronize_to_Signal);
 	mSync_Signal = configuration.Read_GUID(rsSynchronization_Signal);

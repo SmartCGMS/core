@@ -118,7 +118,7 @@ protected:
 		bool found = false;
 		CTerminal_Filter terminal;
 
-		mConfiguration.for_each([this, &terminal, &found, &minimal_index_end](scgms::SFilter_Configuration_Link link) {
+		mConfiguration.for_each([&terminal, &found, &minimal_index_end](scgms::SFilter_Configuration_Link link) {
 			if (found) return;
 
 

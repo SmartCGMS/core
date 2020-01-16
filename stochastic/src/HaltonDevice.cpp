@@ -106,14 +106,6 @@ CHalton_Device::result_type CHalton_Device::operator()() {
 	return ((resultCast.as_uint64 >> 32) ^ resultCast.as_uint64) & max_result;
 }
 
-CHalton_Device::result_type CHalton_Device::min() {
-	return 0;
-}
-
-CHalton_Device::result_type CHalton_Device::CHalton_Device::max() {
-	return max_result;
-}
-
 double CHalton_Device::entropy() const noexcept {
 	return 0.0;
 }

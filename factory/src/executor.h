@@ -58,7 +58,7 @@ public:
 
 	void Release_Filter();
 
-	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj);
+	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
 
 	virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration) override final;
 	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;

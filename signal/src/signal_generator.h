@@ -65,7 +65,7 @@ protected:
 	scgms::SDiscrete_Model mModel;
 	std::unique_ptr<std::thread> mThread;
 	bool mQuitting = false;
-	void Stop_Generator();
+	void Stop_Generator(bool wait);
 protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;

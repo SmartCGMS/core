@@ -46,7 +46,26 @@
 #include <ctime>
 #include <chrono>
 #include <set>
+
+#ifdef __cpp_lib_execution
 #include <execution>
+#else
+namespace std
+{
+	// minimal substitute for missing execution header (for pre C++20 compilers)
+
+	enum class execution {
+		par_unseq
+	};
+
+	template<typename Fnc, typename It>
+	void for_each(const execution ex, const It& begin, const It& end, Fnc fnc)
+	{
+		for (It itr = begin; itr != end; itr++)
+			fnc(*itr);
+	}
+}
+#endif
 
 #undef max
 #undef min
@@ -206,8 +225,10 @@ protected:
 protected:
     solver::TSolver_Setup mSetup;
 public:
-	CMetaDE(const solver::TSolver_Setup &setup) : mSetup(solver::Check_Default_Parameters(setup, 100'000, 100)), 
-				mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)) {				
+	CMetaDE(const solver::TSolver_Setup &setup) : 
+		mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)),
+		mSetup(solver::Check_Default_Parameters(setup, 100'000, 100))
+	{
 
 		mPopulation.resize(std::max(mSetup.population_size, mPBest_Count));
 		mPopulation_Best.resize(mPopulation.size());
@@ -229,7 +250,7 @@ public:
 			// optimized away in compile time
 			tmp.resize(Eigen::NoChange, mSetup.problem_size);
 
-			for (auto j = 0; j < mSetup.problem_size; j++)
+			for (size_t j = 0; j < mSetup.problem_size; j++)
 				tmp[j] = mUniform_Distribution_dbl(mRandom_Generator);
 
 			mPopulation[i].current = mLower_Bound + tmp.cwiseProduct(bounds_range);

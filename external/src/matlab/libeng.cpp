@@ -2,14 +2,12 @@
 
 #include <windows.h>
 
-#include "..\PacketStructures.h"
+#include "../dmms_proc/PacketStructures.h"
 
 #include <cmath>
-
-#include <stdio.h>
+#include <cstdio>
 
 #include "matrix.h"
-#pragma comment(lib, "..\\src\\matlab\\libmx_win64_ms.lib")
 
 mxArray* modelIO = nullptr;
 
@@ -96,11 +94,6 @@ mxArray* getv__modelInputsToModObject()
 	return dup;
 }
 
-static bool gInitialized = false;
-/*static SOCKET gSocket;
-static sockaddr_in gSrcAddr;
-static sockaddr_in gAddr;
-*/
 static TSmartCGMS_To_DMMS lastValues{ 0, 0, 0 };
 static size_t counter = 0;
 

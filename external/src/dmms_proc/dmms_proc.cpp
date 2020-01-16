@@ -42,13 +42,13 @@
 // TODO: generic implementation of IPC (this is Windows-specific)
 #include <Windows.h>
 
-#include "dmms.h"
-#include "../../../common/rtl/rattime.h"
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/rtl/SolverLib.h"
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/FilesystemLib.h"
-#include "../../../common/utils/XMLParser.h"
+#include "dmms_proc.h"
+#include "../../../../common/rtl/rattime.h"
+#include "../../../../common/lang/dstrings.h"
+#include "../../../../common/rtl/SolverLib.h"
+#include "../../../../common/rtl/FilterLib.h"
+#include "../../../../common/rtl/FilesystemLib.h"
+#include "../../../../common/utils/XMLParser.h"
 
 //#define DSINGLE_DMMS
 #ifdef DSINGLE_DMMS
@@ -57,7 +57,7 @@
 	static int gGlobal_DMMS_Instance_Cnt = 0;
 #endif
 
-CDMMS_Discrete_Model::CDMMS_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output)
+CDMMS_Proc_Discrete_Model::CDMMS_Proc_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output)
 	: CBase_Filter(output),
 	  mParameters(scgms::Convert_Parameters<dmms_model::TParameters>(parameters, dmms_model::default_parameters.vector))
 {
@@ -69,12 +69,12 @@ CDMMS_Discrete_Model::CDMMS_Discrete_Model(scgms::IModel_Parameter_Vector *param
 	mDMMS_Proc_Info.hProcess = INVALID_HANDLE_VALUE;
 }
 
-CDMMS_Discrete_Model::~CDMMS_Discrete_Model()
+CDMMS_Proc_Discrete_Model::~CDMMS_Proc_Discrete_Model()
 {
 	Deinitialize_DMMS();
 }
 
-void CDMMS_Discrete_Model::Deinitialize_DMMS() {
+void CDMMS_Proc_Discrete_Model::Deinitialize_DMMS() {
 
 	Release_DMMS_IPC(mDMMS_ipc);
 	
@@ -84,8 +84,6 @@ void CDMMS_Discrete_Model::Deinitialize_DMMS() {
 		WaitForSingleObject(mDMMS_Proc_Info.hProcess, INFINITE);
 	}
 
-	
-	mDMMS_Proc_Info.hProcess = INVALID_HANDLE_VALUE;
 	mDMMS_Proc_Info.hProcess = INVALID_HANDLE_VALUE;
 
 	if (mDMMS_Initialized)
@@ -100,12 +98,12 @@ void CDMMS_Discrete_Model::Deinitialize_DMMS() {
 	}
 }
 
-HRESULT CDMMS_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration) {
+HRESULT CDMMS_Proc_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration) {
 	//return S_OK;
 	return Configure_DMMS() ? S_OK : E_FAIL;
 }
 
-bool CDMMS_Discrete_Model::Configure_DMMS() {
+bool CDMMS_Proc_Discrete_Model::Configure_DMMS() {
 	std::filesystem::path root_path = Get_Application_Dir();
 
 	auto path_to_absolute = [&root_path](const std::wstring& src_path)->std::wstring {
@@ -129,10 +127,10 @@ bool CDMMS_Discrete_Model::Configure_DMMS() {
 
 	mRunning = mDMMS_Initialized = Initialize_DMMS();
 	
-	return mRunning;	
+	return mRunning;
 }
 
-void CDMMS_Discrete_Model::Receive_From_DMMS()
+void CDMMS_Proc_Discrete_Model::Receive_From_DMMS()
 {
 	TDMMS_To_SmartCGMS received;
 
@@ -220,7 +218,7 @@ void CDMMS_Discrete_Model::Receive_From_DMMS()
 	}
 }
 
-bool CDMMS_Discrete_Model::Initialize_DMMS()
+bool CDMMS_Proc_Discrete_Model::Initialize_DMMS()
 {
 #ifdef DSINGLE_DMMS
 	std::unique_lock<std::mutex> lck(gGlobal_DMMS_Mtx);
@@ -240,31 +238,13 @@ bool CDMMS_Discrete_Model::Initialize_DMMS()
 
 	const bool executed = CreateProcessW(NULL, (LPWSTR)cmdLine.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &mDMMS_Proc_Info) != 0;
 	if (executed) {
-
 		mDMMS_ipc = Establish_DMMS_IPC(mDMMS_Proc_Info.dwProcessId);
-		
-		HWND error_wnd = NULL;
-
-		size_t max_retries = 100;
-		while ((error_wnd == NULL) && (max_retries--)) {
-			error_wnd = FindWindowW(L"Qt5QWindowIcon", L"Error");
-			if (error_wnd) {
-				//verify that this window belongs to our process!
-
-				DWORD proc_id;
-				GetWindowThreadProcessId(error_wnd, &proc_id);
-				if (proc_id != mDMMS_Proc_Info.dwProcessId) error_wnd = NULL;
-			}
-		}
-
-		SendMessage(error_wnd, WM_CLOSE, 0, 0);		
-
 	}
 
 	return executed;
 }
 
-HRESULT CDMMS_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
+HRESULT CDMMS_Proc_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 {
 	HRESULT rc = S_FALSE;
 
@@ -297,7 +277,7 @@ HRESULT CDMMS_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 	return rc;
 }
 
-HRESULT IfaceCalling CDMMS_Discrete_Model::Step(const double time_advance_delta)
+HRESULT IfaceCalling CDMMS_Proc_Discrete_Model::Step(const double time_advance_delta)
 {
 	if (!mRunning)
 		return E_ILLEGAL_STATE_CHANGE;
@@ -321,11 +301,11 @@ HRESULT IfaceCalling CDMMS_Discrete_Model::Step(const double time_advance_delta)
 	return S_OK;
 }
 
-void CDMMS_Discrete_Model::Emit_Signal_Level(const GUID& id, double device_time, double level)
+void CDMMS_Proc_Discrete_Model::Emit_Signal_Level(const GUID& id, double device_time, double level)
 {
 	scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
 
-	evt.device_id() = dmms_model::model_id;
+	evt.device_id() = dmms_model::proc_model_id;
 	evt.device_time() = device_time;
 	evt.level() = level;
 	evt.signal_id() = id;
@@ -334,11 +314,11 @@ void CDMMS_Discrete_Model::Emit_Signal_Level(const GUID& id, double device_time,
 	Send(evt);
 }
 
-void CDMMS_Discrete_Model::Emit_Shut_Down(double device_time)
+void CDMMS_Proc_Discrete_Model::Emit_Shut_Down(double device_time)
 {
 	scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Shut_Down };
 
-	evt.device_id() = dmms_model::model_id;
+	evt.device_id() = dmms_model::proc_model_id;
 	evt.device_time() = device_time;
 	evt.signal_id() = Invalid_GUID;
 	evt.segment_id() = reinterpret_cast<std::remove_reference<decltype(evt.segment_id())>::type>(this);
@@ -346,7 +326,7 @@ void CDMMS_Discrete_Model::Emit_Shut_Down(double device_time)
 	Send(evt);
 }
 
-HRESULT IfaceCalling CDMMS_Discrete_Model::Set_Current_Time(const double new_current_time)
+HRESULT IfaceCalling CDMMS_Proc_Discrete_Model::Set_Current_Time(const double new_current_time)
 {
 	mLastTime = new_current_time;
 	mTimeStart = new_current_time;

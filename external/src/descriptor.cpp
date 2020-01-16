@@ -37,7 +37,8 @@
  */
 
 #include "descriptor.h"
-#include "dmms.h"
+#include "dmms_lib/dmms_lib.h"
+#include "dmms_proc/dmms_proc.h"
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
@@ -77,9 +78,27 @@ namespace dmms_model {
 		scgms::signal_Delivered_Insulin_Basal_Rate
 	};
 
-	scgms::TModel_Descriptor desc = {
-		model_id,
-		L"DMMS discrete model",
+	scgms::TModel_Descriptor proc_desc = {
+		proc_model_id,
+		L"DMMS discrete model (process)",
+		nullptr,
+		model_param_count,
+		model_param_types,
+		model_param_ui_names,
+		nullptr,
+		lower_bounds.vector,
+		default_parameters.vector,
+		upper_bounds.vector,
+
+		number_of_calculated_signals,
+		calculated_signal_ids,
+		calculated_signal_names,
+		reference_signal_ids,
+	};
+
+	scgms::TModel_Descriptor lib_desc = {
+		lib_model_id,
+		L"DMMS discrete model (library)",
 		nullptr,
 		model_param_count,
 		model_param_types,
@@ -96,7 +115,7 @@ namespace dmms_model {
 	};
 }
 
-const std::array<scgms::TModel_Descriptor, 1> model_descriptions = { { dmms_model::desc } };
+const std::array<scgms::TModel_Descriptor, 2> model_descriptions = { { dmms_model::proc_desc, dmms_model::lib_desc } };
 
 
 HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
@@ -107,7 +126,8 @@ HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, 
 
 
 HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
-	if (*model_id == dmms_model::model_id) return Manufacture_Object<CDMMS_Discrete_Model>(model, parameters, output);
+	if (*model_id == dmms_model::proc_model_id) return Manufacture_Object<CDMMS_Proc_Discrete_Model>(model, parameters, output);
+	if (*model_id == dmms_model::lib_model_id) return Manufacture_Object<CDMMS_Lib_Discrete_Model>(model, parameters, output);
 	else return E_NOTIMPL;
 }
 

@@ -38,15 +38,27 @@
 
 #pragma once
 
-#include "descriptor.h"
-#include "../../../common/rtl/FilterLib.h"
-
-#include "PacketStructures.h"
+#include "../descriptor.h"
+#include "../../../../common/rtl/FilterLib.h"
+#include "../../../../common/rtl/Dynamic_Library.h"
 
 #include <thread>
 #include <mutex>
 
 #include <Windows.h>
+
+#include "../dmms_sdk/DmmsEngineDef.h"
+#include "../dmms_sdk/DmmsEngineLib.h"
+
+#include "../dmms_proc/PacketStructures.h"
+
+struct DMMS_Engine_Deletor
+{
+	void operator()(IDmms* eng)
+	{
+		// eng->close() deletes the eng pointer itself
+	}
+};
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
@@ -54,36 +66,36 @@
 /*
  * DMMS discrete model (pump setting to, and data source from T1DMS simulator)
  */
-class CDMMS_Discrete_Model : public scgms::CBase_Filter, public virtual scgms::IDiscrete_Model {
+class CDMMS_Lib_Discrete_Model : public scgms::CBase_Filter, public virtual scgms::IDiscrete_Model, public ::ISimCallbacks
+{
 	private:
-		std::unique_ptr<std::thread> mReceiver_Thread;
-
-		bool mDMMS_Initialized = false;
-		bool mRunning = false;
-
-		TSmartCGMS_To_DMMS mToSend;
-
-		std::wstring mRun_Cmd;
-		std::wstring mDMMS_Scenario_File;
-		std::wstring mDMMS_Out_File;
-
-
-		TDMMS_IPC mDMMS_ipc;		
-		PROCESS_INFORMATION mDMMS_Proc_Info;
-
 		dmms_model::TParameters mParameters;
 
-		// T1DMS time
-		double mLastSimTime = 0;
-		// SmartCGMS time
+		// placeholder for output signal names; unused for now
+		static std::array<char*, 0> mDmms_Out_Signal_Names;
+
+		// DMMS dynamic library; keep in mind that this library needs to remain loaded during simulation
+		static std::unique_ptr<CDynamic_Library> mDmmsLib;
+		// instance of DMMS engine
+		std::unique_ptr<IDmms, DMMS_Engine_Deletor> mDmmsEngine;
+
+		std::wstring mDMMS_Scenario_File;
+		std::wstring mDMMS_Out_File;
+		std::wstring mDMMS_Results_Dir;
+
+		bool mRunning = false;
 		double mLastTime = -1;
-		// starting time
-		double mTimeStart;
+		double mTimeStart = -1;
 
+		std::unique_ptr<std::thread> mDmmsSimThread;
+		std::mutex mDmmsSimMtx;
+		std::condition_variable mDmmsSimCv;
 
-		bool Configure_DMMS();
-		
-	protected:
+		TDMMS_To_SmartCGMS mToSmartCGMS;
+		TSmartCGMS_To_DMMS mToDMMS;
+		bool mToDMMSValuesReady = false;
+		bool mToSmartCGMSValuesReady = false;
+
 		struct DMMS_Announced_Events
 		{
 			struct {
@@ -106,9 +118,7 @@ class CDMMS_Discrete_Model : public scgms::CBase_Filter, public virtual scgms::I
 		void Emit_Signal_Level(const GUID& id, double device_time, double level);
 		void Emit_Shut_Down(double device_time);
 
-		bool Initialize_DMMS();
-		void Receive_From_DMMS();
-		void Deinitialize_DMMS();
+		void DMMS_Simulation_Thread_Fnc();
 
 	protected:
 		// scgms::CBase_Filter iface implementation
@@ -116,12 +126,20 @@ class CDMMS_Discrete_Model : public scgms::CBase_Filter, public virtual scgms::I
 		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
 
 	public:
-		CDMMS_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output);
-		virtual ~CDMMS_Discrete_Model();
+		CDMMS_Lib_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output);
+		virtual ~CDMMS_Lib_Discrete_Model();
 
 		// scgms::IDiscrete_Model iface
 		virtual HRESULT IfaceCalling Set_Current_Time(const double new_current_time) override final;
 		virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
+
+		// ::ISimCallbacks iface
+		virtual void iterationCallback(const SubjectObject *subjObject, const SensorSigArray *sensorSigArray, const NextMealObject *nextMealObject, const NextExerciseObject *nextExerciseObject,
+			const TimeObject *timeObject, ModelInputObject *modelInputsToModObject, const InNamedSignals *inNamedSignals, OutSignalArray *outSignalArray, RunStopStatus *runStopStatus) override final;
+		virtual void initializeCallback(const bool useUniversalSeed, const double universalSeed, const SimInfo *simInfo) override final;
+		virtual OutputSignalNames outSignalName() override final;
+		virtual int numOutputSignals() override final;
+		virtual void cleanupCallback() override final;
 };
 
 #pragma warning( pop )
