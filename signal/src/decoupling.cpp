@@ -41,6 +41,7 @@
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/lang/dstrings.h"
 
+#include <cmath>
 
 CDecoupling_Filter::CDecoupling_Filter(scgms::IFilter *output) : CBase_Filter(output) {
 	//
@@ -59,7 +60,7 @@ HRESULT IfaceCalling CDecoupling_Filter::Do_Configure(scgms::SFilter_Configurati
 
 HRESULT IfaceCalling CDecoupling_Filter::Do_Execute(scgms::UDevice_Event event) {
     if (event.signal_id() == mSource_Id) {
-        const bool decouple = event.is_level_event() && mCondition.evaluate(event.level());
+        const bool decouple = event.is_level_event() && std::isnormal(mCondition.evaluate(event.level()));
 
         if (decouple) {
             //just change the signal
