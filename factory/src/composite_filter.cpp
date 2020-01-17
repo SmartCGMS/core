@@ -49,14 +49,16 @@ CComposite_Filter::CComposite_Filter(std::recursive_mutex &communication_guard) 
 
 HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) {
 	mRefuse_Execute = true;
-	if (!mExecutors.empty()) return E_ILLEGAL_METHOD_CALL;	//so far, we are able to configure the chain just once
+	if (!mExecutors.empty())
+		return E_ILLEGAL_METHOD_CALL;	//so far, we are able to configure the chain just once
 
 	std::lock_guard<std::recursive_mutex> guard{ mCommunication_Guard };
 	scgms::IFilter *last_filter = next_filter;
 	
 	scgms::IFilter_Configuration_Link **link_begin, **link_end;
 	HRESULT rc = configuration->get(&link_begin, &link_end);
-	if (rc != S_OK) return rc;
+	if (rc != S_OK)
+		return rc;
 
 	//we have to create the filter executors from the last one
 	try {
@@ -67,12 +69,14 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 			//let's find out if this filter is synchronous or asynchronous
 			GUID filter_id;
 			rc = link->Get_Filter_Id(&filter_id);
-			if (rc != S_OK) return rc;
+			if (rc != S_OK)
+				return rc;
 
 			std::unique_ptr<CFilter_Executor> new_executor = std::make_unique<CFilter_Executor>(filter_id, mCommunication_Guard, last_filter, on_filter_created, on_filter_created_data);
 			//try to configure the filter 
 			rc = new_executor->Configure(link);
-			if (rc != S_OK) return rc;
+			if (rc != S_OK)
+				return rc;
 
 			//filter is configured, insert it into the chain
 			last_filter = new_executor.get();

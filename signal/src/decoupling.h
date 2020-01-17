@@ -41,24 +41,29 @@
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
 
+#include "expression.h"
+
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 /*
  * Filter class for mapping input signal GUID to another
  */
-class CMapping_Filter : public virtual scgms::CBase_Filter {
+class CDecoupling_Filter : public virtual scgms::CBase_Filter {
 protected:
 	// source signal ID (what signal will be mapped)
 	GUID mSource_Id = Invalid_GUID;
 	// destination signal ID (to what ID it will be mapped)
 	GUID mDestination_Id = Invalid_GUID;
+    bool mRemove_From_Source = false;
+
+    CExpression mCondition;
 protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
 public:
-	CMapping_Filter(scgms::IFilter *output);
-	virtual ~CMapping_Filter() {};
+    CDecoupling_Filter(scgms::IFilter *output);
+	virtual ~CDecoupling_Filter() {};
 };
 
 #pragma warning( pop )

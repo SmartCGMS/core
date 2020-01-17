@@ -39,11 +39,7 @@
 #include "mapping.h"
 
 #include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/rattime.h"
 #include "../../../common/lang/dstrings.h"
-
-#include <iostream>
-#include <chrono>
 
 CMapping_Filter::CMapping_Filter(scgms::IFilter *output) : CBase_Filter(output) {
 	//

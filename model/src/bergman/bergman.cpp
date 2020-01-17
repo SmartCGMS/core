@@ -229,6 +229,8 @@ void CBergman_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 }
 
 HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
+	HRESULT res = S_FALSE;
+
 	if (mState.lastTime > 0)
 	{
 		if (event.event_code() == scgms::NDevice_Event_Code::Level)
@@ -236,6 +238,7 @@ HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 			if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate)
 			{
 				mBasal_Ext.Add_Uptake(event.device_time(), std::numeric_limits<double>::max(), 1000.0 * (event.level() / 60.0));
+				res = S_OK;
 			}
 			else if (event.signal_id() == scgms::signal_Requested_Insulin_Bolus)
 			{
@@ -243,6 +246,7 @@ HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 				constexpr double MinsBolusing = 5.0;
 
 				mBolus_Ext.Add_Uptake(event.device_time(), MinsBolusing * scgms::One_Minute, 1000.0 * (event.level() / MinsBolusing));
+				res = S_OK;
 			}
 			else if (event.signal_id() == scgms::signal_Carb_Intake)
 			{
@@ -251,16 +255,20 @@ HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 				constexpr double MinsEating = 10.0;
 
 				mMeal_Ext.Add_Uptake(event.device_time(), MinsEating * scgms::One_Minute, (1.0 / MinsEating) * 1000.0 * event.level());
+				res = S_OK;
 			}
 		}
 	}
 
-	return Send(event);
+	if (res == S_FALSE)
+		res = Send(event);
+
+	return res;
 }
 
 HRESULT CBergman_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration) {
-	// configured in the constructor
-	return E_NOTIMPL;
+	// configured in the constructor - no need for additional configuration; signalize success
+	return S_OK;
 }
 
 HRESULT IfaceCalling CBergman_Discrete_Model::Step(const double time_advance_delta) {

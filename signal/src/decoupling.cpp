@@ -36,29 +36,46 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
+#include "decoupling.h"
 
 #include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/referencedImpl.h"
+#include "../../../common/lang/dstrings.h"
 
-#pragma warning( push )
-#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-/*
- * Filter class for mapping input signal GUID to another
- */
-class CMapping_Filter : public virtual scgms::CBase_Filter {
-protected:
-	// source signal ID (what signal will be mapped)
-	GUID mSource_Id = Invalid_GUID;
-	// destination signal ID (to what ID it will be mapped)
-	GUID mDestination_Id = Invalid_GUID;
-protected:
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
-public:
-	CMapping_Filter(scgms::IFilter *output);
-	virtual ~CMapping_Filter() {};
-};
+CDecoupling_Filter::CDecoupling_Filter(scgms::IFilter *output) : CBase_Filter(output) {
+	//
+}
 
-#pragma warning( pop )
+
+HRESULT IfaceCalling CDecoupling_Filter::Do_Configure(scgms::SFilter_Configuration configuration) {
+	mSource_Id = configuration.Read_GUID(rsSignal_Source_Id);
+	mDestination_Id = configuration.Read_GUID(rsSignal_Destination_Id);
+    mRemove_From_Source = configuration.Read_Bool(rsRemove_From_Source, mRemove_From_Source);
+
+    mCondition = CExpression{ configuration.Read_String(rsCondition) };
+
+	return S_OK;
+}
+
+HRESULT IfaceCalling CDecoupling_Filter::Do_Execute(scgms::UDevice_Event event) {
+    if (event.signal_id() == mSource_Id) {
+        const bool decouple = event.is_level_event() && mCondition.evaluate(event.level());
+
+        if (decouple) {
+            //just change the signal
+            event.signal_id() = mDestination_Id;
+            //and send it
+         } else {
+            //this is info or parameters level => clone it
+
+            auto clone = event.Clone();
+            clone.signal_id() = mDestination_Id;
+            HRESULT rc = Send(clone);
+            if (!SUCCEEDED(rc)) return rc;
+        }
+            
+
+    } 
+	  
+    return Send(event);		
+}

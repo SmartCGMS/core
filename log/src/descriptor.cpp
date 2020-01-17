@@ -80,25 +80,29 @@ namespace logger
 
 namespace log_replay
 {
-	constexpr size_t param_count = 2;
+	constexpr size_t param_count = 3;
 
 	constexpr scgms::NParameter_Type param_type[param_count] = {
 		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptBool
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
 		dsLog_Input_File_Or_Dir,
-		dsEmit_Shutdown_Msg
+		dsEmit_Shutdown_Msg,
+		dsInterpret_Filename_As_Segment_Id
 	};
 
 	const wchar_t* config_param_name[param_count] = {
 		rsLog_Output_File,
-		rsEmit_Shutdown_Msg
+		rsEmit_Shutdown_Msg,
+		rsInterpret_Filename_As_Segment_Id
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
 		dsLog_File_Input_Tooltip,
+		nullptr,
 		nullptr
 	};
 

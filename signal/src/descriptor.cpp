@@ -39,6 +39,7 @@
 #include "descriptor.h"
 #include "calculated_signal.h"
 #include "mapping.h"
+#include "decoupling.h"
 #include "masking.h"
 #include "Measured_Signal.h"
 #include "signal_generator.h"
@@ -193,6 +194,52 @@ namespace mapping
 	};
 }
 
+
+namespace decoupling
+{
+	constexpr size_t param_count = 4;
+
+	constexpr scgms::NParameter_Type param_type[param_count] = {
+		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptWChar_Array
+	};
+
+	const wchar_t* ui_param_name[param_count] = {
+		dsSignal_Source_Id,
+		dsSignal_Destination_Id,
+		dsRemove_From_Source,
+		dsCondition
+	};
+
+	const wchar_t* config_param_name[param_count] = {
+		rsSignal_Source_Id,
+		rsSignal_Destination_Id,
+		rsRemove_From_Source,
+		rsCondition
+	};
+
+	const wchar_t* ui_param_tooltips[param_count] = {
+		dsMapping_Source_Signal_Tooltip,
+		dsMapping_Destination_Signal_Tooltip,
+		nullptr,
+		nullptr
+	};
+
+	const scgms::TFilter_Descriptor desc = {
+		{ 0xbb71190, 0x8709, 0x4990, { 0x97, 0xfa, 0x6a, 0x4d, 0xb6, 0x79, 0xef, 0x1d } },
+		scgms::NFilter_Flags::None,
+		dsDecoupling_Filter,
+		param_count,
+		param_type,
+		ui_param_name,
+		config_param_name,
+		ui_param_tooltips
+	};
+}
+
+
 namespace masking
 {
 	constexpr size_t param_count = 2;
@@ -346,7 +393,7 @@ namespace feedback_sender {
 	};
 } 
 
-const std::array<scgms::TFilter_Descriptor, 5> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, masking::Masking_Descriptor, signal_generator::desc, feedback_sender::desc } };
+const std::array<scgms::TFilter_Descriptor, 6> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, decoupling::desc, masking::Masking_Descriptor, signal_generator::desc, feedback_sender::desc } };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 	*begin = const_cast<scgms::TFilter_Descriptor*>(filter_descriptions.data());
@@ -361,6 +408,8 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 		return Manufacture_Object<CMasking_Filter>(filter, output);
 	else if (*id == mapping::Mapping_Descriptor.id)
 		return Manufacture_Object<CMapping_Filter>(filter, output);
+	else if (*id == decoupling::desc.id)
+		return Manufacture_Object<CDecoupling_Filter>(filter, output);
 	else if (*id == signal_generator::desc.id)
 		return Manufacture_Object<CSignal_Generator>(filter, output);
 	else if (*id == feedback_sender::desc.id)

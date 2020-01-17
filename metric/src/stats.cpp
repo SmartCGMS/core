@@ -40,6 +40,7 @@
 
 #include <cmath>
 #include <numeric>
+#include <algorithm>
 
 void Set_Error_To_No_Data(scgms::TSignal_Stats& signal_error) {
 	signal_error.count = 0;

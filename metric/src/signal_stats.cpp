@@ -83,7 +83,7 @@ HRESULT CSignal_Stats::Do_Execute(scgms::UDevice_Event event) {
         }
     }
 
-    return S_OK;
+    return Send(event);
 }
 
 

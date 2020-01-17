@@ -56,6 +56,7 @@ class CLog_Replay_Filter : public virtual scgms::CBase_Filter {
 protected:
 	//std::wifstream mLog;
 	bool mEmit_Shutdown = false;
+    bool mInterpret_Filename_As_Segment_Id = false;
 	std::wstring mLog_Filename_Or_Dirpath;  //would prefere wildcard, but this is not covered by C++ standard and do not need that so much to implement it using regex
 	std::unique_ptr<std::thread> mLog_Replay_Thread;
 protected:
@@ -63,7 +64,7 @@ protected:
 	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
 protected:
 	// thread method
-	void Replay_Log(const std::wstring& log_filename);
+	void Replay_Log(const std::filesystem::path& log_filename);
 
 	// opens log for reading, returns true if success, false if failed
 	void Open_Logs();

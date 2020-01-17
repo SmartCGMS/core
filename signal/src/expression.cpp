@@ -36,29 +36,73 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
+#include "expression.h"
+#include <cmath>
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/referencedImpl.h"
 
-#pragma warning( push )
-#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
-
-/*
- * Filter class for mapping input signal GUID to another
- */
-class CMapping_Filter : public virtual scgms::CBase_Filter {
+class CConstant : public virtual expression::IOperator {
 protected:
-	// source signal ID (what signal will be mapped)
-	GUID mSource_Id = Invalid_GUID;
-	// destination signal ID (to what ID it will be mapped)
-	GUID mDestination_Id = Invalid_GUID;
-protected:
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
+    double mValue;
 public:
-	CMapping_Filter(scgms::IFilter *output);
-	virtual ~CMapping_Filter() {};
+    CConstant(const double val) : mValue(val) {};
+
+    virtual double evaluate(const double level) override final {
+        return mValue;
+    }
 };
 
-#pragma warning( pop )
+class COperator : public virtual expression::IOperator {
+protected:
+    std::unique_ptr<expression::IOperator> mLeft, mRight;    
+public:
+    COperator(std::unique_ptr<expression::IOperator> left, std::unique_ptr<expression::IOperator> right) : mLeft{ std::move(left) }, mRight{ std::move(right) } {};
+};
+
+
+class COR : public virtual COperator {
+public:    
+    virtual double evaluate(const double level) override final {
+        return std::isnormal(mLeft->evaluate(level)) || std::isnormal(mRight->evaluate(level)) ? 0.0 : 1.0;
+    }
+};
+
+
+class CEqual : public virtual COperator {
+public:
+    virtual double evaluate(const double level) override final {
+        return mLeft->evaluate(level) == mRight->evaluate(level);
+    }
+};
+
+
+
+CExpression::CExpression(const std::wstring& src) {
+    mOperator = Parse(src);
+}
+
+std::unique_ptr<expression::IOperator> CExpression::Parse(const std::wstring& src) {
+    enum class NState {nothing, accumulating_left};
+
+    NState state = NState::nothing;
+
+    for (auto i = 0; i < src.size(); i++) {
+        std::wstring left, right, tmp;
+
+        switch (src[i]) {
+            case '(': state = NState::accumulating_left; tmp.clear(); break;
+
+
+
+            default: tmp += src[i];
+        }
+
+    }
+
+    return nullptr;
+}
+
+double CExpression::evaluate(const double level) {
+    return mOperator ? mOperator->evaluate(level) : std::numeric_limits<double>::quiet_NaN();
+}
+
+

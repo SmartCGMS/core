@@ -69,12 +69,23 @@ CLog_Replay_Filter::~CLog_Replay_Filter() {
 }
 
 
-void CLog_Replay_Filter::Replay_Log(const std::wstring& log_filename) {
+void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 	if (log_filename.empty()) return;
 
 	std::wifstream log{ Narrow_WChar(log_filename.c_str()) };
 	if (!log.is_open()) return;
 	
+
+	uint64_t filename_segment_id = scgms::Invalid_Segment_Id;
+	if (mInterpret_Filename_As_Segment_Id) {
+		std::string name = log_filename.stem().string();
+		char* end_char = nullptr;
+		uint64_t tmp_id = std::strtoull(name.c_str(), &end_char, 10);
+		if (*end_char == 0) filename_segment_id = tmp_id;	//strtoull encoutered digits only, so conversio is OK and we can interpret it as a valid segment id
+	}
+	const bool filename_segment_id_available = mInterpret_Filename_As_Segment_Id && (filename_segment_id != scgms::Invalid_Segment_Id);
+
+
 	auto locale = log.imbue(std::locale(std::cout.getloc(), new logger::DecimalSeparator<char>('.')));
 	
 
@@ -117,7 +128,10 @@ void CLog_Replay_Filter::Replay_Log(const std::wstring& log_filename) {
 			// specific column (titled "info", but contains parameters or level)
 			specificval = cut_column();
 
-			const size_t segment_id = std::stoull(cut_column());
+			const uint64_t original_segment_id = std::stoull(cut_column());
+			const bool can_use_filename_as_segment_id = filename_segment_id_available && (original_segment_id != scgms::Invalid_Segment_Id) && (original_segment_id != scgms::All_Segments_Id);
+			const uint64_t segment_id = can_use_filename_as_segment_id ? filename_segment_id : original_segment_id;
+				
 
 			scgms::UDevice_Event evt{ static_cast<scgms::NDevice_Event_Code>(std::stoull(cut_column())) };
 
@@ -172,6 +186,7 @@ void CLog_Replay_Filter::Open_Logs() {
 
 HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(scgms::SFilter_Configuration configuration) {
 	mEmit_Shutdown = configuration.Read_Bool(rsEmit_Shutdown_Msg, mEmit_Shutdown);
+	mInterpret_Filename_As_Segment_Id = configuration.Read_Bool(rsInterpret_Filename_As_Segment_Id, mInterpret_Filename_As_Segment_Id);
 	mLog_Filename_Or_Dirpath = configuration.Read_String(rsLog_Output_File);
 
 	mLog_Replay_Thread = std::make_unique<std::thread>(&CLog_Replay_Filter::Open_Logs, this);
