@@ -52,7 +52,7 @@ class CExpression {
 protected:
     std::unique_ptr<expression::IOperator> mOperator;
 
-    std::unique_ptr<expression::IOperator> Parse(const std::wstring& src);
+    std::unique_ptr<expression::IOperator> Parse(const wchar_t* src, const size_t begin, const size_t end);
 public:
     CExpression() {};
     CExpression(const std::wstring& src);

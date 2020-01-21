@@ -77,13 +77,64 @@ public:
 
 
 CExpression::CExpression(const std::wstring& src) {
-    mOperator = Parse(src);
+    mOperator = Parse(src.c_str(), 0, src.size());
 }
 
-std::unique_ptr<expression::IOperator> CExpression::Parse(const std::wstring& src) {
-    enum class NState {nothing, accumulating_left};
+std::unique_ptr<expression::IOperator> CExpression::Parse(const wchar_t *src, const size_t begin, const size_t end) {
+    if (begin >= end) return nullptr;   //indicat error
 
-    NState state = NState::nothing;
+
+    enum class NState {waiting_for_first_char, waiting_for_closing_bracket, reading_symbol, waiting_for_operator_or_end};
+
+    NState state = NState::waiting_for_first_char;
+    size_t bracket_nest = 0;
+
+    size_t sub_expression_begin = begin;    
+
+    std::unique_ptr<expression::IOperator> left_side, right_side;
+
+    for (size_t i = begin; i < end; i++) {
+
+        auto handle_waiting_for_first_char = [&]() {
+            if (src[i] == '(') {
+                bracket_nest++;
+                state = NState::waiting_for_closing_bracket;
+                sub_expression_begin = i+1;
+            } else 
+                if (std::isalnum(src[i])) {
+                    state = NState::reading_symbol;
+                    sub_expression_begin = i;
+                } else
+                        if (!std::isspace(src[i])) return nullptr;  //indidicate error
+
+        };
+       
+
+        auto handle_waiting_for_closing_bracket = [&]() {
+            if (src[i] == ')') {
+                bracket_nest--;
+                if (bracket_nest == 0) {
+                    state = NState::waiting_for_operator_or_end;
+                    left_side = Parse(src, sub_expression_begin, i - 1);
+                }
+            }
+        };
+
+        auto handle_reading_symbol = [&]() {
+            if
+        };
+
+
+        switch (state) {
+            case NState::waiting_for_first_char: handle_waiting_for_first_char(); break;
+            case NState::waiting_for_closing_bracket: handle_waiting_for_closing_bracket(); break;
+            case NState::reading_symbol: handle_reading_symbol(); break;
+            default: break; //keeping compiler happy
+
+        }
+
+    }
+
 
     for (auto i = 0; i < src.size(); i++) {
         std::wstring left, right, tmp;

@@ -55,7 +55,7 @@ protected:
 	GUID mSource_Id = Invalid_GUID;
 	// destination signal ID (to what ID it will be mapped)
 	GUID mDestination_Id = Invalid_GUID;
-    bool mRemove_From_Source = false;
+    bool mClone_From_Source = false;
 
     CExpression mCondition;
 protected:

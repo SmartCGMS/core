@@ -216,7 +216,7 @@ namespace decoupling
 	const wchar_t* config_param_name[param_count] = {
 		rsSignal_Source_Id,
 		rsSignal_Destination_Id,
-		rsRemove_From_Source,
+		rsClone_From_Source,
 		rsCondition
 	};
 

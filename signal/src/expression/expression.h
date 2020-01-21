@@ -36,47 +36,6 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "decoupling.h"
+#pragma once
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/lang/dstrings.h"
-
-#include <cmath>
-
-CDecoupling_Filter::CDecoupling_Filter(scgms::IFilter *output) : CBase_Filter(output) {
-	//
-}
-
-
-HRESULT IfaceCalling CDecoupling_Filter::Do_Configure(scgms::SFilter_Configuration configuration) {
-	mSource_Id = configuration.Read_GUID(rsSignal_Source_Id);
-	mDestination_Id = configuration.Read_GUID(rsSignal_Destination_Id);
-    mClone_From_Source = configuration.Read_Bool(rsClone_From_Source, mClone_From_Source);
-
-    mCondition = CExpression{ configuration.Read_String(rsCondition) };
-
-	return S_OK;
-}
-
-HRESULT IfaceCalling CDecoupling_Filter::Do_Execute(scgms::UDevice_Event event) {
-    if (event.signal_id() == mSource_Id) {
-        const bool decouple = event.is_level_event() && std::isnormal(mCondition.evaluate(event.level()));
-
-        if (decouple) {
-            //just change the signal id
-            event.signal_id() = mDestination_Id;
-            //and send it
-         } else {
-            //this is info or parameters level => clone it
-
-            auto clone = event.Clone();
-            clone.signal_id() = mDestination_Id;
-            HRESULT rc = Send(clone);
-            if (!SUCCEEDED(rc)) return rc;
-        }
-            
-
-    } 
-	  
-    return Send(event);		
-}
+bool Eval(const std::wstring &str);

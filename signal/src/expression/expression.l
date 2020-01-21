@@ -36,47 +36,47 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "decoupling.h"
+%option 8bit reentrant bison-bridge
+%option warn noyywrap nodefault
+%option nounistd
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/lang/dstrings.h"
+%{
+#include <stdio.h>
+#include <stdbool.h>
 
-#include <cmath>
+#ifdef _WIN32
+  int isatty() {return 0;}
+  #define fileno _fileno
+#endif
 
-CDecoupling_Filter::CDecoupling_Filter(scgms::IFilter *output) : CBase_Filter(output) {
-	//
-}
 
+#define YY_DECL int yylex(YYSTYPE * yylval_param , yyscan_t yyscanner)
 
-HRESULT IfaceCalling CDecoupling_Filter::Do_Configure(scgms::SFilter_Configuration configuration) {
-	mSource_Id = configuration.Read_GUID(rsSignal_Source_Id);
-	mDestination_Id = configuration.Read_GUID(rsSignal_Destination_Id);
-    mClone_From_Source = configuration.Read_Bool(rsClone_From_Source, mClone_From_Source);
+#include "expression.tab.h"
 
-    mCondition = CExpression{ configuration.Read_String(rsCondition) };
+%}
 
-	return S_OK;
-}
+%%
 
-HRESULT IfaceCalling CDecoupling_Filter::Do_Execute(scgms::UDevice_Event event) {
-    if (event.signal_id() == mSource_Id) {
-        const bool decouple = event.is_level_event() && std::isnormal(mCondition.evaluate(event.level()));
+[ \t]	; // ignore all whitespace
+[0-9]+\.[0-9]+ 	{yylval->dval = atof(yytext); return T_DOUBLE;}
+[0-9]+		{yylval->dval = atoi(yytext); return T_DOUBLE;}
+"level"		{yylval->bval = 0; return T_DOUBLE;}
+"true"		{yylval->bval = true; return T_BOOL;}
+"false"		{yylval->bval = false; return T_BOOL;}
+"+"		{return T_PLUS;}
+"-"		{return T_MINUS;}
+"*"		{return T_MULTIPLY;}
+"/"		{return T_DIVIDE;}
+"("		{return T_LEFT;}
+")"		{return T_RIGHT;}
+"<="		{return T_LTEQ;}
+"<"		{return T_LT;}
+"=="		{return T_EQ;}
+"!="		{return T_NEQ;}
+">="		{return T_GTEQ;}
+">"		{return T_GT;}
+"&&"		{return T_AND;}
+"||"		{return T_OR;}
 
-        if (decouple) {
-            //just change the signal id
-            event.signal_id() = mDestination_Id;
-            //and send it
-         } else {
-            //this is info or parameters level => clone it
-
-            auto clone = event.Clone();
-            clone.signal_id() = mDestination_Id;
-            HRESULT rc = Send(clone);
-            if (!SUCCEEDED(rc)) return rc;
-        }
-            
-
-    } 
-	  
-    return Send(event);		
-}
+%%
