@@ -494,23 +494,24 @@ static const flex_int16_t yy_chk[76] =
  *       Tomas Koutny and Martin Ubl, "Parallel software architecture for the next generation of glucose
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
+#line 40 "expression.l"
+ /* flex expression.l */
 #define YY_NO_UNISTD_H 1
-#line 44 "expression.l"
 #include <stdio.h>
 #include <stdbool.h>
 
 #ifdef _WIN32
-  int isatty() {return 0;}
+  int isatty(int n) {return 0;}
   #define fileno _fileno
 #endif
 
 
 #define YY_DECL int yylex(YYSTYPE * yylval_param , yyscan_t yyscanner)
 
-#include "expression.tab.h"
+#include "expression.tab.hpp"
 
-#line 512 "lex.yy.c"
 #line 513 "lex.yy.c"
+#line 514 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -784,10 +785,10 @@ YY_DECL
 		}
 
 	{
-#line 59 "expression.l"
+#line 61 "expression.l"
 
 
-#line 790 "lex.yy.c"
+#line 791 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -846,110 +847,110 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 61 "expression.l"
+#line 63 "expression.l"
 ; // ignore all whitespace
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 62 "expression.l"
+#line 64 "expression.l"
 {yylval->dval = atof(yytext); return T_DOUBLE;}
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 63 "expression.l"
+#line 65 "expression.l"
 {yylval->dval = atoi(yytext); return T_DOUBLE;}
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 64 "expression.l"
+#line 66 "expression.l"
 {yylval->bval = 0; return T_DOUBLE;}
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 65 "expression.l"
+#line 67 "expression.l"
 {yylval->bval = true; return T_BOOL;}
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 66 "expression.l"
+#line 68 "expression.l"
 {yylval->bval = false; return T_BOOL;}
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 67 "expression.l"
+#line 69 "expression.l"
 {return T_PLUS;}
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 68 "expression.l"
+#line 70 "expression.l"
 {return T_MINUS;}
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 69 "expression.l"
+#line 71 "expression.l"
 {return T_MULTIPLY;}
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 70 "expression.l"
+#line 72 "expression.l"
 {return T_DIVIDE;}
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 71 "expression.l"
+#line 73 "expression.l"
 {return T_LEFT;}
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 72 "expression.l"
+#line 74 "expression.l"
 {return T_RIGHT;}
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 73 "expression.l"
+#line 75 "expression.l"
 {return T_LTEQ;}
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 74 "expression.l"
+#line 76 "expression.l"
 {return T_LT;}
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 75 "expression.l"
+#line 77 "expression.l"
 {return T_EQ;}
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 76 "expression.l"
+#line 78 "expression.l"
 {return T_NEQ;}
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 77 "expression.l"
+#line 79 "expression.l"
 {return T_GTEQ;}
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 78 "expression.l"
+#line 80 "expression.l"
 {return T_GT;}
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 79 "expression.l"
+#line 81 "expression.l"
 {return T_AND;}
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 80 "expression.l"
+#line 82 "expression.l"
 {return T_OR;}
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 82 "expression.l"
+#line 84 "expression.l"
 YY_FATAL_ERROR( "flex scanner jammed" );
 	YY_BREAK
-#line 952 "lex.yy.c"
+#line 953 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2130,5 +2131,5 @@ void yyfree (void * ptr , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 82 "expression.l"
+#line 84 "expression.l"
 

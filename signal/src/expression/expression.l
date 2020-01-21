@@ -36,6 +36,8 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
+ /* flex expression.l */
+
 %option 8bit reentrant bison-bridge
 %option warn noyywrap nodefault
 %option nounistd
@@ -45,14 +47,14 @@
 #include <stdbool.h>
 
 #ifdef _WIN32
-  int isatty() {return 0;}
+  int isatty(int n) {return 0;}
   #define fileno _fileno
 #endif
 
 
 #define YY_DECL int yylex(YYSTYPE * yylval_param , yyscan_t yyscanner)
 
-#include "expression.tab.h"
+#include "expression.tab.hpp"
 
 %}
 

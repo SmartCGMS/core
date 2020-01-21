@@ -38,4 +38,21 @@
 
 #pragma once
 
-bool Eval(const std::wstring &str);
+#include <memory>
+#include <string>
+
+namespace expression {
+
+    template <typename T>
+    class IOperator {
+    protected:
+        std::unique_ptr<IOperator> mLeft, mRight;
+    public:
+        virtual T evaluate(const double level) = 0;
+    };
+    
+}
+
+using CExpression = std::unique_ptr<expression::IOperator<bool>>;
+
+CExpression Eval(const std::wstring& wstr);

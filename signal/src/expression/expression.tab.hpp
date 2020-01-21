@@ -34,8 +34,8 @@
 /* Undocumented macros, especially those whose name start with YY_,
    are private implementation details.  Do not rely on them.  */
 
-#ifndef YY_YY_EXPRESSION_TAB_H_INCLUDED
-# define YY_YY_EXPRESSION_TAB_H_INCLUDED
+#ifndef YY_YY_EXPRESSION_TAB_HPP_INCLUDED
+# define YY_YY_EXPRESSION_TAB_HPP_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -72,12 +72,12 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 33 "expression.y"
+#line 76 "expression.y"
 
 	double dval;
 	bool bval;
 
-#line 81 "expression.tab.h"
+#line 81 "expression.tab.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -89,4 +89,4 @@ typedef union YYSTYPE YYSTYPE;
 
 int yyparse (void* scanner);
 
-#endif /* !YY_YY_EXPRESSION_TAB_H_INCLUDED  */
+#endif /* !YY_YY_EXPRESSION_TAB_HPP_INCLUDED  */

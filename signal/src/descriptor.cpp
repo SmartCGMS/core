@@ -366,13 +366,13 @@ namespace feedback_sender {
 
 	const wchar_t* ui_param_name[param_count] = {
 		dsSignal_Source_Id,
-		dsForward_Clone,
+		dsRemove_From_Source,
 		dsFeedback_Name,
 	};
 
 	const wchar_t* config_param_name[param_count] = {
 		rsSignal_Source_Id,
-		rsForward_Clone,
+		rsRemove_From_Source,
 		rsFeedback_Name,
 	};
 

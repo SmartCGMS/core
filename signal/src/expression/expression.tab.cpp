@@ -66,31 +66,35 @@
 
 
 /* First part of user prologue.  */
-#line 40 "expression.y"
+#line 42 "expression.y"
 
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include "expression.tab.h"
+#include "expression.tab.hpp"
+#include "expression.h"
+#include "../../../../common/utils/DebugHelper.h"
+#include "../../../../common/utils/string_utils.h"
+
 
 typedef void * yyscan_t;
 
-extern int yylex(YYSTYPE * yylval_param , yyscan_t yyscanner);
+extern "C" int yylex(YYSTYPE * yylval_param , yyscan_t yyscanner);
 extern int yyparse( yyscan_t yyscanner);
 
 
-int yylex_init (yyscan_t* scanner);
-int yylex_destroy ( yyscan_t yyscanner );
+extern "C" int yylex_init (yyscan_t* scanner);
+extern "C" int yylex_destroy ( yyscan_t yyscanner );
 
 typedef void * YY_BUFFER_STATE;
-YY_BUFFER_STATE yy_scan_string ( const char *yy_str , yyscan_t yyscanner );
-void yy_delete_buffer (YY_BUFFER_STATE  b , yyscan_t yyscanner);
+extern "C" YY_BUFFER_STATE yy_scan_string ( const char *yy_str , yyscan_t yyscanner );
+extern "C" void yy_delete_buffer (YY_BUFFER_STATE  b , yyscan_t yyscanner);
 
 void yyerror(yyscan_t scanner, char const *msg);
 
-#line 94 "expression.tab.c"
+#line 98 "expression.tab.cpp"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -121,7 +125,10 @@ void yyerror(yyscan_t scanner, char const *msg);
 # define YYERROR_VERBOSE 0
 #endif
 
-
+/* Use api.header.include to #include this header
+   instead of duplicating it here.  */
+#ifndef YY_YY_EXPRESSION_TAB_HPP_INCLUDED
+# define YY_YY_EXPRESSION_TAB_HPP_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -158,12 +165,12 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 69 "expression.y"
+#line 76 "expression.y"
 
 	double dval;
 	bool bval;
 
-#line 167 "expression.tab.c"
+#line 174 "expression.tab.cpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -175,7 +182,7 @@ typedef union YYSTYPE YYSTYPE;
 
 int yyparse (void* scanner);
 
-
+#endif /* !YY_YY_EXPRESSION_TAB_HPP_INCLUDED  */
 
 
 
@@ -539,8 +546,8 @@ static const yytype_int8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int8 yyrline[] =
 {
-       0,    88,    88,    89,    93,    94,    95,    96,    97,    98,
-     101,   102,   103,   104,   105,   106,   107,   108,   109,   110
+       0,    95,    95,    96,   100,   101,   102,   103,   104,   105,
+     108,   109,   110,   111,   112,   113,   114,   115,   116,   117
 };
 #endif
 
@@ -1357,109 +1364,109 @@ yyreduce:
   switch (yyn)
     {
   case 3:
-#line 89 "expression.y"
+#line 96 "expression.y"
                              { printf("\tResult: %i\n", (yyvsp[0].bval)); }
-#line 1363 "expression.tab.c"
+#line 1370 "expression.tab.cpp"
     break;
 
   case 4:
-#line 93 "expression.y"
+#line 100 "expression.y"
                                                 { (yyval.dval) = (yyvsp[0].dval); }
-#line 1369 "expression.tab.c"
+#line 1376 "expression.tab.cpp"
     break;
 
   case 5:
-#line 94 "expression.y"
+#line 101 "expression.y"
                                                 { (yyval.dval) = (yyvsp[-2].dval) + (yyvsp[0].dval); }
-#line 1375 "expression.tab.c"
+#line 1382 "expression.tab.cpp"
     break;
 
   case 6:
-#line 95 "expression.y"
+#line 102 "expression.y"
                                                 { (yyval.dval) = (yyvsp[-2].dval) - (yyvsp[0].dval); }
-#line 1381 "expression.tab.c"
+#line 1388 "expression.tab.cpp"
     break;
 
   case 7:
-#line 96 "expression.y"
+#line 103 "expression.y"
                                                 { (yyval.dval) = (yyvsp[-2].dval) * (yyvsp[0].dval); }
-#line 1387 "expression.tab.c"
+#line 1394 "expression.tab.cpp"
     break;
 
   case 8:
-#line 97 "expression.y"
+#line 104 "expression.y"
                                                 { (yyval.dval) = (yyvsp[-2].dval) / (yyvsp[0].dval); }
-#line 1393 "expression.tab.c"
+#line 1400 "expression.tab.cpp"
     break;
 
   case 9:
-#line 98 "expression.y"
+#line 105 "expression.y"
                                                 { (yyval.dval) = (yyvsp[-1].dval); }
-#line 1399 "expression.tab.c"
+#line 1406 "expression.tab.cpp"
     break;
 
   case 10:
-#line 101 "expression.y"
+#line 108 "expression.y"
                                                 {(yyval.bval) = (yyvsp[0].bval); }
-#line 1405 "expression.tab.c"
+#line 1412 "expression.tab.cpp"
     break;
 
   case 11:
-#line 102 "expression.y"
+#line 109 "expression.y"
                                                 { (yyval.bval) = (yyvsp[-1].bval); }
-#line 1411 "expression.tab.c"
+#line 1418 "expression.tab.cpp"
     break;
 
   case 12:
-#line 103 "expression.y"
+#line 110 "expression.y"
                                                   { (yyval.bval) = (yyvsp[-2].bval) && (yyvsp[0].bval); }
-#line 1417 "expression.tab.c"
+#line 1424 "expression.tab.cpp"
     break;
 
   case 13:
-#line 104 "expression.y"
+#line 111 "expression.y"
                                                  { (yyval.bval) = (yyvsp[-2].bval) || (yyvsp[0].bval); }
-#line 1423 "expression.tab.c"
+#line 1430 "expression.tab.cpp"
     break;
 
   case 14:
-#line 105 "expression.y"
+#line 112 "expression.y"
                                                 { (yyval.bval) = (yyvsp[-2].dval) < (yyvsp[0].dval); }
-#line 1429 "expression.tab.c"
+#line 1436 "expression.tab.cpp"
     break;
 
   case 15:
-#line 106 "expression.y"
+#line 113 "expression.y"
                                                 { (yyval.bval) = (yyvsp[-2].dval) <= (yyvsp[0].dval); }
-#line 1435 "expression.tab.c"
+#line 1442 "expression.tab.cpp"
     break;
 
   case 16:
-#line 107 "expression.y"
+#line 114 "expression.y"
                                                 { (yyval.bval) = (yyvsp[-2].dval) == (yyvsp[0].dval); }
-#line 1441 "expression.tab.c"
+#line 1448 "expression.tab.cpp"
     break;
 
   case 17:
-#line 108 "expression.y"
+#line 115 "expression.y"
                                                 { (yyval.bval) = (yyvsp[-2].dval) != (yyvsp[0].dval); }
-#line 1447 "expression.tab.c"
+#line 1454 "expression.tab.cpp"
     break;
 
   case 18:
-#line 109 "expression.y"
+#line 116 "expression.y"
                                                 { (yyval.bval) = (yyvsp[-2].dval) > (yyvsp[0].dval); }
-#line 1453 "expression.tab.c"
+#line 1460 "expression.tab.cpp"
     break;
 
   case 19:
-#line 110 "expression.y"
+#line 117 "expression.y"
                                                 { (yyval.bval) = (yyvsp[-2].dval) >= (yyvsp[0].dval); }
-#line 1459 "expression.tab.c"
+#line 1466 "expression.tab.cpp"
     break;
 
 
-#line 1463 "expression.tab.c"
+#line 1470 "expression.tab.cpp"
 
       default: break;
     }
@@ -1691,25 +1698,28 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 114 "expression.y"
+#line 121 "expression.y"
 
 
-int main() {
+CExpression Eval(const std::wstring& wstr) {
+  CExpression result; 
+
   yyscan_t scanner; 
   yylex_init(&scanner);
 
-	const char* test = "4+3<8";
-  YY_BUFFER_STATE buffer = yy_scan_string(test, scanner);
-  yyparse(scanner);
-   yy_delete_buffer(buffer, scanner);
+  const std::string src = Narrow_WString(wstr);	
+  YY_BUFFER_STATE buffer = yy_scan_string(src.c_str(), scanner);
+  const auto rc = yyparse(scanner);
+  yy_delete_buffer(buffer, scanner);
   
   
   yylex_destroy(scanner);
   
-	return 0;
+	return rc == 0 ? std::move(result) : nullptr;
 }
 
 void yyerror(yyscan_t scanner, char const *msg) {
-	fprintf(stderr, "Parse error: %s\n", msg);
-	exit(1);
+	  dprintf("Parse error: ");
+    dprintf(msg);
+    dprintf("\n");
 }

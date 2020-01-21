@@ -36,26 +36,57 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
+#include "expression.h"
+#include <cmath>
 
-#include <memory>
-#include <string>
-
-namespace expression {
-    class IOperator {
-    public:
-       virtual double evaluate(const double level) = 0;
-    };
-}
-
-class CExpression {
+/*
+class CDouble_Constant : public virtual expression::IDouble_Operator {
 protected:
-    std::unique_ptr<expression::IOperator> mOperator;
-
-    std::unique_ptr<expression::IOperator> Parse(const wchar_t* src, const size_t begin, const size_t end);
+    double mValue;
 public:
-    CExpression() {};
-    CExpression(const std::wstring& src);
-    double evaluate(const double level);
+    CConstant(const double val) : mValue(val) {};
+
+    virtual double evaluate(const double level) override final {
+        return mValue;
+    }
 };
 
+class COperator : public virtual expression::IOperator {
+protected:
+    std::unique_ptr<expression::IOperator> mLeft, mRight;    
+public:
+    COperator(std::unique_ptr<expression::IOperator> left, std::unique_ptr<expression::IOperator> right) : mLeft{ std::move(left) }, mRight{ std::move(right) } {};
+};
+
+
+class COR : public virtual COperator {
+public:    
+    virtual double evaluate(const double level) override final {
+        return std::isnormal(mLeft->evaluate(level)) || std::isnormal(mRight->evaluate(level)) ? 0.0 : 1.0;
+    }
+};
+
+
+class CEqual : public virtual COperator {
+public:
+    virtual double evaluate(const double level) override final {
+        return mLeft->evaluate(level) == mRight->evaluate(level);
+    }
+};
+
+
+
+CExpression::CExpression(const std::wstring& src) {
+    mOperator = Parse(src.c_str(), 0, src.size());
+}
+
+std::unique_ptr<expression::IOperator> CExpression::Parse(const wchar_t *src, const size_t begin, const size_t end) {
+        return nullptr;
+}
+
+double CExpression::evaluate(const double level) {
+    return mOperator ? mOperator->evaluate(level) : std::numeric_limits<double>::quiet_NaN();
+}
+
+
+*/

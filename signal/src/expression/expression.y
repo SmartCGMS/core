@@ -36,6 +36,8 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
+ /* bison -o expression.tab.cpp -d expression.y */
+
 
 %{
 
@@ -43,23 +45,28 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include "expression.tab.h"
+#include "expression.tab.hpp"
+#include "expression.h"
+#include "../../../../common/utils/DebugHelper.h"
+#include "../../../../common/utils/string_utils.h"
+
 
 typedef void * yyscan_t;
 
-extern int yylex(YYSTYPE * yylval_param , yyscan_t yyscanner);
+extern "C" int yylex(YYSTYPE * yylval_param , yyscan_t yyscanner);
 extern int yyparse( yyscan_t yyscanner);
 
 
-int yylex_init (yyscan_t* scanner);
-int yylex_destroy ( yyscan_t yyscanner );
+extern "C" int yylex_init (yyscan_t* scanner);
+extern "C" int yylex_destroy ( yyscan_t yyscanner );
 
 typedef void * YY_BUFFER_STATE;
-YY_BUFFER_STATE yy_scan_string ( const char *yy_str , yyscan_t yyscanner );
-void yy_delete_buffer (YY_BUFFER_STATE  b , yyscan_t yyscanner);
+extern "C" YY_BUFFER_STATE yy_scan_string ( const char *yy_str , yyscan_t yyscanner );
+extern "C" void yy_delete_buffer (YY_BUFFER_STATE  b , yyscan_t yyscanner);
 
 void yyerror(yyscan_t scanner, char const *msg);
 %}
+
 
 %define api.pure full
 %lex-param {void* scanner}
@@ -113,22 +120,25 @@ bool_expression: T_BOOL 			{$$ = $1; }
 
 %%
 
-int main() {
+CExpression Eval(const std::wstring& wstr) {
+  CExpression result; 
+
   yyscan_t scanner; 
   yylex_init(&scanner);
 
-	const char* test = "4+3<8";
-  YY_BUFFER_STATE buffer = yy_scan_string(test, scanner);
-  yyparse(scanner);
-   yy_delete_buffer(buffer, scanner);
+  const std::string src = Narrow_WString(wstr);	
+  YY_BUFFER_STATE buffer = yy_scan_string(src.c_str(), scanner);
+  const auto rc = yyparse(scanner);
+  yy_delete_buffer(buffer, scanner);
   
   
   yylex_destroy(scanner);
   
-	return 0;
+	return rc == 0 ? std::move(result) : nullptr;
 }
 
 void yyerror(yyscan_t scanner, char const *msg) {
-	fprintf(stderr, "Parse error: %s\n", msg);
-	exit(1);
+	  dprintf("Parse error: ");
+    dprintf(msg);
+    dprintf("\n");
 }
