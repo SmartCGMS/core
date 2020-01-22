@@ -42,6 +42,8 @@
 %option warn noyywrap nodefault
 %option nounistd
 
+%option extra-type="expression::CAST_Node**"
+
 %{
 #include <stdio.h>
 #include <stdbool.h>
@@ -54,24 +56,26 @@
 
 #define YY_DECL int yylex(YYSTYPE * yylval_param , yyscan_t yyscanner)
 
-#include "expression.tab.hpp"
 
+#include "expression.tab.hpp"
+  #include "expression.h"
 %}
 
 %%
 
 [ \t]	; // ignore all whitespace
-[0-9]+\.[0-9]+ 	{yylval->dval = atof(yytext); return T_DOUBLE;}
-[0-9]+		{yylval->dval = atoi(yytext); return T_DOUBLE;}
-"level"		{yylval->bval = 0; return T_DOUBLE;}
-"true"		{yylval->bval = true; return T_BOOL;}
-"false"		{yylval->bval = false; return T_BOOL;}
+[0-9]+\.[0-9]+ 	{ yylval->ast_node = new expression::CDouble(yytext); return T_DOUBLE; }    
+[0-9]+		{ yylval->ast_node = new expression::CDouble(yytext); return T_DOUBLE; }
+"level"		{yylval->ast_node = new expression::CVariable(); return T_DOUBLE;}
+"true"		{yylval->ast_node = new expression::CConstant<double>(true); return T_BOOL;}
+"false"		{yylval->ast_node = new expression::CConstant<double>(false); return T_BOOL;}
 "+"		{return T_PLUS;}
 "-"		{return T_MINUS;}
 "*"		{return T_MULTIPLY;}
 "/"		{return T_DIVIDE;}
 "("		{return T_LEFT;}
 ")"		{return T_RIGHT;}
+"!"		{return T_NOT;}
 "<="		{return T_LTEQ;}
 "<"		{return T_LT;}
 "=="		{return T_EQ;}
@@ -80,5 +84,6 @@
 ">"		{return T_GT;}
 "&&"		{return T_AND;}
 "||"		{return T_OR;}
+"^"		{return T_XOR;}
 
 %%

@@ -39,6 +39,11 @@
  /* bison -o expression.tab.cpp -d expression.y */
 
 
+ %code requires {
+      #include "expression.h"    
+}
+
+
 %{
 
 #include <stdio.h>
@@ -46,27 +51,21 @@
 #include <stdbool.h>
 
 #include "expression.tab.hpp"
-#include "expression.h"
 #include "../../../../common/utils/DebugHelper.h"
 #include "../../../../common/utils/string_utils.h"
 
+#define YY_EXTRA_TYPE  expression::CAST_Node**
+YY_EXTRA_TYPE  yyget_extra ( void* scanner );
 
-typedef void * yyscan_t;
+int yylex(YYSTYPE * yylval_param , void* yyscanner);
+void yyerror(void* scanner, char const *msg);
+  
+  
+  
+#define DUnary_Operator(name, op) new expression::name{op};
+#define DBinary_Operator(name, op1, op2) new expression::name{op1, op2};
 
-extern "C" int yylex(YYSTYPE * yylval_param , yyscan_t yyscanner);
-extern int yyparse( yyscan_t yyscanner);
-
-
-extern "C" int yylex_init (yyscan_t* scanner);
-extern "C" int yylex_destroy ( yyscan_t yyscanner );
-
-typedef void * YY_BUFFER_STATE;
-extern "C" YY_BUFFER_STATE yy_scan_string ( const char *yy_str , yyscan_t yyscanner );
-extern "C" void yy_delete_buffer (YY_BUFFER_STATE  b , yyscan_t yyscanner);
-
-void yyerror(yyscan_t scanner, char const *msg);
 %}
-
 
 %define api.pure full
 %lex-param {void* scanner}
@@ -74,57 +73,68 @@ void yyerror(yyscan_t scanner, char const *msg);
 
 
 %union {
-	double dval;
-	bool bval;
+	expression::CAST_Node * ast_node;
+//  double dval;
+  //bool bval;
 } ;
 
-%token<bval> T_BOOL
-%token<dval> T_DOUBLE
-%token T_PLUS T_MINUS T_MULTIPLY T_DIVIDE T_LEFT T_RIGHT T_LT T_LTEQ T_EQ T_NEQ T_GT T_GTEQ T_AND T_OR
+/*%token<ast_node> T_ASTNODE*/
+%token<ast_node> T_DOUBLE
+%token<ast_node> T_BOOL                                                                     
+%token T_PLUS T_MINUS T_MULTIPLY T_DIVIDE T_LEFT T_RIGHT T_LT T_LTEQ T_EQ T_NEQ T_GT T_GTEQ T_AND T_OR T_XOR T_NOT
+%left T_AND T_OR T_XOR
 %left T_PLUS T_MINUS
 %left T_MULTIPLY T_DIVIDE
-%left T_AND T_OR
+%left T_NOT
 
-%type<bval> bool_expression
-%type<dval> expression
+%type<ast_node> bool_expression
+%type<ast_node> expression
+%destructor {delete $$;} <ast_node>
 
 %start calculation
 
 %%
 
 calculation:
-	   | bool_expression { printf("\tResult: %i\n", $1); }
+	   | bool_expression { *(yyget_extra(scanner)) = $1; }
 ;
 
 
 expression: T_DOUBLE				{ $$ = $1; }
-	  | expression T_PLUS expression	{ $$ = $1 + $3; }
-	  | expression T_MINUS expression	{ $$ = $1 - $3; }
-	  | expression T_MULTIPLY expression	{ $$ = $1 * $3; }
-	  | expression T_DIVIDE expression	{ $$ = $1 / $3; }
+	  | expression T_PLUS expression	{ $$ = DBinary_Operator(CPlus, $1, $3) }
+	  | expression T_MINUS expression	{ $$ = DBinary_Operator(CMinus, $1, $3) }
+	  | expression T_MULTIPLY expression	{ $$ = DBinary_Operator(CMul, $1, $3) }
+	  | expression T_DIVIDE expression	{ $$ = DBinary_Operator(CDiv, $1, $3) }
 	  | T_LEFT expression T_RIGHT		{ $$ = $2; }
 ;
-
+          
 bool_expression: T_BOOL 			{$$ = $1; }
 	    | T_LEFT bool_expression T_RIGHT	{ $$ = $2; }
-  	  | bool_expression T_AND bool_expression { $$ = $1 && $3; }
-  	  | bool_expression T_OR bool_expression { $$ = $1 || $3; }
-  	  | expression T_LT expression		{ $$ = $1 < $3; }
-  	  | expression T_LTEQ expression	{ $$ = $1 <= $3; }
-  	  | expression T_EQ expression		{ $$ = $1 == $3; }
-  	  | expression T_NEQ expression		{ $$ = $1 != $3; }
-  	  | expression T_GT expression		{ $$ = $1 > $3; }
-  	  | expression T_GTEQ expression	{ $$ = $1 >= $3; }
+  	  | expression T_LT expression		{ $$ = DBinary_Operator(CLT, $1, $3) }
+  	  | expression T_LTEQ expression	{ $$ = DBinary_Operator(CLTEQ, $1, $3) }
+  	  | expression T_EQ expression		{ $$ = DBinary_Operator(CEQ, $1, $3) }
+  	  | expression T_NEQ expression		{ $$ = DBinary_Operator(CNEQ, $1, $3) }
+  	  | expression T_GT expression		{ $$ = DBinary_Operator(CGT, $1, $3) }
+  	  | expression T_GTEQ expression	{ $$ = DBinary_Operator(CGTEQ, $1, $3) }  
+  	  | bool_expression T_AND bool_expression { $$ = DBinary_Operator(CAND, $1, $3) }
+  	  | bool_expression T_OR bool_expression { $$ = DBinary_Operator(COR, $1, $3) }
+      | bool_expression T_XOR bool_expression { $$ = DBinary_Operator(CXOR, $1, $3) }
+      | T_NOT bool_expression  	{ $$ = DUnary_Operator(CNot, $2) } 
 ;
+
 
 
 %%
 
-CExpression Eval(const std::wstring& wstr) {
-  CExpression result; 
+#include "lex.yy.c"
+
+CExpression Parse_AST_Tree(const std::wstring& wstr) {
+  expression::CAST_Node *ast_tree = nullptr; 
 
   yyscan_t scanner; 
   yylex_init(&scanner);
+
+  yylex_init_extra(&ast_tree, &scanner );
 
   const std::string src = Narrow_WString(wstr);	
   YY_BUFFER_STATE buffer = yy_scan_string(src.c_str(), scanner);
@@ -134,10 +144,10 @@ CExpression Eval(const std::wstring& wstr) {
   
   yylex_destroy(scanner);
   
-	return rc == 0 ? std::move(result) : nullptr;
+	return rc == 0 ? CExpression{ast_tree} : nullptr;
 }
 
-void yyerror(yyscan_t scanner, char const *msg) {
+void yyerror(void* scanner, char const *msg) {
 	  dprintf("Parse error: ");
     dprintf(msg);
     dprintf("\n");

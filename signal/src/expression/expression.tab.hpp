@@ -43,14 +43,20 @@
 #if YYDEBUG
 extern int yydebug;
 #endif
+/* "%code requires" blocks.  */
+#line 42 "expression.y"
+
+      #include "expression.h"    
+
+#line 52 "expression.tab.hpp"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
   enum yytokentype
   {
-    T_BOOL = 258,
-    T_DOUBLE = 259,
+    T_DOUBLE = 258,
+    T_BOOL = 259,
     T_PLUS = 260,
     T_MINUS = 261,
     T_MULTIPLY = 262,
@@ -64,7 +70,9 @@ extern int yydebug;
     T_GT = 270,
     T_GTEQ = 271,
     T_AND = 272,
-    T_OR = 273
+    T_OR = 273,
+    T_XOR = 274,
+    T_NOT = 275
   };
 #endif
 
@@ -72,12 +80,13 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 76 "expression.y"
+#line 75 "expression.y"
 
-	double dval;
-	bool bval;
+	expression::CAST_Node * ast_node;
+//  double dval;
+  //bool bval;
 
-#line 81 "expression.tab.hpp"
+#line 90 "expression.tab.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;

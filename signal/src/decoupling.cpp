@@ -55,14 +55,14 @@ HRESULT IfaceCalling CDecoupling_Filter::Do_Configure(scgms::SFilter_Configurati
 	mDestination_Id = configuration.Read_GUID(rsSignal_Destination_Id);
     mClone_From_Source = configuration.Read_Bool(rsClone_From_Source, mClone_From_Source);
 
-    mCondition = Eval( configuration.Read_String(rsCondition) );
+    mCondition = Parse_AST_Tree( configuration.Read_String(rsCondition) );
 
 	return mCondition ? S_OK : E_FAIL;
 }
 
 HRESULT IfaceCalling CDecoupling_Filter::Do_Execute(scgms::UDevice_Event event) {
     if (event.signal_id() == mSource_Id) {
-        const bool decouple = mCondition->evaluate(event.level());            
+        const bool decouple = mCondition->evaluate(event.level()).bval;            
 
         if (decouple) {
             //just change the signal id
