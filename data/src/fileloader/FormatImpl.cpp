@@ -38,16 +38,13 @@
 
 #include "FormatImpl.h"
 
-
 #include <memory>
+#include <cmath>
 #ifdef _WIN32
 	#include <windows.h>
 #endif
 
 #include "../../../../common/utils/string_utils.h"
-
-// we assume cp1250 in Excel XLS formats for now; TODO: find some recognition pattern
-const int assumedCodepage = 1250;
 
 /** Generic implementations **/
 
@@ -208,7 +205,7 @@ static double stod_custom(std::string& in)
 	}
 
 	// final alignment
-	ret *= pow(10.0, (double)expon);
+	ret *= std::pow(10.0, (double)expon);
 
 	return ret;
 }
@@ -264,6 +261,11 @@ void CCsv_File::Finalize()
 {
 	//
 }
+
+#ifndef NO_BUILD_EXCELSUPPORT
+
+// we assume cp1250 in Excel XLS formats for now; TODO: find some recognition pattern
+const int assumedCodepage = 1250;
 
 /** XLS format interface implementation **/
 
@@ -533,6 +535,8 @@ void CXlsx_File::Finalize()
 	// we do not need saving in temporary load filters
 	//mFile->save(mOriginalPath);
 }
+
+#endif
 
 /** XML format interface implementation **/
 

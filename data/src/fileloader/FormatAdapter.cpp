@@ -89,10 +89,12 @@ void CFormat_Adapter::Init(const wchar_t* filename, const wchar_t* originalFilen
 	// extract format name
 	if (ext == L"csv" || ext == L"txt")
 		format = KnownFileFormats::FORMAT_CSV;
+#ifndef NO_BUILD_EXCELSUPPORT
 	else if (ext == L"xls")
 		format = KnownFileFormats::FORMAT_XLS;
 	else if (ext == L"xlsx")
 		format = KnownFileFormats::FORMAT_XLSX;
+#endif
 	else if (ext == L"xml")
 		format = KnownFileFormats::FORMAT_XML;
 	else
@@ -111,6 +113,7 @@ void CFormat_Adapter::Init(const wchar_t* filename, const wchar_t* originalFilen
 			mFormat = std::make_unique<CCsv_File>();
 			break;
 		}
+#ifndef NO_BUILD_EXCELSUPPORT
 		case KnownFileFormats::FORMAT_XLS:
 		{
 			mFormat = std::make_unique<CXls_File>();
@@ -121,6 +124,7 @@ void CFormat_Adapter::Init(const wchar_t* filename, const wchar_t* originalFilen
 			mFormat = std::make_unique<CXlsx_File>();
 			break;
 		}
+#endif
 		case KnownFileFormats::FORMAT_XML:
 		{
 			mFormat = std::make_unique<CXml_File>();

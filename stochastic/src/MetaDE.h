@@ -355,7 +355,7 @@ public:
 							size_t to_go = mPBest_Count;
 							size_t best_tournament_index = candidate_solution.population_index;
 							double best_tournament_fitness = std::numeric_limits<double>::max();
-							std::set<size_t> visited_tournament_indexes{ {best_tournament_index} };
+							std::set<size_t> visited_tournament_indexes{ best_tournament_index };
 							while (to_go-- > 0) {
 								size_t random_tournament_index = mUniform_Distribution_Population(mRandom_Generator);
 								if (visited_tournament_indexes.find(random_tournament_index) == visited_tournament_indexes.end()) {

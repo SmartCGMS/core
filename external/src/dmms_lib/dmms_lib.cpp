@@ -67,9 +67,7 @@ CDMMS_Lib_Discrete_Model::~CDMMS_Lib_Discrete_Model()
 	if (mDmmsEngine)
 		mDmmsEngine.reset(nullptr);
 
-	// FreeLibrary hangs due to bad implementation of DMMS.dll licence verify
-	// TODO: revisit this in future DMMS.dll releases
-	//       last check: version 1.2.0
+	// do not unload DMMS library with each destructor; we keep the DLL loaded
 	//if (mDmmsLib && mDmmsLib->Is_Loaded())
 	//	mDmmsLib->Unload();
 }
@@ -137,7 +135,7 @@ HRESULT CDMMS_Lib_Discrete_Model::Do_Configure(scgms::SFilter_Configuration conf
 
 		// needed due to possibility of multiple dependency library versions coexisting in different fallback search paths
 		// TODO: revisit this in future DMMS.dll releases
-		//       last check: version 1.2.0
+		//       last check: version 1.2.1
 		SetDllDirectoryW(dllpath.c_str());
 
 		Path_Append(dllpath, L"DMMS.dll");
@@ -309,14 +307,14 @@ HRESULT IfaceCalling CDMMS_Lib_Discrete_Model::Set_Current_Time(const double new
 
 // ::ISimCallbacks iface implementation
 
-void CDMMS_Lib_Discrete_Model::iterationCallback(const SubjectObject *subjObject, const SensorSigArray *sensorSigArray, const NextMealObject *nextMealObject, const NextExerciseObject *nextExerciseObject,
-	const TimeObject *timeObject, ModelInputObject *modelInputsToModObject, const InNamedSignals *inNamedSignals, OutSignalArray *outSignalArray, RunStopStatus *runStopStatus)
+HRESULT IfaceCalling CDMMS_Lib_Discrete_Model::iterationCallback(const dmms::SubjectObject *subjObject, const dmms::SensorSigArray *sensorSigArray, const dmms::NextMealObject *nextMealObject, const dmms::NextExerciseObject *nextExerciseObject,
+	const dmms::TimeObject *timeObject, dmms::ModelInputObject *modelInputsToModObject, const dmms::InNamedSignals *inNamedSignals, dmms::OutSignalArray *outSignalArray, dmms::RunStopStatus *runStopStatus)
 {
 	const double bg = (*sensorSigArray)[0];
 	const double cgm = (*sensorSigArray)[1];
 
 	if (!mRunning)
-		return;
+		return E_FAIL;
 
 	// lock scope
 	{
@@ -340,7 +338,7 @@ void CDMMS_Lib_Discrete_Model::iterationCallback(const SubjectObject *subjObject
 		mDmmsSimCv.wait(lck, [this]() { return mToDMMSValuesReady || !mRunning; });
 
 		if (!mRunning)
-			return;
+			return E_FAIL;
 
 		modelInputsToModObject->sqInsulinNormalBasal += (mToDMMS.basal_rate / scgms::pmol_2_U) / 60.0;	// U/hr -> pmol/min
 		modelInputsToModObject->sqInsulinNormalBolus += (mToDMMS.bolus_rate / scgms::pmol_2_U) / 60.0;	// U/hr -> pmol/min
@@ -351,24 +349,30 @@ void CDMMS_Lib_Discrete_Model::iterationCallback(const SubjectObject *subjObject
 		// cancel bolus
 		mToDMMS.bolus_rate = 0;
 	}
+
+	return S_OK;
 }
 
-void CDMMS_Lib_Discrete_Model::initializeCallback(const bool useUniversalSeed, const double universalSeed, const SimInfo *simInfo)
+HRESULT IfaceCalling CDMMS_Lib_Discrete_Model::initializeCallback(const uint8_t useUniversalSeed, const double universalSeed, const dmms::SimInfo *simInfo)
 {
-	//
+	return S_OK;
 }
 
-OutputSignalNames CDMMS_Lib_Discrete_Model::outSignalName()
+HRESULT IfaceCalling CDMMS_Lib_Discrete_Model::outSignalName(dmms::OutputSignalNames *names)
 {
-	return static_cast<OutputSignalNames>(mDmms_Out_Signal_Names.data());
+	*names = static_cast<dmms::OutputSignalNames>(mDmms_Out_Signal_Names.data());
+
+	return S_OK;
 }
 
-int CDMMS_Lib_Discrete_Model::numOutputSignals()
+HRESULT IfaceCalling CDMMS_Lib_Discrete_Model::numOutputSignals(size_t *count)
 {
-	return static_cast<int>(mDmms_Out_Signal_Names.size());
+	*count = mDmms_Out_Signal_Names.size();
+
+	return S_OK;
 }
 
-void CDMMS_Lib_Discrete_Model::cleanupCallback()
+HRESULT IfaceCalling CDMMS_Lib_Discrete_Model::cleanupCallback()
 {
-	//
+	return S_OK;
 }

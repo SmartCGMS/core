@@ -1,14 +1,3 @@
-//*************************************************************************************************
-//                Revision Record
-//  Date         Issue      Author               Description
-// ----------  ---------  ---------------  --------------------------------------------------------
-// 09/17/2019  DMMSD-288  Yung-Yeh Chang    Original Release
-// 11/12/2019  DMMSD-288  Yung-Yeh Chang    Adapt the COM-like model
-//*************************************************************************************************
-
-#ifndef DMMSENGDEF_H
-#define DMMSENGDEF_H
-
 /*
  * This files defines objects used in the ISimCallbacks interface, which represents one of the DMMS
  * feedback control elements when calling DMMS as a dinamic library. To create a callback object that
@@ -24,7 +13,7 @@
  *
  * subjObject properties:
  *   name:  subject name, as displayed in the subject selection tab (e.g. adult#001).
- *   type1:  boolean indicating true if the subject is type 1
+ *   type1:  value = 1 indicates that the subject is type 1
  *   CR:  Carbohydrate ratio (g/Unit)
  *   CF:  Correction Factor (mg/dL/Unit)
  *   Gb:  Basal (fasting) glucose concentration (mg/dL)
@@ -91,6 +80,32 @@
  *   The number and names of output signals must be defined properly in the outSignalName() and numOutputSignals() in the ISimCallbacks class.
 */
 
+#ifndef DMMSENGINEDEF_H
+#define DMMSENGINEDEF_H
+
+#ifdef _WIN32
+    #define IfaceCalling __stdcall
+#else
+    #define IfaceCalling
+#endif
+
+namespace dmms {
+/*!
+ * Please read before implementation
+ *
+ * User must include compiler specific header files for definition of `size_t`,`uint8_t` and `HRESULT`.
+ *
+ * The use of `int` and `bool` was replaced with size_t and unit8_t, respectively. Because the size of `int` or `bool`
+ * is not guaranteed in a compiler or a system (x86 or x64), we use `size_t` and `uint8_t` for better inter-compiler/
+ * inter-platform compatibility. A user must include a header file that defines `size_t` and `unit8_t` before include
+ * "DmmsEnglieDef.h" in a project. For example, include cstdint for a minGW C++ project.
+ *
+ * All funtions return HRESULT in order to better follow the COM specification for the returning signature. A user
+ * must inlcude a compiler specific header file that defines HRESULT. For example, for none MFC environment, include
+ * "winnt.h" or "windows.h"
+ *
+ */
+
 /* Simulation information */
 struct SimInfo {
     char* popName;
@@ -104,7 +119,7 @@ struct SimInfo {
 /* Subject object - read only */
 struct SubjectObject {
     char* name;
-    bool type1;
+    uint8_t type1;
     double CR;
     double CF;
     double Gb;
@@ -137,23 +152,23 @@ struct TimeObject {
 };
 
 /* Sensor Array - read only */
-typedef double* SensorSigArray;
+using SensorSigArray = double*;
 
 /* Named input signals from the preceding iteration - read only  */
 struct InNamedSignals {
-    int size;
+    size_t size;
     const char** names;
     double* values;
 };
 
 /* Named output signals to the next iteration - read only */
-typedef double *OutSignalArray;
-typedef char** OutputSignalNames;
+using OutSignalArray = double* ;
+using  OutputSignalNames = char**;
 
 /* Run / Stop status flag */
 struct RunStopStatus {
-    bool stopRun = false;
-    bool error = false;
+    uint8_t stopRun = 0;
+    uint8_t error = 0;
     char* message; // size = 250
 };
 
@@ -181,7 +196,7 @@ class ISimCallbacks
 {
 public:
     /* This required method will be run at each iteration */
-    virtual void iterationCallback(const SubjectObject *subjObject,
+    virtual HRESULT IfaceCalling iterationCallback(const SubjectObject *subjObject,
                                    const SensorSigArray *sensorSigArray,
                                    const NextMealObject *nextMealObject,
                                    const NextExerciseObject *nextExerciseObject,
@@ -198,18 +213,20 @@ public:
      * this case. If "useUniversalSeed" is false, "universalSeed" value is always 0.0. A user may change the
      * universal seed number in the DMMS GUI. A user may also initialize the values of other members in the
      * derived class for later to be used in the iterationCallback(). */
-    virtual void initializeCallback(const bool useUniversalSeed, const double universalSeed,
+    virtual HRESULT IfaceCalling initializeCallback(const uint8_t useUniversalSeed, const double universalSeed,
                                     const SimInfo *simInfo) = 0;    
 
     /* Name of output signals*/
-    virtual OutputSignalNames outSignalName() = 0;
+    virtual HRESULT IfaceCalling outSignalName(OutputSignalNames *names) = 0;
     /* Number of output signals */
-    virtual int numOutputSignals() = 0;
+    virtual HRESULT IfaceCalling numOutputSignals(size_t *count) = 0;
 
     /* This optional method will be executed once after the end of a simulation.
      * A pritical use of this function may be deleting raw pointers or closing a file if a logging system was
      * in use. */
-    virtual void cleanupCallback() = 0;
+    virtual HRESULT IfaceCalling cleanupCallback() = 0;
 };
 
-#endif // DMMSENGDEF_H
+}
+
+#endif // DMMSENGINEDEF_H

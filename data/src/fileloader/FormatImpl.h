@@ -43,16 +43,20 @@
 #include "CSVFormat.h"
 #include "XMLFormat.h"
 
+#ifndef NO_BUILD_EXCELSUPPORT
 #include <xlnt/xlnt.hpp>
 
 #include <ExcelFormat/ExcelFormat.h>
+#endif
 
 // all known file formats
 enum class KnownFileFormats
 {
 	FORMAT_CSV,
+#ifndef NO_BUILD_EXCELSUPPORT
 	FORMAT_XLS,
 	FORMAT_XLSX,
+#endif
 	FORMAT_XML,
 };
 
@@ -210,6 +214,8 @@ class CCsv_File : public ISpreadsheet_File
 		virtual void Finalize();
 };
 
+#ifndef NO_BUILD_EXCELSUPPORT
+
 /*
  * XLS file format adapter
  */
@@ -248,6 +254,8 @@ class CXlsx_File : public ISpreadsheet_File
 		virtual void Write(int row, int col, std::string value);
 		virtual void Finalize();
 };
+
+#endif
 
 /*
  * XML format adapter

@@ -159,7 +159,7 @@ namespace bergman_model {
 		};
 	};
 
-	constexpr bergman_model::TParameters lower_bounds = {
+	constexpr bergman_model::TParameters lower_bounds = {{ {
 		0.005, 0.005, 5.0e-07, 0.1,					// p1, p2, p3, p4
 		0.001, 0.001,								// k12, k21
 		8.0,										// Vi
@@ -171,8 +171,8 @@ namespace bergman_model {
 		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,		// Q10, Q20, X0, I0, D10, D20, Isc0, Gsc0
 		0.0,										// BasalRate0
 		0, -0.5, -10.0								// p, cg, c
-	};
-	constexpr bergman_model::TParameters default_parameters = {
+	}} };
+	constexpr bergman_model::TParameters default_parameters = {{ {
 		0.028735, 0.028344, 5.035e-05, 0.3,			// p1, p2, p3, p4
 		0.1, 0.1,									// k12, k21
 		12.0,										// Vi
@@ -184,8 +184,8 @@ namespace bergman_model {
 		100.0, 100.0, 0, 0, 0, 0, 0, 95.0,			// Q10, Q20, X0, I0, D10, D20, Isc0, Gsc0
 		0,											// BasalRate0
 		0.929, -0.037, 1.308						// p, cg, c
-	};
-	constexpr bergman_model::TParameters upper_bounds = {
+	}} };
+	constexpr bergman_model::TParameters upper_bounds = {{ {
 		0.1, 0.1, 0.05, 1.0,										// p1, p2, p3, p4
 		0.3, 0.3,													// k12, k21
 		18.0,														// Vi
@@ -197,7 +197,7 @@ namespace bergman_model {
 		300.0, 300.0, 100.0, 200.0, 150.0, 150.0, 50.0, 300.0,		// Q10, Q20, X0, I0, D10, D20, Isc0, Gsc0
 		5.0,														// BasalRate0
 		2.0, 0.0, 5.0												// p, cg, c
-	};
+	}} };
 }
 
 

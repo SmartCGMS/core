@@ -54,7 +54,7 @@
 
 struct DMMS_Engine_Deletor
 {
-	void operator()(IDmms* eng)
+	void operator()(dmms::IDmms* eng)
 	{
 		// eng->close() deletes the eng pointer itself
 	}
@@ -66,7 +66,7 @@ struct DMMS_Engine_Deletor
 /*
  * DMMS discrete model (pump setting to, and data source from T1DMS simulator)
  */
-class CDMMS_Lib_Discrete_Model : public scgms::CBase_Filter, public virtual scgms::IDiscrete_Model, public ::ISimCallbacks
+class CDMMS_Lib_Discrete_Model : public scgms::CBase_Filter, public virtual scgms::IDiscrete_Model, public dmms::ISimCallbacks
 {
 	private:
 		dmms_model::TParameters mParameters;
@@ -77,7 +77,7 @@ class CDMMS_Lib_Discrete_Model : public scgms::CBase_Filter, public virtual scgm
 		// DMMS dynamic library; keep in mind that this library needs to remain loaded during simulation
 		static std::unique_ptr<CDynamic_Library> mDmmsLib;
 		// instance of DMMS engine
-		std::unique_ptr<IDmms, DMMS_Engine_Deletor> mDmmsEngine;
+		std::unique_ptr<dmms::IDmms, DMMS_Engine_Deletor> mDmmsEngine;
 
 		std::wstring mDMMS_Scenario_File;
 		std::wstring mDMMS_Out_File;
@@ -134,12 +134,12 @@ class CDMMS_Lib_Discrete_Model : public scgms::CBase_Filter, public virtual scgm
 		virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
 
 		// ::ISimCallbacks iface
-		virtual void iterationCallback(const SubjectObject *subjObject, const SensorSigArray *sensorSigArray, const NextMealObject *nextMealObject, const NextExerciseObject *nextExerciseObject,
-			const TimeObject *timeObject, ModelInputObject *modelInputsToModObject, const InNamedSignals *inNamedSignals, OutSignalArray *outSignalArray, RunStopStatus *runStopStatus) override final;
-		virtual void initializeCallback(const bool useUniversalSeed, const double universalSeed, const SimInfo *simInfo) override final;
-		virtual OutputSignalNames outSignalName() override final;
-		virtual int numOutputSignals() override final;
-		virtual void cleanupCallback() override final;
+		virtual HRESULT IfaceCalling iterationCallback(const dmms::SubjectObject *subjObject, const dmms::SensorSigArray *sensorSigArray, const dmms::NextMealObject *nextMealObject, const dmms::NextExerciseObject *nextExerciseObject,
+			const dmms::TimeObject *timeObject, dmms::ModelInputObject *modelInputsToModObject, const dmms::InNamedSignals *inNamedSignals, dmms::OutSignalArray *outSignalArray, dmms::RunStopStatus *runStopStatus) override final;
+		virtual HRESULT IfaceCalling initializeCallback(const uint8_t useUniversalSeed, const double universalSeed, const dmms::SimInfo *simInfo) override final;
+		virtual HRESULT IfaceCalling outSignalName(dmms::OutputSignalNames *names) override final;
+		virtual HRESULT IfaceCalling numOutputSignals(size_t *count) override final;
+		virtual HRESULT IfaceCalling cleanupCallback() override final;
 };
 
 #pragma warning( pop )

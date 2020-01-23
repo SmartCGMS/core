@@ -45,6 +45,7 @@
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/rattime.h"
 #include "../../../common/utils/string_utils.h"
+#include "../../../common/rtl/FilesystemLib.h"
 
 #include "log.h"
 
@@ -56,7 +57,6 @@
 #include <vector>
 #include <algorithm> 
 #include <cctype>
-#include <filesystem>
 
 CLog_Replay_Filter::CLog_Replay_Filter(scgms::IFilter* output) : CBase_Filter(output) {
 	//
@@ -72,7 +72,7 @@ CLog_Replay_Filter::~CLog_Replay_Filter() {
 void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 	if (log_filename.empty()) return;
 
-	std::wifstream log{ Narrow_WChar(log_filename.c_str()) };
+	std::wifstream log{ log_filename.wstring().c_str() };
 	if (!log.is_open()) return;
 	
 
@@ -167,14 +167,17 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 }
 
 void CLog_Replay_Filter::Open_Logs() {
-	if (std::filesystem::is_directory(mLog_Filename_Or_Dirpath)) {
 
-		std::filesystem::directory_iterator dir{ mLog_Filename_Or_Dirpath };
-		for (const auto& entry : dir) {
-			if ((dir->is_regular_file()) || (dir->is_symlink()))
-				Replay_Log(dir->path());
+	if (Is_Directory(mLog_Filename_Or_Dirpath))
+	{
+		auto dir = List_Directory(mLog_Filename_Or_Dirpath);
+		for (const auto& path : dir)
+		{
+			if (Is_Regular_File_Or_Symlink(path))
+				Replay_Log(path);
 		}
-	} else
+	}
+	else
 		Replay_Log(mLog_Filename_Or_Dirpath);
 
 	//issue shutdown after the last log, if we were not asked to ignore it

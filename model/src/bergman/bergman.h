@@ -161,7 +161,7 @@ class CBergman_Discrete_Model : public virtual scgms::CBase_Filter, public virtu
 		virtual ~CBergman_Discrete_Model() = default;
 
 		// scgms::IDiscrete_Model iface
-		virtual HRESULT IfaceCalling Set_Current_Time(const double new_current_time);
+		virtual HRESULT IfaceCalling Set_Current_Time(const double new_current_time) override final;
 		virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
 };
 

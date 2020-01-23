@@ -103,7 +103,7 @@ public:
 	virtual ~CGE_Discrete_Model();
 
 	// scgms::IDiscrete_Model iface
-	virtual HRESULT IfaceCalling Set_Current_Time(const double new_current_time);
+	virtual HRESULT IfaceCalling Set_Current_Time(const double new_current_time) override final;
 	virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
 };
 

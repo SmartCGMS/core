@@ -276,7 +276,7 @@ protected:
 		std::vector<size_t> indexes(mPopulation.size() - 2);
 		std::iota(indexes.begin(), indexes.end(), 1);	//note that we do not process the boundaries
 
-		size_t improvement_count = 1;	//solve as long as we do at least one improvement										
+		size_t improvement_count = 1;	//solve as long as we do at least one improvement
 		while ((improvement_count > 0) &&
 			(progress.current_progress++ < mSetup.max_generations) &&
 			(progress.cancelled == 0)) {
@@ -287,10 +287,10 @@ protected:
 			for (size_t dim = 0; dim < mSetup.problem_size; dim++) {
 				//sort the population so that we obtain a sorted samples in one dimension of the problem
 				//note that we do not sort nor process the boundaries
-				std::sort(mPopulation.begin() + 1, mPopulation.end() - 1, [this, dim](const TCandidate &a, const TCandidate &b) { return a->current[dim] < b->current[dim]; });
+				std::sort(mPopulation.begin() + 1, mPopulation.end() - 1, [dim](const TCandidate &a, const TCandidate &b) { return a->current[dim] < b->current[dim]; });
 
 				//attempt to improve in this particular dimension
-				std::for_each(std::execution::par_unseq, indexes.begin(), indexes.end(), [dim, this](const size_t index) {					
+				std::for_each(std::execution::par_unseq, indexes.begin(), indexes.end(), [dim, this](const size_t index) {
 					double estimate = Estimate_Extreme(index, dim);
 					//estimate = std::min(mUpper_Bound[dim], std::max(mLower_Bound[dim], estimate));
 					mPopulation[index]->next[dim] = estimate;

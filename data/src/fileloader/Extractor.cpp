@@ -42,6 +42,7 @@
 #include "../../../../common/rtl/rattime.h"
 #include "../../../../common/utils/string_utils.h"
 
+#include <array>
 #include <sstream>
 #include <iomanip>
 #include <ctime>
