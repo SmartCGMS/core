@@ -216,7 +216,7 @@ namespace decoupling
 	const wchar_t* config_param_name[param_count] = {
 		rsSignal_Source_Id,
 		rsSignal_Destination_Id,
-		rsClone_From_Source,
+		rsRemove_From_Source,
 		rsCondition
 	};
 
@@ -338,9 +338,9 @@ namespace signal_generator {
 
 namespace measured_signal
 {
-	constexpr size_t supported_count = 11;
+	constexpr size_t supported_count = 12;
 
-	const GUID supported_signal_ids[supported_count] = {
+	const std::array<GUID, supported_count> supported_signal_ids = {
 		scgms::signal_IG,
 		scgms::signal_BG,
 		scgms::signal_ISIG,
@@ -350,6 +350,7 @@ namespace measured_signal
 		scgms::signal_IOB,
 		scgms::signal_COB,
 		scgms::signal_Carb_Intake,
+		scgms::signal_Carb_Rescue,
 		scgms::signal_Calibration,
 		scgms::signal_Physical_Activity
 	};
@@ -422,8 +423,8 @@ extern "C" HRESULT IfaceCalling do_create_signal(const GUID *signal_id, scgms::I
 	if (signal_id == nullptr)	//signal error sets segment to nullptr as it does not need it, so we check signal_id only
 		return E_INVALIDARG;
 
-	for (size_t i = 0; i < measured_signal::supported_count; i++) {
-		if (measured_signal::supported_signal_ids[i] == *signal_id)
+	for (const auto& supported_id : measured_signal::supported_signal_ids) {
+		if (supported_id == *signal_id)
 			return Manufacture_Object<CMeasured_Signal>(signal);
 	}
 

@@ -53,7 +53,7 @@ CDecoupling_Filter::CDecoupling_Filter(scgms::IFilter *output) : CBase_Filter(ou
 HRESULT IfaceCalling CDecoupling_Filter::Do_Configure(scgms::SFilter_Configuration configuration) {
 	mSource_Id = configuration.Read_GUID(rsSignal_Source_Id);
 	mDestination_Id = configuration.Read_GUID(rsSignal_Destination_Id);
-    mClone_From_Source = configuration.Read_Bool(rsClone_From_Source, mClone_From_Source);
+    mRemove_From_Source = configuration.Read_Bool(rsRemove_From_Source, mRemove_From_Source);
 
     mCondition = Parse_AST_Tree( configuration.Read_String(rsCondition) );
 
@@ -62,22 +62,22 @@ HRESULT IfaceCalling CDecoupling_Filter::Do_Configure(scgms::SFilter_Configurati
 
 HRESULT IfaceCalling CDecoupling_Filter::Do_Execute(scgms::UDevice_Event event) {
     if (event.signal_id() == mSource_Id) {
-        const bool decouple = mCondition->evaluate(event.level()).bval;            
+        const bool decouple = mCondition->evaluate(event).bval;            
 
         if (decouple) {
-            //just change the signal id
-            event.signal_id() = mDestination_Id;
-            //and send it
-         } else {
-            //this is info or parameters level => clone it
-
-            auto clone = event.Clone();
-            clone.signal_id() = mDestination_Id;
-            HRESULT rc = Send(clone);
-            if (!SUCCEEDED(rc)) return rc;
-        }
-            
-
+            if (mRemove_From_Source) {
+                //just change the signal id
+                event.signal_id() = mDestination_Id;
+                //and send it
+            }
+            else {
+                //we have to clone it
+                auto clone = event.Clone();
+                clone.signal_id() = mDestination_Id;
+                HRESULT rc = Send(clone);
+                if (!SUCCEEDED(rc)) return rc;
+            }
+        }          
     } 
 	  
     return Send(event);		

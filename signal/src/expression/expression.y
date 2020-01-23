@@ -82,7 +82,9 @@ void yyerror(void* scanner, char const *msg);
 %token<ast_node> T_DOUBLE
 %token<ast_node> T_BOOL                                                                     
 %token T_PLUS T_MINUS T_MULTIPLY T_DIVIDE T_LEFT T_RIGHT T_LT T_LTEQ T_EQ T_NEQ T_GT T_GTEQ T_AND T_OR T_XOR T_NOT
-%left T_AND T_OR T_XOR
+%left T_AND T_XOR T_OR
+%left T_EQ T_NEQ  
+%left T_LT T_LTEQ T_GT T_GTEQ
 %left T_PLUS T_MINUS
 %left T_MULTIPLY T_DIVIDE
 %left T_NOT

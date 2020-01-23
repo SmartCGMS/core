@@ -550,9 +550,9 @@ static const yytype_int8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int8 yyrline[] =
 {
-       0,    98,    98,    99,   103,   104,   105,   106,   107,   108,
-     111,   112,   113,   114,   115,   116,   117,   118,   119,   120,
-     121,   122
+       0,   100,   100,   101,   105,   106,   107,   108,   109,   110,
+     113,   114,   115,   116,   117,   118,   119,   120,   121,   122,
+     123,   124
 };
 #endif
 
@@ -1113,25 +1113,25 @@ yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep, void* scanner)
   switch (yytype)
     {
     case 3: /* T_DOUBLE  */
-#line 92 "expression.y"
+#line 94 "expression.y"
             {delete ((*yyvaluep).ast_node);}
 #line 1119 "expression.tab.cpp"
         break;
 
     case 4: /* T_BOOL  */
-#line 92 "expression.y"
+#line 94 "expression.y"
             {delete ((*yyvaluep).ast_node);}
 #line 1125 "expression.tab.cpp"
         break;
 
     case 23: /* expression  */
-#line 92 "expression.y"
+#line 94 "expression.y"
             {delete ((*yyvaluep).ast_node);}
 #line 1131 "expression.tab.cpp"
         break;
 
     case 24: /* bool_expression  */
-#line 92 "expression.y"
+#line 94 "expression.y"
             {delete ((*yyvaluep).ast_node);}
 #line 1137 "expression.tab.cpp"
         break;
@@ -1405,115 +1405,115 @@ yyreduce:
   switch (yyn)
     {
   case 3:
-#line 99 "expression.y"
+#line 101 "expression.y"
                              { *(yyget_extra(scanner)) = (yyvsp[0].ast_node); }
 #line 1411 "expression.tab.cpp"
     break;
 
   case 4:
-#line 103 "expression.y"
+#line 105 "expression.y"
                                                 { (yyval.ast_node) = (yyvsp[0].ast_node); }
 #line 1417 "expression.tab.cpp"
     break;
 
   case 5:
-#line 104 "expression.y"
+#line 106 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CPlus, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
 #line 1423 "expression.tab.cpp"
     break;
 
   case 6:
-#line 105 "expression.y"
+#line 107 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CMinus, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
 #line 1429 "expression.tab.cpp"
     break;
 
   case 7:
-#line 106 "expression.y"
+#line 108 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CMul, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
 #line 1435 "expression.tab.cpp"
     break;
 
   case 8:
-#line 107 "expression.y"
+#line 109 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CDiv, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
 #line 1441 "expression.tab.cpp"
     break;
 
   case 9:
-#line 108 "expression.y"
+#line 110 "expression.y"
                                                 { (yyval.ast_node) = (yyvsp[-1].ast_node); }
 #line 1447 "expression.tab.cpp"
     break;
 
   case 10:
-#line 111 "expression.y"
+#line 113 "expression.y"
                                                 {(yyval.ast_node) = (yyvsp[0].ast_node); }
 #line 1453 "expression.tab.cpp"
     break;
 
   case 11:
-#line 112 "expression.y"
+#line 114 "expression.y"
                                                 { (yyval.ast_node) = (yyvsp[-1].ast_node); }
 #line 1459 "expression.tab.cpp"
     break;
 
   case 12:
-#line 113 "expression.y"
+#line 115 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CLT, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
 #line 1465 "expression.tab.cpp"
     break;
 
   case 13:
-#line 114 "expression.y"
+#line 116 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CLTEQ, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
 #line 1471 "expression.tab.cpp"
     break;
 
   case 14:
-#line 115 "expression.y"
+#line 117 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CEQ, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
 #line 1477 "expression.tab.cpp"
     break;
 
   case 15:
-#line 116 "expression.y"
+#line 118 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CNEQ, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
 #line 1483 "expression.tab.cpp"
     break;
 
   case 16:
-#line 117 "expression.y"
+#line 119 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CGT, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
 #line 1489 "expression.tab.cpp"
     break;
 
   case 17:
-#line 118 "expression.y"
+#line 120 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CGTEQ, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
 #line 1495 "expression.tab.cpp"
     break;
 
   case 18:
-#line 119 "expression.y"
+#line 121 "expression.y"
                                                   { (yyval.ast_node) = DBinary_Operator(CAND, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
 #line 1501 "expression.tab.cpp"
     break;
 
   case 19:
-#line 120 "expression.y"
+#line 122 "expression.y"
                                                  { (yyval.ast_node) = DBinary_Operator(COR, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
 #line 1507 "expression.tab.cpp"
     break;
 
   case 20:
-#line 121 "expression.y"
+#line 123 "expression.y"
                                               { (yyval.ast_node) = DBinary_Operator(CXOR, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
 #line 1513 "expression.tab.cpp"
     break;
 
   case 21:
-#line 122 "expression.y"
+#line 124 "expression.y"
                                 { (yyval.ast_node) = DUnary_Operator(CNot, (yyvsp[0].ast_node)) }
 #line 1519 "expression.tab.cpp"
     break;
@@ -1751,7 +1751,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 127 "expression.y"
+#line 129 "expression.y"
 
 
 #include "lex.yy.c"

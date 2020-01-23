@@ -66,7 +66,8 @@
 [ \t]	; // ignore all whitespace
 [0-9]+\.[0-9]+ 	{ yylval->ast_node = new expression::CDouble(yytext); return T_DOUBLE; }    
 [0-9]+		{ yylval->ast_node = new expression::CDouble(yytext); return T_DOUBLE; }
-"level"		{yylval->ast_node = new expression::CVariable(); return T_DOUBLE;}
+"level"		{yylval->ast_node = new expression::CVariable_level(); return T_DOUBLE;}
+"is_level_event"		{yylval->ast_node = new expression::CVariable_is_level_event(); return T_BOOL;}
 "true"		{yylval->ast_node = new expression::CConstant<double>(true); return T_BOOL;}
 "false"		{yylval->ast_node = new expression::CConstant<double>(false); return T_BOOL;}
 "+"		{return T_PLUS;}
@@ -85,5 +86,7 @@
 "&&"		{return T_AND;}
 "||"		{return T_OR;}
 "^"		{return T_XOR;}
+\n  {}
+. {yyerror(yyscanner, "lex unmatched character!");}
 
 %%

@@ -42,6 +42,8 @@
 #include <string>
 #include <type_traits>
 
+#include "../../../../common/rtl/DeviceLib.h"
+
 namespace expression {
     
     union TIntermediate {
@@ -52,23 +54,16 @@ namespace expression {
     class CAST_Node {
     public:
         virtual ~CAST_Node() {};
-        virtual TIntermediate evaluate(const double level) = 0;
+        virtual TIntermediate evaluate(const scgms::UDevice_Event &event) = 0;
     };
     
-    class CVariable : public virtual CAST_Node {
-    public:        
-        virtual TIntermediate evaluate(const double level) override final {
-            TIntermediate result; result.dval = level; return result;   //we do not support more variables right now
-        };
-    };
-
     template <typename T>
     class CConstant : public virtual CAST_Node {
     protected:
         T mValue;
     public:
         CConstant(T value) : mValue(value) {};
-        virtual TIntermediate evaluate(const double level) override final { 
+        virtual TIntermediate evaluate(const scgms::UDevice_Event& event) override final {
             TIntermediate result;
 
             if constexpr (std::is_floating_point<T>::value) result.dval = static_cast<T>(mValue);
@@ -96,9 +91,9 @@ namespace expression {
         std::unique_ptr<CAST_Node> mExpr;
     public:        
         CNot(CAST_Node* expr) : mExpr(expr) {};
-        virtual TIntermediate evaluate(const double level) override final {            
+        virtual TIntermediate evaluate(const scgms::UDevice_Event& event) override final {
           TIntermediate result;
-          result.bval = !(mExpr->evaluate(level).bval);
+          result.bval = !(mExpr->evaluate(event).bval);
           return result; 
         } 
     };
@@ -110,9 +105,9 @@ namespace expression {
            std::unique_ptr<CAST_Node> mLeft, mRight; \
         public: \
            name(CAST_Node* left, CAST_Node* right)  : mLeft(left), mRight(right) {}; \
-           virtual TIntermediate evaluate(const double level) override final { \
+           virtual TIntermediate evaluate(const scgms::UDevice_Event &event) override final { \
              TIntermediate result; \
-             result.result_arg = mLeft->evaluate(level).operand_arg oper mRight->evaluate(level).operand_arg; \
+             result.result_arg = mLeft->evaluate(event).operand_arg oper mRight->evaluate(event).operand_arg; \
              return result; \
            } \
         };
@@ -133,6 +128,19 @@ namespace expression {
     DSpecialized_Operator(CAND, bval, bval, && )
     DSpecialized_Operator(COR, bval, bval, ||)
     DSpecialized_Operator(CXOR, bval, bval, ^)
+
+
+
+    #define DSpecialized_Variable(operand_arg, result_arg) \
+        class CVariable_##operand_arg : public virtual CAST_Node { \
+        public: \
+            virtual TIntermediate evaluate(const scgms::UDevice_Event& event) override final { \
+                TIntermediate result; result.result_arg = event.operand_arg(); return result; \
+            }; \
+        };
+
+    DSpecialized_Variable(level, dval)
+    DSpecialized_Variable(is_level_event, bval)
 
 }
 
