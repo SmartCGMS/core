@@ -45,18 +45,20 @@
 
 #include <cmath>
 
+
 CDecoupling_Filter::CDecoupling_Filter(scgms::IFilter *output) : CBase_Filter(output) {
 	//
 }
+
 
 
 HRESULT IfaceCalling CDecoupling_Filter::Do_Configure(scgms::SFilter_Configuration configuration) {
 	mSource_Id = configuration.Read_GUID(rsSignal_Source_Id);
 	mDestination_Id = configuration.Read_GUID(rsSignal_Destination_Id);
     mRemove_From_Source = configuration.Read_Bool(rsRemove_From_Source, mRemove_From_Source);
-
-    mCondition = Parse_AST_Tree( configuration.Read_String(rsCondition) );
-
+       
+    mCondition = Parse_AST_Tree(configuration.Read_String(rsCondition));
+     
 	return mCondition ? S_OK : E_FAIL;
 }
 

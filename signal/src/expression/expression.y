@@ -74,8 +74,6 @@ void yyerror(void* scanner, char const *msg);
 
 %union {
 	expression::CAST_Node * ast_node;
-//  double dval;
-  //bool bval;
 } ;
 
 /*%token<ast_node> T_ASTNODE*/
@@ -146,11 +144,11 @@ CExpression Parse_AST_Tree(const std::wstring& wstr) {
   
   yylex_destroy(scanner);
   
-	return rc == 0 ? CExpression{ast_tree} : nullptr;
+  return rc == 0 ? CExpression{ast_tree} : nullptr;
 }
 
 void yyerror(void* scanner, char const *msg) {
-	  dprintf("Parse error: ");
+    dprintf("Parse error: ");
     dprintf(msg);
     dprintf("\n");
 }
