@@ -227,7 +227,7 @@ void CDb_Reader::Db_Reader() {
 		Emit_Shut_Down();
 }
 
-HRESULT IfaceCalling CDb_Reader::Do_Configure(scgms::SFilter_Configuration configuration) {
+HRESULT IfaceCalling CDb_Reader::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	
 	mDbHost = configuration.Read_String(rsDb_Host);	
 	mDbProvider = configuration.Read_String(rsDb_Provider);

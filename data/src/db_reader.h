@@ -91,7 +91,7 @@ class CDb_Reader : public scgms::CBase_Filter, public db::IDb_Sink{
 		bool Emit_Shut_Down();
 	protected:
 		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-		HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
+		HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 	protected:
 		db::SDb_Connector mDb_Connector;
 		db::SDb_Connection mDb_Connection;

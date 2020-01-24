@@ -105,7 +105,7 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 	return rc;
 }
 
-HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configuration) {
+HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	Stop_Generator(true);
 
 	mSync_To_Signal = configuration.Read_Bool(rsSynchronize_to_Signal);
@@ -123,7 +123,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 	if (!mModel)
 		return E_FAIL;
 
-	HRESULT rc = mModel->Configure(configuration.get());
+	HRESULT rc = mModel->Configure(configuration.get(), error_description.get());
 	if (!SUCCEEDED(rc))
 		return rc;
 

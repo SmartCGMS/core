@@ -60,7 +60,7 @@ public:
 
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
 
-	virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration) override final;
+	virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list *error_description) override final;
 	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
 };
 
@@ -75,7 +75,7 @@ public:
 
 	void Wait_For_Shutdown();	//blocking wait, until it receives the shutdown event
 
-	virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration) override final;
+	virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list* error_description) override final;
 	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override;
 };
 

@@ -77,7 +77,7 @@ HRESULT CGE_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 	return Send(event);
 }
 
-HRESULT CGE_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration) {
+HRESULT CGE_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	return E_NOTIMPL;
 }
 

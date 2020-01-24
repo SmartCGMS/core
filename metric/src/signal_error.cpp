@@ -103,7 +103,7 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 	return Send(event);
 }
 
-HRESULT CSignal_Error::Do_Configure(scgms::SFilter_Configuration configuration) {
+HRESULT CSignal_Error::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mReference_Signal_ID = configuration.Read_GUID(rsReference_Signal, Invalid_GUID);
 	mError_Signal_ID = configuration.Read_GUID(rsError_Signal, Invalid_GUID);
 	if ((mReference_Signal_ID == Invalid_GUID) || (mError_Signal_ID == Invalid_GUID)) return E_INVALIDARG;

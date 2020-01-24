@@ -91,7 +91,7 @@ protected:
 	void Add_Parameters_Hint(scgms::SModel_Parameter_Vector parameters);
 protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
+	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 public:
 	CCalculate_Filter(scgms::IFilter *output);
 	virtual ~CCalculate_Filter();

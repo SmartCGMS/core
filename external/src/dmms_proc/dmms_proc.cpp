@@ -98,7 +98,7 @@ void CDMMS_Proc_Discrete_Model::Deinitialize_DMMS() {
 	}
 }
 
-HRESULT CDMMS_Proc_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration) {
+HRESULT CDMMS_Proc_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	//return S_OK;
 	return Configure_DMMS() ? S_OK : E_FAIL;
 }

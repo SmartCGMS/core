@@ -261,7 +261,7 @@ HRESULT CFile_Reader::Extract(ExtractionResult &values)
 }
 
 
-HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration configuration) {
+HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mFileName = configuration.Read_String(rsInput_Values_File);
 	mSegmentSpacing = configuration.Read_Int(rsInput_Segment_Spacing) * 1000.0 * InvMSecsPerDay;
 	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);

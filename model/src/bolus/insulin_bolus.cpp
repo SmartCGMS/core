@@ -64,7 +64,7 @@ HRESULT CDiscrete_Insulin_Bolus_Calculator::Do_Execute(scgms::UDevice_Event even
     return Send(event);
 }
 
-HRESULT CDiscrete_Insulin_Bolus_Calculator::Do_Configure(scgms::SFilter_Configuration configuration) {
+HRESULT CDiscrete_Insulin_Bolus_Calculator::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
     // configured in the constructor
     return E_NOTIMPL;
 }

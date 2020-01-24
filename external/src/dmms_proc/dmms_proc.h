@@ -113,7 +113,7 @@ class CDMMS_Proc_Discrete_Model : public virtual scgms::CBase_Filter, public vir
 	protected:
 		// scgms::CBase_Filter iface implementation
 		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
+		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 
 	public:
 		CDMMS_Proc_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output);

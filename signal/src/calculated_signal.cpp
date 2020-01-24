@@ -77,7 +77,7 @@ std::unique_ptr<CTime_Segment>& CCalculate_Filter::Get_Segment(const uint64_t se
 	}
 }
 
-HRESULT IfaceCalling CCalculate_Filter::Do_Configure(scgms::SFilter_Configuration configuration) {
+HRESULT IfaceCalling CCalculate_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mCalculated_Signal_Id = configuration.Read_GUID(rsSelected_Signal);
 	mPrediction_Window = configuration.Read_Double(rsPrediction_Window);
 	mSolver_Enabled = configuration.Read_Bool(rsSolve_Parameters);

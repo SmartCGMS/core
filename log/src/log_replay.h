@@ -61,7 +61,7 @@ protected:
 	std::unique_ptr<std::thread> mLog_Replay_Thread;
 protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
+	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 protected:
 	// thread method
 	void Replay_Log(const std::filesystem::path& log_filename);

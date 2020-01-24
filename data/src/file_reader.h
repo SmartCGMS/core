@@ -92,7 +92,7 @@ class CFile_Reader : public scgms::CBase_Filter {
 
 	protected:
 		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-		HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
+		HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 	public:
 		CFile_Reader(scgms::IFilter *output);
 		virtual ~CFile_Reader();

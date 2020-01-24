@@ -115,7 +115,7 @@ class CDb_Writer : public scgms::CBase_Filter, public db::IDb_Sink {
 		void Flush_Levels();
 
 		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-		HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
+		HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 	public:
 		CDb_Writer(scgms::IFilter *output);
 		virtual ~CDb_Writer();

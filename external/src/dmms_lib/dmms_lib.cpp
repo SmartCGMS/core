@@ -105,7 +105,7 @@ HRESULT CDMMS_Lib_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 	return rc;
 }
 
-HRESULT CDMMS_Lib_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration)
+HRESULT CDMMS_Lib_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description)
 {
 	std::filesystem::path root_path = Get_Application_Dir();
 

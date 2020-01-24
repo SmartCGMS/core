@@ -132,7 +132,7 @@ bool CLog_Filter::Open_Log(const std::wstring &log_filename) {
 	return result;
 }
 
-HRESULT IfaceCalling CLog_Filter::Do_Configure(scgms::SFilter_Configuration configuration) {
+HRESULT IfaceCalling CLog_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	// load model descriptors to be able to properly format log outputs of parameters	
 	mModelDescriptors = scgms::get_model_descriptors();
 	mLog_Filename = configuration.Read_String(rsLog_Output_File);

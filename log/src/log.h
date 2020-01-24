@@ -96,7 +96,7 @@ protected:
 	std::wstring Parameters_To_WStr(const scgms::UDevice_Event& evt);
 protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
+	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 public:
 	CLog_Filter(scgms::IFilter *output);
 	virtual ~CLog_Filter();

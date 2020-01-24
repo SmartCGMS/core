@@ -88,7 +88,7 @@ protected:
 	void Terminate_Generator();
 protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
+	HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 public:
 	CSinCos_Generator(scgms::IFilter *output);
 	virtual ~CSinCos_Generator();

@@ -56,7 +56,7 @@ CSignal_Stats::~CSignal_Stats() {
     Flush_Stats();
 }
 
-HRESULT CSignal_Stats::Do_Configure(scgms::SFilter_Configuration configuration) {
+HRESULT CSignal_Stats::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
     mSignal_ID = configuration.Read_GUID(rsSelected_Signal);
     mCSV_Path = configuration.Read_String(rsOutput_CSV_File);
     

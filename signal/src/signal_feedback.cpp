@@ -83,7 +83,7 @@ HRESULT CSignal_Feedback::Do_Execute(scgms::UDevice_Event event) {
 	return Send(event);
 }
 
-HRESULT CSignal_Feedback::Do_Configure(scgms::SFilter_Configuration configuration) {
+HRESULT CSignal_Feedback::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mFeedback_Name = configuration.Read_String(rsFeedback_Name);    
     mSignal_ID = configuration.Read_GUID(rsSignal_Source_Id);
     mForward_Clone = configuration.Read_Bool(rsRemove_From_Source);

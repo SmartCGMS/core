@@ -266,7 +266,7 @@ HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 	return res;
 }
 
-HRESULT CBergman_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration) {
+HRESULT CBergman_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	// configured in the constructor - no need for additional configuration; signalize success
 	return S_OK;
 }

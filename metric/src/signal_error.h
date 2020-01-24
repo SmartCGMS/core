@@ -78,7 +78,7 @@ protected:
 	double Calculate_Metric();	//returns metric or NaN if could not calculate
 protected:			
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
+	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 public:
     CSignal_Error(scgms::IFilter *output);
 	virtual ~CSignal_Error();

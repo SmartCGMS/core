@@ -46,16 +46,23 @@ CMapping_Filter::CMapping_Filter(scgms::IFilter *output) : CBase_Filter(output) 
 }
 
 
-HRESULT IfaceCalling CMapping_Filter::Do_Configure(scgms::SFilter_Configuration configuration) {	
+HRESULT IfaceCalling CMapping_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {	
 	mSource_Id = configuration.Read_GUID(rsSignal_Source_Id);
 	mDestination_Id = configuration.Read_GUID(rsSignal_Destination_Id);
+    mDestination_Null = mDestination_Id == scgms::signal_Null;
 
 	return S_OK;
 }
 
 HRESULT IfaceCalling CMapping_Filter::Do_Execute(scgms::UDevice_Event event) {
-	if (event.signal_id() == mSource_Id)
-		event.signal_id() = mDestination_Id;
+    if (event.signal_id() == mSource_Id) {
+        if (mDestination_Null) {
+            event.reset(nullptr);
+            return S_OK;
+        }
+        else
+            event.signal_id() = mDestination_Id;    //just changes the signal id
+    }
 
 	return Send(event);		
 }

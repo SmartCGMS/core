@@ -62,7 +62,7 @@ protected:
     void Flush_Stats();
 protected:
     virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-    virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
+    virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 public:
     CSignal_Stats(scgms::IFilter* output);
     virtual ~CSignal_Stats();

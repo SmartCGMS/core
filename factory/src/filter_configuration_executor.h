@@ -58,7 +58,7 @@ protected:
 public:			
 	virtual ~CFilter_Configuration_Executor();
 
-	HRESULT Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
+	HRESULT Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, refcnt::Swstr_list& error_description);
 
 	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
 	virtual HRESULT IfaceCalling Wait_For_Shutdown_and_Terminate() override final;
@@ -70,7 +70,7 @@ public:
 
 
 #ifdef _WIN32
-	extern "C" __declspec(dllexport) HRESULT IfaceCalling execute_filter_configuration(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, scgms::IFilter_Executor **executor);
+	extern "C" __declspec(dllexport) HRESULT IfaceCalling execute_filter_configuration(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, scgms::IFilter_Executor **executor, refcnt::wstr_list *error_description);
 #else
-	extern "C" HRESULT IfaceCalling execute_filter_configuration(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, scgms::IFilter_Executor **executor);
+	extern "C" HRESULT IfaceCalling execute_filter_configuration(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, scgms::IFilter_Executor **executor, refcnt::wstr_list *error_description);
 #endif

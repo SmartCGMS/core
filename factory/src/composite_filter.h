@@ -55,7 +55,7 @@ protected:
 public:
 	CComposite_Filter(std::recursive_mutex &communication_guard);	
 
-	HRESULT Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
+	HRESULT Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, refcnt::Swstr_list &error_description);
 	HRESULT Execute(scgms::IDevice_Event *event);
 	HRESULT Clear();
 	bool Empty();	

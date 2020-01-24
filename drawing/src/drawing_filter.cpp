@@ -388,7 +388,7 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 	mDataMap = vectorsMap;
 }
 
-HRESULT CDrawing_Filter::Do_Configure(scgms::SFilter_Configuration configuration) {
+HRESULT CDrawing_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mCanvasWidth = static_cast<int>(configuration.Read_Int(rsDrawing_Filter_Canvas_Width, mCanvasWidth));
 	mCanvasHeight = static_cast<int>(configuration.Read_Int(rsDrawing_Filter_Canvas_Height, mCanvasHeight));
 	mAGP_FilePath = configuration.Read_String(rsDrawing_Filter_Filename_AGP);

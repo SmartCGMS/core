@@ -45,8 +45,8 @@
 #include "composite_filter.h"
 #include "device_event.h"
 
-HRESULT CFilter_Configuration_Executor::Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) {
-	return mComposite_Filter.Build_Filter_Chain(configuration, &mTerminal_Filter, on_filter_created, on_filter_created_data);
+HRESULT CFilter_Configuration_Executor::Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, refcnt::Swstr_list& error_description) {
+	return mComposite_Filter.Build_Filter_Chain(configuration, &mTerminal_Filter, on_filter_created, on_filter_created_data, error_description);
 }
 
 
@@ -70,13 +70,16 @@ HRESULT IfaceCalling CFilter_Configuration_Executor::Terminate() {
 	return mComposite_Filter.Clear();
 }
 
-HRESULT IfaceCalling execute_filter_configuration(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, scgms::IFilter_Executor **executor) {
+HRESULT IfaceCalling execute_filter_configuration(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, scgms::IFilter_Executor **executor, refcnt::wstr_list *error_description) {
 	std::unique_ptr<CFilter_Configuration_Executor> raw_executor = std::make_unique<CFilter_Configuration_Executor>();
 	//increase the reference just in a case that we would be released prematurely in the Build_Filter_Chain call
 	*executor = static_cast<scgms::IFilter_Executor*>(raw_executor.get());
 	(*executor)->AddRef();	
 
-	HRESULT rc = raw_executor->Build_Filter_Chain(configuration, on_filter_created, on_filter_created_data);
+
+    refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
+
+	HRESULT rc = raw_executor->Build_Filter_Chain(configuration, on_filter_created, on_filter_created_data, shared_error_description);
 	raw_executor.release();	//can release the unique pointer as it did its job and is needed no more
 
 	if (!SUCCEEDED(rc)) {

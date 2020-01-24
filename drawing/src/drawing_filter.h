@@ -155,7 +155,7 @@ protected:
 	HRESULT Get_Plot(const std::string &plot, refcnt::IVector_Container<char> *svg) const;
 protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
+	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 public:
 	CDrawing_Filter(scgms::IFilter *output);
 	virtual ~CDrawing_Filter() = default;

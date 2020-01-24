@@ -124,7 +124,7 @@ bool CSinCos_Generator::Emit_Shut_Down() {
 	return Send(evt) == S_OK;
 }
 
-HRESULT IfaceCalling CSinCos_Generator::Do_Configure(scgms::SFilter_Configuration configuration) {
+HRESULT IfaceCalling CSinCos_Generator::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mIG_Params.offset = configuration.Read_Double(rsGen_IG_Offset);
 	mIG_Params.amplitude = configuration.Read_Double(rsGen_IG_Amplitude);
 	mIG_Params.period = configuration.Read_Double(rsGen_IG_Sin_Period);

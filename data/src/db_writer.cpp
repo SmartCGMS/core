@@ -247,7 +247,7 @@ bool CDb_Writer::Store_Parameters(const scgms::UDevice_Event& evt) {
 	return result;
 }
 
-HRESULT IfaceCalling CDb_Writer::Do_Configure(scgms::SFilter_Configuration configuration) {
+HRESULT IfaceCalling CDb_Writer::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 
 	mDbHost = configuration.Read_String(rsDb_Host);
 	mDbProvider = configuration.Read_String(rsDb_Provider);

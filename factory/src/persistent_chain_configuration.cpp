@@ -50,7 +50,7 @@
 
 #include <fstream>
 
-HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar_t *file_path) {
+HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar_t *file_path, refcnt::wstr_list* error_description) {
 	HRESULT rc = E_UNEXPECTED;
 
 	if ((file_path == nullptr) || (*file_path == 0)) {
@@ -74,7 +74,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 			// fix valgrind's "Conditional jump or move depends on uninitialised value(s)"
 			// although we are sending proper length, SimpleIni probably reaches one byte further and reads uninitialized memory
 			buf.push_back(0);
-			rc = Load_From_Memory(buf.data(), buf.size());
+			rc = Load_From_Memory(buf.data(), buf.size(), error_description);
 		}
 
 		configfile.close();
@@ -86,7 +86,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 	return rc;
 }
 
-HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const char *memory, const size_t len) {
+HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const char *memory, const size_t len, refcnt::wstr_list* error_description) {
 	CSimpleIniW mIni;
 	bool loaded_all_filters = true;
 

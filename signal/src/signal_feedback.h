@@ -57,7 +57,7 @@ class CSignal_Feedback : public scgms::CBase_Filter, public scgms::IFilter_Feedb
         bool mForward_Clone = false;
 	protected:
 		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-		HRESULT Do_Configure(scgms::SFilter_Configuration configuration) override final;
+		HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 
 	public:
         CSignal_Feedback(scgms::IFilter *output);

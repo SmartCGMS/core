@@ -51,10 +51,10 @@ void CFilter_Executor::Release_Filter() {
 }
 
 
-HRESULT IfaceCalling CFilter_Executor::Configure(scgms::IFilter_Configuration* configuration) {
+HRESULT IfaceCalling CFilter_Executor::Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list* error_description) {
 	if (!mFilter) return E_FAIL;	
-	HRESULT rc = mFilter->Configure(configuration);	
-	if (rc == S_OK)
+	HRESULT rc = mFilter->Configure(configuration, error_description);
+	if ((rc == S_OK) && mOn_Filter_Created)
 		//at this point, we will call a callback function to perform any additional configuration of the filter we've just configured 
 		rc = mOn_Filter_Created(mFilter.get(), mOn_Filter_Created_Data);
 
@@ -79,7 +79,7 @@ void CTerminal_Filter::Wait_For_Shutdown() {
 }
 
 
-HRESULT IfaceCalling CTerminal_Filter::Configure(scgms::IFilter_Configuration* configuration) {
+HRESULT IfaceCalling CTerminal_Filter::Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list* error_description) {
 	return S_OK;
 }
 

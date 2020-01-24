@@ -52,11 +52,12 @@ CDecoupling_Filter::CDecoupling_Filter(scgms::IFilter *output) : CBase_Filter(ou
 
 
 
-HRESULT IfaceCalling CDecoupling_Filter::Do_Configure(scgms::SFilter_Configuration configuration) {
+HRESULT IfaceCalling CDecoupling_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mSource_Id = configuration.Read_GUID(rsSignal_Source_Id);
 	mDestination_Id = configuration.Read_GUID(rsSignal_Destination_Id);
-    mRemove_From_Source = configuration.Read_Bool(rsRemove_From_Source, mRemove_From_Source);
-       
+    mDestination_Null = mDestination_Id == scgms::signal_Null;
+    mRemove_From_Source = configuration.Read_Bool(rsRemove_From_Source, mRemove_From_Source);     
+
     mCondition = Parse_AST_Tree(configuration.Read_String(rsCondition));
      
 	return mCondition ? S_OK : E_FAIL;
@@ -68,9 +69,14 @@ HRESULT IfaceCalling CDecoupling_Filter::Do_Execute(scgms::UDevice_Event event) 
 
         if (decouple) {
             if (mRemove_From_Source) {
-                //just change the signal id
-                event.signal_id() = mDestination_Id;
-                //and send it
+
+                if (mDestination_Null) {
+                    event.reset(nullptr);
+                    return S_OK;
+                } else 
+                    //just change the signal id
+                    event.signal_id() = mDestination_Id;
+                    //and send it
             }
             else {
                 //we have to clone it
