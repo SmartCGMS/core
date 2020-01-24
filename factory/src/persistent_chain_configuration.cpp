@@ -82,7 +82,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 		configfile.close();
 	}
 	catch (const std::exception & ex) {
-		// speciffic handling for all exceptions extending std::exception, except
+		// specific handling for all exceptions extending std::exception, except
 		// std::runtime_error which is handled explicitly
 		std::wstring error_desc = Widen_Char(ex.what());
 		shared_error_description.push(error_desc.c_str());
@@ -196,9 +196,9 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 							else {
 								std::wstring error_desc = dsMalformed_Filter_Parameter_Value;
 								error_desc.append(desc.description);
-								error_desc.append(L"(2)");
+								error_desc.append(L" (2)");
 								error_desc.append(desc.ui_parameter_name[i]);
-								error_desc.append(L"(3)");
+								error_desc.append(L" (3)");
 								error_desc.append(str_value);
 								shared_error_description.push(error_desc.c_str());
 							}
@@ -226,7 +226,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 		}
 	}
 	catch (const std::exception & ex) {
-		// speciffic handling for all exceptions extending std::exception, except
+		// specific handling for all exceptions extending std::exception, except
 		// std::runtime_error which is handled explicitly
 		std::wstring error_desc = Widen_Char(ex.what());
 		shared_error_description.push(error_desc.c_str());
