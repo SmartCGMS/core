@@ -49,6 +49,7 @@
 #include "../../../common/utils/string_utils.h" 
 
 #include <fstream>
+#include <exception>
 
 HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar_t *file_path, refcnt::wstr_list* error_description) {
 	HRESULT rc = E_UNEXPECTED;
@@ -66,6 +67,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 	std::vector<char> buf;
 	std::ifstream configfile;
 
+	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
 	try {		
 		configfile.open(Narrow_WString(mFile_Path));
 
@@ -79,6 +81,13 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 
 		configfile.close();
 	}
+	catch (const std::exception & ex) {
+		// speciffic handling for all exceptions extending std::exception, except
+		// std::runtime_error which is handled explicitly
+		std::wstring error_desc = Widen_Char(ex.what());
+		shared_error_description.push(error_desc.c_str());
+		return E_FAIL;
+	}
 	catch (...) {
 		rc = E_FAIL;
 	}
@@ -89,6 +98,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const char *memory, const size_t len, refcnt::wstr_list* error_description) {
 	CSimpleIniW mIni;
 	bool loaded_all_filters = true;
+	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
 
 	try {
 		mIni.LoadData(memory, len);
@@ -183,6 +193,15 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 								auto raw_param = filter_parameter.get();
 								filter_config->add(&raw_param, &raw_param + 1);
 							}
+							else {
+								std::wstring error_desc = dsMalformed_Filter_Parameter_Value;
+								error_desc.append(desc.description);
+								error_desc.append(L"(2)");
+								error_desc.append(desc.ui_parameter_name[i]);
+								error_desc.append(L"(3)");
+								error_desc.append(str_value);
+								shared_error_description.push(error_desc.c_str());
+							}
 
 						}
 					}
@@ -193,10 +212,25 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 						add(&raw_filter_config, &raw_filter_config + 1);						
 					}
 				}
-				else
+				else {
 					loaded_all_filters = false;
+					std::wstring error_desc = dsCannot_Resolve_Filter_Descriptor + GUID_To_WString(id);
+					shared_error_description.push(error_desc.c_str());
+				}
 			}
+			else {
+				std::wstring error_desc = dsInvalid_Section_Name + name_str;
+				shared_error_description.push(error_desc.c_str());
+			}
+
 		}
+	}
+	catch (const std::exception & ex) {
+		// speciffic handling for all exceptions extending std::exception, except
+		// std::runtime_error which is handled explicitly
+		std::wstring error_desc = Widen_Char(ex.what());
+		shared_error_description.push(error_desc.c_str());
+		return E_FAIL;
 	}
 	catch (...) {
 		return E_FAIL;
