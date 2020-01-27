@@ -143,8 +143,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 								std::unique_ptr<CFilter_Parameter> raw_filter_parameter = std::make_unique<CFilter_Parameter>(desc.parameter_type[i], desc.config_parameter_name[i]);
 								filter_parameter = refcnt::make_shared_reference_ext<scgms::SFilter_Parameter, scgms::IFilter_Parameter>(raw_filter_parameter.get(), true);
 								raw_filter_parameter.release();
-							}
-														
+							}														
 
 							bool valid = false;
 
@@ -203,6 +202,13 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 								shared_error_description.push(error_desc.c_str());
 							}
 
+						} else {
+							//this parameter is not configured, warn about it
+							std::wstring error_desc = dsFilter_Parameter_Not_Configured;
+							error_desc.append(desc.description);
+							error_desc.append(L" (2)");
+							error_desc.append(desc.ui_parameter_name[i]);
+							shared_error_description.push(error_desc.c_str());
 						}
 					}
 

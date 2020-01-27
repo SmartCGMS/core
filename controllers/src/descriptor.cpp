@@ -88,10 +88,14 @@ namespace iob {
 		default_parameters,
 		upper_bound,
 		signal_count,
-		signal_ids,
-		signal_names,
+		signal_ids,		
 		reference_signal_ids
 	};
+	
+	const scgms::TSignal_Descriptor act_bi_desc{ signal_Insulin_Activity_Bilinear, dsInsulin_Activity_Bilinear, L"", scgms::NPhysical_Unit::Other, 0xFF008000, scgms::NSignal_Visualization::smooth };
+	const scgms::TSignal_Descriptor act_exp_desc{ signal_Insulin_Activity_Exponential, dsInsulin_Activity_Exponential, L"", scgms::NPhysical_Unit::Other, 0xFF008000, scgms::NSignal_Visualization::smooth };
+	const scgms::TSignal_Descriptor iob_bi_desc{ signal_IOB_Bilinear, dsIOB_Bilinear, L"", scgms::NPhysical_Unit::Other, 0xFF008000, scgms::NSignal_Visualization::smooth };
+	const scgms::TSignal_Descriptor iob_exp_desc{ signal_IOB_Exponential, dsIOB_Exponential, L"", scgms::NPhysical_Unit::Other, 0xFF008000, scgms::NSignal_Visualization::smooth };
 }
 
 namespace cob {
@@ -125,10 +129,11 @@ namespace cob {
 		default_parameters,
 		upper_bound,
 		signal_count,
-		signal_ids,
-		signal_names,
+		signal_ids,		
 		reference_signal_ids,		
 	};
+
+	const scgms::TSignal_Descriptor bi_desc{ signal_COB_Bilinear, dsCOB_Bilinear, L"", scgms::NPhysical_Unit::Other, 0xFF008000, scgms::NSignal_Visualization::smooth };
 }
 
 namespace betapid_insulin_regulation {
@@ -161,10 +166,13 @@ namespace betapid_insulin_regulation {
 		default_parameters,
 		upper_bound,
 		signal_count,
-		signal_ids,
-		signal_names,
+		signal_ids,		
 		reference_signal_ids,
 	};
+
+	const scgms::TSignal_Descriptor pid_desc{ betapid_signal_id, dsInsulin_BetaPID_Rate, dsU_per_Hr, scgms::NPhysical_Unit::U_per_Hr, 0xFF008000, scgms::NSignal_Visualization::step };
+	const scgms::TSignal_Descriptor pid2_desc{ betapid2_signal_id, dsInsulin_BetaPID2_Rate, dsU_per_Hr, scgms::NPhysical_Unit::U_per_Hr, 0xFF008000, scgms::NSignal_Visualization::step };
+	
 }
 
 namespace betapid3_insulin_regulation {
@@ -197,10 +205,11 @@ namespace betapid3_insulin_regulation {
 		default_parameters,
 		upper_bound,
 		signal_count,
-		signal_ids,
-		signal_names,
+		signal_ids,		
 		reference_signal_ids,
 	};
+
+	const scgms::TSignal_Descriptor pid3_desc{ betapid3_signal_id, dsInsulin_BetaPID3_Rate, dsU_per_Hr, scgms::NPhysical_Unit::U_per_Hr, 0xFF008000, scgms::NSignal_Visualization::step };
 }
 
 namespace lgs_basal_insulin {
@@ -229,17 +238,29 @@ namespace lgs_basal_insulin {
 		default_parameters,
 		upper_bound,
 		signal_count,
-		signal_ids,
-		signal_names,
+		signal_ids,		
 		reference_signal_ids
 	};
+
+	const scgms::TSignal_Descriptor lgs_desc{ lgs_basal_insulin_signal_id, dsInsulin_LGS_Rate, dsU_per_Hr, scgms::NPhysical_Unit::U_per_Hr, 0xFF008000, scgms::NSignal_Visualization::step };
 }
 
 const std::array<scgms::TModel_Descriptor, 5> model_descriptions = { { iob::desc, cob::desc, betapid_insulin_regulation::desc, betapid3_insulin_regulation::desc, lgs_basal_insulin::desc } };
 
+
+const std::array<scgms::TSignal_Descriptor, 9> signals_descriptors = { {iob::act_bi_desc, iob::act_exp_desc, iob::iob_bi_desc, iob::iob_exp_desc, cob::bi_desc,
+																		betapid_insulin_regulation::pid_desc, betapid_insulin_regulation::pid2_desc, betapid3_insulin_regulation::pid3_desc,
+																		lgs_basal_insulin::lgs_desc} };
+
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
 	*begin = const_cast<scgms::TModel_Descriptor*>(model_descriptions.data());
 	*end = *begin + model_descriptions.size();
+	return S_OK;
+}
+
+extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end) {
+	*begin = const_cast<scgms::TSignal_Descriptor*>(signals_descriptors.data());
+	*end = *begin + signals_descriptors.size();
 	return S_OK;
 }
 

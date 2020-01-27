@@ -413,11 +413,12 @@ HRESULT CDrawing_Filter::Do_Configure(scgms::SFilter_Configuration configuration
 
 	// cache model signal names
 	auto models = scgms::get_model_descriptors();
+	scgms::CSignal_Description signal_descriptions;
 	for (auto const& model : models)
 	{
 		for (size_t i = 0; i < model.number_of_calculated_signals; i++)
 		{
-			std::wstring wname = std::wstring(model.description) + L" - " + model.calculated_signal_names[i];
+			std::wstring wname = /*std::wstring(model.description) + L" - " + */signal_descriptions.Get_Name(model.calculated_signal_ids[i]);
 			mCalcSignalNameMap[model.calculated_signal_ids[i]] = Narrow_WString(wname);
 			mReferenceForCalcMap[model.calculated_signal_ids[i]] = model.reference_signal_ids[i];
 		}

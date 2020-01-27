@@ -94,7 +94,7 @@ void CSignal_Stats::Flush_Stats() {
     if (!stats_file.is_open()) return;
 
     {   //write the header
-        scgms::CSignal_Names signal_names;
+        scgms::CSignal_Description signal_names;
         stats_file << signal_names.Get_Name(mSignal_ID) << "; " << GUID_To_WString(mSignal_ID) << std::endl;
         stats_file << rsSignal_Stats_Header << std::endl;
     }        

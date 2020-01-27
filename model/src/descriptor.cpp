@@ -60,11 +60,10 @@ namespace diffusion_v2_model {
 
 	const size_t signal_count = 2;
 	
-	const GUID signal_ids[signal_count] = { signal_Diffusion_v2_Blood, signal_Diffusion_v2_Ist };
-	const wchar_t *signal_names[signal_count] = { dsBlood, dsInterstitial };
+	const GUID signal_ids[signal_count] = { signal_Diffusion_v2_Blood, signal_Diffusion_v2_Ist };	
 	const GUID reference_signal_ids[signal_count] = { scgms::signal_BG, scgms::signal_IG };
 
-	scgms::TModel_Descriptor desc = {
+	const scgms::TModel_Descriptor desc = {
 		id,
 		dsDiffusion_Model_v2,
 		rsDiffusion_v2_Table,
@@ -76,10 +75,16 @@ namespace diffusion_v2_model {
 		default_parameters,
 		upper_bound,
 		signal_count,
-		signal_ids,
-		signal_names,
+		signal_ids,		
 		reference_signal_ids
 	};
+
+	
+	const std::wstring blood_desc = std::wstring{ dsDiffusion_Model_v2 } +L" - " + dsBlood;
+	const scgms::TSignal_Descriptor bg_desc { signal_Diffusion_v2_Blood, blood_desc.c_str(), dsmmol_per_L, scgms::NPhysical_Unit::mmol_per_L, 0xFFFF0000, scgms::NSignal_Visualization::smooth };
+
+	const std::wstring ist_desc = std::wstring{ dsDiffusion_Model_v2 } +L" - " + dsInterstitial;
+	const scgms::TSignal_Descriptor ig_desc{ signal_Diffusion_v2_Blood, ist_desc.c_str(), dsmmol_per_L, scgms::NPhysical_Unit::mmol_per_L, 0xFF0000FF, scgms::NSignal_Visualization::smooth };
 
 }
 
@@ -94,7 +99,6 @@ namespace steil_rebrin {
 
 	const size_t signal_count = 1;	
 	const GUID signal_ids[signal_count] = { signal_Steil_Rebrin_Blood };
-	const wchar_t *signal_names[signal_count] = { dsBlood };
 	const GUID reference_signal_ids[signal_count] = { scgms::signal_BG };
 
 	const scgms::TModel_Descriptor desc = {
@@ -109,10 +113,12 @@ namespace steil_rebrin {
 		default_parameters,
 		upper_bound,
 		signal_count,
-		signal_ids,
-		signal_names,
+		signal_ids,		
 		reference_signal_ids
 	};
+
+	const std::wstring blood_desc = std::wstring{ dsSteil_Rebrin } +L" - " + dsBlood;
+	const scgms::TSignal_Descriptor bg_desc{ signal_Steil_Rebrin_Blood, blood_desc.c_str(), dsmmol_per_L, scgms::NPhysical_Unit::mmol_per_L, 0xFFFF0000, scgms::NSignal_Visualization::smooth };
 
 }
 
@@ -129,7 +135,6 @@ namespace steil_rebrin_diffusion_prediction {
 
 	const size_t signal_count = 1;
 	const GUID signal_ids[signal_count] = { signal_Steil_Rebrin_Diffusion_Prediction };
-	const wchar_t *signal_names[signal_count] = { dsInterstitial };
 	const GUID reference_signal_ids[signal_count] = { scgms::signal_IG };
 
 	const scgms::TModel_Descriptor desc = {
@@ -144,11 +149,12 @@ namespace steil_rebrin_diffusion_prediction {
 		default_parameters,
 		upper_bound,
 		signal_count,
-		signal_ids,
-		signal_names,
+		signal_ids,		
 		reference_signal_ids
 	};
 
+	const std::wstring ist_desc = std::wstring{ dsSteil_Rebrin_Diffusion_Prediction } +L" - " + dsInterstitial;
+	const scgms::TSignal_Descriptor ig_desc{ signal_Steil_Rebrin_Diffusion_Prediction, ist_desc.c_str(), dsmmol_per_L, scgms::NPhysical_Unit::mmol_per_L, 0xFF0000FF, scgms::NSignal_Visualization::smooth };
 }
 
 namespace diffusion_prediction {
@@ -166,7 +172,6 @@ namespace diffusion_prediction {
 	const size_t signal_count = 1;
 
 	const GUID signal_ids[signal_count] = { signal_Diffusion_Prediction };
-	const wchar_t *signal_names[signal_count] = { dsInterstitial };
 	const GUID reference_signal_ids[signal_count] = { scgms::signal_IG };
 
 	const scgms::TModel_Descriptor desc = {
@@ -182,9 +187,11 @@ namespace diffusion_prediction {
 		upper_bound,
 		signal_count,
 		signal_ids,
-		signal_names,
 		reference_signal_ids
 	};
+
+	const std::wstring ist_desc = std::wstring{ dsDiffusion_Prediction } +L" - " + dsInterstitial;
+	const scgms::TSignal_Descriptor ig_desc{ signal_Diffusion_Prediction, ist_desc.c_str(), dsmmol_per_L, scgms::NPhysical_Unit::mmol_per_L, 0xFF0000FF, scgms::NSignal_Visualization::smooth };
 }
 
 namespace constant_model {
@@ -216,10 +223,12 @@ namespace constant_model {
 		default_parameters,
 		upper_bound,
 		signal_count,
-		signal_ids,
-		signal_names,
+		signal_ids,		
 		reference_signal_ids
 	};
+
+
+	const scgms::TSignal_Descriptor const_desc{ constant_model::signal_Constant, dsConstant_Signal, L"", scgms::NPhysical_Unit::Other, 0xFF0000FF, scgms::NSignal_Visualization::smooth };
 }
 
 
@@ -325,10 +334,27 @@ namespace bergman_model {
 		upper_bounds.vector,
 
 		number_of_calculated_signals,
-		calculated_signal_ids,
-		calculated_signal_names,
+		calculated_signal_ids,		
 		reference_signal_ids,
 	};
+
+	const std::wstring blood_desc = std::wstring{ dsBergman_Minimal_Model } +L" - " + dsBlood;
+	const scgms::TSignal_Descriptor bg_desc{ signal_Bergman_BG, blood_desc.c_str(), dsmmol_per_L, scgms::NPhysical_Unit::mmol_per_L, 0xFFFF0000, scgms::NSignal_Visualization::smooth };
+
+	const std::wstring ist_desc = std::wstring{ dsBergman_Minimal_Model } +L" - " + dsInterstitial;
+	const scgms::TSignal_Descriptor ig_desc{ signal_Bergman_IG, ist_desc.c_str(), dsmmol_per_L, scgms::NPhysical_Unit::mmol_per_L, 0xFF0000FF, scgms::NSignal_Visualization::smooth };
+
+	const std::wstring iob_str_desc = std::wstring{ dsBergman_Minimal_Model } +L" - " + dsSignal_GUI_Name_IOB;
+	const scgms::TSignal_Descriptor iob_desc{ signal_Bergman_IOB, iob_str_desc.c_str(), L"", scgms::NPhysical_Unit::Other, 0xFF0000FF, scgms::NSignal_Visualization::smooth };
+
+	const std::wstring cob_str_desc = std::wstring{ dsBergman_Minimal_Model } +L" - " + dsSignal_GUI_Name_COB;
+	const scgms::TSignal_Descriptor cob_desc{ signal_Bergman_COB, cob_str_desc.c_str(), L"", scgms::NPhysical_Unit::Other, 0xFF0000FF, scgms::NSignal_Visualization::smooth };
+
+	const std::wstring basal_insulin_str_desc = std::wstring{ dsBergman_Minimal_Model } +L" - " + dsSignal_GUI_Name_Basal_Insulin;
+	const scgms::TSignal_Descriptor basal_insulin_desc{ signal_Bergman_Basal_Insulin, basal_insulin_str_desc.c_str(), L"", scgms::NPhysical_Unit::Other, 0xFF0000FF, scgms::NSignal_Visualization::smooth };
+
+	const std::wstring insulin_activity_str_desc = std::wstring{ dsBergman_Minimal_Model } +L" - " + dsSignal_GUI_Name_Insulin_Activity;
+	const scgms::TSignal_Descriptor insulin_activity_desc{ signal_Bergman_Insulin_Activity, insulin_activity_str_desc.c_str(), L"", scgms::NPhysical_Unit::Other, 0xFF0000FF, scgms::NSignal_Visualization::smooth };
 }
 
 namespace insulin_bolus {
@@ -360,10 +386,11 @@ namespace insulin_bolus {
 		default_parameters,
 		upper_bound,
 		signal_count,
-		signal_ids,
-		signal_names,
+		signal_ids,		
 		reference_signal_ids
 	};
+	
+	//described elsewere, in the signal.dll
 }
 
 namespace const_isf {
@@ -396,9 +423,10 @@ namespace const_isf {
 		upper_bound,
 		signal_count,
 		signal_ids,
-		signal_names,
 		reference_signal_ids
 	};
+
+	//signal not described because not needed to show?
 }
 
 namespace const_cr {
@@ -431,9 +459,10 @@ namespace const_cr {
 		upper_bound,
 		signal_count,
 		signal_ids,
-		signal_names,
 		reference_signal_ids
 	};
+
+	//signal not described because not needed to show?
 }
 
 
@@ -445,11 +474,24 @@ const std::array<scgms::TModel_Descriptor, 9> model_descriptions = { { diffusion
 																		 const_isf::desc, const_cr::desc } };
 
 
+const std::array<scgms::TSignal_Descriptor, 12> signals_descriptors = { {diffusion_v2_model::bg_desc, diffusion_v2_model::ig_desc, steil_rebrin::bg_desc, 
+																		 steil_rebrin_diffusion_prediction::ig_desc, diffusion_prediction::ig_desc, 
+																		 constant_model::const_desc,
+																		bergman_model::bg_desc, bergman_model::ig_desc, bergman_model::iob_desc, bergman_model::cob_desc, bergman_model::basal_insulin_desc, bergman_model::insulin_activity_desc,
+																		}};
+
 HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
 	*begin = const_cast<scgms::TModel_Descriptor*>(model_descriptions.data());
 	*end = *begin + model_descriptions.size();
 	return S_OK;
 }
+
+extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end) {
+	*begin = const_cast<scgms::TSignal_Descriptor*>(signals_descriptors.data());
+	*end = *begin + signals_descriptors.size();
+	return S_OK;
+}
+
 
 
 HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {

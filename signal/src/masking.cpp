@@ -84,8 +84,18 @@ bool CMasking_Filter::Parse_Bitmask(std::wstring inw)
 HRESULT IfaceCalling CMasking_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mSignal_Id = configuration.Read_GUID(rsSignal_Masked_Id);
 
-	if (!Parse_Bitmask(configuration.Read_String(rsSignal_Value_Bitmask)))
+	const std::wstring mask = configuration.Read_String(rsSignal_Value_Bitmask);
+	if (!Parse_Bitmask(mask)) {
+		std::wstring desc = dsFilter_configuration_param_value_error;
+		desc += dsMasking_Filter;
+		desc += L" (2) ";
+		desc += dsSignal_Value_Bitmask;
+		desc += L" (3) ";
+		desc += mask;
+		error_description.push(desc);
+
 		return E_FAIL;
+	}
 
 	return S_OK;
 }

@@ -40,7 +40,12 @@
 #include "device_event.h"
 #include "filters.h"
 
+#include "../../../common/lang/dstrings.h"
+#include "../../../common/utils/string_utils.h" 
+#include "../../../common/rtl/UILib.h"
+
 #include <map>
+#include <stdexcept>
 
 CComposite_Filter::CComposite_Filter(std::recursive_mutex &communication_guard) : mCommunication_Guard(communication_guard) {
 	//
@@ -59,8 +64,10 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 		
 	scgms::IFilter_Configuration_Link **link_begin, **link_end;
 	HRESULT rc = configuration->get(&link_begin, &link_end);
-	if (rc != S_OK)
+	if (rc != S_OK) {
+		error_description.push(dsCannot_read_configuration);
 		return rc;
+	}
 
 	//we have to create the filter executors from the last one
 	try {
@@ -68,17 +75,25 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 		do {
 			scgms::IFilter_Configuration_Link* &link = *(link_end-1);
 
-			//let's find out if this filter is synchronous or asynchronous
 			GUID filter_id;
 			rc = link->Get_Filter_Id(&filter_id);
-			if (rc != S_OK)
+			if (rc != S_OK) {
+				error_description.push(dsCannot_read_filter_id);
+				mExecutors.clear();
 				return rc;
+			}
 
 			std::unique_ptr<CFilter_Executor> new_executor = std::make_unique<CFilter_Executor>(filter_id, mCommunication_Guard, last_filter, on_filter_created, on_filter_created_data);
 			//try to configure the filter 
 			rc = new_executor->Configure(link, error_description.get());
-			if (!SUCCEEDED(rc))
+			if (!SUCCEEDED(rc)) {
+				//describe such an event anyway just in the case the filter would not do so - hence we would at least know the configuration-failing filter
+				std::wstring err_str{dsFailed_to_configure_filter};
+				err_str += GUID_To_WString(filter_id);
+				error_description.push(err_str.c_str());
+				mExecutors.clear();
 				return rc;
+			}
 
 			//filter is configured, insert it into the chain
 			last_filter = new_executor.get();
@@ -111,11 +126,26 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 					if (feedback_sender->Name(&name) == S_OK) {
 
 						auto feedback_receiver = feedback_map.find(name);
-						if (feedback_receiver != feedback_map.end())
+						if (feedback_receiver != feedback_map.end()) {
 							feedback_sender->Sink(feedback_receiver->second.get());
+						}
+						else {
+							std::wstring err_str{ dsFeedback_sender_not_connected };
+							err_str += name;
+							//error_description.push(err_str.c_str()); - see the catch block
+							throw std::runtime_error{ Narrow_WString(err_str ) };	//this is very likely severe error in the configuration, hence we stop it
+						}
 					}
 				}
 			}
+	}
+	catch (const std::exception & ex) {
+		// specific handling for all exceptions extending std::exception, except
+		// std::runtime_error which is handled explicitly
+		mExecutors.clear();
+		std::wstring error_desc = Widen_Char(ex.what());
+		error_description.push(error_desc.c_str());
+		return E_FAIL;
 	}
 	catch (...) {
 		mExecutors.clear();

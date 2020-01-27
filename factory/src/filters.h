@@ -65,6 +65,7 @@ protected:
 	std::vector<scgms::TModel_Descriptor> mModel_Descriptors;
 	std::vector<scgms::TSolver_Descriptor> mSolver_Descriptors;
 	std::vector<scgms::TApprox_Descriptor> mApprox_Descriptors;
+	std::vector<scgms::TSignal_Descriptor> mSignal_Descriptors;
 	
 	template <typename TDesc_Func, typename TDesc_Item>
 	bool Load_Descriptors(std::vector<TDesc_Item> &dst, CDynamic_Library &lib, const char *func_name)  {
@@ -126,6 +127,7 @@ public:
 	HRESULT get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end);
 	HRESULT get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end);
 	HRESULT get_approx_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end);
+	HRESULT get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end);
 	
 	HRESULT add_filters(const scgms::TFilter_Descriptor *begin, const scgms::TFilter_Descriptor *end, const scgms::TCreate_Filter create_filter);
 };
@@ -142,6 +144,7 @@ extern "C" HRESULT IfaceCalling get_metric_descriptors(scgms::TMetric_Descriptor
 extern "C" HRESULT IfaceCalling get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end);
 extern "C" HRESULT IfaceCalling get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end);
 extern "C" HRESULT IfaceCalling get_approx_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end);
+extern "C" HRESULT IfaceCalling get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end);
 
 extern "C" HRESULT IfaceCalling add_filters(const scgms::TFilter_Descriptor *begin, const scgms::TFilter_Descriptor *end, const scgms::TCreate_Filter create_filter);
 

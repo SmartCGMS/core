@@ -50,6 +50,7 @@ namespace imported {
 	const char* rsGet_Model_Descriptors = "do_get_model_descriptors";
 	const char* rsGet_Solvers_Descriptors = "do_get_solver_descriptors";
 	const char* rsGet_Approx_Descriptors = "do_get_approximator_descriptors";
+	const char* rsGet_Signal_Descriptors = "do_get_signal_descriptors";
 	const char* rsDo_Create_Filter = "do_create_filter";
 	const char* rsDo_Create_Metric = "do_create_metric";
 	const char* rsDo_Create_Signal = "do_create_signal";
@@ -84,6 +85,10 @@ HRESULT IfaceCalling get_solver_descriptors(scgms::TSolver_Descriptor **begin, s
 
 HRESULT IfaceCalling get_approx_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end) {
 	return loaded_filters.get_approx_descriptors(begin, end);
+}
+
+HRESULT IfaceCalling get_signal_descriptors(scgms::TSignal_Descriptor** begin, scgms::TSignal_Descriptor** end) {
+	return loaded_filters.get_signal_descriptors(begin, end);
 }
 
 HRESULT IfaceCalling create_metric(const scgms::TMetric_Parameters *parameters, scgms::IMetric **metric) {
@@ -137,6 +142,7 @@ void CLoaded_Filters::load_libraries() {
 				lib_used |= Load_Descriptors<scgms::TGet_Model_Descriptors, scgms::TModel_Descriptor>(mModel_Descriptors, lib.library, imported::rsGet_Model_Descriptors);
 				lib_used |= Load_Descriptors<scgms::TGet_Solver_Descriptors, scgms::TSolver_Descriptor>(mSolver_Descriptors, lib.library, imported::rsGet_Solvers_Descriptors);
 				lib_used |= Load_Descriptors<scgms::TGet_Approx_Descriptors, scgms::TApprox_Descriptor>(mApprox_Descriptors, lib.library, imported::rsGet_Approx_Descriptors);
+				lib_used |= Load_Descriptors<scgms::TGet_Signal_Descriptors, scgms::TSignal_Descriptor>(mSignal_Descriptors, lib.library, imported::rsGet_Signal_Descriptors);
 
 				if (lib_used)
 					mLibraries.push_back(std::move(lib));
@@ -273,6 +279,10 @@ HRESULT CLoaded_Filters::get_solver_descriptors(scgms::TSolver_Descriptor **begi
 
 HRESULT CLoaded_Filters::get_approx_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end) {
 	return do_get_descriptors<scgms::TApprox_Descriptor>(mApprox_Descriptors, begin, end);
+}
+
+HRESULT CLoaded_Filters::get_signal_descriptors(scgms::TSignal_Descriptor** begin, scgms::TSignal_Descriptor** end) {
+	return do_get_descriptors<scgms::TSignal_Descriptor>(mSignal_Descriptors, begin, end);
 }
 
 scgms::SFilter create_filter(const GUID &id, scgms::IFilter *next_filter) {

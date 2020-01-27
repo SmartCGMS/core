@@ -11,6 +11,7 @@ EXPORTS
 	get_model_descriptors
 	get_solver_descriptors
 	get_approx_descriptors
+	get_signal_descriptors
 	add_filters
 	create_device_event
 	create_persistent_filter_chain_configuration

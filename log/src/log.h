@@ -80,7 +80,7 @@ namespace logger {
 class CLog_Filter : public scgms::CBase_Filter, public scgms::ILog_Filter_Inspection{
 protected:
 	std::wofstream mLog;
-	scgms::CSignal_Names mSignal_Names;
+	scgms::CSignal_Description mSignal_Names;
 	std::wstring mLog_Filename;
 
 	bool mIs_Terminated = false;

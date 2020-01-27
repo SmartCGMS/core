@@ -338,14 +338,15 @@ namespace signal_generator {
 
 namespace measured_signal
 {
-	constexpr size_t supported_count = 12;
+	constexpr size_t supported_count = 13;
 
 	const std::array<GUID, supported_count> supported_signal_ids = {
-		scgms::signal_IG,
 		scgms::signal_BG,
+		scgms::signal_Calibration,
 		scgms::signal_ISIG,
-		scgms::signal_Delivered_Insulin_Bolus,
-		scgms::signal_Delivered_Insulin_Basal_Rate,
+		scgms::signal_IG,
+		scgms::signal_Requested_Insulin_Bolus,
+		scgms::signal_Requested_Insulin_Basal_Rate,
 		scgms::signal_Insulin_Activity,
 		scgms::signal_IOB,
 		scgms::signal_COB,
@@ -355,6 +356,26 @@ namespace measured_signal
 		scgms::signal_Physical_Activity
 	};
 }
+
+namespace signal_descriptor {
+	const scgms::TSignal_Descriptor bg_desc { scgms::signal_BG, dsSignal_GUI_Name_BG, dsmmol_per_L, scgms::NPhysical_Unit::mmol_per_L, 0xFFFF0000, scgms::NSignal_Visualization::mark };
+	const scgms::TSignal_Descriptor bg_cal_desc{ scgms::signal_Calibration, dsSignal_GUI_Name_Calibration, dsmmol_per_L, scgms::NPhysical_Unit::mmol_per_L, 0xFFFF0000, scgms::NSignal_Visualization::mark };
+	const scgms::TSignal_Descriptor ig_desc { scgms::signal_IG, dsSignal_GUI_Name_IG, dsmmol_per_L, scgms::NPhysical_Unit::mmol_per_L, 0xFF0000FF, scgms::NSignal_Visualization::smooth };
+	const scgms::TSignal_Descriptor isig_desc{ scgms::signal_ISIG, dsSignal_GUI_Name_ISIG, dsmmol_per_L, scgms::NPhysical_Unit::nA, 0xFF8080FF, scgms::NSignal_Visualization::smooth };
+	const scgms::TSignal_Descriptor req_bolus_desc{ scgms::signal_Requested_Insulin_Bolus, dsSignal_Requested_Insulin_Bolus, dsU, scgms::NPhysical_Unit::U_insulin, 0xFFF59053, scgms::NSignal_Visualization::mark };
+	const scgms::TSignal_Descriptor req_ibr_desc{ scgms::signal_Requested_Insulin_Basal_Rate, dsSignal_Requested_Insulin_Basal_Rate, dsU_per_Hr, scgms::NPhysical_Unit::U_per_Hr, 0xFFDDDD55, scgms::NSignal_Visualization::step };
+	const scgms::TSignal_Descriptor del_bolus_desc{ scgms::signal_Delivered_Insulin_Bolus, dsSignal_Delivered_Insulin_Bolus, dsU, scgms::NPhysical_Unit::U_insulin, 0xFFF59053, scgms::NSignal_Visualization::mark };
+	const scgms::TSignal_Descriptor del_ibr_desc{ scgms::signal_Delivered_Insulin_Basal_Rate, dsSignal_Delivered_Insulin_Basal_Rate, dsU_per_Hr, scgms::NPhysical_Unit::U_per_Hr, 0xFFF59053, scgms::NSignal_Visualization::step };
+	const scgms::TSignal_Descriptor ins_act_desc{ scgms::signal_Insulin_Activity, dsSignal_GUI_Name_Insulin_Activity, L"", scgms::NPhysical_Unit::Other, 0xFF0055DD, scgms::NSignal_Visualization::smooth};
+	const scgms::TSignal_Descriptor iob_desc{ scgms::signal_IOB, dsSignal_GUI_Name_IOB, L"", scgms::NPhysical_Unit::Other, 0xFFDD5555, scgms::NSignal_Visualization::smooth };
+	const scgms::TSignal_Descriptor cob_desc{ scgms::signal_COB, dsSignal_GUI_Name_COB, L"", scgms::NPhysical_Unit::Other, 0xFF55DD55, scgms::NSignal_Visualization::smooth };
+	const scgms::TSignal_Descriptor cho_in_desc{ scgms::signal_Carb_Intake, dsSignal_GUI_Name_Carbs, L"", scgms::NPhysical_Unit::g, 0xF00FF00, scgms::NSignal_Visualization::mark };
+	const scgms::TSignal_Descriptor cho_resc_desc{ scgms::signal_Carb_Rescue, dsSignal_GUI_Name_Carb_Rescue, L"", scgms::NPhysical_Unit::g, 0xFF80FF80, scgms::NSignal_Visualization::mark };
+	const scgms::TSignal_Descriptor phys_act_desc{ scgms::signal_Physical_Activity, dsSignal_GUI_Name_Physical_Activity, L"", scgms::NPhysical_Unit::Percent, 0xFF80FFFF, scgms::NSignal_Visualization::smooth };
+
+	const std::array<scgms::TSignal_Descriptor, 14> signals = { {bg_desc, bg_cal_desc, ig_desc, isig_desc, req_bolus_desc, req_ibr_desc, del_bolus_desc, del_ibr_desc, ins_act_desc, iob_desc, cob_desc, cho_in_desc, cho_resc_desc, phys_act_desc   } };
+}
+
 
 namespace feedback_sender {
 	constexpr size_t param_count = 3;
@@ -396,9 +417,16 @@ namespace feedback_sender {
 
 const std::array<scgms::TFilter_Descriptor, 6> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, decoupling::desc, masking::Masking_Descriptor, signal_generator::desc, feedback_sender::desc } };
 
+
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 	*begin = const_cast<scgms::TFilter_Descriptor*>(filter_descriptions.data());
 	*end = *begin + filter_descriptions.size();
+	return S_OK;
+}
+
+extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end) {
+	*begin = const_cast<scgms::TSignal_Descriptor*>(signal_descriptor::signals.data());
+	*end = *begin + signal_descriptor::signals.size();
 	return S_OK;
 }
 
@@ -430,3 +458,5 @@ extern "C" HRESULT IfaceCalling do_create_signal(const GUID *signal_id, scgms::I
 
 	return E_FAIL;
 }
+
+

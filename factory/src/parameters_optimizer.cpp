@@ -46,6 +46,7 @@
 
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/utils/DebugHelper.h"
+#include "../../../common/lang/dstrings.h"
 
 #include <mutex>
 #include <set>
@@ -63,6 +64,7 @@ protected:
 	double mError_Metric = std::numeric_limits<double>::quiet_NaN();
 	bool mError_Metric_Available = false;
 public:
+
 	CError_Metric_Future(scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) : mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data) {};
 
 	HRESULT On_Filter_Created(scgms::IFilter *filter) {
@@ -141,7 +143,7 @@ protected:
 	}
 
 
-	void Fetch_Events_To_Replay(refcnt::Swstr_list error_description) {
+	bool Fetch_Events_To_Replay(refcnt::Swstr_list &error_description) {
 		mEvents_To_Replay.clear();
 		mFirst_Effective_Filter_Index = std::min(mFilter_Index, Find_Minimal_Receiver_Index_End());
 		scgms::SFilter_Chain_Configuration reduced_filter_configuration = Copy_Reduced_Configuration(mFirst_Effective_Filter_Index);
@@ -152,10 +154,16 @@ protected:
 		{
 			CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely
 																		//call its dtor to get the future error properly
-			if (composite_filter.Build_Filter_Chain(reduced_filter_configuration.get(), &terminal_filter, mOn_Filter_Created, mOn_Filter_Created_Data, error_description) == S_OK)  terminal_filter.Wait_For_Shutdown(); 
+			if (composite_filter.Build_Filter_Chain(reduced_filter_configuration.get(), &terminal_filter, mOn_Filter_Created, mOn_Filter_Created_Data, error_description) == S_OK) {
+				terminal_filter.Wait_For_Shutdown();
+				return true;
+			}
 				else {
 					composite_filter.Clear();	//terminate for sure
 					mEvents_To_Replay.clear(); //sanitize as this might have been filled partially
+					error_description.push(dsFailed_to_execute_first_filters);
+
+					return false;
 				}
 		}
 	}
@@ -170,7 +178,7 @@ protected:
 
 	std::mutex mClone_Guard;
 
-	TFast_Configuration Clone_Configuration(const size_t first_effective_filter) {
+	TFast_Configuration Clone_Configuration(const size_t first_effective_filter, refcnt::Swstr_list error_description) {
 		std::lock_guard<std::mutex> lg{ mClone_Guard };
 
 		TFast_Configuration result;
@@ -186,7 +194,7 @@ protected:
 
 		result.failed = false;
 		size_t link_counter = 0;
-		mConfiguration.for_each([&link_counter, &result, &ui_filters, this, first_effective_filter](scgms::SFilter_Configuration_Link src_link) {
+		mConfiguration.for_each([&link_counter, &result, &ui_filters, this, first_effective_filter, &error_description](scgms::SFilter_Configuration_Link src_link) {
 			if (result.failed) return;
 
 			if ((link_counter < first_effective_filter) && !mEvents_To_Replay.empty()) {
@@ -251,8 +259,10 @@ protected:
 					
 				});
 
-				if (!found_parameters) 
-						result.failed = true;	//we need the parameters, because they also include the bounds!
+				if (!found_parameters) {
+					result.failed = true;	//we need the parameters, because they also include the bounds!
+					error_description.push(dsParameters_to_optimize_not_found);
+				}
 
 			}
 
@@ -261,16 +271,26 @@ protected:
 
 		});
 		
+		if (result.failed) {
+			error_description.push(dsFailed_to_clone_configuration);
+		}
+
 		return result;
 	}
 
 	
-
+public:
+	static inline refcnt::Swstr_list mEmpty_Error_Description;	//no thread local as we need to reset it!
 public:
 	CParameters_Optimizer(scgms::IFilter_Chain_Configuration *configuration, const size_t filter_index, const wchar_t *parameters_config_name, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data)
 		: mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data),
 		mConfiguration(refcnt::make_shared_reference_ext<scgms::SFilter_Chain_Configuration, scgms::IFilter_Chain_Configuration>(configuration, true)),
 		mFilter_Index(filter_index), mParameters_Config_Name(parameters_config_name) 	{
+
+		mEmpty_Error_Description.reset();
+		//having this with nullptr, no error write will actually occur
+		//actually, many errors may arise due to the use of genetic algorithm -> let's suppress them
+		//end user has the chance the debug the configuration first, by running a single isntance	
 
 	}
 
@@ -284,10 +304,15 @@ public:
 
 		scgms::SFilter_Configuration_Link configuration_link_parameters = mConfiguration[mFilter_Index];
 
-		if (!configuration_link_parameters)
+		if (!configuration_link_parameters) {
+			error_description.push(dsParameters_to_optimize_not_found);
 			return E_INVALIDARG;
-		if (!configuration_link_parameters.Read_Parameters(mParameters_Config_Name.c_str(), mLower_Bound, mFound_Parameters, mUpper_Bound))
+		}
+
+		if (!configuration_link_parameters.Read_Parameters(mParameters_Config_Name.c_str(), mLower_Bound, mFound_Parameters, mUpper_Bound)) {
+			error_description.push(dsParameters_to_optimize_could_not_be_read_bounds_including);
 			return E_FAIL;
+		}
 		
 		mProblem_Size = mFound_Parameters.size();
 
@@ -295,11 +320,11 @@ public:
 		//create initial pool-configuration to determine problem size
 		//and to verify that we are able to clone the configuration
 		{
-			TFast_Configuration configuration = Clone_Configuration(0);
-			if (configuration.failed) return E_FAIL;	//we release this configuration, because it has not used mFirst_Effective_Filter_Index
+			TFast_Configuration configuration = Clone_Configuration(0, error_description);
+			if (configuration.failed) return E_FAIL;	//we release this configuration, because it has not used mFirst_Effective_Filter_Index			
 		}		
 
-		Fetch_Events_To_Replay(error_description);
+		if (!Fetch_Events_To_Replay(error_description)) return E_FAIL;
 
 		const double* default_parameters = mFound_Parameters.data();
 
@@ -317,8 +342,13 @@ public:
 		HRESULT rc = solve_generic(&solver_id, &solver_setup, &progress);		
 
 		//eventually, we need to copy the parameters to the original configuration - on success
-		if (rc == S_OK)
+		if (rc == S_OK) {
 			rc = configuration_link_parameters.Write_Parameters(mParameters_Config_Name.c_str(), mLower_Bound, mFound_Parameters, mUpper_Bound) ? rc : E_FAIL;
+			if (rc != S_OK)
+				error_description.push(dsFailed_to_write_parameters);
+		}
+		else
+			error_description.push(dsSolver_Failed);
 
 		return rc;
 	}
@@ -330,7 +360,9 @@ public:
 	double Calculate_Fitness(const void* solution, refcnt::Swstr_list empty_error_description) {
 		
 
-		TFast_Configuration configuration = Clone_Configuration(mFirst_Effective_Filter_Index);	//later on, we will replace this with a pool
+		TFast_Configuration configuration = Clone_Configuration(mFirst_Effective_Filter_Index, empty_error_description);	//later on, we will replace this with a pool
+																								//or rather not as there might a be problem with filters,
+																								//which would keep, but not reset their states
 		
 		//set the experimental parameters
 		std::copy(reinterpret_cast<const double*>(solution), reinterpret_cast<const double*>(solution) + mProblem_Size, configuration.first_parameter);
@@ -367,15 +399,8 @@ public:
 };
 
 double IfaceCalling internal::Parameters_Fitness_Wrapper(const void *data, const double *solution) {
-	static refcnt::Swstr_list empty_error_description;
-	empty_error_description.reset();
-		//having this with nullptr, no error write will actually occur
-		//actually, many errors may arise due to the use of genetic algorithm -> let's suppress them
-		//end user has the chance the debug the configuration first, by running a single isntance
-
-
 	CParameters_Optimizer *fitness = reinterpret_cast<CParameters_Optimizer*>(const_cast<void*>(data));
-	return fitness->Calculate_Fitness(solution, empty_error_description);
+	return fitness->Calculate_Fitness(solution, CParameters_Optimizer::mEmpty_Error_Description);
 }
 
 

@@ -47,5 +47,6 @@ namespace calculate
 }
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end);
+extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end);
 extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter);
 extern "C" HRESULT IfaceCalling do_create_signal(const GUID *signal_id, scgms::ITime_Segment *segment, scgms::ISignal **signal);
