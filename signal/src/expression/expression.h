@@ -146,4 +146,4 @@ namespace expression {
 
 using CExpression = std::unique_ptr<expression::CAST_Node>;
 
-CExpression Parse_AST_Tree(const std::wstring& wstr);
+CExpression Parse_AST_Tree(const std::wstring& wstr, refcnt::Swstr_list& error_description);

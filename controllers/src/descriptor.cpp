@@ -92,10 +92,10 @@ namespace iob {
 		reference_signal_ids
 	};
 	
-	const scgms::TSignal_Descriptor act_bi_desc{ signal_Insulin_Activity_Bilinear, dsInsulin_Activity_Bilinear, L"", scgms::NPhysical_Unit::Other, 0xFF008000, scgms::NSignal_Visualization::smooth };
-	const scgms::TSignal_Descriptor act_exp_desc{ signal_Insulin_Activity_Exponential, dsInsulin_Activity_Exponential, L"", scgms::NPhysical_Unit::Other, 0xFF008000, scgms::NSignal_Visualization::smooth };
-	const scgms::TSignal_Descriptor iob_bi_desc{ signal_IOB_Bilinear, dsIOB_Bilinear, L"", scgms::NPhysical_Unit::Other, 0xFF008000, scgms::NSignal_Visualization::smooth };
-	const scgms::TSignal_Descriptor iob_exp_desc{ signal_IOB_Exponential, dsIOB_Exponential, L"", scgms::NPhysical_Unit::Other, 0xFF008000, scgms::NSignal_Visualization::smooth };
+	const scgms::TSignal_Descriptor act_bi_desc{ signal_Insulin_Activity_Bilinear, dsInsulin_Activity_Bilinear, L"", scgms::NSignal_Unit::Other, 0xFF008000, 0xFF008000, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor act_exp_desc{ signal_Insulin_Activity_Exponential, dsInsulin_Activity_Exponential, L"", scgms::NSignal_Unit::Other, 0xFF008000, 0xFF008000, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor iob_bi_desc{ signal_IOB_Bilinear, dsIOB_Bilinear, L"", scgms::NSignal_Unit::Other, 0xFF008000, 0xFF008000,scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor iob_exp_desc{ signal_IOB_Exponential, dsIOB_Exponential, L"", scgms::NSignal_Unit::Other, 0xFF008000, 0xFF008000,scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 }
 
 namespace cob {
@@ -133,7 +133,7 @@ namespace cob {
 		reference_signal_ids,		
 	};
 
-	const scgms::TSignal_Descriptor bi_desc{ signal_COB_Bilinear, dsCOB_Bilinear, L"", scgms::NPhysical_Unit::Other, 0xFF008000, scgms::NSignal_Visualization::smooth };
+	const scgms::TSignal_Descriptor bi_desc{ signal_COB_Bilinear, dsCOB_Bilinear, L"", scgms::NSignal_Unit::Other, 0xFF008000, 0xFF008000, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 }
 
 namespace betapid_insulin_regulation {
@@ -170,8 +170,8 @@ namespace betapid_insulin_regulation {
 		reference_signal_ids,
 	};
 
-	const scgms::TSignal_Descriptor pid_desc{ betapid_signal_id, dsInsulin_BetaPID_Rate, dsU_per_Hr, scgms::NPhysical_Unit::U_per_Hr, 0xFF008000, scgms::NSignal_Visualization::step };
-	const scgms::TSignal_Descriptor pid2_desc{ betapid2_signal_id, dsInsulin_BetaPID2_Rate, dsU_per_Hr, scgms::NPhysical_Unit::U_per_Hr, 0xFF008000, scgms::NSignal_Visualization::step };
+	const scgms::TSignal_Descriptor pid_desc{ betapid_signal_id, dsInsulin_BetaPID_Rate, dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0xFF008000, 0xFF008000, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor pid2_desc{ betapid2_signal_id, dsInsulin_BetaPID2_Rate, dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0xFF008000, 0xFF008000, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
 	
 }
 
@@ -209,7 +209,7 @@ namespace betapid3_insulin_regulation {
 		reference_signal_ids,
 	};
 
-	const scgms::TSignal_Descriptor pid3_desc{ betapid3_signal_id, dsInsulin_BetaPID3_Rate, dsU_per_Hr, scgms::NPhysical_Unit::U_per_Hr, 0xFF008000, scgms::NSignal_Visualization::step };
+	const scgms::TSignal_Descriptor pid3_desc{ betapid3_signal_id, dsInsulin_BetaPID3_Rate, dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0xFF008000, 0xFF008000, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
 }
 
 namespace lgs_basal_insulin {
@@ -242,7 +242,7 @@ namespace lgs_basal_insulin {
 		reference_signal_ids
 	};
 
-	const scgms::TSignal_Descriptor lgs_desc{ lgs_basal_insulin_signal_id, dsInsulin_LGS_Rate, dsU_per_Hr, scgms::NPhysical_Unit::U_per_Hr, 0xFF008000, scgms::NSignal_Visualization::step };
+	const scgms::TSignal_Descriptor lgs_desc{ lgs_basal_insulin_signal_id, dsInsulin_LGS_Rate, dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0xFF008000, 0xFF008000, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
 }
 
 const std::array<scgms::TModel_Descriptor, 5> model_descriptions = { { iob::desc, cob::desc, betapid_insulin_regulation::desc, betapid3_insulin_regulation::desc, lgs_basal_insulin::desc } };

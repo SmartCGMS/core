@@ -54,6 +54,11 @@
 #include "../../../../common/utils/DebugHelper.h"
 #include "../../../../common/utils/string_utils.h"
 
+struct TGlobal_Result {
+  expression::CAST_Node* ast_root;
+  refcnt::Swstr_list& error_description;
+};
+
 #define YY_EXTRA_TYPE  expression::CAST_Node**
 YY_EXTRA_TYPE  yyget_extra ( void* scanner );
 
@@ -128,7 +133,7 @@ bool_expression: T_BOOL 			{$$ = $1; }
 
 #include "lex.yy.c"
 
-CExpression Parse_AST_Tree(const std::wstring& wstr) {
+CExpression Parse_AST_Tree(const std::wstring& wstr, refcnt::Swstr_list& error_description) {
   expression::CAST_Node *ast_tree = nullptr; 
 
   yyscan_t scanner; 
@@ -148,6 +153,9 @@ CExpression Parse_AST_Tree(const std::wstring& wstr) {
 }
 
 void yyerror(void* scanner, char const *msg) {
+    std::wstring err_msg = dsParse_Error;
+    msg += Widen_Char(msg);
+
     dprintf("Parse error: ");
     dprintf(msg);
     dprintf("\n");

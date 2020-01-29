@@ -42,7 +42,7 @@
 %option warn noyywrap nodefault
 %option nounistd
 
-%option extra-type="expression::CAST_Node**"
+%option extra-type="TGlobal_Result*"
 
 %{
 #include <stdio.h>

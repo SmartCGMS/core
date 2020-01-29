@@ -58,7 +58,7 @@ HRESULT IfaceCalling CDecoupling_Filter::Do_Configure(scgms::SFilter_Configurati
     mDestination_Null = mDestination_Id == scgms::signal_Null;
     mRemove_From_Source = configuration.Read_Bool(rsRemove_From_Source, mRemove_From_Source);     
 
-    mCondition = Parse_AST_Tree(configuration.Read_String(rsCondition));
+    mCondition = Parse_AST_Tree(configuration.Read_String(rsCondition), error_description);
      
 	return mCondition ? S_OK : E_FAIL;
 }
