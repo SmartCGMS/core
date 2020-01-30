@@ -51,15 +51,15 @@
 #include <stdbool.h>
 
 #include "expression.tab.hpp"
-#include "../../../../common/utils/DebugHelper.h"
+#include "../../../../common/lang/dstrings.h"
 #include "../../../../common/utils/string_utils.h"
 
-struct TGlobal_Result {
+struct TGlobal_Ast_Data {
   expression::CAST_Node* ast_root;
   refcnt::Swstr_list& error_description;
 };
 
-#define YY_EXTRA_TYPE  expression::CAST_Node**
+#define YY_EXTRA_TYPE TGlobal_Ast_Data*
 YY_EXTRA_TYPE  yyget_extra ( void* scanner );
 
 int yylex(YYSTYPE * yylval_param , void* yyscanner);
@@ -101,7 +101,7 @@ void yyerror(void* scanner, char const *msg);
 %%
 
 calculation:
-	   | bool_expression { *(yyget_extra(scanner)) = $1; }
+	   | bool_expression { (*yyget_extra(scanner)).ast_root = $1; }
 ;
 
 
@@ -134,12 +134,12 @@ bool_expression: T_BOOL 			{$$ = $1; }
 #include "lex.yy.c"
 
 CExpression Parse_AST_Tree(const std::wstring& wstr, refcnt::Swstr_list& error_description) {
-  expression::CAST_Node *ast_tree = nullptr; 
+  TGlobal_Ast_Data global_ast_data {nullptr, error_description};
 
   yyscan_t scanner; 
   yylex_init(&scanner);
 
-  yylex_init_extra(&ast_tree, &scanner );
+  yylex_init_extra(&global_ast_data, &scanner );
 
   const std::string src = Narrow_WString(wstr);	
   YY_BUFFER_STATE buffer = yy_scan_string(src.c_str(), scanner);
@@ -149,14 +149,11 @@ CExpression Parse_AST_Tree(const std::wstring& wstr, refcnt::Swstr_list& error_d
   
   yylex_destroy(scanner);
   
-  return rc == 0 ? CExpression{ast_tree} : nullptr;
+  return rc == 0 ? CExpression{global_ast_data.ast_root} : nullptr;
 }
 
 void yyerror(void* scanner, char const *msg) {
-    std::wstring err_msg = dsParse_Error;
-    msg += Widen_Char(msg);
-
-    dprintf("Parse error: ");
-    dprintf(msg);
-    dprintf("\n");
+    std::wstring err_msg = dsExpression_Parse_Error;
+    err_msg += Widen_Char(msg);
+    (*yyget_extra(scanner)).error_description.push(err_msg);
 }

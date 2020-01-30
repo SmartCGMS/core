@@ -74,10 +74,15 @@
 #include <stdbool.h>
 
 #include "expression.tab.hpp"
-#include "../../../../common/utils/DebugHelper.h"
+#include "../../../../common/lang/dstrings.h"
 #include "../../../../common/utils/string_utils.h"
 
-#define YY_EXTRA_TYPE  expression::CAST_Node**
+struct TGlobal_Ast_Data {
+  expression::CAST_Node* ast_root;
+  refcnt::Swstr_list& error_description;
+};
+
+#define YY_EXTRA_TYPE TGlobal_Ast_Data*
 YY_EXTRA_TYPE  yyget_extra ( void* scanner );
 
 int yylex(YYSTYPE * yylval_param , void* yyscanner);
@@ -89,7 +94,7 @@ void yyerror(void* scanner, char const *msg);
 #define DBinary_Operator(name, op1, op2) new expression::name{op1, op2};
 
 
-#line 93 "expression.tab.cpp"
+#line 98 "expression.tab.cpp"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -136,7 +141,7 @@ extern int yydebug;
 
       #include "expression.h"    
 
-#line 140 "expression.tab.cpp"
+#line 145 "expression.tab.cpp"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -168,13 +173,11 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 75 "expression.y"
+#line 80 "expression.y"
 
 	expression::CAST_Node * ast_node;
-//  double dval;
-  //bool bval;
 
-#line 178 "expression.tab.cpp"
+#line 181 "expression.tab.cpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -550,9 +553,9 @@ static const yytype_int8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int8 yyrline[] =
 {
-       0,   100,   100,   101,   105,   106,   107,   108,   109,   110,
-     113,   114,   115,   116,   117,   118,   119,   120,   121,   122,
-     123,   124
+       0,   103,   103,   104,   108,   109,   110,   111,   112,   113,
+     116,   117,   118,   119,   120,   121,   122,   123,   124,   125,
+     126,   127
 };
 #endif
 
@@ -1113,27 +1116,27 @@ yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep, void* scanner)
   switch (yytype)
     {
     case 3: /* T_DOUBLE  */
-#line 94 "expression.y"
+#line 97 "expression.y"
             {delete ((*yyvaluep).ast_node);}
-#line 1119 "expression.tab.cpp"
+#line 1122 "expression.tab.cpp"
         break;
 
     case 4: /* T_BOOL  */
-#line 94 "expression.y"
+#line 97 "expression.y"
             {delete ((*yyvaluep).ast_node);}
-#line 1125 "expression.tab.cpp"
+#line 1128 "expression.tab.cpp"
         break;
 
     case 23: /* expression  */
-#line 94 "expression.y"
+#line 97 "expression.y"
             {delete ((*yyvaluep).ast_node);}
-#line 1131 "expression.tab.cpp"
+#line 1134 "expression.tab.cpp"
         break;
 
     case 24: /* bool_expression  */
-#line 94 "expression.y"
+#line 97 "expression.y"
             {delete ((*yyvaluep).ast_node);}
-#line 1137 "expression.tab.cpp"
+#line 1140 "expression.tab.cpp"
         break;
 
       default:
@@ -1405,121 +1408,121 @@ yyreduce:
   switch (yyn)
     {
   case 3:
-#line 101 "expression.y"
-                             { *(yyget_extra(scanner)) = (yyvsp[0].ast_node); }
-#line 1411 "expression.tab.cpp"
+#line 104 "expression.y"
+                             { (*yyget_extra(scanner)).ast_root = (yyvsp[0].ast_node); }
+#line 1414 "expression.tab.cpp"
     break;
 
   case 4:
-#line 105 "expression.y"
+#line 108 "expression.y"
                                                 { (yyval.ast_node) = (yyvsp[0].ast_node); }
-#line 1417 "expression.tab.cpp"
+#line 1420 "expression.tab.cpp"
     break;
 
   case 5:
-#line 106 "expression.y"
+#line 109 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CPlus, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1423 "expression.tab.cpp"
+#line 1426 "expression.tab.cpp"
     break;
 
   case 6:
-#line 107 "expression.y"
+#line 110 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CMinus, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1429 "expression.tab.cpp"
+#line 1432 "expression.tab.cpp"
     break;
 
   case 7:
-#line 108 "expression.y"
+#line 111 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CMul, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1435 "expression.tab.cpp"
+#line 1438 "expression.tab.cpp"
     break;
 
   case 8:
-#line 109 "expression.y"
+#line 112 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CDiv, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1441 "expression.tab.cpp"
+#line 1444 "expression.tab.cpp"
     break;
 
   case 9:
-#line 110 "expression.y"
+#line 113 "expression.y"
                                                 { (yyval.ast_node) = (yyvsp[-1].ast_node); }
-#line 1447 "expression.tab.cpp"
+#line 1450 "expression.tab.cpp"
     break;
 
   case 10:
-#line 113 "expression.y"
+#line 116 "expression.y"
                                                 {(yyval.ast_node) = (yyvsp[0].ast_node); }
-#line 1453 "expression.tab.cpp"
+#line 1456 "expression.tab.cpp"
     break;
 
   case 11:
-#line 114 "expression.y"
+#line 117 "expression.y"
                                                 { (yyval.ast_node) = (yyvsp[-1].ast_node); }
-#line 1459 "expression.tab.cpp"
+#line 1462 "expression.tab.cpp"
     break;
 
   case 12:
-#line 115 "expression.y"
+#line 118 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CLT, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1465 "expression.tab.cpp"
+#line 1468 "expression.tab.cpp"
     break;
 
   case 13:
-#line 116 "expression.y"
+#line 119 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CLTEQ, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1471 "expression.tab.cpp"
+#line 1474 "expression.tab.cpp"
     break;
 
   case 14:
-#line 117 "expression.y"
+#line 120 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CEQ, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1477 "expression.tab.cpp"
+#line 1480 "expression.tab.cpp"
     break;
 
   case 15:
-#line 118 "expression.y"
+#line 121 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CNEQ, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1483 "expression.tab.cpp"
+#line 1486 "expression.tab.cpp"
     break;
 
   case 16:
-#line 119 "expression.y"
+#line 122 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CGT, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1489 "expression.tab.cpp"
+#line 1492 "expression.tab.cpp"
     break;
 
   case 17:
-#line 120 "expression.y"
+#line 123 "expression.y"
                                                 { (yyval.ast_node) = DBinary_Operator(CGTEQ, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1495 "expression.tab.cpp"
+#line 1498 "expression.tab.cpp"
     break;
 
   case 18:
-#line 121 "expression.y"
+#line 124 "expression.y"
                                                   { (yyval.ast_node) = DBinary_Operator(CAND, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1501 "expression.tab.cpp"
+#line 1504 "expression.tab.cpp"
     break;
 
   case 19:
-#line 122 "expression.y"
+#line 125 "expression.y"
                                                  { (yyval.ast_node) = DBinary_Operator(COR, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1507 "expression.tab.cpp"
+#line 1510 "expression.tab.cpp"
     break;
 
   case 20:
-#line 123 "expression.y"
+#line 126 "expression.y"
                                               { (yyval.ast_node) = DBinary_Operator(CXOR, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1513 "expression.tab.cpp"
+#line 1516 "expression.tab.cpp"
     break;
 
   case 21:
-#line 124 "expression.y"
+#line 127 "expression.y"
                                 { (yyval.ast_node) = DUnary_Operator(CNot, (yyvsp[0].ast_node)) }
-#line 1519 "expression.tab.cpp"
+#line 1522 "expression.tab.cpp"
     break;
 
 
-#line 1523 "expression.tab.cpp"
+#line 1526 "expression.tab.cpp"
 
       default: break;
     }
@@ -1751,18 +1754,18 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 129 "expression.y"
+#line 132 "expression.y"
 
 
 #include "lex.yy.c"
 
-CExpression Parse_AST_Tree(const std::wstring& wstr) {
-  expression::CAST_Node *ast_tree = nullptr; 
+CExpression Parse_AST_Tree(const std::wstring& wstr, refcnt::Swstr_list& error_description) {
+  TGlobal_Ast_Data global_ast_data {nullptr, error_description};
 
   yyscan_t scanner; 
   yylex_init(&scanner);
 
-  yylex_init_extra(&ast_tree, &scanner );
+  yylex_init_extra(&global_ast_data, &scanner );
 
   const std::string src = Narrow_WString(wstr);	
   YY_BUFFER_STATE buffer = yy_scan_string(src.c_str(), scanner);
@@ -1772,11 +1775,11 @@ CExpression Parse_AST_Tree(const std::wstring& wstr) {
   
   yylex_destroy(scanner);
   
-	return rc == 0 ? CExpression{ast_tree} : nullptr;
+  return rc == 0 ? CExpression{global_ast_data.ast_root} : nullptr;
 }
 
 void yyerror(void* scanner, char const *msg) {
-	  dprintf("Parse error: ");
-    dprintf(msg);
-    dprintf("\n");
+    std::wstring err_msg = dsExpression_Parse_Error;
+    err_msg += Widen_Char(msg);
+    (*yyget_extra(scanner)).error_description.push(err_msg);
 }

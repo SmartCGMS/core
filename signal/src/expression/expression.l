@@ -42,7 +42,7 @@
 %option warn noyywrap nodefault
 %option nounistd
 
-%option extra-type="TGlobal_Result*"
+%option extra-type="TGlobal_Ast_Data*"
 
 %{
 #include <stdio.h>
@@ -87,6 +87,6 @@
 "||"		{return T_OR;}
 "^"		{return T_XOR;}
 \n  {}
-. {yyerror(yyscanner, "lex unmatched character!");}
+. {std::string err_msg {dsInvalid_expression_character}; err_msg += yytext; yyerror(yyscanner, err_msg.c_str());}
 
 %%

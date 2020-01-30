@@ -533,7 +533,7 @@ static const flex_int16_t yy_chk[99] =
 #include <unistd.h>
 #endif
     
-#define YY_EXTRA_TYPE expression::CAST_Node**
+#define YY_EXTRA_TYPE TGlobal_Ast_Data*
 
 /* Holds the entire state of the reentrant scanner. */
 struct yyguts_t
@@ -977,7 +977,7 @@ YY_RULE_SETUP
 case 25:
 YY_RULE_SETUP
 #line 90 "expression.l"
-{yyerror(yyscanner, "lex unmatched character!");}
+{std::string err_msg {dsInvalid_expression_character}; err_msg += yytext; yyerror(yyscanner, err_msg.c_str());}
 	YY_BREAK
 case 26:
 YY_RULE_SETUP

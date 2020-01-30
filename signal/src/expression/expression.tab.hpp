@@ -80,13 +80,11 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 75 "expression.y"
+#line 80 "expression.y"
 
 	expression::CAST_Node * ast_node;
-//  double dval;
-  //bool bval;
 
-#line 90 "expression.tab.hpp"
+#line 88 "expression.tab.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
