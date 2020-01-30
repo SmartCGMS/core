@@ -88,7 +88,7 @@ namespace signal_error {
 		dsUse_Relative_Error,
 		dsUse_Squared_Diff,
 		dsUse_Prefer_More_Levels,
-		dsMetric_Threshold
+		dsMetric_Threshold,		
 	};
 
 	const wchar_t* config_parameter_name[param_count] = {

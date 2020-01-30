@@ -43,7 +43,7 @@
 #include "../../../common/rtl/SolverLib.h"
 #include "../../../common/rtl/referencedImpl.h"
 
-#include <set>
+#include <map>
 #include <mutex>
 
 #pragma warning( push )
@@ -61,21 +61,23 @@ protected:
 
 	std::mutex mSeries_Gaurd;
 
-	/*struct TSignal_Point { double level; double date_time; };
-	std::function<bool(TSignal_Point &, TSignal_Point &)> mPair_Comparator = [](const TSignal_Point &lhs, const  TSignal_Point &rhs) {return lhs.date_time < rhs.date_time; };
-	using TSignal_Series = std::set<TSignal_Point, decltype(mPair_Comparator)>;
-	TSignal_Series mReference_Signal;
-	*/
+    struct TSegment_Signals {
+        scgms::SSignal reference_signal{ scgms::STime_Segment{}, scgms::signal_BG };
+        scgms::SSignal error_signal{ scgms::STime_Segment{}, scgms::signal_BG };
+    };
+    std::map<uint64_t, TSegment_Signals> mSignals;
+
 	scgms::SSignal mReference_Signal{ scgms::STime_Segment{}, scgms::signal_BG };
 	scgms::SSignal mError_Signal{ scgms::STime_Segment{}, scgms::signal_BG };
 
 	scgms::SMetric mMetric;
 
 	double *mPromised_Metric = nullptr;
+    uint64_t mPromised_Segment_id = scgms::All_Segments_Id;
 	std::atomic<bool> mNew_Data_Available{false};	
 
-	bool Prepare_Levels(std::vector<double> &times, std::vector<double> &reference, std::vector<double> &error);
-	double Calculate_Metric();	//returns metric or NaN if could not calculate
+	bool Prepare_Levels(const uint64_t segment_id, std::vector<double> &times, std::vector<double> &reference, std::vector<double> &error);
+	double Calculate_Metric(const uint64_t segment_id);	//returns metric or NaN if could not calculate
 protected:			
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
@@ -84,9 +86,9 @@ public:
 	virtual ~CSignal_Error();
 
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
-	virtual HRESULT IfaceCalling Promise_Metric(double* const metric_value, bool defer_to_dtor) override final;
+	virtual HRESULT IfaceCalling Promise_Metric(const uint64_t segment_id, double* const metric_value, bool defer_to_dtor) override final;
 	virtual HRESULT IfaceCalling Peek_New_Data_Available() override final;
-	virtual HRESULT IfaceCalling Calculate_Signal_Error(scgms::TSignal_Stats *absolute_error, scgms::TSignal_Stats *relative_error) override final;
+	virtual HRESULT IfaceCalling Calculate_Signal_Error(const uint64_t segment_id, scgms::TSignal_Stats *absolute_error, scgms::TSignal_Stats *relative_error) override final;
 	virtual HRESULT IfaceCalling Get_Description(wchar_t** const desc) override final;
 };
 

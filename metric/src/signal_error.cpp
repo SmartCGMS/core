@@ -55,7 +55,7 @@ CSignal_Error::CSignal_Error(scgms::IFilter *output) : CBase_Filter(output) {
 
 CSignal_Error::~CSignal_Error() {
 	if (mPromised_Metric)
-		*mPromised_Metric = Calculate_Metric();
+		*mPromised_Metric = Calculate_Metric(mPromised_Segment_id);
 }
 
 HRESULT IfaceCalling CSignal_Error::QueryInterface(const GUID*  riid, void ** ppvObj) {
@@ -123,7 +123,7 @@ HRESULT CSignal_Error::Do_Configure(scgms::SFilter_Configuration configuration, 
 }
 
 	
-bool CSignal_Error::Prepare_Levels(std::vector<double> &times, std::vector<double> &reference, std::vector<double> &error) {
+bool CSignal_Error::Prepare_Levels(const uint64_t segment_id, std::vector<double> &times, std::vector<double> &reference, std::vector<double> &error) {
 	size_t reference_count = 0;
 	if (SUCCEEDED(mReference_Signal->Get_Discrete_Bounds(nullptr, nullptr, &reference_count))) {
 		if (reference_count > 0) {
@@ -146,7 +146,7 @@ bool CSignal_Error::Prepare_Levels(std::vector<double> &times, std::vector<doubl
 	return false;
 }
 
-double CSignal_Error::Calculate_Metric() {
+double CSignal_Error::Calculate_Metric(const uint64_t segment_id) {
 	double result = std::numeric_limits<double>::quiet_NaN();
 	std::vector<double> reference_times;
 	std::vector<double> reference_levels;
@@ -155,7 +155,7 @@ double CSignal_Error::Calculate_Metric() {
 	std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
 
 	//1. calculate the difference against the exact reference levels => get their times
-	if (Prepare_Levels(reference_times, reference_levels, error_levels)) {
+	if (Prepare_Levels(segment_id, reference_times, reference_levels, error_levels)) {
 		if (mMetric->Reset() == S_OK) {
 			if (mMetric->Accumulate(reference_times.data(), reference_levels.data(), error_levels.data(), reference_times.size()) == S_OK) {
 				size_t levels_acquired = 0;
@@ -171,13 +171,14 @@ double CSignal_Error::Calculate_Metric() {
 	return result;
 }
 
-HRESULT IfaceCalling CSignal_Error::Promise_Metric(double* const metric_value, bool defer_to_dtor) {
+HRESULT IfaceCalling CSignal_Error::Promise_Metric(const uint64_t segment_id, double* const metric_value, bool defer_to_dtor) {
 	if (!defer_to_dtor) {
-		*metric_value = Calculate_Metric();
+		*metric_value = Calculate_Metric(segment_id);
 		return std::isnan(*metric_value) ? S_FALSE : S_OK;
 	}
 	else {
 		mPromised_Metric = metric_value;
+		mPromised_Segment_id = segment_id;
 		return S_OK;
 	}
 }
@@ -186,7 +187,7 @@ HRESULT IfaceCalling CSignal_Error::Peek_New_Data_Available() {
 	return mNew_Data_Available.exchange(false) ? S_OK : S_FALSE;
 }
 
-HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(scgms::TSignal_Stats *absolute_error, scgms::TSignal_Stats *relative_error) {
+HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(const uint64_t segment_id, scgms::TSignal_Stats *absolute_error, scgms::TSignal_Stats *relative_error) {
 	if (!absolute_error || !relative_error) return E_INVALIDARG;
 
 	std::vector<double> times;
@@ -194,7 +195,7 @@ HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(scgms::TSignal_Stats 
 	std::vector<double> error_levels;
 
 	std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
-	if (Prepare_Levels(times, reference_levels, error_levels)) {
+	if (Prepare_Levels(segment_id, times, reference_levels, error_levels)) {
 
 		//let's reuse the already allocated memory
 		decltype(error_levels) &absolute_differences = error_levels;			//has to be error level not to overwrite reference too soon
