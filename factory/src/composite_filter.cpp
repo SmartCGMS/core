@@ -90,6 +90,15 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 				//describe such an event anyway just in the case the filter would not do so - hence we would at least know the configuration-failing filter
 				std::wstring err_str{dsFailed_to_configure_filter};
 				err_str += GUID_To_WString(filter_id);
+				
+				{//try to obtain filter's name
+					scgms::TFilter_Descriptor desc = scgms::Null_Filter_Descriptor;
+					if (scgms::get_filter_descriptor_by_id(filter_id, desc) ) {
+						err_str += L" \"";
+						err_str += desc.description;
+						err_str += L'"';
+					}
+				}
 				error_description.push(err_str.c_str());
 				mExecutors.clear();
 				return rc;

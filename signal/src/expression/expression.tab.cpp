@@ -80,6 +80,7 @@
 struct TGlobal_Ast_Data {
   expression::CAST_Node* ast_root;
   refcnt::Swstr_list& error_description;
+  bool failed;
 };
 
 #define YY_EXTRA_TYPE TGlobal_Ast_Data*
@@ -94,7 +95,7 @@ void yyerror(void* scanner, char const *msg);
 #define DBinary_Operator(name, op1, op2) new expression::name{op1, op2};
 
 
-#line 98 "expression.tab.cpp"
+#line 99 "expression.tab.cpp"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -141,7 +142,7 @@ extern int yydebug;
 
       #include "expression.h"    
 
-#line 145 "expression.tab.cpp"
+#line 146 "expression.tab.cpp"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -165,7 +166,8 @@ extern int yydebug;
     T_AND = 272,
     T_OR = 273,
     T_XOR = 274,
-    T_NOT = 275
+    T_NOT = 275,
+    T_ERROR = 276
   };
 #endif
 
@@ -173,11 +175,11 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 80 "expression.y"
+#line 81 "expression.y"
 
 	expression::CAST_Node * ast_node;
 
-#line 181 "expression.tab.cpp"
+#line 183 "expression.tab.cpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -493,21 +495,21 @@ union yyalloc
 #endif /* !YYCOPY_NEEDED */
 
 /* YYFINAL -- State number of the termination state.  */
-#define YYFINAL  11
+#define YYFINAL  13
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   70
+#define YYLAST   75
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  21
+#define YYNTOKENS  22
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  4
+#define YYNNTS  5
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  21
+#define YYNRULES  23
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  42
+#define YYNSTATES  44
 
 #define YYUNDEFTOK  2
-#define YYMAXUTOK   275
+#define YYMAXUTOK   276
 
 
 /* YYTRANSLATE(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
@@ -546,16 +548,16 @@ static const yytype_int8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     1,     2,     3,     4,
        5,     6,     7,     8,     9,    10,    11,    12,    13,    14,
-      15,    16,    17,    18,    19,    20
+      15,    16,    17,    18,    19,    20,    21
 };
 
 #if YYDEBUG
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
-static const yytype_int8 yyrline[] =
+static const yytype_uint8 yyrline[] =
 {
-       0,   103,   103,   104,   108,   109,   110,   111,   112,   113,
-     116,   117,   118,   119,   120,   121,   122,   123,   124,   125,
-     126,   127
+       0,   104,   104,   105,   106,   110,   111,   112,   113,   114,
+     115,   118,   119,   120,   121,   122,   123,   124,   125,   126,
+     127,   128,   129,   132
 };
 #endif
 
@@ -567,7 +569,8 @@ static const char *const yytname[] =
   "$end", "error", "$undefined", "T_DOUBLE", "T_BOOL", "T_PLUS",
   "T_MINUS", "T_MULTIPLY", "T_DIVIDE", "T_LEFT", "T_RIGHT", "T_LT",
   "T_LTEQ", "T_EQ", "T_NEQ", "T_GT", "T_GTEQ", "T_AND", "T_OR", "T_XOR",
-  "T_NOT", "$accept", "calculation", "expression", "bool_expression", YY_NULLPTR
+  "T_NOT", "T_ERROR", "$accept", "calculation", "expression",
+  "bool_expression", "error_state", YY_NULLPTR
 };
 #endif
 
@@ -578,11 +581,11 @@ static const yytype_int16 yytoknum[] =
 {
        0,   256,   257,   258,   259,   260,   261,   262,   263,   264,
      265,   266,   267,   268,   269,   270,   271,   272,   273,   274,
-     275
+     275,   276
 };
 # endif
 
-#define YYPACT_NINF (-4)
+#define YYPACT_NINF (-12)
 
 #define yypact_value_is_default(Yyn) \
   ((Yyn) == YYPACT_NINF)
@@ -596,11 +599,11 @@ static const yytype_int16 yytoknum[] =
      STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
-      22,    -4,    -4,    22,    22,     3,    45,    51,    33,    17,
-      -4,    -4,    20,    20,    20,    20,    20,    20,    20,    20,
-      20,    20,    22,    22,    22,    -4,    -4,    20,    25,    25,
-      -4,    -4,    -1,    -1,    -1,    -1,    -1,    -1,    -4,    -4,
-      -4,    57
+      24,   -12,   -12,     1,     1,   -12,    25,    53,   -11,   -12,
+      41,    19,   -12,   -12,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     1,     1,     1,   -12,   -12,     0,
+      23,    23,   -12,   -12,    34,    34,    34,    34,    34,    34,
+     -12,   -12,   -12,    65
 };
 
   /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -608,23 +611,23 @@ static const yytype_int8 yypact[] =
      means the default is an error.  */
 static const yytype_int8 yydefact[] =
 {
-       2,     4,    10,     0,     0,     0,     0,     3,     0,     0,
-      21,     1,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     9,    11,     0,     5,     6,
-       7,     8,    12,    13,    14,    15,    16,    17,    18,    19,
-      20,     0
+       2,     5,    11,     0,     0,    23,     0,     0,     3,     4,
+       0,     0,    22,     1,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,     0,     0,    10,    12,     0,
+       6,     7,     8,     9,    13,    14,    15,    16,    17,    18,
+      19,    20,    21,     0
 };
 
   /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-      -4,    -4,    -3,    -2
+     -12,   -12,    -3,    -2,   -12
 };
 
   /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-      -1,     5,     6,     7
+      -1,     6,     7,     8,     9
 };
 
   /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -632,53 +635,53 @@ static const yytype_int8 yydefgoto[] =
      number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int8 yytable[] =
 {
-       8,     9,    10,    11,    12,    13,    14,    15,     0,    28,
-      29,    30,    31,    32,    33,    34,    35,    36,    37,     0,
-      38,    39,    40,     1,    41,     1,     2,    26,     0,    27,
-       0,     3,    14,    15,    22,    23,    24,     0,    12,    13,
-      14,    15,     4,    25,    16,    17,    18,    19,    20,    21,
-      12,    13,    14,    15,     0,     0,    16,    17,    18,    19,
-      20,    21,    12,    13,    14,    15,     0,    25,    22,    23,
-      24
+      10,    11,    12,     1,     1,     2,    24,    25,    26,    29,
+       3,    30,    31,    32,    33,    34,    35,    36,    37,    38,
+      39,     4,    40,    41,    42,    13,    43,     1,     2,    28,
+      16,    17,     0,     3,     0,     0,    24,    25,    26,    14,
+      15,    16,    17,     0,     4,     5,    14,    15,    16,    17,
+       0,    27,    18,    19,    20,    21,    22,    23,    14,    15,
+      16,    17,     0,     0,    18,    19,    20,    21,    22,    23,
+      14,    15,    16,    17,     0,    27
 };
 
 static const yytype_int8 yycheck[] =
 {
-       3,     3,     4,     0,     5,     6,     7,     8,    -1,    12,
-      13,    14,    15,    16,    17,    18,    19,    20,    21,    -1,
-      22,    23,    24,     3,    27,     3,     4,    10,    -1,     9,
-      -1,     9,     7,     8,    17,    18,    19,    -1,     5,     6,
-       7,     8,    20,    10,    11,    12,    13,    14,    15,    16,
-       5,     6,     7,     8,    -1,    -1,    11,    12,    13,    14,
-      15,    16,     5,     6,     7,     8,    -1,    10,    17,    18,
-      19
+       3,     3,     4,     3,     3,     4,    17,    18,    19,     9,
+       9,    14,    15,    16,    17,    18,    19,    20,    21,    22,
+      23,    20,    24,    25,    26,     0,    29,     3,     4,    10,
+       7,     8,    -1,     9,    -1,    -1,    17,    18,    19,     5,
+       6,     7,     8,    -1,    20,    21,     5,     6,     7,     8,
+      -1,    10,    11,    12,    13,    14,    15,    16,     5,     6,
+       7,     8,    -1,    -1,    11,    12,    13,    14,    15,    16,
+       5,     6,     7,     8,    -1,    10
 };
 
   /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
      symbol of state STATE-NUM.  */
 static const yytype_int8 yystos[] =
 {
-       0,     3,     4,     9,    20,    22,    23,    24,    23,    24,
-      24,     0,     5,     6,     7,     8,    11,    12,    13,    14,
-      15,    16,    17,    18,    19,    10,    10,     9,    23,    23,
-      23,    23,    23,    23,    23,    23,    23,    23,    24,    24,
-      24,    23
+       0,     3,     4,     9,    20,    21,    23,    24,    25,    26,
+      24,    25,    25,     0,     5,     6,     7,     8,    11,    12,
+      13,    14,    15,    16,    17,    18,    19,    10,    10,     9,
+      24,    24,    24,    24,    24,    24,    24,    24,    24,    24,
+      25,    25,    25,    24
 };
 
   /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
 static const yytype_int8 yyr1[] =
 {
-       0,    21,    22,    22,    23,    23,    23,    23,    23,    23,
-      24,    24,    24,    24,    24,    24,    24,    24,    24,    24,
-      24,    24
+       0,    22,    23,    23,    23,    24,    24,    24,    24,    24,
+      24,    25,    25,    25,    25,    25,    25,    25,    25,    25,
+      25,    25,    25,    26
 };
 
   /* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
 static const yytype_int8 yyr2[] =
 {
-       0,     2,     0,     1,     1,     3,     3,     3,     3,     3,
-       1,     3,     3,     3,     3,     3,     3,     3,     3,     3,
-       3,     2
+       0,     2,     0,     1,     1,     1,     3,     3,     3,     3,
+       3,     1,     3,     3,     3,     3,     3,     3,     3,     3,
+       3,     3,     2,     1
 };
 
 
@@ -1116,27 +1119,27 @@ yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep, void* scanner)
   switch (yytype)
     {
     case 3: /* T_DOUBLE  */
-#line 97 "expression.y"
+#line 98 "expression.y"
             {delete ((*yyvaluep).ast_node);}
-#line 1122 "expression.tab.cpp"
+#line 1125 "expression.tab.cpp"
         break;
 
     case 4: /* T_BOOL  */
-#line 97 "expression.y"
+#line 98 "expression.y"
             {delete ((*yyvaluep).ast_node);}
-#line 1128 "expression.tab.cpp"
+#line 1131 "expression.tab.cpp"
         break;
 
-    case 23: /* expression  */
-#line 97 "expression.y"
+    case 24: /* expression  */
+#line 98 "expression.y"
             {delete ((*yyvaluep).ast_node);}
-#line 1134 "expression.tab.cpp"
+#line 1137 "expression.tab.cpp"
         break;
 
-    case 24: /* bool_expression  */
-#line 97 "expression.y"
+    case 25: /* bool_expression  */
+#line 98 "expression.y"
             {delete ((*yyvaluep).ast_node);}
-#line 1140 "expression.tab.cpp"
+#line 1143 "expression.tab.cpp"
         break;
 
       default:
@@ -1408,121 +1411,133 @@ yyreduce:
   switch (yyn)
     {
   case 3:
-#line 104 "expression.y"
+#line 105 "expression.y"
                              { (*yyget_extra(scanner)).ast_root = (yyvsp[0].ast_node); }
-#line 1414 "expression.tab.cpp"
+#line 1417 "expression.tab.cpp"
     break;
 
   case 4:
-#line 108 "expression.y"
-                                                { (yyval.ast_node) = (yyvsp[0].ast_node); }
-#line 1420 "expression.tab.cpp"
+#line 106 "expression.y"
+                     {       }
+#line 1423 "expression.tab.cpp"
     break;
 
   case 5:
-#line 109 "expression.y"
-                                                { (yyval.ast_node) = DBinary_Operator(CPlus, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1426 "expression.tab.cpp"
+#line 110 "expression.y"
+                                                { (yyval.ast_node) = (yyvsp[0].ast_node); }
+#line 1429 "expression.tab.cpp"
     break;
 
   case 6:
-#line 110 "expression.y"
-                                                { (yyval.ast_node) = DBinary_Operator(CMinus, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1432 "expression.tab.cpp"
+#line 111 "expression.y"
+                                                { (yyval.ast_node) = DBinary_Operator(CPlus, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
+#line 1435 "expression.tab.cpp"
     break;
 
   case 7:
-#line 111 "expression.y"
-                                                { (yyval.ast_node) = DBinary_Operator(CMul, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1438 "expression.tab.cpp"
+#line 112 "expression.y"
+                                                { (yyval.ast_node) = DBinary_Operator(CMinus, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
+#line 1441 "expression.tab.cpp"
     break;
 
   case 8:
-#line 112 "expression.y"
-                                                { (yyval.ast_node) = DBinary_Operator(CDiv, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1444 "expression.tab.cpp"
+#line 113 "expression.y"
+                                                { (yyval.ast_node) = DBinary_Operator(CMul, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
+#line 1447 "expression.tab.cpp"
     break;
 
   case 9:
-#line 113 "expression.y"
-                                                { (yyval.ast_node) = (yyvsp[-1].ast_node); }
-#line 1450 "expression.tab.cpp"
+#line 114 "expression.y"
+                                                { (yyval.ast_node) = DBinary_Operator(CDiv, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
+#line 1453 "expression.tab.cpp"
     break;
 
   case 10:
-#line 116 "expression.y"
-                                                {(yyval.ast_node) = (yyvsp[0].ast_node); }
-#line 1456 "expression.tab.cpp"
+#line 115 "expression.y"
+                                                { (yyval.ast_node) = (yyvsp[-1].ast_node); }
+#line 1459 "expression.tab.cpp"
     break;
 
   case 11:
-#line 117 "expression.y"
-                                                { (yyval.ast_node) = (yyvsp[-1].ast_node); }
-#line 1462 "expression.tab.cpp"
+#line 118 "expression.y"
+                                                {(yyval.ast_node) = (yyvsp[0].ast_node); }
+#line 1465 "expression.tab.cpp"
     break;
 
   case 12:
-#line 118 "expression.y"
-                                                { (yyval.ast_node) = DBinary_Operator(CLT, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1468 "expression.tab.cpp"
+#line 119 "expression.y"
+                                                { (yyval.ast_node) = (yyvsp[-1].ast_node); }
+#line 1471 "expression.tab.cpp"
     break;
 
   case 13:
-#line 119 "expression.y"
-                                                { (yyval.ast_node) = DBinary_Operator(CLTEQ, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1474 "expression.tab.cpp"
+#line 120 "expression.y"
+                                                { (yyval.ast_node) = DBinary_Operator(CLT, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
+#line 1477 "expression.tab.cpp"
     break;
 
   case 14:
-#line 120 "expression.y"
-                                                { (yyval.ast_node) = DBinary_Operator(CEQ, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1480 "expression.tab.cpp"
+#line 121 "expression.y"
+                                                { (yyval.ast_node) = DBinary_Operator(CLTEQ, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
+#line 1483 "expression.tab.cpp"
     break;
 
   case 15:
-#line 121 "expression.y"
-                                                { (yyval.ast_node) = DBinary_Operator(CNEQ, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1486 "expression.tab.cpp"
+#line 122 "expression.y"
+                                                { (yyval.ast_node) = DBinary_Operator(CEQ, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
+#line 1489 "expression.tab.cpp"
     break;
 
   case 16:
-#line 122 "expression.y"
-                                                { (yyval.ast_node) = DBinary_Operator(CGT, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1492 "expression.tab.cpp"
+#line 123 "expression.y"
+                                                { (yyval.ast_node) = DBinary_Operator(CNEQ, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
+#line 1495 "expression.tab.cpp"
     break;
 
   case 17:
-#line 123 "expression.y"
-                                                { (yyval.ast_node) = DBinary_Operator(CGTEQ, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1498 "expression.tab.cpp"
+#line 124 "expression.y"
+                                                { (yyval.ast_node) = DBinary_Operator(CGT, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
+#line 1501 "expression.tab.cpp"
     break;
 
   case 18:
-#line 124 "expression.y"
-                                                  { (yyval.ast_node) = DBinary_Operator(CAND, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1504 "expression.tab.cpp"
+#line 125 "expression.y"
+                                                { (yyval.ast_node) = DBinary_Operator(CGTEQ, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
+#line 1507 "expression.tab.cpp"
     break;
 
   case 19:
-#line 125 "expression.y"
-                                                 { (yyval.ast_node) = DBinary_Operator(COR, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1510 "expression.tab.cpp"
+#line 126 "expression.y"
+                                                  { (yyval.ast_node) = DBinary_Operator(CAND, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
+#line 1513 "expression.tab.cpp"
     break;
 
   case 20:
-#line 126 "expression.y"
-                                              { (yyval.ast_node) = DBinary_Operator(CXOR, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
-#line 1516 "expression.tab.cpp"
+#line 127 "expression.y"
+                                                 { (yyval.ast_node) = DBinary_Operator(COR, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
+#line 1519 "expression.tab.cpp"
     break;
 
   case 21:
-#line 127 "expression.y"
+#line 128 "expression.y"
+                                              { (yyval.ast_node) = DBinary_Operator(CXOR, (yyvsp[-2].ast_node), (yyvsp[0].ast_node)) }
+#line 1525 "expression.tab.cpp"
+    break;
+
+  case 22:
+#line 129 "expression.y"
                                 { (yyval.ast_node) = DUnary_Operator(CNot, (yyvsp[0].ast_node)) }
-#line 1522 "expression.tab.cpp"
+#line 1531 "expression.tab.cpp"
+    break;
+
+  case 23:
+#line 132 "expression.y"
+                     { auto global_data = yyget_extra(scanner); global_data->failed = true;}
+#line 1537 "expression.tab.cpp"
     break;
 
 
-#line 1526 "expression.tab.cpp"
+#line 1541 "expression.tab.cpp"
 
       default: break;
     }
@@ -1754,32 +1769,50 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 132 "expression.y"
+#line 134 "expression.y"
 
 
 #include "lex.yy.c"
 
 CExpression Parse_AST_Tree(const std::wstring& wstr, refcnt::Swstr_list& error_description) {
-  TGlobal_Ast_Data global_ast_data {nullptr, error_description};
-
+   
+  TGlobal_Ast_Data global_ast_data {nullptr, error_description, false};
   yyscan_t scanner; 
-  yylex_init(&scanner);
+  
+  try {
+    if (yylex_init_extra(&global_ast_data, &scanner ) == 0) {
+  
+      const std::string src = Narrow_WString(wstr);	
+      YY_BUFFER_STATE buffer = yy_scan_string(src.c_str(), scanner);
+      if (yyparse(scanner) != 0) global_ast_data.failed=true;
+      yy_delete_buffer(buffer, scanner);
+             
+      yylex_destroy(scanner);
+    }
+  }
+	catch (const std::exception & ex) {
+    global_ast_data.failed = true;
+		std::wstring error_desc = Widen_Char(ex.what());
+		error_description.push(error_desc.c_str());	
+	}
+	catch (...) {
+    global_ast_data.failed = true;
+	} 
 
-  yylex_init_extra(&global_ast_data, &scanner );
 
-  const std::string src = Narrow_WString(wstr);	
-  YY_BUFFER_STATE buffer = yy_scan_string(src.c_str(), scanner);
-  const auto rc = yyparse(scanner);
-  yy_delete_buffer(buffer, scanner);
-  
-  
-  yylex_destroy(scanner);
-  
-  return rc == 0 ? CExpression{global_ast_data.ast_root} : nullptr;
+  if (global_ast_data.failed && global_ast_data.ast_root) {
+    delete global_ast_data.ast_root;
+    global_ast_data.ast_root = nullptr;
+  }
+                                      
+  return CExpression {global_ast_data.ast_root};
 }
 
 void yyerror(void* scanner, char const *msg) {
+    auto global_data = yyget_extra(scanner);
+    
     std::wstring err_msg = dsExpression_Parse_Error;
     err_msg += Widen_Char(msg);
-    (*yyget_extra(scanner)).error_description.push(err_msg);
+    global_data->error_description.push(err_msg);
+    global_data->failed = true; //should not be needed, just to be sure
 }

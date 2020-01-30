@@ -68,8 +68,8 @@
 [0-9]+		{ yylval->ast_node = new expression::CDouble(yytext); return T_DOUBLE; }
 "level"		{yylval->ast_node = new expression::CVariable_level(); return T_DOUBLE;}
 "is_level_event"		{yylval->ast_node = new expression::CVariable_is_level_event(); return T_BOOL;}
-"true"		{yylval->ast_node = new expression::CConstant<double>(true); return T_BOOL;}
-"false"		{yylval->ast_node = new expression::CConstant<double>(false); return T_BOOL;}
+"true"		{yylval->ast_node = new expression::CConstant<bool>(true); return T_BOOL;}
+"false"		{yylval->ast_node = new expression::CConstant<bool>(false); return T_BOOL;}
 "+"		{return T_PLUS;}
 "-"		{return T_MINUS;}
 "*"		{return T_MULTIPLY;}
@@ -86,7 +86,7 @@
 "&&"		{return T_AND;}
 "||"		{return T_OR;}
 "^"		{return T_XOR;}
-\n  {}
-. {std::string err_msg {dsInvalid_expression_character}; err_msg += yytext; yyerror(yyscanner, err_msg.c_str());}
+\n  {return T_ERROR;}
+. {std::string err_msg {dsInvalid_expression_character}; err_msg += yytext; yyerror(yyscanner, err_msg.c_str()); return T_ERROR;}
 
 %%

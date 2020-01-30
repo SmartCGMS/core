@@ -881,12 +881,12 @@ YY_RULE_SETUP
 case 6:
 YY_RULE_SETUP
 #line 71 "expression.l"
-{yylval->ast_node = new expression::CConstant<double>(true); return T_BOOL;}
+{yylval->ast_node = new expression::CConstant<bool>(true); return T_BOOL;}
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
 #line 72 "expression.l"
-{yylval->ast_node = new expression::CConstant<double>(false); return T_BOOL;}
+{yylval->ast_node = new expression::CConstant<bool>(false); return T_BOOL;}
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
@@ -972,12 +972,12 @@ case 24:
 /* rule 24 can match eol */
 YY_RULE_SETUP
 #line 89 "expression.l"
-{}
+{return T_ERROR;}
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
 #line 90 "expression.l"
-{std::string err_msg {dsInvalid_expression_character}; err_msg += yytext; yyerror(yyscanner, err_msg.c_str());}
+{std::string err_msg {dsInvalid_expression_character}; err_msg += yytext; yyerror(yyscanner, err_msg.c_str()); return T_ERROR;}
 	YY_BREAK
 case 26:
 YY_RULE_SETUP

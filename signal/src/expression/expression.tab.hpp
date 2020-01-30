@@ -72,7 +72,8 @@ extern int yydebug;
     T_AND = 272,
     T_OR = 273,
     T_XOR = 274,
-    T_NOT = 275
+    T_NOT = 275,
+    T_ERROR = 276
   };
 #endif
 
@@ -80,11 +81,11 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 80 "expression.y"
+#line 81 "expression.y"
 
 	expression::CAST_Node * ast_node;
 
-#line 88 "expression.tab.hpp"
+#line 89 "expression.tab.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
