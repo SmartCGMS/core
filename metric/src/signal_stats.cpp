@@ -65,24 +65,36 @@ HRESULT CSignal_Stats::Do_Configure(scgms::SFilter_Configuration configuration, 
 
 HRESULT CSignal_Stats::Do_Execute(scgms::UDevice_Event event) {
     if (event.signal_id() == mSignal_ID) {
+        switch (event.event_code()) {
+            case scgms::NDevice_Event_Code::Level:  //we intentionally ignore masked levels
+                {
+                    auto series = mSignal_Series.find(event.segment_id());
 
-        if (event.event_code() == scgms::NDevice_Event_Code::Level) {   //we intentionally ignore masked levels
-            auto series = mSignal_Series.find(event.segment_id());
+                    if (series == mSignal_Series.end()) {
+                        TLevels levels;
+                        levels.level.push_back(event.level());
+                        levels.datetime.push_back(event.device_time());
+                        mSignal_Series[event.segment_id()] = std::move(levels);
+                    }
+                    else {
+                        auto& levels = series->second;
+                        levels.level.push_back(event.level());
+                        levels.datetime.push_back(event.device_time());
+                    }
 
-            if (series == mSignal_Series.end()) {
-                TLevels levels;
-                levels.level.push_back(event.level());
-                levels.datetime.push_back(event.device_time());
-                mSignal_Series[event.segment_id()] = std::move(levels);
+                    break;
+                }
+        case scgms::NDevice_Event_Code::Warm_Reset:
+            {
+                mSignal_Series.clear();
+                break;
             }
-            else {
-                auto& levels = series->second;
-                levels.level.push_back(event.level());
-                levels.datetime.push_back(event.device_time());
-            }
+
+        default:
+            break;
         }
-    }
-
+     }
+    
     return Send(event);
 }
 

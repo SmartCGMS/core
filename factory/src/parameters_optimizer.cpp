@@ -71,7 +71,7 @@ public:
 
 		scgms::SSignal_Error_Inspection insp = scgms::SSignal_Error_Inspection{ scgms::SFilter{filter} };
 		if (insp) {
-			mError_Metric_Available = insp->Promise_Metric(&mError_Metric, true) == S_OK;
+			mError_Metric_Available = insp->Promise_Metric(scgms::All_Segments_Id, &mError_Metric, true) == S_OK;
 			if (!mError_Metric_Available) return E_FAIL;
 		}
 

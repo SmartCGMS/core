@@ -57,15 +57,15 @@ const std::array < scgms::TMetric_Descriptor, 10 > metric_descriptor = { {
 	 scgms::TMetric_Descriptor{ mtrAvg_Plus_Bessel_Std_Dev, dsAvg_Plus_Bessel_Std_Dev }
 } };
 
-HRESULT IfaceCalling do_get_metric_descriptors(scgms::TMetric_Descriptor **begin, scgms::TMetric_Descriptor **end) {
-	*begin = const_cast<scgms::TMetric_Descriptor*>(metric_descriptor.data());
+HRESULT IfaceCalling do_get_metric_descriptors(scgms::TMetric_Descriptor const **begin, scgms::TMetric_Descriptor const **end) {
+	*begin = metric_descriptor.data();
 	*end = *begin + metric_descriptor.size();
 	return S_OK;
 }
 
 namespace signal_error {
 
-	constexpr size_t param_count = 9;
+	constexpr size_t param_count = 12;
 
 	const scgms::NParameter_Type parameter_type[param_count] = {
 		scgms::NParameter_Type::ptWChar_Array,
@@ -76,7 +76,10 @@ namespace signal_error {
 		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptBool,
-		scgms::NParameter_Type::ptDouble
+		scgms::NParameter_Type::ptDouble,
+		scgms::NParameter_Type::ptNull,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptBool,
 	};
 
 	const wchar_t* ui_parameter_name[param_count] = {
@@ -89,6 +92,9 @@ namespace signal_error {
 		dsUse_Squared_Diff,
 		dsUse_Prefer_More_Levels,
 		dsMetric_Threshold,		
+		nullptr,
+		dsEmit_metric_as_signal,
+		dsEmit_last_value_only
 	};
 
 	const wchar_t* config_parameter_name[param_count] = {
@@ -100,7 +106,10 @@ namespace signal_error {
 		rsUse_Relative_Error,
 		rsUse_Squared_Diff,
 		rsUse_Prefer_More_Levels,
-		rsMetric_Threshold
+		rsMetric_Threshold,
+		nullptr,
+		rsEmit_metric_as_signal,
+		rsEmit_last_value_only
 	};
 
 	const wchar_t* ui_parameter_tooltip[param_count] = {
@@ -109,6 +118,9 @@ namespace signal_error {
 		nullptr,
 		nullptr,
 		dsMetric_Levels_Required_Hint,		
+		nullptr,
+		nullptr,
+		nullptr,
 		nullptr,
 		nullptr,
 		nullptr,
@@ -125,6 +137,10 @@ namespace signal_error {
 		config_parameter_name,
 		ui_parameter_tooltip
 	};
+
+
+	const scgms::TSignal_Descriptor signal_desc {
+		metric_signal_id, dsSignal_GUI_Name_Error_Metric, L"", scgms::NSignal_Unit::Other, 0xFF000000, 0xFF000000, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::none, nullptr};
 }
 
 
@@ -167,9 +183,15 @@ namespace signal_stats {
 
 static const std::array<scgms::TFilter_Descriptor, 2> filter_descriptions = { signal_error::desc, signal_stats::desc  };
 
-extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
+extern "C" HRESULT IfaceCalling do_get_filter_descriptors(const scgms::TFilter_Descriptor* *begin, scgms::TFilter_Descriptor const **end) {
 	*begin = const_cast<scgms::TFilter_Descriptor*>(filter_descriptions.data());
 	*end = *begin + filter_descriptions.size();
+	return S_OK;
+}
+
+extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor const ** begin, scgms::TSignal_Descriptor const **end) {
+	*begin = &signal_error::signal_desc;
+	*end = *begin + 1;
 	return S_OK;
 }
 

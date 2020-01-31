@@ -202,7 +202,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 								shared_error_description.push(error_desc.c_str());
 							}
 
-						} else {
+						} else if (desc.parameter_type[i] != scgms::NParameter_Type::ptNull) {
 							//this parameter is not configured, warn about it
 							std::wstring error_desc = dsFilter_Parameter_Not_Configured;
 							error_desc.append(desc.description);

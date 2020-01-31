@@ -43,6 +43,9 @@
 #include <vector>
 
 
+namespace signal_error {    
+    constexpr GUID metric_signal_id =  { 0xe0875a1d, 0x3388, 0x4466, { 0xba, 0xdf, 0xa2, 0x4a, 0x84, 0xd7, 0x78, 0xc1 } };  // {E0875A1D-3388-4466-BADF-A24A84D778C1}
+}
 
 static constexpr GUID mtrAvg_Abs =	//arithmetic average absolute error
 { 0xd272a84d, 0x50ff, 0x46ce,{ 0x97, 0x7e, 0xc8, 0xe3, 0x68, 0xc3, 0x70, 0x6a } }; 	// {D272A84D-50FF-46CE-977E-C8E368C3706A}
@@ -76,8 +79,10 @@ static constexpr GUID mtrAvg_Plus_Bessel_Std_Dev =	//average plus standard devia
 
 
 
-extern "C" HRESULT IfaceCalling do_get_metric_descriptors(scgms::TMetric_Descriptor **begin, scgms::TMetric_Descriptor **end);
+extern "C" HRESULT IfaceCalling do_get_metric_descriptors(scgms::TMetric_Descriptor const **begin, scgms::TMetric_Descriptor const **end);
 
-extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end);
+extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor const**begin, scgms::TFilter_Descriptor const **end);
+
+extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor const** begin, scgms::TSignal_Descriptor const** end);
 
 extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter);

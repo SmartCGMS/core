@@ -65,16 +65,20 @@ protected:
         scgms::SSignal reference_signal{ scgms::STime_Segment{}, scgms::signal_BG };
         scgms::SSignal error_signal{ scgms::STime_Segment{}, scgms::signal_BG };
     };
-    std::map<uint64_t, TSegment_Signals> mSignals;
-
-	scgms::SSignal mReference_Signal{ scgms::STime_Segment{}, scgms::signal_BG };
-	scgms::SSignal mError_Signal{ scgms::STime_Segment{}, scgms::signal_BG };
+    std::map<uint64_t, TSegment_Signals> mSignal_Series;
 
 	scgms::SMetric mMetric;
 
 	double *mPromised_Metric = nullptr;
     uint64_t mPromised_Segment_id = scgms::All_Segments_Id;
 	std::atomic<bool> mNew_Data_Available{false};	
+
+
+    bool mEmit_Metric_As_Signal = false;
+    bool mEmit_Last_Value_Only = false;
+    double mLast_Emmitted_Time = std::numeric_limits<double>::quiet_NaN();
+
+    void Emit_Metric_Signal(uint64_t segment_id);
 
 	bool Prepare_Levels(const uint64_t segment_id, std::vector<double> &times, std::vector<double> &reference, std::vector<double> &error);
 	double Calculate_Metric(const uint64_t segment_id);	//returns metric or NaN if could not calculate
