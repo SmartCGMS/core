@@ -57,7 +57,7 @@ protected:
     struct TLevels { std::vector<double> level; std::vector<double> datetime; };    //vectors to allow memory block operations
     std::map<uint64_t, TLevels> mSignal_Series;              //int identifies the segment
 protected:
-    GUID mSignal_ID;
+    GUID mSignal_ID = Invalid_GUID; //keeping analyzer happy
     std::wstring mCSV_Path;
     void Flush_Stats();
 protected:

@@ -55,8 +55,10 @@ CSignal_Error::CSignal_Error(scgms::IFilter *output) : CBase_Filter(output) {
 }
 
 CSignal_Error::~CSignal_Error() {
-	if (mPromised_Metric)
+	if (mPromised_Metric) {
+		std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
 		*mPromised_Metric = Calculate_Metric(mPromised_Segment_id);
+	}
 }
 
 HRESULT IfaceCalling CSignal_Error::QueryInterface(const GUID*  riid, void ** ppvObj) {
@@ -74,11 +76,11 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 	auto add_level = [&raw_event, this](TSegment_Signals &signals, const bool is_reference_signal) {
 		auto signal = is_reference_signal ? signals.reference_signal : signals.error_signal;
 
-		if (mEmit_Metric_As_Signal) {
+		if (mEmit_Metric_As_Signal && !mEmit_Last_Value_Only) {
 			if (raw_event->device_time != mLast_Emmitted_Time) {
 				//emit the signal only if the last time has changed to avoid emmiting duplicate values
 				if (!std::isnan(mLast_Emmitted_Time)) {
-					Emit_Metric_Signal(raw_event->segment_id);
+					Emit_Metric_Signal(raw_event->segment_id, mLast_Emmitted_Time);
 				}
 				
 				mLast_Emmitted_Time = raw_event->device_time;
@@ -111,8 +113,11 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 			case scgms::NDevice_Event_Code::Level:
 			{
 				const bool is_reference_signal = raw_event->signal_id == mReference_Signal_ID;				
-				if (is_reference_signal || (raw_event->signal_id == mError_Signal_ID))
-					add_segment(is_reference_signal);
+				if (is_reference_signal || (raw_event->signal_id == mError_Signal_ID)) {
+
+					if (!(std::isnan(event.level()) || std::isnan(event.device_time())))
+						add_segment(is_reference_signal);	
+				}
 
 				break;
 			}
@@ -128,7 +133,26 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 
 
 			case scgms::NDevice_Event_Code::Time_Segment_Stop:
-				if (mEmit_Last_Value_Only) Emit_Metric_Signal(raw_event->segment_id);
+				if (mEmit_Metric_As_Signal && mEmit_Last_Value_Only) {
+					auto signals = mSignal_Series.find(raw_event->segment_id);
+					if (signals != mSignal_Series.end()) {
+						Emit_Metric_Signal(raw_event->segment_id, raw_event->device_time);
+						signals->second.last_value_emitted = true;
+					}
+				}
+				break;
+
+			case scgms::NDevice_Event_Code::Shut_Down:
+				if (mEmit_Metric_As_Signal && mEmit_Last_Value_Only) {
+					//emit any last value, which we have not emitted due to missing segment stop marker
+					for (auto& signals: mSignal_Series) {
+
+						if (!signals.second.last_value_emitted) {
+							Emit_Metric_Signal(signals.first, raw_event->device_time);
+							signals.second.last_value_emitted = true;
+						}
+					}
+				}
 				break;
 
 			default:
@@ -143,6 +167,9 @@ HRESULT CSignal_Error::Do_Configure(scgms::SFilter_Configuration configuration, 
 	mReference_Signal_ID = configuration.Read_GUID(rsReference_Signal, Invalid_GUID);
 	mError_Signal_ID = configuration.Read_GUID(rsError_Signal, Invalid_GUID);
 	if ((mReference_Signal_ID == Invalid_GUID) || (mError_Signal_ID == Invalid_GUID)) return E_INVALIDARG;
+
+	mEmit_Metric_As_Signal = configuration.Read_Bool(rsEmit_metric_as_signal, mEmit_Metric_As_Signal);
+	mEmit_Last_Value_Only = configuration.Read_Bool(rsEmit_last_value_only, mEmit_Last_Value_Only);
 
 	mDescription = configuration.Read_String(rsDescription, GUID_To_WString(mReference_Signal_ID).append(L" - ").append(GUID_To_WString(mError_Signal_ID)));
 
@@ -188,13 +215,13 @@ bool CSignal_Error::Prepare_Levels(const uint64_t segment_id, std::vector<double
 	};
 
 	
-	bool result = true;	//no error, but simply no data yet
+	bool result = false;	//assume failure
 	switch (segment_id) {
-		case scgms::Invalid_Segment_Id:  result = false; break;
+		case scgms::Invalid_Segment_Id:  break;	//result is already false
 		case scgms::All_Segments_Id: {
 
 			for (auto &signals : mSignal_Series)
-				result &= prepare_levels_per_single_segment(signals.second, times, reference, error);
+				result |= prepare_levels_per_single_segment(signals.second, times, reference, error);	//we want at least one OK segment
 
 			break;
 		}
@@ -215,8 +242,7 @@ double CSignal_Error::Calculate_Metric(const uint64_t segment_id) {
 	std::vector<double> reference_levels;
 	std::vector<double> error_levels;
 
-	std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
-
+	
 	//1. calculate the difference against the exact reference levels => get their times
 	if (Prepare_Levels(segment_id, reference_times, reference_levels, error_levels)) {
 		if (mMetric->Reset() == S_OK) {
@@ -235,7 +261,9 @@ double CSignal_Error::Calculate_Metric(const uint64_t segment_id) {
 }
 
 HRESULT IfaceCalling CSignal_Error::Promise_Metric(const uint64_t segment_id, double* const metric_value, bool defer_to_dtor) {
-	if (!defer_to_dtor) {
+	std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
+
+	if (!defer_to_dtor) {		
 		*metric_value = Calculate_Metric(segment_id);
 		return std::isnan(*metric_value) ? S_FALSE : S_OK;
 	}
@@ -294,12 +322,13 @@ HRESULT IfaceCalling CSignal_Error::Get_Description(wchar_t** const desc) {
 	return S_OK;
 }
 
-void CSignal_Error::Emit_Metric_Signal(uint64_t segment_id) {
+void CSignal_Error::Emit_Metric_Signal(const uint64_t segment_id, const double device_time) {
 	scgms::UDevice_Event event{scgms::NDevice_Event_Code::Level};
 
 	event.device_id() = event.signal_id() = signal_error::metric_signal_id;
 	event.level() = Calculate_Metric(segment_id);
 	event.segment_id() = segment_id;
+	event.device_time() = device_time;
 
 	Send(event);
 }

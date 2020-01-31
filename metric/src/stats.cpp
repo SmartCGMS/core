@@ -54,7 +54,7 @@ void Set_Error_To_No_Data(scgms::TSignal_Stats& signal_error) {
 }
 
 bool Calculate_Signal_Stats(std::vector<double>& series, scgms::TSignal_Stats& signal_error) {
-	//1. evaluate the count
+	//1. evaluate the count	
 	signal_error.count = series.size();
 	if (signal_error.count == 0) {
 		Set_Error_To_No_Data(signal_error);

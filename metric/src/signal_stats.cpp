@@ -68,18 +68,24 @@ HRESULT CSignal_Stats::Do_Execute(scgms::UDevice_Event event) {
         switch (event.event_code()) {
             case scgms::NDevice_Event_Code::Level:  //we intentionally ignore masked levels
                 {
-                    auto series = mSignal_Series.find(event.segment_id());
+                    const double level = event.level();
+                    const double date_time = event.device_time();
 
-                    if (series == mSignal_Series.end()) {
-                        TLevels levels;
-                        levels.level.push_back(event.level());
-                        levels.datetime.push_back(event.device_time());
-                        mSignal_Series[event.segment_id()] = std::move(levels);
-                    }
-                    else {
-                        auto& levels = series->second;
-                        levels.level.push_back(event.level());
-                        levels.datetime.push_back(event.device_time());
+                    if (!(std::isnan(level) || std::isnan(date_time))) {
+
+                        auto series = mSignal_Series.find(event.segment_id());
+
+                            if (series == mSignal_Series.end()) {
+                                TLevels levels;
+                                    levels.level.push_back(level);
+                                    levels.datetime.push_back(date_time);
+                                    mSignal_Series[event.segment_id()] = std::move(levels);
+                            }
+                            else {
+                                auto& levels = series->second;
+                                levels.level.push_back(level);
+                                levels.datetime.push_back(date_time);
+                            }
                     }
 
                     break;
@@ -143,21 +149,24 @@ void CSignal_Stats::Flush_Stats() {
     //accumulate data for total stats, while flushing partial stats per segments
     for (const auto& segment: mSignal_Series) { //signal must be const because we can FlushStats in later implementations sooner than in dtor             
             auto& levels = segment.second;
-            if (levels.level.size() > 1) {
+
+            if (levels.level.size() > 0) {
                 //1. calculate statistics per level
                 std::vector<double> levels_stats{ levels.level };   //we need a copy due to the sort to find ECDF
                 if (flush_marker(segment.first, levels_stats, dsLevel)) {
                     std::move(levels.level.begin(), levels.level.end(), std::back_inserter(total_levels));
 
                     //2. calculate the periods
-                    std::vector<double> periods{ levels.datetime };
-                    std::sort(periods.begin(), periods.end());  //we do not need to synchronize time with the levels
-                    //transform datetimes to periods
-                    std::adjacent_difference(periods.begin(), periods.end(), periods.begin());
-                    periods.erase(periods.begin());
+                    if (levels.datetime.size() > 1) {
+                        std::vector<double> periods{ levels.datetime };
+                        std::sort(periods.begin(), periods.end());  //we do not need to synchronize time with the levels
+                        //transform datetimes to periods
+                        std::adjacent_difference(periods.begin(), periods.end(), periods.begin());
+                        periods.erase(periods.begin());
 
-                    if (flush_marker(segment.first, periods, dsPeriod))
-                        std::move(periods.begin(), periods.end(), std::back_inserter(total_periods));
+                        if (flush_marker(segment.first, periods, dsPeriod))
+                            std::move(periods.begin(), periods.end(), std::back_inserter(total_periods));
+                    }
                 }               
                                 
             }

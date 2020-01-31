@@ -64,6 +64,7 @@ protected:
     struct TSegment_Signals {
         scgms::SSignal reference_signal{ scgms::STime_Segment{}, scgms::signal_BG };
         scgms::SSignal error_signal{ scgms::STime_Segment{}, scgms::signal_BG };
+        bool last_value_emitted = false;        //fixing for logs, which do not contain proper segment start stop marks
     };
     std::map<uint64_t, TSegment_Signals> mSignal_Series;
 
@@ -78,7 +79,7 @@ protected:
     bool mEmit_Last_Value_Only = false;
     double mLast_Emmitted_Time = std::numeric_limits<double>::quiet_NaN();
 
-    void Emit_Metric_Signal(uint64_t segment_id);
+    void Emit_Metric_Signal(const uint64_t segment_id, const double device_time);
 
 	bool Prepare_Levels(const uint64_t segment_id, std::vector<double> &times, std::vector<double> &reference, std::vector<double> &error);
 	double Calculate_Metric(const uint64_t segment_id);	//returns metric or NaN if could not calculate
