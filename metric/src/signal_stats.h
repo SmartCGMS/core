@@ -54,11 +54,12 @@
  */
 class CSignal_Stats : public virtual scgms::CBase_Filter {
 protected:
-    struct TLevels { std::vector<double> level; std::vector<double> datetime; };    //vectors to allow memory block operations
+    struct TLevels { double last_level = std::numeric_limits<double>::quiet_NaN(); std::vector<double> level; std::vector<double> datetime; };    //vectors to allow memory block operations
     std::map<uint64_t, TLevels> mSignal_Series;              //int identifies the segment
 protected:
     GUID mSignal_ID = Invalid_GUID; //keeping analyzer happy
     std::wstring mCSV_Path;
+    bool mDiscard_Repeating_Level = false;
     void Flush_Stats();
 protected:
     virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;

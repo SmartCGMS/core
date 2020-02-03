@@ -59,6 +59,7 @@ CSignal_Stats::~CSignal_Stats() {
 HRESULT CSignal_Stats::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
     mSignal_ID = configuration.Read_GUID(rsSelected_Signal);
     mCSV_Path = configuration.Read_String(rsOutput_CSV_File);
+    mDiscard_Repeating_Level = configuration.Read_Bool(rsDiscard_Repeating_Level, mDiscard_Repeating_Level);
     
     return mCSV_Path.empty() || mSignal_ID == Invalid_GUID ? E_INVALIDARG : S_OK; //change E_INVALIDARG to S_FALSE or S_OK once we implement an inspection iface
 }
@@ -77,14 +78,18 @@ HRESULT CSignal_Stats::Do_Execute(scgms::UDevice_Event event) {
 
                             if (series == mSignal_Series.end()) {
                                 TLevels levels;
-                                    levels.level.push_back(level);
-                                    levels.datetime.push_back(date_time);
-                                    mSignal_Series[event.segment_id()] = std::move(levels);
-                            }
-                            else {
-                                auto& levels = series->second;
+                                levels.last_level = level;
                                 levels.level.push_back(level);
                                 levels.datetime.push_back(date_time);
+                                mSignal_Series[event.segment_id()] = std::move(levels);
+                            }
+                            else {                            
+                                auto& levels = series->second;
+                                if (levels.last_level != level) {
+                                    levels.last_level = level;
+                                    levels.level.push_back(level);
+                                    levels.datetime.push_back(date_time);
+                                }
                             }
                     }
 
