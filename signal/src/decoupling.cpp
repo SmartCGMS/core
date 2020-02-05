@@ -64,11 +64,26 @@ HRESULT IfaceCalling CDecoupling_Filter::Do_Configure(scgms::SFilter_Configurati
 }
 
 HRESULT IfaceCalling CDecoupling_Filter::Do_Execute(scgms::UDevice_Event event) {
+    switch (event.event_code()) {
+        case scgms::NDevice_Event_Code::Warm_Reset: 
+            mStats.clear();
+            break;
+
+        case scgms::NDevice_Event_Code::Shut_Down:
+            Flush_Stats();
+            break;
+
+        default: break;
+
+    }
+
+
     if (event.signal_id() == mSource_Id) {
         const bool decouple = mCondition->evaluate(event).bval;             
         //cannot test mDestination_Null here, because we would be unable to collect statistics about the expression and release the event if needed
 
         //clone and signal_Null means gather statistics only
+        Update_Stats(event, decouple);
 
         if (decouple) {
             if (mRemove_From_Source) {
@@ -92,4 +107,59 @@ HRESULT IfaceCalling CDecoupling_Filter::Do_Execute(scgms::UDevice_Event event) 
     } 
 	  
     return Send(event);		
+}
+
+void CDecoupling_Filter::Update_Stats(scgms::UDevice_Event &event, bool condition_true) {
+    auto segment = mStats.find(event.segment_id());
+    if (segment != mStats.end()) {
+        TSegment_Stats stats;
+        stats.events_evaluated = stats.levels_evaluated = stats.events_matched = stats.levels_matched = 0;
+        stats.episode_period.clear();
+        stats.in_episode = false;             
+        segment = mStats.insert(mStats.end(), std::pair<uint64_t, TSegment_Stats>{ event.segment_id(), stats });
+    }
+
+    auto& stats = segment->second;
+    stats.events_evaluated++;
+    if (event.event_code() == scgms::NDevice_Event_Code::Level) stats.levels_evaluated++;
+   
+
+    if (condition_true) {
+    }
+    else {
+    }
+        //at least, we will store new entry for this segment
+        auto update_segment = [](TSegment_Stats &stats) {
+        
+
+        };
+
+        auto segment = mStats.find(event.segment_id());
+        if (segment != mStats.end()) {
+            TSegment_Stats stats;
+            stats.events_evaluated = stats.levels_evaluated = stats.events_matched = stats.levels_matched = 0;
+            stats.episode_period.clear();
+            stats.in_episode = false;
+
+            update_segment(stats);
+            mStats[event.segment_id()] = std::move(stats);
+        } else
+            update_segment(segment->second);
+
+
+    } else if (event.event_code() == scgms::NDevice_Event_Code::Level) { 
+        auto segment = mStats.find(event.segment_id());
+        if (segment != mStats.end()) {
+            auto& stats = segment->second;
+            if (stats.in_episode) {
+                stats.in_episode = false;
+                stats.episode_period.push_back(event.device_time()-stats.current_episode_start_time);
+            }
+        }
+
+    }
+}
+
+void CDecoupling_Filter::Flush_Stats() {
+
 }

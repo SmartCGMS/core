@@ -43,6 +43,8 @@
 
 #include "expression/expression.h"
 
+#include <map>
+
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
@@ -59,6 +61,19 @@ protected:
     bool mDestination_Null = false;
 
     CExpression mCondition;
+protected:
+    //stats
+    struct TSegment_Stats {
+        size_t events_evaluated, levels_evaluated, events_matched, levels_matched;
+        std::vector<double> episode_period;
+        double current_episode_start_time;
+        bool in_episode;
+    };
+
+    std::map<uint64_t, TSegment_Stats> mStats;
+
+    void Update_Stats(scgms::UDevice_Event& event, bool condition_true);
+    void Flush_Stats();
 protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
