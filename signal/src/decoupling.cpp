@@ -65,7 +65,10 @@ HRESULT IfaceCalling CDecoupling_Filter::Do_Configure(scgms::SFilter_Configurati
 
 HRESULT IfaceCalling CDecoupling_Filter::Do_Execute(scgms::UDevice_Event event) {
     if (event.signal_id() == mSource_Id) {
-        const bool decouple = mCondition->evaluate(event).bval;            
+        const bool decouple = mCondition->evaluate(event).bval;             
+        //cannot test mDestination_Null here, because we would be unable to collect statistics about the expression and release the event if needed
+
+        //clone and signal_Null means gather statistics only
 
         if (decouple) {
             if (mRemove_From_Source) {
@@ -78,7 +81,7 @@ HRESULT IfaceCalling CDecoupling_Filter::Do_Execute(scgms::UDevice_Event event) 
                     event.signal_id() = mDestination_Id;
                     //and send it
             }
-            else {
+            else if (!mDestination_Null) {
                 //we have to clone it
                 auto clone = event.Clone();
                 clone.signal_id() = mDestination_Id;
