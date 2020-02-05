@@ -53,7 +53,7 @@ CSignal_Stats::CSignal_Stats(scgms::IFilter* output) : CBase_Filter(output) {
 }
 
 CSignal_Stats::~CSignal_Stats() {
-    Flush_Stats();
+    
 }
 
 HRESULT CSignal_Stats::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
@@ -100,6 +100,10 @@ HRESULT CSignal_Stats::Do_Execute(scgms::UDevice_Event event) {
                 mSignal_Series.clear();
                 break;
             }
+
+        case scgms::NDevice_Event_Code::Shut_Down: 
+            Flush_Stats();
+            break;
 
         default:
             break;
