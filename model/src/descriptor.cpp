@@ -84,7 +84,7 @@ namespace diffusion_v2_model {
 	const scgms::TSignal_Descriptor bg_desc { signal_Diffusion_v2_Blood, blood_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0000, 0xFFFF0000, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 
 	const std::wstring ist_desc = std::wstring{ dsDiffusion_Model_v2 } +L" - " + dsInterstitial;
-	const scgms::TSignal_Descriptor ig_desc{ signal_Diffusion_v2_Blood, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor ig_desc{ signal_Diffusion_v2_Ist, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 
 }
 
