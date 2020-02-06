@@ -41,6 +41,7 @@
 
 #include "../../../common/rtl/rattime.h"
 #include "../../../common/lang/dstrings.h"
+#include "../../../common/utils/math_utils.h"
 
 #include <cmath>
 
@@ -137,6 +138,10 @@ HRESULT IfaceCalling CSinCos_Generator::Do_Configure(scgms::SFilter_Configuratio
 
 	mTotal_Time = configuration.Read_Double(rsGen_Total_Time);
 	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
+
+	if (Is_NaN(mIG_Params.offset, mIG_Params.amplitude, mIG_Params.period, mIG_Params.samplingPeriod, 
+		mBG_Params.offset, mBG_Params.amplitude, mBG_Params.period, mBG_Params.samplingPeriod,
+		mTotal_Time)) return E_INVALIDARG;
 
 	Start_Generator();
 

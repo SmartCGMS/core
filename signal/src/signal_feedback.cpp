@@ -37,7 +37,9 @@
  */
 
 #include "signal_feedback.h"
+
 #include "../../../common/lang/dstrings.h"
+#include "../../../common/utils/string_utils.h"
 
 CSignal_Feedback::CSignal_Feedback(scgms::IFilter *output) : CBase_Filter(output) {
 
@@ -84,8 +86,9 @@ HRESULT CSignal_Feedback::Do_Execute(scgms::UDevice_Event event) {
 }
 
 HRESULT CSignal_Feedback::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
-	mFeedback_Name = configuration.Read_String(rsFeedback_Name);    
+    mFeedback_Name = configuration.Read_String(rsFeedback_Name);
     mSignal_ID = configuration.Read_GUID(rsSignal_Source_Id);
+    if (Is_Empty(mFeedback_Name) || Is_Invalid_GUID(mSignal_ID)) return E_INVALIDARG;
     mForward_Clone = configuration.Read_Bool(rsRemove_From_Source);
 
 	return S_OK;
@@ -101,10 +104,7 @@ HRESULT IfaceCalling CSignal_Feedback::Sink(scgms::IFilter_Feedback_Receiver *re
 	return S_OK;
 }
 
-HRESULT IfaceCalling CSignal_Feedback::Name(wchar_t** const name)
-{
-	if (mFeedback_Name.empty()) return E_INVALIDARG;
-
+HRESULT IfaceCalling CSignal_Feedback::Name(wchar_t** const name) {	
 	*name = const_cast<wchar_t*>(mFeedback_Name.c_str());
 	return S_OK;
 }

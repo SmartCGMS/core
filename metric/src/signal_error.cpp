@@ -37,13 +37,13 @@
  */
 
 #include "signal_error.h"
-#include "stats.h"
 #include "descriptor.h"
 
 #include <cmath>
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/UILib.h"
+#include "../../../common/utils/math_utils.h"
 
 constexpr unsigned char bool_2_uc(const bool b) {
 	return b ? static_cast<unsigned char>(1) : static_cast<unsigned char>(0);
@@ -166,18 +166,24 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 HRESULT CSignal_Error::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mReference_Signal_ID = configuration.Read_GUID(rsReference_Signal, Invalid_GUID);
 	mError_Signal_ID = configuration.Read_GUID(rsError_Signal, Invalid_GUID);
-	if ((mReference_Signal_ID == Invalid_GUID) || (mError_Signal_ID == Invalid_GUID)) return E_INVALIDARG;
+	
+	const GUID metric_id = configuration.Read_GUID(rsSelected_Metric);
+	const double metric_threshold = configuration.Read_Double(rsMetric_Threshold);
+	
+	if (Is_Invalid_GUID(mReference_Signal_ID, mError_Signal_ID, metric_id) || isnan(metric_threshold)) return E_INVALIDARG;
+
 
 	mEmit_Metric_As_Signal = configuration.Read_Bool(rsEmit_metric_as_signal, mEmit_Metric_As_Signal);
 	mEmit_Last_Value_Only = configuration.Read_Bool(rsEmit_last_value_only, mEmit_Last_Value_Only);
 
 	mDescription = configuration.Read_String(rsDescription, GUID_To_WString(mReference_Signal_ID).append(L" - ").append(GUID_To_WString(mError_Signal_ID)));
 
-	const scgms::TMetric_Parameters metric_parameters{ configuration.Read_GUID(rsSelected_Metric),
+	
+	const scgms::TMetric_Parameters metric_parameters{ metric_id,
 		bool_2_uc(configuration.Read_Bool(rsUse_Relative_Error)),
 		bool_2_uc(configuration.Read_Bool(rsUse_Squared_Diff)),
 		bool_2_uc(configuration.Read_Bool(rsUse_Prefer_More_Levels)),
-		configuration.Read_Double(dsMetric_Threshold, 0.0)
+		metric_threshold
 	};
 	
 	mMetric = scgms::SMetric{ metric_parameters };	

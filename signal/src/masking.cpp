@@ -83,6 +83,7 @@ bool CMasking_Filter::Parse_Bitmask(std::wstring inw)
 
 HRESULT IfaceCalling CMasking_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mSignal_Id = configuration.Read_GUID(rsSignal_Masked_Id);
+	if (Is_Invalid_GUID(mSignal_Id)) return E_INVALIDARG;
 
 	const std::wstring mask = configuration.Read_String(rsSignal_Value_Bitmask);
 	if (!Parse_Bitmask(mask)) {

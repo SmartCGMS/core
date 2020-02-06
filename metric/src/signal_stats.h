@@ -57,7 +57,7 @@ protected:
     struct TLevels { double last_level = std::numeric_limits<double>::quiet_NaN(); std::vector<double> level; std::vector<double> datetime; };    //vectors to allow memory block operations
     std::map<uint64_t, TLevels> mSignal_Series;              //int identifies the segment
 protected:
-    GUID mSignal_ID = Invalid_GUID; //keeping analyzer happy
+    GUID mSignal_ID = Invalid_GUID; //keeping analyzer happy    
     std::wstring mCSV_Path;
     bool mDiscard_Repeating_Level = false;
     void Flush_Stats();

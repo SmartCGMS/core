@@ -39,6 +39,7 @@
 #include "signal_generator.h"
 #include "../../../common/rtl/rattime.h"
 #include "../../../common/lang/dstrings.h"
+#include "../../../common/utils/math_utils.h"
 
 #include <cmath>
 
@@ -119,6 +120,9 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 	configuration.Read_Parameters(rsParameters, lower, parameters, upper);
 
 	const GUID model_id = configuration.Read_GUID(rsSelected_Model);
+	if (Is_Invalid_GUID(model_id) || Is_NaN(mFixed_Stepping, mMax_Time)) return E_INVALIDARG;
+
+
 	mModel = scgms::SDiscrete_Model { model_id, parameters, mOutput };
 	if (!mModel)
 		return E_FAIL;

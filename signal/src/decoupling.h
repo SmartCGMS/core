@@ -59,6 +59,8 @@ protected:
 	GUID mDestination_Id = Invalid_GUID;
     bool mRemove_From_Source = false;
     bool mDestination_Null = false;
+    bool mCollect_Statistics = false;
+    std::wstring mCSV_Path;
 
     CExpression mCondition;
 protected:
@@ -66,7 +68,10 @@ protected:
     struct TSegment_Stats {
         size_t events_evaluated, levels_evaluated, events_matched, levels_matched;
         std::vector<double> episode_period;
+        std::vector<double> episode_levels;     //not size_t, but double so that we can call statistics routines on it easily
         double current_episode_start_time;
+        size_t current_episode_levels;
+        double recent_device_time;
         bool in_episode;
     };
 

@@ -43,6 +43,7 @@
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/rattime.h"
 #include "../../../common/lang/dstrings.h"
+#include "../../../common/utils/math_utils.h"
 
 #include <iostream>
 
@@ -116,17 +117,17 @@ HRESULT IfaceCalling CCalculate_Filter::Do_Configure(scgms::SFilter_Configuratio
 			}
 		}
 	}
-
-	const auto metric_tmp = scgms::get_metric_descriptors();
-	mMetric_Id = configuration.Read_GUID(rsSelected_Metric, metric_tmp.empty() ? Invalid_GUID : metric_tmp[0].id);
+	
+	mMetric_Id = configuration.Read_GUID(rsSelected_Metric);
 	mUse_Relative_Error = configuration.Read_Bool(rsUse_Relative_Error, mUse_Relative_Error);
 	mUse_Squared_Differences = configuration.Read_Bool(rsUse_Squared_Diff, mUse_Squared_Differences);
 	mPrefer_More_Levels = configuration.Read_Bool(rsUse_Prefer_More_Levels, mPrefer_More_Levels);
-	mMetric_Threshold = configuration.Read_Double(rsMetric_Threshold, mMetric_Threshold);
+	mMetric_Threshold = configuration.Read_Double(rsMetric_Threshold);
 	mUse_Measured_Levels = configuration.Read_Bool(rsUse_Measured_Levels, mUse_Measured_Levels);
 	mLevels_Required = configuration.Read_Int(rsMetric_Levels_Required, desc.number_of_parameters);
 
-	mSolver_Enabled &= (mSolver_Id != Invalid_GUID) & (mMetric_Id != Invalid_GUID);	//no metric, no solving and metric is no use without a solver anyway
+	if (Is_Invalid_GUID(mCalculated_Signal_Id) || isnan(mPrediction_Window)) return E_INVALIDARG;
+	if (mSolver_Enabled && (Is_Invalid_GUID(mSolver_Id, mMetric_Id) || isnan(mMetric_Threshold))) return E_INVALIDARG;
 
 	return S_OK;
 }

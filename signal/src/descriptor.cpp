@@ -197,11 +197,13 @@ namespace mapping
 
 namespace decoupling
 {
-	constexpr size_t param_count = 4;
+	constexpr size_t param_count = 6;
 
 	constexpr scgms::NParameter_Type param_type[param_count] = {
 		scgms::NParameter_Type::ptSignal_Id,
 		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptWChar_Array,
 		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptWChar_Array
 	};
@@ -210,19 +212,25 @@ namespace decoupling
 		dsSignal_Source_Id,
 		dsSignal_Destination_Id,
 		dsRemove_From_Source,
-		dsCondition
+		dsCondition,
+		dsCollect_Statistics,
+		dsOutput_CSV_File
 	};
 
 	const wchar_t* config_param_name[param_count] = {
 		rsSignal_Source_Id,
 		rsSignal_Destination_Id,
 		rsRemove_From_Source,
-		rsCondition
+		rsCondition,
+		rsCollect_Statistics,
+		rsOutput_CSV_File
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
 		dsMapping_Source_Signal_Tooltip,
 		dsMapping_Destination_Signal_Tooltip,
+		nullptr,
+		nullptr,
 		nullptr,
 		nullptr
 	};

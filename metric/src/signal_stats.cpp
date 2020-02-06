@@ -37,11 +37,11 @@
  */
 
 #include "signal_stats.h"
-#include "stats.h"
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/utils/string_utils.h"
+#include "../../../common/utils/math_utils.h"
 
 
 #include <fstream>
@@ -58,67 +58,72 @@ CSignal_Stats::~CSignal_Stats() {
 
 HRESULT CSignal_Stats::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
     mSignal_ID = configuration.Read_GUID(rsSelected_Signal);
+    if (mSignal_ID == Invalid_GUID) return E_INVALIDARG;
+
     mCSV_Path = configuration.Read_String(rsOutput_CSV_File);
     mDiscard_Repeating_Level = configuration.Read_Bool(rsDiscard_Repeating_Level, mDiscard_Repeating_Level);
-    
-    return mCSV_Path.empty() || mSignal_ID == Invalid_GUID ? E_INVALIDARG : S_OK; //change E_INVALIDARG to S_FALSE or S_OK once we implement an inspection iface
+        
+    if (mCSV_Path.empty()) {
+        error_description.push(dsOutput_to_file_enabled_but_no_filename_given);
+        return E_INVALIDARG;    //remove this as an error, once we implement inspection iface
+    }
+
+    return S_OK; 
 }
 
 HRESULT CSignal_Stats::Do_Execute(scgms::UDevice_Event event) {
-    if (event.signal_id() == mSignal_ID) {
-        switch (event.event_code()) {
-            case scgms::NDevice_Event_Code::Level:  //we intentionally ignore masked levels
-                {
-                    const double level = event.level();
-                    const double date_time = event.device_time();
-
-                    if (!(std::isnan(level) || std::isnan(date_time))) {
-
-                        auto series = mSignal_Series.find(event.segment_id());
-
-                            if (series == mSignal_Series.end()) {
-                                TLevels levels;
-                                levels.last_level = level;
-                                levels.level.push_back(level);
-                                levels.datetime.push_back(date_time);
-                                mSignal_Series[event.segment_id()] = std::move(levels);
-                            }
-                            else {                            
-                                auto& levels = series->second;
-                                if (levels.last_level != level) {
-                                    levels.last_level = level;
-                                    levels.level.push_back(level);
-                                    levels.datetime.push_back(date_time);
-                                }
-                            }
-                    }
-
-                    break;
-                }
+    switch (event.event_code()) {
         case scgms::NDevice_Event_Code::Warm_Reset:
-            {
-                mSignal_Series.clear();
-                break;
-            }
+            mSignal_Series.clear();
+            break;
 
-        case scgms::NDevice_Event_Code::Shut_Down: 
+        case scgms::NDevice_Event_Code::Shut_Down:
             Flush_Stats();
             break;
 
-        default:
-            break;
-        }
-     }
+        default: break;
+    }
+
+
+    if (event.signal_id() == mSignal_ID) {
+        if (event.event_code() == scgms::NDevice_Event_Code::Level) { //we intentionally ignore masked levels                
+            const double level = event.level();
+            const double date_time = event.device_time();
+
+            if (!(std::isnan(level) || std::isnan(date_time))) {
+
+                auto series = mSignal_Series.find(event.segment_id());
+
+                    if (series == mSignal_Series.end()) {
+                        TLevels levels;
+                        levels.last_level = level;
+                        levels.level.push_back(level);
+                        levels.datetime.push_back(date_time);
+                        mSignal_Series[event.segment_id()] = std::move(levels);
+                    }
+                    else {                            
+                        auto& levels = series->second;
+                        if (levels.last_level != level) {
+                            levels.last_level = level;
+                            levels.level.push_back(level);
+                            levels.datetime.push_back(date_time);
+                        }
+                    }
+            }
+
+        }    
+    }     
     
     return Send(event);
 }
 
 
 void CSignal_Stats::Flush_Stats() {
-    if (mCSV_Path.empty()) return;
-
     std::wofstream stats_file{ Narrow_WChar(mCSV_Path.c_str()) };
-    if (!stats_file.is_open()) return;
+    if (!stats_file.is_open()) {
+        Emit_Info(scgms::NDevice_Event_Code::Error, std::wstring{ dsCannot_Open_File }+mCSV_Path);
+        return;
+    }
 
     {   //write the header
         scgms::CSignal_Description signal_names;
