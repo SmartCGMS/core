@@ -43,7 +43,6 @@
 #include <type_traits>
 
 #include "../../../../common/rtl/DeviceLib.h"
-#include "../../../../common/utils/string_utils.h"
 
 namespace expression {
     
@@ -75,9 +74,16 @@ namespace expression {
         };
     };
 
-    class CDouble : public virtual CConstant<double> {    
+    class CDouble : public virtual CConstant<double> {
+    protected:
+        static double Str_2_dbl(const char* str) {
+            char* end_char;
+            double tmp = std::strtod(str, &end_char);
+            if (*end_char != 0) tmp = std::numeric_limits<double>::quiet_NaN();
+            return tmp;
+        }
     public:
-        CDouble(const char* str) : CConstant<double>(str_2_dbl(str)) { };
+        CDouble(const char* str) : CConstant<double>(Str_2_dbl(str)) { };
     };
 
     class CNot : public virtual CAST_Node {

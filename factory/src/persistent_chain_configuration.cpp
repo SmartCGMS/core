@@ -160,20 +160,12 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 
 								case scgms::NParameter_Type::ptRatTime:
 								case scgms::NParameter_Type::ptDouble:
-									{
-										double val = wstr_2_dbl(str_value, valid);
-										if (valid)
-											valid = filter_parameter->Set_Double(val) == S_OK;
-									}
+									valid = filter_parameter->Set_Double(mIni.GetDoubleValue(section_name.pItem, desc.config_parameter_name[i])) == S_OK;
 									break;
 
 								case scgms::NParameter_Type::ptInt64:
 								case scgms::NParameter_Type::ptSubject_Id:
-									{
-										int64_t val = wstr_2_int(str_value, valid);										
-										if (valid) 
-												valid = filter_parameter->Set_Int64(val) == S_OK;
-									}
+									valid = filter_parameter->Set_Int64(mIni.GetLongValue(section_name.pItem, desc.config_parameter_name[i])) == S_OK;
 									break;
 
 								case scgms::NParameter_Type::ptBool:
@@ -184,13 +176,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 								case scgms::NParameter_Type::ptMetric_Id:
 								case scgms::NParameter_Type::ptModel_Signal_Id:
 								case scgms::NParameter_Type::ptSignal_Id:
-								case scgms::NParameter_Type::ptSolver_Id:
-									{
-										const GUID tmp_guid = WString_To_GUID(str_value);
-										valid = tmp_guid != Invalid_GUID;
-										if (valid) 
-											valid = filter_parameter.set_GUID(tmp_guid) == S_OK;
-									}
+								case scgms::NParameter_Type::ptSolver_Id:								
+									valid = filter_parameter.guid_from_wstring(str_value) == S_OK;								
 									break;
 
 								case scgms::NParameter_Type::ptDouble_Array:
