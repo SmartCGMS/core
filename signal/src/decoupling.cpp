@@ -10,8 +10,8 @@
  * Faculty of Applied Sciences, University of West Bohemia
  * Univerzitni 8
  * 301 00, Pilsen
- * 
- * 
+ *
+ *
  * Purpose of this software:
  * This software is intended to demonstrate work of the diabetes.zcu.cz research
  * group to other scientists, to complement our published papers. It is strictly
@@ -50,22 +50,22 @@
 #include <fstream>
 
 
-CDecoupling_Filter::CDecoupling_Filter(scgms::IFilter *output) : CBase_Filter(output) {
-	//
+CDecoupling_Filter::CDecoupling_Filter(scgms::IFilter* output) : CBase_Filter(output) {
+    //
 }
 
 
 
 HRESULT IfaceCalling CDecoupling_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
-	mSource_Id = configuration.Read_GUID(rsSignal_Source_Id);   
-	mDestination_Id = configuration.Read_GUID(rsSignal_Destination_Id);    
+    mSource_Id = configuration.Read_GUID(rsSignal_Source_Id);
+    mDestination_Id = configuration.Read_GUID(rsSignal_Destination_Id);
     if (Is_Invalid_GUID(mSource_Id, mDestination_Id)) return E_INVALIDARG;
 
 
     mDestination_Null = mDestination_Id == scgms::signal_Null;
-    mRemove_From_Source = configuration.Read_Bool(rsRemove_From_Source, mRemove_From_Source);     
-    
-    mCondition = Parse_AST_Tree(configuration.Read_String(rsCondition), error_description);    
+    mRemove_From_Source = configuration.Read_Bool(rsRemove_From_Source, mRemove_From_Source);
+
+    mCondition = Parse_AST_Tree(configuration.Read_String(rsCondition), error_description);
 
     mCollect_Statistics = configuration.Read_Bool(rsCollect_Statistics, mCollect_Statistics);
     mCSV_Path = configuration.Read_String(rsOutput_CSV_File);
@@ -75,27 +75,27 @@ HRESULT IfaceCalling CDecoupling_Filter::Do_Configure(scgms::SFilter_Configurati
         return E_INVALIDARG;
     }
 
-	return mCondition ? S_OK : E_FAIL;
+    return mCondition ? S_OK : E_FAIL;
 }
 
 HRESULT IfaceCalling CDecoupling_Filter::Do_Execute(scgms::UDevice_Event event) {
     if (mCollect_Statistics) {
         switch (event.event_code()) {
-            case scgms::NDevice_Event_Code::Warm_Reset:
-                mStats.clear();
-                break;
+        case scgms::NDevice_Event_Code::Warm_Reset:
+            mStats.clear();
+            break;
 
-            case scgms::NDevice_Event_Code::Shut_Down:
-                Flush_Stats();
-                break;
+        case scgms::NDevice_Event_Code::Shut_Down:
+            Flush_Stats();
+            break;
 
-            default: break;
+        default: break;
         }
     }
 
 
     if (event.signal_id() == mSource_Id) {
-        const bool decouple = mCondition->evaluate(event).bval;             
+        const bool decouple = mCondition->evaluate(event).bval;
         //cannot test mDestination_Null here, because we would be unable to collect statistics about the expression and release the event if needed
 
         //clone and signal_Null means gather statistics only
@@ -107,10 +107,11 @@ HRESULT IfaceCalling CDecoupling_Filter::Do_Execute(scgms::UDevice_Event event) 
                 if (mDestination_Null) {
                     event.reset(nullptr);
                     return S_OK;
-                } else 
+                }
+                else
                     //just change the signal id
                     event.signal_id() = mDestination_Id;
-                    //and send it
+                //and send it
             }
             else if (!mDestination_Null) {
                 //we have to clone it
@@ -119,19 +120,19 @@ HRESULT IfaceCalling CDecoupling_Filter::Do_Execute(scgms::UDevice_Event event) 
                 HRESULT rc = Send(clone);
                 if (!SUCCEEDED(rc)) return rc;
             }
-        }          
-    } 
-	  
-    return Send(event);		
+        }
+    }
+
+    return Send(event);
 }
 
-void CDecoupling_Filter::Update_Stats(scgms::UDevice_Event &event, bool condition_true) {
+void CDecoupling_Filter::Update_Stats(scgms::UDevice_Event& event, bool condition_true) {
     auto segment = mStats.find(event.segment_id());
     if (segment == mStats.end()) {
         TSegment_Stats stats;
         stats.events_evaluated = stats.levels_evaluated = stats.events_matched = stats.levels_matched = 0;
         stats.episode_period.clear();
-        stats.in_episode = false;             
+        stats.in_episode = false;
         stats.recent_device_time = std::numeric_limits<double>::quiet_NaN();
         stats.current_episode_levels = 0;
         segment = mStats.insert(mStats.end(), std::pair<uint64_t, TSegment_Stats>{ event.segment_id(), stats });
@@ -141,7 +142,7 @@ void CDecoupling_Filter::Update_Stats(scgms::UDevice_Event &event, bool conditio
     stats.events_evaluated++;
     const bool is_level = event.event_code() == scgms::NDevice_Event_Code::Level;
     if (is_level) stats.levels_evaluated++;
-   
+
 
     if (condition_true) {
         stats.events_matched++;
@@ -153,24 +154,25 @@ void CDecoupling_Filter::Update_Stats(scgms::UDevice_Event &event, bool conditio
             if (!stats.in_episode) {
                 //estimate start of the episode
                 if (std::isnan(stats.recent_device_time)) stats.current_episode_start_time = event.device_time();
-                    else stats.current_episode_start_time = 0.5 * (stats.recent_device_time + event.device_time()); //see the reasoning below
+                else stats.current_episode_start_time = 0.5 * (stats.recent_device_time + event.device_time()); //see the reasoning below
 
             }
 
 
             stats.in_episode = true;
         }
-    } else {
+    }
+    else {
         if (stats.in_episode) {
             stats.in_episode = false;
-            
+
             stats.episode_period.push_back(0.5 * (stats.recent_device_time + event.device_time()) - stats.current_episode_start_time);
-                    //as the levels are actually sample, thus. discrete, we do not know the exact of episode-state transition 
-                    //=> we guess the middle time
+            //as the levels are actually sample, thus. discrete, we do not know the exact of episode-state transition 
+            //=> we guess the middle time
 
             stats.episode_levels.push_back(static_cast<double>(stats.current_episode_levels));
             stats.current_episode_levels = 0;
-            
+
         }
     }
 
@@ -182,7 +184,7 @@ void CDecoupling_Filter::Flush_Stats() {
     if (!stats_file.is_open()) {
         Emit_Info(scgms::NDevice_Event_Code::Error, std::wstring{ dsCannot_Open_File }+mCSV_Path);
         return;
-    }    
+    }
 
     {   //write the header
         scgms::CSignal_Description signal_names;

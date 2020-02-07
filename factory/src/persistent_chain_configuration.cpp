@@ -51,7 +51,7 @@
 #include <fstream>
 #include <exception>
 
-HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar_t *file_path, refcnt::wstr_list* error_description) {
+HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar_t* file_path, refcnt::wstr_list* error_description) {
 	HRESULT rc = E_UNEXPECTED;
 
 	if ((file_path == nullptr) || (*file_path == 0)) {
@@ -68,7 +68,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 	std::ifstream configfile;
 
 	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
-	try {		
+	try {
 		configfile.open(Narrow_WString(mFile_Path));
 
 		if (configfile.is_open()) {
@@ -95,7 +95,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 	return rc;
 }
 
-HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const char *memory, const size_t len, refcnt::wstr_list* error_description) {
+HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const char* memory, const size_t len, refcnt::wstr_list* error_description) {
 	CSimpleIniW mIni;
 	bool loaded_all_filters = true;
 	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
@@ -109,9 +109,9 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 		// sort by section names - the name would contain zero-padded number, so it is possible to sort it as strings
 		section_names.sort([](auto& a, auto& b) {
 			return std::wstring(a.pItem).compare(b.pItem) < 0;
-		});
+			});
 
-		for (auto &section_name : section_names) {
+		for (auto& section_name : section_names) {
 			std::wstring name_str{ section_name.pItem };
 			const std::wstring prefix{ rsFilter_Section_Prefix };
 			auto res = std::mismatch(prefix.begin(), prefix.end(), name_str.begin());
@@ -143,62 +143,62 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 								std::unique_ptr<CFilter_Parameter> raw_filter_parameter = std::make_unique<CFilter_Parameter>(desc.parameter_type[i], desc.config_parameter_name[i]);
 								filter_parameter = refcnt::make_shared_reference_ext<scgms::SFilter_Parameter, scgms::IFilter_Parameter>(raw_filter_parameter.get(), true);
 								raw_filter_parameter.release();
-							}														
+							}
 
 							bool valid = false;
 
 							//yes, there is something stored under this key
 							switch (desc.parameter_type[i]) {
 
-								case scgms::NParameter_Type::ptWChar_Array:								
-									valid = filter_parameter.set_wstring(str_value) == S_OK;
-									break;
+							case scgms::NParameter_Type::ptWChar_Array:
+								valid = filter_parameter.set_wstring(str_value) == S_OK;
+								break;
 
-								case scgms::NParameter_Type::ptInt64_Array:								
-									valid = filter_parameter.int_array_from_wstring(str_value) == S_OK;
-									break;
+							case scgms::NParameter_Type::ptInt64_Array:
+								valid = filter_parameter.int_array_from_wstring(str_value) == S_OK;
+								break;
 
-								case scgms::NParameter_Type::ptRatTime:
-								case scgms::NParameter_Type::ptDouble:
-									{
-										double val = wstr_2_dbl(str_value, valid);
-										if (valid)
-											valid = filter_parameter->Set_Double(val) == S_OK;
-									}
-									break;
+							case scgms::NParameter_Type::ptRatTime:
+							case scgms::NParameter_Type::ptDouble:
+							{
+								double val = wstr_2_dbl(str_value, valid);
+								if (valid)
+									valid = filter_parameter->Set_Double(val) == S_OK;
+							}
+							break;
 
-								case scgms::NParameter_Type::ptInt64:
-								case scgms::NParameter_Type::ptSubject_Id:
-									{
-										int64_t val = wstr_2_int(str_value, valid);										
-										if (valid) 
-												valid = filter_parameter->Set_Int64(val) == S_OK;
-									}
-									break;
+							case scgms::NParameter_Type::ptInt64:
+							case scgms::NParameter_Type::ptSubject_Id:
+							{
+								int64_t val = wstr_2_int(str_value, valid);
+								if (valid)
+									valid = filter_parameter->Set_Int64(val) == S_OK;
+							}
+							break;
 
-								case scgms::NParameter_Type::ptBool:
-									valid = filter_parameter.set_bool(mIni.GetBoolValue(section_name.pItem, desc.config_parameter_name[i])) == S_OK;									
-									break;
+							case scgms::NParameter_Type::ptBool:
+								valid = filter_parameter.set_bool(mIni.GetBoolValue(section_name.pItem, desc.config_parameter_name[i])) == S_OK;
+								break;
 
-								case scgms::NParameter_Type::ptModel_Id:
-								case scgms::NParameter_Type::ptMetric_Id:
-								case scgms::NParameter_Type::ptModel_Signal_Id:
-								case scgms::NParameter_Type::ptSignal_Id:
-								case scgms::NParameter_Type::ptSolver_Id:
-									{
-										const GUID tmp_guid = WString_To_GUID(str_value);
-										valid = tmp_guid != Invalid_GUID;
-										if (valid) 
-											valid = filter_parameter.set_GUID(tmp_guid) == S_OK;
-									}
-									break;
+							case scgms::NParameter_Type::ptModel_Id:
+							case scgms::NParameter_Type::ptMetric_Id:
+							case scgms::NParameter_Type::ptModel_Signal_Id:
+							case scgms::NParameter_Type::ptSignal_Id:
+							case scgms::NParameter_Type::ptSolver_Id:
+							{
+								const GUID tmp_guid = WString_To_GUID(str_value);
+								valid = tmp_guid != Invalid_GUID;
+								if (valid)
+									valid = filter_parameter.set_GUID(tmp_guid) == S_OK;
+							}
+							break;
 
-								case scgms::NParameter_Type::ptDouble_Array:
-									valid = filter_parameter.double_array_from_wstring(str_value) == S_OK;
-									break;
+							case scgms::NParameter_Type::ptDouble_Array:
+								valid = filter_parameter.double_array_from_wstring(str_value) == S_OK;
+								break;
 
-								default:
-									valid = false;
+							default:
+								valid = false;
 							} //switch (desc.parameter_type[i])	{
 
 							if (valid) {
@@ -215,7 +215,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 								shared_error_description.push(error_desc.c_str());
 							}
 
-						} else if (desc.parameter_type[i] != scgms::NParameter_Type::ptNull) {
+						}
+						else if (desc.parameter_type[i] != scgms::NParameter_Type::ptNull) {
 							//this parameter is not configured, warn about it
 							std::wstring error_desc = dsFilter_Parameter_Not_Configured;
 							error_desc.append(desc.description);
@@ -228,7 +229,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 					//and finally, add the new link into the filter chain
 					{
 						auto raw_filter_config = filter_config.get();
-						add(&raw_filter_config, &raw_filter_config + 1);						
+						add(&raw_filter_config, &raw_filter_config + 1);
 					}
 				}
 				else {
@@ -258,12 +259,12 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 	return loaded_all_filters ? S_OK : S_FALSE;
 }
 
-HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t *file_path) {
+HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t* file_path) {
 	CSimpleIniW ini;
 	uint32_t section_counter = 1;
 
 	try {
-		scgms::IFilter_Configuration_Link **filter_begin, **filter_end;		
+		scgms::IFilter_Configuration_Link** filter_begin, ** filter_end;
 		HRESULT rc = get(&filter_begin, &filter_end);
 		if (rc != S_OK) return rc;
 		for (; filter_begin != filter_end; filter_begin++) {
@@ -281,7 +282,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 					ini.SetValue(id_str.c_str(), nullptr, nullptr, std::wstring{ rsIni_Comment_Prefix }.append(filter_desc.description).c_str());
 			}
 
-			scgms::IFilter_Parameter **parameter_begin, **parameter_end;
+			scgms::IFilter_Parameter** parameter_begin, ** parameter_end;
 			rc = filter->get(&parameter_begin, &parameter_end);
 			if (!SUCCEEDED(rc)) return rc;	//rc may be also S_FALSE if no parameter has been set yet
 
@@ -291,7 +292,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 				rc = parameter->Get_Type(&param_type);
 				if (rc != S_OK) return rc;
 
-				wchar_t *config_name;
+				wchar_t* config_name;
 				rc = parameter->Get_Config_Name(&config_name);
 				if (rc != S_OK) return rc;
 
@@ -299,7 +300,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 				switch (param_type) {
 				case scgms::NParameter_Type::ptWChar_Array:
 
-					refcnt::wstr_container *wstr;
+					refcnt::wstr_container* wstr;
 					rc = parameter->Get_WChar_Container(&wstr);
 					if (rc != S_OK) return rc;
 
@@ -308,7 +309,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 					break;
 
 				case scgms::NParameter_Type::ptInt64_Array:
-					scgms::time_segment_id_container *ids;
+					scgms::time_segment_id_container* ids;
 					rc = parameter->Get_Time_Segment_Id_Container(&ids);
 					if (rc != S_OK) return rc;
 
@@ -350,7 +351,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 				case scgms::NParameter_Type::ptMetric_Id:
 				case scgms::NParameter_Type::ptModel_Signal_Id:
 				case scgms::NParameter_Type::ptSignal_Id:
-				case scgms::NParameter_Type::ptSolver_Id:				
+				case scgms::NParameter_Type::ptSolver_Id:
 				{
 					GUID val;
 					rc = parameter->Get_GUID(&val);
@@ -361,7 +362,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 				break;
 
 				case scgms::NParameter_Type::ptDouble_Array:
-					scgms::IModel_Parameter_Vector *model_parameters;
+					scgms::IModel_Parameter_Vector* model_parameters;
 					rc = parameter->Get_Model_Parameters(&model_parameters);
 					if (rc != S_OK) return rc;
 
@@ -376,7 +377,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 
 
 		std::string content;
-		ini.Save(content);		
+		ini.Save(content);
 		std::ofstream config_file(Narrow_WString(mFile_Path));
 		if (config_file.is_open()) {
 			config_file << content;
@@ -390,6 +391,6 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 	return S_OK;
 }
 
-HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersistent_Filter_Chain_Configuration **configuration) {
+HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersistent_Filter_Chain_Configuration** configuration) {
 	return Manufacture_Object<CPersistent_Chain_Configuration, scgms::IPersistent_Filter_Chain_Configuration>(configuration);
 }
