@@ -194,28 +194,23 @@ void CDecoupling_Filter::Flush_Stats() {
     auto flush_marker = [&stats_file](const size_t segment_id, auto& series, auto& stats, const wchar_t* marker_string) {
         scgms::TSignal_Stats signal_stats;
 
-        const bool result = Calculate_Signal_Stats(series, signal_stats);
+        Calculate_Signal_Stats(series, signal_stats);
+        
+        using et = std::underlying_type < scgms::NECDF>::type;
 
-        if (result) {
-            using et = std::underlying_type < scgms::NECDF>::type;
+        if (segment_id == scgms::All_Segments_Id)  stats_file << dsSelect_All_Segments;
+        else stats_file << std::to_wstring(segment_id);
 
-            if (segment_id == scgms::All_Segments_Id)  stats_file << dsSelect_All_Segments;
-            else stats_file << std::to_wstring(segment_id);
-
-            stats_file << "; " << marker_string << ";; "
-                << signal_stats.avg << "; " << signal_stats.stddev << "; " << signal_stats.count << ";; "
-                << signal_stats.ecdf[static_cast<et>(scgms::NECDF::min_value)] << "; "
-                << signal_stats.ecdf[static_cast<et>(scgms::NECDF::p25)] << "; "
-                << signal_stats.ecdf[static_cast<et>(scgms::NECDF::median)] << "; "
-                << signal_stats.ecdf[static_cast<et>(scgms::NECDF::p75)] << "; "
-                << signal_stats.ecdf[static_cast<et>(scgms::NECDF::max_value)] << ";; "
-                << stats.events_matched << "; " << stats.events_evaluated << "; "
-                << stats.levels_matched << "; " << stats.levels_evaluated << "; "
-                << std::endl;
-
-        }
-
-        return result;
+        stats_file << "; " << marker_string << ";; "
+            << signal_stats.avg << "; " << signal_stats.stddev << "; " << signal_stats.count << ";; "
+            << signal_stats.ecdf[static_cast<et>(scgms::NECDF::min_value)] << "; "
+            << signal_stats.ecdf[static_cast<et>(scgms::NECDF::p25)] << "; "
+            << signal_stats.ecdf[static_cast<et>(scgms::NECDF::median)] << "; "
+            << signal_stats.ecdf[static_cast<et>(scgms::NECDF::p75)] << "; "
+            << signal_stats.ecdf[static_cast<et>(scgms::NECDF::max_value)] << ";; "
+            << stats.events_matched << "; " << stats.events_evaluated << "; "
+            << stats.levels_matched << "; " << stats.levels_evaluated << "; "
+            << std::endl;
     };
 
 
@@ -234,12 +229,9 @@ void CDecoupling_Filter::Flush_Stats() {
 
 
         auto call_flush_marker = [&flush_marker](const size_t segment_id, auto& series, auto& stats, auto& total_series, const wchar_t* marker_string) {
-            if (series.size() > 0) {
-                std::vector<double> levels_stats{ series };   //we need a copy due to the sort to find ECDF
-                if (flush_marker(segment_id, levels_stats, stats, marker_string)) {
-                    std::move(series.begin(), series.end(), std::back_inserter(total_series));
-                }
-            }
+            std::vector<double> levels_stats{ series };   //we need a copy due to the sort to find ECDF
+            flush_marker(segment_id, levels_stats, stats, marker_string);
+            std::move(series.begin(), series.end(), std::back_inserter(total_series));            
         };
 
         call_flush_marker(segment.first, levels.episode_levels, levels, total_stats.episode_levels, dsLevel);
@@ -248,7 +240,6 @@ void CDecoupling_Filter::Flush_Stats() {
 
     stats_file << std::endl;
 
-    if (flush_marker(scgms::All_Segments_Id, total_stats.episode_levels, total_stats, dsLevel))
-        flush_marker(scgms::All_Segments_Id, total_stats.episode_period, total_stats, dsPeriod);
-
+    flush_marker(scgms::All_Segments_Id, total_stats.episode_levels, total_stats, dsLevel);
+    flush_marker(scgms::All_Segments_Id, total_stats.episode_period, total_stats, dsPeriod);
 }
