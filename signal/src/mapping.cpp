@@ -49,7 +49,7 @@ CMapping_Filter::CMapping_Filter(scgms::IFilter *output) : CBase_Filter(output) 
 HRESULT IfaceCalling CMapping_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {	
 	mSource_Id = configuration.Read_GUID(rsSignal_Source_Id);
 	mDestination_Id = configuration.Read_GUID(rsSignal_Destination_Id);
-    if (Is_Invalid_GUID(mSource_Id, mDestination_Id)) return E_INVALIDARG;
+    if (Is_Invalid_GUID(mDestination_Id)) return E_INVALIDARG;  //mSource_Id can be Invalid_GUID due to external reasons, such as malformed CSV log events
     mDestination_Null = mDestination_Id == scgms::signal_Null;
 
 	return S_OK;
