@@ -91,11 +91,18 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 
 	std::wstring line;
 	std::wstring column;
+	size_t line_counter = 0;
 
 	// read header and validate
 	// NOTE: this assumes identical header (as the one used when generating log); maybe we could consider adaptive log parsing later
-	if (!std::getline(log, line) || line != std::wstring(dsLog_Header))
-		return;
+	if (!std::getline(log, line) || line != std::wstring(dsLog_Header)) {
+		std::wstring msg{ dsFile_Has_Not_Expected_Header };
+		msg.append(log_filename);
+		Emit_Info(scgms::NDevice_Event_Code::Warning, msg, filename_segment_id);	
+		log.seekg(0);	//so that the following getline extracts the very same string
+	}
+	else
+		line_counter = 1;
 
 	// cuts a single column from input line
 	auto cut_column = [&line]() -> std::wstring {
@@ -110,37 +117,118 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 		
 		return retstr;
 	};
+	
+
+	auto emit_parsing_exception_w = [this, &log_filename, line_counter](const std::wstring &what) {	
+
+		std::wstring msg{ dsUnexpected_Error_While_Parsing };
+		msg.append(log_filename);
+		if (line_counter != std::numeric_limits<decltype(line_counter)>::max()) {
+			msg.append(dsLine_No);
+			msg.append(std::to_wstring(line_counter));
+		}
+		Emit_Info(scgms::NDevice_Event_Code::Error, msg);
+		if (!what.empty()) Emit_Info(scgms::NDevice_Event_Code::Error, what);
+	};
+
+	auto emit_parsing_exception = [&emit_parsing_exception_w](const char* what) {
+		emit_parsing_exception_w(Widen_Char(what));
+	};
+
+	std::vector<std::pair<double, std::wstring>> log_lines;	//first, we fetch the lines, and then we parse them
+				//we do so, to ensure that all the events are time sorted and and events't logical clock are monotonically increasing
 
 	// read all lines from log file
-	while (std::getline(log, line))
-	{
+	while (std::getline(log, line))  {
+		line_counter++;
 		try
 		{
 			// skip; logical time is not modifiable, and there's not a point in loading it anyways
 			auto specificval = cut_column();
 			// device time is parsed as-is using the same format as used when saving
-			const double device_time = Local_Time_WStr_To_Rat_Time(cut_column(), rsLog_Date_Time_Format);
+			specificval = cut_column();
+			const double device_time = Local_Time_WStr_To_Rat_Time(specificval, rsLog_Date_Time_Format);
+			if (std::isnan(device_time)) {
+				std::wstring msg{ dsUnknown_Date_Time_Format };
+				msg.append(specificval);
+				emit_parsing_exception_w(msg);
+				return;
+			}
+
 			// skip; event type name
 			specificval = cut_column();
 			// skip; signal name
 			specificval = cut_column();
 
-			// specific column (titled "info", but contains parameters or level)
-			specificval = cut_column();
+			log_lines.push_back(std::make_pair(device_time, line));
+		}
+		catch (const std::exception & ex) {				
+			emit_parsing_exception(ex.what());
+			return;
+		}
+		catch (...) {
+			// any parsing error causes parser to abort
+			// this should not happen, when the log was correctly written and not manually modified ever since
+			emit_parsing_exception(nullptr);
+			return;
+		}
+	}	
 
-			const uint64_t original_segment_id = std::stoull(cut_column());
+	//As we have read the times and end of lines, no event has been created yet => no event logical clock advanced by us
+	//=> by creating the events inside the following for, log-events and by-them-triggered events will have monotonically increasing logical clocks.
+	std::sort(log_lines.begin(), log_lines.end(), [](const auto& a, const auto& b) {return a.first < b.first; });
+
+	line_counter = std::numeric_limits<decltype(line_counter)>::max();	//once sorted, the line numbers won't have a valid meaning
+	for (size_t i = 0; i < log_lines.size(); i++) {
+		try {
+			const double device_time = log_lines[i].first;
+			line = std::move(log_lines[i].second);
+
+			// specific column (titled "info", but contains parameters or level)
+			const auto info_str = cut_column();
+
+
+			auto read_segment_id = [&cut_column, &emit_parsing_exception_w]()->uint64_t {
+				bool ok;
+				const auto str = cut_column();
+				uint64_t result = wstr_2_int(str.c_str(), ok);
+				if (!ok) {
+					std::wstring msg{ dsError_In_Number_Format };
+					msg.append(str);
+					emit_parsing_exception_w(msg);
+					result = std::numeric_limits<uint64_t>::max();
+				}
+
+				return result;
+			};
+
+			const uint64_t original_segment_id = read_segment_id();
+			if (original_segment_id == std::numeric_limits<uint64_t>::max()) {
+				return;
+			}
+			
 			const bool can_use_filename_as_segment_id = filename_segment_id_available && (original_segment_id != scgms::Invalid_Segment_Id) && (original_segment_id != scgms::All_Segments_Id);
 			const uint64_t segment_id = can_use_filename_as_segment_id ? filename_segment_id : original_segment_id;
-				
+
 
 			scgms::UDevice_Event evt{ static_cast<scgms::NDevice_Event_Code>(std::stoull(cut_column())) };
 
 			if (evt.is_info_event())
-				evt.info.set(specificval.c_str());
-			else if (evt.is_level_event())
-				evt.level() = std::stod(specificval);
+				evt.info.set(info_str.c_str());
+			else if (evt.is_level_event()) {
+				bool ok;
+				const double level = wstr_2_dbl(info_str.c_str(), ok);
+				if (ok) {
+					evt.level() = std::stod(info_str);
+				} else {
+					std::wstring msg{ dsError_In_Number_Format };
+					msg.append(info_str);
+					emit_parsing_exception_w(msg);
+					return;
+				}
+			}
 			else if (evt.is_parameters_event())
-				WStr_To_Parameters(specificval, evt.parameters);
+				WStr_To_Parameters(info_str, evt.parameters);
 
 			evt.device_time() = device_time;
 			evt.segment_id() = segment_id;
@@ -149,7 +237,7 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 			// do not send shutdown event through pipes - it's a job for outer code (GUI, ..)
 			// furthermore, sending this event would cancel and stop simulation - we don't want that
 			if (evt.event_code() == scgms::NDevice_Event_Code::Shut_Down)
-				continue;			
+				continue;
 
 			evt.device_id() = WString_To_GUID(cut_column());
 			evt.signal_id() = WString_To_GUID(cut_column());
@@ -157,13 +245,18 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 			if (Send(evt) != S_OK)
 				return;
 		}
-		catch (...)
-		{
-			// any parsing error causes parser to abort
-			// this should not happen, when the log was correctly written and not manually modified ever since
+		catch (const std::exception & ex) {
+			emit_parsing_exception(ex.what());
 			return;
 		}
-	}	
+		catch (...) {
+			// any parsing error causes parser to abort
+			// this should not happen, when the log was correctly written and not manually modified ever since
+			emit_parsing_exception(nullptr);
+			return;
+		}
+	}
+
 }
 
 void CLog_Replay_Filter::Open_Logs() {
