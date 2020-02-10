@@ -229,7 +229,7 @@ void CBergman_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 }
 
 HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
-	HRESULT res = S_FALSE;
+	HRESULT res = S_FALSE;	//	we consume any CHO input, but transforms insulin requests to deliveries
 
 	if (mState.lastTime > 0)
 	{
@@ -238,7 +238,7 @@ HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 			if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate)
 			{
 				mBasal_Ext.Add_Uptake(event.device_time(), std::numeric_limits<double>::max(), 1000.0 * (event.level() / 60.0));
-				res = S_OK;
+				event.signal_id() = scgms::signal_Delivered_Insulin_Basal_Rate;				
 			}
 			else if (event.signal_id() == scgms::signal_Requested_Insulin_Bolus)
 			{
@@ -246,9 +246,9 @@ HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 				constexpr double MinsBolusing = 5.0;
 
 				mBolus_Ext.Add_Uptake(event.device_time(), MinsBolusing * scgms::One_Minute, 1000.0 * (event.level() / MinsBolusing));
-				res = S_OK;
+				event.signal_id() = scgms::signal_Delivered_Insulin_Bolus;				
 			}
-			else if (event.signal_id() == scgms::signal_Carb_Intake)
+			else if ((event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue))
 			{
 				// we assume 10-minute eating period
 				// TODO: this should be a parameter of CHO intake
