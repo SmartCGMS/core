@@ -239,8 +239,14 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 			if (evt.event_code() == scgms::NDevice_Event_Code::Shut_Down)
 				continue;
 
-			evt.device_id() = WString_To_GUID(cut_column());
-			evt.signal_id() = WString_To_GUID(cut_column());
+			bool device_id_ok, signal_id_ok;
+			evt.device_id() = WString_To_GUID(cut_column(), device_id_ok);
+			evt.signal_id() = WString_To_GUID(cut_column(), signal_id_ok);
+			if (!device_id_ok || !signal_id_ok) {
+				emit_parsing_exception_w(dsInvalid_GUID);
+				return;
+			}
+
 
 			if (Send(evt) != S_OK)
 				return;

@@ -122,15 +122,18 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 					uspos = prefix.size();
 
 				//OK, this is filter section - extract the guid
-				const GUID id = WString_To_GUID(std::wstring{ name_str.begin() + uspos + 1, name_str.end() });
+				const std::wstring section_id_str { name_str.begin() + uspos + 1, name_str.end() };
+				bool section_id_ok;
+				const GUID id = WString_To_GUID(section_id_str, section_id_ok);
 				//and get the filter descriptor to load the parameters
 
 				scgms::TFilter_Descriptor desc = scgms::Null_Filter_Descriptor;
 
+				
 
-				refcnt::SReferenced<scgms::IFilter_Configuration_Link> filter_config{ new CFilter_Configuration_Link{id} };
+				if (section_id_ok && scgms::get_filter_descriptor_by_id(id, desc)) {
+					refcnt::SReferenced<scgms::IFilter_Configuration_Link> filter_config{ new CFilter_Configuration_Link{id} };
 
-				if (scgms::get_filter_descriptor_by_id(id, desc)) {
 					//so.. now, try to load the filter parameters - aka filter_config
 
 					for (size_t i = 0; i < desc.parameters_count; i++) {
@@ -185,9 +188,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 							case scgms::NParameter_Type::ptModel_Signal_Id:
 							case scgms::NParameter_Type::ptSignal_Id:
 							case scgms::NParameter_Type::ptSolver_Id:
-							{
-								const GUID tmp_guid = WString_To_GUID(str_value);
-								valid = tmp_guid != Invalid_GUID;
+							{								
+								const GUID tmp_guid = WString_To_GUID(str_value, valid);								
 								if (valid)
 									valid = filter_parameter.set_GUID(tmp_guid) == S_OK;
 							}
@@ -234,7 +236,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 				}
 				else {
 					loaded_all_filters = false;
-					std::wstring error_desc = dsCannot_Resolve_Filter_Descriptor + GUID_To_WString(id);
+					std::wstring error_desc = dsCannot_Resolve_Filter_Descriptor + section_id_str;
 					shared_error_description.push(error_desc.c_str());
 				}
 			}
