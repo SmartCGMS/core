@@ -69,7 +69,7 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 		if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start) 
 			mLast_Device_Time = std::numeric_limits<double>::quiet_NaN();
 
-		const bool step_the_model = (event.signal_id() == mSync_Signal) || (mSync_Signal == scgms::signal_All);
+		const bool step_the_model =  event.is_level_event() && ((event.signal_id() == mSync_Signal) || (mSync_Signal == scgms::signal_All));
 		double dynamic_stepping = 0.0;			//means "emit current state"
 		if (step_the_model) {
 			if (!std::isnan(mLast_Device_Time)) dynamic_stepping = event.device_time() - mLast_Device_Time;
