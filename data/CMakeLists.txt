@@ -14,9 +14,6 @@ ENDIF()
 
 CONFIGURE_COMMON(${PROJ})
 
-SET(DATA_UTILS_SRC )
-ADD_UTILS_FILE(DATA_UTILS_SRC "string_utils.h")
-ADD_UTILS_FILE(DATA_UTILS_SRC "string_utils.cpp")
 
 FILE(GLOB SRC_FILES "src/*.cpp" "src/*.c" "src/*.h" "src/third party/*.h" "src/third party/*.cpp" "src/third party/*.c" "src/fileloader/*.cpp" "src/fileloader/*.h" "src/fileloader/*.c")
 IF(WIN32)
@@ -24,7 +21,7 @@ IF(WIN32)
 	SET(SRC_FILES "${SRC_FILES};${SRC_WIN_FILES}")
 ENDIF()
 
-ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES};${COMMON_FILES};${DATA_UTILS_SRC})
+ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES};${COMMON_FILES})
 CONFIGURE_FILTER_OUTPUT(${PROJ})
 
 IF(COMPONENT_EXCEL_LOADERS)

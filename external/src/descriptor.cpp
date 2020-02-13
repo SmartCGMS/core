@@ -37,15 +37,19 @@
  */
 
 #include "descriptor.h"
+
+#ifndef NO_BUILD_DMMS
 #include "dmms_lib/dmms_lib.h"
 #include "dmms_proc/dmms_proc.h"
+#endif
+#include "network/network_model.h"
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
 #include "../../../common/rtl/DeviceLib.h"
 #include "../../../common/rtl/UILib.h"
 
-
+#ifndef NO_BUILD_DMMS
 namespace dmms_model {
 
 	const wchar_t *model_param_ui_names[model_param_count] = {
@@ -92,7 +96,6 @@ namespace dmms_model {
 
 		number_of_calculated_signals,
 		calculated_signal_ids,
-		calculated_signal_names,
 		reference_signal_ids,
 	};
 
@@ -110,12 +113,46 @@ namespace dmms_model {
 
 		number_of_calculated_signals,
 		calculated_signal_ids,
-		calculated_signal_names,
 		reference_signal_ids,
 	};
 }
+#endif
 
-const std::array<scgms::TModel_Descriptor, 2> model_descriptions = { { dmms_model::proc_desc, dmms_model::lib_desc } };
+namespace network_model {
+
+	constexpr size_t number_of_calculated_signals = 0;
+
+	scgms::TModel_Descriptor desc = {
+		model_id,
+		L"Network model",
+		nullptr,
+		model_param_count,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+
+		number_of_calculated_signals,
+		nullptr,
+		nullptr,
+	};
+}
+
+#ifndef NO_BUILD_DMMS
+constexpr size_t ExternalModelCount = 3;
+#else
+constexpr size_t ExternalModelCount = 1;
+#endif
+
+const std::array<scgms::TModel_Descriptor, ExternalModelCount> model_descriptions = { {
+#ifndef NO_BUILD_DMMS
+	dmms_model::proc_desc,
+	dmms_model::lib_desc,
+#endif
+	network_model::desc,
+} };
 
 
 HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
@@ -126,8 +163,12 @@ HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, 
 
 
 HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
+#ifndef NO_BUILD_DMMS
 	if (*model_id == dmms_model::proc_model_id) return Manufacture_Object<CDMMS_Proc_Discrete_Model>(model, parameters, output);
 	if (*model_id == dmms_model::lib_model_id) return Manufacture_Object<CDMMS_Lib_Discrete_Model>(model, parameters, output);
-	else return E_NOTIMPL;
+#endif
+	if (*model_id == network_model::desc.id) return Manufacture_Object<CNetwork_Discrete_Model>(model, parameters, output);
+
+	return E_NOTIMPL;
 }
 

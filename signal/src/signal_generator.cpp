@@ -136,10 +136,11 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 
 	if (!mSync_To_Signal) {
 		mThread = std::make_unique<std::thread>([this]() {
-			if (SUCCEEDED(mModel->Set_Current_Time(Unix_Time_To_Rat_Time(time(nullptr))))) {
-				mModel->Step(0.0);	//emit the initial state as this is the current state now
+			scgms::SDiscrete_Model model = mModel; // hold local instance to avoid race conditions with Execute shutdown code
+			if (SUCCEEDED(model->Set_Current_Time(Unix_Time_To_Rat_Time(time(nullptr))))) {
+				model->Step(0.0);	//emit the initial state as this is the current state now
 				while (!mQuitting) {
-					if (!SUCCEEDED(mModel->Step(mFixed_Stepping))) break;
+					if (!SUCCEEDED(model->Step(mFixed_Stepping))) break;
 
 					mTotal_Time += mFixed_Stepping;
 					if (mMax_Time > 0.0) mQuitting |= mTotal_Time >= mMax_Time;
@@ -149,7 +150,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 					auto evt = scgms::UDevice_Event{ scgms::NDevice_Event_Code::Shut_Down };
 					scgms::IDevice_Event *raw_event = evt.get();
 					evt.release();
-					mModel->Execute(raw_event);
+					model->Execute(raw_event);
 				}
 			}
 

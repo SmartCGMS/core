@@ -78,5 +78,12 @@ namespace dmms_model
 	};
 }
 
+namespace network_model
+{
+	constexpr GUID model_id = { 0xf2858227, 0x3c8d, 0x418e, { 0x9d, 0xc4, 0x5a, 0x3, 0x7, 0x13, 0xc9, 0xb2 } }; // {F2858227-3C8D-418E-9DC4-5A030713C9B2}
+	constexpr size_t model_param_count = 0;
+
+}
+
 HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end);
 HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model);

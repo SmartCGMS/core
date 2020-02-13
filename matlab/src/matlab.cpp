@@ -269,8 +269,9 @@ bool CMatlab_Factory::Parse_Models(CXML_Parser<wchar_t> &parser)
 
 	for (auto& modelDesc : models.children[rsMatlab_Manifest_Model_Tag])
 	{
-		GUID id = WString_To_GUID(modelDesc.parameters[rsMatlab_Manifest_Id_Parameter]);
-		if (id == Invalid_GUID)
+		bool ok;
+		GUID id = WString_To_GUID(modelDesc.parameters[rsMatlab_Manifest_Id_Parameter], ok);
+		if (id == Invalid_GUID || !ok)
 			continue;
 
 		auto& target = mModels[id];
@@ -287,8 +288,8 @@ bool CMatlab_Factory::Parse_Models(CXML_Parser<wchar_t> &parser)
 			return Get_Param(name, paramMap, [&target](const std::wstring& s) { target.push_back(std::stod(s)); });
 		};
 
-		const auto storeGUIDParam = [](const wchar_t* name, const std::map<std::wstring, std::wstring>& paramMap, std::vector<GUID>& target) -> bool {
-			return Get_Param(name, paramMap, [&target](const std::wstring& s) { target.push_back(WString_To_GUID(s)); });
+		const auto storeGUIDParam = [&ok](const wchar_t* name, const std::map<std::wstring, std::wstring>& paramMap, std::vector<GUID>& target) -> bool {
+			return Get_Param(name, paramMap, [&target, &ok](const std::wstring& s) { target.push_back(WString_To_GUID(s, ok)); });
 		};
 
 		auto paramElements = modelDesc.children[rsMatlab_Manifest_Parameters_Tag].at(0); // checked by exception mechanism
@@ -342,8 +343,9 @@ bool CMatlab_Factory::Parse_Solvers(CXML_Parser<wchar_t> &parser)
 
 	for (auto& solverDesc : solvers.children[rsMatlab_Manifest_Solver_Tag])
 	{
-		GUID id = WString_To_GUID(solverDesc.parameters[rsMatlab_Manifest_Id_Parameter]);
-		if (id == Invalid_GUID)
+		bool ok;
+		GUID id = WString_To_GUID(solverDesc.parameters[rsMatlab_Manifest_Id_Parameter], ok);
+		if (id == Invalid_GUID || !ok)
 			continue;
 
 		auto& target = mSolvers[id];
@@ -358,8 +360,8 @@ bool CMatlab_Factory::Parse_Solvers(CXML_Parser<wchar_t> &parser)
 			auto modelElements = modelItr->second.at(0);
 			for (auto& element : modelElements.children[rsMatlab_Manifest_Model_Tag])
 			{
-				GUID id = WString_To_GUID(element.Get_Parameter(rsMatlab_Manifest_Id_Parameter));
-				if (id != Invalid_GUID)
+				GUID id = WString_To_GUID(element.Get_Parameter(rsMatlab_Manifest_Id_Parameter), ok);
+				if (id != Invalid_GUID || !ok)
 					target.modelsSpecialization.push_back(id);
 			}
 		}

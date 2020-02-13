@@ -1,33 +1,52 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 
+SET(PROJ "external")
+
+CONFIGURE_COMMON(${PROJ})
+
+FILE(GLOB SRC_FILES "src/*.cpp" "src/*.c" "src/*.h")
+SOURCE_GROUP("src" FILES ${SRC_FILES})
+
+FILE(GLOB_RECURSE NETWORK_SRC_FILES "src/network/*.cpp" "src/network/*.c" "src/network/*.h")
+
 # currently supporting only Win32 target
 IF(WIN32)
-
-	SET(PROJ "external")
-
-	CONFIGURE_COMMON(${PROJ})
-
-	FILE(GLOB SRC_FILES "src/*.cpp" "src/*.c" "src/*.h")
 	FILE(GLOB_RECURSE DMMS_LIB_FILES "src/dmms_lib/*.cpp" "src/dmms_lib/*.c" "src/dmms_lib/*.h")
 	FILE(GLOB_RECURSE DMMS_PROC_FILES "src/dmms_proc/*.cpp" "src/dmms_proc/*.c" "src/dmms_proc/*.h")
 	FILE(GLOB_RECURSE MATLAB_SRC_FILES "src/matlab/*.cpp" "src/matlab/*.c" "src/matlab/*.h")
+	
+	SOURCE_GROUP("src\\dmms_lib" FILES ${DMMS_LIB_FILES})
+	SOURCE_GROUP("src\\dmms_proc" FILES ${DMMS_PROC_FILES})
+	SOURCE_GROUP("src\\matlab" FILES ${MATLAB_SRC_FILES})
+	
 	IF(WIN32)
 		FILE(GLOB SRC_WIN_FILES "src/win/*.cpp" "src/win/*.h" "src/win/*.def")
 		SET(SRC_FILES "${SRC_FILES};${SRC_WIN_FILES}")
 	ENDIF()
 
 	SET(SRC_FILES "${SRC_FILES};${DMMS_LIB_FILES};${DMMS_PROC_FILES};${MATLAB_SRC_FILES}")
-
-	SET(EXTERNAL_UTILS_SRC )
-	ADD_UTILS_FILE(EXTERNAL_UTILS_SRC "string_utils.h")
-	ADD_UTILS_FILE(EXTERNAL_UTILS_SRC "string_utils.cpp")
-
+	
 	FIND_PACKAGE(DmmsLib)
+ENDIF()
 
-	ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES};${COMMON_FILES};${EXTERNAL_UTILS_SRC})
-	CONFIGURE_FILTER_OUTPUT(${PROJ})
+SOURCE_GROUP("src\\network" FILES ${NETWORK_SRC_FILES})
 
-	TARGET_LINK_LIBRARIES(${PROJ} factory ${CMAKE_CURRENT_SOURCE_DIR}/src/matlab/libmx_win64_ms.lib)
+SET(EXTERNAL_UTILS_SRC )
+ADD_UTILS_FILE(EXTERNAL_UTILS_SRC "NetUtils.h")
+ADD_UTILS_FILE(EXTERNAL_UTILS_SRC "NetUtils.cpp")
+
+SOURCE_GROUP("common\\utils" FILES ${EXTERNAL_UTILS_SRC})
+
+ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES};${NETWORK_SRC_FILES};${COMMON_FILES};${EXTERNAL_UTILS_SRC})
+CONFIGURE_FILTER_OUTPUT(${PROJ})
+
+TARGET_LINK_LIBRARIES(${PROJ} factory)
+IF(WIN32)
 	TARGET_INCLUDE_DIRECTORIES(${PROJ} PUBLIC ${DMMSLIB_INCLUDE_DIRS})
-
+ENDIF()
+	
+IF(WIN32)
+	TARGET_LINK_LIBRARIES(${PROJ} Ws2_32 ${CMAKE_CURRENT_SOURCE_DIR}/src/matlab/libmx_win64_ms.lib)
+ELSE()
+	TARGET_COMPILE_DEFINITIONS(${PROJ} PUBLIC NO_BUILD_DMMS)
 ENDIF()

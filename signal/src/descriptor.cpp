@@ -371,33 +371,6 @@ namespace signal_descriptor {
 																 skin_temp_desc, heartbeat_desc, eda_desc, accel_desc} };
 }
 
-namespace measured_signal
-{
-	constexpr size_t supported_count = 18;
-
-	const std::array<GUID, supported_count> supported_signal_ids = {
-		scgms::signal_BG,
-		scgms::signal_Calibration,
-		scgms::signal_ISIG,
-		scgms::signal_IG,
-		scgms::signal_Requested_Insulin_Bolus,
-		scgms::signal_Requested_Insulin_Basal_Rate,
-		scgms::signal_Insulin_Activity,
-		scgms::signal_IOB,
-		scgms::signal_COB,
-		scgms::signal_Carb_Intake,
-		scgms::signal_Carb_Rescue,
-		scgms::signal_Calibration,
-		scgms::signal_Physical_Activity,
-		scgms::signal_Skin_Temperature,
-		scgms::signal_Heartbeat,
-		scgms::signal_Electrodermal_Activity,
-		scgms::signal_Steps,
-		scgms::signal_Acceleration
-	};
-}
-
-
 namespace feedback_sender {
 	constexpr size_t param_count = 3;
 
@@ -472,8 +445,8 @@ extern "C" HRESULT IfaceCalling do_create_signal(const GUID *signal_id, scgms::I
 	if (signal_id == nullptr)	//signal error sets segment to nullptr as it does not need it, so we check signal_id only
 		return E_INVALIDARG;
 
-	for (const auto& supported_id : measured_signal::supported_signal_ids) {
-		if (supported_id == *signal_id)
+	for (const auto& supported_signal : signal_descriptor::signals) {
+		if (supported_signal.id == *signal_id)
 			return Manufacture_Object<CMeasured_Signal>(signal);
 	}
 

@@ -64,7 +64,6 @@ bool add_model_descriptor(TUser_Defined_Model_Descriptor& descriptor)
 		descriptor.paramUpperBounds.data(),
 		descriptor.signalNames.size(),
 		descriptor.signalGUIDs.data(),
-		descriptor.signalNames_Proxy.data(),
 		descriptor.referenceGUIDs.data()
 	};
 

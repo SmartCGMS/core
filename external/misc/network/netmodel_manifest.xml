@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+	<connection host="" port="" retry-count="" timeout="" />
+	<session ping-interval="5" />
+	<model id="{95C3E585-ACA6-4791-B707-7452F81B820F}" />
+</manifest>

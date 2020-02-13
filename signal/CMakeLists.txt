@@ -4,15 +4,15 @@ SET(PROJ "signal")
 
 CONFIGURE_COMMON(${PROJ})
 
-FILE(GLOB SRC_FILES "src/*.cpp" "src/*.c" "src/*.h")
+FILE(GLOB SRC_FILES "src/*.cpp" "src/*.c" "src/*.h" "src/expression/*.h" "src/expression/expression.tab.cpp" "src/expression/expression.tab.hpp")
 IF(WIN32)
 	FILE(GLOB SRC_WIN_FILES "src/win/*.cpp" "src/win/*.h" "src/win/*.def")
 	SET(SRC_FILES "${SRC_FILES};${SRC_WIN_FILES}")
 ENDIF()
 
 SET(SIGNAL_UTILS_SRC )
-ADD_UTILS_FILE(SIGNAL_UTILS_SRC "string_utils.h")
-ADD_UTILS_FILE(SIGNAL_UTILS_SRC "string_utils.cpp")
+ADD_UTILS_FILE(SIGNAL_UTILS_SRC "math_utils.h")
+ADD_UTILS_FILE(SIGNAL_UTILS_SRC "math_utils.cpp")
 
 ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES};${COMMON_FILES};${SIGNAL_UTILS_SRC})
 CONFIGURE_FILTER_OUTPUT(${PROJ})
