@@ -132,6 +132,7 @@ public:
 	HRESULT add_filters(const scgms::TFilter_Descriptor *begin, const scgms::TFilter_Descriptor *end, const scgms::TCreate_Filter create_filter);
 };
 
+extern "C" HRESULT IfaceCalling create_filter(const GUID *id, scgms::IFilter* next_filter, scgms::IFilter **filter);
 extern "C" HRESULT IfaceCalling create_metric(const scgms::TMetric_Parameters *parameters, scgms::IMetric **metric);
 extern "C" HRESULT IfaceCalling create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, scgms::ISignal **signal);
 extern "C" HRESULT IfaceCalling create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model);

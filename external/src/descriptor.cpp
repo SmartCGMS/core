@@ -54,7 +54,7 @@ namespace dmms_model {
 
 	const wchar_t *model_param_ui_names[model_param_count] = {
 		L"Meal announce delta",
-		L"Excercise announce delta",
+		L"Exercise announce delta",
 	};
 
 	const scgms::NModel_Parameter_Value model_param_types[model_param_count] = {
@@ -141,9 +141,9 @@ namespace network_model {
 }
 
 #ifndef NO_BUILD_DMMS
-constexpr size_t ExternalModelCount = 3;
+	constexpr size_t ExternalModelCount = 3;
 #else
-constexpr size_t ExternalModelCount = 1;
+	constexpr size_t ExternalModelCount = 1;
 #endif
 
 const std::array<scgms::TModel_Descriptor, ExternalModelCount> model_descriptions = { {
@@ -171,4 +171,3 @@ HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IMode
 
 	return E_NOTIMPL;
 }
-

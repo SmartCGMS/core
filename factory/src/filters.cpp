@@ -91,6 +91,10 @@ HRESULT IfaceCalling get_signal_descriptors(scgms::TSignal_Descriptor** begin, s
 	return loaded_filters.get_signal_descriptors(begin, end);
 }
 
+HRESULT IfaceCalling create_filter(const GUID *id, scgms::IFilter* next_filter, scgms::IFilter **filter) {
+	return loaded_filters.create_filter(id, next_filter, filter);
+}
+
 HRESULT IfaceCalling create_metric(const scgms::TMetric_Parameters *parameters, scgms::IMetric **metric) {
 	return loaded_filters.create_metric(parameters, metric);
 }

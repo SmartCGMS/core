@@ -44,6 +44,7 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/utils/math_utils.h"
+#include "../../../common/utils/string_utils.h"
 
 constexpr unsigned char bool_2_uc(const bool b) {
 	return b ? static_cast<unsigned char>(1) : static_cast<unsigned char>(0);

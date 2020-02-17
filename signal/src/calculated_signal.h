@@ -81,7 +81,7 @@ protected:
 	double Calculate_Fitness(scgms::ITime_Segment **segments, const size_t segment_count, scgms::SMetric metric, scgms::IModel_Parameter_Vector *parameters);	
 protected:
 	bool mWarm_Reset_Done = false;
-	solver::TSolver_Progress mSolver_Progress;
+	solver::TSolver_Progress mSolver_Progress = solver::Null_Solver_Progress;
 	scgms::TSolver_Status mSolver_Status = scgms::TSolver_Status::Disabled;
 protected:
 	std::map<int64_t, std::unique_ptr<CTime_Segment>> mSegments;

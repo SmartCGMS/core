@@ -80,9 +80,9 @@ class CDb_Writer : public scgms::CBase_Filter, public db::IDb_Sink {
 		int64_t mSubject_Id = db::New_Subject_Identifier;
 
 		// generate new primary keys for all incoming data intended to be stored?
-		bool mGenerate_Primary_Keys;
+		bool mGenerate_Primary_Keys = false;
 		// store incoming data (levels, masked levels, ...)?
-		bool mStore_Data;
+		bool mStore_Data = false;
 		// store parameters?
 		bool mStore_Parameters = false;
 

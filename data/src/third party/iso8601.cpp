@@ -67,14 +67,16 @@ std::wstring to_iso8601(const std::time_t &timestamp, const bool include_timezon
 
 	if (include_timezone)
 	{
-		wchar_t buf[sizeof L"1970-01-01T00:00:00Z"];
-		std::wcsftime(buf, sizeof buf, L"%Y-%m-%dT%H:%M:%SZ", &exploded_time);
+		const size_t buf_len = sizeof(L"1970-01-01T00:00:00Z")+1;
+		wchar_t buf[buf_len];
+		std::wcsftime(buf, buf_len, L"%Y-%m-%dT%H:%M:%SZ", &exploded_time);
 		ret = buf;
 	}
 	else
 	{
-		wchar_t buf[sizeof L"1970-01-01T00:00:00"];
-		std::wcsftime(buf, sizeof buf, L"%Y-%m-%dT%H:%M:%S", &exploded_time);
+		const size_t buf_len = sizeof(L"1970-01-01T00:00:00")+1;
+		wchar_t buf[buf_len];
+		std::wcsftime(buf, buf_len, L"%Y-%m-%dT%H:%M:%S", &exploded_time);
 		ret = buf;
 	}
 
@@ -241,7 +243,8 @@ std::time_t from_iso8601(const std::wstring &descriptor) {
 			}
 		}
 
-		tz_offset = tz_direction * (tz_hours * 3600 + tz_minutes * 60);
+		using ct = decltype(tz_offset);
+		tz_offset = static_cast<ct>(tz_direction) * (static_cast<ct>(tz_hours) * 3600 + static_cast<ct>(tz_minutes) * 60);
 	}
 
 	// Determine DST automatically
@@ -256,4 +259,3 @@ std::time_t from_iso8601(const std::wstring &descriptor) {
 
 	return std::mktime(&t) - tz_offset;
 }
-

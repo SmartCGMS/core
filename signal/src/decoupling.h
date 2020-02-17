@@ -69,10 +69,10 @@ protected:
         size_t events_evaluated, levels_evaluated, events_matched, levels_matched;
         std::vector<double> episode_period;
         std::vector<double> episode_levels;     //not size_t, but double so that we can call statistics routines on it easily
-        double current_episode_start_time;
-        size_t current_episode_levels;
-        double recent_device_time;
-        bool in_episode;
+        double current_episode_start_time = std::numeric_limits<double>::quiet_NaN();
+        size_t current_episode_levels = 0;
+        double recent_device_time = std::numeric_limits<double>::quiet_NaN();
+        bool in_episode = false;
     };
 
     std::map<uint64_t, TSegment_Stats> mStats;

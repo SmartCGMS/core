@@ -109,12 +109,12 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	Stop_Generator(true);
 
-	mSync_To_Signal = configuration.Read_Bool(rsSynchronize_to_Signal);
+	mSync_To_Signal = configuration.Read_Bool(rsSynchronize_to_Signal, mSync_To_Signal);
 	mSync_Signal = configuration.Read_GUID(rsSynchronization_Signal);
 	mFeedback_Name = configuration.Read_String(rsFeedback_Name);
-	mFixed_Stepping = configuration.Read_Double(rsStepping);
-	mMax_Time = configuration.Read_Double(rsMaximum_Time);
-	mEmit_Shutdown = configuration.Read_Bool(rsShutdown_After_Last);
+	mFixed_Stepping = configuration.Read_Double(rsStepping, mFixed_Stepping);
+	mMax_Time = configuration.Read_Double(rsMaximum_Time, mMax_Time);
+	mEmit_Shutdown = configuration.Read_Bool(rsShutdown_After_Last, mEmit_Shutdown);
 
 	std::vector<double> lower, parameters, upper;
 	configuration.Read_Parameters(rsParameters, lower, parameters, upper);

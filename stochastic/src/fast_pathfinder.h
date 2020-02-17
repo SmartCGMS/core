@@ -49,7 +49,7 @@ namespace fast_pathfinder_internal {
 	struct TCandidate {
 		TUsed_Solution current, next;
 		size_t leader_index = 0;	//keeping static analysis happy
-		double current_fitness, next_fitness = std::numeric_limits<double>::quiet_NaN();
+		double current_fitness = std::numeric_limits<double>::quiet_NaN(), next_fitness = std::numeric_limits<double>::quiet_NaN();
 
 		std::vector<size_t> direction_index;
 

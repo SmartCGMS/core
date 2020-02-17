@@ -85,7 +85,7 @@ class CGE_Discrete_Model : public virtual scgms::CBase_Filter, public virtual sc
 protected:
 	double mWaiting_CHO = 0.0;		//for the cho_half instruction
 	double mCurrent_IBR = 0.0;		//for the ibr instruction
-	double mGE_Variables[ge_model::ge_variables_count];
+	std::array<double, ge_model::ge_variables_count>  mGE_Variables = { {std::numeric_limits<double>::quiet_NaN()} };	//or may be a fill_n to be sure that it applies to all elements?
 	double &mOutput_Level = mGE_Variables[0];
 	
 	double mCurrent_Time = std::numeric_limits<double>::quiet_NaN();

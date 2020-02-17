@@ -55,11 +55,11 @@ class CSignal_Generator : public virtual scgms::CBase_Filter, public virtual scg
 protected:
 	bool mSync_To_Signal = false;
 	GUID mSync_Signal = Invalid_GUID;
-	double mFixed_Stepping;
+	double mFixed_Stepping = 5.0*scgms::One_Minute;
 	double mMax_Time;			//maximum time, for which the generator can run
 	double mTotal_Time = 0.0;	//time for which the generator runs
 	double mLast_Device_Time = std::numeric_limits<double>::quiet_NaN();
-	bool mEmit_Shutdown;
+	bool mEmit_Shutdown = true;
 protected:
 	std::wstring mFeedback_Name;
 	scgms::SDiscrete_Model mModel;

@@ -1,6 +1,7 @@
 LIBRARY factory.dll
 
 EXPORTS
+	create_filter
 	create_metric
 	create_signal
 	solve_model_parameters

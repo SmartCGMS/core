@@ -106,7 +106,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public virtual scgms
 		GUID mRequested_Model_GUID = Invalid_GUID;
 
 		std::wstring mRemoteAddr;
-		uint16_t mRemotePort;
+		uint16_t mRemotePort = 0;
 
 		std::vector<char> mInBuffer;
 		size_t mPendingBytes = 0;
@@ -123,7 +123,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public virtual scgms
 			TSlot pool_slot = Invalid_Pool_Slot;
 
 			TPool_Slot_Guard(CNetwork_Discrete_Model& _parent) : parent(_parent) {};
-			~TPool_Slot_Guard() { if (Has_Slot()) parent.Free_Pool_Slot(pool_slot); }
+			~TPool_Slot_Guard() { if (Has_Slot()) parent.Releae_Pool_Slot(pool_slot); }
 
 			// precondition: !Has_Slot()
 			void Set_Slot(TSlot slot) { pool_slot = slot; }
@@ -136,9 +136,9 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public virtual scgms
 		TPool_Slot_Guard mSlot;
 
 		// allocates network slot; blocks if no slot is available
-		TSlot Alloc_Pool_Slot();
+		TSlot Acquire_Pool_Slot();
 		// frees a network slot, signalizes waiting entities in Alloc_Pool_Slot
-		void Free_Pool_Slot(TSlot slot);
+		void Releae_Pool_Slot(TSlot slot);
 
 		// handles incoming data on the slot socket
 		bool Handle_Incoming_Data();
@@ -217,7 +217,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public virtual scgms
 							return false;
 					}
 
-					return (static_cast<size_t>(res1 + res2) == sizeof(T) + dynamic_length);
+					return (static_cast<size_t>(res1) + static_cast<size_t>(res2) == sizeof(T) + dynamic_length);
 				}
 		};
 

@@ -45,6 +45,9 @@
 
 #undef min
 
+const wchar_t* Net_Default_Host = L"127.0.0.1";
+constexpr int64_t Net_Default_Port = 8855;
+
 #include "network_model.h"
 #include "../../../../common/utils/string_utils.h"
 #include "../../../../common/rtl/rattime.h"
@@ -73,7 +76,7 @@ CNetwork_Discrete_Model::~CNetwork_Discrete_Model()
 		Deinit_Network();
 }
 
-CNetwork_Discrete_Model::TSlot CNetwork_Discrete_Model::Alloc_Pool_Slot()
+CNetwork_Discrete_Model::TSlot CNetwork_Discrete_Model::Acquire_Pool_Slot()
 {
 	std::unique_lock<std::mutex> lck(mConnection_Pool_Mtx);
 
@@ -98,7 +101,7 @@ CNetwork_Discrete_Model::TSlot CNetwork_Discrete_Model::Alloc_Pool_Slot()
 	return static_cast<TSlot>(allocSlot);
 }
 
-void CNetwork_Discrete_Model::Free_Pool_Slot(TSlot slot)
+void CNetwork_Discrete_Model::Releae_Pool_Slot(TSlot slot)
 {
 	std::unique_lock<std::mutex> lck(mConnection_Pool_Mtx);
 
@@ -462,53 +465,44 @@ HRESULT CNetwork_Discrete_Model::Do_Configure(scgms::SFilter_Configuration confi
 {
 	if (!mNetwork_Initialized)
 	{
-		// TODO: report error
+		error_description.push(dsCoult_Not_Init_Network);
 		return E_FAIL;
 	}
 
-	std::wstring root_path = Get_Application_Dir();
-	std::wstring mainfest_path = Path_Append(root_path, L"netmodel_manifest.xml");
+	mRemoteAddr = configuration.Read_String(rsRemote_Host, Net_Default_Host);
 
-	CXML_Parser<wchar_t> parser(mainfest_path);
-	if (!parser.Is_Valid())
+	int tmpPort = static_cast<decltype(tmpPort)>(configuration.Read_Int(rsRemote_Port, Net_Default_Port));
+	if (tmpPort < 0 || tmpPort > 65535)
 	{
-		// TODO: report error
+		error_description.push(dsInvalid_Network_Port);
 		return E_FAIL;
 	}
 
-	try
+	mRemotePort = static_cast<uint16_t>(tmpPort);
+
+	// make this configurable?
+	mConnection_Retry_Count = 5;
+	mSocket_Timeout = 5;
+	mPing_Interval = 5;
+
+	mRequested_Model_GUID = configuration.Read_GUID(rsRemote_Model_Id, Invalid_GUID);
+
+	if (mRequested_Model_GUID == Invalid_GUID)
 	{
-		mRemoteAddr = parser.Get_Parameter(L"manifest.connection:host", L"127.0.0.1");
-
-		int tmpPort = std::stoi(parser.Get_Parameter(L"manifest.connection:port", L"8855"));
-		if (tmpPort < 0 || tmpPort > 65535)
-			throw std::invalid_argument{ "Invalid port" };
-
-		mRemotePort = static_cast<uint16_t>(tmpPort);
-
-		bool ok;
-
-		mConnection_Retry_Count = std::stol(parser.Get_Parameter(L"manifest.connection:retry-count", L"5"));
-		mSocket_Timeout = std::stol(parser.Get_Parameter(L"manifest.connection:timeout", L"5"));
-		mPing_Interval = std::stol(parser.Get_Parameter(L"manifest.session:ping-interval", L"5"));
-		mRequested_Model_GUID = WString_To_GUID(parser.Get_Parameter(L"manifest.model:id", GUID_To_WString(Invalid_GUID)), ok);
-
-		if (!ok)
-			throw std::invalid_argument{ "Invalid model GUID" };
-	}
-	catch (std::exception&/* ex*/)
-	{
-		// TODO: report error
+		error_description.push(dsInvalid_Model_GUID);
 		return E_FAIL;
 	}
 
 	mInBuffer.resize(scgms::Max_Packet_Length);
 
-	mSlot.Set_Slot(Alloc_Pool_Slot());
+	mSlot.Set_Slot(Acquire_Pool_Slot());
 
 	// this happens only if a fatal error has occurred
 	if (!mSlot.Has_Slot())
+	{
+		error_description.push(dsCoult_Not_Allocate_Network_Pool_Slot);
 		return E_FAIL;
+	}
 
 	mNetThread = std::make_unique<std::thread>(&CNetwork_Discrete_Model::Network_Thread_Fnc, this);
 

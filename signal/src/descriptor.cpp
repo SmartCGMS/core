@@ -332,7 +332,7 @@ namespace signal_generator {
 	};
 
 	scgms::TFilter_Descriptor desc = {
-		{ 0x9eeb3451, 0x2a9d, 0x49c1, { 0xba, 0x37, 0x2e, 0xc0, 0xb0, 0xe, 0x5e, 0x6d } },
+		{ 0x9eeb3451, 0x2a9d, 0x49c1, { 0xba, 0x37, 0x2e, 0xc0, 0xb0, 0xe, 0x5e, 0x6d } },  // {9EEB3451-2A9D-49C1-BA37-2EC0B00E5E6D}
 		scgms::NFilter_Flags::None,
 		dsSignal_Generator,
 		filter_param_count,
@@ -343,6 +343,77 @@ namespace signal_generator {
 	};
 }
 
+namespace network_signal_generator {
+
+	constexpr size_t filter_param_count = 11;
+
+	const wchar_t *filter_ui_names[filter_param_count] = {
+		dsSelected_Model,
+		dsFeedback_Name,
+		dsSynchronize_to_Signal,
+		dsSynchronization_Signal,
+		dsStepping,
+		dsMaximum_Time,
+		dsShutdown_After_Last,
+		dsParameters,
+		dsRemote_Host,
+		dsRemote_Port,
+		dsRemote_Model_Id,
+	};
+
+	const wchar_t *filter_config_names[filter_param_count] = {
+		rsSelected_Model,
+		rsFeedback_Name,
+		rsSynchronize_to_Signal,
+		rsSynchronization_Signal,
+		rsStepping,
+		rsMaximum_Time,
+		rsShutdown_After_Last,
+		rsParameters,
+		rsRemote_Host,
+		rsRemote_Port,
+		rsRemote_Model_Id,
+	};
+
+	const wchar_t *filter_tooltips[filter_param_count] = {
+		dsSelected_Model_Tooltip,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr
+	};
+
+	constexpr scgms::NParameter_Type filter_param_types[filter_param_count] = {
+		scgms::NParameter_Type::ptModel_Id,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptRatTime,
+		scgms::NParameter_Type::ptRatTime,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptDouble_Array,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptInt64,
+		scgms::NParameter_Type::ptSignal_Id,		// NOTE: this model will not be enumerated in GUI as its descriptor is missing
+	};
+
+	scgms::TFilter_Descriptor desc = {
+		{ 0x8a583293, 0x20a7, 0x4d56, { 0x93, 0x2f, 0xc5, 0x68, 0xb8, 0xe3, 0xd4, 0x4a } }, // {8A583293-20A7-4D56-932F-C568B8E3D44A}
+		scgms::NFilter_Flags::None,
+		dsSignal_Generator_Network,
+		filter_param_count,
+		filter_param_types,
+		filter_ui_names,
+		filter_config_names,
+		filter_tooltips
+	};
+}
 
 namespace signal_descriptor {
 	const scgms::TSignal_Descriptor bg_desc { scgms::signal_BG, dsSignal_GUI_Name_BG, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0000, 0xFFFF0000, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::none, nullptr };
@@ -409,7 +480,7 @@ namespace feedback_sender {
 	};
 } 
 
-const std::array<scgms::TFilter_Descriptor, 6> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, decoupling::desc, masking::Masking_Descriptor, signal_generator::desc, feedback_sender::desc } };
+const std::array<scgms::TFilter_Descriptor, 7> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, decoupling::desc, masking::Masking_Descriptor, signal_generator::desc, network_signal_generator::desc, feedback_sender::desc } };
 
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
@@ -433,7 +504,8 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 		return Manufacture_Object<CMapping_Filter>(filter, output);
 	else if (*id == decoupling::desc.id)
 		return Manufacture_Object<CDecoupling_Filter>(filter, output);
-	else if (*id == signal_generator::desc.id)
+	// NOTE: signal generator and network variant shares one implementation, the latter having an extra set of parameters
+	else if (*id == signal_generator::desc.id || *id == network_signal_generator::desc.id)
 		return Manufacture_Object<CSignal_Generator>(filter, output);
 	else if (*id == feedback_sender::desc.id)
 		return Manufacture_Object<CSignal_Feedback>(filter, output);
