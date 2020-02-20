@@ -432,14 +432,16 @@ namespace signal_descriptor {
 	const scgms::TSignal_Descriptor phys_act_desc{ scgms::signal_Physical_Activity, dsSignal_GUI_Name_Physical_Activity, L"", scgms::NSignal_Unit::Percent, 0xFF80FFFF, 0xFF80FFFF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 
 	const scgms::TSignal_Descriptor skin_temp_desc{ scgms::signal_Skin_Temperature, dsSignal_GUI_Name_Skin_Temperature, L"", scgms::NSignal_Unit::Percent, 0xFF808080, 0xFF808080, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor air_temp_desc{ scgms::signal_Air_Temperature, dsSignal_GUI_Name_Air_Temperature, L"", scgms::NSignal_Unit::Percent, 0xFF808080, 0xFF808080, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor heartbeat_desc{ scgms::signal_Heartbeat, dsSignal_GUI_Name_Heartbeat, L"", scgms::NSignal_Unit::Percent, 0xFF808080, 0xFF808080, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor eda_desc{ scgms::signal_Electrodermal_Activity , dsSignal_GUI_Name_Electrodermal_Activity, L"", scgms::NSignal_Unit::Percent, 0xFF808080, 0xFF808080, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor steps_desc{ scgms::signal_Steps, dsSignal_GUI_Name_Steps, L"", scgms::NSignal_Unit::Percent, 0xFF808080, 0xFF808080, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor sleep_quality_desc{ scgms::signal_Sleep_Quality, dsSignal_GUI_Name_Sleep_Quality, L"", scgms::NSignal_Unit::Percent, 0xFF808080, 0xFF808080, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor accel_desc{ scgms::signal_Acceleration, dsSignal_GUI_Name_Acceleration, L"", scgms::NSignal_Unit::Percent, 0xFF808080, 0xFF808080, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 
 
-	const std::array<scgms::TSignal_Descriptor, 18> signals = { {bg_desc, bg_cal_desc, ig_desc, isig_desc, req_bolus_desc, req_ibr_desc, del_bolus_desc, del_ibr_desc, ins_act_desc, iob_desc, cob_desc, cho_in_desc, cho_resc_desc, phys_act_desc,
-																 skin_temp_desc, heartbeat_desc, eda_desc, accel_desc} };
+	const std::array<scgms::TSignal_Descriptor, 20> signals = { {bg_desc, bg_cal_desc, ig_desc, isig_desc, req_bolus_desc, req_ibr_desc, del_bolus_desc, del_ibr_desc, ins_act_desc, iob_desc, cob_desc, cho_in_desc, cho_resc_desc, phys_act_desc,
+																 skin_temp_desc, air_temp_desc, heartbeat_desc, eda_desc, accel_desc, sleep_quality_desc} };
 }
 
 namespace feedback_sender {

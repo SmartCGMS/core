@@ -37,6 +37,7 @@
  */
 
 #include "../../../../common/lang/dstrings.h"
+#include "../../../../common/iface/DeviceIface.h"
 #include "Extractor.h"
 #include "TimeRoutines.h"
 #include "../../../../common/rtl/rattime.h"
@@ -59,19 +60,42 @@ const char* rsExtractorColumnBloodDatetime = "blood-datetime";
 const char* rsExtractorColumnBloodCalibration = "blood-calibration";
 const char* rsExtractorColumnDevice = "device";
 const char* rsExtractorColumnInsulinBolus = "insulin-bolus";
+const char* rsExtractorColumnInsulinBolusDatetime = "insulin-bolus-datetime";
 const char* rsExtractorColumnInsulinBasalRate = "insulin-basal-rate";
+const char* rsExtractorColumnInsulinBasalRateDatetime = "insulin-basal-rate-datetime";
+const char* rsExtractorColumnInsulinTempBasalRate = "insulin-temp-basal-rate";
+const char* rsExtractorColumnInsulinTempBasalRateDatetime = "insulin-temp-basal-rate-datetime";
+const char* rsExtractorColumnInsulinTempBasalRateDatetimeEnd = "insulin-temp-basal-rate-datetime-end";
 const char* rsExtractorColumnCarbohydrates = "carbohydrates";
+const char* rsExtractorColumnCarbohydratesDatetime = "carbohydrates-datetime";
 const char* rsExtractorColumnEvent = "event";
 const char* rsExtractorColumnEventDate = "event-date";
 const char* rsExtractorColumnEventTime = "event-time";
 const char* rsExtractorColumnEventDatetime = "event-datetime";
 const char* rsExtractorColumnCondition = "event-condition";
+const char* rsExtractorColumnPhysicalActivity = "physical-activity";
+const char* rsExtractorColumnPhysicalActivityDuration = "physical-activity-duration";
+const char* rsExtractorColumnPhysicalActivityDatetime = "physical-activity-datetime";
+const char* rsExtractorColumnSkinTemperature = "skin-temperature";
+const char* rsExtractorColumnSkinTemperatureDatetime = "skin-temperature-datetime";
+const char* rsExtractorColumnAirTemperature = "air-temperature";
+const char* rsExtractorColumnAirTemperatureDatetime = "air-temperature-datetime";
+const char* rsExtractorColumnHeartrate = "heartrate";
+const char* rsExtractorColumnHeartrateDatetime = "heartrate-datetime";
+const char* rsExtractorColumnElectrodermalActivity = "electrodermal-activity";
+const char* rsExtractorColumnElectrodermalActivityDatetime = "electrodermal-activity-datetime";
+const char* rsExtractorColumnSteps = "steps";
+const char* rsExtractorColumnStepsDatetime = "steps-datetime";
+const char* rsExtractorColumnSleep = "sleep-quality";
+const char* rsExtractorColumnSleepDatetime = "sleep-datetime";
+const char* rsExtractorColumnSleepDatetimeEnd = "sleep-datetime-end";
 
 const char* dsDatabaseTimestampFormatShort = "%FT%T";
 
 // recognized datetime format formatter strings
 const std::array<const char*, static_cast<size_t>(NKnownDateFormat::UNKNOWN_DATEFORMAT)> KnownDateFormatFmtStrings = { {
 	"%d/%m/%Y %H:%M",        // DATEFORMAT_DDMMYYYY
+	"%d-%m-%Y %H:%M",        // DATEFORMAT_DM_DDMMYYYY
 	"%Y/%m/%d %H:%M",        // DATEFORMAT_YYYYMMDD
 	"%d.%m.%Y %H:%M",        // DATEFORMAT_CZ
 	"%Y-%m-%dT%H:%M:%S",     // DATEFORMAT_DB_YYYYMMDD_T
@@ -140,14 +164,36 @@ CExtractor::CExtractor()
 	mColumnTypes[rsExtractorColumnBloodDatetime] = ExtractorColumns::COL_BLOOD_DATETIME;
 	mColumnTypes[rsExtractorColumnDevice] = ExtractorColumns::COL_DEVICE;
 	mColumnTypes[rsExtractorColumnInsulinBolus] = ExtractorColumns::COL_INSULIN_BOLUS;
+	mColumnTypes[rsExtractorColumnInsulinBolusDatetime] = ExtractorColumns::COL_INSULIN_BOLUS_DATETIME;
 	mColumnTypes[rsExtractorColumnInsulinBasalRate] = ExtractorColumns::COL_INSULIN_BASAL_RATE;
+	mColumnTypes[rsExtractorColumnInsulinBasalRateDatetime] = ExtractorColumns::COL_INSULIN_BASAL_RATE_DATETIME;
+	mColumnTypes[rsExtractorColumnInsulinTempBasalRate] = ExtractorColumns::COL_INSULIN_TEMP_BASAL_RATE;
+	mColumnTypes[rsExtractorColumnInsulinTempBasalRateDatetime] = ExtractorColumns::COL_INSULIN_TEMP_BASAL_RATE_DATETIME_BEGIN;
+	mColumnTypes[rsExtractorColumnInsulinTempBasalRateDatetimeEnd] = ExtractorColumns::COL_INSULIN_TEMP_BASAL_RATE_DATETIME_END;
 	mColumnTypes[rsExtractorColumnCarbohydrates] = ExtractorColumns::COL_CARBOHYDRATES;
+	mColumnTypes[rsExtractorColumnCarbohydratesDatetime] = ExtractorColumns::COL_CARBOHYDRATES_DATETIME;
 	mColumnTypes[rsExtractorColumnEvent] = ExtractorColumns::COL_EVENT;
 	mColumnTypes[rsExtractorColumnEventDate] = ExtractorColumns::COL_EVENT_DATE;
 	mColumnTypes[rsExtractorColumnEventTime] = ExtractorColumns::COL_EVENT_TIME;
 	mColumnTypes[rsExtractorColumnEventDatetime] = ExtractorColumns::COL_EVENT_DATETIME;
 	mColumnTypes[rsExtractorColumnCondition] = ExtractorColumns::COL_EVENT_CONDITION;
 	mColumnTypes[rsExtractorColumnBloodCalibration] = ExtractorColumns::COL_BLOOD_CALIBRATION;
+	mColumnTypes[rsExtractorColumnPhysicalActivity] = ExtractorColumns::COL_PHYSICAL_ACTIVITY;
+	mColumnTypes[rsExtractorColumnPhysicalActivityDuration] = ExtractorColumns::COL_PHYSICAL_ACTIVITY_DURATION;
+	mColumnTypes[rsExtractorColumnPhysicalActivityDatetime] = ExtractorColumns::COL_PHYSICAL_ACTIVITY_DATETIME;
+	mColumnTypes[rsExtractorColumnSkinTemperature] = ExtractorColumns::COL_SKIN_TEMPERATURE;
+	mColumnTypes[rsExtractorColumnSkinTemperatureDatetime] = ExtractorColumns::COL_SKIN_TEMPERATURE_DATETIME;
+	mColumnTypes[rsExtractorColumnAirTemperature] = ExtractorColumns::COL_AIR_TEMPERATURE;
+	mColumnTypes[rsExtractorColumnAirTemperatureDatetime] = ExtractorColumns::COL_AIR_TEMPERATURE_DATETIME;
+	mColumnTypes[rsExtractorColumnHeartrate] = ExtractorColumns::COL_HEARTRATE;
+	mColumnTypes[rsExtractorColumnHeartrateDatetime] = ExtractorColumns::COL_HEARTRATE_DATETIME;
+	mColumnTypes[rsExtractorColumnElectrodermalActivity] = ExtractorColumns::COL_ELECTRODERMAL_ACTIVITY;
+	mColumnTypes[rsExtractorColumnElectrodermalActivityDatetime] = ExtractorColumns::COL_ELECTRODERMAL_ACTIVITY_DATETIME;
+	mColumnTypes[rsExtractorColumnSteps] = ExtractorColumns::COL_STEPS;
+	mColumnTypes[rsExtractorColumnStepsDatetime] = ExtractorColumns::COL_STEPS_DATETIME;
+	mColumnTypes[rsExtractorColumnSleep] = ExtractorColumns::COL_SLEEP;
+	mColumnTypes[rsExtractorColumnSleepDatetime] = ExtractorColumns::COL_SLEEP_DATETIME;
+	mColumnTypes[rsExtractorColumnSleepDatetimeEnd] = ExtractorColumns::COL_SLEEP_DATETIME_END;
 }
 
 void CExtractor::Add_Template(const char* rule, const char* header)
@@ -287,7 +333,7 @@ void CExtractor::Fill_TreePosition_For(std::string& formatName, ExtractorColumns
 	if (tmp)
 		CFormat_Adapter::CellSpec_To_TreePosition(tmp, target);
 
-	// if no blood-date/time/datetime column found, try to reach ist-date/time/datetime columns
+	// if no specific date/time/datetime column found, try to reach generic date/time/datetime columns (works for spreadsheet types)
 	if (!target.Valid())
 	{
 		switch (colType)
@@ -299,6 +345,17 @@ void CExtractor::Fill_TreePosition_For(std::string& formatName, ExtractorColumns
 				Fill_TreePosition_For(formatName, ExtractorColumns::COL_TIME, target);
 				break;
 			case ExtractorColumns::COL_BLOOD_DATETIME:
+			case ExtractorColumns::COL_CARBOHYDRATES_DATETIME:
+			case ExtractorColumns::COL_ELECTRODERMAL_ACTIVITY_DATETIME:
+			case ExtractorColumns::COL_HEARTRATE_DATETIME:
+			case ExtractorColumns::COL_INSULIN_BASAL_RATE_DATETIME:
+			case ExtractorColumns::COL_INSULIN_TEMP_BASAL_RATE_DATETIME_BEGIN:
+			case ExtractorColumns::COL_INSULIN_BOLUS_DATETIME:
+			case ExtractorColumns::COL_PHYSICAL_ACTIVITY_DATETIME:
+			case ExtractorColumns::COL_SKIN_TEMPERATURE_DATETIME:
+			case ExtractorColumns::COL_AIR_TEMPERATURE_DATETIME:
+			case ExtractorColumns::COL_STEPS_DATETIME:
+			case ExtractorColumns::COL_SLEEP_DATETIME:
 				Fill_TreePosition_For(formatName, ExtractorColumns::COL_DATETIME, target);
 				break;
 			default:
@@ -480,6 +537,29 @@ bool CExtractor::Extract_Hierarchy_File(std::string& formatName, CFormat_Adapter
 	TreePosition datePos, timePos, datetimePos, dateBloodPos, timeBloodPos, datetimeBloodPos, isigPos, istPos, bloodPos,
 		eventPos, dateEventPos, timeEventPos, datetimeEventPos;
 
+	TreePosition additionalPos, additionalDatetimePos, additionalFeaturePos;
+
+	struct AdditionalValueBinder
+	{
+		ExtractorColumns column = ExtractorColumns::NONE;
+		ExtractorColumns columnDatetime = ExtractorColumns::NONE;
+		ExtractorColumns columnFeature = ExtractorColumns::NONE;
+	};
+
+	const std::vector<AdditionalValueBinder> valueBinder = {
+		{ ExtractorColumns::COL_CARBOHYDRATES, ExtractorColumns::COL_CARBOHYDRATES_DATETIME },
+		{ ExtractorColumns::COL_INSULIN_BASAL_RATE, ExtractorColumns::COL_INSULIN_BASAL_RATE_DATETIME },
+		{ ExtractorColumns::COL_INSULIN_BOLUS, ExtractorColumns::COL_INSULIN_BOLUS_DATETIME },
+		{ ExtractorColumns::COL_ELECTRODERMAL_ACTIVITY, ExtractorColumns::COL_ELECTRODERMAL_ACTIVITY_DATETIME },
+		{ ExtractorColumns::COL_HEARTRATE, ExtractorColumns::COL_HEARTRATE_DATETIME },
+		{ ExtractorColumns::COL_PHYSICAL_ACTIVITY, ExtractorColumns::COL_PHYSICAL_ACTIVITY_DATETIME, ExtractorColumns::COL_PHYSICAL_ACTIVITY_DURATION },
+		{ ExtractorColumns::COL_SKIN_TEMPERATURE, ExtractorColumns::COL_SKIN_TEMPERATURE_DATETIME },
+		{ ExtractorColumns::COL_AIR_TEMPERATURE, ExtractorColumns::COL_AIR_TEMPERATURE_DATETIME },
+		{ ExtractorColumns::COL_STEPS, ExtractorColumns::COL_STEPS_DATETIME },
+		{ ExtractorColumns::COL_SLEEP, ExtractorColumns::COL_SLEEP_DATETIME, ExtractorColumns::COL_SLEEP_DATETIME_END },
+		{ ExtractorColumns::COL_INSULIN_TEMP_BASAL_RATE, ExtractorColumns::COL_INSULIN_TEMP_BASAL_RATE_DATETIME_BEGIN, ExtractorColumns::COL_INSULIN_TEMP_BASAL_RATE_DATETIME_END }
+	};
+
 	Fill_TreePosition_For(formatName, ExtractorColumns::COL_DATE, datePos);
 	Fill_TreePosition_For(formatName, ExtractorColumns::COL_TIME, timePos);
 	if (!datePos.Valid() || !timePos.Valid())
@@ -501,15 +581,31 @@ bool CExtractor::Extract_Hierarchy_File(std::string& formatName, CFormat_Adapter
 
 	bool status = true;
 
-	// extract IST if available
+	// TODO: rework the following to a generic extraction
+
+	// extract IG
 	if (istPos.Valid() && (datetimePos.Valid() || (datePos.Valid() && timePos.Valid())))
 		status = status && Extract_Hierarchy_File_Stream(istPos, isigPos, datetimePos, datePos, timePos, ExtractionIterationType::IST, formatName, source, result, fileIndex);
 
+	// extract BG
 	if (bloodPos.Valid() && (datetimeBloodPos.Valid() || (dateBloodPos.Valid() && timeBloodPos.Valid())))
 		status = status && Extract_Hierarchy_File_Stream(bloodPos, isigPos, datetimeBloodPos, dateBloodPos, timeBloodPos, ExtractionIterationType::BLOOD, formatName, source, result, fileIndex);
 
+	// extract events (carbs, boluses, basal rate, ...)
 	if (eventPos.Valid() && (datetimeEventPos.Valid() || (dateEventPos.Valid() && timeEventPos.Valid())))
 		status = status && Extract_Hierarchy_File_Stream(eventPos, isigPos, datetimeEventPos, dateEventPos, timeEventPos, ExtractionIterationType::EVENT, formatName, source, result, fileIndex);
+
+	// load miscellanous columns
+	for (const auto& valset : valueBinder)
+	{
+		Fill_TreePosition_For(formatName, valset.column, additionalPos);
+		Fill_TreePosition_For(formatName, valset.columnDatetime, additionalDatetimePos);
+		if (valset.columnFeature != ExtractorColumns::NONE)
+			Fill_TreePosition_For(formatName, valset.columnFeature, additionalFeaturePos);
+
+		if (additionalPos.Valid() && (additionalDatetimePos.Valid() || (datePos.Valid() && timePos.Valid())))
+			status = status && Extract_Hierarchy_File_Stream(additionalPos, additionalFeaturePos, additionalDatetimePos, datePos, timePos, ExtractionIterationType::ADDITIONAL, formatName, source, result, fileIndex, valset.column);
+	}
 
 	// extract device name if available
 	if (result.FileDeviceNames.size() < fileIndex + 1)
@@ -525,11 +621,17 @@ bool CExtractor::Extract_Hierarchy_File(std::string& formatName, CFormat_Adapter
 	return status;
 }
 
-bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosition& isigPos, TreePosition& datetimePos, TreePosition& datePos, TreePosition& timePos, ExtractionIterationType itrtype, std::string& formatName, CFormat_Adapter& source, ExtractionResult& result, size_t fileIndex) const
+bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosition& featurePos, TreePosition& datetimePos, TreePosition& datePos, TreePosition& timePos, ExtractionIterationType itrtype, std::string& formatName, CFormat_Adapter& source, ExtractionResult& result, size_t fileIndex, ExtractorColumns extractionColumn) const
 {
 	double bloodMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_BLOOD);
 	double istMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_IST);
 	double isigMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_ISIG);
+
+	double miscMultiplier = Get_Column_Multiplier(formatName, extractionColumn);
+
+	double addValue;
+	double addValueMultiplier = 1.0; // TODO
+	bool addValueValid = false;
 
 	TreePosition condPos;
 
@@ -540,6 +642,7 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 	std::string tmp;
 	CMeasured_Value* mval = nullptr;
 	NKnownDateFormat dateformat = NKnownDateFormat::UNKNOWN_DATEFORMAT; // will be recognized after first date read
+	NKnownDateFormat addValueDateformat = NKnownDateFormat::UNKNOWN_DATEFORMAT;
 	time_t curTime;
 
 	std::string sval;
@@ -548,7 +651,7 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 
 	// declare lambda for position incrementation
 	auto posInc = [&]() {
-		valuePos.ToNext(); isigPos.ToNext(); datetimePos.ToNext(); datePos.ToNext(); timePos.ToNext(); condPos.ToNext();
+		valuePos.ToNext(); featurePos.ToNext(); datetimePos.ToNext(); datePos.ToNext(); timePos.ToNext(); condPos.ToNext();
 	};
 
 	while (valuePos.Valid())
@@ -565,80 +668,198 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 
 		switch (itrtype)
 		{
-		case ExtractionIterationType::BLOOD:
-		{
-			if (sval.length())
+			case ExtractionIterationType::BLOOD:
 			{
-				if (!Formatted_Read_Double(formatName, ExtractorColumns::COL_BLOOD, sval, dval))
-					break;
+				if (sval.length())
+				{
+					if (!Formatted_Read_Double(formatName, ExtractorColumns::COL_BLOOD, sval, dval))
+						break;
 
-				mval->mBlood = dval * bloodMultiplier;
-				validValue = true;
-			}
-			break;
-		}
-		case ExtractionIterationType::EVENT:
-		{
-			std::string condition;
-
-			if (condPos.Valid())
-				condition = source.Read(condPos);
-
-			// resolve condition - retrieve column based on condition value
-			ExtractorColumns ccol = Get_Conditional_Column(formatName, ExtractorColumns::COL_EVENT_CONDITION, condition);
-			// unknown condition value - no column, break
-			if (ccol == ExtractorColumns::NONE)
+					mval->mBlood = dval * bloodMultiplier;
+					validValue = true;
+				}
 				break;
+			}
+			case ExtractionIterationType::EVENT:
+			{
+				std::string condition;
 
-			// attempt to extract formatted double value from file
-			if (!Formatted_Read_Double(formatName, ccol, sval, dval))
+				if (condPos.Valid())
+					condition = source.Read(condPos);
+
+				// resolve condition - retrieve column based on condition value
+				ExtractorColumns ccol = Get_Conditional_Column(formatName, ExtractorColumns::COL_EVENT_CONDITION, condition);
+				// unknown condition value - no column, break
+				if (ccol == ExtractorColumns::NONE)
+					break;
+
+				// attempt to extract formatted double value from file
+				if (!Formatted_Read_Double(formatName, ccol, sval, dval))
+					break;
+
+				switch (ccol)
+				{
+					case ExtractorColumns::COL_INSULIN_BOLUS:
+					{
+						mval->mInsulinBolus = dval;
+						validValue = true;
+						break;
+					}
+					case ExtractorColumns::COL_INSULIN_BASAL_RATE:
+					{
+						mval->mInsulinBasalRate = dval;
+						validValue = true;
+						break;
+					}
+					case ExtractorColumns::COL_CARBOHYDRATES:
+					{
+						mval->mCarbohydrates = dval;
+						validValue = true;
+						break;
+					}
+					default:
+						break;
+				}
+
 				break;
-
-			switch (ccol)
-			{
-				case ExtractorColumns::COL_INSULIN_BOLUS:
-				{
-					mval->mInsulinBolus = dval;
-					validValue = true;
-					break;
-				}
-				case ExtractorColumns::COL_INSULIN_BASAL_RATE:
-				{
-					mval->mInsulinBasalRate = dval;
-					validValue = true;
-					break;
-				}
-				case ExtractorColumns::COL_CARBOHYDRATES:
-				{
-					mval->mCarbohydrates = dval;
-					validValue = true;
-					break;
-				}
-				default:
-					break;
 			}
-
-			break;
-		}
-		case ExtractionIterationType::IST:
-		{
-			if (isigPos.Valid())
+			case ExtractionIterationType::IST:
 			{
-				if (source.Read(isigPos).length())
-					mval->mIsig = source.Read_Double(isigPos) * isigMultiplier;
-			}
+				if (featurePos.Valid())
+				{
+					if (source.Read(featurePos).length())
+						mval->mIsig = source.Read_Double(featurePos) * isigMultiplier;
+				}
 
-			if (sval.length())
+				if (sval.length())
+				{
+					if (!Formatted_Read_Double(formatName, ExtractorColumns::COL_IST, sval, dval))
+						break;
+
+					mval->mIst = dval * istMultiplier;
+					validValue = true;
+				}
+
+				break;
+			}
+			case ExtractionIterationType::ADDITIONAL:
 			{
-				if (!Formatted_Read_Double(formatName, ExtractorColumns::COL_IST, sval, dval))
-					break;
+				if (sval.length())
+				{
+					if (!Formatted_Read_Double(formatName, extractionColumn, sval, dval))
+						break;
 
-				mval->mIst = dval * istMultiplier;
-				validValue = true;
+					validValue = true;
+				}
+
+				addValueValid = false;
+
+				auto readDoubleAddValue = [&]() -> bool {
+					if (!featurePos.Valid())
+						return false;
+
+					if (!source.Read(featurePos).length())
+						return false;
+
+					addValueValid = true;
+					addValue = source.Read_Double(featurePos);
+
+					return true;
+				};
+
+				auto readDatetimeAddValue = [&]() -> bool {
+
+					if (!featurePos.Valid())
+						return false;
+
+					if (!source.Read(featurePos).length())
+						return false;
+
+					auto dtstr = source.Read_Datetime(featurePos);
+
+					if (addValueDateformat == NKnownDateFormat::UNKNOWN_DATEFORMAT)
+					{
+						addValueDateformat = Recognize_Date_Format(dtstr);
+						if (addValueDateformat == NKnownDateFormat::UNKNOWN_DATEFORMAT)
+							return false;
+					}
+
+					std::string dtdst;
+					if (!Str_Time_To_Unix_Time(dtstr, addValueDateformat, dtdst, dsDatabaseTimestampFormatShort, curTime))
+						return false;
+
+					addValue = Unix_Time_To_Rat_Time(curTime);
+					addValueValid = true;
+
+					return true;
+				};
+
+				if (validValue)
+				{
+					switch (extractionColumn)
+					{
+						case ExtractorColumns::COL_CARBOHYDRATES:
+							mval->mCarbohydrates = dval * miscMultiplier;
+							break;
+						case ExtractorColumns::COL_ELECTRODERMAL_ACTIVITY:
+							mval->mElectrodermalActivity = dval * miscMultiplier;
+							break;
+						case ExtractorColumns::COL_HEARTRATE:
+							mval->mHeartrate = dval * miscMultiplier;
+							break;
+						case ExtractorColumns::COL_INSULIN_BASAL_RATE:
+							mval->mInsulinBasalRate = dval * miscMultiplier;
+							break;
+						case ExtractorColumns::COL_INSULIN_TEMP_BASAL_RATE:
+							if (!readDatetimeAddValue())
+							{
+								validValue = false;
+								break;
+							}
+							mval->mInsulinTempBasalRate = dval * miscMultiplier;
+							mval->mInsulinTempBasalRateEnd = addValue; // already in rattime
+							break;
+						case ExtractorColumns::COL_INSULIN_BOLUS:
+							mval->mInsulinBolus = dval * miscMultiplier;
+							break;
+						case ExtractorColumns::COL_PHYSICAL_ACTIVITY:
+							if (!readDoubleAddValue())
+							{
+								validValue = false;
+								break;
+							}
+							mval->mPhysicalActivity = dval * miscMultiplier;
+							mval->mPhysicalActivityDuration = (scgms::One_Minute * addValue) * addValueMultiplier;
+							break;
+						case ExtractorColumns::COL_SKIN_TEMPERATURE:
+							// TODO: remove this, after implementing value convertors
+							dval = (dval - 32) * 5.0 / 9.0; // Ohio dataset gives everything in Fahrenheit degrees; convert to Celsius
+							mval->mSkinTemperature = dval * miscMultiplier;
+							break;
+						case ExtractorColumns::COL_AIR_TEMPERATURE:
+							// TODO: remove this, after implementing value convertors
+							dval = (dval - 32) * 5.0 / 9.0; // Ohio dataset gives everything in Fahrenheit degrees; convert to Celsius
+							mval->mAirTemperature = dval * miscMultiplier;
+							break;
+						case ExtractorColumns::COL_STEPS:
+							mval->mSteps = dval * miscMultiplier;
+							break;
+						case ExtractorColumns::COL_SLEEP:
+							if (!readDatetimeAddValue())
+							{
+								validValue = false;
+								break;
+							}
+							mval->mSleepQuality = dval * miscMultiplier;
+							mval->mSleepEnd = addValue; // already in rattime
+							break;
+						default:
+							validValue = false;
+							break;
+					}
+				}
+				break;
 			}
-
-			break;
-		}
 		}
 
 		if (!valuePos.Valid())
@@ -808,14 +1029,15 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 		{
 			switch (phase)
 			{
-			case ExtractionIterationType::IST:
-				phase = ExtractionIterationType::EVENT;
-				break;
-			case ExtractionIterationType::EVENT:
-				phase = ExtractionIterationType::BLOOD;
-				break;
-			case ExtractionIterationType::BLOOD:
-				break;
+				case ExtractionIterationType::IST:
+					phase = ExtractionIterationType::EVENT;
+					break;
+				case ExtractionIterationType::EVENT:
+					phase = ExtractionIterationType::BLOOD;
+					break;
+				case ExtractionIterationType::BLOOD:
+				default:
+					break;
 			}
 			source.Reset_EOF();
 		}

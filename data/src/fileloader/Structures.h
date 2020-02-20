@@ -86,10 +86,32 @@ struct CMeasured_Value
 	COptional<double> mInsulinBolus;
 	// insulin basal rate
 	COptional<double> mInsulinBasalRate;
+	// insulin temp basal rate (gets cancelled on end, original value is set back to pump)
+	COptional<double> mInsulinTempBasalRate;
+	// timestamp of temp basal rate end (always set when mInsulinTempBasalRate is valid)
+	COptional<double> mInsulinTempBasalRateEnd;
 	// carbohydrates amount
 	COptional<double> mCarbohydrates;
 	// BG sensor calibration value
 	COptional<double> mCalibration;
+	// physical activity/excercise intensity
+	COptional<double> mPhysicalActivity;
+	// physical activity/excercise duration
+	COptional<double> mPhysicalActivityDuration;
+	// subject skin temperature
+	COptional<double> mSkinTemperature;
+	// subject sorrounding air temperature
+	COptional<double> mAirTemperature;
+	// subject heart rate value
+	COptional<double> mHeartrate;
+	// subject electrodermal activity
+	COptional<double> mElectrodermalActivity;
+	// step count
+	COptional<double> mSteps;
+	// sleep quality
+	COptional<double> mSleepQuality;
+	// sleep end
+	COptional<double> mSleepEnd;
 
 	// reset optional fields to allow reuse
 	void reuse()
@@ -101,5 +123,10 @@ struct CMeasured_Value
 		mInsulinBasalRate.reset();
 		mCarbohydrates.reset();
 		mCalibration.reset();
+		mPhysicalActivity.reset();
+		mSkinTemperature.reset();
+		mHeartrate.reset();
+		mElectrodermalActivity.reset();
+		mSteps.reset();
 	}
 };

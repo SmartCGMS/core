@@ -61,13 +61,35 @@ enum class ExtractorColumns
 	COL_BLOOD_CALIBRATION,
 	COL_DEVICE,
 	COL_INSULIN_BOLUS,
+	COL_INSULIN_BOLUS_DATETIME,
 	COL_INSULIN_BASAL_RATE,
+	COL_INSULIN_BASAL_RATE_DATETIME,
+	COL_INSULIN_TEMP_BASAL_RATE,
+	COL_INSULIN_TEMP_BASAL_RATE_DATETIME_BEGIN,
+	COL_INSULIN_TEMP_BASAL_RATE_DATETIME_END,
 	COL_CARBOHYDRATES,
+	COL_CARBOHYDRATES_DATETIME,
 	COL_EVENT,
 	COL_EVENT_DATE,
 	COL_EVENT_TIME,
 	COL_EVENT_DATETIME,
-	COL_EVENT_CONDITION
+	COL_EVENT_CONDITION,
+	COL_PHYSICAL_ACTIVITY,
+	COL_PHYSICAL_ACTIVITY_DURATION,
+	COL_PHYSICAL_ACTIVITY_DATETIME,
+	COL_SKIN_TEMPERATURE,
+	COL_SKIN_TEMPERATURE_DATETIME,
+	COL_AIR_TEMPERATURE,
+	COL_AIR_TEMPERATURE_DATETIME,
+	COL_HEARTRATE,
+	COL_HEARTRATE_DATETIME,
+	COL_ELECTRODERMAL_ACTIVITY,
+	COL_ELECTRODERMAL_ACTIVITY_DATETIME,
+	COL_STEPS,
+	COL_STEPS_DATETIME,
+	COL_SLEEP,
+	COL_SLEEP_DATETIME,
+	COL_SLEEP_DATETIME_END,
 };
 
 // type of iteration during extraction
@@ -75,13 +97,15 @@ enum class ExtractionIterationType
 {
 	IST,
 	BLOOD,
-	EVENT
+	EVENT,
+	ADDITIONAL,
 };
 
 // enumerator of known datetime formats
 enum class NKnownDateFormat
 {
 	DATEFORMAT_DDMMYYYY = 0,
+	DATEFORMAT_DM_DDMMYYYY,
 	DATEFORMAT_YYYYMMDD,
 	DATEFORMAT_CZ,
 	DATEFORMAT_DB_YYYYMMDD_T,
@@ -166,7 +190,7 @@ class CExtractor
 		bool Extract_Hierarchy_File(std::string& formatName, CFormat_Adapter& source, ExtractionResult& result, size_t fileIndex = 0) const;
 
 		// extracts single stream of values from supplied file
-		bool Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosition& isigPos, TreePosition& datetimePos, TreePosition& datePos, TreePosition& timePos, ExtractionIterationType itrtype, std::string& formatName, CFormat_Adapter& source, ExtractionResult& result, size_t fileIndex = 0) const;
+		bool Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosition& featurePos, TreePosition& datetimePos, TreePosition& datePos, TreePosition& timePos, ExtractionIterationType itrtype, std::string& formatName, CFormat_Adapter& source, ExtractionResult& result, size_t fileIndex = 0, ExtractorColumns extractionColumn = ExtractorColumns::NONE) const;
 
 		// extracts formatted double for specified column
 		bool Formatted_Read_Double(std::string& formatName, ExtractorColumns colType, std::string& source, double& target) const;

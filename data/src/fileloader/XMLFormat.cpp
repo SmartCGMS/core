@@ -219,11 +219,17 @@ bool CXML_Format::Load(const wchar_t* path)
 void CXML_Format::Load_To_Element(XMLElement& target, std::ifstream& file)
 {
 	std::string el, tagName;
+	bool pairTag = true;
 
 	while (!file.eof() && !file.bad())
 	{
 		std::getline(file, el, '<'); // discard out-of-tag mess
 		std::getline(file, el, '>'); // read tag
+
+		if (el.empty())
+			break;
+
+		pairTag = (el[el.size() - 1] != '/');
 
 		// closing tag of current "parent" - return
 		if (el == "/" + target.tagName)
@@ -241,7 +247,7 @@ void CXML_Format::Load_To_Element(XMLElement& target, std::ifstream& file)
 		Parse_Tags(xmlel, el);
 
 		// recursive step
-		if (el.length() == 0 || el[el.length() - 1] != '/')
+		if (pairTag)
 			Load_To_Element(xmlel, file);
 	}
 }

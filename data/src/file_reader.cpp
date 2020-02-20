@@ -63,7 +63,7 @@ CFile_Reader::CFile_Reader(scgms::IFilter *output) : CBase_Filter(output), mSegm
 
 CFile_Reader::~CFile_Reader() {
 
-	if (mReaderThread->joinable())
+	if (mReaderThread && mReaderThread->joinable())
 		mReaderThread->join();
 
 	// cleanup loaded values
@@ -74,16 +74,15 @@ CFile_Reader::~CFile_Reader() {
 	}
 }
 
-bool CFile_Reader::Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID* signalId, double value)
+bool CFile_Reader::Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId, double value)
 {
 	scgms::UDevice_Event evt{ code };
 
 	evt.device_id() = file_reader::File_Reader_Device_GUID;
-	evt.device_time() = device_time;	
+	evt.device_time() = device_time;
 	evt.level() = value;
 	evt.segment_id() = segment_id;
-	if (signalId)
-		evt.signal_id() = *signalId;
+	evt.signal_id() = signalId;
 
 	return Send(evt) == S_OK;
 }
@@ -143,6 +142,11 @@ void CFile_Reader::Run_Reader()
 	bool isError = false;
 	uint32_t currentSegmentId = 0;
 
+	double nextPhysicalActivityEnd = -1; // negative value = invalid
+	double nextTempBasalEnd = -1;
+	double nextSleepEnd = -1;
+	double lastBasalRateSetting = 0.0;
+
 	// for each file loaded...
 	for (const auto& vals : mMergedValues)
 	{
@@ -161,24 +165,76 @@ void CFile_Reader::Run_Reader()
 
 				const double valDate = cur->mMeasuredAt;
 
-				// now go through every field, check for value presence, and send it to chain
-
 				bool errorRes = false;
 
+				if (nextPhysicalActivityEnd > 0 && nextPhysicalActivityEnd <= valDate)
+				{
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextPhysicalActivityEnd, currentSegmentId, scgms::signal_Physical_Activity, 0);
+					nextPhysicalActivityEnd = -1;
+				}
+				if (nextTempBasalEnd > 0 && nextTempBasalEnd <= valDate)
+				{
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextTempBasalEnd, currentSegmentId, scgms::signal_Requested_Insulin_Basal_Rate, lastBasalRateSetting);
+					nextTempBasalEnd = -1;
+				}
+				if (nextSleepEnd > 0 && nextSleepEnd < valDate)
+				{
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextSleepEnd, currentSegmentId, scgms::signal_Sleep_Quality, 0);
+					nextSleepEnd = -1;
+				}
+
+				// now go through every field, check for value presence, and send it to chain
+				// NOTE: the extractor should be reworked to suit the new architecture; extractor code is not compatible by design
+				//       this bridging code would then be discarded in favor of new, clean code
+
 				if (cur->mIst.has_value())
-					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, &scgms::signal_IG, cur->mIst.value());
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_IG, cur->mIst.value());
 				if (cur->mIsig.has_value())
-					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, &scgms::signal_ISIG, cur->mIsig.value());
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_ISIG, cur->mIsig.value());
 				if (cur->mBlood.has_value())
-					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, &scgms::signal_BG, cur->mBlood.value());
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_BG, cur->mBlood.value());
 				if (cur->mInsulinBolus.has_value())
-					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, &scgms::signal_Requested_Insulin_Bolus, cur->mInsulinBolus.value());
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Requested_Insulin_Bolus, cur->mInsulinBolus.value());
+
+				if (cur->mInsulinTempBasalRate.has_value() && cur->mInsulinTempBasalRateEnd.has_value())
+				{
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Requested_Insulin_Basal_Rate, cur->mInsulinTempBasalRate.value());
+					nextTempBasalEnd = cur->mInsulinTempBasalRateEnd.value();
+				}
+
 				if (cur->mInsulinBasalRate.has_value())
-					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, &scgms::signal_Requested_Insulin_Basal_Rate, cur->mInsulinBasalRate.value());
+				{
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Requested_Insulin_Basal_Rate, cur->mInsulinBasalRate.value());
+					// cancel all temp basal settings - a new basal rate settings immediatelly overrides all temp basal rates
+					lastBasalRateSetting = cur->mInsulinBasalRate.value();
+					nextTempBasalEnd = -1;
+				}
 				if (cur->mCarbohydrates.has_value())
-					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, &scgms::signal_Carb_Intake, cur->mCarbohydrates.value());
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Carb_Intake, cur->mCarbohydrates.value());
 				if (cur->mCalibration.has_value())
-					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, &scgms::signal_Calibration, cur->mCalibration.value());
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Calibration, cur->mCalibration.value());
+
+				if (cur->mElectrodermalActivity.has_value())
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Electrodermal_Activity, cur->mElectrodermalActivity.value());
+				if (cur->mHeartrate.has_value())
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Heartbeat, cur->mHeartrate.value());
+				if (cur->mPhysicalActivity.has_value() && cur->mPhysicalActivityDuration.has_value())
+				{
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Physical_Activity, cur->mPhysicalActivity.value());
+					// physical activity gets "cancelled" after given duration
+					nextPhysicalActivityEnd = valDate + cur->mPhysicalActivityDuration.value();
+				}
+				if (cur->mSkinTemperature.has_value())
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Skin_Temperature, cur->mSkinTemperature.value());
+				if (cur->mAirTemperature.has_value())
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Air_Temperature, cur->mAirTemperature.value());
+				if (cur->mSteps.has_value())
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Steps, cur->mSteps.value());
+				if (cur->mSleepQuality.has_value() && cur->mSleepEnd.has_value())
+				{
+					errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Sleep_Quality, cur->mSleepQuality.value());
+					nextSleepEnd = cur->mSleepEnd.value();
+				}
 
 				if (errorRes)
 				{

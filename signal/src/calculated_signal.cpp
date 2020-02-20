@@ -46,6 +46,7 @@
 #include "../../../common/utils/math_utils.h"
 
 #include <iostream>
+#include <cmath>
 
 constexpr unsigned char bool_2_uc(const bool b) {
 	return b ? static_cast<unsigned char>(1) : static_cast<unsigned char>(0);
@@ -126,8 +127,8 @@ HRESULT IfaceCalling CCalculate_Filter::Do_Configure(scgms::SFilter_Configuratio
 	mUse_Measured_Levels = configuration.Read_Bool(rsUse_Measured_Levels, mUse_Measured_Levels);
 	mLevels_Required = configuration.Read_Int(rsMetric_Levels_Required, desc.number_of_parameters);
 
-	if (Is_Invalid_GUID(mCalculated_Signal_Id) || isnan(mPrediction_Window)) return E_INVALIDARG;
-	if (mSolver_Enabled && (Is_Invalid_GUID(mSolver_Id, mMetric_Id) || isnan(mMetric_Threshold))) return E_INVALIDARG;
+	if (Is_Invalid_GUID(mCalculated_Signal_Id) || std::isnan(mPrediction_Window)) return E_INVALIDARG;
+	if (mSolver_Enabled && (Is_Invalid_GUID(mSolver_Id, mMetric_Id) || std::isnan(mMetric_Threshold))) return E_INVALIDARG;
 
 	return S_OK;
 }

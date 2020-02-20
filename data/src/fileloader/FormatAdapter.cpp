@@ -41,6 +41,7 @@
 
 #include <sstream>
 #include <algorithm>
+#include <cstring>
 
 CFormat_Adapter::CFormat_Adapter()
 {

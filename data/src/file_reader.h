@@ -81,7 +81,7 @@ class CFile_Reader : public scgms::CBase_Filter {
 		void Run_Reader();	
 
 		// send event to filter chain
-		bool Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID* signalId = nullptr, double value = 0.0);
+		bool Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId = Invalid_GUID, double value = 0.0);
 		// extracts file to value vector container
 		HRESULT Extract(ExtractionResult &values);
 		// merge values from extraction result to internal vector

@@ -43,6 +43,7 @@
 #include "../../../common/rtl/rattime.h"
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/FilesystemLib.h"
+#include "../../../common/utils/string_utils.h"
 
 #include "descriptor.h"
 

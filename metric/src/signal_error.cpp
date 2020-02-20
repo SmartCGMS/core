@@ -171,7 +171,7 @@ HRESULT CSignal_Error::Do_Configure(scgms::SFilter_Configuration configuration, 
 	const GUID metric_id = configuration.Read_GUID(rsSelected_Metric);
 	const double metric_threshold = configuration.Read_Double(rsMetric_Threshold);
 	
-	if (Is_Invalid_GUID(mReference_Signal_ID, mError_Signal_ID, metric_id) || isnan(metric_threshold)) return E_INVALIDARG;
+	if (Is_Invalid_GUID(mReference_Signal_ID, mError_Signal_ID, metric_id) || std::isnan(metric_threshold)) return E_INVALIDARG;
 
 
 	mEmit_Metric_As_Signal = configuration.Read_Bool(rsEmit_metric_as_signal, mEmit_Metric_As_Signal);

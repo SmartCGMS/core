@@ -39,6 +39,7 @@
 #pragma once
 
 #include <string>
+#include <memory>
 
 #include "CSVFormat.h"
 #include "XMLFormat.h"

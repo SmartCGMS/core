@@ -45,7 +45,6 @@
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/rattime.h"
 #include "../../../common/utils/string_utils.h"
-#include "../../../common/rtl/FilesystemLib.h"
 
 #include "log.h"
 
@@ -57,6 +56,7 @@
 #include <vector>
 #include <algorithm> 
 #include <cctype>
+#include <cmath>
 
 CLog_Replay_Filter::CLog_Replay_Filter(scgms::IFilter* output) : CBase_Filter(output) {
 	//
@@ -72,7 +72,7 @@ CLog_Replay_Filter::~CLog_Replay_Filter() {
 void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 	if (log_filename.empty()) return;
 
-	std::wifstream log{ log_filename.wstring().c_str() };
+	std::wifstream log{ log_filename.string().c_str() };
 	if (!log.is_open()) return;
 	
 
@@ -97,7 +97,7 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 	// NOTE: this assumes identical header (as the one used when generating log); maybe we could consider adaptive log parsing later
 	if (!std::getline(log, line) || line != std::wstring(dsLog_Header)) {
 		std::wstring msg{ dsFile_Has_Not_Expected_Header };
-		msg.append(log_filename);
+		msg += log_filename.wstring();
 		Emit_Info(scgms::NDevice_Event_Code::Warning, msg, filename_segment_id);	
 		log.seekg(0);	//so that the following getline extracts the very same string
 	}
@@ -122,7 +122,7 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 	auto emit_parsing_exception_w = [this, &log_filename, line_counter](const std::wstring &what) {	
 
 		std::wstring msg{ dsUnexpected_Error_While_Parsing };
-		msg.append(log_filename);
+		msg += log_filename.wstring();
 		if (line_counter != std::numeric_limits<decltype(line_counter)>::max()) {
 			msg.append(dsLine_No);
 			msg.append(std::to_wstring(line_counter));
