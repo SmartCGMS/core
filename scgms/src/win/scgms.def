@@ -1,4 +1,4 @@
-LIBRARY factory.dll
+LIBRARY scgms.dll
 
 EXPORTS
 	create_filter
