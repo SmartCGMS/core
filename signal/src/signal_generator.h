@@ -56,7 +56,7 @@ protected:
 	bool mSync_To_Signal = false;
 	GUID mSync_Signal = Invalid_GUID;
 	double mFixed_Stepping = 5.0*scgms::One_Minute;
-	double mMax_Time;			//maximum time, for which the generator can run
+	double mMax_Time = 24.0 * scgms::One_Hour;			//maximum time, for which the generator can run
 	double mTotal_Time = 0.0;	//time for which the generator runs
 	double mLast_Device_Time = std::numeric_limits<double>::quiet_NaN();
 	bool mEmit_Shutdown = true;
