@@ -19,7 +19,7 @@ IF (Matlab_FOUND)
 	CONFIGURE_FILTER_OUTPUT(${PROJ})
 
 	TARGET_INCLUDE_DIRECTORIES(${PROJ} PUBLIC ${Matlab_INCLUDE_DIRS})
-	TARGET_LINK_LIBRARIES(${PROJ} factory ${Matlab_LIBRARIES})
+	TARGET_LINK_LIBRARIES(${PROJ} scgms ${Matlab_LIBRARIES})
 ELSE()
 	MESSAGE(WARNING "Matlab libraries was not found, matlab solver will not be built.")
 ENDIF()

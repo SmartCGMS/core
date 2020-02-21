@@ -115,7 +115,7 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 		}
 		else retstr = line;
 		
-		return retstr;
+		return trim(retstr);
 	};
 	
 
