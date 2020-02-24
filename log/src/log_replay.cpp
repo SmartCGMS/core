@@ -95,7 +95,7 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 
 	// read header and validate
 	// NOTE: this assumes identical header (as the one used when generating log); maybe we could consider adaptive log parsing later
-	if (!std::getline(log, line) || line != std::wstring(dsLog_Header)) {
+	if (!std::getline(log, line) || trim(line) != std::wstring(dsLog_Header)) {
 		std::wstring msg{ dsFile_Has_Not_Expected_Header };
 		msg += log_filename.wstring();
 		Emit_Info(scgms::NDevice_Event_Code::Warning, msg, filename_segment_id);	
@@ -141,6 +141,10 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 	// read all lines from log file
 	while (std::getline(log, line))  {
 		line_counter++;
+
+		trim(line);
+		if (line.empty()) continue;
+
 		try
 		{
 			// skip; logical time is not modifiable, and there's not a point in loading it anyways
