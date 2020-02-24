@@ -138,7 +138,7 @@ struct ExtractionResult
 	std::vector<std::string> FileDeviceNames;
 
 	// total value count within all segments
-	uint32_t Value_Count;
+	uint32_t Value_Count =  0;
 };
 
 typedef std::map<std::string, ExtractorColumns> ExtractorRuleMap;

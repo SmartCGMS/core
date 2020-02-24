@@ -210,7 +210,7 @@ bool CXML_Format::Load(const wchar_t* path)
 	// parse root element contents
 	Parse_Tags(mRootElement, el);
 
-	// recursivelly parse root element contents
+	// recursively parse root element contents
 	Load_To_Element(mRootElement, f);
 
 	return true;

@@ -37,7 +37,6 @@
  */
 
 #include "FormatRuleLoader.h"
-#include "../../../../common/utils/SimpleIni.h"
 #include "../../../../common/rtl/FilesystemLib.h"
 #include "../../../../common/utils/string_utils.h"
 
@@ -46,78 +45,92 @@
 
 
 
-const wchar_t* dsPatternConfigurationFileName = L"patterns.ini";
-const wchar_t* dsFormatRuleTemplatesFileName = L"format_rule_templates.ini";
-const wchar_t* dsFormatRulesFileName = L"format_rules.ini";
+bool CFormat_Rule_Loader::Load_Format_Config(const char *default_config, const wchar_t* file_name, std::function<bool(CSimpleIniA&)> func) {
 
-static std::wstring Resolve_Config_File_Path(std::wstring filename)
-{
-	std::wstring path = Get_Application_Dir();
-	Path_Append(path, L"formats");
-	Path_Append(path, filename.c_str());
+	auto resolve_config_file_path = [](const wchar_t* filename) {
+		std::wstring path = Get_Application_Dir();
+		Path_Append(path, L"formats");
+		Path_Append(path, filename);
 
-	return path;
+		return path;
+	};
+
+
+	auto load_config = [this, &func](const char* str, std::function<SI_Error(const char*, CSimpleIniA&)> load_config_func) {
+		CSimpleIniA ini;
+		SI_Error err;
+
+		ini.SetUnicode();
+		err = load_config_func(str, ini);
+
+		if (err < 0)
+			return false;
+
+		return func(ini);
+	};
+
+	auto load_config_from_file = [](const char* file_name, CSimpleIniA& ini)->SI_Error {				
+		return ini.LoadFile(file_name);
+	};
+
+	auto load_config_from_memory = [](const char* data, CSimpleIniA& ini)->SI_Error {
+		return ini.LoadData(data);
+	};
+
+	
+	//first, load default configs from memory, then update with file config if they are present
+	bool result = load_config(default_config, load_config_from_memory);
+	load_config(Narrow_WString(resolve_config_file_path(file_name)).c_str(), load_config_from_file);	//optionally, load external configs
+	
+	return result;
 }
 
-bool CFormat_Rule_Loader::Load_Format_Pattern_Config()
-{
-	CSimpleIniA ini;
-	SI_Error err;
-	ini.SetUnicode();
-	
-	std::string convPath = Narrow_WChar(Resolve_Config_File_Path(dsPatternConfigurationFileName).c_str());
 
-	err = ini.LoadFile(convPath.c_str());
 
-	if (err < 0)
-		return false;
 
+bool CFormat_Rule_Loader::Add_Config_Keys(CSimpleIniA & ini, std::function<void(const char*, const char*, const char*)> func) {
 	CSimpleIniA::TNamesDepend sections;
 	ini.GetAllSections(sections);
 
-	size_t counter = 0, rulecounter = 0;
-	const char* value;
-	for (auto section : sections)
-	{
+	for (auto section : sections) {
 		CSimpleIniA::TNamesDepend keys;
 		ini.GetAllKeys(section.pItem, keys);
 
-		for (auto key : keys)
-		{
-			value = ini.GetValue(section.pItem, key.pItem);
-			mFormatRecognizer.Add_Pattern(section.pItem, key.pItem, value);
-
-			rulecounter++;
-		}
-
-		counter++;
+		for (auto key : keys) {
+			const auto value = ini.GetValue(section.pItem, key.pItem);
+			func(section.pItem, key.pItem, value);
+		}		
 	}
 
 	return true;
 }
 
-bool CFormat_Rule_Loader::Load_Format_Rule_Templates()
-{
-	CSimpleIniA ini;
-	SI_Error err;
-	ini.SetUnicode();
+
+bool CFormat_Rule_Loader::Load_Format_Pattern_Config(CSimpleIniA& ini) {
+	auto add = [this](const char* formatName, const char* cellLocation, const char* content) {
+		mFormatRecognizer.Add_Pattern(formatName, cellLocation, content);
+	};
+
+	return Add_Config_Keys(ini, add);
+}
 	
-	std::string convPath = Narrow_WString(Resolve_Config_File_Path(dsFormatRuleTemplatesFileName));
 
-	err = ini.LoadFile(convPath.c_str());
+bool CFormat_Rule_Loader::Load_Format_Rules(CSimpleIniA& ini) {
+	auto add = [this](const char* formatName, const char* cellLocation, const char* content) {
+		mExtractor.Add_Format_Rule(formatName, cellLocation, content);
+	};
 
-	if (err < 0)
-		return false;
+	return Add_Config_Keys(ini, add);
+}
 
+
+
+bool CFormat_Rule_Loader::Load_Format_Rule_Templates(CSimpleIniA& ini) {
 	CSimpleIniA::TNamesDepend sections;
 	ini.GetAllSections(sections);
-
-	size_t counter = 0;
+	
 	const char* value;
-	const char* multvalue;
-	const char* strformatvalue;
-	for (auto section : sections)
-	{
+	for (auto section : sections) {
 		value = ini.GetValue(section.pItem, "replace");
 		if (value)
 		{
@@ -129,12 +142,12 @@ bool CFormat_Rule_Loader::Load_Format_Rule_Templates()
 		{
 			mExtractor.Add_Template(section.pItem, value);
 
-			multvalue = ini.GetValue(section.pItem, "multiplier");
+			const char* multvalue = ini.GetValue(section.pItem, "multiplier");
 			if (multvalue)
 			{
 				try
 				{
-					double d = std::stod(multvalue);
+					const double d = std::stod(multvalue);
 					mExtractor.Add_Template_Multiplier(section.pItem, value, d);
 				}
 				catch (...)
@@ -143,52 +156,10 @@ bool CFormat_Rule_Loader::Load_Format_Rule_Templates()
 				}
 			}
 
-			strformatvalue = ini.GetValue(section.pItem, "stringformat");
+			const char* strformatvalue = ini.GetValue(section.pItem, "stringformat");
 			if (strformatvalue)
 				mExtractor.Add_Template_String_Format(section.pItem, value, strformatvalue);
-
-			counter++;
 		}
-	}
-
-	return true;
-}
-
-bool CFormat_Rule_Loader::Load_Format_Rules()
-{
-	CSimpleIniA ini;
-	SI_Error err;
-	ini.SetUnicode();
-	
-	std::string convPath = Narrow_WString(Resolve_Config_File_Path(dsFormatRulesFileName));
-
-	err = ini.LoadFile(convPath.c_str());
-
-	if (err < 0)
-		return false;
-
-	CSimpleIniA::TNamesDepend sections;
-	ini.GetAllSections(sections);
-
-	size_t counter = 0, rulecounter = 0;
-	bool success;
-	const char* value;
-	for (auto section : sections)
-	{
-		CSimpleIniA::TNamesDepend keys;
-		ini.GetAllKeys(section.pItem, keys);
-
-		for (auto key : keys)
-		{
-			value = ini.GetValue(section.pItem, key.pItem);
-
-			success = mExtractor.Add_Format_Rule(section.pItem, key.pItem, value);
-
-			if (success)
-				rulecounter++;
-		}
-
-		counter++;
 	}
 
 	return true;
@@ -200,9 +171,19 @@ CFormat_Rule_Loader::CFormat_Rule_Loader(CFormat_Recognizer& recognizer, CExtrac
 	//
 }
 
-bool CFormat_Rule_Loader::Load()
-{
-	return Load_Format_Pattern_Config() &&
-		Load_Format_Rule_Templates() &&
-		Load_Format_Rules();
+
+const wchar_t* dsPatternConfigurationFileName = L"patterns.ini";
+const wchar_t* dsFormatRuleTemplatesFileName = L"format_rule_templates.ini";
+const wchar_t* dsFormatRulesFileName = L"format_rules.ini";
+
+extern "C" const char default_patterns[];			//bin2c -n default_format_rules_templates -p 0,0 %(FullPath) > %(FullPath).c
+extern "C" const char default_format_rules[];
+extern "C" const char default_format_rules_templates[];
+
+bool CFormat_Rule_Loader::Load() {	
+	
+	//order of the following loadings DOES MATTER!
+	return Load_Format_Config(default_patterns, dsPatternConfigurationFileName, std::bind(&CFormat_Rule_Loader::Load_Format_Pattern_Config, this, std::placeholders::_1)) &&
+		   Load_Format_Config(default_format_rules_templates, dsFormatRuleTemplatesFileName, std::bind(&CFormat_Rule_Loader::Load_Format_Rule_Templates, this, std::placeholders::_1)) &&
+		   Load_Format_Config(default_format_rules, dsFormatRulesFileName, std::bind(&CFormat_Rule_Loader::Load_Format_Rules, this, std::placeholders::_1));
 }

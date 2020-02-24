@@ -51,7 +51,7 @@
 
 namespace file_reader
 {
-	const GUID File_Reader_Device_GUID = { 0x00000002, 0x0002, 0x0002, { 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
+	const GUID File_Reader_Device_GUID = { 0x78df0982, 0x705, 0x4c84, { 0xb0, 0xa3, 0xae, 0x40, 0xfe, 0x7e, 0x18, 0x7b } };	// {78DF0982-0705-4C84-B0A3-AE40FE7E187B}
 
 	// default value spacing in segments - this space determines when the segment ends and starts new
 	constexpr double Default_Segment_Spacing = 600.0 * 1000.0 * InvMSecsPerDay;
@@ -320,6 +320,8 @@ HRESULT CFile_Reader::Extract(ExtractionResult &values)
 HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mFileName = configuration.Read_String(rsInput_Values_File);
 	mSegmentSpacing = configuration.Read_Int(rsInput_Segment_Spacing) * 1000.0 * InvMSecsPerDay;
+	if (mSegmentSpacing == 0.0) mSegmentSpacing = file_reader::Default_Segment_Spacing;	//likely default, misconfigured value
+
 	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
 	mMinValueCount = static_cast<size_t>(configuration.Read_Int(rsMinimum_Segment_Levels));
 	mRequireBG_IG = configuration.Read_Bool(rsRequire_IG_BG);

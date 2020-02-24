@@ -64,7 +64,7 @@ class CFile_Reader : public scgms::CBase_Filter {
 		// original filename from configuration
 		std::wstring mFileName;
 		// segment spacing as julian date
-		double mSegmentSpacing;
+		double mSegmentSpacing = 0.0;
 		// merged extracted values from given file
 		std::vector<TValue_Vector> mMergedValues;
 		// do we need to send shutdown after last value?
