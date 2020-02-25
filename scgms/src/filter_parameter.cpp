@@ -1,6 +1,7 @@
 #include "filter_parameter.h"
 
 #include "../../../common/rtl/manufactory.h"
+#include "../../../common/utils/string_utils.h"
 
 CFilter_Parameter::CFilter_Parameter(const scgms::NParameter_Type type, const wchar_t *config_name) : mType(type), mConfig_Name(config_name) {
 	//
@@ -17,11 +18,25 @@ HRESULT IfaceCalling CFilter_Parameter::Get_Config_Name(wchar_t **config_name) {
 }
 
 
-HRESULT IfaceCalling CFilter_Parameter::Get_WChar_Container(refcnt::wstr_container **wstr) {
-	return Get_Container(mWChar_Container, wstr);	
+HRESULT IfaceCalling CFilter_Parameter::Get_WChar_Container(refcnt::wstr_container **wstr, bool read_interpreted) {
+	if (read_interpreted && !mSystem_Variable_Name.empty()) {
+		const char* sys = std::getenv(mSystem_Variable_Name.c_str());
+		std::wstring value = sys ? Widen_Char(sys) : L"";
+		*wstr = refcnt::WString_To_WChar_Container(value.c_str());
+		return *wstr ? (sys ? S_OK : S_FALSE) : E_FAIL;
+	}
+		else return Get_Container(mWChar_Container, wstr);	
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_WChar_Container(refcnt::wstr_container *wstr) {
+	std::wstring tmp = WChar_Container_To_WString(wstr);
+	mSystem_Variable_Name.clear();
+	if (tmp.size() > 3) {
+		if ((tmp[0] == '$') && (tmp[1] == L'(') && (tmp[tmp.size() - 1] == L')')) {
+			mSystem_Variable_Name = Narrow_WString(tmp.substr(2, tmp.size() - 2));
+		}
+	}
+
 	mWChar_Container = wstr;
 	return S_OK;
 }

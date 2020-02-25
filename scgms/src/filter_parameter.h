@@ -10,6 +10,7 @@ class CFilter_Parameter : public virtual scgms::IFilter_Parameter, public virtua
 protected:
 	const scgms::NParameter_Type mType;
 	const std::wstring mConfig_Name;
+	std::string mSystem_Variable_Name;
 
 	//the following SReferenced variables are not part of the union to prevent memory corruption
 	refcnt::SReferenced<refcnt::wstr_container> mWChar_Container;
@@ -43,7 +44,7 @@ public:
 	virtual HRESULT IfaceCalling Get_Config_Name(wchar_t **config_name) override final;
 
 	//read-write
-	virtual HRESULT IfaceCalling Get_WChar_Container(refcnt::wstr_container **wstr) override final;
+	virtual HRESULT IfaceCalling Get_WChar_Container(refcnt::wstr_container** wstr, bool read_interpreted) override final;
 	virtual HRESULT IfaceCalling Set_WChar_Container(refcnt::wstr_container *wstr) override final;
 
 	virtual HRESULT IfaceCalling Get_Time_Segment_Id_Container(scgms::time_segment_id_container **ids) override final;

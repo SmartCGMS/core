@@ -177,7 +177,7 @@ HRESULT CSignal_Error::Do_Configure(scgms::SFilter_Configuration configuration, 
 	mEmit_Metric_As_Signal = configuration.Read_Bool(rsEmit_metric_as_signal, mEmit_Metric_As_Signal);
 	mEmit_Last_Value_Only = configuration.Read_Bool(rsEmit_last_value_only, mEmit_Last_Value_Only);
 
-	mDescription = configuration.Read_String(rsDescription, GUID_To_WString(mReference_Signal_ID).append(L" - ").append(GUID_To_WString(mError_Signal_ID)));
+	mDescription = configuration.Read_String(rsDescription, true, GUID_To_WString(mReference_Signal_ID).append(L" - ").append(GUID_To_WString(mError_Signal_ID)));
 
 	
 	const scgms::TMetric_Parameters metric_parameters{ metric_id,
