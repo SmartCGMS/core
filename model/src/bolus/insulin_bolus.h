@@ -56,7 +56,7 @@ public:
 	virtual ~CDiscrete_Insulin_Bolus_Calculator() = default;
 
     // scgms::IDiscrete_Model iface
-    virtual HRESULT IfaceCalling Set_Current_Time(const double new_current_time) final;
+    virtual HRESULT IfaceCalling Initialize(const double current_time, const uint64_t segment_id) final;
     virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
 };
 

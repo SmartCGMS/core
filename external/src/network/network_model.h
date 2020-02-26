@@ -245,6 +245,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public virtual scgms
 		std::unique_ptr<std::thread> mNetThread;
 
 	protected:
+		uint64_t mSegment_Id = scgms::Invalid_Segment_Id;
 		bool Emit_Signal_Level(const GUID& id, double device_time, double level);
 		bool Emit_Error(const std::wstring& error);
 
@@ -268,7 +269,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public virtual scgms
 		virtual ~CNetwork_Discrete_Model();
 
 		// scgms::IDiscrete_Model iface
-		virtual HRESULT IfaceCalling Set_Current_Time(const double new_current_time) override final;
+		virtual HRESULT IfaceCalling Initialize(const double current_time, const uint64_t segment_id) override final;
 		virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
 };
 

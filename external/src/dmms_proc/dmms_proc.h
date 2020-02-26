@@ -103,6 +103,7 @@ class CDMMS_Proc_Discrete_Model : public virtual scgms::CBase_Filter, public vir
 		DMMS_Announced_Events mAnnounced;
 
 	protected:
+		uint64_t mSegment_Id = scgms::Invalid_Segment_Id;
 		void Emit_Signal_Level(const GUID& id, double device_time, double level);
 		void Emit_Shut_Down(double device_time);
 
@@ -120,7 +121,7 @@ class CDMMS_Proc_Discrete_Model : public virtual scgms::CBase_Filter, public vir
 		virtual ~CDMMS_Proc_Discrete_Model();
 
 		// scgms::IDiscrete_Model iface
-		virtual HRESULT IfaceCalling Set_Current_Time(const double new_current_time) override final;
+		virtual HRESULT IfaceCalling Initialize(const double current_time, const uint64_t segment_id) override final;
 		virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
 };
 

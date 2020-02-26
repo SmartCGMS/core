@@ -75,7 +75,7 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 			if (!std::isnan(mLast_Device_Time)) dynamic_stepping = event.device_time() - mLast_Device_Time;
 				else {
 																	//cannot advance the model because this is the very first event, thus we do not have the delta
-					mModel->Set_Current_Time(event.device_time());	//for which we need to set the current time
+					mModel->Initialize(event.device_time(), reinterpret_cast<std::remove_reference<decltype(event.segment_id())>::type>(mModel.get()));	//for which we need to set the current time
 				}
 
 			mLast_Device_Time = event.device_time();
@@ -137,7 +137,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 	if (!mSync_To_Signal) {
 		mThread = std::make_unique<std::thread>([this]() {
 			scgms::SDiscrete_Model model = mModel; // hold local instance to avoid race conditions with Execute shutdown code
-			if (SUCCEEDED(model->Set_Current_Time(Unix_Time_To_Rat_Time(time(nullptr))))) {
+			if (SUCCEEDED(model->Initialize(Unix_Time_To_Rat_Time(time(nullptr)), reinterpret_cast<uint64_t>(model.get())))) {
 				model->Step(0.0);	//emit the initial state as this is the current state now
 				while (!mQuitting) {
 					if (!SUCCEEDED(model->Step(mFixed_Stepping))) break;

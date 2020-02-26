@@ -280,7 +280,7 @@ void CDMMS_Lib_Discrete_Model::Emit_Signal_Level(const GUID& id, double device_t
 	evt.device_time() = device_time;
 	evt.level() = level;
 	evt.signal_id() = id;
-	evt.segment_id() = reinterpret_cast<std::remove_reference<decltype(evt.segment_id())>::type>(this);
+	evt.segment_id() = mSegment_Id;
 
 	Send(evt);
 }
@@ -292,15 +292,16 @@ void CDMMS_Lib_Discrete_Model::Emit_Shut_Down(double device_time)
 	evt.device_id() = dmms_model::proc_model_id;
 	evt.device_time() = device_time;
 	evt.signal_id() = Invalid_GUID;
-	evt.segment_id() = reinterpret_cast<std::remove_reference<decltype(evt.segment_id())>::type>(this);
+	evt.segment_id() = mSegment_Id;
 
 	Send(evt);
 }
 
-HRESULT IfaceCalling CDMMS_Lib_Discrete_Model::Set_Current_Time(const double new_current_time)
+HRESULT IfaceCalling CDMMS_Lib_Discrete_Model::Initialize(const double current_time, const uint64_t segment_id)
 {
-	mLastTime = new_current_time;
-	mTimeStart = new_current_time;
+	mLastTime = current_time;
+	mTimeStart = current_time;
+	mSegment_Id = segment_id;
 
 	return S_OK;
 }

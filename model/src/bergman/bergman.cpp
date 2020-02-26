@@ -318,14 +318,15 @@ HRESULT CBergman_Discrete_Model::Emit_Signal_Level(const GUID& signal_id, double
 	evt.device_time() = device_time;
 	evt.level() = level;
 	evt.signal_id() = signal_id;
-	evt.segment_id() = reinterpret_cast<std::remove_reference<decltype(evt.segment_id())>::type>(this);
+	evt.segment_id() = mSegment_Id;
 
 	return Send(evt);
 }
 
-HRESULT IfaceCalling CBergman_Discrete_Model::Set_Current_Time(const double new_current_time) {
+HRESULT IfaceCalling CBergman_Discrete_Model::Initialize(const double current_time, const uint64_t segment_id) {
 	if (mState.lastTime < 0.0) {
-		mState.lastTime = new_current_time;
+		mState.lastTime = current_time;
+		mSegment_Id = segment_id;
 		return S_OK;
 	}
 	else

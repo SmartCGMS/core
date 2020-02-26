@@ -148,6 +148,7 @@ class CBergman_Discrete_Model : public virtual scgms::CBase_Filter, public virtu
 		double eq_dGsc(const double _T, const double _G) const;
 
 	protected:
+		uint64_t mSegment_Id = scgms::Invalid_Segment_Id;
 		HRESULT Emit_Signal_Level(const GUID& signal_id, double device_time, double level);
 		void Emit_All_Signals(double time_advance_delta);
 
@@ -161,7 +162,7 @@ class CBergman_Discrete_Model : public virtual scgms::CBase_Filter, public virtu
 		virtual ~CBergman_Discrete_Model() = default;
 
 		// scgms::IDiscrete_Model iface
-		virtual HRESULT IfaceCalling Set_Current_Time(const double new_current_time) override final;
+		virtual HRESULT IfaceCalling Initialize(const double current_time, const uint64_t segment_id) override final;
 		virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
 };
 

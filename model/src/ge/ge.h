@@ -91,6 +91,9 @@ protected:
 	double mCurrent_Time = std::numeric_limits<double>::quiet_NaN();
 	double mTime_Advance_Jitter = 0.0;			//because it will be quite difficult to ge a code that properly calculates with
 												//with a dynamic time stepping => hence we evolve a code for a sufficiently small, fixed step
+
+	uint64_t mSegment_Id = scgms::Invalid_Segment_Id;
+
 	const double mTime_Fixed_Stepping = 5.0*scgms::One_Minute;
 	void Fixed_Step();							//runs the instrucitons, which execute the fixed step
 	void Emit_Current_State();
@@ -103,7 +106,7 @@ public:
 	virtual ~CGE_Discrete_Model();
 
 	// scgms::IDiscrete_Model iface
-	virtual HRESULT IfaceCalling Set_Current_Time(const double new_current_time) override final;
+	virtual HRESULT IfaceCalling Initialize(const double current_time, const uint64_t segment_id) override final;
 	virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
 };
 

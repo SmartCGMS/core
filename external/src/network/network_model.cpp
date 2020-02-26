@@ -509,10 +509,11 @@ HRESULT CNetwork_Discrete_Model::Do_Configure(scgms::SFilter_Configuration confi
 	return S_OK;
 }
 
-HRESULT IfaceCalling CNetwork_Discrete_Model::Set_Current_Time(const double new_current_time)
+HRESULT IfaceCalling CNetwork_Discrete_Model::Initialize(const double current_time, const uint64_t segment_id)
 {
-	mCur_Time = new_current_time;
+	mCur_Time = current_time;
 	mCur_Ext_Time = mCur_Time;
+	mSegment_Id = segment_id;
 
 	return S_OK;
 }
@@ -563,7 +564,7 @@ bool CNetwork_Discrete_Model::Emit_Signal_Level(const GUID& id, double device_ti
 	evt.device_time() = device_time;
 	evt.signal_id() = id;
 	evt.level() = level;
-	evt.segment_id() = reinterpret_cast<uint64_t>(this);
+	evt.segment_id() = mSegment_Id;
 
 	return SUCCEEDED(Send(evt));
 }
@@ -574,6 +575,7 @@ bool CNetwork_Discrete_Model::Emit_Error(const std::wstring& error)
 	evt.device_id() = network_model::model_id;
 	evt.device_time() = Unix_Time_To_Rat_Time(time(nullptr));
 	evt.info.set(error.c_str());
+	evt.segment_id() = mSegment_Id;
 
 	return SUCCEEDED(Send(evt));
 }

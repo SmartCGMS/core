@@ -70,8 +70,8 @@ HRESULT CDiscrete_Insulin_Bolus_Calculator::Do_Configure(scgms::SFilter_Configur
 }
 
 
-HRESULT IfaceCalling CDiscrete_Insulin_Bolus_Calculator::Set_Current_Time(const double new_current_time) {
-    return S_OK;    //time independet for now
+HRESULT IfaceCalling CDiscrete_Insulin_Bolus_Calculator::Initialize(const double current_time, const uint64_t segment_id) {
+    return S_OK;    //time and segment independet for now
 }
 
 HRESULT IfaceCalling CDiscrete_Insulin_Bolus_Calculator::Step(const double time_advance_delta) {

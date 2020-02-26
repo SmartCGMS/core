@@ -59,7 +59,7 @@ void CGE_Discrete_Model::Emit_Current_State() {
 	evt.device_time() = mCurrent_Time;
 	evt.level() = mOutput_Level;
 	evt.signal_id() = ge_model::ge_signal_id;
-	evt.segment_id() = reinterpret_cast<std::remove_reference<decltype(evt.segment_id())>::type>(this);
+	evt.segment_id() = mSegment_Id;
 
 	Send(evt);
 }
@@ -83,9 +83,10 @@ HRESULT CGE_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configurat
 
 
 	
-HRESULT IfaceCalling CGE_Discrete_Model::Set_Current_Time(const double new_current_time) {
+HRESULT IfaceCalling CGE_Discrete_Model::Initialize(const double current_time, const uint64_t segment_id) {
 	if (std::isnan(mCurrent_Time)) {
-		mCurrent_Time = new_current_time;
+		mCurrent_Time = current_time;
+		mSegment_Id = segment_id;
 		return S_OK;
 	}
 	else
