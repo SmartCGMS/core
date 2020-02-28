@@ -68,7 +68,7 @@ protected:
 	std::vector<TSegment_Info> mSegment_Info;	
 	size_t mLevels_Required;
 	size_t mMax_Levels_Per_Segment;	//to avoid multiple resize of memory block when calculating the error
-	static inline thread_local aligned_double_vector mTemporal_Levels;
+	static thread_local aligned_double_vector mTemporal_Levels;
 	double* Reserve_Temporal_Levels_Data();
 public:
 	CFitness(const scgms::TSolver_Setup &setup, const size_t solution_size);

@@ -33,7 +33,7 @@ protected:
 		}
 		else {
 			*dst = nullptr;
-			return S_FALSE;
+			return E_NOT_SET;
 		}
 	}
 public:

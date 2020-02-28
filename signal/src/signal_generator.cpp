@@ -38,8 +38,10 @@
 
 #include "signal_generator.h"
 #include "../../../common/rtl/rattime.h"
+#include "../../../common/rtl/UILib.h"
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/utils/math_utils.h"
+#include "../../../common/utils/string_utils.h"
 
 #include <cmath>
 
@@ -110,18 +112,32 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 	Stop_Generator(true);
 
 	mSync_To_Signal = configuration.Read_Bool(rsSynchronize_to_Signal, mSync_To_Signal);
-	mSync_Signal = configuration.Read_GUID(rsSynchronization_Signal);
-	mFeedback_Name = configuration.Read_String(rsFeedback_Name);
 	mFixed_Stepping = configuration.Read_Double(rsStepping, mFixed_Stepping);
+	const GUID model_id = configuration.Read_GUID(rsSelected_Model);
+	if (Is_Invalid_GUID(model_id) || Is_NaN(mFixed_Stepping, mMax_Time)) return E_INVALIDARG;
+
+
+	if (!mSync_To_Signal && (mFixed_Stepping <= 0.0)) {
+		std::wstring str = rsAsync_Stepping_Not_Positive;
+		scgms::TModel_Descriptor desc = scgms::Null_Model_Descriptor;
+		if (scgms::get_model_descriptor_by_id(model_id, desc))  str += desc.description;		
+			else str += GUID_To_WString(model_id);
+		
+		error_description.push(str);
+		return E_INVALIDARG;
+	}
+
+	mSync_Signal = configuration.Read_GUID(rsSynchronization_Signal);
+	mFeedback_Name = configuration.Read_String(rsFeedback_Name);	
 	mMax_Time = configuration.Read_Double(rsMaximum_Time, mMax_Time);
 	mEmit_Shutdown = configuration.Read_Bool(rsShutdown_After_Last, mEmit_Shutdown);
+
+
 
 	std::vector<double> lower, parameters, upper;
 	configuration.Read_Parameters(rsParameters, lower, parameters, upper);
 
-	const GUID model_id = configuration.Read_GUID(rsSelected_Model);
-	if (Is_Invalid_GUID(model_id) || Is_NaN(mFixed_Stepping, mMax_Time)) return E_INVALIDARG;
-
+	
 
 	mModel = scgms::SDiscrete_Model { model_id, parameters, mOutput };
 	if (!mModel)

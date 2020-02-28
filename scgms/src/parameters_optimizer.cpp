@@ -145,7 +145,13 @@ protected:
 
 	bool Fetch_Events_To_Replay(refcnt::Swstr_list &error_description) {
 		mEvents_To_Replay.clear();
-		mFirst_Effective_Filter_Index = std::min(mFilter_Index, Find_Minimal_Receiver_Index_End());
+
+		const size_t minimal_receiver_end = Find_Minimal_Receiver_Index_End();
+		if (minimal_receiver_end == 0) return true;	//if it is the very first filter, than we can safely fetch no events to replay - but it is correct
+													//or, we would need an additional logic to verify that no one connects to this filter
+													//but that would be a special-case, strange behavior => not worth the effort
+
+		mFirst_Effective_Filter_Index = std::min(mFilter_Index, minimal_receiver_end);
 		scgms::SFilter_Chain_Configuration reduced_filter_configuration = Copy_Reduced_Configuration(mFirst_Effective_Filter_Index);
 
 

@@ -181,9 +181,9 @@ namespace bergman_model {
 		0.05, 0.05,									// d1rate, d2rate
 		0.04,										// irate
 		95.0, 9.2,									// Qb, Ib
-		100.0, 100.0, 0, 0, 0, 0, 0, 95.0,			// Q10, Q20, X0, I0, D10, D20, Isc0, Gsc0
+		220, 100.0, 0, 0, 0, 0, 0, 95.0,			// Q10, Q20, X0, I0, D10, D20, Isc0, Gsc0
 		0,											// BasalRate0
-		0.929, -0.037, 1.308						// p, cg, c
+		0.929, -0.037, 0							// p, cg, c
 	}} };
 	constexpr bergman_model::TParameters upper_bounds = {{ {
 		0.1, 0.1, 0.05, 1.0,										// p1, p2, p3, p4

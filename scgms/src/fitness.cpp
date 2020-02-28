@@ -41,6 +41,7 @@
 #include "../../../common/rtl/referencedImpl.h"
 
 thread_local scgms::SMetric CFitness::mMetric_Per_Thread;
+thread_local aligned_double_vector CFitness::mTemporal_Levels;
 
 CFitness::CFitness(const scgms::TSolver_Setup &setup, const size_t solution_size)
 	: mSolution_Size(solution_size), mLevels_Required(setup.levels_required) {
