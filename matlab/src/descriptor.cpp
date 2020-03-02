@@ -44,15 +44,15 @@
 #include "../../../common/rtl/descriptor_utils.h"
 
 #include <vector>
-#include <tbb/tbb_allocator.h>
 
 // this will be filled when the library gets loaded and CMatlab_Factory gets initialized
-std::vector<scgms::TModel_Descriptor, tbb::tbb_allocator<scgms::TModel_Descriptor>> model_descriptors;
+std::vector<scgms::TModel_Descriptor> model_descriptors;
 
 bool add_model_descriptor(TUser_Defined_Model_Descriptor& descriptor)
 {
 	scgms::TModel_Descriptor desc = {
 		descriptor.id,
+		scgms::NModel_Flags::Signal_Model,	// we currently support only signal models (not discrete models)
 		descriptor.description.c_str(),
 		descriptor.dbTableName.c_str(),
 		descriptor.paramNames.size(),
@@ -93,7 +93,7 @@ extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITi
 
 
 // this will be filled when the library gets loaded and CMatlab_Factory gets initialized
-std::vector<scgms::TSolver_Descriptor, tbb::tbb_allocator<scgms::TSolver_Descriptor>> solver_descriptors;
+std::vector<scgms::TSolver_Descriptor> solver_descriptors;
 
 bool add_solver_descriptor(TUser_Defined_Solver_Descriptor& descriptor)
 {

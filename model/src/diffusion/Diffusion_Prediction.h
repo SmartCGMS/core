@@ -48,7 +48,7 @@ class CDiffusion_Prediction : public virtual CCommon_Calculated_Signal {
 protected:
 	scgms::SSignal mIst;
 protected:
-	inline static thread_local TVector1D mRetrospective_Present_Ist, mRetrospective_Dt, mBeta;
+	static thread_local TVector1D mRetrospective_Present_Ist, mRetrospective_Dt, mBeta;
 public:
 	CDiffusion_Prediction(scgms::WTime_Segment segment);
 	virtual ~CDiffusion_Prediction() {};

@@ -44,6 +44,8 @@
 
 #include <cmath>
 
+thread_local TVector1D CSteil_Rebrin_Diffusion_Prediction::mDt, CSteil_Rebrin_Diffusion_Prediction::mPresent_Ist, CSteil_Rebrin_Diffusion_Prediction::mDeriveed_Ist;
+
 CSteil_Rebrin_Diffusion_Prediction::CSteil_Rebrin_Diffusion_Prediction(scgms::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(scgms::signal_IG)) {
 	if (!mIst) throw std::exception{};
 }

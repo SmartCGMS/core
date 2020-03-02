@@ -84,6 +84,7 @@ namespace dmms_model {
 
 	scgms::TModel_Descriptor proc_desc = {
 		proc_model_id,
+		scgms::NModel_Flags::Discrete_Model,
 		L"DMMS discrete model (process)",
 		nullptr,
 		model_param_count,
@@ -101,6 +102,7 @@ namespace dmms_model {
 
 	scgms::TModel_Descriptor lib_desc = {
 		lib_model_id,
+		scgms::NModel_Flags::Discrete_Model,
 		L"DMMS discrete model (library)",
 		nullptr,
 		model_param_count,
@@ -124,6 +126,7 @@ namespace network_model {
 
 	scgms::TModel_Descriptor desc = {
 		model_id,
+		scgms::NModel_Flags::Discrete_Model,
 		L"Network model",
 		nullptr,
 		model_param_count,

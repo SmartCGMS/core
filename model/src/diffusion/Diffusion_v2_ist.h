@@ -48,7 +48,7 @@ class CDiffusion_v2_ist : public virtual CDiffusion_v2_blood {
 protected:
 	scgms::SSignal mBlood;
 protected:
-	static inline thread_local TVector1D mDt, mPresent_Blood, mPresent_Ist;
+	static thread_local TVector1D mDt, mPresent_Blood, mPresent_Ist;
 public:
 	CDiffusion_v2_ist(scgms::WTime_Segment segment);
 	virtual ~CDiffusion_v2_ist() {};

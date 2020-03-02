@@ -49,7 +49,7 @@ protected:
 	scgms::SSignal mIst;
 	scgms::SSignal mCalibration;
 protected:
-	static inline thread_local TVector1D mPresent_Ist, mDerived_Ist, mCalibration_Offsets;
+	static thread_local TVector1D mPresent_Ist, mDerived_Ist, mCalibration_Offsets;
 public:
 	CSteil_Rebrin_blood(scgms::WTime_Segment segment);
 	virtual ~CSteil_Rebrin_blood() {};

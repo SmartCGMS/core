@@ -138,7 +138,7 @@ namespace bergman_model {
 	constexpr GUID signal_Bergman_Basal_Insulin = { 0xfc556839, 0xd6c0, 0x4646, { 0xa3, 0x46, 0x8, 0x21, 0xd2, 0x5f, 0x7e, 0x29 } };	// {FC556839-D6C0-4646-A346-0821D25F7E29}
 	constexpr GUID signal_Bergman_Insulin_Activity = { 0x755cfd08, 0x2b12, 0x43b6, { 0xa4, 0x55, 0x58, 0x6, 0x15, 0x68, 0x44, 0x6e } };	// {755CFD08-2B12-43B6-A455-58061568446E}
 
-	constexpr size_t model_param_count = 26;
+	constexpr size_t model_param_count = 30;
 
 	struct TParameters {
 		union {
@@ -153,7 +153,8 @@ namespace bergman_model {
 				double Qb, Ib;
 				double Q10, Q20, X0, I0, D10, D20, Isc0, Gsc0;
 				double BasalRate0;
-				double p, cg, c;
+				double p, cg, c, dt, k, h;
+				double Ag;
 			};
 			double vector[model_param_count];
 		};
@@ -170,7 +171,9 @@ namespace bergman_model {
 		0.0, 0.0,									// Qb, Ib
 		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,		// Q10, Q20, X0, I0, D10, D20, Isc0, Gsc0
 		0.0,										// BasalRate0
-		0, -0.5, -10.0								// p, cg, c
+		0, -0.5, -10.0, 0,							// p, cg, c, dt
+		-1.0, 0.0,									// k, h
+		0.05										// Ag
 	}} };
 	constexpr bergman_model::TParameters default_parameters = {{ {
 		0.028735, 0.028344, 5.035e-05, 0.3,			// p1, p2, p3, p4
@@ -181,9 +184,11 @@ namespace bergman_model {
 		0.05, 0.05,									// d1rate, d2rate
 		0.04,										// irate
 		95.0, 9.2,									// Qb, Ib
-		220, 100.0, 0, 0, 0, 0, 0, 95.0,			// Q10, Q20, X0, I0, D10, D20, Isc0, Gsc0
+		100.0, 100.0, 0, 0, 0, 0, 0, 95.0,			// Q10, Q20, X0, I0, D10, D20, Isc0, Gsc0
 		0,											// BasalRate0
-		0.929, -0.037, 0							// p, cg, c
+		0.929, -0.037, 1.308, 0.0233101854166667,	// p, cg, c, dt
+		-2.6E-6, 0.0185995368055556,				// k, h
+		0.35										// Ag
 	}} };
 	constexpr bergman_model::TParameters upper_bounds = {{ {
 		0.1, 0.1, 0.05, 1.0,										// p1, p2, p3, p4
@@ -196,7 +201,9 @@ namespace bergman_model {
 		200.0, 20.0,												// Qb, Ib
 		300.0, 300.0, 100.0, 200.0, 150.0, 150.0, 50.0, 300.0,		// Q10, Q20, X0, I0, D10, D20, Isc0, Gsc0
 		5.0,														// BasalRate0
-		2.0, 0.0, 5.0												// p, cg, c
+		2.0, 0.0, 5.0, 1.0 / (24.0),								// p, cg, c, dt
+		0.0, 1 / (24.0),											// k, h
+		1.5															// Ag
 	}} };
 }
 

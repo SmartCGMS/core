@@ -126,6 +126,19 @@ class CBergman_Discrete_Model : public virtual scgms::CBase_Filter, public virtu
 
 		double mLastBG, mLastIG;
 
+		double mDiffIG_h_Time = -1;
+		double mDiffIG_h_Value = 0.0;
+
+		struct TRequested_Amount
+		{
+			double time = 0;
+			double amount = 0;
+			bool requested = false;
+		};
+
+		TRequested_Amount mRequested_Basal;
+		std::vector<TRequested_Amount> mRequested_Boluses;
+
 		// different ODE solvers we might want to use; we prefer Dormand-Prince parametrization with binary subdivision adaptive step strategy (best balance of speed and precision)
 		//ode::euler::CSolver ODE_Solver;
 		//ode::heun::CSolver ODE_Solver;

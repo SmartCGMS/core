@@ -66,21 +66,46 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 
 	HRESULT rc = E_UNEXPECTED;
 
-	if ((mSync_To_Signal) && ((mTotal_Time < mMax_Time) || (mMax_Time <= 0.0))) {
+	if (!mCatching_Up && (mSync_To_Signal) && ((mTotal_Time < mMax_Time) || (mMax_Time <= 0.0))) {
+
 
 		if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start) 
 			mLast_Device_Time = std::numeric_limits<double>::quiet_NaN();
 
-		const bool step_the_model =  event.is_level_event() && ((event.signal_id() == mSync_Signal) || (mSync_Signal == scgms::signal_All));
+		bool step_the_model =  event.is_level_event() && ((event.signal_id() == mSync_Signal) || (mSync_Signal == scgms::signal_All));
 		double dynamic_stepping = 0.0;			//means "emit current state"
 		if (step_the_model) {
-			if (!std::isnan(mLast_Device_Time)) dynamic_stepping = event.device_time() - mLast_Device_Time;
-				else {
+			if (!std::isnan(mLast_Device_Time)) {
+				dynamic_stepping = event.device_time() - mLast_Device_Time;
+				
+				if (dynamic_stepping == 0.0)
+					step_the_model = false;
+			} else {
 																	//cannot advance the model because this is the very first event, thus we do not have the delta
 					mModel->Initialize(event.device_time(), reinterpret_cast<std::remove_reference<decltype(event.segment_id())>::type>(mModel.get()));	//for which we need to set the current time
 				}
 
 			mLast_Device_Time = event.device_time();
+		}
+
+		if (step_the_model) {
+			if (mFixed_Stepping > 0.0) {
+				mCatching_Up = true;
+				mTime_To_Catch_Up += dynamic_stepping;
+				while (mTime_To_Catch_Up >= mFixed_Stepping) {
+
+					rc = mModel->Step(mFixed_Stepping);
+					if (!SUCCEEDED(rc)) {
+						mCatching_Up = false;
+						return rc;
+					}
+
+					mTime_To_Catch_Up -= mFixed_Stepping;
+				}
+
+				step_the_model = (dynamic_stepping == 0.0);	//emits current state
+				mCatching_Up = false;
+			}
 		}
 
 		scgms::IDevice_Event *raw_event = event.get();
@@ -118,7 +143,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 
 
 	if (!mSync_To_Signal && (mFixed_Stepping <= 0.0)) {
-		std::wstring str = rsAsync_Stepping_Not_Positive;
+		std::wstring str = dsAsync_Stepping_Not_Positive;
 		scgms::TModel_Descriptor desc = scgms::Null_Model_Descriptor;
 		if (scgms::get_model_descriptor_by_id(model_id, desc))  str += desc.description;		
 			else str += GUID_To_WString(model_id);

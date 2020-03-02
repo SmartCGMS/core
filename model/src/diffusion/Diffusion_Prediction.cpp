@@ -44,6 +44,8 @@
 
 #include <cmath>
 
+thread_local TVector1D CDiffusion_Prediction::mRetrospective_Present_Ist, CDiffusion_Prediction::mRetrospective_Dt, CDiffusion_Prediction::mBeta;
+
 CDiffusion_Prediction::CDiffusion_Prediction(scgms::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(scgms::signal_IG)) {
 	if (!mIst) throw std::exception{};
 }

@@ -60,6 +60,8 @@ protected:
 	double mTotal_Time = 0.0;	//time for which the generator runs
 	double mLast_Device_Time = std::numeric_limits<double>::quiet_NaN();
 	bool mEmit_Shutdown = true;
+    double mTime_To_Catch_Up = 0.0;
+    bool mCatching_Up = false;
 protected:
 	std::wstring mFeedback_Name;
 	scgms::SDiscrete_Model mModel;

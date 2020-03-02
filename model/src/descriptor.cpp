@@ -65,6 +65,7 @@ namespace diffusion_v2_model {
 
 	const scgms::TModel_Descriptor desc = {
 		id,
+		scgms::NModel_Flags::Signal_Model,
 		dsDiffusion_Model_v2,
 		rsDiffusion_v2_Table,
 		param_count,
@@ -103,6 +104,7 @@ namespace steil_rebrin {
 
 	const scgms::TModel_Descriptor desc = {
 		id,
+		scgms::NModel_Flags::Signal_Model,
 		dsSteil_Rebrin,
 		rsSteil_Rebrin_Table,
 		param_count,
@@ -139,6 +141,7 @@ namespace steil_rebrin_diffusion_prediction {
 
 	const scgms::TModel_Descriptor desc = {
 		id,
+		scgms::NModel_Flags::Signal_Model,
 		dsSteil_Rebrin_Diffusion_Prediction,
 		rsSteil_Rebrin_Diffusion_Prediction_Table,
 		param_count,
@@ -176,6 +179,7 @@ namespace diffusion_prediction {
 
 	const scgms::TModel_Descriptor desc = {
 		id,
+		scgms::NModel_Flags::Signal_Model,
 		dsDiffusion_Prediction,
 		rsDiffusion_Prediction_Table,
 		param_count,
@@ -213,6 +217,7 @@ namespace constant_model {
 
 	const scgms::TModel_Descriptor desc = {
 		id,
+		scgms::NModel_Flags::Signal_Model,
 		dsConstant_Model,
 		rsConstant_Model,
 		param_count,
@@ -260,7 +265,11 @@ namespace bergman_model {
 		dsBergman_BasalRate0,
 		dsBergman_diff2_p,
 		dsBergman_diff2_cg,
-		dsBergman_diff2_c
+		dsBergman_diff2_c,
+		dsBergman_diff2_dt,
+		dsBergman_diff2_k,
+		dsBergman_diff2_h,
+		dsBergman_Ag
 	};
 
 	const scgms::NModel_Parameter_Value model_param_types[model_param_count] = {
@@ -289,6 +298,10 @@ namespace bergman_model {
 		scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptTime,
+		scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptTime,
 		scgms::NModel_Parameter_Value::mptDouble
 	};
 
@@ -323,6 +336,7 @@ namespace bergman_model {
 
 	scgms::TModel_Descriptor desc = {
 		model_id,
+		scgms::NModel_Flags::Discrete_Model,
 		dsBergman_Minimal_Model,
 		nullptr,
 		model_param_count,
@@ -376,6 +390,7 @@ namespace insulin_bolus {
 
 	const scgms::TModel_Descriptor desc = {
 		model_id,
+		scgms::NModel_Flags::Signal_Model,
 		dsBolus_Calculator,
 		rsBolus_Calculator,
 		param_count,
@@ -412,6 +427,7 @@ namespace const_isf {
 
 	const scgms::TModel_Descriptor desc = {
 		id,
+		scgms::NModel_Flags::Signal_Model,
 		dsConst_ISF_Model,
 		rsConst_ISF,
 		param_count,
@@ -448,6 +464,7 @@ namespace const_cr {
 
 	const scgms::TModel_Descriptor desc = {
 		id,
+		scgms::NModel_Flags::Signal_Model,
 		dsConst_CR_Model,
 		rsConst_CR,
 		param_count,

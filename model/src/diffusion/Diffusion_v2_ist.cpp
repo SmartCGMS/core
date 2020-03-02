@@ -47,6 +47,8 @@
 
 #undef max
 
+thread_local TVector1D CDiffusion_v2_ist::mDt, CDiffusion_v2_ist::mPresent_Blood, CDiffusion_v2_ist::mPresent_Ist;
+
 struct TIst_Estimate_Data {
 	scgms::SSignal ist;
 	const double reference_present_time;

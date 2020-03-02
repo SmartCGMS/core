@@ -43,10 +43,6 @@
 #include <type_traits>
 #include <cassert>
 
-// TODO: this should be meal parameter (CHO intake)
-constexpr double Ag = 0.35; // CHO bioavailability ratio []; this may vary with different types of meals (their glycemic index, sacharide type and distribution, ...)
-	//0.35 is used by Ikaros - do not change unless a correct variant is available
-
 /*************************************************
  * Generic uptake accumulator implementation     *
  *************************************************/
@@ -151,6 +147,7 @@ CBergman_Discrete_Model::CBergman_Discrete_Model(scgms::IModel_Parameter_Vector 
 	mState.D2 = mParameters.D20;
 	mState.Isc = mParameters.Isc0;
 	mState.Gsc = mParameters.Gsc0 * scgms::mgdl_2_mmoll;
+	mDiffIG_h_Value = mState.Gsc;
 
 	mLastBG = mState.Q1 * scgms::mgdl_2_mmoll / (10.0 * mParameters.VgDist);
 	mLastIG = mState.Gsc;
@@ -185,7 +182,7 @@ double CBergman_Discrete_Model::eq_dD1(const double _T, const double _D1) const
 
 double CBergman_Discrete_Model::eq_dD2(const double _T, const double _D2) const
 {
-	return -mParameters.d2rate * _D2 + Ag * mMeal_Ext.Get_Disturbance(_T * scgms::One_Minute);
+	return -mParameters.d2rate * _D2 + mParameters.Ag * mMeal_Ext.Get_Disturbance(_T * scgms::One_Minute);
 }
 
 double CBergman_Discrete_Model::eq_dIsc(const double _T, const double _Isc) const
@@ -195,18 +192,59 @@ double CBergman_Discrete_Model::eq_dIsc(const double _T, const double _Isc) cons
 
 double CBergman_Discrete_Model::eq_dGsc(const double _T, const double _Gsc) const
 {
-	// TODO: delta_t = step size for now (assuming 5 min in general, but depends on configuration); allow variable delta_t
-	// TODO: resolve case, when _T == mState.lastTime; for now, add 0.05, which is clearly not correct
-	return ((mParameters.p * mLastBG + mParameters.cg * mLastBG * (mLastBG - mLastIG) + mParameters.c) - _Gsc) / (0.05 + _T - mState.lastTime / scgms::One_Minute);
+	// Ikaros game calculates Gsc as follows (left here, for now):
+	//return ((mParameters.p * mLastBG + mParameters.cg * mLastBG * (mLastBG - mLastIG) + mParameters.c) - _Gsc) / (0.05 + _T - mState.lastTime / scgms::One_Minute);
+
+	const double GscDt = (mParameters.p * mLastBG + mParameters.cg * mLastBG * (mLastBG - mLastIG) + mParameters.c);
+
+	if (mParameters.dt == 0.0)
+		return 0.0;
+
+	double timeDelta = mParameters.dt;
+	if (mParameters.k != 0.0 && mParameters.h != 0.0)
+		timeDelta += mParameters.k * mLastIG * (mLastIG - mDiffIG_h_Value) / mParameters.h;
+
+	// this basicaly yields a line approximation, which is enough - as we know the future Gsc, the adaptive-step methods gives no error, so there's no need to perform
+	// steps shorter than requested step size
+	return (GscDt - _Gsc) / (timeDelta / scgms::One_Minute);
 }
 
 void CBergman_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 {
 	const double _T = mState.lastTime + time_advance_delta;	//locally-scoped because we might have been asked to emit the current state only
 
+	if (mRequested_Basal.requested)
+	{
+		Emit_Signal_Level(scgms::signal_Delivered_Insulin_Basal_Rate, mRequested_Basal.time, mRequested_Basal.amount);
+		mRequested_Basal.requested = false;
+	}
+
+	for (auto& reqBolus : mRequested_Boluses)
+	{
+		if (reqBolus.requested) {
+			Emit_Signal_Level(scgms::signal_Delivered_Insulin_Bolus, mRequested_Basal.time, mRequested_Basal.amount);
+		}
+	}
+	mRequested_Boluses.clear();
+
 	// interstitial fluid glucose
 	const double iglevel = mState.Gsc;
 	Emit_Signal_Level(bergman_model::signal_Bergman_IG, _T, iglevel);
+
+	// store I(t - h) for Gsc calculation
+	if (mParameters.k != 0.0 && mParameters.h != 0.0)
+	{
+		if (mDiffIG_h_Time < 0.0)
+			mDiffIG_h_Value = iglevel;
+		else if (mDiffIG_h_Time + mParameters.h < _T)
+		{
+			const double progress = (mDiffIG_h_Time + mParameters.h - mState.lastTime) / (_T - mState.lastTime);
+
+			mDiffIG_h_Value = (iglevel - mLastIG) * progress;
+			mDiffIG_h_Time += mParameters.h;
+		}
+	}
+
 	mLastIG = iglevel;
 
 	// blood glucose
@@ -226,7 +264,7 @@ void CBergman_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 	Emit_Signal_Level(bergman_model::signal_Bergman_Insulin_Activity, _T, mState.I / (1000.0/mParameters.Vi));
 
 	// COB = all CHO in system (colon and stomach) - divide by bioavailability, as the CHO is physically in colon/stomach, but the body discards a part of it without absorption (determined by bioavailability ratio)
-	Emit_Signal_Level(bergman_model::signal_Bergman_COB, _T, (1.0 / Ag)*(mState.D1 + mState.D2) / 1000.0);
+	Emit_Signal_Level(bergman_model::signal_Bergman_COB, _T, (1.0 / mParameters.Ag)*(mState.D1 + mState.D2) / 1000.0);
 }
 
 HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
@@ -239,15 +277,28 @@ HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 			if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate)
 			{
 				mBasal_Ext.Add_Uptake(event.device_time(), std::numeric_limits<double>::max(), 1000.0 * (event.level() / 60.0));
-				event.signal_id() = scgms::signal_Delivered_Insulin_Basal_Rate;				
+				if (!mRequested_Basal.requested || event.device_time() > mRequested_Basal.time) {
+					mRequested_Basal.amount = event.level();
+					mRequested_Basal.time = event.device_time();
+					mRequested_Basal.requested = true;
+				}
+
+				res = S_OK;
 			}
 			else if (event.signal_id() == scgms::signal_Requested_Insulin_Bolus)
 			{
 				// we assume that bolus is spread to 5-minute rate
 				constexpr double MinsBolusing = 5.0;
 
-				mBolus_Ext.Add_Uptake(event.device_time(), MinsBolusing * scgms::One_Minute, 1000.0 * (event.level() / MinsBolusing));
-				event.signal_id() = scgms::signal_Delivered_Insulin_Bolus;				
+				mBolus_Ext.Add_Uptake(event.device_time(), MinsBolusing * scgms::One_Minute, 1000.0 * (event.level() / MinsBolusing));				
+
+				mRequested_Boluses.push_back({
+					event.device_time(),
+					event.level(),
+					true
+				});
+
+				res = S_OK;
 			}
 			else if ((event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue))
 			{

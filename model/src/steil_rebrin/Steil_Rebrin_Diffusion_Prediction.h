@@ -48,7 +48,7 @@ class CSteil_Rebrin_Diffusion_Prediction : public virtual CCommon_Calculated_Sig
 protected:
 	scgms::SSignal mIst;	
 protected:
-	static inline thread_local TVector1D mDt, mPresent_Ist, mDeriveed_Ist;
+	static thread_local TVector1D mDt, mPresent_Ist, mDeriveed_Ist;
 public:
 	CSteil_Rebrin_Diffusion_Prediction(scgms::WTime_Segment segment);
 	virtual ~CSteil_Rebrin_Diffusion_Prediction() {};

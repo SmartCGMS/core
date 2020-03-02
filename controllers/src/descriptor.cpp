@@ -78,6 +78,7 @@ namespace iob {
 
 	const scgms::TModel_Descriptor desc = {
 		model_id,
+		scgms::NModel_Flags::Signal_Model,
 		dsIOB_Model,
 		rsIOB_Model,
 		param_count,
@@ -119,6 +120,7 @@ namespace cob {
 
 	const scgms::TModel_Descriptor desc = {
 		model_id,
+		scgms::NModel_Flags::Signal_Model,
 		dsCOB_Model,
 		rsCOB_Model,
 		param_count,
@@ -156,6 +158,7 @@ namespace betapid_insulin_regulation {
 
 	const scgms::TModel_Descriptor desc = {
 		id,
+		scgms::NModel_Flags::Signal_Model,
 		dsBetaPID,
 		rsBetaPID,
 		param_count,
@@ -195,6 +198,7 @@ namespace betapid3_insulin_regulation {
 
 	const scgms::TModel_Descriptor desc = {
 		id,
+		scgms::NModel_Flags::Signal_Model,
 		dsBetaPID3,
 		rsBetaPID3,
 		param_count,
@@ -224,10 +228,11 @@ namespace lgs_basal_insulin {
 
 	const GUID signal_ids[signal_count] = { lgs_basal_insulin_signal_id };
 	const wchar_t *signal_names[signal_count] = { dsInsulin_LGS_Rate };
-	const GUID reference_signal_ids[signal_count] = { scgms::signal_IOB };
+	const GUID reference_signal_ids[signal_count] = { scgms::signal_IG };
 
 	const scgms::TModel_Descriptor desc = {
 		id,
+		scgms::NModel_Flags::Signal_Model,
 		dsLGS_Basal_Insulin_Model,
 		rsLGS_Basal_Insulin_Model,
 		param_count,

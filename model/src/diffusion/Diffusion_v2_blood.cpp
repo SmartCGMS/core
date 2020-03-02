@@ -44,6 +44,8 @@
 
 #undef max
 
+thread_local TVector1D CDiffusion_v2_blood::mPresent_Ist, CDiffusion_v2_blood::mFuture_Ist, CDiffusion_v2_blood::mDt;
+
 CDiffusion_v2_blood::CDiffusion_v2_blood(scgms::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(scgms::signal_IG)) {
 	if (!refcnt::Shared_Valid_All(mIst)) throw std::exception{};
 }

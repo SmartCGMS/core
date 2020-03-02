@@ -183,9 +183,10 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 								valid = filter_parameter.set_bool(mIni.GetBoolValue(section_name.pItem, desc.config_parameter_name[i])) == S_OK;
 								break;
 
-							case scgms::NParameter_Type::ptModel_Id:
+							case scgms::NParameter_Type::ptSignal_Model_Id:
+							case scgms::NParameter_Type::ptDiscrete_Model_Id:
 							case scgms::NParameter_Type::ptMetric_Id:
-							case scgms::NParameter_Type::ptModel_Signal_Id:
+							case scgms::NParameter_Type::ptModel_Produced_Signal_Id:
 							case scgms::NParameter_Type::ptSignal_Id:
 							case scgms::NParameter_Type::ptSolver_Id:
 							{								
@@ -300,79 +301,80 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 
 
 				switch (param_type) {
-					case scgms::NParameter_Type::ptWChar_Array:
+				case scgms::NParameter_Type::ptWChar_Array:
 
-						refcnt::wstr_container* wstr;
-						rc = parameter->Get_WChar_Container(&wstr, false);
-						if (rc != S_OK) return rc;
+					refcnt::wstr_container* wstr;
+					rc = parameter->Get_WChar_Container(&wstr, false);
+					if (rc != S_OK) return rc;
 
-						ini.SetValue(id_str.c_str(), config_name, WChar_Container_To_WString(wstr).c_str());
-						wstr->Release();
-						break;
-
-					case scgms::NParameter_Type::ptInt64_Array:
-						scgms::time_segment_id_container* ids;
-						rc = parameter->Get_Time_Segment_Id_Container(&ids);
-						if (rc != S_OK) return rc;
-
-						ini.SetValue(id_str.c_str(), config_name, Select_Time_Segments_Id_To_WString(ids).c_str());
-						ids->Release();
-						break;
-
-					case scgms::NParameter_Type::ptRatTime:
-					case scgms::NParameter_Type::ptDouble:
-					{
-						double val;
-						rc = parameter->Get_Double(&val);
-						if (rc != S_OK) return rc;
-
-						ini.SetDoubleValue(id_str.c_str(), config_name, val);
-					}
+					ini.SetValue(id_str.c_str(), config_name, WChar_Container_To_WString(wstr).c_str());
+					wstr->Release();
 					break;
 
-					case scgms::NParameter_Type::ptInt64:
-					case scgms::NParameter_Type::ptSubject_Id:
-					{
-						int64_t val;
-						rc = parameter->Get_Int64(&val);
-						if (rc != S_OK) return rc;
-						ini.SetLongValue(id_str.c_str(), config_name, static_cast<long>(val));
-					}
+				case scgms::NParameter_Type::ptInt64_Array:
+					scgms::time_segment_id_container* ids;
+					rc = parameter->Get_Time_Segment_Id_Container(&ids);
+					if (rc != S_OK) return rc;
+
+					ini.SetValue(id_str.c_str(), config_name, Select_Time_Segments_Id_To_WString(ids).c_str());
+					ids->Release();
 					break;
 
-					case scgms::NParameter_Type::ptBool:
-					{
-						uint8_t val;
-						rc = parameter->Get_Bool(&val);
-						if (rc != S_OK) return rc;
-						ini.SetBoolValue(id_str.c_str(), config_name, val != 0);
-					}
+				case scgms::NParameter_Type::ptRatTime:
+				case scgms::NParameter_Type::ptDouble:
+				{
+					double val;
+					rc = parameter->Get_Double(&val);
+					if (rc != S_OK) return rc;
+
+					ini.SetDoubleValue(id_str.c_str(), config_name, val);
+				}
+				break;
+
+				case scgms::NParameter_Type::ptInt64:
+				case scgms::NParameter_Type::ptSubject_Id:
+				{
+					int64_t val;
+					rc = parameter->Get_Int64(&val);
+					if (rc != S_OK) return rc;
+					ini.SetLongValue(id_str.c_str(), config_name, static_cast<long>(val));
+				}
+				break;
+
+				case scgms::NParameter_Type::ptBool:
+				{
+					uint8_t val;
+					rc = parameter->Get_Bool(&val);
+					if (rc != S_OK) return rc;
+					ini.SetBoolValue(id_str.c_str(), config_name, val != 0);
+				}
+				break;
+
+				case scgms::NParameter_Type::ptSignal_Model_Id:
+				case scgms::NParameter_Type::ptDiscrete_Model_Id:
+				case scgms::NParameter_Type::ptMetric_Id:
+				case scgms::NParameter_Type::ptModel_Produced_Signal_Id:
+				case scgms::NParameter_Type::ptSignal_Id:
+				case scgms::NParameter_Type::ptSolver_Id:
+				{
+					GUID val;
+					rc = parameter->Get_GUID(&val);
+					if (rc != S_OK) return rc;
+
+					ini.SetValue(id_str.c_str(), config_name, GUID_To_WString(val).c_str());
+				}
+				break;
+
+				case scgms::NParameter_Type::ptDouble_Array:
+					scgms::IModel_Parameter_Vector* model_parameters;
+					rc = parameter->Get_Model_Parameters(&model_parameters);
+					if (rc != S_OK) return rc;
+
+					ini.SetValue(id_str.c_str(), config_name, Model_Parameters_To_WString(model_parameters).c_str());
+					model_parameters->Release();
 					break;
 
-					case scgms::NParameter_Type::ptModel_Id:
-					case scgms::NParameter_Type::ptMetric_Id:
-					case scgms::NParameter_Type::ptModel_Signal_Id:
-					case scgms::NParameter_Type::ptSignal_Id:
-					case scgms::NParameter_Type::ptSolver_Id:
-					{
-						GUID val;
-						rc = parameter->Get_GUID(&val);
-						if (rc != S_OK) return rc;
-
-						ini.SetValue(id_str.c_str(), config_name, GUID_To_WString(val).c_str());
-					}
-					break;
-
-					case scgms::NParameter_Type::ptDouble_Array:
-						scgms::IModel_Parameter_Vector* model_parameters;
-						rc = parameter->Get_Model_Parameters(&model_parameters);
-						if (rc != S_OK) return rc;
-
-						ini.SetValue(id_str.c_str(), config_name, Model_Parameters_To_WString(model_parameters).c_str());
-						model_parameters->Release();
-						break;
-
-					default: break;
+				default: break;
 				} //switch (param_type) {
 			}
 		}
