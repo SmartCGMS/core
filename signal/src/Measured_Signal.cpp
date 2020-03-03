@@ -99,8 +99,23 @@ HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Bounds(scgms::TBounds* const
 
 HRESULT IfaceCalling CMeasured_Signal::Add_Levels(const double *times, const double *levels, const size_t count) {
 	// copy given values to internal vectors
-	std::copy(times, times + count, std::back_inserter(mTimes));
-	std::copy(levels, levels + count, std::back_inserter(mLevels));
+	// but with time, take care about duplicities
+	double last_time = mTimes.empty() ? std::numeric_limits<double>::quiet_NaN() : mTimes[mTimes.size()-1];
+	for (size_t i = 0; i < count; i++) {
+		double time_to_insert = times[i];		
+		if (std::isnan(last_time) || (last_time != time_to_insert)) {
+			//mTimes.push_back(time_to_insert);
+			//mLevels.push_back(levels[i]);
+		} else
+			time_to_insert += std::numeric_limits<double>::epsilon();
+		last_time = time_to_insert;
+		
+		mTimes.push_back(time_to_insert);
+		mLevels.push_back(levels[i]);
+	}
+
+	//std::copy(times, times + count, std::back_inserter(mTimes));	//
+	//std::copy(levels, levels + count, std::back_inserter(mLevels));
 
 	return S_OK;
 }

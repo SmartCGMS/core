@@ -52,7 +52,7 @@ HRESULT IfaceCalling CConstant_Basal_LGS_Insulin_Rate_Model::Get_Continuous_Leve
 {
 	lgs_basal_insulin::TParameters &parameters = scgms::Convert_Parameters<lgs_basal_insulin::TParameters>(params, lgs_basal_insulin::default_parameters);
 
-	const double historyTimeStep = scgms::One_Minute * 5;	// 5 minute step
+	const double historyTimeStep = scgms::One_Minute * 5.0;	// 5 minute step
 	const size_t historyTimeCnt = static_cast<size_t>(parameters.suspend_duration / historyTimeStep);
 
 	std::vector<double> htimes(historyTimeCnt);
@@ -67,7 +67,7 @@ HRESULT IfaceCalling CConstant_Basal_LGS_Insulin_Rate_Model::Get_Continuous_Leve
 		if (mIG->Get_Continuous_Levels(nullptr, htimes.data(), sensor_readings.data(), historyTimeCnt, scgms::apxNo_Derivation) == S_OK) {		
 
 	        for (size_t p = 0; p < historyTimeCnt; p++) {
-                if (!std::isnan(sensor_readings[p]) && sensor_readings[p] < parameters.suspend_threshold) {
+                if (!std::isnan(sensor_readings[p]) && (sensor_readings[p] < parameters.suspend_threshold)) {
                     below = true;
                     break;
                 }
