@@ -144,8 +144,8 @@ namespace betapid_insulin_regulation {
 	const scgms::NModel_Parameter_Value param_types[param_count] = { scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble };
 
-	const wchar_t *param_names[param_count] = { dsKp, dsKi, dsKd, dsISF, dsCSR, dsBIN };
-	const wchar_t *param_columns[param_count] = { rsKp, rsKi, rsKd, rsISF, rsCSR, rsBIN };
+	const wchar_t *param_names[param_count] = { dsKp, dsKi, dsKd, dsISF, dsCSR, dsBasal_Insulin_Rate };
+	const wchar_t *param_columns[param_count] = { rsKp, rsKi, rsKd, rsISF, rsCSR, rsBasal_Insulin_Rate };
 
 	const double lower_bound[param_count] = { -10.0, -10.0, -10.0, 0, 0, 0 };
 	const double upper_bound[param_count] = { 10.0, 10.0, 10.0, 2.0, 2.0, 2.0 };
@@ -184,8 +184,8 @@ namespace betapid3_insulin_regulation {
 	const scgms::NModel_Parameter_Value param_types[param_count] = { scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble };
 
-	const wchar_t *param_names[param_count] = { dsParam_K, dsKi, dsKd, dsKiDecay, dsBIN };
-	const wchar_t *param_columns[param_count] = { rsParam_K, rsKi, rsKd, rsKiDecay, rsBIN };
+	const wchar_t *param_names[param_count] = { dsParam_K, dsKi, dsKd, dsKiDecay, dsBasal_Insulin_Rate };
+	const wchar_t *param_columns[param_count] = { rsParam_K, rsKi, rsKd, rsKiDecay, rsBasal_Insulin_Rate };
 
 	const double lower_bound[param_count] = { -10.0, -10.0, -10.0, 0, 0 };
 	const double upper_bound[param_count] = { 10.0, 10.0, 10.0, 1.0, 2.0 };
@@ -219,10 +219,10 @@ namespace betapid3_insulin_regulation {
 namespace lgs_basal_insulin {
 	const GUID id = { 0x9740d031, 0x8b14, 0x4c76, { 0xb2, 0x16, 0x29, 0x51, 0xf8, 0xd5, 0x51, 0x6e } };	// {9740D031-8B14-4C76-B216-2951F8D5516E}
 
-	const scgms::NModel_Parameter_Value param_types[param_count] = { scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble };
+	const scgms::NModel_Parameter_Value param_types[param_count] = { scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime };
 
-	const wchar_t *param_names[param_count] = { dsBIN, dsLGS_Lower_Threshold, dsLGS_Suspend_Duration };
-	const wchar_t *param_columns[param_count] = { rsBIN, rsLGS_Lower_Threshold, rsLGS_Suspend_Duration };
+	const wchar_t *param_names[param_count] = { dsBasal_Insulin_Rate, dsSuspend_Threshold, dsLGS_Suspend_Duration };
+	const wchar_t *param_columns[param_count] = { rsBasal_Insulin_Rate, rsSuspend_Threshold, rsLGS_Suspend_Duration };
 
 	const size_t signal_count = 1;
 

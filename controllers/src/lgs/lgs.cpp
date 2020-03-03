@@ -62,20 +62,20 @@ HRESULT IfaceCalling CConstant_Basal_LGS_Insulin_Rate_Model::Get_Continuous_Leve
 		for (size_t p = 0; p < historyTimeCnt; p++)
 			htimes[historyTimeCnt - p - 1] = times[i] - static_cast<double>(p)*historyTimeStep;
 
+        bool below = false;
 		std::vector<double> sensor_readings(historyTimeCnt);
-		if (mIG->Get_Continuous_Levels(nullptr, htimes.data(), sensor_readings.data(), historyTimeCnt, scgms::apxNo_Derivation) != S_OK) {
-			std::fill(sensor_readings.begin(), sensor_readings.end(), std::numeric_limits<double>::quiet_NaN());
-		}
+		if (mIG->Get_Continuous_Levels(nullptr, htimes.data(), sensor_readings.data(), historyTimeCnt, scgms::apxNo_Derivation) == S_OK) {		
 
-		bool below = false;
-		for (size_t p = 0; p < historyTimeCnt; p++)
-		{
-			if (!std::isnan(sensor_readings[p]) && sensor_readings[p] < parameters.lower_threshold)
-				below = true;
-		}
+	        for (size_t p = 0; p < historyTimeCnt; p++) {
+                if (!std::isnan(sensor_readings[p]) && sensor_readings[p] < parameters.suspend_threshold) {
+                    below = true;
+                    break;
+                }
+	        }
+        }
 
 		// suspend infusion when CGM readings are below set lower threshold
-		levels[i] = below ? 0.0 : parameters.bin;
+		levels[i] = below ? 0.0 : parameters.basal_insulin_rate;
 	}
 
 	return S_OK;

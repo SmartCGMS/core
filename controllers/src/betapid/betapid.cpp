@@ -124,7 +124,7 @@ HRESULT CBetaPID_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Paramet
 		const double future_etf = (future_bg / targetBG);
 
 		// multiply by ISF to obtain insulin amount needed to lower BG by certain amount; add basal insulin need to counteract to basal metabolism
-		levels[i] = -parameters.isf * (parameters.kp * future_etf * et + parameters.ki * future_etf * eintegral + parameters.kd * etf * ederivative) + parameters.bin;
+		levels[i] = -parameters.isf * (parameters.kp * future_etf * et + parameters.ki * future_etf * eintegral + parameters.kd * etf * ederivative) + parameters.basal_insulin_rate;
 
 		// as much as the regulator would want to, the dosage still needs to be non-negative (positive values would mean the BG is/would be too low)
 		if (levels[i] < 0.0)
@@ -247,7 +247,7 @@ HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 		const double future_etf = future_bg / targetBG;
 
 		// multiply by ISF to obtain insulin amount needed to lower BG by certain amount; add basal insulin need to counteract to basal metabolism
-		levels[i] = -isf * (parameters.kp * future_etf * et + parameters.ki * future_etf * eintegral + parameters.kd * etf * ederivative) + parameters.bin;
+		levels[i] = -isf * (parameters.kp * future_etf * et + parameters.ki * future_etf * eintegral + parameters.kd * etf * ederivative) + parameters.basal_insulin_rate;
 
 		// as much as the regulator would want to, the dosage still needs to be non-negative (positive values would mean the BG is/would be too low)
 		if (levels[i] < 0.0)
@@ -409,7 +409,7 @@ HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 		//	- the integral of error prevents wind-up by employing exponential decay and fixed integral history
 		//	- the whole equation is multiplied by ISF to obtain proper response - we "convert" b(t) difference to insulin dosage, which is generally done by insulin sensitivity factor
 
-		levels[i] = -isf * parameters.k * (future_etf * (et + parameters.ki * eintegral) + parameters.kd * etf * ederivative) + parameters.bin;
+		levels[i] = -isf * parameters.k * (future_etf * (et + parameters.ki * eintegral) + parameters.kd * etf * ederivative) + parameters.basal_insulin_rate;
 
 		// as much as the regulator would want to, the dosage still needs to be non-negative (positive values would mean the BG is/would be too low)
 		if (levels[i] < 0.0)

@@ -82,7 +82,7 @@ namespace betapid_insulin_regulation {
 	struct TParameters {
 		union {
 			struct {
-				double kp, ki, kd, isf, csr, bin;
+				double kp, ki, kd, isf, csr, basal_insulin_rate;
 			};
 			double vector[param_count];
 		};
@@ -99,7 +99,7 @@ namespace betapid3_insulin_regulation
 	struct TParameters {
 		union {
 			struct {
-				double k, ki, kd, kidecay, bin;
+				double k, ki, kd, kidecay, basal_insulin_rate;
 			};
 			double vector[param_count];
 		};
@@ -119,8 +119,8 @@ namespace lgs_basal_insulin
 	struct TParameters {
 		union {
 			struct {
-				double bin;
-				double lower_threshold;
+				double basal_insulin_rate;
+				double suspend_threshold;
 				double suspend_duration;
 			};
 			double vector[param_count];

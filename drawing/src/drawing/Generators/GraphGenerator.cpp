@@ -298,8 +298,10 @@ void CGraph_Generator::Write_Normalized_Lines(ValueVector istVector, ValueVector
 		for (size_t i = 0; i < mInputData["carbs"].values.size(); i++)
 		{
 			Value& val = mInputData["carbs"].values[i];
-			mSvg.Set_Stroke(3, "green", "green");
-			mSvg.Point(Normalize_Time_X(val.date), Normalize_Y(1) - val.value / 20.0, (int)(val.value / 10.0));
+			mSvg.Set_Stroke(3, "green", "none");
+			//mSvg.Point(Normalize_Time_X(val.date), Normalize_Y(1) - val.value / 20.0, (int)(val.value / 10.0));
+			//mSvg.Point(Normalize_Time_X(val.date), (int)(Normalize_Y(val.value / 10.0)), (int)(val.value / 10.0));
+			mSvg.Point(Normalize_Time_X(val.date), Normalize_Y(val.value/10), (int)(val.value/5.0));
 		}
 	}
 
@@ -339,13 +341,14 @@ void CGraph_Generator::Write_Description()
 
         std::stringstream str;
         str << tr("concentration");
-        str << (mMmolFlag ? " [mmol/l] " : " [mg/dl] ");
+        str << (mMmolFlag ? " [mmol/L] " : " [mg/dL] ");
+		str << ", Insulin[U], Insulin Rate[U/Hr], Carbohydrates[0.1*g] ";
         mSvg.Draw_Text_Transform(0, maxY / 2, str.str(), rotate.str(), "black", 14);
         mSvg.Set_Stroke(2, "black", "none");
         mSvg.Line(startX, Normalize_Y(mMaxValueY), startX, Normalize_Y(0));
 
         // x-axis
-        mSvg.Draw_Text(sizeX / 2, Normalize_Y(0) + 50, tr("time") + "[DD.MM.RRRR HH:mm]", "middle", "black", 14);
+        mSvg.Draw_Text(sizeX / 2, Normalize_Y(0) + 50, tr("time") /*+ "[DD.MM.RRRR HH:mm]"*/, "middle", "black", 14);
         mSvg.Line(startX, Normalize_Y(0), maxX, Normalize_Y(0));
 
         // horizontal line - step by 2

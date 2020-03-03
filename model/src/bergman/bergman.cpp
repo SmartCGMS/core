@@ -222,7 +222,7 @@ void CBergman_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 	for (auto& reqBolus : mRequested_Boluses)
 	{
 		if (reqBolus.requested) {
-			Emit_Signal_Level(scgms::signal_Delivered_Insulin_Bolus, mRequested_Basal.time, mRequested_Basal.amount);
+			Emit_Signal_Level(scgms::signal_Delivered_Insulin_Bolus, reqBolus.time, reqBolus.amount);
 		}
 	}
 	mRequested_Boluses.clear();
@@ -307,7 +307,7 @@ HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 				constexpr double MinsEating = 10.0;
 
 				mMeal_Ext.Add_Uptake(event.device_time(), MinsEating * scgms::One_Minute, (1.0 / MinsEating) * 1000.0 * event.level());
-				res = S_OK;
+				// res = S_OK; - do not unless we have another signal called consumed CHO
 			}
 		}
 	}
