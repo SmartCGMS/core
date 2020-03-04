@@ -409,9 +409,10 @@ void CNetwork_Discrete_Model::Send_Requested_Data()
 
 	std::vector<scgms::TNet_Data_Item> items;
 
-	for (auto mitr : mRequested_Signals)
+	for (auto& mitr : mRequested_Signals)
 	{
-		items.push_back({ mitr.second.signalId, mitr.second.lastTime, mitr.second.lastValue });
+		if ((mitr.second.flags & scgms::Netmodel_Signal_Flag_Send_Only_Fresh_Value) == 0 || mitr.second.hasNewValue)
+			items.push_back({ mitr.second.signalId, mitr.second.lastTime, mitr.second.lastValue });
 		mitr.second.hasNewValue = false;
 	}
 
@@ -527,6 +528,9 @@ HRESULT IfaceCalling CNetwork_Discrete_Model::Step(const double time_advance_del
 	// communicate with external model for the whole requested period, so we may step the external model mutliple times during one Step method call
 	while (mCur_Ext_Time < nextFutureTime && !mPending_Shut_Down)
 	{
+		if (mSync_Source == scgms::NNet_Sync_Source::SMARTCGMS)
+			Send_Requested_Data();
+
 		while (mPending_External_Data.empty() && mRunning)
 			mExt_Model_Cv.wait(lck);
 
@@ -539,7 +543,7 @@ HRESULT IfaceCalling CNetwork_Discrete_Model::Step(const double time_advance_del
 		// do not wait for buffered signals; this is here due to debugging reasons
 		mPending_Signal_Count = mBuffered_Signal_Count;
 
-		for (size_t i = 0; i < mPending_External_Data.size() && !mPending_Shut_Down; i++)
+		for (size_t i = 0; i < mPending_External_Data.size() && !mPending_Shut_Down && mRunning; i++)
 			Emit_Signal_Level(mPending_External_Data[i].signal_id, mPending_External_Data[i].device_time, mPending_External_Data[i].level);
 
 		mPending_External_Data.clear();
@@ -548,7 +552,8 @@ HRESULT IfaceCalling CNetwork_Discrete_Model::Step(const double time_advance_del
 		lck.lock();
 
 		// Send is synchronous, so by the time the loop is finished, all signals should be available
-		Send_Requested_Data();
+		if (mSync_Source == scgms::NNet_Sync_Source::EXTERNAL)
+			Send_Requested_Data();
 	}
 
 	mCur_Time = nextFutureTime;

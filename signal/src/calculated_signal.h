@@ -68,6 +68,7 @@ protected:
 	double mMetric_Threshold = 0.0;
 	bool mUse_Measured_Levels = false;
 	int64_t mLevels_Required = 0;
+	double mTriggered_Solver_Time = 0;
 protected:
 	bool mSolver_Enabled = false;
 	bool mSolving_Scheduled = false;

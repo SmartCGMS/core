@@ -202,7 +202,10 @@ HRESULT CCalculate_Filter::Do_Execute(scgms::UDevice_Event event)  {
 			break;
 
 		case scgms::NDevice_Event_Code::Time_Segment_Stop:
-			if (mSolver_Enabled && mSolve_On_Time_Segment_End) Run_Solver(event.segment_id());
+			if (mSolver_Enabled && mSolve_On_Time_Segment_End) {
+				mTriggered_Solver_Time = event.device_time();
+				Run_Solver(event.segment_id());
+			}
 				//in this particular case, we do not preserve the original order of events
 				//to emit the paramters before the time segment actually ends
 			break;
@@ -213,6 +216,7 @@ HRESULT CCalculate_Filter::Do_Execute(scgms::UDevice_Event event)  {
 					const auto segment_id = event.segment_id();
 					result = Send(event);
 					event_already_sent = result == S_OK;	//preserve the original order of the events
+					mTriggered_Solver_Time = event.device_time();
 					Run_Solver(segment_id);
 				}
 			}
@@ -242,7 +246,10 @@ void CCalculate_Filter::Add_Level(const uint64_t segment_id, const GUID &signal_
 	const auto &segment = Get_Segment(segment_id);
 	if (segment) {
 		if (segment->Update_Level(signal_id, level, time_stamp)) {
-			if (mSolving_Scheduled) Run_Solver(segment_id);
+			if (mSolving_Scheduled) {
+				mTriggered_Solver_Time = time_stamp;
+				Run_Solver(segment_id);
+			}
 			segment->Emit_Levels_At_Pending_Times();
 		}
 	}
@@ -407,7 +414,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 				Add_Parameters_Hint(solved_parameters);
 
 				scgms::UDevice_Event solved_evt{ scgms::NDevice_Event_Code::Parameters };
-				solved_evt.device_time() = Unix_Time_To_Rat_Time(time(nullptr));
+				solved_evt.device_time() = mTriggered_Solver_Time;
 				solved_evt.device_id() = calculate::Calculate_Filter_GUID;
 				solved_evt.signal_id() = mCalculated_Signal_Id;
 				solved_evt.segment_id() = segment_id;

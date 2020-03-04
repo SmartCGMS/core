@@ -117,6 +117,13 @@ namespace dmms_model {
 		calculated_signal_ids,
 		reference_signal_ids,
 	};
+
+	const std::wstring blood_str_desc = std::wstring{ L"DMMS discrete model" } +L" - " + dsBlood;
+	const scgms::TSignal_Descriptor blood_desc{ signal_DMMS_BG, blood_str_desc.c_str(), L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFFFF0000, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const std::wstring ig_str_desc = std::wstring{ L"DMMS discrete model" } +L" - " + dsInterstitial;
+	const scgms::TSignal_Descriptor ig_desc{ signal_DMMS_IG, ig_str_desc.c_str(), L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const std::wstring delivered_insulin_str_desc = std::wstring{ L"DMMS discrete model" } +L" - delivered insulin";
+	const scgms::TSignal_Descriptor delivered_insulin_desc{ signal_DMMS_Delivered_Insulin_Basal, delivered_insulin_str_desc.c_str(), L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 }
 #endif
 
@@ -157,15 +164,19 @@ const std::array<scgms::TModel_Descriptor, ExternalModelCount> model_description
 	network_model::desc,
 } };
 
+#ifndef NO_BUILD_DMMS
+const std::array<scgms::TSignal_Descriptor, 3> signals_descriptors = { { dmms_model::blood_desc, dmms_model::ig_desc, dmms_model::delivered_insulin_desc } };
+#endif
 
-HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
+
+extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
 	*begin = const_cast<scgms::TModel_Descriptor*>(model_descriptions.data());
 	*end = *begin + model_descriptions.size();
 	return S_OK;
 }
 
 
-HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
+extern "C" HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
 #ifndef NO_BUILD_DMMS
 	if (*model_id == dmms_model::proc_model_id) return Manufacture_Object<CDMMS_Proc_Discrete_Model>(model, parameters, output);
 	if (*model_id == dmms_model::lib_model_id) return Manufacture_Object<CDMMS_Lib_Discrete_Model>(model, parameters, output);
@@ -173,4 +184,14 @@ HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IMode
 	if (*model_id == network_model::desc.id) return Manufacture_Object<CNetwork_Discrete_Model>(model, parameters, output);
 
 	return E_NOTIMPL;
+}
+
+extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor **begin, scgms::TSignal_Descriptor **end) {
+#ifndef NO_BUILD_DMMS
+	*begin = const_cast<scgms::TSignal_Descriptor*>(signals_descriptors.data());
+	*end = *begin + signals_descriptors.size();
+	return S_OK;
+#else
+	return S_FALSE;
+#endif
 }

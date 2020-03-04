@@ -77,7 +77,7 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 		if (step_the_model) {
 			if (!std::isnan(mLast_Device_Time)) {
 				dynamic_stepping = event.device_time() - mLast_Device_Time;
-				
+
 				if (dynamic_stepping <= 0.0)
 					step_the_model = false;
 			} else {
@@ -120,14 +120,19 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 
 		bool shutdown = (event.event_code() == scgms::NDevice_Event_Code::Shut_Down);
 
-		scgms::IDevice_Event *raw_event = event.get();
-		event.release();
-		rc = mModel->Execute(raw_event);
+		if (mModel) {
 
-		if (shutdown) {
-			Stop_Generator(false);
-			mModel.reset();
+			scgms::IDevice_Event *raw_event = event.get();
+			event.release();
+			rc = mModel->Execute(raw_event);
+
+			if (shutdown) {
+				Stop_Generator(false);
+				mModel.reset();
+			}
 		}
+		else
+			rc = ENODEV;
 	}
 
 	return rc;
