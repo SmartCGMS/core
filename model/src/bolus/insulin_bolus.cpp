@@ -39,41 +39,43 @@
 #include "insulin_bolus.h"
 #include "../../../../common/rtl/SolverLib.h"
 
-CDiscrete_Insulin_Bolus_Calculator::CDiscrete_Insulin_Bolus_Calculator(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output) : 
-       CBase_Filter(output), mParameters(scgms::Convert_Parameters<insulin_bolus::TParameters>(parameters, insulin_bolus::default_parameters)) {
-
+CDiscrete_Insulin_Bolus_Calculator::CDiscrete_Insulin_Bolus_Calculator(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output)
+	: CBase_Filter(output), mParameters(scgms::Convert_Parameters<insulin_bolus::TParameters>(parameters, insulin_bolus::default_parameters)) {
+	//
 }
 
-
 HRESULT CDiscrete_Insulin_Bolus_Calculator::Do_Execute(scgms::UDevice_Event event) {
-    if (event.event_code() == scgms::NDevice_Event_Code::Level) {
-        if (event.signal_id() == scgms::signal_Carb_Intake) {
-            const double bolus_level = event.level() * mParameters.csr; //compute while we still own the event
-            HRESULT rc = Send(event);
-            if (SUCCEEDED(rc)) {
-                scgms::UDevice_Event bolus{ scgms::NDevice_Event_Code::Level };
-                bolus.level() = bolus_level;
-                bolus.signal_id() = scgms::signal_Requested_Insulin_Bolus;
-                rc = Send(bolus);
-            }
+	if (event.event_code() == scgms::NDevice_Event_Code::Level) {
+		if (event.signal_id() == scgms::signal_Carb_Intake) {
+			const double bolus_level = event.level() * mParameters.csr; //compute while we still own the event
+			const double bolus_time = event.device_time();
+			const uint64_t bolus_segment = event.segment_id();
+			HRESULT rc = Send(event);
+			if (SUCCEEDED(rc)) {
+				scgms::UDevice_Event bolus{ scgms::NDevice_Event_Code::Level };
+				bolus.level() = bolus_level;
+				bolus.device_time() = bolus_time;
+				bolus.segment_id() = bolus_segment;
+				bolus.signal_id() = scgms::signal_Requested_Insulin_Bolus;
+				rc = Send(bolus);
+			}
 
-            return rc;
-        }
-    }
+			return rc;
+		}
+	}
 
-    return Send(event);
+	return Send(event);
 }
 
 HRESULT CDiscrete_Insulin_Bolus_Calculator::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
-    // configured in the constructor
-    return E_NOTIMPL;
+	// configured in the constructor
+	return S_OK;
 }
-
 
 HRESULT IfaceCalling CDiscrete_Insulin_Bolus_Calculator::Initialize(const double current_time, const uint64_t segment_id) {
     return S_OK;    //time and segment independet for now
 }
 
 HRESULT IfaceCalling CDiscrete_Insulin_Bolus_Calculator::Step(const double time_advance_delta) {
-    return S_OK;    //time independet for now
+	return S_OK;    //time independet for now
 }

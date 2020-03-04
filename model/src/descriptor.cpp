@@ -390,7 +390,7 @@ namespace insulin_bolus {
 
 	const scgms::TModel_Descriptor desc = {
 		model_id,
-		scgms::NModel_Flags::Signal_Model,
+		scgms::NModel_Flags::Discrete_Model,
 		dsBolus_Calculator,
 		rsBolus_Calculator,
 		param_count,
