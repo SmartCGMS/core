@@ -102,7 +102,19 @@ HRESULT CDrawing_Filter::Do_Execute(scgms::UDevice_Event event) {
 	// incoming level or calibration - store to appropriate vector
 	if (event.event_code() == scgms::NDevice_Event_Code::Level )
 	{
-		mInputData[event.signal_id()][event.segment_id()].push_back(Value(event.level(), Rat_Time_To_Unix_Time(event.device_time()), event.segment_id()));
+		//mInputData[event.signal_id()][event.segment_id()].push_back(Value(event.level(), Rat_Time_To_Unix_Time(event.device_time()), event.segment_id()));
+		auto &data = mInputData[event.signal_id()][event.segment_id()];
+		double insert_time = event.device_time();
+		if (!data.empty()) {			
+			const auto last_time = data[data.size() - 1].date;
+			if (last_time != Rat_Time_To_Unix_Time(insert_time))				
+				data.push_back(Value(event.level(), Rat_Time_To_Unix_Time(insert_time), event.segment_id()));
+			else
+				data[data.size()-1] = Value(event.level(), Rat_Time_To_Unix_Time(insert_time), event.segment_id());
+		} else
+			data.push_back(Value(event.level(), Rat_Time_To_Unix_Time(insert_time), event.segment_id()));
+		
+			 
 	}
 	// incoming new parameters
 	else if (event.event_code() == scgms::NDevice_Event_Code::Parameters)
