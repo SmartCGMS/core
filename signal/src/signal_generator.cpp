@@ -78,7 +78,7 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 			if (!std::isnan(mLast_Device_Time)) {
 				dynamic_stepping = event.device_time() - mLast_Device_Time;
 				
-				if (dynamic_stepping == 0.0)
+				if (dynamic_stepping <= 0.0)
 					step_the_model = false;
 			} else {
 																	//cannot advance the model because this is the very first event, thus we do not have the delta
