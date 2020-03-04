@@ -107,10 +107,12 @@ HRESULT CDrawing_Filter::Do_Execute(scgms::UDevice_Event event) {
 		double insert_time = event.device_time();
 		if (!data.empty()) {			
 			const auto last_time = data[data.size() - 1].date;
-			if (last_time != Rat_Time_To_Unix_Time(insert_time))				
+			if (last_time != Rat_Time_To_Unix_Time(insert_time))
 				data.push_back(Value(event.level(), Rat_Time_To_Unix_Time(insert_time), event.segment_id()));
-			else
-				data[data.size()-1] = Value(event.level(), Rat_Time_To_Unix_Time(insert_time), event.segment_id());
+			else {
+				auto sig_id = event.signal_id();
+				data[data.size() - 1].Set_Value(event.level());
+			}
 		} else
 			data.push_back(Value(event.level(), Rat_Time_To_Unix_Time(insert_time), event.segment_id()));
 		
