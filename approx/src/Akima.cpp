@@ -75,7 +75,7 @@ bool CAkima::Update() {
 	Compute_Coefficients();
 	
 
-	return TRUE;
+	return true;
 }
 
 void CAkima::Compute_Coefficients() {
