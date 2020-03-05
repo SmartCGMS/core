@@ -461,7 +461,7 @@ protected:
 
 		const auto bounds_range = mUpper_Bound - mLower_Bound;
 
-		while ((progress.current_progress++ < mSetup.max_generations) && (progress.cancelled == 0)) {
+		while ((progress.current_progress++ < mSetup.max_generations) && (progress.cancelled == FALSE)) {
 
 			//update the progress
 			auto global_best = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
@@ -653,7 +653,7 @@ public:
 		TUsed_Solution best_solution = Evolve_Population(progress);
 		double best_fitness = mSetup.objective(mSetup.data, best_solution.data());
 
-		while ((progress.current_progress < mSetup.max_generations) && (progress.cancelled == 0)) {
+		while ((progress.current_progress < mSetup.max_generations) && (progress.cancelled == FALSE)) {
 
 			const TUsed_Solution unit_offset = Solution_To_Unit_Offset(best_solution);
 			const TAligned_Solution_Vector<TUsed_Solution> solutions = Generate_Spheric_Population(unit_offset);

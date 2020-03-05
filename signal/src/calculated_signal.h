@@ -84,6 +84,7 @@ protected:
 	solver::TSolver_Progress mSolver_Progress = solver::Null_Solver_Progress;
 	scgms::TSolver_Status mSolver_Status = scgms::TSolver_Status::Disabled;
 protected:
+	const bool mAllow_Update = true;			//should make it configurable once needed
 	std::map<int64_t, std::unique_ptr<CTime_Segment>> mSegments;
 	std::vector<scgms::SModel_Parameter_Vector> mParameter_Hints;
 	std::unique_ptr<CTime_Segment>& Get_Segment(const uint64_t segment_id);

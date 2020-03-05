@@ -44,7 +44,7 @@ public:
 	virtual HRESULT IfaceCalling Get_Config_Name(wchar_t **config_name) override final;
 
 	//read-write
-	virtual HRESULT IfaceCalling Get_WChar_Container(refcnt::wstr_container** wstr, bool read_interpreted) override final;
+	virtual HRESULT IfaceCalling Get_WChar_Container(refcnt::wstr_container** wstr, BOOL read_interpreted) override final;
 	virtual HRESULT IfaceCalling Set_WChar_Container(refcnt::wstr_container *wstr) override final;
 
 	virtual HRESULT IfaceCalling Get_Time_Segment_Id_Container(scgms::time_segment_id_container **ids) override final;
@@ -56,8 +56,8 @@ public:
 	virtual HRESULT IfaceCalling Get_Int64(int64_t *value) override final;
 	virtual HRESULT IfaceCalling Set_Int64(const int64_t value) override final;
 
-	virtual HRESULT IfaceCalling Get_Bool(uint8_t *boolean) override final;
-	virtual HRESULT IfaceCalling Set_Bool(const uint8_t boolean) override final;
+	virtual HRESULT IfaceCalling Get_Bool(BOOL *boolean) override final;
+	virtual HRESULT IfaceCalling Set_Bool(const BOOL boolean) override final;
 
 	virtual HRESULT IfaceCalling Get_GUID(GUID *id) override final;
 	virtual HRESULT IfaceCalling Set_GUID(const GUID *id) override final;

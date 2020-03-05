@@ -97,7 +97,7 @@ HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Bounds(scgms::TBounds* const
 	return S_OK;
 }
 
-HRESULT IfaceCalling CMeasured_Signal::Add_Levels(const double *times, const double *levels, const size_t count) {
+HRESULT IfaceCalling CMeasured_Signal::Add_Levels(const double *times, const double *levels, const size_t count, BOOL allow_update) {
 	// copy given values to internal vectors
 	// but with time, take care about duplicities
 	double last_time = mTimes.empty() ? std::numeric_limits<double>::quiet_NaN() : mTimes[mTimes.size()-1];

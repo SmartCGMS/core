@@ -58,7 +58,7 @@ class CMeasured_Signal : public virtual scgms::ISignal, public virtual refcnt::C
 
 		virtual HRESULT IfaceCalling Get_Discrete_Levels(double* const times, double* const levels, const size_t count, size_t *filled) const override;
 		virtual HRESULT IfaceCalling Get_Discrete_Bounds(scgms::TBounds* const time_bounds, scgms::TBounds* const level_bounds, size_t *level_count) const override;
-		virtual HRESULT IfaceCalling Add_Levels(const double *times, const double *levels, const size_t count) override;
+		virtual HRESULT IfaceCalling Add_Levels(const double *times, const double *levels, const size_t count, BOOL allow_update) override;
 
 		virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params, const double* times, double* const levels, const size_t count, const size_t derivation_order) const override;
 		virtual HRESULT IfaceCalling Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const override;

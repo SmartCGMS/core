@@ -61,7 +61,7 @@ HRESULT Solve_Pathfinder_Spiral(solver::TSolver_Setup& setup, solver::TSolver_Pr
 	TSolver solver{ spiral_setup };
 	TUsed_Solution result = solver.Solve(progress);
 	std::copy(result.data(), result.data() + result.cols(), setup.solution);
-	return progress.cancelled == 0 ? S_OK : E_ABORT;
+	return progress.cancelled == FALSE ? S_OK : E_ABORT;
 }
 
 template <typename TSolver, typename TUsed_Solution>
@@ -69,7 +69,7 @@ HRESULT Solve_By_Class(solver::TSolver_Setup &setup, solver::TSolver_Progress &p
 	TSolver solver{ setup };
 	TUsed_Solution result = solver.Solve(progress);
 	std::copy(result.data(), result.data() + result.cols(), setup.solution);
-	return progress.cancelled == 0 ? S_OK : E_ABORT;
+	return progress.cancelled == FALSE ? S_OK : E_ABORT;
 }
 
 template <typename TSolver, typename TUsed_Solution>
@@ -110,7 +110,7 @@ HRESULT Eval_Pathfinder_Angle(solver::TSolver_Setup &setup, solver::TSolver_Prog
 	
 
 	std::copy(best_solution.data(), best_solution.data() + best_solution.cols(), setup.solution);
-	return progress.cancelled == 0 ? S_OK : E_ABORT;
+	return progress.cancelled == FALSE ? S_OK : E_ABORT;
 }
 
 

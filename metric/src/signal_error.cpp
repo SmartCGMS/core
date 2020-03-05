@@ -88,7 +88,7 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 			}
 		}
 
-		if (signal->Add_Levels(&raw_event->device_time, &raw_event->level, 1) == S_OK) {
+		if (signal->Add_Levels(&raw_event->device_time, &raw_event->level, 1, TRUE) == S_OK) {
 			mNew_Data_Available = true;
 		}
 	};
@@ -267,10 +267,10 @@ double CSignal_Error::Calculate_Metric(const uint64_t segment_id) {
 	return result;
 }
 
-HRESULT IfaceCalling CSignal_Error::Promise_Metric(const uint64_t segment_id, double* const metric_value, bool defer_to_dtor) {
+HRESULT IfaceCalling CSignal_Error::Promise_Metric(const uint64_t segment_id, double* const metric_value, BOOL defer_to_dtor) {
 	std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
 
-	if (!defer_to_dtor) {		
+	if (defer_to_dtor == FALSE) {
 		*metric_value = Calculate_Metric(segment_id);
 		return std::isnan(*metric_value) ? S_FALSE : S_OK;
 	}

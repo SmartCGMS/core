@@ -279,7 +279,7 @@ protected:
 		size_t improvement_count = 1;	//solve as long as we do at least one improvement
 		while ((improvement_count > 0) &&
 			(progress.current_progress++ < mSetup.max_generations) &&
-			(progress.cancelled == 0)) {
+			(progress.cancelled == FALSE)) {
 
 			improvement_count = 0; //counter provides more info than just a flag for the same costs
 

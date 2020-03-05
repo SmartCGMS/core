@@ -81,7 +81,7 @@ double NLOpt_Top_Solution_Objective_Function(const std::vector<double> &x, std::
 
 	if (nlopt_tx::print_statistics)	nlopt_tx::eval_counter++;
 
-	if (data.progress.cancelled) data.options.set_force_stop(true);
+	if (data.progress.cancelled == TRUE) data.options.set_force_stop(true);
 
 	return fitness;
 }

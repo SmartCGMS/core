@@ -287,7 +287,7 @@ public:
 		std::uniform_int_distribution<size_t> mUniform_Distribution_Solution{ 0, solution_size - 1 };	//this distribution must be local as solution can be dynamic
 		std::uniform_int_distribution<size_t> mUniform_Distribution_Population{ 0, mPopulation.size() - 1 };
 
-		while ((progress.current_progress++ < mSetup.max_generations) && (progress.cancelled == 0)) {
+		while ((progress.current_progress++ < mSetup.max_generations) && (progress.cancelled == FALSE)) {
 			//1. determine the best p-count parameters, without actually re-ordering the population
 			//we want to avoid of getting all params close together and likely loosing the population diversity
 			std::partial_sort(mPopulation_Best.begin(), mPopulation_Best.begin() + mPBest_Count, mPopulation_Best.end(),

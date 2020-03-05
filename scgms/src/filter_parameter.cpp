@@ -18,8 +18,8 @@ HRESULT IfaceCalling CFilter_Parameter::Get_Config_Name(wchar_t **config_name) {
 }
 
 
-HRESULT IfaceCalling CFilter_Parameter::Get_WChar_Container(refcnt::wstr_container **wstr, bool read_interpreted) {
-	if (read_interpreted && !mSystem_Variable_Name.empty()) {
+HRESULT IfaceCalling CFilter_Parameter::Get_WChar_Container(refcnt::wstr_container **wstr, BOOL read_interpreted) {
+	if ((read_interpreted == TRUE) && !mSystem_Variable_Name.empty()) {
 		const char* sys = std::getenv(mSystem_Variable_Name.c_str());
 		std::wstring value = sys ? Widen_Char(sys) : L"";
 		*wstr = refcnt::WString_To_WChar_Container(value.c_str());
@@ -70,13 +70,13 @@ HRESULT IfaceCalling CFilter_Parameter::Set_Int64(const int64_t value) {
 	return S_OK;
 }
 
-HRESULT IfaceCalling CFilter_Parameter::Get_Bool(uint8_t *boolean) {
-	*boolean = mData.boolean ? static_cast<uint8_t>(-1) : 0;
+HRESULT IfaceCalling CFilter_Parameter::Get_Bool(BOOL *boolean) {
+	*boolean = mData.boolean ? TRUE : FALSE;
 	return S_OK;
 }
 
-HRESULT IfaceCalling CFilter_Parameter::Set_Bool(const uint8_t boolean) {
-	mData.boolean = boolean != 0;
+HRESULT IfaceCalling CFilter_Parameter::Set_Bool(const BOOL boolean) {
+	mData.boolean = boolean != FALSE;
 	return S_OK;
 }
 

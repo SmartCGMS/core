@@ -241,7 +241,7 @@ void CCalculate_Filter::Add_Level(const uint64_t segment_id, const GUID &signal_
 
 	const auto &segment = Get_Segment(segment_id);
 	if (segment) {
-		if (segment->Add_Level(signal_id, level, time_stamp)) {
+		if (segment->Add_Level(signal_id, level, time_stamp, mAllow_Update)) {
 			if (mSolving_Scheduled) Run_Solver(segment_id);
 			segment->Emit_Levels_At_Pending_Times();
 		}

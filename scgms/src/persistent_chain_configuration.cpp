@@ -343,10 +343,10 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 
 				case scgms::NParameter_Type::ptBool:
 				{
-					uint8_t val;
+					BOOL val;
 					rc = parameter->Get_Bool(&val);
 					if (rc != S_OK) return rc;
-					ini.SetBoolValue(id_str.c_str(), config_name, val != 0);
+					ini.SetBoolValue(id_str.c_str(), config_name, val != FALSE);
 				}
 				break;
 
