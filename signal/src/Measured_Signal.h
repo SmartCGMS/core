@@ -46,9 +46,9 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CMeasured_Signal : public virtual scgms::ISignal, public virtual refcnt::CReferenced
-{
+class CMeasured_Signal : public virtual scgms::ISignal, public virtual refcnt::CReferenced {
 protected:
+	size_t mLast_Update_Index = 0;
     std::vector<double> mTimes;
     std::vector<double> mLevels;
 

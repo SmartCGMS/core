@@ -227,25 +227,38 @@ HRESULT IfaceCalling CMeasured_Signal::Update_Levels(const double *times, const 
 	for (size_t i = 0; i < count; i++) {
 		//check whether the times[i] is already present and we will updated it
 
-		const auto last = mTimes.begin() + times_original_size;			//need to reevaluate as the insertion might change memory addresses
-		auto first = std::lower_bound(mTimes.begin(), last, times[i]);
-		if (!(first == last) && !(times[i] < *first)) {
+		//need to reevaluate every time for i as the insertion might change memory addresses
+		//Let us use mLast_Update_Index to perform adaptive interval division,
+		//as we assume that updates would occur for a certain recent period only.
+		//Hence, there is no need to search all the times.
+		decltype(mTimes)::iterator search_begin, search_end;
+		if (times[i] < mTimes[mLast_Update_Index]) {
+			search_begin = mTimes.begin();
+			search_end = mTimes.begin() + mLast_Update_Index;
+		} else {
+			search_begin = mTimes.begin() + mLast_Update_Index;
+			search_end = mTimes.begin() + times_original_size;
+		}
+
+		//TODO: what if there is a duplicity in the times field?
+		 
+		auto first = std::lower_bound(search_begin, search_end, times[i]);
+		if (!(first == search_end) && !(times[i] < *first)) {
 
 			//we have found the time, we just update the value
 			const size_t levels_index = std::distance(mTimes.begin(), first);
 			mLevels[levels_index] = levels[i];
+			mLast_Update_Index = levels_index;
 		} else {
 			//the value is not there, we have to append now
 			if (times[i] > last_time) {
 				//we can append the level without the need to resort the levels
-				mTimes.push_back(times[i]);
-				mLevels.push_back(levels[i]);
 				last_time = times[i];		//updat the correct last time
 			} else {
-				need_to_sort = true;	//we insert between past values => need to sort 
-				mTimes.push_back(times[i]);
-				mLevels.push_back(levels[i]);
+				need_to_sort = true;	//we insert between past values => need to sort 				
 			}					
+			mTimes.push_back(times[i]);
+			mLevels.push_back(levels[i]);
 		}
 	}
 
