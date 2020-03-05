@@ -44,6 +44,8 @@
 #include "../../../common/rtl/DeviceLib.h"
 
 
+#include <mutex>
+
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
@@ -56,6 +58,7 @@ class CLine_Approximator : public scgms::IApproximator, public virtual refcnt::C
 
 		std::vector<double> mInputTimes, mInputLevels, mSlopes;
 
+        std::mutex mUpdate_Guard;
 		bool Update();
 
 	public:

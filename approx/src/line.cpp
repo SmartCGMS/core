@@ -49,6 +49,8 @@ CLine_Approximator::CLine_Approximator(scgms::WSignal signal, scgms::IApprox_Par
 }
 
 bool CLine_Approximator::Update() {
+	std::lock_guard<std::mutex> local_guard{ mUpdate_Guard };
+
 	size_t update_count;
 	if (mSignal.Get_Discrete_Bounds(nullptr, nullptr, &update_count) != S_OK)
 		return false;

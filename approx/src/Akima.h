@@ -43,6 +43,7 @@
 #include "../../../common/rtl/referencedImpl.h"
 #include "../../../common/rtl/DeviceLib.h"
 
+#include <mutex>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
@@ -52,6 +53,8 @@ protected:
 	scgms::WSignal mSignal;
 	const size_t MINIMUM_NUMBER_POINTS = 5;
 	std::vector<double> mInputTimes, mInputLevels, mCoefficients;
+
+    std::mutex mUpdate_Guard;
 	bool Update();
 protected:
 	/**

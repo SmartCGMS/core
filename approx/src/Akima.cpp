@@ -51,6 +51,8 @@ CAkima::CAkima(scgms::WSignal signal, scgms::IApprox_Parameters_Vector* configur
 
 
 bool CAkima::Update() {
+	std::lock_guard<std::mutex> local_guard{ mUpdate_Guard };
+
 	size_t update_count;
 	if (mSignal.Get_Discrete_Bounds(nullptr, nullptr, &update_count) != S_OK)
 		return false;

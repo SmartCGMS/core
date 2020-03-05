@@ -276,6 +276,11 @@ HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 		{
 			if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate)
 			{
+				if (event.device_time() < mState.lastTime)
+					return E_ILLEGAL_STATE_CHANGE;	//got no time-machine to deliver insulin in the past
+													//although we could allow this by setting it (if no newer basal is requested),
+													//it would defeat the purpose of any verification
+
 				mBasal_Ext.Add_Uptake(event.device_time(), std::numeric_limits<double>::max(), 1000.0 * (event.level() / 60.0));
 				if (!mRequested_Basal.requested || event.device_time() > mRequested_Basal.time) {
 					mRequested_Basal.amount = event.level();
@@ -287,6 +292,9 @@ HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 			}
 			else if (event.signal_id() == scgms::signal_Requested_Insulin_Bolus)
 			{
+				if (event.device_time() < mState.lastTime) 
+					return E_ILLEGAL_STATE_CHANGE;	//got no time-machine to deliver insulin in the past
+
 				// we assume that bolus is spread to 5-minute rate
 				constexpr double MinsBolusing = 5.0;
 
@@ -302,6 +310,8 @@ HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 			}
 			else if ((event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue))
 			{
+				//TODO: got no time-machine to consume meal in the past, but still can account for the present part of it
+
 				// we assume 10-minute eating period
 				// TODO: this should be a parameter of CHO intake
 				constexpr double MinsEating = 10.0;

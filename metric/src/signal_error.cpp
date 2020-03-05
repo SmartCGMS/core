@@ -88,7 +88,7 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 			}
 		}
 
-		if (signal->Add_Levels(&raw_event->device_time, &raw_event->level, 1, TRUE) == S_OK) {
+		if (signal->Update_Levels(&raw_event->device_time, &raw_event->level, 1) == S_OK) {
 			mNew_Data_Available = true;
 		}
 	};

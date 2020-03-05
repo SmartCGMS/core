@@ -69,7 +69,7 @@ public:
 
 	virtual HRESULT IfaceCalling Get_Signal(const GUID *signal_id, scgms::ISignal **signal) override;
 
-	bool Add_Level(const GUID &signal_id, const double level, const double time_stamp, bool allow_update);
+	bool Update_Level(const GUID &signal_id, const double level, const double time_stamp);
 	bool Set_Parameters(scgms::SModel_Parameter_Vector parameters);
 	scgms::SModel_Parameter_Vector Get_Parameters();
 	bool Calculate(const std::vector<double> &times, std::vector<double> &levels);		//calculates using the working parameters

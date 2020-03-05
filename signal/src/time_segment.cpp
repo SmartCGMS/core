@@ -87,10 +87,10 @@ HRESULT IfaceCalling CTime_Segment::Get_Signal(const GUID *signal_id, scgms::ISi
 		return E_FAIL;
 }
 
-bool CTime_Segment::Add_Level(const GUID &signal_id, const double level, const double time_stamp, bool allow_update) {
+bool CTime_Segment::Update_Level(const GUID &signal_id, const double level, const double time_stamp) {
 	auto signal = Get_Signal_Internal(signal_id);
 	if (signal) {
-		if (signal->Add_Levels(&time_stamp, &level, 1, allow_update ? TRUE : FALSE) == S_OK) {
+		if (signal->Update_Levels(&time_stamp, &level, 1) == S_OK) {
 
 			auto insert_the_time = [this](const double time_to_insert) {
 				if (mEmitted_Times.find(time_to_insert) == mEmitted_Times.end())
