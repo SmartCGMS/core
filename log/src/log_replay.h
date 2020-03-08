@@ -55,6 +55,11 @@
   */
 class CLog_Replay_Filter : public virtual scgms::CBase_Filter {
 protected:
+	static const size_t idxLog_Entry_Time = 0;
+	static const size_t idxLog_Entry_Counter = 1;
+	static const size_t idxLog_Entry_Line = 2;
+	using TLog_Entry = std::tuple<double, size_t, std::wstring>;
+protected:
 	//std::wifstream mLog;
 	bool mEmit_Shutdown = false;
     bool mInterpret_Filename_As_Segment_Id = false;

@@ -57,6 +57,7 @@
 #include <algorithm> 
 #include <cctype>
 #include <cmath>
+#include <tuple>
 
 CLog_Replay_Filter::CLog_Replay_Filter(scgms::IFilter* output) : CBase_Filter(output) {
 	//
@@ -122,11 +123,10 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 	auto emit_parsing_exception_w = [this, &log_filename, line_counter](const std::wstring &what) {	
 
 		std::wstring msg{ dsUnexpected_Error_While_Parsing };
-		msg += log_filename.wstring();
-		if (line_counter != std::numeric_limits<decltype(line_counter)>::max()) {
-			msg.append(dsLine_No);
-			msg.append(std::to_wstring(line_counter));
-		}
+		msg += log_filename.wstring();		
+		msg.append(dsLine_No);
+		msg.append(std::to_wstring(line_counter));
+		
 		Emit_Info(scgms::NDevice_Event_Code::Error, msg);
 		if (!what.empty()) Emit_Info(scgms::NDevice_Event_Code::Error, what);
 	};
@@ -135,7 +135,7 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 		emit_parsing_exception_w(Widen_Char(what));
 	};
 
-	std::vector<std::pair<double, std::wstring>> log_lines;	//first, we fetch the lines, and then we parse them
+	std::vector<TLog_Entry> log_lines;	//first, we fetch the lines, and then we parse them
 				//we do so, to ensure that all the events are time sorted and and events't logical clock are monotonically increasing
 
 	// read all lines from log file
@@ -164,7 +164,7 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 			// skip; signal name
 			specificval = cut_column();
 
-			log_lines.push_back(std::make_pair(device_time, line));
+			log_lines.push_back(TLog_Entry{ device_time, line_counter, line });
 		}
 		catch (const std::exception & ex) {				
 			emit_parsing_exception(ex.what());
@@ -180,13 +180,21 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 
 	//As we have read the times and end of lines, no event has been created yet => no event logical clock advanced by us
 	//=> by creating the events inside the following for, log-events and by-them-triggered events will have monotonically increasing logical clocks.
-	std::sort(log_lines.begin(), log_lines.end(), [](const auto& a, const auto& b) {return a.first < b.first; });
+	std::sort(log_lines.begin(), log_lines.end(), [](const TLog_Entry& a, const TLog_Entry& b) {
+		if (std::get<idxLog_Entry_Time>(a) != std::get<idxLog_Entry_Time>(b))
+			return std::get<idxLog_Entry_Time>(a) < std::get<idxLog_Entry_Time>(b);
 
-	line_counter = std::numeric_limits<decltype(line_counter)>::max();	//once sorted, the line numbers won't have a valid meaning
+			//if there were multiple events emitted with the same device time,
+			//let us emit them in their order in the log file
+		else  return std::get<idxLog_Entry_Counter>(a) < std::get<idxLog_Entry_Counter>(b);
+	});
+	
 	for (size_t i = 0; i < log_lines.size(); i++) {
 		try {
-			const double device_time = log_lines[i].first;
-			line = std::move(log_lines[i].second);
+			line_counter = std::get<idxLog_Entry_Counter>(log_lines[i]);	//for the error reporting
+
+			const double device_time = std::get<idxLog_Entry_Time>(log_lines[i]);
+			line = std::move(std::get<idxLog_Entry_Line>(log_lines[i]));
 
 			// specific column (titled "info", but contains parameters or level)
 			const auto info_str = cut_column();
