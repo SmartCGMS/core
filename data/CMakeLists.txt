@@ -15,7 +15,7 @@ ENDIF()
 CONFIGURE_COMMON(${PROJ})
 
 
-FILE(GLOB SRC_FILES "src/*.cpp" "src/*.c" "src/*.h" "src/third party/*.h" "src/third party/*.cpp" "src/third party/*.c" "src/fileloader/*.cpp" "src/fileloader/*.h" "src/fileloader/*.c")
+FILE(GLOB SRC_FILES "src/*.cpp" "src/*.c" "src/*.h" "src/third party/*.h" "src/third party/*.cpp" "src/third party/*.c" "src/fileloader/*.cpp" "src/fileloader/*.h" "src/fileloader/*.c" "misc/formats/*.c")
 IF(WIN32)
 	FILE(GLOB SRC_WIN_FILES "src/win/*.cpp" "src/win/*.h" "src/win/*.def")
 	SET(SRC_FILES "${SRC_FILES};${SRC_WIN_FILES}")
