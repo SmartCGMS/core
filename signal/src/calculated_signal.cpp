@@ -44,6 +44,7 @@
 #include "../../../common/rtl/rattime.h"
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/utils/math_utils.h"
+#include "../../../common/utils/string_utils.h"
 
 #include <iostream>
 #include <cmath>
@@ -105,7 +106,7 @@ HRESULT IfaceCalling CCalculate_Filter::Do_Configure(scgms::SFilter_Configuratio
 			default_parameters.assign(desc.default_values, desc.default_values + desc.number_of_parameters);
 			upper_bound.assign(desc.upper_bound, desc.upper_bound + desc.number_of_parameters);
 		}
-		
+
 		mLower_Bound = refcnt::Create_Container_shared<double, scgms::SModel_Parameter_Vector>(lower_bound.data(), lower_bound.data() + lower_bound.size());
 		mDefault_Parameters = refcnt::Create_Container_shared<double, scgms::SModel_Parameter_Vector>(default_parameters.data(), default_parameters.data() + default_parameters.size());
 		mUpper_Bound = refcnt::Create_Container_shared<double, scgms::SModel_Parameter_Vector>(upper_bound.data(), upper_bound.data() + upper_bound.size());
@@ -117,6 +118,11 @@ HRESULT IfaceCalling CCalculate_Filter::Do_Configure(scgms::SFilter_Configuratio
 				break;
 			}
 		}
+	} else {
+		std::wstring str = dsCannot_Get_Model_Descriptor_By_Signal_Id;
+		str += GUID_To_WString(mCalculated_Signal_Id);
+		error_description.push(str);
+		return E_ACCESSDENIED;
 	}
 	
 	mMetric_Id = configuration.Read_GUID(rsSelected_Metric);
