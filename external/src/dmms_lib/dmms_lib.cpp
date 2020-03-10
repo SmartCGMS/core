@@ -124,9 +124,9 @@ HRESULT CDMMS_Lib_Discrete_Model::Do_Configure(scgms::SFilter_Configuration conf
 	if (!parser.Is_Valid())
 		return false;
 
-	mDMMS_Scenario_File = path_to_absolute(parser.Get_Parameter(L"manifest.dmms:scenariofile", L"dmms.xml"));
-	mDMMS_Out_File = path_to_absolute(parser.Get_Parameter(L"manifest.dmms:logfile", L"dmms_out.txt"));
-	mDMMS_Results_Dir = path_to_absolute(parser.Get_Parameter(L"manifest.dmms:resultdir", L"dmms_results"));
+	mDMMS_Scenario_File = path_to_absolute(parser.Get_Parameter(L"manifest.dmms:scenario_file", L"dmms_scenario.xml"));
+	mDMMS_Out_File = path_to_absolute(parser.Get_Parameter(L"manifest.dmms:log_file", L"dmms_out.txt"));
+	mDMMS_Results_Dir = path_to_absolute(parser.Get_Parameter(L"manifest.dmms:result_dir", L"dmms_results"));
 
 	if (!mDmmsLib || !mDmmsLib->Is_Loaded())
 	{
