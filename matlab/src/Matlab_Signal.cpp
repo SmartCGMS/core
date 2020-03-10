@@ -54,7 +54,7 @@ HRESULT IfaceCalling CMatlab_Signal::Get_Discrete_Bounds(scgms::TBounds *time_bo
 	return E_NOTIMPL;
 }
 
-HRESULT IfaceCalling CMatlab_Signal::Add_Levels(const double *times, const double *levels, const size_t count) {
+HRESULT IfaceCalling CMatlab_Signal::Update_Levels(const double *times, const double *levels, const size_t count) {
 	return E_NOTIMPL;
 }
 
