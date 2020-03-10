@@ -297,7 +297,8 @@ HRESULT CNetwork_Discrete_Model::Connect(const std::wstring& addr, uint16_t port
 			socket_cleanup();
 			return E_FAIL;
 		}
-
+		
+		
 		result = connect(mSlot().skt, reinterpret_cast<sockaddr*>(&conaddr), sizeof(conaddr));
 		if (result < 0)
 		{
@@ -347,6 +348,10 @@ HRESULT CNetwork_Discrete_Model::Connect(const std::wstring& addr, uint16_t port
 
 	mSession.Set_Needs_Reinit();
 	Set_Socket_Blocking_State(mSlot().skt, true);
+
+	int param = 1;
+	setsockopt(mSlot().skt, IPPROTO_TCP, TCP_NODELAY, (char *)&param, sizeof(int));
+
 
 	return S_OK;
 }
