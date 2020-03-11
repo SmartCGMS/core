@@ -61,38 +61,38 @@ protected:
 
 	std::mutex mSeries_Gaurd;
 
-    struct TSegment_Signals {
-        scgms::SSignal reference_signal{ scgms::STime_Segment{}, scgms::signal_BG };
-        scgms::SSignal error_signal{ scgms::STime_Segment{}, scgms::signal_BG };
-        bool last_value_emitted = false;        //fixing for logs, which do not contain proper segment start stop marks
-    };
-    std::map<uint64_t, TSegment_Signals> mSignal_Series;
+	struct TSegment_Signals {
+		scgms::SSignal reference_signal{ scgms::STime_Segment{}, scgms::signal_BG };
+		scgms::SSignal error_signal{ scgms::STime_Segment{}, scgms::signal_BG };
+		bool last_value_emitted = false;        //fixing for logs, which do not contain proper segment start stop marks
+	};
+	std::map<uint64_t, TSegment_Signals> mSignal_Series;
 
 	scgms::SMetric mMetric;
 
 	double *mPromised_Metric = nullptr;
-    uint64_t mPromised_Segment_id = scgms::All_Segments_Id;
-	std::atomic<bool> mNew_Data_Available{false};	
+	uint64_t mPromised_Segment_id = scgms::All_Segments_Id;
+	std::atomic<ULONG> mNew_Data_Logical_Clock{0};
 
 
-    bool mEmit_Metric_As_Signal = false;
-    bool mEmit_Last_Value_Only = false;
-    double mLast_Emmitted_Time = std::numeric_limits<double>::quiet_NaN();
+	bool mEmit_Metric_As_Signal = false;
+	bool mEmit_Last_Value_Only = false;
+	double mLast_Emmitted_Time = std::numeric_limits<double>::quiet_NaN();
 
-    void Emit_Metric_Signal(const uint64_t segment_id, const double device_time);
+	void Emit_Metric_Signal(const uint64_t segment_id, const double device_time);
 
 	bool Prepare_Levels(const uint64_t segment_id, std::vector<double> &times, std::vector<double> &reference, std::vector<double> &error);
 	double Calculate_Metric(const uint64_t segment_id);	//returns metric or NaN if could not calculate
-protected:			
+protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 public:
-    CSignal_Error(scgms::IFilter *output);
+	CSignal_Error(scgms::IFilter *output);
 	virtual ~CSignal_Error();
 
 	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
+	virtual HRESULT IfaceCalling Logical_Clock(ULONG *clock) override final;
 	virtual HRESULT IfaceCalling Promise_Metric(const uint64_t segment_id, double* const metric_value, BOOL defer_to_dtor) override final;
-	virtual HRESULT IfaceCalling Peek_New_Data_Available() override final;
 	virtual HRESULT IfaceCalling Calculate_Signal_Error(const uint64_t segment_id, scgms::TSignal_Stats *absolute_error, scgms::TSignal_Stats *relative_error) override final;
 	virtual HRESULT IfaceCalling Get_Description(wchar_t** const desc) override final;
 };

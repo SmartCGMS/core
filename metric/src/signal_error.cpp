@@ -89,7 +89,7 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 		}
 
 		if (signal->Update_Levels(&raw_event->device_time, &raw_event->level, 1) == S_OK) {
-			mNew_Data_Available = true;
+			mNew_Data_Logical_Clock++;
 		}
 	};
 
@@ -127,7 +127,7 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 			{
 				std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
 				mSignal_Series.clear();
-				mNew_Data_Available = true;
+				mNew_Data_Logical_Clock++;
 				break;
 			}
 
@@ -281,8 +281,13 @@ HRESULT IfaceCalling CSignal_Error::Promise_Metric(const uint64_t segment_id, do
 	}
 }
 
-HRESULT IfaceCalling CSignal_Error::Peek_New_Data_Available() {
-	return mNew_Data_Available.exchange(false) ? S_OK : S_FALSE;
+HRESULT IfaceCalling CSignal_Error::Logical_Clock(ULONG *clock) {
+	if (!clock) return E_INVALIDARG;
+
+	const ULONG old_clock = *clock;
+	*clock = mNew_Data_Logical_Clock;
+
+	return old_clock < *clock ? S_OK : S_FALSE;
 }
 
 HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(const uint64_t segment_id, scgms::TSignal_Stats *absolute_error, scgms::TSignal_Stats *relative_error) {
