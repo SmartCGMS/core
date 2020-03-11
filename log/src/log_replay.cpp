@@ -109,10 +109,10 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 	auto cut_column = [&line]() -> std::wstring {
 		std::wstring retstr{ L"" };
 		
-		auto pos = line.find(rsLog_CSV_Separator);
+		auto pos = line.find(L';');
 		if (pos != std::string::npos) {
 			retstr = line.substr(0, pos);
-			line.erase(0, pos + wcslen(rsLog_CSV_Separator));
+			line.erase(0, pos + 1/*len of ';'*/);
 		}
 		else retstr = line;
 		
