@@ -150,4 +150,13 @@ namespace ode
 		// although it is unlikely, one may want to use Dormand-Prince method without error estimation and step adjustment
 		DEFINE_ODE_SOLVER_NONADAPTIVE(CSolver_Non_Adaptive);
 	}
+
+	// different ODE solvers we might want to use; we prefer Dormand-Prince parametrization with binary subdivision adaptive step strategy (best balance of speed and precision)
+	//using default_solver = euler::CSolver ODE_Solver;
+	//using default_solver = heun::CSolver ODE_Solver;
+	//using default_solver = kutta::CSolver ODE_Solver;
+	//using default_solver = rule38::CSolver ODE_Solver;
+	//using default_solver = dormandprince::CSolver_Non_Adaptive ODE_Solver;
+	using default_solver = dormandprince::CSolver<CRunge_Kuttta_Adaptive_Strategy_Binary_Subdivision<4>>;
+	//using default_solver = dormandprince::CSolver<CRunge_Kuttta_Adaptive_Strategy_Optimal_Estimation<4>> ODE_Solver{ ODE_epsilon0 };
 }
