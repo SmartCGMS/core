@@ -73,6 +73,10 @@ HRESULT IfaceCalling CFilter_Executor::QueryInterface(const GUID*  riid, void **
 	return mFilter ? mFilter->QueryInterface(riid, ppvObj) : E_FAIL;
 }
 
+CTerminal_Filter::CTerminal_Filter(scgms::IFilter *custom_output) : mCustom_Output(custom_output) {
+
+}
+
 void CTerminal_Filter::Wait_For_Shutdown() {	
 	std::unique_lock<std::mutex> guard{ mShutdown_Guard };
 	mShutdown_Condition.wait(guard, [this]() {return mShutdown_Received; });
@@ -99,13 +103,16 @@ HRESULT IfaceCalling CTerminal_Filter::Execute(scgms::IDevice_Event *event) {
 		mShutdown_Condition.notify_all();
 	}
 		
-	event->Release(); 
+	if (mCustom_Output) //if there's anybody interested in consuming the event
+		return mCustom_Output->Execute(event);	
+
+	event->Release();	//instead of us releasing it
 	
 	return S_OK; 
 };
 
 
-CCopying_Terminal_Filter::CCopying_Terminal_Filter(std::vector<scgms::IDevice_Event*> &events) : mEvents(events) {
+CCopying_Terminal_Filter::CCopying_Terminal_Filter(std::vector<scgms::IDevice_Event*> &events) : mEvents(events), CTerminal_Filter(nullptr){
 
 }
 

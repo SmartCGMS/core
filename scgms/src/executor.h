@@ -70,7 +70,9 @@ protected:
 	std::mutex mShutdown_Guard;
 	std::condition_variable mShutdown_Condition;
 	bool mShutdown_Received = false;
+	scgms::IFilter *mCustom_Output = nullptr;
 public:
+	CTerminal_Filter(scgms::IFilter *custom_output);
 	virtual ~CTerminal_Filter() = default;
 
 	void Wait_For_Shutdown();	//blocking wait, until it receives the shutdown event

@@ -118,7 +118,7 @@ protected:
 	size_t Find_Minimal_Receiver_Index_End() {
 		size_t minimal_index_end = 0;
 		bool found = false;
-		CTerminal_Filter terminal;
+		CTerminal_Filter terminal{ nullptr };
 
 		mConfiguration.for_each([&terminal, &found, &minimal_index_end](scgms::SFilter_Configuration_Link link) {
 			if (found) return;
@@ -380,7 +380,7 @@ public:
 		
 		//run the configuration
 		std::recursive_mutex communication_guard;
-		CTerminal_Filter terminal_filter;
+		CTerminal_Filter terminal_filter{ nullptr };
 		{			
 			CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely 
 																		//call its dtor to get the future error properly		
