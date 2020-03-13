@@ -56,7 +56,7 @@ HRESULT CFilter_Configuration_Executor::Build_Filter_Chain(scgms::IFilter_Chain_
 
 
 CFilter_Configuration_Executor::~CFilter_Configuration_Executor() {
-	Terminate();
+	Terminate(FALSE);
 }
 
 HRESULT IfaceCalling CFilter_Configuration_Executor::Execute(scgms::IDevice_Event *event) {	
@@ -64,14 +64,11 @@ HRESULT IfaceCalling CFilter_Configuration_Executor::Execute(scgms::IDevice_Even
 	return mComposite_Filter.Execute(event);    //also frees the event	
 }
 
-HRESULT IfaceCalling CFilter_Configuration_Executor::Wait_For_Shutdown_and_Terminate() {
+HRESULT IfaceCalling CFilter_Configuration_Executor::Terminate(const BOOL wait_for_shutdown) {
 	if (mComposite_Filter.Empty()) return S_FALSE;
-	mTerminal_Filter.Wait_For_Shutdown();
-	mComposite_Filter.Clear();
-	return S_OK;		
-}
-
-HRESULT IfaceCalling CFilter_Configuration_Executor::Terminate() {	
+	if (wait_for_shutdown == TRUE) 
+		mTerminal_Filter.Wait_For_Shutdown();
+	
 	return mComposite_Filter.Clear();
 }
 

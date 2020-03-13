@@ -21,3 +21,7 @@ EXPORTS
 	create_filter_configuration_link
 	create_discrete_model
 	optimize_parameters
+	Execute_SCGMS_Configuration
+	Inject_SCGMS_Event
+	Shutdown_SCGMS
+

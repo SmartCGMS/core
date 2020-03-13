@@ -61,9 +61,8 @@ public:
 
 	HRESULT Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, refcnt::Swstr_list& error_description);
 
-	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
-	virtual HRESULT IfaceCalling Wait_For_Shutdown_and_Terminate() override final;
-	virtual HRESULT IfaceCalling Terminate() override final;
+	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;	
+	virtual HRESULT IfaceCalling Terminate(const BOOL wait_for_shutdown) override final;
 };
 
 #pragma warning( pop )

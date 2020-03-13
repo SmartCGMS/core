@@ -40,6 +40,8 @@
 
 #include "..\..\..\common\iface\SimpleIface.h"
 
-extern "C" scgms_execution_t SimpleCalling Execute_SCGMS_Configuration(wchar_t *config, TSCGMS_Execution_Callback *callback);
+extern "C" scgms_execution_t SimpleCalling Execute_SCGMS_Configuration(const char *config, TSCGMS_Execution_Callback callback);
 
-extern "C" int SimpleCalling Inject_SCGMS_Event(const scgms_execution_t execution, const TSCGMS_Event_Data *event);
+extern "C" BOOL SimpleCalling Inject_SCGMS_Event(const scgms_execution_t execution, const TSCGMS_Event_Data *event);
+
+extern "C" void SimpleCalling Shutdown_SCGMS(const scgms_execution_t execution, BOOL wait_for_shutdown);
