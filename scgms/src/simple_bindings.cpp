@@ -96,10 +96,10 @@ public:
 		memset(&simple_event, 0, sizeof(simple_event));
 		std::wstring info_str;
 
-		if (event->Raw(&raw_event)) {
+		if (event->Raw(&raw_event) == S_OK) {
 			simple_event.event_code = static_cast<decltype(simple_event.event_code)>(raw_event->event_code);
-			simple_event.device_id = &raw_event->device_id;
-			simple_event.signal_id = &raw_event->signal_id;
+			simple_event.device_id = raw_event->device_id;
+			simple_event.signal_id = raw_event->signal_id;
 			
 			simple_event.device_time = raw_event->device_time;
 			simple_event.logical_time = raw_event->logical_time;
@@ -160,7 +160,9 @@ scgms_execution_t SimpleCalling Execute_SCGMS_Configuration(const char *config, 
 		if (!result->Execute_Configuration(config))
 			result.reset();
 	
-	return result.get();
+	CSimple_SCGMS_Execution* raw_result = result.get();
+	result.release();
+	return raw_result;
 }
 
 BOOL SimpleCalling Inject_SCGMS_Event(const scgms_execution_t execution, const TSCGMS_Event_Data *simple_event) {
@@ -169,8 +171,8 @@ BOOL SimpleCalling Inject_SCGMS_Event(const scgms_execution_t execution, const T
 		return FALSE;
 
 	scgms::UDevice_Event event_to_send{ static_cast<scgms::NDevice_Event_Code>(simple_event->event_code) };
-	event_to_send.device_id() = *(simple_event->device_id);
-	event_to_send.signal_id() = *(simple_event->signal_id);
+	event_to_send.device_id() = simple_event->device_id;
+	event_to_send.signal_id() = simple_event->signal_id;
 
 	event_to_send.device_time() = simple_event->device_time;
 	event_to_send.segment_id() = simple_event->segment_id;
