@@ -382,7 +382,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 
 		std::string content;
 		ini.Save(content);
-		std::ofstream config_file(Narrow_WString(mFile_Path));
+		std::ofstream config_file(Narrow_WString(mFile_Path), std::ofstream::binary);
 		if (config_file.is_open()) {
 			config_file << content;
 			config_file.close();
