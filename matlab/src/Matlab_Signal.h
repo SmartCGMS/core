@@ -70,7 +70,7 @@ class CMatlab_Signal : public virtual scgms::ISignal, public virtual refcnt::CRe
 
 		virtual HRESULT IfaceCalling Get_Discrete_Levels(double* const times, double* const levels, const size_t count, size_t *filled) const override;
 		virtual HRESULT IfaceCalling Get_Discrete_Bounds(scgms::TBounds *time_bounds, scgms::TBounds *level_bounds, size_t *level_count) const override;
-		virtual HRESULT IfaceCalling Add_Levels(const double *times, const double *levels, const size_t count) override;
+		virtual HRESULT IfaceCalling Update_Levels(const double *times, const double *levels, const size_t count) override;
 
 		// these methods are valid for calculated signal
 

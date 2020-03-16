@@ -207,6 +207,107 @@ namespace bergman_model {
 	}} };
 }
 
+namespace uva_padova_model {
+	
+	constexpr GUID model_id = { 0xb387a874, 0x8d1e, 0x460b, { 0xa5, 0xec, 0xba, 0x36, 0xab, 0x75, 0x16, 0xde } };						// {B387A874-8D1E-460B-A5EC-BA36AB7516DE}
+
+	constexpr GUID signal_UVa_Padova_IG = { 0x55b07d3d, 0xd99, 0x47d0, { 0x8a, 0x3b, 0x3e, 0x54, 0x3c, 0x25, 0xe5, 0xb1 } };			// {55B07D3D-0D99-47D0-8A3B-3E543C25E5B1}
+	constexpr GUID signal_UVa_Padova_BG = { 0x1eee155a, 0x9150, 0x4958, { 0x8a, 0xfd, 0x31, 0x61, 0xb7, 0x3c, 0xf9, 0xfc } };			// {1EEE155A-9150-4958-8AFD-3161B73CF9FC}
+
+	constexpr size_t model_param_count = 61;
+
+	struct TParameters {
+		union {
+			struct {
+				double Qsto1_0, Qsto2_0, Qgut_0, Gp_0, Gt_0, Ip_0, X_0, I_0, XL_0, Il_0, Isc1_0, Isc2_0, Gs_0;
+				double BW, Gb, Ib;
+				double kabs, kmax, kmin;
+				double b, d;
+				double Vg, Vi, Vmx, Km0;
+				double k2, k1, p2u, m1, m2, m4, m30, ki, kp2, kp3;
+				double f, ke1, ke2, Fsnc, Vm0, kd, ksc, ka1, ka2, u2ss, kp1;
+
+				double kh1, kh2, kh3, SRHb;
+				double n, rho, sigma1, sigma2, delta, xi, kH, Hb;
+				double XH_0;
+				double Hsc1b, Hsc2b;
+			};
+			double vector[model_param_count];
+		};
+	};
+
+	constexpr uva_padova_model::TParameters lower_bounds = {{
+		//  Qsto1_0, Qsto2_0, Qgut_0, Gp_0, Gt_0, Ip_0, X_0, I_0, XL_0, Il_0, Isc1_0, Isc2_0, Gs_0
+		    0,       0,       0,      20,   20,   0,    0,   0,   0,    0,    0,      0,      20,
+		//  BW,   Gb,   Ib
+		    10.0, 30.0, 10.2,
+		//  kabs, kmax, kmin
+		    0.0,  1.0,  0.0,
+		//  b,   d
+		    0.2, 0.05,
+		//  Vg,  Vi,    Vmx,   Km0
+		    0.4, 0.005, 0.005, 100.0,
+		//  k2,   k1,    p2u,   m1,   m2,   m4,    m30,  ki,     kp2,    kp3,
+		    0.01, 0.005, 0.001, 0.01, 0.05, 0.001, 0.05, 0.0001, 0.0001, 0.002,
+		//  f,    ke1,     ke2, Fsnc, Vm0, kd,    ksc,   ka1,    ka2,    u2ss, kp1
+		    0.05, 0.00001, 20,  0.1,  0.2, 0.002, 0.008, 0.0001, 0.0005, 0.05, 1.0,
+		//  kh1,  kh2,  kh3,  SRHb
+		    0.01, 0.01, 0.01, 1.0,
+		//  n, rho, sigma1, sigma2, delta, xi, kH, Hb
+		    0, 0,   0,      0,      0,     0,  0,  0,
+		//  XH_0, Hsc1b, Hsc2b
+		    0,    1.0,   1.0
+
+	}};
+	constexpr uva_padova_model::TParameters default_parameters = {{ {
+		//  Qsto1_0, Qsto2_0, Qgut_0, Gp_0,       Gt_0,          Ip_0,      X_0, I_0,    XL_0,   Il_0,          Isc1_0,        Isc2_0,        Gs_0
+		    0,       0,       0,      265.370112, 162.457097269, 5.5043265, 0,   100.25, 100.25, 3.20762505142, 72.4341762342, 141.153779328, 265.370112,
+		//  BW,     Gb,     Ib
+		    102.32, 138.56, 100.25,
+		//  kabs,    kmax,     kmin
+		    0.08906, 0.046122, 0.0037927,
+		//  b,       d
+		    0.70391, 0.21057,
+		//  Vg,     Vi,       Vmx,      Km0
+		    1.9152, 0.054906, 0.031319, 253.52,
+		//  k2,       k1,       p2u,      m1,      m2,             m4,             m30,     ki,        kp2,     kp3,
+		    0.087114, 0.058138, 0.027802, 0.15446, 0.225027424083, 0.090010969633, 0.23169, 0.0046374, 0.00469, 0.01208,
+		//  f,   ke1,    ke2, Fsnc, Vm0,          kd,     ksc,    ka1,    ka2,    u2ss,         kp1
+		    0.9, 0.0005, 339, 1,    3.2667306607, 0.0152, 0.0766, 0.0019, 0.0078, 1.2386244136, 4.73140582528,
+		//  kh1,  kh2,  kh3,  SRHb
+		    0.05, 0.05, 0.05, 10.0,
+
+		// not identified, guessed:
+
+		//  n,    rho,  sigma1, sigma2, delta, xi,   kH,   Hb
+		    0.95, 0.12, 0.4,    0.3,    0.08,  0.02, 0.05, 30.0,
+		//  XH_0, Hsc1b, Hsc2b
+		    0,    15.0,  15.0
+	}} };
+	constexpr uva_padova_model::TParameters upper_bounds = {{ {
+		//  Qsto1_0, Qsto2_0, Qgut_0, Gp_0, Gt_0, Ip_0, X_0, I_0, XL_0, Il_0, Isc1_0, Isc2_0, Gs_0
+		    500,     500,     500,    500,  500,  50,   300, 200, 300,  200,  500,    500,    500,
+		//  BW,  Gb,  Ib
+		    250, 300, 200,
+		//  kabs, kmax, kmin
+		    0.8,  1.0,  0.5,
+		//  b,   d
+		    2.0, 2.0,
+		//  Vg,   Vi,  Vmx, Km0
+		    10.0, 2.0, 0.5, 500,
+		//  k2,  k1,  p2u, m1,  m2,  m4,  m30, ki,   kp2,  kp3,
+		    0.6, 0.2, 0.2, 0.9, 1.0, 1.0, 1.0, 0.05, 0.02, 0.5,
+		//  f,   ke1,  ke2,  Fsnc, Vm0, kd,  ksc, ka1,  ka2, u2ss, kp1
+		    3.0, 0.01, 1000, 5,    20,  0.8, 0.9, 0.05, 0.1, 10,   20,
+		//  kh1, kh2, kh3, SRHb
+		    1.0, 1.0, 1.0, 100.0,
+		//  n, rho, sigma1, sigma2, delta, xi,  kH,  Hb
+		    3, 1.0, 2.0,    2.0,    1.0,   0.8, 1.0, 200,
+		//  XH_0, Hsc1b, Hsc2b
+		    200,  100.0, 100.0
+	}} };
+}
+
 
 namespace ge_model {
 	//grammatical evolution model
