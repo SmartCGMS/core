@@ -8,8 +8,8 @@
  * diabetes@mail.kiv.zcu.cz
  * Medical Informatics, Department of Computer Science and Engineering
  * Faculty of Applied Sciences, University of West Bohemia
- * Univerzitni 8
- * 301 00, Pilsen
+ * Univerzitni 8, 301 00 Pilsen
+ * Czech Republic
  * 
  * 
  * Purpose of this software:
