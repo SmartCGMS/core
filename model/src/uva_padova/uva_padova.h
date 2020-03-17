@@ -73,12 +73,12 @@ struct CUVa_Padova_State
 	double Hsc2;
 };
 
-class CUVa_Padova_Discrete_Model;
+class CUVA_Padova_S2013_Discrete_Model;
 
-namespace uva_padova_model
+namespace uva_padova_S2013
 {
-	using TDiff_Eq_Fnc = double (CUVa_Padova_Discrete_Model::*)(const double, const double) const;
-	using TDiff_Eq = decltype(std::bind<double>(std::declval<TDiff_Eq_Fnc>(), std::declval<CUVa_Padova_Discrete_Model*>(), std::declval<const decltype(std::placeholders::_1)&>(), std::declval<const decltype(std::placeholders::_2)&>()));
+	using TDiff_Eq_Fnc = double (CUVA_Padova_S2013_Discrete_Model::*)(const double, const double) const;
+	using TDiff_Eq = decltype(std::bind<double>(std::declval<TDiff_Eq_Fnc>(), std::declval<CUVA_Padova_S2013_Discrete_Model*>(), std::declval<const decltype(std::placeholders::_1)&>(), std::declval<const decltype(std::placeholders::_2)&>()));
 
 	// helper structure for equation binding
 	struct CEquation_Binding
@@ -91,7 +91,8 @@ namespace uva_padova_model
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CUVa_Padova_Discrete_Model : public virtual scgms::CBase_Filter, public virtual scgms::IDiscrete_Model
+//DOI: 10.1177/1932296813514502
+class CUVA_Padova_S2013_Discrete_Model : public virtual scgms::CBase_Filter, public virtual scgms::IDiscrete_Model
 {
 	private:
 		// maximum accepted error estimate for ODE solvers for this model
@@ -99,7 +100,7 @@ class CUVa_Padova_Discrete_Model : public virtual scgms::CBase_Filter, public vi
 		static constexpr size_t ODE_Max_Steps = 100;
 
 	private:
-		uva_padova_model::TParameters mParameters;
+		uva_padova_S2013::TParameters mParameters;
 
 		// meal uptake accumulator
 		Uptake_Accumulator mMeal_Ext;
@@ -110,7 +111,7 @@ class CUVa_Padova_Discrete_Model : public virtual scgms::CBase_Filter, public vi
 		// current state of Bergman model (all quantities)
 		CUVa_Padova_State mState;
 		// bound equations in a single vector - quantity and equation bound together
-		const std::vector<uva_padova_model::CEquation_Binding> mEquation_Binding;
+		const std::vector<uva_padova_S2013::CEquation_Binding> mEquation_Binding;
 
 		struct TRequested_Amount
 		{
@@ -161,8 +162,8 @@ class CUVa_Padova_Discrete_Model : public virtual scgms::CBase_Filter, public vi
 		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 
 	public:
-		CUVa_Padova_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output);
-		virtual ~CUVa_Padova_Discrete_Model() = default;
+		CUVA_Padova_S2013_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output);
+		virtual ~CUVA_Padova_S2013_Discrete_Model() = default;
 
 		// scgms::IDiscrete_Model iface
 		virtual HRESULT IfaceCalling Initialize(const double current_time, const uint64_t segment_id) override final;

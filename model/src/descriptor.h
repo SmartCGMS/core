@@ -207,7 +207,7 @@ namespace bergman_model {
 	}} };
 }
 
-namespace uva_padova_model {
+namespace uva_padova_S2013 {
 	
 	constexpr GUID model_id = { 0xb387a874, 0x8d1e, 0x460b, { 0xa5, 0xec, 0xba, 0x36, 0xab, 0x75, 0x16, 0xde } };						// {B387A874-8D1E-460B-A5EC-BA36AB7516DE}
 
@@ -236,7 +236,7 @@ namespace uva_padova_model {
 		};
 	};
 
-	constexpr uva_padova_model::TParameters lower_bounds = {{
+	constexpr uva_padova_S2013::TParameters lower_bounds = {{
 		//  Qsto1_0, Qsto2_0, Qgut_0, Gp_0, Gt_0, Ip_0, X_0, I_0, XL_0, Il_0, Isc1_0, Isc2_0, Gs_0
 		    0,       0,       0,      20,   20,   0,    0,   0,   0,    0,    0,      0,      20,
 		//  BW,   Gb,   Ib
@@ -259,7 +259,7 @@ namespace uva_padova_model {
 		    0,    1.0,   1.0
 
 	}};
-	constexpr uva_padova_model::TParameters default_parameters = {{ {
+	constexpr uva_padova_S2013::TParameters default_parameters = {{ {
 		//  Qsto1_0, Qsto2_0, Qgut_0, Gp_0,       Gt_0,          Ip_0,      X_0, I_0,    XL_0,   Il_0,          Isc1_0,        Isc2_0,        Gs_0
 		    0,       0,       0,      265.370112, 162.457097269, 5.5043265, 0,   100.25, 100.25, 3.20762505142, 72.4341762342, 141.153779328, 265.370112,
 		//  BW,     Gb,     Ib
@@ -284,7 +284,7 @@ namespace uva_padova_model {
 		//  XH_0, Hsc1b, Hsc2b
 		    0,    15.0,  15.0
 	}} };
-	constexpr uva_padova_model::TParameters upper_bounds = {{ {
+	constexpr uva_padova_S2013::TParameters upper_bounds = {{ {
 		//  Qsto1_0, Qsto2_0, Qgut_0, Gp_0, Gt_0, Ip_0, X_0, I_0, XL_0, Il_0, Isc1_0, Isc2_0, Gs_0
 		    500,     500,     500,    500,  500,  50,   300, 200, 300,  200,  500,    500,    500,
 		//  BW,  Gb,  Ib

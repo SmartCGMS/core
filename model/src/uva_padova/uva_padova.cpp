@@ -58,44 +58,58 @@
  For possible future comparison with SimGlucose, here is the mapping of theirs dependent variable index
  with our dependend variable name:
 
- 0	- Qsto1
- 1	- Qsto2
- 2	- Qgut
- 3	- Gp
- 4	- Gt
- 5	- Ip
- 6	- X
- 7	- I
- 8	- XL
- 9	- Il
- 10	- Isc1
- 11	- Isc2
- 12	- Gs
+	 0	- Qsto1
+	 1	- Qsto2
+	 2	- Qgut
+	 3	- Gp
+	 4	- Gt
+	 5	- Ip
+	 6	- X
+	 7	- I
+	 8	- XL
+	 9	- Il
+	 10	- Isc1
+	 11	- Isc2
+	 12	- Gs
+
+	 Note that SimGlucose does not implement the glucagon subystem. Hence, to obtain SimGlucose behavior
+	 non-mapped coefficents must be set to zero. This degrades SimGlucose quality between S2013 and S2008.
+
+	 S2008 - allows just a single meal only
+	 SimGlucose - S2013 without glucagon subsystem
+	 S2013 - improved S2008, contains glucagon subsytem. Still, can simulate single meal a day. Nevertheless,
+			 there are studies using it for multiple days across across multiple days. Perhaps, no-action 
+			 period between two meals must last long enough to get the system back to a steady state.
+	 T1DMS - Likely S2013 licensed by UVA to TEG
+	 S2017 - allows multiple meals in a single day, despite its use for multiday scenario. Still does not
+			 contain exerise.
+	 DMMS  - T1DMS successor, T1D, T2D, pre-DM, allows exercise and illness, not publicely documented
+
 */
 
-CUVa_Padova_Discrete_Model::CUVa_Padova_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output) :
+CUVA_Padova_S2013_Discrete_Model::CUVA_Padova_S2013_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output) :
 	CBase_Filter(output),
-	mParameters(scgms::Convert_Parameters<uva_padova_model::TParameters>(parameters, uva_padova_model::default_parameters.vector)),
+	mParameters(scgms::Convert_Parameters<uva_padova_S2013::TParameters>(parameters, uva_padova_S2013::default_parameters.vector)),
 	mEquation_Binding{
-		{ mState.Gp,    std::bind<double>(&CUVa_Padova_Discrete_Model::eq_dGp,     this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.Gt,    std::bind<double>(&CUVa_Padova_Discrete_Model::eq_dGt,     this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.Ip,    std::bind<double>(&CUVa_Padova_Discrete_Model::eq_dIp,     this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.Il,    std::bind<double>(&CUVa_Padova_Discrete_Model::eq_dIl,     this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.Qsto1, std::bind<double>(&CUVa_Padova_Discrete_Model::eq_dQsto1,  this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.Qsto2, std::bind<double>(&CUVa_Padova_Discrete_Model::eq_dQsto2,  this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.Qgut,  std::bind<double>(&CUVa_Padova_Discrete_Model::eq_dQgut,   this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.XL,    std::bind<double>(&CUVa_Padova_Discrete_Model::eq_dXL,     this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.I,     std::bind<double>(&CUVa_Padova_Discrete_Model::eq_dI,      this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.X,     std::bind<double>(&CUVa_Padova_Discrete_Model::eq_dX,      this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.Isc1,  std::bind<double>(&CUVa_Padova_Discrete_Model::eq_dIsc1,   this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.Isc2,  std::bind<double>(&CUVa_Padova_Discrete_Model::eq_dIsc2,   this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.Gs,    std::bind<double>(&CUVa_Padova_Discrete_Model::eq_dGs,     this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.Gp,    std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dGp,     this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.Gt,    std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dGt,     this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.Ip,    std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dIp,     this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.Il,    std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dIl,     this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.Qsto1, std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dQsto1,  this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.Qsto2, std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dQsto2,  this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.Qgut,  std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dQgut,   this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.XL,    std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dXL,     this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.I,     std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dI,      this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.X,     std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dX,      this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.Isc1,  std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dIsc1,   this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.Isc2,  std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dIsc2,   this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.Gs,    std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dGs,     this, std::placeholders::_1, std::placeholders::_2) },
 		// not present in SimGlucose:
-		{ mState.H,    std::bind<double>(&CUVa_Padova_Discrete_Model::eq_dH,       this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.XH,    std::bind<double>(&CUVa_Padova_Discrete_Model::eq_dXH,     this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.SRHS,    std::bind<double>(&CUVa_Padova_Discrete_Model::eq_dSRHS, this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.Hsc1,    std::bind<double>(&CUVa_Padova_Discrete_Model::eq_dHsc1, this, std::placeholders::_1, std::placeholders::_2) },
-		{ mState.Hsc2,    std::bind<double>(&CUVa_Padova_Discrete_Model::eq_dHsc2, this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.H,    std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dH,       this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.XH,    std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dXH,     this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.SRHS,    std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dSRHS, this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.Hsc1,    std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dHsc1, this, std::placeholders::_1, std::placeholders::_2) },
+		{ mState.Hsc2,    std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dHsc2, this, std::placeholders::_1, std::placeholders::_2) },
 	}
 {
 	mState.lastTime = -1;
@@ -122,7 +136,7 @@ CUVa_Padova_Discrete_Model::CUVa_Padova_Discrete_Model(scgms::IModel_Parameter_V
 	mBasal_Ext.Add_Uptake(0, std::numeric_limits<double>::infinity(), 0.0); // TODO: BasalRate0 as a parameter
 }
 
-double CUVa_Padova_Discrete_Model::eq_dGp(const double _T, const double _X) const
+double CUVA_Padova_S2013_Discrete_Model::eq_dGp(const double _T, const double _X) const
 {
 	const double Rat = mParameters.f * mParameters.kabs * mState.Qgut / mParameters.BW;
 	const double EGPt = mParameters.kp1 - mParameters.kp2 * mState.Gp - mParameters.kp3 * mState.XL + mParameters.xi * mState.XH;
@@ -132,7 +146,7 @@ double CUVa_Padova_Discrete_Model::eq_dGp(const double _T, const double _X) cons
 	return mState.Gp > 0 ? std::max(0.0, EGPt) + Rat - Uiit - Et - mParameters.k1 * _X + mParameters.k2 * mState.Gt : 0;
 }
 
-double CUVa_Padova_Discrete_Model::eq_dGt(const double _T, const double _X) const
+double CUVA_Padova_S2013_Discrete_Model::eq_dGt(const double _T, const double _X) const
 {
 	const double Vmt = mParameters.Vm0 + mParameters.Vmx * mState.X;
 	const double Kmt = mParameters.Km0;
@@ -141,22 +155,22 @@ double CUVa_Padova_Discrete_Model::eq_dGt(const double _T, const double _X) cons
 	return mState.Gt > 0 ? -Uidt + mParameters.k1 * mState.Gp - mParameters.k2 * _X : 0;
 }
 
-double CUVa_Padova_Discrete_Model::eq_dIp(const double _T, const double _X) const
+double CUVA_Padova_S2013_Discrete_Model::eq_dIp(const double _T, const double _X) const
 {
 	return mState.Ip > 0 ? -(mParameters.m2 + mParameters.m4) * _X + mParameters.m1 * mState.Il + mParameters.ka1 * mState.Isc1 + mParameters.ka2 * mState.Isc2 : 0;
 }
 
-double CUVa_Padova_Discrete_Model::eq_dIl(const double _T, const double _X) const
+double CUVA_Padova_S2013_Discrete_Model::eq_dIl(const double _T, const double _X) const
 {
 	return mState.Il > 0 ? -(mParameters.m1 + mParameters.m30) * _X + mParameters.m2 * mState.Ip : 0;
 }
 
-double CUVa_Padova_Discrete_Model::eq_dQsto1(const double _T, const double _X) const
+double CUVA_Padova_S2013_Discrete_Model::eq_dQsto1(const double _T, const double _X) const
 {
 	return -mParameters.kmax * _X + mMeal_Ext.Get_Disturbance(_T * scgms::One_Minute);
 }
 
-double CUVa_Padova_Discrete_Model::Get_K_gut(const double _T) const
+double CUVA_Padova_S2013_Discrete_Model::Get_K_gut(const double _T) const
 {
 	double kgut = mParameters.kmax;
 	const double qsto = mState.Qsto1 + mState.Qsto2;
@@ -173,40 +187,40 @@ double CUVa_Padova_Discrete_Model::Get_K_gut(const double _T) const
 	return kgut;
 }
 
-double CUVa_Padova_Discrete_Model::eq_dQsto2(const double _T, const double _X) const
+double CUVA_Padova_S2013_Discrete_Model::eq_dQsto2(const double _T, const double _X) const
 {
 	const double kgut = Get_K_gut(_T);
 
 	return mParameters.kmax * mState.Qsto1 - kgut * _X;
 }
 
-double CUVa_Padova_Discrete_Model::eq_dQgut(const double _T, const double _X) const
+double CUVA_Padova_S2013_Discrete_Model::eq_dQgut(const double _T, const double _X) const
 {
 	const double kgut = Get_K_gut(_T);
 
 	return kgut * mState.Qsto2 - mParameters.kabs * _X;
 }
 
-double CUVa_Padova_Discrete_Model::eq_dXL(const double _T, const double _X) const
+double CUVA_Padova_S2013_Discrete_Model::eq_dXL(const double _T, const double _X) const
 {
 	return -mParameters.ki * (_X - mState.I);
 }
 
-double CUVa_Padova_Discrete_Model::eq_dI(const double _T, const double _X) const
+double CUVA_Padova_S2013_Discrete_Model::eq_dI(const double _T, const double _X) const
 {
 	const double It = mState.Ip / mParameters.Vi;
 
 	return -mParameters.ki * (_X - It);
 }
 
-double CUVa_Padova_Discrete_Model::eq_dX(const double _T, const double _X) const
+double CUVA_Padova_S2013_Discrete_Model::eq_dX(const double _T, const double _X) const
 {
 	const double It = mState.Ip / mParameters.Vi;
 
 	return -mParameters.p2u * _X + mParameters.p2u * (It - mParameters.Ib);
 }
 
-double CUVa_Padova_Discrete_Model::eq_dIsc1(const double _T, const double _X) const
+double CUVA_Padova_S2013_Discrete_Model::eq_dIsc1(const double _T, const double _X) const
 {
 	const double totalInsulin = mBolus_Ext.Get_Disturbance(_T * scgms::One_Minute) + mBasal_Ext.Get_Recent(_T * scgms::One_Minute);
 	const double insulinDisturbance = totalInsulin * 6000 / mParameters.BW; // U/min -> pmol/kg/min
@@ -214,29 +228,29 @@ double CUVa_Padova_Discrete_Model::eq_dIsc1(const double _T, const double _X) co
 	return mState.Isc1 > 0 ? insulinDisturbance - (mParameters.ka1 + mParameters.kd) * _X : 0;
 }
 
-double CUVa_Padova_Discrete_Model::eq_dIsc2(const double _T, const double _X) const
+double CUVA_Padova_S2013_Discrete_Model::eq_dIsc2(const double _T, const double _X) const
 {
 	return mState.Isc2 > 0 ? mParameters.kd * mState.Isc1 - mParameters.ka2 * _X : 0;
 }
 
-double CUVa_Padova_Discrete_Model::eq_dGs(const double _T, const double _X) const
+double CUVA_Padova_S2013_Discrete_Model::eq_dGs(const double _T, const double _X) const
 {
 	return mState.Gs > 0 ? (-mParameters.ksc * _X + mParameters.ksc * mState.Gp) : 0;
 }
 
-double CUVa_Padova_Discrete_Model::eq_dH(const double _T, const double _X) const
+double CUVA_Padova_S2013_Discrete_Model::eq_dH(const double _T, const double _X) const
 {
 	const double SRHD = std::max(0.0, -eq_dGp(_T, mState.Gp)); // original equation uses -dG(t)/dt, but since G(t) = Gp(t)/Vg, the slope is identical
 
 	return -mParameters.n * _X + (mState.SRHS + SRHD) + mParameters.kh3 * mState.Hsc2;
 }
 
-double CUVa_Padova_Discrete_Model::eq_dXH(const double _T, const double _X) const
+double CUVA_Padova_S2013_Discrete_Model::eq_dXH(const double _T, const double _X) const
 {
 	return -mParameters.kH * _X + mParameters.kH * std::max(0.0, mState.H - mParameters.Hb);
 }
 
-double CUVa_Padova_Discrete_Model::eq_dSRHS(const double _T, const double _X) const
+double CUVA_Padova_S2013_Discrete_Model::eq_dSRHS(const double _T, const double _X) const
 {
 	constexpr double Gth = 60; // hypoglycaemic threshold, constant, as suggested by https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4454102/pdf/10.1177_1932296813514502.pdf
 
@@ -246,17 +260,17 @@ double CUVa_Padova_Discrete_Model::eq_dSRHS(const double _T, const double _X) co
 		return -mParameters.rho*(_X - std::max(0.0, mParameters.sigma1 * (Gth - mState.Gp / mParameters.Vg) / (mState.I + 1.0) + mParameters.SRHb));
 }
 
-double CUVa_Padova_Discrete_Model::eq_dHsc1(const double _T, const double _X) const
+double CUVA_Padova_S2013_Discrete_Model::eq_dHsc1(const double _T, const double _X) const
 {
 	return mState.Hsc1 > 0 ? -(mParameters.kh1 + mParameters.kh2) * _X : 0;
 }
 
-double CUVa_Padova_Discrete_Model::eq_dHsc2(const double _T, const double _X) const
+double CUVA_Padova_S2013_Discrete_Model::eq_dHsc2(const double _T, const double _X) const
 {
 	return mState.Hsc2 > 0 ? mParameters.kh1 * mState.Hsc1 - mParameters.kh3 * _X : 0;
 }
 
-void CUVa_Padova_Discrete_Model::Emit_All_Signals(double time_advance_delta)
+void CUVA_Padova_S2013_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 {
 	const double _T = mState.lastTime + time_advance_delta;	//locally-scoped because we might have been asked to emit the current state only
 
@@ -276,14 +290,14 @@ void CUVa_Padova_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 
 	// BG
 	const double bglevel = scgms::mgdl_2_mmoll * (mState.Gp / mParameters.Vg);
-	Emit_Signal_Level(uva_padova_model::signal_UVa_Padova_BG, _T, bglevel);
+	Emit_Signal_Level(uva_padova_S2013::signal_UVa_Padova_BG, _T, bglevel);
 
 	// IG
 	const double iglevel = scgms::mgdl_2_mmoll * (mState.Gs / mParameters.Vg);
-	Emit_Signal_Level(uva_padova_model::signal_UVa_Padova_IG, _T, iglevel);
+	Emit_Signal_Level(uva_padova_S2013::signal_UVa_Padova_IG, _T, iglevel);
 }
 
-HRESULT CUVa_Padova_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
+HRESULT CUVA_Padova_S2013_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 	HRESULT res = S_FALSE;
 
 	if (mState.lastTime > 0)
@@ -344,12 +358,12 @@ HRESULT CUVa_Padova_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 	return res;
 }
 
-HRESULT CUVa_Padova_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
+HRESULT CUVA_Padova_S2013_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	// configured in the constructor - no need for additional configuration; signalize success
 	return S_OK;
 }
 
-HRESULT IfaceCalling CUVa_Padova_Discrete_Model::Step(const double time_advance_delta) {
+HRESULT IfaceCalling CUVA_Padova_S2013_Discrete_Model::Step(const double time_advance_delta) {
 	HRESULT rc = E_FAIL;
 	if (time_advance_delta > 0.0) {
 		// perform a few microsteps within advancement delta
@@ -399,10 +413,10 @@ HRESULT IfaceCalling CUVa_Padova_Discrete_Model::Step(const double time_advance_
 	return rc;
 }
 
-HRESULT CUVa_Padova_Discrete_Model::Emit_Signal_Level(const GUID& signal_id, double device_time, double level) {
+HRESULT CUVA_Padova_S2013_Discrete_Model::Emit_Signal_Level(const GUID& signal_id, double device_time, double level) {
 	scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
 
-	evt.device_id() = uva_padova_model::model_id;
+	evt.device_id() = uva_padova_S2013::model_id;
 	evt.device_time() = device_time;
 	evt.level() = level;
 	evt.signal_id() = signal_id;
@@ -411,7 +425,7 @@ HRESULT CUVa_Padova_Discrete_Model::Emit_Signal_Level(const GUID& signal_id, dou
 	return Send(evt);
 }
 
-HRESULT IfaceCalling CUVa_Padova_Discrete_Model::Initialize(const double current_time, const uint64_t segment_id) {
+HRESULT IfaceCalling CUVA_Padova_S2013_Discrete_Model::Initialize(const double current_time, const uint64_t segment_id) {
 	if (mState.lastTime < 0.0) {
 		mState.lastTime = current_time;
 		mSegment_Id = segment_id;
