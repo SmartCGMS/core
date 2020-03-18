@@ -56,7 +56,7 @@ class Uptake_Accumulator : public std::vector<Uptake_Event>
 		void Add_Uptake(double t, double t_delta_end, double amount);
 
 		// retrieves sum of all disturbaces at given time point
-		double Get_Disturbance(double t) const;
+		double Get_Disturbance(double t_start, double t_end) const;
 
 		// retrieves the most recent disturbance at given time point
 		double Get_Recent(double t) const;

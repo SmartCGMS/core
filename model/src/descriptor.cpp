@@ -401,21 +401,25 @@ namespace uva_padova_S2013 { //DOI: 10.1177/1932296813514502
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble
 	};
 
-	constexpr size_t number_of_calculated_signals = 2;
+	constexpr size_t number_of_calculated_signals = 3;
 
 	const GUID calculated_signal_ids[number_of_calculated_signals] = {
 		signal_UVa_Padova_IG,
 		signal_UVa_Padova_BG,
+		signal_UVa_Padova_Delivered_Insulin,
 	};
 
 	const wchar_t* calculated_signal_names[number_of_calculated_signals] = {
 		dsUVa_Padova_IG,
 		dsUVa_Padova_BG,
+		dsUVa_Padova_Delivered_Insulin,
+
 	};
 
 	const GUID reference_signal_ids[number_of_calculated_signals] = {
 		scgms::signal_IG,
-		scgms::signal_BG
+		scgms::signal_BG,
+		scgms::signal_Delivered_Insulin_Total
 	};
 
 	scgms::TModel_Descriptor desc = {
@@ -436,11 +440,14 @@ namespace uva_padova_S2013 { //DOI: 10.1177/1932296813514502
 		reference_signal_ids,
 	};
 
-	const std::wstring ist_desc = std::wstring{ dsUVa_Padova_S2013 } + L" - " + dsInterstitial;
+	const std::wstring ist_desc = std::wstring{ dsUVa_Padova_IG };
 	const scgms::TSignal_Descriptor ig_desc{ signal_UVa_Padova_IG, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 
-	const std::wstring bgs_desc = std::wstring{ dsUVa_Padova_S2013 } + L" - " + dsBlood;
+	const std::wstring bgs_desc = std::wstring{ dsUVa_Padova_BG };
 	const scgms::TSignal_Descriptor bg_desc{ signal_UVa_Padova_BG, bgs_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+
+	const std::wstring inss_desc = std::wstring{ dsUVa_Padova_Delivered_Insulin };
+	const scgms::TSignal_Descriptor ins_desc{ signal_UVa_Padova_Delivered_Insulin, inss_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 }
 
 namespace insulin_bolus {
@@ -555,8 +562,8 @@ namespace const_cr {
 }
 
 
-const std::array<scgms::TModel_Descriptor, 10> model_descriptions = { { diffusion_v2_model::desc, 
-																		 steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc, diffusion_prediction::desc, 
+const std::array<scgms::TModel_Descriptor, 10> model_descriptions = { { diffusion_v2_model::desc,
+																		 steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc, diffusion_prediction::desc,
 																		 constant_model::desc,
 																		 bergman_model::desc,
 																		 uva_padova_S2013::desc,
@@ -564,11 +571,11 @@ const std::array<scgms::TModel_Descriptor, 10> model_descriptions = { { diffusio
 																		 const_isf::desc, const_cr::desc } };
 
 
-const std::array<scgms::TSignal_Descriptor, 14> signals_descriptors = { {diffusion_v2_model::bg_desc, diffusion_v2_model::ig_desc, steil_rebrin::bg_desc, 
+const std::array<scgms::TSignal_Descriptor, 15> signals_descriptors = { {diffusion_v2_model::bg_desc, diffusion_v2_model::ig_desc, steil_rebrin::bg_desc, 
 																		 steil_rebrin_diffusion_prediction::ig_desc, diffusion_prediction::ig_desc, 
 																		 constant_model::const_desc,
 																		 bergman_model::bg_desc, bergman_model::ig_desc, bergman_model::iob_desc, bergman_model::cob_desc, bergman_model::basal_insulin_desc, bergman_model::insulin_activity_desc,
-																		 uva_padova_S2013::ig_desc, uva_padova_S2013::bg_desc
+																		 uva_padova_S2013::ig_desc, uva_padova_S2013::bg_desc, uva_padova_S2013::ins_desc
 																		}};
 
 HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {

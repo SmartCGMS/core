@@ -423,6 +423,7 @@ namespace signal_descriptor {
 	const scgms::TSignal_Descriptor req_bolus_desc{ scgms::signal_Requested_Insulin_Bolus, dsSignal_Requested_Insulin_Bolus, dsU, scgms::NSignal_Unit::U_insulin, 0xFFF59053, 0xFFF59053, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor req_ibr_desc{ scgms::signal_Requested_Insulin_Basal_Rate, dsSignal_Requested_Insulin_Basal_Rate, dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0xFFDDDD55, 0xFFDDDD55, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor del_bolus_desc{ scgms::signal_Delivered_Insulin_Bolus, dsSignal_Delivered_Insulin_Bolus, dsU, scgms::NSignal_Unit::U_insulin, 0xFFF59053, 0xFFF59053, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor del_ins_total_desc{ scgms::signal_Delivered_Insulin_Total, dsSignal_Delivered_Insulin_Total, dsU, scgms::NSignal_Unit::U_insulin, 0xFFF49083, 0xFFF49083, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor del_ibr_desc{ scgms::signal_Delivered_Insulin_Basal_Rate, dsSignal_Delivered_Insulin_Basal_Rate, dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0xFFF59053, 0xFFF59053, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor ins_act_desc{ scgms::signal_Insulin_Activity, dsSignal_GUI_Name_Insulin_Activity, L"", scgms::NSignal_Unit::Other, 0xFF0055DD, 0xFF0055DD, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor iob_desc{ scgms::signal_IOB, dsSignal_GUI_Name_IOB, L"", scgms::NSignal_Unit::Other, 0xFFDD5555, 0xFFDD5555, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
@@ -439,7 +440,7 @@ namespace signal_descriptor {
 	const scgms::TSignal_Descriptor sleep_quality_desc{ scgms::signal_Sleep_Quality, dsSignal_GUI_Name_Sleep_Quality, L"", scgms::NSignal_Unit::Percent, 0xFF808080, 0xFF808080, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor accel_desc{ scgms::signal_Acceleration, dsSignal_GUI_Name_Acceleration, L"", scgms::NSignal_Unit::Percent, 0xFF808080, 0xFF808080, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 
-	const std::array<scgms::TSignal_Descriptor, 20> signals = { {bg_desc, bg_cal_desc, ig_desc, isig_desc, req_bolus_desc, req_ibr_desc, del_bolus_desc, del_ibr_desc, ins_act_desc, iob_desc, cob_desc, cho_in_desc, cho_resc_desc, phys_act_desc,
+	const std::array<scgms::TSignal_Descriptor, 21> signals = { {bg_desc, bg_cal_desc, ig_desc, isig_desc, req_bolus_desc, req_ibr_desc, del_bolus_desc, del_ins_total_desc, del_ibr_desc, ins_act_desc, iob_desc, cob_desc, cho_in_desc, cho_resc_desc, phys_act_desc,
 																 skin_temp_desc, air_temp_desc, heartbeat_desc, eda_desc, accel_desc, sleep_quality_desc} };
 }
 

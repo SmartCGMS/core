@@ -105,12 +105,12 @@ double CBergman_Discrete_Model::eq_dD1(const double _T, const double _D1) const
 
 double CBergman_Discrete_Model::eq_dD2(const double _T, const double _D2) const
 {
-	return -mParameters.d2rate * _D2 + mParameters.Ag * mMeal_Ext.Get_Disturbance(_T * scgms::One_Minute);
+	return -mParameters.d2rate * _D2 + mParameters.Ag * mMeal_Ext.Get_Disturbance(mState.lastTime, _T * scgms::One_Minute);
 }
 
 double CBergman_Discrete_Model::eq_dIsc(const double _T, const double _Isc) const
 {
-	return -mParameters.irate * _Isc + (mBasal_Ext.Get_Recent(_T * scgms::One_Minute) + mBolus_Ext.Get_Disturbance(_T * scgms::One_Minute)) / mParameters.Vi;
+	return -mParameters.irate * _Isc + (mBasal_Ext.Get_Recent(_T * scgms::One_Minute) + mBolus_Ext.Get_Disturbance(mState.lastTime, _T * scgms::One_Minute)) / mParameters.Vi;
 }
 
 double CBergman_Discrete_Model::eq_dGsc(const double _T, const double _Gsc) const
@@ -177,7 +177,7 @@ void CBergman_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 
 	// dosed basal insulin - sum of all basal insulin dosed per time_advance_delta
 	// TODO: this might be a bit more precise if we calculate the actual sum during ODE solving, but the basal rate is very unlikely to change within a step, so it does not matter
-	Emit_Signal_Level(bergman_model::signal_Bergman_Basal_Insulin, _T, (time_advance_delta / scgms::One_Minute) * (mBasal_Ext.Get_Recent(_T) + mBolus_Ext.Get_Disturbance(_T)) / 1000.0);
+	Emit_Signal_Level(bergman_model::signal_Bergman_Basal_Insulin, _T, (time_advance_delta / scgms::One_Minute) * (mBasal_Ext.Get_Recent(_T) + mBolus_Ext.Get_Disturbance(mState.lastTime, _T)) / 1000.0);
 
 	// IOB = all insulin in system (except remote pool)
 	Emit_Signal_Level(bergman_model::signal_Bergman_IOB, _T, (mState.I + mState.Isc) / (1000.0/mParameters.Vi));

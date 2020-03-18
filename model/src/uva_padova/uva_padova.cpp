@@ -43,6 +43,7 @@
 #include <type_traits>
 #include <cassert>
 #include <cmath>
+#include <iostream>
 
 #undef max
 
@@ -167,15 +168,19 @@ double CUVA_Padova_S2013_Discrete_Model::eq_dIl(const double _T, const double _X
 
 double CUVA_Padova_S2013_Discrete_Model::eq_dQsto1(const double _T, const double _X) const
 {
-	return -mParameters.kmax * _X + mMeal_Ext.Get_Disturbance(_T * scgms::One_Minute);
+	const double mealDisturbance = mMeal_Ext.Get_Disturbance(mState.lastTime, _T * scgms::One_Minute);
+
+	return -mParameters.kmax * _X + mealDisturbance;
 }
 
 double CUVA_Padova_S2013_Discrete_Model::Get_K_gut(const double _T) const
 {
+	const double mealDisturbance = mMeal_Ext.Get_Disturbance(mState.lastTime, _T * scgms::One_Minute);
+
 	double kgut = mParameters.kmax;
 	const double qsto = mState.Qsto1 + mState.Qsto2;
 
-	const double Dbar = mMeal_Ext.Get_Disturbance(_T * scgms::One_Minute); // TODO: revisit this, SimGlucose is probably wrong in this one
+	const double Dbar = mealDisturbance; // TODO: revisit this, SimGlucose is probably wrong in this one
 	if (Dbar > 0)
 	{
 		// TODO: verify the origin of 'aa' and 'cc' constants - probably obtained empirically by SimGlucose
@@ -222,8 +227,10 @@ double CUVA_Padova_S2013_Discrete_Model::eq_dX(const double _T, const double _X)
 
 double CUVA_Padova_S2013_Discrete_Model::eq_dIsc1(const double _T, const double _X) const
 {
-	const double totalInsulin = mBolus_Ext.Get_Disturbance(_T * scgms::One_Minute) + mBasal_Ext.Get_Recent(_T * scgms::One_Minute);
-	const double insulinDisturbance = totalInsulin * 6000 / mParameters.BW; // U/min -> pmol/kg/min
+	const double bolusDisturbance = mBolus_Ext.Get_Disturbance(mState.lastTime, _T * scgms::One_Minute);
+	const double basalDisturbance = mBasal_Ext.Get_Recent(_T * scgms::One_Minute);
+
+	const double insulinDisturbance = (bolusDisturbance + basalDisturbance) * 6000 / mParameters.BW; // U/min -> pmol/kg/min
 
 	return mState.Isc1 > 0 ? insulinDisturbance - (mParameters.ka1 + mParameters.kd) * _X : 0;
 }
@@ -274,12 +281,18 @@ void CUVA_Padova_S2013_Discrete_Model::Emit_All_Signals(double time_advance_delt
 {
 	const double _T = mState.lastTime + time_advance_delta;	//locally-scoped because we might have been asked to emit the current state only
 
+	/*
+	 * Virtual insulin pump signals
+	 */
+
+	// transform requested basal rate to actually set basal rate
 	if (mRequested_Basal.requested)
 	{
 		Emit_Signal_Level(scgms::signal_Delivered_Insulin_Basal_Rate, mRequested_Basal.time, mRequested_Basal.amount);
 		mRequested_Basal.requested = false;
 	}
 
+	// transform requested bolus insulin to delivered bolus insulin amount
 	for (auto& reqBolus : mRequested_Boluses)
 	{
 		if (reqBolus.requested) {
@@ -288,7 +301,15 @@ void CUVA_Padova_S2013_Discrete_Model::Emit_All_Signals(double time_advance_delt
 	}
 	mRequested_Boluses.clear();
 
-	// BG
+	// sum of all insulin delivered by the pump
+	const double dosedinsulin = (mBolus_Ext.Get_Disturbance(mState.lastTime, _T) + mBasal_Ext.Get_Recent(_T)) * (time_advance_delta / scgms::One_Minute);
+	Emit_Signal_Level(uva_padova_S2013::signal_UVa_Padova_Delivered_Insulin, _T, dosedinsulin);
+
+	/*
+	 * Virtual sensor (glucometer, CGM) signals
+	 */
+
+	// BG - glucometer
 	const double bglevel = scgms::mgdl_2_mmoll * (mState.Gp / mParameters.Vg);
 	Emit_Signal_Level(uva_padova_S2013::signal_UVa_Padova_BG, _T, bglevel);
 
@@ -345,8 +366,9 @@ HRESULT CUVA_Padova_S2013_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 				// we assume 10-minute eating period
 				// TODO: this should be a parameter of CHO intake
 				constexpr double MinsEating = 10.0;
+				constexpr double InvMinsEating = 1.0 / MinsEating;
 
-				mMeal_Ext.Add_Uptake(event.device_time(), MinsEating * scgms::One_Minute, (1.0 / MinsEating) * 1000.0 * event.level());
+				mMeal_Ext.Add_Uptake(event.device_time(), MinsEating * scgms::One_Minute, InvMinsEating * 1000.0 * event.level());
 				// res = S_OK; - do not unless we have another signal called consumed CHO
 			}
 		}

@@ -38,19 +38,36 @@
 
 #include "uptake_accumulator.h"
 
+#include <algorithm>
+#undef max
+#undef min
+
+#include <iostream>
+
 void Uptake_Accumulator::Add_Uptake(double t, double t_delta_end, double amount)
 {
 	push_back({ t, t + t_delta_end, amount });
 }
 
-double Uptake_Accumulator::Get_Disturbance(double t) const
+double Uptake_Accumulator::Get_Disturbance(double t_start, double t_end) const
 {
+	if (t_end - t_start < std::numeric_limits<double>::epsilon())
+		return 0.0;
+
 	double sum = 0;
 	for (auto itr = begin(); itr != end(); ++itr)
 	{
 		auto& evt = *itr;
-		if (t <= evt.t_max && t >= evt.t_min)
-			sum += evt.amount;
+		double ratio = 0.0;
+
+		// overlaps?
+		if (t_start < evt.t_max && evt.t_min < t_end)
+		{
+			auto a = std::max(evt.t_min, t_start);
+			auto b = std::min(evt.t_max, t_end);
+
+			sum += evt.amount * ((b - a) / (t_end - t_start));
+		}
 	}
 
 	return sum;
