@@ -46,7 +46,7 @@
 #include "../../../../common/rtl/SolverLib.h"
 
 CBetaPID_Insulin_Regulation::CBetaPID_Insulin_Regulation(scgms::WTime_Segment segment)
-	: CCommon_Calculated_Signal(segment), mIOB(segment.Get_Signal(scgms::signal_IOB)), mBG(segment.Get_Signal(scgms::signal_BG)) {
+	: CCommon_Calculated_Signal(segment), mIOB(segment.Get_Signal(scgms::signal_IOB)), mIG(segment.Get_Signal(scgms::signal_IG)) {
 	//
 }
 
@@ -59,11 +59,11 @@ HRESULT CBetaPID_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Paramet
 	const size_t integral_history = 30;
 	const double targetBG = 5.0;
 
-	std::array<double, integral_history> historyTimes, historyBGs;
+	std::array<double, integral_history> historyTimes, historyIGs;
 
 	std::vector<double> BGs(count);
 	std::fill(BGs.begin(), BGs.end(), std::numeric_limits<double>::quiet_NaN());
-	HRESULT rc = mBG->Get_Continuous_Levels(nullptr, times, BGs.data(), count, scgms::apxNo_Derivation);
+	HRESULT rc = mIG->Get_Continuous_Levels(nullptr, times, BGs.data(), count, scgms::apxNo_Derivation);
 	if (!SUCCEEDED(rc)) return rc;
 
 	std::vector<double> IOBs(count);
@@ -74,13 +74,13 @@ HRESULT CBetaPID_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Paramet
 	for (size_t i = 0; i < count; i++)
 	{
 		const double bt = BGs[i];
-		const double iob = std::isnan(IOBs[i]) ? 0 : IOBs[i];
+		const double iob = IOBs[i];
 
-		// we cannot calculate insulin rate when BG is unknown at this time point
-		// as we don't extrapolate (would be dangerous) and need immediate values, this means the rate is zero
-		if (std::isnan(bt))
+		// we cannot calculate insulin rate when BG/IOB is unknown at this time point
+		// as we don't extrapolate (would be dangerous), wait for BG/IOB to be available
+		if (std::isnan(bt) || std::isnan(IOBs[i]))
 		{
-			levels[i] = 0.0;
+			levels[i] = std::numeric_limits<double>::quiet_NaN();
 			continue;
 		}
 
@@ -95,17 +95,17 @@ HRESULT CBetaPID_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Paramet
 		double eintegral = 0.0;
 		double ederivative = 0.0;
 
-		std::fill(historyBGs.begin(), historyBGs.end(), std::numeric_limits<double>::quiet_NaN());
+		std::fill(historyIGs.begin(), historyIGs.end(), std::numeric_limits<double>::quiet_NaN());
 
 		// retrieve history
-		rc = mBG->Get_Continuous_Levels(nullptr, historyTimes.data(), historyBGs.data(), integral_history, scgms::apxNo_Derivation);
+		rc = mIG->Get_Continuous_Levels(nullptr, historyTimes.data(), historyIGs.data(), integral_history, scgms::apxNo_Derivation);
 		if (!SUCCEEDED(rc)) return rc;
 
 		// approximate integral of error, int_0^t e(tau) dtau =~= sum_i=0^hist e(t-i*h)*h
 		for (size_t j = 0; j < integral_history; j++)
-			eintegral += std::isnan(historyBGs[j]) ? 0.0 : (targetBG - historyBGs[j]); // *h --> omit the width parameter, as its constant, and would still be included in Ki parameter
+			eintegral += std::isnan(historyIGs[j]) ? 0.0 : (targetBG - historyIGs[j]); // *h --> omit the width parameter, as its constant, and would still be included in Ki parameter
 
-		rc = mBG->Get_Continuous_Levels(nullptr, &times[i], &ederivative, 1, scgms::apxFirst_Order_Derivation);
+		rc = mIG->Get_Continuous_Levels(nullptr, &times[i], &ederivative, 1, scgms::apxFirst_Order_Derivation);
 		if (SUCCEEDED(rc)) {
 			// error trend has exactly opposite sign than current BG trend
 			ederivative *= -1;
@@ -185,14 +185,16 @@ HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 	for (size_t i = 0; i < count; i++)
 	{
 		const double bt = IGs[i];
-		const double iob = std::isnan(IOBs[i]) ? 0 : IOBs[i];
-		const double cob = std::isnan(COBs[i]) ? 0 : COBs[i];
+		const double iob = IOBs[i];
+		const double cob = COBs[i];
 
-		// we cannot calculate insulin rate when BG is unknown at this time point
-		// as we don't extrapolate (would be dangerous) and need immediate values, this means the rate is zero
-		if (std::isnan(bt))
+		// we cannot calculate insulin rate when BG/IOB/COB is unknown at this time point
+		// as we don't extrapolate (would be dangerous), we wait for all values to be available;
+		// NOTE: IOB and COB should have IG as reference signal and always emit a valid value
+		//       as BetaPID also have IG as reference, these signals would come 
+		if (std::isnan(bt) || std::isnan(iob) || std::isnan(cob))
 		{
-			levels[i] = 0.0;
+			levels[i] = std::numeric_limits<double>::quiet_NaN();
 			continue;
 		}
 
@@ -286,9 +288,9 @@ HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 
 	std::array<double, integral_history> historyTimes, historyBGs;
 
-	std::vector<double> BGs(count);
-	std::fill(BGs.begin(), BGs.end(), std::numeric_limits<double>::quiet_NaN());
-	HRESULT rc =mIG->Get_Continuous_Levels(nullptr, times, BGs.data(), count, scgms::apxNo_Derivation);
+	std::vector<double> IGs(count);
+	std::fill(IGs.begin(), IGs.end(), std::numeric_limits<double>::quiet_NaN());
+	HRESULT rc = mIG->Get_Continuous_Levels(nullptr, times, IGs.data(), count, scgms::apxNo_Derivation);
 	if (!SUCCEEDED(rc)) return rc;
 
 	std::vector<double> IOBs(count);
@@ -322,17 +324,19 @@ HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 
 	for (size_t i = 0; i < count; i++)
 	{
-		const double bt = BGs[i];
-		const double iob = std::isnan(IOBs[i]) ? 0 : IOBs[i];
-		const double cob = std::isnan(COBs[i]) ? 0 : COBs[i];
-		const double isf = std::isnan(ISFs[i]) ? 0 : ISFs[i];
-		const double cr = std::isnan(CRs[i]) ? 0 : CRs[i];
+		const double bt = IGs[i];
+		const double iob = IOBs[i];
+		const double cob = COBs[i];
+		const double isf = ISFs[i];
+		const double cr = CRs[i];
 
-		// we cannot calculate insulin rate when BG is unknown at this time point
-		// as we don't extrapolate (would be dangerous) and need immediate values, this means the rate is zero
-		if (std::isnan(bt))
+		// we cannot calculate insulin rate when BG/IOB/COB/ISF/CR is unknown at this time point
+		// as we don't extrapolate (would be dangerous), we wait for all values to be available;
+		// NOTE: IOB and COB should have IG as reference signal and always emit a valid value
+		//       as BetaPID also have IG as reference, these signals would come 
+		if (std::isnan(bt) || std::isnan(iob) || std::isnan(cob) || std::isnan(isf) || std::isnan(cr))
 		{
-			levels[i] = 0.0;
+			levels[i] = std::numeric_limits<double>::quiet_NaN();
 			continue;
 		}
 

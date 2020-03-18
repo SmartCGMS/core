@@ -46,7 +46,7 @@
 class CBetaPID_Insulin_Regulation : public CCommon_Calculated_Signal {
 
 	private:
-		scgms::SSignal mIOB, mBG;
+		scgms::SSignal mIOB, mIG;
 
 	public:
 		CBetaPID_Insulin_Regulation(scgms::WTime_Segment segment);
@@ -61,7 +61,7 @@ class CBetaPID_Insulin_Regulation : public CCommon_Calculated_Signal {
 class CBetaPID2_Insulin_Regulation : public CCommon_Calculated_Signal {
 
 	private:
-		scgms::SSignal mIOB, mCOB, mIG;		
+		scgms::SSignal mIOB, mCOB, mIG;
 
 	public:
 		CBetaPID2_Insulin_Regulation(scgms::WTime_Segment segment);
