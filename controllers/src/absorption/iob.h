@@ -61,7 +61,7 @@ class CInsulin_Absorption : public CCommon_Calculated_Signal {
 		virtual double Calculate_Signal(double bolusTime, double bolusValue, double nowTime, double peak, double dia) const = 0;
 
 	protected:
-		scgms::SSignal mBasal_Insulin;
+		scgms::SSignal mDelivered_Insulin;
 
 		const NInsulin_Calc_Mode mMode;
 

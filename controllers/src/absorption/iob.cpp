@@ -45,9 +45,9 @@
 #include "../../../../common/rtl/rattime.h"
 #include "../../../../common/rtl/SolverLib.h"
 
-CInsulin_Absorption::CInsulin_Absorption(scgms::WTime_Segment segment, NInsulin_Calc_Mode mode) : CCommon_Calculated_Signal(segment)/*, mBolus_Insulin(segment.Get_Signal(scgms::signal_Delivered_Insulin_Bolus)), */, mBasal_Insulin(segment.Get_Signal(scgms::signal_Delivered_Insulin_Basal_Rate)),
+CInsulin_Absorption::CInsulin_Absorption(scgms::WTime_Segment segment, NInsulin_Calc_Mode mode) : CCommon_Calculated_Signal(segment), mDelivered_Insulin(segment.Get_Signal(scgms::signal_Delivered_Insulin_Total)),
 	mMode(mode) {
-	if (!refcnt::Shared_Valid_All(mBasal_Insulin)) throw std::exception{};
+	if (!refcnt::Shared_Valid_All(mDelivered_Insulin)) throw std::exception{};
 }
 
 double CInsulin_Absorption_Bilinear::Calculate_Signal(double bolusTime, double bolusValue, double nowTime, double peak, double dia) const
@@ -135,48 +135,13 @@ IOB_Combined CInsulin_Absorption::Calculate_Total_IOB(double nowTime, double pea
 	size_t cnt, filled;
 	std::vector<double> insTimes, insLevels;
 
-	// get bolus insulin levels and times, add it to total IOB contrib
-	/*if (mSource_Signal->Get_Discrete_Bounds(nullptr, nullptr, &cnt) == S_OK && cnt != 0)
-	{
-		insTimes.resize(cnt);
-		insLevels.resize(cnt);
-		
-		if (mSource_Signal->Get_Discrete_Levels(insTimes.data(), insLevels.data(), cnt, &filled) == S_OK)
-		{
-			if (cnt != filled)
-			{
-				insTimes.resize(filled);
-				insLevels.resize(filled);
-				cnt = filled;
-			}
-
-			// oref0 includes the effect of bolus insulin twice with different ratios
-			// TODO: verify this, as oref0 does not have two separate signals for insulin, but just assumes
-			//       the bolus insulin to be always greater than some value
-			// this actually makes more sense, if the bolus insulin is added only once
-
-			for (size_t i = 0; i < cnt; i++)
-			{
-				if (insTimes[i] > nowTime)
-					continue;
-
-				//double tVal = Calculate_Signal(insTimes[i], insLevels[i], nowTime, peak, dia);
-				//totalIob.basal += tVal;
-
-				//double bVal = Calculate_Signal(insTimes[i], insLevels[i], nowTime, peak, dia / 2.0);
-				double bVal = Calculate_Signal(insTimes[i], insLevels[i], nowTime, peak, dia);
-				totalIob.bolus += bVal;
-			}
-		}
-	}*/
-
 	// get basal insulin levels and times, add it to total IOB contrib
-	if (mBasal_Insulin->Get_Discrete_Bounds(nullptr, nullptr, &cnt) == S_OK && cnt != 0)
+	if (mDelivered_Insulin->Get_Discrete_Bounds(nullptr, nullptr, &cnt) == S_OK && cnt != 0)
 	{
 		insTimes.resize(cnt);
 		insLevels.resize(cnt);
 
-		if (mBasal_Insulin->Get_Discrete_Levels(insTimes.data(), insLevels.data(), cnt, &filled) == S_OK)
+		if (mDelivered_Insulin->Get_Discrete_Levels(insTimes.data(), insLevels.data(), cnt, &filled) == S_OK)
 		{
 			if (cnt != filled)
 			{
