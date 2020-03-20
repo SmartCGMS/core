@@ -38,7 +38,7 @@
 
 #pragma once
 
-#include "..\..\..\common\iface\SimpleIface.h"
+#include "../../../common/iface/SimpleIface.h"
 
 extern "C" scgms_execution_t SimpleCalling Execute_SCGMS_Configuration(const char *config, TSCGMS_Execution_Callback callback);
 
