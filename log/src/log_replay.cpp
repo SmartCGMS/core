@@ -87,7 +87,7 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 	const bool filename_segment_id_available = mInterpret_Filename_As_Segment_Id && (filename_segment_id != scgms::Invalid_Segment_Id);
 
 
-	auto locale = log.imbue(std::locale(std::cout.getloc(), new logger::DecimalSeparator<char>('.')));
+	auto locale = log.imbue(std::locale(std::cout.getloc(), new CDecimal_Separator<char>('.')));
 	
 
 	std::wstring line;

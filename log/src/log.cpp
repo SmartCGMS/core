@@ -124,7 +124,7 @@ bool CLog_Filter::Open_Log(const std::wstring &log_filename) {
 		result = mLog.is_open();
 		if (result) {
 			//set decimal point and write the header
-			auto unused = mLog.imbue(std::locale(std::cout.getloc(), new logger::DecimalSeparator<char>('.')));
+			auto unused = mLog.imbue(std::locale(std::cout.getloc(), new CDecimal_Separator<char>('.')));
 			mLog << dsLog_Header << std::endl;
 		}
 	}
