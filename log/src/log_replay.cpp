@@ -58,6 +58,7 @@
 #include <cctype>
 #include <cmath>
 #include <tuple>
+#include <set>
 
 CLog_Replay_Filter::CLog_Replay_Filter(scgms::IFilter* output) : CBase_Filter(output) {
 	//
@@ -70,25 +71,18 @@ CLog_Replay_Filter::~CLog_Replay_Filter() {
 }
 
 
-void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
+void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename, uint64_t filename_segment_id) {
 	if (log_filename.empty()) return;
 
 	std::wifstream log{ log_filename.string().c_str() };
 	if (!log.is_open()) return;
 	
-
-	uint64_t filename_segment_id = scgms::Invalid_Segment_Id;
-	if (mInterpret_Filename_As_Segment_Id) {
-		std::string name = log_filename.stem().string();
-		char* end_char = nullptr;
-		uint64_t tmp_id = std::strtoull(name.c_str(), &end_char, 10);
-		if (*end_char == 0) filename_segment_id = tmp_id;	//strtoull encoutered digits only, so conversio is OK and we can interpret it as a valid segment id
-	}
-	const bool filename_segment_id_available = mInterpret_Filename_As_Segment_Id && (filename_segment_id != scgms::Invalid_Segment_Id);
+	if (mInterpret_Filename_As_Segment_Id)
+		Emit_Info(scgms::NDevice_Event_Code::Information, std::wstring{ dsProcessing_File } +log_filename.c_str(), filename_segment_id);
 
 
 	auto locale = log.imbue(std::locale(std::cout.getloc(), new CDecimal_Separator<char>('.')));
-	
+
 
 	std::wstring line;
 	std::wstring column;
@@ -188,7 +182,7 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 			//let us emit them in their order in the log file
 		else  return std::get<idxLog_Entry_Counter>(a) < std::get<idxLog_Entry_Counter>(b);
 	});
-	
+		
 	for (size_t i = 0; i < log_lines.size(); i++) {
 		try {
 			line_counter = std::get<idxLog_Entry_Counter>(log_lines[i]);	//for the error reporting
@@ -219,7 +213,7 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 				return;
 			}
 			
-			const bool can_use_filename_as_segment_id = filename_segment_id_available && (original_segment_id != scgms::Invalid_Segment_Id) && (original_segment_id != scgms::All_Segments_Id);
+			const bool can_use_filename_as_segment_id = mInterpret_Filename_As_Segment_Id && (original_segment_id != scgms::Invalid_Segment_Id) && (original_segment_id != scgms::All_Segments_Id);
 			const uint64_t segment_id = can_use_filename_as_segment_id ? filename_segment_id : original_segment_id;
 
 
@@ -279,17 +273,61 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename) {
 
 void CLog_Replay_Filter::Open_Logs() {
 
-	if (Is_Directory(mLog_Filename_Or_Dirpath))
-	{
+	struct TLog_Segment_id {
+		std::filesystem::path file_name;
+		uint64_t segment_id;
+	};
+	std::vector<TLog_Segment_id> logs_to_replay;
+
+	//1. gather a list of all segments we will try to replay
+	if (Is_Directory(mLog_Filename_Or_Dirpath))	{
 		auto dir = List_Directory(mLog_Filename_Or_Dirpath);
-		for (const auto& path : dir)
-		{
+		for (const auto& path : dir) {
 			if (Is_Regular_File_Or_Symlink(path))
-				Replay_Log(path);
+				logs_to_replay.push_back({ path, scgms::Invalid_Segment_Id });				
 		}
 	}
 	else
-		Replay_Log(mLog_Filename_Or_Dirpath);
+		logs_to_replay.push_back({ mLog_Filename_Or_Dirpath, scgms::Invalid_Segment_Id });		
+
+	//2. determine segment_ids if asked to do so
+	if (mInterpret_Filename_As_Segment_Id) {
+		std::set<uint64_t> used_ids;
+		uint64_t recent_id = 0;
+
+		for (auto &log : logs_to_replay) {
+			std::string name = log.file_name.stem().string();
+			//let's find first digit in the filename
+			char* first_char = nullptr;
+			char* end_char = nullptr;
+			for (size_t i = 0; i < name.size(); i++)
+				if (std::isdigit(name[i])) {
+					first_char = name.data() + i;
+					break;
+				}
+
+			//try to convert
+			if (first_char)
+				log.segment_id = std::strtoull(first_char, &end_char, 10);
+
+			while ((log.segment_id <= 0) ||	//<= just in the case that we would change max_id to signed it
+				(log.segment_id == scgms::Invalid_Segment_Id) ||
+				(log.segment_id == scgms::All_Segments_Id) ||
+				(used_ids.find(log.segment_id) != used_ids.end())) {
+
+				log.segment_id = ++recent_id;
+			}
+
+			used_ids.insert(log.segment_id);
+		}
+
+		std::sort(logs_to_replay.begin(), logs_to_replay.end(), [](auto &a, auto &b) {return a.segment_id < b.segment_id; });
+	}
+
+
+	//3. eventually, replay the logs
+	for (auto &log : logs_to_replay) 
+		Replay_Log(log.file_name, log.segment_id);
 
 	//issue shutdown after the last log, if we were not asked to ignore it
 	if (mEmit_Shutdown) {

@@ -70,7 +70,7 @@ protected:
 	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 protected:
 	// thread method
-	void Replay_Log(const std::filesystem::path& log_filename);
+	void Replay_Log(const std::filesystem::path& log_filename, uint64_t filename_segment_id);
 
 	// opens log for reading, returns true if success, false if failed
 	void Open_Logs();
