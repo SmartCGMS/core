@@ -57,8 +57,4 @@ public:
 
 #pragma warning( pop )
 
-#ifdef _WIN32
-	extern "C" __declspec(dllexport) HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersistent_Filter_Chain_Configuration **configuration);
-#else
-	extern "C" HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersistent_Filter_Chain_Configuration **configuration);
-#endif
+extern "C" HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersistent_Filter_Chain_Configuration **configuration);
