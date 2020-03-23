@@ -105,14 +105,13 @@ namespace diffusion_prediction {
 				double p, cg, c, dt;
 			} retrospective, predictive;
 			double vector[param_count];
-		};		
+		};
 	};
 }
 
 namespace constant_model {
 
 	constexpr GUID signal_Constant = { 0xfc616dd, 0x7bf, 0x49ea, { 0xbf, 0x2c, 0xfc, 0xa1, 0x39, 0x42, 0x9f, 0x5 } };
-
 
 	const size_t param_count = 1;
 	const double default_parameters[param_count] = { 6.66 };
@@ -237,7 +236,7 @@ namespace uva_padova_S2013 {
 		};
 	};
 
-	constexpr uva_padova_S2013::TParameters lower_bounds = {{
+	constexpr uva_padova_S2013::TParameters lower_bounds = {{{
 		//  Qsto1_0, Qsto2_0, Qgut_0, Gp_0, Gt_0, Ip_0, X_0, I_0, XL_0, Il_0, Isc1_0, Isc2_0, Gs_0
 		    0,       0,       0,      20,   20,   0,    0,   0,   0,    0,    0,      0,      20,
 		//  BW,   Gb,   Ib
@@ -259,7 +258,7 @@ namespace uva_padova_S2013 {
 		//  XH_0, Hsc1b, Hsc2b
 		    0,    1.0,   1.0
 
-	}};
+	}} };
 	constexpr uva_padova_S2013::TParameters default_parameters = {{ {
 		//  Qsto1_0, Qsto2_0, Qgut_0, Gp_0,       Gt_0,          Ip_0,      X_0, I_0,    XL_0,   Il_0,          Isc1_0,        Isc2_0,        Gs_0
 		    0,       0,       0,      265.370112, 162.457097269, 5.5043265, 0,   100.25, 100.25, 3.20762505142, 72.4341762342, 141.153779328, 265.370112,

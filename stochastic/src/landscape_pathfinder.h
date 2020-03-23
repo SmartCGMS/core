@@ -319,9 +319,9 @@ protected:
 
 public:
 	CLandscape_Pathfinder(const solver::TSolver_Setup &setup, const double angle_stepping = 3.14*2.0 / 37.0) :
-		mAngle_Stepping(angle_stepping),
 		mSetup(solver::Check_Default_Parameters(setup, /*100'000*/0, 100)),
-		mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)) {
+		mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)),
+		mAngle_Stepping(angle_stepping) {
 	}
 
 	TUsed_Solution Solve(solver::TSolver_Progress &progress) {
