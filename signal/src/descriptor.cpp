@@ -286,12 +286,13 @@ namespace masking
 
 namespace signal_generator {
 
-	constexpr size_t filter_param_count = 8;
+	constexpr size_t filter_param_count = 9;
 	const wchar_t *filter_ui_names[filter_param_count] = {
 		dsSelected_Model,
 		dsFeedback_Name,
 		dsSynchronize_to_Signal,
 		dsSynchronization_Signal,
+		dsTime_Segment_ID,
 		dsStepping,
 		dsMaximum_Time,
 		dsShutdown_After_Last,
@@ -303,6 +304,7 @@ namespace signal_generator {
 		rsFeedback_Name,
 		rsSynchronize_to_Signal,
 		rsSynchronization_Signal,
+		rsTime_Segment_ID,
 		rsStepping,
 		rsMaximum_Time,
 		rsShutdown_After_Last,

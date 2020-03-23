@@ -100,6 +100,21 @@ HRESULT IfaceCalling CFilter_Parameter::Set_Model_Parameters(scgms::IModel_Param
 }
 
 
+HRESULT IfaceCalling CFilter_Parameter::Clone(scgms::IFilter_Parameter **deep_copy) {
+	std::unique_ptr<CFilter_Parameter> clone = std::make_unique<CFilter_Parameter>(mType, mConfig_Name.c_str());
+	clone->mSystem_Variable_Name = mSystem_Variable_Name;
+	clone->mWChar_Container = refcnt::Copy_Container<wchar_t>(mWChar_Container.get());
+	clone->mTime_Segment_ID = refcnt::Copy_Container<int64_t>(mTime_Segment_ID.get());
+	clone->mModel_Parameters = refcnt::Copy_Container<double>(mModel_Parameters.get());
+	
+	(*deep_copy) = static_cast<scgms::IFilter_Parameter*>(clone.get());
+	(*deep_copy)->AddRef();
+	clone.release();
+
+	return S_OK;
+}
+
 HRESULT IfaceCalling create_filter_parameter(const scgms::NParameter_Type type, const wchar_t *config_name, scgms::IFilter_Parameter **parameter) {
 	return Manufacture_Object<CFilter_Parameter, scgms::IFilter_Parameter>(parameter, type, config_name);
 }
+

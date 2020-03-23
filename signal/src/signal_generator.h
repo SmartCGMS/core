@@ -44,9 +44,34 @@
 
 #include <memory>
 #include <thread>
+#include <map>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
+
+namespace signal_generator_internal {
+	class CSynchronized_Generator : public virtual scgms::IFilter, public virtual refcnt::CNotReferenced {
+	protected:
+		uint64_t mSegment_Id = scgms::Invalid_Segment_Id;
+		bool mCatching_Up = false;
+		GUID mSync_Signal = Invalid_GUID;		
+		double mTime_To_Catch_Up = 0.0;
+		double mFixed_Stepping = 5.0*scgms::One_Minute;
+		double mLast_Device_Time = std::numeric_limits<double>::quiet_NaN();
+		scgms::SDiscrete_Model mSync_Model;
+
+		scgms::IFilter *mDirect_Output;	//output we use if the event was for a single event
+		scgms::IFilter *mChained_Output; //output we use if the event was shutdown all for all segments
+	public:
+		CSynchronized_Generator(scgms::IFilter *direct_output, scgms::IFilter *chained_output, const uint64_t segment_id);
+		virtual ~CSynchronized_Generator();
+
+		HRESULT Execute_Sync(scgms::UDevice_Event event);
+
+		virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list* error_description) override final;
+		virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
+	};
+}
 
 /*
  * Filter class for generating signals using a specific model 
@@ -57,14 +82,16 @@ protected:
 	GUID mSync_Signal = Invalid_GUID;
 	double mFixed_Stepping = 5.0*scgms::One_Minute;
 	double mMax_Time = 24.0 * scgms::One_Hour;			//maximum time, for which the generator can run
-	double mTotal_Time = 0.0;	//time for which the generator runs
-	double mLast_Device_Time = std::numeric_limits<double>::quiet_NaN();
-	bool mEmit_Shutdown = true;
-    double mTime_To_Catch_Up = 0.0;
-    bool mCatching_Up = false;
+	double mTotal_Time = 0.0;	//time for which the generator runs	
+	bool mEmit_Shutdown = true;	
+	scgms::SDiscrete_Model mAsync_Model;
+	scgms::SFilter_Configuration mSync_Configuration;
 protected:
-	std::wstring mFeedback_Name;
-	scgms::SDiscrete_Model mModel;
+	signal_generator_internal::CSynchronized_Generator* mLast_Sync_Generator = nullptr;
+	using TSync_Model = std::unique_ptr<signal_generator_internal::CSynchronized_Generator>;
+	std::map<uint64_t, TSync_Model> mSync_Models;
+protected:
+	std::wstring mFeedback_Name;	
 	std::unique_ptr<std::thread> mThread;
 	bool mQuitting = false;
 	void Stop_Generator(bool wait);
