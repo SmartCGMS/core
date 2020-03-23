@@ -78,7 +78,7 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename, u
 	if (!log.is_open()) return;
 	
 	if (mInterpret_Filename_As_Segment_Id)
-		Emit_Info(scgms::NDevice_Event_Code::Information, std::wstring{ dsProcessing_File } +log_filename.c_str(), filename_segment_id);
+		Emit_Info(scgms::NDevice_Event_Code::Information, std::wstring{ dsProcessing_File } + log_filename.wstring().c_str(), filename_segment_id);
 
 
 	auto locale = log.imbue(std::locale(std::cout.getloc(), new CDecimal_Separator<char>('.')));
