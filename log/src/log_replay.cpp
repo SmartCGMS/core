@@ -74,7 +74,7 @@ CLog_Replay_Filter::~CLog_Replay_Filter() {
 void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename, uint64_t filename_segment_id) {
 	if (log_filename.empty()) return;
 
-	std::wifstream log{ log_filename.wstring().c_str() };
+	std::wifstream log{ log_filename.string().c_str() };
 	if (!log.is_open()) return;
 	
 	if (mInterpret_Filename_As_Segment_Id)
