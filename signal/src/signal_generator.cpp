@@ -47,7 +47,7 @@
 
 signal_generator_internal::CSynchronized_Generator::CSynchronized_Generator(
 	scgms::IFilter *direct_output, scgms::IFilter *chained_output, const uint64_t segment_id)
-	: refcnt::CNotReferenced(), mDirect_Output(direct_output), mChained_Output(chained_output), mSegment_Id(segment_id) {
+	: mDirect_Output(direct_output), mChained_Output(chained_output), mSegment_Id(segment_id) {
 
 }
 
@@ -61,7 +61,7 @@ HRESULT IfaceCalling signal_generator_internal::CSynchronized_Generator::Configu
 	mFixed_Stepping = shared_configuration.Read_Double(rsStepping, mFixed_Stepping);
 	const GUID model_id = shared_configuration.Read_GUID(rsSelected_Model);
 	if (Is_Invalid_GUID(model_id) || Is_NaN(mFixed_Stepping)) return E_INVALIDARG;
-
+	mSync_Signal = shared_configuration.Read_GUID(rsSynchronization_Signal);
 	
 	std::vector<double> lower, parameters, upper;
 	shared_configuration.Read_Parameters(rsParameters, lower, parameters, upper);
@@ -79,8 +79,9 @@ HRESULT IfaceCalling signal_generator_internal::CSynchronized_Generator::Execute
 	HRESULT rc = event->Raw(&raw_event);
 	
 	if (rc == S_OK) {
-		const bool chained_send = (raw_event->event_code == scgms::NDevice_Event_Code::Shut_Down) ||
-								  (raw_event->segment_id == scgms::All_Segments_Id);
+		const bool chained_send = mChained_Output &&
+									((raw_event->event_code == scgms::NDevice_Event_Code::Shut_Down) ||
+									(raw_event->segment_id == scgms::All_Segments_Id));
 
 		rc = chained_send ? mChained_Output->Execute(event) : mDirect_Output->Execute(event);
 	}
@@ -88,7 +89,7 @@ HRESULT IfaceCalling signal_generator_internal::CSynchronized_Generator::Execute
 	return rc;
 }
 
-HRESULT signal_generator_internal::CSynchronized_Generator::Execute_Sync(scgms::UDevice_Event event) {
+HRESULT signal_generator_internal::CSynchronized_Generator::Execute_Sync(scgms::UDevice_Event &event) {
 	HRESULT rc = E_UNEXPECTED;
 
 	if (!mCatching_Up) {
@@ -169,7 +170,7 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 		if (shutdown || (event.segment_id() == scgms::All_Segments_Id)) {
 			//an event for all segments
 			if (mLast_Sync_Generator)
-				rc = mLast_Sync_Generator->Execute_Sync(std::move(event));
+				rc = mLast_Sync_Generator->Execute_Sync(event);
 					//the sync'ed generators will subsequenly forward this event among them
 			else
 				rc = Send(event);
@@ -187,7 +188,7 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 				mLast_Sync_Generator = sync_model_iter->second.get();
 			}
 
-			rc = sync_model_iter->second->Execute_Sync(std::move(event));
+			rc = sync_model_iter->second->Execute_Sync(event);
 		}
 
 	} else {
@@ -218,7 +219,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 	if (Is_Invalid_GUID(model_id) || Is_NaN(mFixed_Stepping, mMax_Time)) return E_INVALIDARG;
 	
 	uint64_t segment_id = configuration.Read_Int(rsTime_Segment_ID, scgms::Invalid_Segment_Id);
-	if ((segment_id == scgms::Invalid_Segment_Id) || (segment_id == scgms::All_Segments_Id))
+	if (!mSync_To_Signal && ((segment_id == scgms::Invalid_Segment_Id) || (segment_id == scgms::All_Segments_Id)))
 		return E_INVALIDARG;
 
 
@@ -231,8 +232,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 		error_description.push(str);
 		return E_INVALIDARG;
 	}
-
-	mSync_Signal = configuration.Read_GUID(rsSynchronization_Signal);
+	
 	mFeedback_Name = configuration.Read_String(rsFeedback_Name);	
 	mMax_Time = configuration.Read_Double(rsMaximum_Time, mMax_Time);
 	mEmit_Shutdown = configuration.Read_Bool(rsShutdown_After_Last, mEmit_Shutdown);

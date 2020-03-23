@@ -66,7 +66,7 @@ namespace signal_generator_internal {
 		CSynchronized_Generator(scgms::IFilter *direct_output, scgms::IFilter *chained_output, const uint64_t segment_id);
 		virtual ~CSynchronized_Generator();
 
-		HRESULT Execute_Sync(scgms::UDevice_Event event);
+		HRESULT Execute_Sync(scgms::UDevice_Event &event);
 
 		virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list* error_description) override final;
 		virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
@@ -78,8 +78,7 @@ namespace signal_generator_internal {
  */
 class CSignal_Generator : public virtual scgms::CBase_Filter, public virtual scgms::IFilter_Feedback_Receiver {
 protected:
-	bool mSync_To_Signal = false;
-	GUID mSync_Signal = Invalid_GUID;
+	bool mSync_To_Signal = false;	
 	double mFixed_Stepping = 5.0*scgms::One_Minute;
 	double mMax_Time = 24.0 * scgms::One_Hour;			//maximum time, for which the generator can run
 	double mTotal_Time = 0.0;	//time for which the generator runs	

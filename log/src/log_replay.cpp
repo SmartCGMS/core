@@ -76,12 +76,13 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename, u
 
 	std::wifstream log{ log_filename.string().c_str() };
 	if (!log.is_open()) return;
-	
+
 	if (mInterpret_Filename_As_Segment_Id)
-		Emit_Info(scgms::NDevice_Event_Code::Information, std::wstring{ dsProcessing_File } + log_filename.wstring().c_str(), filename_segment_id);
+		Emit_Info(scgms::NDevice_Event_Code::Information, std::wstring{ dsProcessing_File } +log_filename.wstring().c_str(), filename_segment_id);
 
-
-	auto locale = log.imbue(std::locale(std::cout.getloc(), new CDecimal_Separator<char>('.')));
+	//CDecimal_Separator<char> decimal_separator{'.'};
+	//log.imbue(std::locale(std::cout.getloc(), &decimal_separator));
+	log.imbue(std::locale(std::cout.getloc(), new CDecimal_Separator<char>('.')));
 
 
 	std::wstring line;

@@ -106,6 +106,7 @@ HRESULT IfaceCalling CFilter_Parameter::Clone(scgms::IFilter_Parameter **deep_co
 	clone->mWChar_Container = refcnt::Copy_Container<wchar_t>(mWChar_Container.get());
 	clone->mTime_Segment_ID = refcnt::Copy_Container<int64_t>(mTime_Segment_ID.get());
 	clone->mModel_Parameters = refcnt::Copy_Container<double>(mModel_Parameters.get());
+	clone->mData = mData;
 	
 	(*deep_copy) = static_cast<scgms::IFilter_Parameter*>(clone.get());
 	(*deep_copy)->AddRef();
