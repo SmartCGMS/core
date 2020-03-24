@@ -64,6 +64,8 @@ public:
 
 	virtual HRESULT IfaceCalling Get_Model_Parameters(scgms::IModel_Parameter_Vector **parameters) override final;
 	virtual HRESULT IfaceCalling Set_Model_Parameters(scgms::IModel_Parameter_Vector *parameters) override final;
+
+	virtual HRESULT IfaceCalling Clone(scgms::IFilter_Parameter **deep_copy) override final;
 };
 
 #pragma warning( pop )

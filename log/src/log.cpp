@@ -54,7 +54,7 @@
 #include <string>
 #include <map>
 
-CLog_Filter::CLog_Filter(scgms::IFilter *output)	: CBase_Filter(output) {
+CLog_Filter::CLog_Filter(scgms::IFilter *output) : CBase_Filter(output) {
 	mNew_Log_Records = refcnt::Create_Container_shared<refcnt::wstr_container*>(nullptr, nullptr);
 }
 
@@ -123,8 +123,8 @@ bool CLog_Filter::Open_Log(const std::wstring &log_filename) {
 	
 		result = mLog.is_open();
 		if (result) {
-			//set decimal point and write the header
-			auto unused = mLog.imbue(std::locale(std::cout.getloc(), new CDecimal_Separator<char>('.')));
+			//unused keeps static analysis happy about creating an unnamed object
+			auto unused = mLog.imbue(std::locale(std::cout.getloc(), new CDecimal_Separator<char>{ '.' })); //locale takes owner ship of dec_sep
 			mLog << dsLog_Header << std::endl;
 		}
 	}
