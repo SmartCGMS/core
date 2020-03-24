@@ -319,6 +319,7 @@ namespace signal_generator {
 		nullptr,
 		nullptr,
 		nullptr,
+		nullptr,
 		nullptr
 	};
 
@@ -327,6 +328,7 @@ namespace signal_generator {
 		scgms::NParameter_Type::ptWChar_Array,
 		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptInt64,
 		scgms::NParameter_Type::ptRatTime,
 		scgms::NParameter_Type::ptRatTime,
 		scgms::NParameter_Type::ptBool,

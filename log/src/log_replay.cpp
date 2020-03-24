@@ -80,9 +80,10 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename, u
 	if (mInterpret_Filename_As_Segment_Id)
 		Emit_Info(scgms::NDevice_Event_Code::Information, std::wstring{ dsProcessing_File } +log_filename.wstring().c_str(), filename_segment_id);
 
-	//CDecimal_Separator<char> decimal_separator{'.'};
-	//log.imbue(std::locale(std::cout.getloc(), &decimal_separator));
-	log.imbue(std::locale(std::cout.getloc(), new CDecimal_Separator<char>('.')));
+	//let's declare dec_sep as a named var to avoid a static-analysis warning
+	//=>refs must be 1, other locale would free it upon passing it
+	CDecimal_Separator<char>* decimal_separator = new CDecimal_Separator<char>{'.', 1};	
+	log.imbue(std::locale(std::cout.getloc(), decimal_separator)); //locale takes owner ship of dec_sep
 
 
 	std::wstring line;

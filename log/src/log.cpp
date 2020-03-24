@@ -54,7 +54,7 @@
 #include <string>
 #include <map>
 
-CLog_Filter::CLog_Filter(scgms::IFilter *output)	: CBase_Filter(output) {
+CLog_Filter::CLog_Filter(scgms::IFilter *output) : CBase_Filter(output) {
 	mNew_Log_Records = refcnt::Create_Container_shared<refcnt::wstr_container*>(nullptr, nullptr);
 }
 
@@ -123,9 +123,10 @@ bool CLog_Filter::Open_Log(const std::wstring &log_filename) {
 	
 		result = mLog.is_open();
 		if (result) {
-			//set decimal point and write the header
-			CDecimal_Separator<char> decimal_separator{ '.' };			
-			mLog.imbue(std::locale(std::cout.getloc(), &decimal_separator));
+			//let's declare dec_sep as a named var to avoid a static-analysis warning
+			//=>refs must be 1, other locale would free it upon passing it
+			CDecimal_Separator<char>* decimal_separator = new CDecimal_Separator<char>{ '.', 1 };
+			mLog.imbue(std::locale(std::cout.getloc(), decimal_separator)); //locale takes owner ship of dec_sep
 			mLog << dsLog_Header << std::endl;
 		}
 	}
