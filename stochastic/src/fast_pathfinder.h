@@ -459,8 +459,6 @@ protected:
 
 	TUsed_Solution Evolve_Population(solver::TSolver_Progress &progress) {
 
-		const auto bounds_range = mUpper_Bound - mLower_Bound;
-
 		while ((progress.current_progress++ < mSetup.max_generations) && (progress.cancelled == FALSE)) {
 
 			//update the progress
@@ -546,9 +544,6 @@ protected:
 
 		//a) by creating deterministically generated solutions
 		{
-
-			const auto bounds_range = mUpper_Bound - mLower_Bound;
-
 			TUsed_Solution unit_offset;
 			unit_offset.resize(Eigen::NoChange, mSetup.problem_size);
 			unit_offset.setConstant(0.5);
@@ -638,8 +633,8 @@ protected:
 
 public:
 	CFast_Pathfinder(const solver::TSolver_Setup &setup, const double angle_stepping = 3.14*2.0 / 37.0) :
-		mAngle_Stepping(angle_stepping),
 		mSetup(solver::Check_Default_Parameters(setup, /*100'000*/0, 100)),
+		mAngle_Stepping(angle_stepping),
 		mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)) {
 	}
 

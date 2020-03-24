@@ -56,7 +56,7 @@ bool CFormat_Rule_Loader::Load_Format_Config(const char *default_config, const w
 	};
 
 
-	auto load_config = [this, &func](const char* str, std::function<SI_Error(const char*, CSimpleIniA&)> load_config_func) {
+	auto load_config = [&func](const char* str, std::function<SI_Error(const char*, CSimpleIniA&)> load_config_func) {
 		CSimpleIniA ini;
 		SI_Error err;
 
@@ -69,7 +69,7 @@ bool CFormat_Rule_Loader::Load_Format_Config(const char *default_config, const w
 		return func(ini);
 	};
 
-	auto load_config_from_file = [](const char* file_name, CSimpleIniA& ini)->SI_Error {				
+	auto load_config_from_file = [](const char* file_name, CSimpleIniA& ini)->SI_Error {
 		return ini.LoadFile(file_name);
 	};
 

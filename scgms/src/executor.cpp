@@ -112,7 +112,7 @@ HRESULT IfaceCalling CTerminal_Filter::Execute(scgms::IDevice_Event *event) {
 };
 
 
-CCopying_Terminal_Filter::CCopying_Terminal_Filter(std::vector<scgms::IDevice_Event*> &events) : mEvents(events), CTerminal_Filter(nullptr){
+CCopying_Terminal_Filter::CCopying_Terminal_Filter(std::vector<scgms::IDevice_Event*> &events) : CTerminal_Filter(nullptr), mEvents(events) {
 
 }
 

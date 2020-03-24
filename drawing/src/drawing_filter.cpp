@@ -110,7 +110,6 @@ HRESULT CDrawing_Filter::Do_Execute(scgms::UDevice_Event event) {
 			if (last_time != Rat_Time_To_Unix_Time(insert_time))
 				data.push_back(Value(event.level(), Rat_Time_To_Unix_Time(insert_time), event.segment_id()));
 			else {
-				auto sig_id = event.signal_id();
 				data[data.size() - 1].Set_Value(event.level());
 			}
 		} else

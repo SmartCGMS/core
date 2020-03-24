@@ -24,4 +24,3 @@ EXPORTS
 	Execute_SCGMS_Configuration
 	Inject_SCGMS_Event
 	Shutdown_SCGMS
-

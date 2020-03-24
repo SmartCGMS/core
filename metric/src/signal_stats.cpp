@@ -133,7 +133,7 @@ void CSignal_Stats::Flush_Stats() {
 
     
 
-    auto flush_marker = [&stats_file](const size_t segment_id, auto& series, const wchar_t* marker_string) {
+    auto flush_marker = [&stats_file](const uint64_t segment_id, auto& series, const wchar_t* marker_string) {
         scgms::TSignal_Stats signal_stats;
 
         const bool result = Calculate_Signal_Stats(series, signal_stats);

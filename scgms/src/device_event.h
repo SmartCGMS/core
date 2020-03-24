@@ -53,8 +53,4 @@ public:
 	virtual HRESULT IfaceCalling Clone(IDevice_Event** event) override;
 };
 
-#ifdef _WIN32
-	extern "C" __declspec(dllexport) HRESULT IfaceCalling create_device_event(scgms::NDevice_Event_Code code, scgms::IDevice_Event **event);
-#else
-	extern "C" HRESULT IfaceCalling create_device_event(scgms::NDevice_Event_Code code, scgms::IDevice_Event **event);
-#endif
+extern "C" HRESULT IfaceCalling create_device_event(scgms::NDevice_Event_Code code, scgms::IDevice_Event **event);

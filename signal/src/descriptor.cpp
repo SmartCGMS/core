@@ -444,8 +444,8 @@ namespace signal_descriptor {
 	const scgms::TSignal_Descriptor sleep_quality_desc{ scgms::signal_Sleep_Quality, dsSignal_GUI_Name_Sleep_Quality, L"", scgms::NSignal_Unit::Percent, 0xFF808080, 0xFF808080, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor accel_desc{ scgms::signal_Acceleration, dsSignal_GUI_Name_Acceleration, L"", scgms::NSignal_Unit::Percent, 0xFF808080, 0xFF808080, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 
-	const std::array<scgms::TSignal_Descriptor, 21> signals = { {bg_desc, bg_cal_desc, ig_desc, isig_desc, req_bolus_desc, req_ibr_desc, del_bolus_desc, del_ins_total_desc, del_ibr_desc, ins_act_desc, iob_desc, cob_desc, cho_in_desc, cho_resc_desc, phys_act_desc,
-																 skin_temp_desc, air_temp_desc, heartbeat_desc, eda_desc, accel_desc, sleep_quality_desc} };
+	const std::array<scgms::TSignal_Descriptor, 22> signals = { {bg_desc, bg_cal_desc, ig_desc, isig_desc, req_bolus_desc, req_ibr_desc, del_bolus_desc, del_ins_total_desc, del_ibr_desc, ins_act_desc, iob_desc, cob_desc, cho_in_desc, cho_resc_desc, phys_act_desc,
+																 skin_temp_desc, air_temp_desc, heartbeat_desc, eda_desc, steps_desc, accel_desc, sleep_quality_desc} };
 }
 
 namespace feedback_sender {

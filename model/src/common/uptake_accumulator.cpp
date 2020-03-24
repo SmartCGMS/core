@@ -58,7 +58,6 @@ double Uptake_Accumulator::Get_Disturbance(double t_start, double t_end) const
 	for (auto itr = begin(); itr != end(); ++itr)
 	{
 		auto& evt = *itr;
-		double ratio = 0.0;
 
 		// overlaps?
 		if (t_start < evt.t_max && evt.t_min < t_end)
