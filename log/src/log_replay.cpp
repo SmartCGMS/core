@@ -225,7 +225,7 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename, u
 				bool ok;
 				const double level = wstr_2_dbl(info_str.c_str(), ok);
 				if (ok) {
-					evt.level() = std::stod(info_str);
+					evt.level() = level;
 				} else {
 					std::wstring msg{ dsError_In_Number_Format };
 					msg.append(info_str);
