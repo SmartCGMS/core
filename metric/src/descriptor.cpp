@@ -44,17 +44,19 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/descriptor_utils.h"
 
-const std::array < scgms::TMetric_Descriptor, 10 > metric_descriptor = { {
+const std::array < scgms::TMetric_Descriptor, 12 > metric_descriptor = { {
 	 scgms::TMetric_Descriptor{ mtrAvg_Abs, dsAvg_Abs },
 	 scgms::TMetric_Descriptor{ mtrMax_Abs, dsMax_Abs },
 	 scgms::TMetric_Descriptor{ mtrPerc_Abs, dsPerc_Abs },
 	 scgms::TMetric_Descriptor{ mtrThresh_Abs, dsThresh_Abs },
 	 scgms::TMetric_Descriptor{ mtrLeal_2010, dsLeal_2010 },
 	 scgms::TMetric_Descriptor{ mtrAIC, dsAIC },
-	 scgms::TMetric_Descriptor{ mtrStd_Dev, dsStd_Dev },
+	 scgms::TMetric_Descriptor{ mtrStd_Dev, dsBessel_Std_Dev },
+	 scgms::TMetric_Descriptor{ mtrVariance, dsBessel_Variance },	 
 	 scgms::TMetric_Descriptor{ mtrCrosswalk, dsCrosswalk },
 	 scgms::TMetric_Descriptor{ mtrIntegral_CDF, dsIntegral_CDF },
-	 scgms::TMetric_Descriptor{ mtrAvg_Plus_Bessel_Std_Dev, dsAvg_Plus_Bessel_Std_Dev }
+	 scgms::TMetric_Descriptor{ mtrAvg_Plus_Bessel_Std_Dev, dsAvg_Plus_Bessel_Std_Dev },
+	 scgms::TMetric_Descriptor{ mtrRMSE, dsRMSE },
 } };
 
 HRESULT IfaceCalling do_get_metric_descriptors(scgms::TMetric_Descriptor const **begin, scgms::TMetric_Descriptor const **end) {

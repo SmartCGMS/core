@@ -68,6 +68,9 @@ static constexpr GUID mtrAIC =			//Akaike Information Criterion
 static constexpr GUID mtrStd_Dev =	//standard deviation, TMetricParameters.Threshold gives percentils (e.g. 5% is 5.0) to cut off from the beginning and the end of sorted differences
 { 0x6c8b6358, 0xdf3e, 0x45e4,{ 0xae, 0x39, 0x9a, 0x55, 0x34, 0x7d, 0xa5, 0x85 } };	// {6C8B6358-DF3E-45E4-AE39-9A55347DA585}
 
+static const GUID mtrVariance =	//variance with Bessels correction
+{ 0xb86e4eac, 0xd60a, 0x4c05, { 0xb0, 0xb, 0x43, 0xb6, 0x82, 0xa, 0x61, 0x17 } };	// {B86E4EAC-D60A-4C05-B00B-43B6820A6117}
+
 static constexpr GUID mtrCrosswalk =	// the Croswalk - time-order metric from EMBEC 2017
 { 0x1feed1ce, 0x4ab3, 0x42be,{ 0x83, 0x34, 0x77, 0x46, 0x80, 0x27, 0xf, 0x14 } };	// {1FEED1CE-4AB3-42BE-8334-774680270F14}
 
@@ -76,6 +79,9 @@ static constexpr GUID mtrIntegral_CDF =	//integrates the area beneath cumulative
 
 static constexpr GUID mtrAvg_Plus_Bessel_Std_Dev =	//average plus standard deviation with Bessel's correction
 { 0x5faaa53b, 0x2e58, 0x4e0e,{ 0x8b, 0xd0, 0x2c, 0x79, 0xde, 0x90, 0xfe, 0xbb } };	// {5FAAA53B-2E58-4E0E-8BD0-2C79DE90FEBB}
+
+static const GUID mtrRMSE =
+{ 0xa5594fe2, 0x4e2, 0x45c5, { 0xa1, 0x47, 0xda, 0x54, 0xee, 0x6c, 0x5d, 0x3d } };	// {A5594FE2-04E2-45C5-A147-DA54EE6C5D3D}
 
 
 

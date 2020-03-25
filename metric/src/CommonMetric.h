@@ -66,7 +66,7 @@ protected:
 	virtual double Do_Calculate_Metric() = 0;
 	//Particular metrics should only override this method and no else method
 public:
-	CCommon_Metric(const scgms::TMetric_Parameters &params);
+	CCommon_Metric(const scgms::TMetric_Parameters& params);
 	virtual ~CCommon_Metric() {};
 
 	virtual HRESULT IfaceCalling Accumulate(const double *times, const double *reference, const double *calculated, const size_t count) final;

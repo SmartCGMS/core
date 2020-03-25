@@ -66,9 +66,11 @@ public:
 		id_map[mtrLeal_2010] = std::bind(&CId_Dispatcher::Create_X<CLeal2010Metric>, this, std::placeholders::_1, std::placeholders::_2);
 		id_map[mtrAIC] = std::bind(&CId_Dispatcher::Create_X<CAICMetric>, this, std::placeholders::_1, std::placeholders::_2);
 		id_map[mtrStd_Dev] = std::bind(&CId_Dispatcher::Create_X<CStdDevMetric>, this, std::placeholders::_1, std::placeholders::_2);
+		id_map[mtrVariance] = std::bind(&CId_Dispatcher::Create_X<CVariance_Metric>, this, std::placeholders::_1, std::placeholders::_2);
 		id_map[mtrCrosswalk] = std::bind(&CId_Dispatcher::Create_X<CCrossWalkMetric>, this, std::placeholders::_1, std::placeholders::_2);
 		id_map[mtrIntegral_CDF] = std::bind(&CId_Dispatcher::Create_X<CIntegralCDFMetric>, this, std::placeholders::_1, std::placeholders::_2);
 		id_map[mtrAvg_Plus_Bessel_Std_Dev] = std::bind(&CId_Dispatcher::Create_X<CAvgPlusBesselStdDevMetric>, this, std::placeholders::_1, std::placeholders::_2);
+		id_map[mtrRMSE] = std::bind(&CId_Dispatcher::Create_X<CRMSE_Metric>, this, std::placeholders::_1, std::placeholders::_2);		
 	}
 
 	HRESULT Create_Metric(const scgms::TMetric_Parameters &parameters, scgms::IMetric **metric) const {

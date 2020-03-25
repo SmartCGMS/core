@@ -82,7 +82,7 @@ double CAbsDiffMaxMetric::Do_Calculate_Metric() {
 	return maximum;
 }
 
-CAbsDiffPercentilMetric::CAbsDiffPercentilMetric(scgms::TMetric_Parameters params) : CCommon_Metric(params) {
+CAbsDiffPercentilMetric::CAbsDiffPercentilMetric(scgms::TMetric_Parameters& params) : CCommon_Metric(params) {
 	mInvThreshold = 0.01 * params.threshold;
 };
 
@@ -129,7 +129,7 @@ double CAbsDiffThresholdMetric::Do_Calculate_Metric() {
 }
 
 
-CLeal2010Metric::CLeal2010Metric(scgms::TMetric_Parameters params) : CCommon_Metric({params.metric_id, false, true, params.prefer_more_levels, params.threshold}) {
+CLeal2010Metric::CLeal2010Metric(scgms::TMetric_Parameters& params) : CCommon_Metric({params.metric_id, false, true, params.prefer_more_levels, params.threshold}) {
 	//mParameters.use_relative_error = false;
 	//mParameters.use_squared_differences = true;
 }
@@ -168,7 +168,7 @@ double CLeal2010Metric::Do_Calculate_Metric() {
 	return diffsqsum / avgedsqsum;
 }
 
-CAICMetric::CAICMetric(scgms::TMetric_Parameters params) : CAbsDiffAvgMetric({ params.metric_id, false, true, params.prefer_more_levels, params.threshold }){
+CAICMetric::CAICMetric(scgms::TMetric_Parameters& params) : CAbsDiffAvgMetric({ params.metric_id, false, true, params.prefer_more_levels, params.threshold }){
 	//mParameters.UseRelativeValues = false;
 	//mParameters.UseSquaredDifferences = true;
 };
@@ -179,7 +179,16 @@ double CAICMetric::Do_Calculate_Metric() {
 	return n*log(CAbsDiffAvgMetric::Do_Calculate_Metric()); 
 }
 
-double CStdDevMetric::Do_Calculate_Metric() {
+CRMSE_Metric::CRMSE_Metric(scgms::TMetric_Parameters& params) : CAbsDiffAvgMetric({ params.metric_id, params.use_relative_error, true, params.prefer_more_levels, params.threshold }) { };
+//mParameters.UseSquaredDifferences = true;
+
+double CRMSE_Metric::Do_Calculate_Metric() {
+	return sqrt(CAbsDiffAvgMetric::Do_Calculate_Metric());
+}
+
+
+
+double CVariance_Metric::Do_Calculate_Metric() {
 
 	//threshold holds margins to cut off, so we have to sort first
 	sort(mDifferences.begin(), mDifferences.end(), 
@@ -206,11 +215,9 @@ double CStdDevMetric::Do_Calculate_Metric() {
 	}
 
 	double invn = (double)mDifferences.size();
-	if (mDo_Bessel_Correction) {
-		//first, try Unbiased estimation of standard deviation
-		if (invn > 1.5) invn -= 1.5; 
+	//first, try Unbiased estimation of standard deviation
+	if (invn > 1.5) invn -= 1.5; 
 		else if (invn > 1.0) invn -= 1.0;	//if not, try to fall back to Bessel's Correction at least
-	}
 	invn = 1.0 / invn;
 
 	mLast_Calculated_Avg = sum*invn;
@@ -221,12 +228,16 @@ double CStdDevMetric::Do_Calculate_Metric() {
 		sum += tmp*tmp;
 	}
 
-	return sum*invn;	//We should calculate squared root by definition, but it is useless overhead for us
-						//so that we in-fact calculate variance
+	return sum*invn;
 }
 
+double CStdDevMetric::Do_Calculate_Metric() {
+	return sqrt(CVariance_Metric::Do_Calculate_Metric());
+}
+
+
 double CAvgPlusBesselStdDevMetric::Do_Calculate_Metric() {
-	double variance = CStdDevMetric::Do_Calculate_Metric();
+	const double variance = CVariance_Metric::Do_Calculate_Metric();
 			//also calculates mLastCalculatedAvg
 	return mLast_Calculated_Avg + sqrt(variance);
 }
