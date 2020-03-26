@@ -39,8 +39,8 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
 
 
-#include "..\..\..\..\common\utils\DebugHelper.h"
-#include "..\matlab\libeng.h"
+#include "../../../../common/utils/DebugHelper.h"
+#include "../matlab/libeng.h"
 
 #include <Windows.h>
 

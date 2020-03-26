@@ -47,33 +47,41 @@ class CAbsDiffAvgMetric : public CCommon_Metric {
 protected:
   virtual double Do_Calculate_Metric();
 public:
-	CAbsDiffAvgMetric(const scgms::TMetric_Parameters &params) : CCommon_Metric(params) {};
+	CAbsDiffAvgMetric(const scgms::TMetric_Parameters& params) : CCommon_Metric(params) {};
 };
+
+class CRMSE_Metric : public CAbsDiffAvgMetric {
+protected:
+	virtual double Do_Calculate_Metric() override final;
+public:
+	CRMSE_Metric(scgms::TMetric_Parameters& params);
+};
+
 
 class CAbsDiffMaxMetric : public CCommon_Metric {
 protected:
-	virtual double Do_Calculate_Metric();
+	virtual double Do_Calculate_Metric() override final;
 public:
-	CAbsDiffMaxMetric(const scgms::TMetric_Parameters &params) : CCommon_Metric(params) {};
+	CAbsDiffMaxMetric(const scgms::TMetric_Parameters& params) : CCommon_Metric(params) {};
 };
 
 class CAbsDiffPercentilMetric : public CCommon_Metric {
 private:
 	double mInvThreshold;
 protected:
-	virtual double Do_Calculate_Metric();
+	virtual double Do_Calculate_Metric() override;
 		//Returns the metric at percentil given by mParameters
 public:
-	CAbsDiffPercentilMetric(scgms::TMetric_Parameters params);
+	CAbsDiffPercentilMetric(scgms::TMetric_Parameters& params);
 };
 
 
 class CAbsDiffThresholdMetric : public CCommon_Metric {
 protected:
-	virtual double Do_Calculate_Metric();
+	virtual double Do_Calculate_Metric() override final;
 		//returns the number of levels which have error greater than mParameters.Threshold
 public:
-	CAbsDiffThresholdMetric(scgms::TMetric_Parameters params) : CCommon_Metric(params) {};
+	CAbsDiffThresholdMetric(scgms::TMetric_Parameters& params) : CCommon_Metric(params) {};
 };
 
 
@@ -87,32 +95,38 @@ class CLeal2010Metric : public CCommon_Metric {
 			|vector| - || stands for operator of vector lenght aka Euclidean norm
 		*/
 protected:		
-	virtual double Do_Calculate_Metric();
+	virtual double Do_Calculate_Metric() override final;
 public:
-	CLeal2010Metric(scgms::TMetric_Parameters params);
+	CLeal2010Metric(scgms::TMetric_Parameters& params);
 };
 
 
 class CAICMetric : public CAbsDiffAvgMetric {
 protected:
-	virtual double Do_Calculate_Metric();
+	virtual double Do_Calculate_Metric() override final;
 public:
-	CAICMetric(scgms::TMetric_Parameters params);
+	CAICMetric(scgms::TMetric_Parameters& params);
 };
 
-class CStdDevMetric : public CAbsDiffPercentilMetric {
+class CVariance_Metric : public CAbsDiffPercentilMetric {
 protected:
-	double mLast_Calculated_Avg = std::numeric_limits<double>::quiet_NaN();			//stores the average calculated with the last call to DoCalculateMetric()
-	bool mDo_Bessel_Correction;
-	virtual double Do_Calculate_Metric();
+	double mLast_Calculated_Avg = std::numeric_limits<double>::quiet_NaN();			//stores the average calculated with the last call to DoCalculateMetric()	
+	virtual double Do_Calculate_Metric() override;
 public:
-	CStdDevMetric(scgms::TMetric_Parameters params) : CAbsDiffPercentilMetric(params), mDo_Bessel_Correction(false) {};
+	CVariance_Metric(scgms::TMetric_Parameters& params) : CAbsDiffPercentilMetric(params) {};
 };
 
-class CAvgPlusBesselStdDevMetric : public CStdDevMetric {
-	virtual double Do_Calculate_Metric();
+class CStdDevMetric : public CVariance_Metric {
+protected:
+	virtual double Do_Calculate_Metric() override;
 public:
-	CAvgPlusBesselStdDevMetric(scgms::TMetric_Parameters params) : CStdDevMetric(params) { mDo_Bessel_Correction = true; };
+	CStdDevMetric(scgms::TMetric_Parameters& params) : CVariance_Metric(params) {};
+};
+
+class CAvgPlusBesselStdDevMetric : public CVariance_Metric {
+	virtual double Do_Calculate_Metric() override final;
+public:
+	CAvgPlusBesselStdDevMetric(scgms::TMetric_Parameters& params) : CVariance_Metric(params) {};
 };
 
 
@@ -124,18 +138,18 @@ protected:
 	const bool mCalculate_Real_Relative_Difference = false;
 	virtual double Do_Calculate_Metric();
 public:
-	CCrossWalkMetric(scgms::TMetric_Parameters params) : CCommon_Metric(params) {};
+	CCrossWalkMetric(scgms::TMetric_Parameters& params) : CCommon_Metric(params) {};
 };
 
 class CPath_Difference : public CCommon_Metric {
 protected:
-	virtual double Do_Calculate_Metric();
+	virtual double Do_Calculate_Metric() override final;
 public:
-	CPath_Difference(scgms::TMetric_Parameters params) : CCommon_Metric(params) {};
+	CPath_Difference(scgms::TMetric_Parameters& params) : CCommon_Metric(params) {};
 };
 
 class CIntegralCDFMetric : public CAbsDiffPercentilMetric {
-	virtual double Do_Calculate_Metric();
+	virtual double Do_Calculate_Metric() override final;
 public:
 	CIntegralCDFMetric(scgms::TMetric_Parameters params) : CAbsDiffPercentilMetric(params) {};
 };
