@@ -47,7 +47,7 @@
 
 signal_generator_internal::CSynchronized_Generator::CSynchronized_Generator(
 	scgms::IFilter *direct_output, scgms::IFilter *chained_output, const uint64_t segment_id)
-	: mDirect_Output(direct_output), mChained_Output(chained_output), mSegment_Id(segment_id) {
+	: mSegment_Id(segment_id), mDirect_Output(direct_output), mChained_Output(chained_output) {
 
 }
 
