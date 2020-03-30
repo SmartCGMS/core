@@ -79,7 +79,7 @@ const std::map<GUID, const char*, std::less<GUID>> Signal_Mapping = {
 	{ scgms::signal_Insulin_Activity, "insulin_activity" },
 	{ scgms::signal_Carb_Intake, "carbs" },
 	{ scgms::signal_IOB, "iob" },
-	{ scgms::signal_COB, "cob" },
+	{ scgms::signal_COB, "cob" },	
 };
 
 CDrawing_Filter::CDrawing_Filter(scgms::IFilter *output) : CBase_Filter(output), mGraphMaxValue(-1) {
@@ -324,7 +324,9 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 
 		if (Signal_Mapping.find(presentData.first) == Signal_Mapping.end())
 		{
-			const std::string& key = calcSignalMap[presentData.first];
+			//const std::string& key = calcSignalMap[presentData.first];
+			const std::string& key = Narrow_WString(GUID_To_WString(presentData.first));
+								
 
 			mGraphMaxValue = 0.0;
 
@@ -365,6 +367,7 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 			}
 
 			vectorsMap[key].identifier = key;
+			vectorsMap[key].signal_id = presentData.first;
 
 			if (mParameterChanges.find(signal_id) != mParameterChanges.end())
 			{
@@ -381,13 +384,14 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 				}
 
 				vectorsMap[pkey].identifier = pkey;
+				vectorsMap[pkey].signal_id = presentData.first;
 			}
 
 			auto itr = mCalcSignalNameMap.find(signal_id);
 			if (itr != mCalcSignalNameMap.end())
 				mLocaleMap[key] = itr->second;
 			else
-				mLocaleMap[key] = "???";
+				mLocaleMap[key] = Narrow_WString(GUID_To_WString(signal_id));
 		}
 	}
 
@@ -427,6 +431,10 @@ HRESULT CDrawing_Filter::Do_Configure(scgms::SFilter_Configuration configuration
 	// cache model signal names
 	auto models = scgms::get_model_descriptors();
 	scgms::CSignal_Description signal_descriptions;
+	signal_descriptions.for_each([this](scgms::TSignal_Descriptor desc) {
+		mCalcSignalNameMap[desc.id] = Narrow_WChar(desc.signal_description);
+	});
+
 	for (auto const& model : models)
 	{
 		for (size_t i = 0; i < model.number_of_calculated_signals; i++)
@@ -437,8 +445,10 @@ HRESULT CDrawing_Filter::Do_Configure(scgms::SFilter_Configuration configuration
 		}
 	}
 
-	for (size_t i = 0; i < scgms::signal_Virtual.size(); i++)
-		mCalcSignalNameMap[scgms::signal_Virtual[i]] = std::string("virtual ") + std::to_string(i);
+	//for (size_t i = 0; i < scgms::signal_Virtual.size(); i++)
+//		mCalcSignalNameMap[scgms::signal_Virtual[i]] = std::string("virtual ") + std::to_string(i);
+
+	
 
 	Fill_Localization_Map(mLocaleMap);
 
@@ -611,6 +621,8 @@ void CDrawing_Filter::Set_Locale_Title(LocalizationMap& locales, std::wstring ti
 
 void CDrawing_Filter::Fill_Localization_Map(LocalizationMap& locales)
 {
+
+
 	locales[Narrow_WChar(rsDrawingLocaleTitle)] = Narrow_WChar(dsDrawingLocaleTitle);
 	locales[Narrow_WChar(rsDrawingLocaleTitleDay)] = Narrow_WChar(dsDrawingLocaleTitleDay);
 	locales[Narrow_WChar(rsDrawingLocaleSubtitle)] = Narrow_WChar(dsDrawingLocaleSubtitle);
@@ -651,6 +663,15 @@ void CDrawing_Filter::Fill_Localization_Map(LocalizationMap& locales)
 	locales[Narrow_WChar(rsDrawingLocaleRelativeError)] = Narrow_WChar(dsDrawingLocaleRelativeError);
 	locales[Narrow_WChar(rsDrawingLocaleCummulativeProbability)] = Narrow_WChar(dsDrawingLocaleCummulativeProbability);
 	locales[Narrow_WChar(rsDrawingLocaleElevatedGlucose)] = Narrow_WChar(dsDrawingLocaleElevatedGlucose);
+
+
+	scgms::CSignal_Description signal_descriptions;
+	for (auto &sig : Signal_Mapping) {
+		locales[sig.second] = Narrow_WString(signal_descriptions.Get_Name(sig.first));
+	}
+	locales["carbIntake"] = locales["carbs"];
+	   
+	/*
 	locales["basal_insulin_rate"] = "Suggested basal rate";
 	locales["cob"] = "Carbohydrates on board";
 	locales["iob"] = "Insulin on board";
@@ -658,4 +679,5 @@ void CDrawing_Filter::Fill_Localization_Map(LocalizationMap& locales)
 	locales["calcd_insulin"] = "Calculated pre-meal bolus";
 	locales["carbIntake"] = "Carbohydrates intake";
 	locales["insulin_activity"] = "Insulin activity";
+*/	
 }

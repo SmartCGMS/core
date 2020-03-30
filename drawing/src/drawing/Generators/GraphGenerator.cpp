@@ -420,8 +420,12 @@ void CGraph_Generator::Write_Body()
 
     // x-axis description
     std::vector<time_t> times = Utility::Get_Times(mMinD, mMaxD);
-
+	
+	const time_t one_day = 24 * 60 * 60;
+	const time_t ten_days = 10 * one_day;
 	mDifD = mMaxD - mMinD;
+	if (mDifD > ten_days)
+		sizeX = maxX = static_cast<decltype(sizeX)>(mDifD / one_day) * 100;
 
     // x-axis description group scope
     {

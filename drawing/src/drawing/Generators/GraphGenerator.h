@@ -40,6 +40,8 @@
 
 #include "IGenerator.h"
 
+#include "../../../../../common/rtl/UILib.h"
+
 struct TCoordinate;
 struct Value;
 class Stats;
@@ -52,6 +54,8 @@ class CGraph_Generator : public IGenerator
     private:
         //
 
+	protected:
+		scgms::CSignal_Description mSignal_Desc{};
     protected:
         // maximum value on Y axis
         double mMaxValueY;

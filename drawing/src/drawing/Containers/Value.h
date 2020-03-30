@@ -43,6 +43,8 @@
 #include <vector>
 #include <string>
 
+#include "../../../../../common/rtl/guid.h"
+
 typedef std::map<std::string, std::string> LocalizationMap;
 
 struct Value
@@ -103,6 +105,7 @@ struct Data
     bool visible = false;
     bool empty = true;
 	bool calculated = false;
+	GUID signal_id = Invalid_GUID;
 	std::string identifier;
 	std::string refSignalIdentifier;
 };
