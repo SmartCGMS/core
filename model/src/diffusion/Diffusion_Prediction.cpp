@@ -54,7 +54,7 @@ CDiffusion_Prediction::CDiffusion_Prediction(scgms::WTime_Segment segment) : CCo
 HRESULT IfaceCalling CDiffusion_Prediction::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 
-	diffusion_prediction::TParameters &parameters = scgms::Convert_Parameters<diffusion_prediction::TParameters>(params, diffusion_prediction::default_parameters);
+	const diffusion_prediction::TParameters &parameters = scgms::Convert_Parameters<diffusion_prediction::TParameters>(params, diffusion_prediction::default_parameters);
 
 	//destination times
 	Eigen::Map<TVector1D> converted_times{ Map_Double_To_Eigen<TVector1D>(times, count) };

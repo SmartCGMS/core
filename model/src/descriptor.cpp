@@ -47,6 +47,7 @@
 #include "bergman/bergman.h"
 #include "uva_padova/uva_padova.h"
 #include "bolus/insulin_bolus.h"
+#include "histogram_prediction/histogram_ig_prediction.h"
 
 #include <vector>
 
@@ -562,20 +563,56 @@ namespace const_cr {
 }
 
 
+namespace hist_ig_pred {
+	const size_t param_count = 1;
+	const scgms::NParameter_Type param_types[param_count] = { scgms::NParameter_Type::ptRatTime };
+
+	//Intentionally, paramters, e.i.; dt, is not ptDoubleArray/parameters
+	//as optimizing them for this particular filter would require hundreds of GB
+
+	const wchar_t *param_ui_names[param_count] = { dsDt };
+	const wchar_t *param_config_names[param_count] = { rsDt_Column };
+	const wchar_t *param_tooltips[param_count] = { nullptr};
+	
+	const size_t signal_count = 1;
+
+	const GUID signal_ids[signal_count] = { signal_Histogram_IG_Prediction };
+	const wchar_t *signal_names[signal_count] = { dsHistogram_IG_Prediction_Signal };	
+
+	const scgms::TFilter_Descriptor desc = {
+		id,
+		scgms::NFilter_Flags::None,		
+		dsHistogram_IG_Prediction_Model,
+		param_count,
+		param_types,
+		param_ui_names,
+		param_config_names,
+		param_tooltips
+	};
+
+	//signal not described because not needed to show?
+	
+	const scgms::TSignal_Descriptor sig_desc{ signal_Histogram_IG_Prediction, dsHistogram_IG_Prediction_Signal, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFF5BD1F, 0xFFF5BD1F, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+}
+
+
+const std::array<scgms::TFilter_Descriptor, 1> filter_descriptions = { hist_ig_pred::desc};
+
 const std::array<scgms::TModel_Descriptor, 10> model_descriptions = { { diffusion_v2_model::desc,
 																		 steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc, diffusion_prediction::desc,
 																		 constant_model::desc,
 																		 bergman_model::desc,
 																		 uva_padova_S2013::desc,
 																		 insulin_bolus::desc,
-																		 const_isf::desc, const_cr::desc } };
+																		 const_isf::desc, const_cr::desc} };
 
 
-const std::array<scgms::TSignal_Descriptor, 15> signals_descriptors = { {diffusion_v2_model::bg_desc, diffusion_v2_model::ig_desc, steil_rebrin::bg_desc, 
+const std::array<scgms::TSignal_Descriptor, 16> signals_descriptors = { {diffusion_v2_model::bg_desc, diffusion_v2_model::ig_desc, steil_rebrin::bg_desc, 
 																		 steil_rebrin_diffusion_prediction::ig_desc, diffusion_prediction::ig_desc, 
 																		 constant_model::const_desc,
 																		 bergman_model::bg_desc, bergman_model::ig_desc, bergman_model::iob_desc, bergman_model::cob_desc, bergman_model::basal_insulin_desc, bergman_model::insulin_activity_desc,
-																		 uva_padova_S2013::ig_desc, uva_padova_S2013::bg_desc, uva_padova_S2013::ins_desc
+																		 uva_padova_S2013::ig_desc, uva_padova_S2013::bg_desc, uva_padova_S2013::ins_desc,
+																		 hist_ig_pred::sig_desc
 																		}};
 
 HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
@@ -584,7 +621,7 @@ HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, 
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end) {
+HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end) {
 	*begin = const_cast<scgms::TSignal_Descriptor*>(signals_descriptors.data());
 	*end = *begin + signals_descriptors.size();
 	return S_OK;
@@ -597,4 +634,20 @@ HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IMode
 	else if (*model_id == uva_padova_S2013::model_id) return Manufacture_Object<CUVA_Padova_S2013_Discrete_Model>(model, parameters, output);
 	else if (*model_id == insulin_bolus::model_id) return Manufacture_Object<CDiscrete_Insulin_Bolus_Calculator>(model, parameters, output);
 		else return E_NOTIMPL;
+}
+
+
+
+HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
+	*begin = const_cast<scgms::TFilter_Descriptor*>(filter_descriptions.data());
+	*end = *begin + filter_descriptions.size();
+	return S_OK;
+}
+
+
+HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
+	if (*id == hist_ig_pred::desc.id)
+		return Manufacture_Object<CHistogram_IG_Prediction>(filter, output);
+
+	return ENOENT;
 }

@@ -51,7 +51,7 @@ CConstant_Insulin_Sensitivity_Model::CConstant_Insulin_Sensitivity_Model(scgms::
 HRESULT IfaceCalling CConstant_Insulin_Sensitivity_Model::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	const_isf::TParameters &parameters = scgms::Convert_Parameters<const_isf::TParameters>(params, const_isf::default_parameters);
+	const const_isf::TParameters &parameters = scgms::Convert_Parameters<const_isf::TParameters>(params, const_isf::default_parameters);
 
 	// for all input times (reference signal times), output constant value
 	// this is generally not true for ISF - may vary with time of the day and excercise
@@ -76,7 +76,7 @@ CConstant_Carb_Ratio_Model::CConstant_Carb_Ratio_Model(scgms::WTime_Segment segm
 HRESULT IfaceCalling CConstant_Carb_Ratio_Model::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	const_cr::TParameters &parameters = scgms::Convert_Parameters<const_cr::TParameters>(params, const_cr::default_parameters);
+	const const_cr::TParameters &parameters = scgms::Convert_Parameters<const_cr::TParameters>(params, const_cr::default_parameters);
 
 	// for all input times (reference signal times), output constant value
 	// this is generally not true for CR - may vary with time of the day and other physiological aspects

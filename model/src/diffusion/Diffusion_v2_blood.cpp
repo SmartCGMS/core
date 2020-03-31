@@ -56,7 +56,7 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(scgms::IModel_Pa
 	if (count == 0) return S_FALSE;
 	if ((times == nullptr) || (levels == nullptr)) return E_INVALIDARG;
 
-	diffusion_v2_model::TParameters &parameters = scgms::Convert_Parameters<diffusion_v2_model::TParameters>(params, diffusion_v2_model::default_parameters);
+	const diffusion_v2_model::TParameters &parameters = scgms::Convert_Parameters<diffusion_v2_model::TParameters>(params, diffusion_v2_model::default_parameters);
 	
 	auto present_ist = Reserve_Eigen_Buffer(mPresent_Ist, count );
 	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, times, present_ist.data(), count, scgms::apxNo_Derivation);

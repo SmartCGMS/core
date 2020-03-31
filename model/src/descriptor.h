@@ -365,8 +365,7 @@ namespace const_isf
 	};
 }
 
-namespace const_cr
-{
+namespace const_cr {
 	constexpr const GUID const_cr_signal_id = { 0xb09dea1f, 0xae22, 0x4e27, { 0x90, 0x25, 0xc7, 0x69, 0xc2, 0x7d, 0x50, 0x74 } };	// {B09DEA1F-AE22-4E27-9025-C769C27D5074}
 
 	const size_t param_count = 1;
@@ -382,7 +381,15 @@ namespace const_cr
 	};
 }
 
+namespace hist_ig_pred {
+	const GUID id = { 0xa730a576, 0xe84d, 0x4834, { 0x82, 0x6f, 0xfa, 0xee, 0x56, 0x4e, 0x6a, 0xbd } };  // {A730A576-E84D-4834-826F-FAEE564E6ABD}
+	constexpr const GUID signal_Histogram_IG_Prediction = { 0x4f9d0e51, 0x65e3, 0x4aaf, { 0xa3, 0x87, 0xd4, 0xd, 0xee, 0xe0, 0x72, 0x50 } }; 		// {4F9D0E51-65E3-4AAF-A387-D40DEEE07250}
+}
+
+
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end);
-extern "C" HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model);
 extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end);
+extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end);
+extern "C" HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model);
+extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter);

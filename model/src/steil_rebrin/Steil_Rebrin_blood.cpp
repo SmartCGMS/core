@@ -55,7 +55,7 @@ CSteil_Rebrin_blood::CSteil_Rebrin_blood(scgms::WTime_Segment segment) : CCommon
 HRESULT IfaceCalling CSteil_Rebrin_blood::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 
-	steil_rebrin::TParameters &parameters = scgms::Convert_Parameters<steil_rebrin::TParameters>(params, steil_rebrin::default_parameters);
+	const steil_rebrin::TParameters &parameters = scgms::Convert_Parameters<steil_rebrin::TParameters>(params, steil_rebrin::default_parameters);
 	if (parameters.alpha == 0.0) return E_INVALIDARG;	//this parameter cannot be zero
 
 	auto present_ist = Reserve_Eigen_Buffer(mPresent_Ist, count );
