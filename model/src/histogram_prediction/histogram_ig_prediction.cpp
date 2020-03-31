@@ -54,7 +54,7 @@ namespace hist_ig_pred {
 	}
 
 	double Histogram_Index_To_Level(const size_t index) {
-		if (index == 0) return Low_Threshold * 0.5;
+		if (index == 0) return Low_Threshold - Half_Band_Size;
 		if (index >= Band_Count - 1) return High_Threshold + Half_Band_Size;
 
 		return Low_Threshold + static_cast<double>(index - 1)*Band_Size + Half_Band_Size;
@@ -94,11 +94,11 @@ namespace hist_ig_pred {
 		//30 minutes to the history, we we sample to predict
 		//memory allows us to use T5th only, se we make a trick
 		//and resample by 6 minutes
-		result << -24.0*scgms::One_Minute - horizon;
-		result << -18.0*scgms::One_Minute - horizon;
-		result << -12.0*scgms::One_Minute - horizon;
-		result << -6.0*scgms::One_Minute - horizon;
-		result << -0.0*scgms::One_Minute - horizon;
+		result(0) = -120.0*scgms::One_Minute - horizon;
+		result(1) = -90.0*scgms::One_Minute - horizon;
+		result(2) = -60.0*scgms::One_Minute - horizon;
+		result(3) = -30.0*scgms::One_Minute - horizon; 
+		result(4) = -0.0*scgms::One_Minute - horizon;
 
 		return result;
 	}
@@ -117,19 +117,29 @@ HRESULT CHistogram_IG_Prediction::Do_Execute(scgms::UDevice_Event event) {
 	if ((event.event_code() == scgms::NDevice_Event_Code::Level) &&
 		(event.signal_id() == scgms::signal_IG)) {
 
-		auto clone = event.Clone();
+		const double dev_time = event.device_time();
+		const uint64_t seg_id = event.segment_id();
+		const double level = event.level();
+		
 		HRESULT rc = Send(event);
-		if (SUCCEEDED(rc)) {
-			clone.device_id() = hist_ig_pred::id;
-			clone.level() = Update_And_Predict(event.device_time(), event.level());
-			clone.device_time() += mDt;			
-			rc = Send(clone);
+		if (SUCCEEDED(rc)) {			
+			const double pred_level = Update_And_Predict(dev_time, level);
+
+			if (std::isnormal(pred_level)) {
+				scgms::UDevice_Event pred{ scgms::NDevice_Event_Code::Level };
+				pred.device_id() = hist_ig_pred::id;
+				pred.level() = pred_level;
+				pred.device_time() = dev_time + mDt;
+				pred.signal_id() = hist_ig_pred::signal_Histogram_IG_Prediction;
+				pred.segment_id() = seg_id;
+				rc = Send(pred);
+			}
 		}
 
 		return rc;
 	}
 	else
-		return Send(event);
+		return Send(event);	
 }
 
 HRESULT CHistogram_IG_Prediction::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
@@ -137,7 +147,7 @@ HRESULT CHistogram_IG_Prediction::Do_Configure(scgms::SFilter_Configuration conf
 	mSampling_Delta = hist_ig_pred::Prediction_Sampling_Delta(mDt);
 
 	memset(&mIG_Course, 0, sizeof(mIG_Course));
-
+	mIst = scgms::SSignal{ scgms::STime_Segment{}, scgms::signal_IG };
 	return S_OK;
 }
 
@@ -177,15 +187,27 @@ double CHistogram_IG_Prediction::Update_And_Predict(const double current_time, c
 
 		hist_ig_pred::TProbability prob = hist_ig_pred::Histogram_To_Probability(mIG_Daily)*
 									      hist_ig_pred::Histogram_To_Probability(mIG_Weekly[day_index]);
-
+		
 		if (history != nullptr)
 			prob *= hist_ig_pred::Histogram_To_Probability(*history);
-
+		
+		
 		std::array<size_t, hist_ig_pred::Band_Count> idx;
 		std::iota(idx.begin(), idx.end(), 0);
 		std::sort(idx.begin(), idx.end(), [&prob](auto a, auto b) {return prob(a) > prob(b);  });
 
-		result = hist_ig_pred::Histogram_Index_To_Level(idx[0]);
+		if (prob[idx[0]] != 0.0) {
+			result = hist_ig_pred::Histogram_Index_To_Level(idx[0]);
+
+			const double rel_thresh = 0.5;
+			const double rel_diff = abs(result - ig_level) / ig_level;
+			if (rel_diff > rel_thresh) {
+				if (result > ig_level) result = (1.0 + rel_thresh)*ig_level;
+				else result = rel_thresh *ig_level;
+			}
+
+		}
+			else result = ig_level;
 	}
 
 	return result;

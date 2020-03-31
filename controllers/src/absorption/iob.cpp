@@ -167,7 +167,7 @@ IOB_Combined CInsulin_Absorption::Calculate_Total_IOB(double nowTime, double pea
 HRESULT CInsulin_Absorption::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	iob::TParameters &parameters = scgms::Convert_Parameters<iob::TParameters>(params, iob::default_parameters);
+	const iob::TParameters &parameters = scgms::Convert_Parameters<iob::TParameters>(params, iob::default_parameters);
 
 	for (size_t i = 0; i < count; i++)
 	{

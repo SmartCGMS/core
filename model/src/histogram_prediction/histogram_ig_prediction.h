@@ -76,7 +76,7 @@ namespace hist_ig_pred {
 	using T4th = std::array<T3rd, Band_Count>;
 	using T5th = std::array<T4th, Band_Count>;
 	/* sixth exceeds 2GB limit per array declaration
-	hence leading to too much memory consumtion*/
+	hence leading to too much memory consumption*/
 	using T6th = std::array<T5th, Band_Count>;
 	
 	const double default_horizon = 30.0*scgms::One_Minute;

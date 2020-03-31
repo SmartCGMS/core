@@ -53,7 +53,7 @@ CBetaPID_Insulin_Regulation::CBetaPID_Insulin_Regulation(scgms::WTime_Segment se
 HRESULT CBetaPID_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	betapid_insulin_regulation::TParameters &parameters = scgms::Convert_Parameters<betapid_insulin_regulation::TParameters>(params, betapid_insulin_regulation::default_parameters);
+	const betapid_insulin_regulation::TParameters &parameters = scgms::Convert_Parameters<betapid_insulin_regulation::TParameters>(params, betapid_insulin_regulation::default_parameters);
 
 	const double h = scgms::One_Minute * 1.0;
 	const size_t integral_history = 30;
@@ -154,7 +154,7 @@ CBetaPID2_Insulin_Regulation::CBetaPID2_Insulin_Regulation(scgms::WTime_Segment 
 HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	betapid_insulin_regulation::TParameters &parameters = scgms::Convert_Parameters<betapid_insulin_regulation::TParameters>(params, betapid_insulin_regulation::default_parameters);
+	const betapid_insulin_regulation::TParameters &parameters = scgms::Convert_Parameters<betapid_insulin_regulation::TParameters>(params, betapid_insulin_regulation::default_parameters);
 
 	const double h = scgms::One_Minute * 1.0;
 	const size_t integral_history = 30;
@@ -279,7 +279,7 @@ CBetaPID3_Insulin_Regulation::CBetaPID3_Insulin_Regulation(scgms::WTime_Segment 
 HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	betapid3_insulin_regulation::TParameters &parameters = scgms::Convert_Parameters<betapid3_insulin_regulation::TParameters>(params, betapid3_insulin_regulation::default_parameters);
+	const betapid3_insulin_regulation::TParameters &parameters = scgms::Convert_Parameters<betapid3_insulin_regulation::TParameters>(params, betapid3_insulin_regulation::default_parameters);
 
 	const double h = scgms::One_Minute * 5.0;
 	const size_t integral_history = 12;

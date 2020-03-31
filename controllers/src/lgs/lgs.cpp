@@ -50,7 +50,7 @@ CConstant_Basal_LGS_Insulin_Rate_Model::CConstant_Basal_LGS_Insulin_Rate_Model(s
 HRESULT IfaceCalling CConstant_Basal_LGS_Insulin_Rate_Model::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
-	lgs_basal_insulin::TParameters &parameters = scgms::Convert_Parameters<lgs_basal_insulin::TParameters>(params, lgs_basal_insulin::default_parameters);
+	const lgs_basal_insulin::TParameters &parameters = scgms::Convert_Parameters<lgs_basal_insulin::TParameters>(params, lgs_basal_insulin::default_parameters);
 
 	const double historyTimeStep = scgms::One_Minute * 5.0;	// 5 minute step
 	const size_t historyTimeCnt = static_cast<size_t>(parameters.suspend_duration / historyTimeStep);
