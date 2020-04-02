@@ -60,69 +60,10 @@ namespace hist_ig_pred {
 		return Low_Threshold + static_cast<double>(index - 1)*Band_Size + Half_Band_Size;
 	}
 
-	void Inc_Histogram(THistogram &histogram, const size_t index) {
-		//we do not use OOP to conserve memory
-		//=>therefore we use just one byte to represent the counters
-		//as the histogram will be actually transformed to probability distribution
-		//we just need to identify the peaks => halving the counters
-
-		uint8_t &val = histogram[index];
-		if (val == std::numeric_limits<std::remove_reference<decltype(histogram[0])>::type>::max()) {
-			for (auto &val_to_half : histogram)
-				val_to_half /= 2;
-		}
-		val++;
-	}
-
-	TProbability Histogram_To_Probability(const THistogram &histogram) {
-		TProbability result;
-		for (size_t i = 0; i < histogram.size(); i++)
-			result(i) = histogram[i];
-
-		const double max = result.maxCoeff();
-		if (max != 0.0)
-			result /= max;
-
-		//result.normalize();
-
-		return result;
-	}
-
-	TProbability Probability_Mamdani_Or(const TProbability &a, const TProbability &b) {
-		return a.max(b);
-	}
-
-	size_t Probability_Centroid(const TProbability &p) {
-		double area = p.sum();
-		if (area <= 0.0) return std::numeric_limits<size_t>::max();
-
-		double moments = 0.0;
-		for (auto i = 0; i < p.cols(); i++) {
-			moments += p(i)*static_cast<double>(i);
-		}
-
-		return static_cast<size_t>(std::round(moments / area));
-	}
-
-	TSampling_Delta Prediction_Sampling_Delta(const double horizon) {
-		TSampling_Delta result;
-
-		//30 minutes to the history, we we sample to predict
-		//memory allows us to use T5th only, se we make a trick
-		//and resample by 6 minutes
-		result(0) = -120.0*scgms::One_Minute - horizon;
-		result(1) = -90.0*scgms::One_Minute - horizon;
-		result(2) = -60.0*scgms::One_Minute - horizon;
-		result(3) = -30.0*scgms::One_Minute - horizon; 
-		result(4) = -0.0*scgms::One_Minute - horizon;
-
-		return result;
-	}
-
-
-
+	
 	CPattern::CPattern(const double current_level, double x2, double x) :
 		mBand_Idx(Level_To_Histogram_Index(current_level)), mX2(dbl_2_pat(x2)), mX(dbl_2_pat(x)) {
+		mHistogram.setZero();
 	}
 
 	NPattern_Dir CPattern::dbl_2_pat(const double x) const {
@@ -138,36 +79,62 @@ namespace hist_ig_pred {
 	}
 
 	double CPattern::Level() const {
-		size_t bi = 0;
-		double m = mHistogram(0);
-		for (auto i = 1; i < mHistogram.cols(); i++)
-			if (m < mHistogram(i)) {
-				bi = i;
-				m = mHistogram(i);
+
+		auto find_max = [&]() {
+			size_t bi = 0;
+			double m = mHistogram(0);
+			for (auto i = 1; i < mHistogram.cols(); i++)
+				if (m < mHistogram(i)) {
+					bi = i;
+					m = mHistogram(i);
+				}
+
+			return Histogram_Index_To_Level(bi);
+		};
+
+		auto find_centroid = [&]() {
+			TVector prob = mHistogram;
+			const double mx = prob.maxCoeff();
+			if (mx > 0.0) {
+				prob /= mx;
+
+				const double area = prob.sum();
+
+				double moments = 0.0;
+				for (auto i = 0; i < prob.cols(); i++) {
+					moments += prob(i)*static_cast<double>(i);
+				}
+
+				const size_t result_idx = static_cast<size_t>(std::round(moments / area));
+
+				return Histogram_Index_To_Level(result_idx);
 			}
+			else
+				return std::numeric_limits<double>::quiet_NaN();
+		};
 
-		return Histogram_Index_To_Level(bi);
 
+		auto find_bisection = [&]() {
+			double sum1 = 0.0;
+			double sum2 = mHistogram.sum();
+			size_t result_idx = mHistogram.cols() - 1;
 
-		TVector prob = mHistogram;
-		const double mx = prob.maxCoeff();
-		if (mx > 0.0) {
-			prob /= mx;
+			for (auto i = 0; i < mHistogram.cols(); i++) {
+				const double val = mHistogram(i);
+				sum1 += val;
+				sum2 -= val;
 
-			const double area = prob.sum();
-
-			double moments = 0.0;
-			for (auto i = 0; i < prob.cols(); i++) {
-				moments += prob(i)*static_cast<double>(i);
+				if (sum1 > sum2) {
+					result_idx = i;
+					break;
+				}
 			}
-
-			const size_t result_idx = static_cast<size_t>(std::round(moments / area));
 
 			return Histogram_Index_To_Level(result_idx);
-		}
-		else
-			return std::numeric_limits<double>::quiet_NaN();
+		};
 
+
+		return find_centroid();
 	}
 
 	bool CPattern::operator< (const CPattern &other) const {
@@ -217,20 +184,18 @@ HRESULT CHistogram_IG_Prediction::Do_Execute(scgms::UDevice_Event event) {
 
 HRESULT CHistogram_IG_Prediction::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mDt = configuration.Read_Double(rsDt_Column, mDt);
-	mSampling_Delta = hist_ig_pred::Prediction_Sampling_Delta(mDt);
 
-	memset(&mIG_Course, 0, sizeof(mIG_Course));
 	mIst = scgms::SSignal{ scgms::STime_Segment{}, scgms::signal_IG };
 	return S_OK;
 }
 
 double CHistogram_IG_Prediction::Update_And_Predict(const double current_time, const double ig_level) {
 	double result = std::numeric_limits<double>::quiet_NaN();
-
+ 
 	if (SUCCEEDED(mIst->Update_Levels(&current_time, &ig_level, 1))) {
 
-		const std::array<double, 3> times = { current_time - mDt - 60 * scgms::One_Minute,
-											  current_time - mDt - 30 * scgms::One_Minute,
+		const std::array<double, 3> times = { current_time - mDt - 10 * scgms::One_Minute,
+											  current_time - mDt - 5 * scgms::One_Minute,
 											  current_time - mDt - 0 * scgms::One_Minute };
 		std::array<double, 3> levels;
 		if (mIst->Get_Continuous_Levels(nullptr, times.data(), levels.data(), times.size(), scgms::apxNo_Derivation) == S_OK) {
@@ -276,57 +241,6 @@ double CHistogram_IG_Prediction::Update_And_Predict(const double current_time, c
 				result = iter->second.Level();
 			}
 		}
-	}
-
-	return result;
-}
-
-
-double CHistogram_IG_Prediction::Update_And_Predict_X(const double current_time, const double ig_level) {
-	double result = ig_level;
-
-	if (SUCCEEDED(mIst->Update_Levels(&current_time, &ig_level, 1))) {
-		const size_t hist_index = hist_ig_pred::Level_To_Histogram_Index(ig_level);
-		const size_t day_index = static_cast<size_t>(std::floor(current_time)) % 7;
-
-		hist_ig_pred::Inc_Histogram(mIG_Daily, hist_index);
-		hist_ig_pred::Inc_Histogram(mIG_Weekly[day_index], hist_index);
-
-		//try to update the patterns based on the 30-minutes long past
-		hist_ig_pred::THistogram* history = nullptr;
-		hist_ig_pred::TSampling_Delta times = mSampling_Delta + current_time;
-		std::array<double, hist_ig_pred::samples_count> levels;
-		if (mIst->Get_Continuous_Levels(nullptr, times.data(), levels.data(), levels.size(), scgms::apxNo_Derivation) == S_OK) {
-			
-			bool all_normals = true;
-			for (auto &level : levels)
-				if (!std::isnormal(level)) {
-					all_normals = false;
-						break;
-				}
-
-			if (all_normals) {
-				history = &mIG_Course[hist_ig_pred::Level_To_Histogram_Index(levels[0])]
-									 [hist_ig_pred::Level_To_Histogram_Index(levels[2])]
-									 [hist_ig_pred::Level_To_Histogram_Index(levels[2])]
-									 [hist_ig_pred::Level_To_Histogram_Index(levels[3])]
-									 [hist_ig_pred::Level_To_Histogram_Index(levels[4])];
-
-				hist_ig_pred::Inc_Histogram(*history, hist_index);
-			}
-		}
-
-		hist_ig_pred::TProbability prob = hist_ig_pred::Probability_Mamdani_Or(
-											hist_ig_pred::Histogram_To_Probability(mIG_Daily),
-											hist_ig_pred::Histogram_To_Probability(mIG_Weekly[day_index]));
-
-		if (history != nullptr) {
-		//	prob = hist_ig_pred::Probability_Mamdani_Or(prob, hist_ig_pred::Histogram_To_Probability(*history));
-			prob = hist_ig_pred::Histogram_To_Probability(*history);
-			const size_t idx = hist_ig_pred::Probability_Centroid(prob);
-			result = hist_ig_pred::Histogram_Index_To_Level(idx);
-		}
-		else result = std::numeric_limits<double>::quiet_NaN();
 	}
 
 	return result;
