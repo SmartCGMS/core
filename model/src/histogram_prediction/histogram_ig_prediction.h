@@ -45,6 +45,8 @@
 
 #include <Eigen/Dense>
 
+#include <map>
+
 namespace hist_ig_pred {
 
 	constexpr double Low_Threshold = 3.0;			//mmol/L below which a medical attention is needed
@@ -80,6 +82,29 @@ namespace hist_ig_pred {
 	using T6th = std::array<T5th, Band_Count>;
 	
 	const double default_horizon = 30.0*scgms::One_Minute;
+
+	enum class NPattern_Dir {
+		negative,
+		zero,
+		positive
+	};
+
+	using TVector = Eigen::Array<double, 1, Band_Count, Eigen::RowMajor>;
+
+	class CPattern {
+	protected:
+		size_t mBand_Idx;
+		NPattern_Dir mX2, mX;
+		TVector mHistogram;		
+	protected:
+		NPattern_Dir dbl_2_pat(const double x) const;
+	public:
+		CPattern(const double current_level, double x2, double x);
+		void Update(const double future_level);
+		double Level() const;
+
+		bool operator< (const CPattern &other) const;
+	};
 }
 
 
@@ -88,14 +113,19 @@ namespace hist_ig_pred {
 
 class CHistogram_IG_Prediction : public virtual scgms::CBase_Filter {
 protected:
-	hist_ig_pred::TSampling_Delta mSampling_Delta = hist_ig_pred::Prediction_Sampling_Delta(hist_ig_pred::default_horizon);
 	scgms::SSignal mIst;
+	double mDt = hist_ig_pred::default_horizon;
+protected:
+	std::map<hist_ig_pred::CPattern, hist_ig_pred::CPattern> mPatterns;
+	double Update_And_Predict(const double current_time, const double ig_level);//returns prediction at current_time + mDt
+private:
+	hist_ig_pred::TSampling_Delta mSampling_Delta = hist_ig_pred::Prediction_Sampling_Delta(hist_ig_pred::default_horizon);
+
 	hist_ig_pred::THistogram mIG_Daily;
 	std::array<hist_ig_pred::THistogram, 7> mIG_Weekly;
 	hist_ig_pred::T5th mIG_Course;
-	double mDt = hist_ig_pred::default_horizon;
 
-	double Update_And_Predict(const double current_time, const double ig_level);//returns prediction at current_time + mDt
+	double Update_And_Predict_X(const double current_time, const double ig_level);//returns prediction at current_time + mDt
 protected:	
 	// scgms::CBase_Filter iface implementation
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;

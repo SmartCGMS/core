@@ -88,6 +88,22 @@ namespace hist_ig_pred {
 		return result;
 	}
 
+	TProbability Probability_Mamdani_Or(const TProbability &a, const TProbability &b) {
+		return a.max(b);
+	}
+
+	size_t Probability_Centroid(const TProbability &p) {
+		double area = p.sum();
+		if (area <= 0.0) return std::numeric_limits<size_t>::max();
+
+		double moments = 0.0;
+		for (auto i = 0; i < p.cols(); i++) {
+			moments += p(i)*static_cast<double>(i);
+		}
+
+		return static_cast<size_t>(std::round(moments / area));
+	}
+
 	TSampling_Delta Prediction_Sampling_Delta(const double horizon) {
 		TSampling_Delta result;
 
@@ -101,6 +117,63 @@ namespace hist_ig_pred {
 		result(4) = -0.0*scgms::One_Minute - horizon;
 
 		return result;
+	}
+
+
+
+	CPattern::CPattern(const double current_level, double x2, double x) :
+		mBand_Idx(Level_To_Histogram_Index(current_level)), mX2(dbl_2_pat(x2)), mX(dbl_2_pat(x)) {
+	}
+
+	NPattern_Dir CPattern::dbl_2_pat(const double x) const {
+		if (x < 0.0) return NPattern_Dir::negative;
+		else if (x > 0.0) return NPattern_Dir::positive;
+			
+		return NPattern_Dir::zero;
+	}
+
+	void CPattern::Update(const double future_level) {
+		const size_t band_idx = Level_To_Histogram_Index(future_level);
+		mHistogram(band_idx) += 1.0;
+	}
+
+	double CPattern::Level() const {
+		size_t bi = 0;
+		double m = mHistogram(0);
+		for (auto i = 1; i < mHistogram.cols(); i++)
+			if (m < mHistogram(i)) {
+				bi = i;
+				m = mHistogram(i);
+			}
+
+		return Histogram_Index_To_Level(bi);
+
+
+		TVector prob = mHistogram;
+		const double mx = prob.maxCoeff();
+		if (mx > 0.0) {
+			prob /= mx;
+
+			const double area = prob.sum();
+
+			double moments = 0.0;
+			for (auto i = 0; i < prob.cols(); i++) {
+				moments += prob(i)*static_cast<double>(i);
+			}
+
+			const size_t result_idx = static_cast<size_t>(std::round(moments / area));
+
+			return Histogram_Index_To_Level(result_idx);
+		}
+		else
+			return std::numeric_limits<double>::quiet_NaN();
+
+	}
+
+	bool CPattern::operator< (const CPattern &other) const {
+		if (mBand_Idx != other.mBand_Idx) return mBand_Idx < other.mBand_Idx;
+		if (mX2 != other.mX2) return mX2 < other.mX2;
+		return mX < other.mX;
 	}
 
 }
@@ -155,6 +228,64 @@ double CHistogram_IG_Prediction::Update_And_Predict(const double current_time, c
 	double result = std::numeric_limits<double>::quiet_NaN();
 
 	if (SUCCEEDED(mIst->Update_Levels(&current_time, &ig_level, 1))) {
+
+		const std::array<double, 3> times = { current_time - mDt - 60 * scgms::One_Minute,
+											  current_time - mDt - 30 * scgms::One_Minute,
+											  current_time - mDt - 0 * scgms::One_Minute };
+		std::array<double, 3> levels;
+		if (mIst->Get_Continuous_Levels(nullptr, times.data(), levels.data(), times.size(), scgms::apxNo_Derivation) == S_OK) {
+
+			bool all_normals = true;
+			for (auto &level : levels)
+				if (!std::isnormal(level)) {
+					all_normals = false;
+					break;
+				}
+
+			if (all_normals) {
+				/*
+				   0^2*a + 0*b + c = l1
+				   1^2*a + 2*b + c = l2
+				   2^2*a + 2*b + c = l3
+
+							 c = l1
+				    a +  b + c = l2
+				   4a + 2b + c = l3
+
+				    a +  b = l2 - l1;			
+				   4a + 2b = l3 - l1	
+
+				   4a + 2l2 - 2l1 - 2a = l3 - l1
+				   2a = l3 - l1 -2l2+2l1
+				   2a = l3 + l1 - 2l2
+				    a= 0.5*(l3+l1) - l2					
+				*/
+				
+				const double x2 = 0.5*(levels[2] + levels[0]) - levels[1];
+				const double x = levels[1] - levels[0] - x2;
+				hist_ig_pred::CPattern pattern{ levels[2], x2, x };
+
+				auto iter = mPatterns.find(pattern);				
+				if (iter == mPatterns.end()) {
+					auto x = mPatterns.insert(std::pair< hist_ig_pred::CPattern, hist_ig_pred::CPattern>(  pattern, std::move(pattern)));					
+					iter = x.first;
+				}
+							
+				iter->second.Update(ig_level);
+
+				result = iter->second.Level();
+			}
+		}
+	}
+
+	return result;
+}
+
+
+double CHistogram_IG_Prediction::Update_And_Predict_X(const double current_time, const double ig_level) {
+	double result = ig_level;
+
+	if (SUCCEEDED(mIst->Update_Levels(&current_time, &ig_level, 1))) {
 		const size_t hist_index = hist_ig_pred::Level_To_Histogram_Index(ig_level);
 		const size_t day_index = static_cast<size_t>(std::floor(current_time)) % 7;
 
@@ -185,29 +316,17 @@ double CHistogram_IG_Prediction::Update_And_Predict(const double current_time, c
 			}
 		}
 
-		hist_ig_pred::TProbability prob = hist_ig_pred::Histogram_To_Probability(mIG_Daily)*
-									      hist_ig_pred::Histogram_To_Probability(mIG_Weekly[day_index]);
-		
-		if (history != nullptr)
-			prob *= hist_ig_pred::Histogram_To_Probability(*history);
-		
-		
-		std::array<size_t, hist_ig_pred::Band_Count> idx;
-		std::iota(idx.begin(), idx.end(), 0);
-		std::sort(idx.begin(), idx.end(), [&prob](auto a, auto b) {return prob(a) > prob(b);  });
+		hist_ig_pred::TProbability prob = hist_ig_pred::Probability_Mamdani_Or(
+											hist_ig_pred::Histogram_To_Probability(mIG_Daily),
+											hist_ig_pred::Histogram_To_Probability(mIG_Weekly[day_index]));
 
-		if (prob[idx[0]] != 0.0) {
-			result = hist_ig_pred::Histogram_Index_To_Level(idx[0]);
-
-			const double rel_thresh = 0.5;
-			const double rel_diff = abs(result - ig_level) / ig_level;
-			if (rel_diff > rel_thresh) {
-				if (result > ig_level) result = (1.0 + rel_thresh)*ig_level;
-				else result = rel_thresh *ig_level;
-			}
-
+		if (history != nullptr) {
+		//	prob = hist_ig_pred::Probability_Mamdani_Or(prob, hist_ig_pred::Histogram_To_Probability(*history));
+			prob = hist_ig_pred::Histogram_To_Probability(*history);
+			const size_t idx = hist_ig_pred::Probability_Centroid(prob);
+			result = hist_ig_pred::Histogram_Index_To_Level(idx);
 		}
-			else result = ig_level;
+		else result = std::numeric_limits<double>::quiet_NaN();
 	}
 
 	return result;
