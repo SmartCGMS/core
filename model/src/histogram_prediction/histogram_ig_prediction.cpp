@@ -93,7 +93,7 @@ namespace hist_ig_pred {
 		};
 
 		auto find_centroid = [&]() {
-			TVector prob = mHistogram;
+			THistogram prob = mHistogram;
 			const double mx = prob.maxCoeff();
 			if (mx > 0.0) {
 				prob /= mx;
@@ -146,7 +146,7 @@ namespace hist_ig_pred {
 }
 
 CHistogram_IG_Prediction::CHistogram_IG_Prediction(scgms::IFilter *output) 
-	: scgms::CBase_Filter(output, hist_ig_pred::id) {
+	: scgms::CBase_Filter(output, hist_ig_pred::filter_id) {
 }
 
 CHistogram_IG_Prediction::~CHistogram_IG_Prediction() {
@@ -167,7 +167,7 @@ HRESULT CHistogram_IG_Prediction::Do_Execute(scgms::UDevice_Event event) {
 
 			if (std::isnormal(pred_level)) {
 				scgms::UDevice_Event pred{ scgms::NDevice_Event_Code::Level };
-				pred.device_id() = hist_ig_pred::id;
+				pred.device_id() = hist_ig_pred::filter_id;
 				pred.level() = pred_level;
 				pred.device_time() = dev_time + mDt;
 				pred.signal_id() = hist_ig_pred::signal_Histogram_IG_Prediction;

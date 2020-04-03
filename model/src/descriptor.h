@@ -382,8 +382,63 @@ namespace const_cr {
 }
 
 namespace hist_ig_pred {
-	const GUID id = { 0xa730a576, 0xe84d, 0x4834, { 0x82, 0x6f, 0xfa, 0xee, 0x56, 0x4e, 0x6a, 0xbd } };  // {A730A576-E84D-4834-826F-FAEE564E6ABD}
+	const GUID filter_id = { 0xa730a576, 0xe84d, 0x4834, { 0x82, 0x6f, 0xfa, 0xee, 0x56, 0x4e, 0x6a, 0xbd } };  // {A730A576-E84D-4834-826F-FAEE564E6ABD}
+	const GUID calc_id = { 0x16f8ebcc, 0xafca, 0x4cd3, { 0x9c, 0x8a, 0xe1, 0xa5, 0x17, 0x89, 0xef, 0xdc } }; // {16F8EBCC-AFCA-4CD3-9C8A-E1A51789EFDC}
+
 	constexpr const GUID signal_Histogram_IG_Prediction = { 0x4f9d0e51, 0x65e3, 0x4aaf, { 0xa3, 0x87, 0xd4, 0xd, 0xee, 0xe0, 0x72, 0x50 } }; 		// {4F9D0E51-65E3-4AAF-A387-D40DEEE07250}
+
+
+	constexpr double Low_Threshold = 3.0;			//mmol/L below which a medical attention is needed
+	constexpr double High_Threshold = 13.0;			//dtto above
+
+	constexpr double Band_Size = 1.0 / 3.0;						//must imply relative error <= 10% 
+	constexpr double Inv_Band_Size = 1.0 / Band_Size;		//abs(Low_Threshold-Band_Size)/Low_Threshold 
+	constexpr double Half_Band_Size = 0.5 / Inv_Band_Size;
+	constexpr size_t Band_Count = 2 + static_cast<size_t>((High_Threshold - Low_Threshold)*Inv_Band_Size);
+	//1 band < mLow_Threshold, n bands in between, and 1 band >=mHigh_Threshold	
+
+	enum class NPattern_Dir : uint8_t {
+		negative = 0,
+		zero,
+		positive,
+		count
+	};
+
+	constexpr size_t param_count = 1 + Band_Count * static_cast<size_t>(NPattern_Dir::count) * static_cast<size_t>(NPattern_Dir::count);
+
+	struct TParameters {
+		union {
+			struct {
+				double dt;
+				std::array<
+					std::array<
+						std::array<double, static_cast<size_t>(NPattern_Dir::count)>, 
+						static_cast<size_t>(NPattern_Dir::count)>, 
+					Band_Count> bands;
+			};
+			std::array<double, param_count> vector;
+		};
+	};
+
+	
+	template <typename R, typename T>
+	constexpr R init_desc(const T first, const T follower) {
+		using Q = typename std::remove_const<R>::type;
+		Q result;
+		result[0] = first;
+		for (auto i = 1; i < param_count; i++)
+			result[i] = follower;
+		return result;
+	}
+
+	constexpr TParameters init_params(const double dt, const double level) {
+		TParameters result = { dt };
+		result.vector = init_desc<decltype(result.vector), double>(dt, level);		
+		return result;
+	}
+
+	
+	const TParameters default_parameters = init_params(30.0*scgms::One_Minute, static_cast<double>(Band_Count / 2));		
 }
 
 

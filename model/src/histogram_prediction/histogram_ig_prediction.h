@@ -49,29 +49,13 @@
 
 namespace hist_ig_pred {
 
-	constexpr double Low_Threshold = 3.0;			//mmol/L below which a medical attention is needed
-	constexpr double High_Threshold = 13.0;			//dtto above
-		
-	constexpr double Band_Size = 0.1;						//must imply relative error <= 10% 
-	constexpr double Inv_Band_Size = 1.0 / Band_Size;		//abs(Low_Threshold-Band_Size)/Low_Threshold 
-	constexpr double Half_Band_Size = 0.5 / Inv_Band_Size;
-	constexpr size_t Band_Count = 2 + static_cast<size_t>((High_Threshold - Low_Threshold)*Inv_Band_Size);
-	//1 band < mLow_Threshold, n bands in between, and 1 band >=mHigh_Threshold	
-
-
-	enum class NPattern_Dir {
-		negative,
-		zero,
-		positive
-	};
-
-	using TVector = Eigen::Array<double, 1, Band_Count, Eigen::RowMajor>;
+	using THistogram = Eigen::Array<double, 1, Band_Count, Eigen::RowMajor>;
 
 	class CPattern {
 	protected:
 		size_t mBand_Idx;
 		NPattern_Dir mX2, mX;
-		TVector mHistogram;		
+		THistogram mHistogram;		
 	protected:
 		NPattern_Dir dbl_2_pat(const double x) const;
 	public:
