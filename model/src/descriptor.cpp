@@ -691,7 +691,7 @@ HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin
 
 HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
 	if (*id == hist_ig_pred::filter_desc.id)
-		return Manufacture_Object<CHistogram_IG_Prediction>(filter, output);
+		return Manufacture_Object<CHistogram_IG_Prediction_Filter>(filter, output);
 
 	return ENOENT;
 }

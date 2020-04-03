@@ -61,17 +61,11 @@ namespace hist_ig_pred {
 	}
 
 	
-	CPattern::CPattern(const double current_level, double x2, double x) :
-		mBand_Idx(Level_To_Histogram_Index(current_level)), mX2(dbl_2_pat(x2)), mX(dbl_2_pat(x)) {
+	CPattern::CPattern(const size_t current_band, NPattern_Dir x2, NPattern_Dir x) :
+		mBand_Idx(current_band), mX2(x2), mX(x) {
 		mHistogram.setZero();
 	}
 
-	NPattern_Dir CPattern::dbl_2_pat(const double x) const {
-		if (x < 0.0) return NPattern_Dir::negative;
-		else if (x > 0.0) return NPattern_Dir::positive;
-			
-		return NPattern_Dir::zero;
-	}
 
 	void CPattern::Update(const double future_level) {
 		const size_t band_idx = Level_To_Histogram_Index(future_level);
@@ -145,15 +139,71 @@ namespace hist_ig_pred {
 
 }
 
-CHistogram_IG_Prediction::CHistogram_IG_Prediction(scgms::IFilter *output) 
+hist_ig_pred::NPattern_Dir CHistogram_Classification::dbl_2_pat(const double x) const {
+	if (x < 0.0) return hist_ig_pred::NPattern_Dir::negative;
+	else if (x > 0.0) return hist_ig_pred::NPattern_Dir::positive;
+
+	return hist_ig_pred::NPattern_Dir::zero;
+}
+
+
+bool CHistogram_Classification::Classify(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
+	bool result = false;
+
+	const std::array<double, 3> times = { current_time - mDt - 10 * scgms::One_Minute,
+										  current_time - mDt - 5 * scgms::One_Minute,
+										  current_time - mDt - 0 * scgms::One_Minute };
+	std::array<double, 3> levels;
+	if (mIst->Get_Continuous_Levels(nullptr, times.data(), levels.data(), times.size(), scgms::apxNo_Derivation) == S_OK) {
+
+		bool all_normals = true;
+		for (auto &level : levels)
+			if (!std::isnormal(level)) {
+				all_normals = false;
+				break;
+			}
+
+		if (all_normals) {
+			/*
+			   0^2*a + 0*b + c = l1
+			   1^2*a + 2*b + c = l2
+			   2^2*a + 2*b + c = l3
+
+						 c = l1
+				a +  b + c = l2
+			   4a + 2b + c = l3
+
+				a +  b = l2 - l1;
+			   4a + 2b = l3 - l1
+
+			   4a + 2l2 - 2l1 - 2a = l3 - l1
+			   2a = l3 - l1 -2l2+2l1
+			   2a = l3 + l1 - 2l2
+				a= 0.5*(l3+l1) - l2
+			*/
+
+			const double x2_raw = 0.5*(levels[2] + levels[0]) - levels[1];
+			const double x_raw = levels[1] - levels[0] - x2_raw;
+
+			band_idx = hist_ig_pred::Level_To_Histogram_Index(levels[2]);
+			x2 = dbl_2_pat(x2_raw);
+			x = dbl_2_pat(x_raw);
+			result = true;
+		}
+	}
+
+	return result;
+}
+
+CHistogram_IG_Prediction_Filter::CHistogram_IG_Prediction_Filter(scgms::IFilter *output) 
 	: scgms::CBase_Filter(output, hist_ig_pred::filter_id) {
 }
 
-CHistogram_IG_Prediction::~CHistogram_IG_Prediction() {
+CHistogram_IG_Prediction_Filter::~CHistogram_IG_Prediction_Filter() {
 
 }
 
-HRESULT CHistogram_IG_Prediction::Do_Execute(scgms::UDevice_Event event) {
+HRESULT CHistogram_IG_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 	if ((event.event_code() == scgms::NDevice_Event_Code::Level) &&
 		(event.signal_id() == scgms::signal_IG)) {
 
@@ -182,66 +232,68 @@ HRESULT CHistogram_IG_Prediction::Do_Execute(scgms::UDevice_Event event) {
 		return Send(event);	
 }
 
-HRESULT CHistogram_IG_Prediction::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
+HRESULT CHistogram_IG_Prediction_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mDt = configuration.Read_Double(rsDt_Column, mDt);
 
 	mIst = scgms::SSignal{ scgms::STime_Segment{}, scgms::signal_IG };
 	return S_OK;
 }
 
-double CHistogram_IG_Prediction::Update_And_Predict(const double current_time, const double ig_level) {
+double CHistogram_IG_Prediction_Filter::Update_And_Predict(const double current_time, const double ig_level) {
 	double result = std::numeric_limits<double>::quiet_NaN();
  
 	if (SUCCEEDED(mIst->Update_Levels(&current_time, &ig_level, 1))) {
+		size_t band_idx;
+		hist_ig_pred::NPattern_Dir x2, x;
+		if (Classify(current_time, band_idx, x2, x)) {
+			hist_ig_pred::CPattern pattern{ band_idx, x2, x };
 
-		const std::array<double, 3> times = { current_time - mDt - 10 * scgms::One_Minute,
-											  current_time - mDt - 5 * scgms::One_Minute,
-											  current_time - mDt - 0 * scgms::One_Minute };
-		std::array<double, 3> levels;
-		if (mIst->Get_Continuous_Levels(nullptr, times.data(), levels.data(), times.size(), scgms::apxNo_Derivation) == S_OK) {
-
-			bool all_normals = true;
-			for (auto &level : levels)
-				if (!std::isnormal(level)) {
-					all_normals = false;
-					break;
-				}
-
-			if (all_normals) {
-				/*
-				   0^2*a + 0*b + c = l1
-				   1^2*a + 2*b + c = l2
-				   2^2*a + 2*b + c = l3
-
-							 c = l1
-				    a +  b + c = l2
-				   4a + 2b + c = l3
-
-				    a +  b = l2 - l1;			
-				   4a + 2b = l3 - l1	
-
-				   4a + 2l2 - 2l1 - 2a = l3 - l1
-				   2a = l3 - l1 -2l2+2l1
-				   2a = l3 + l1 - 2l2
-				    a= 0.5*(l3+l1) - l2					
-				*/
-				
-				const double x2 = 0.5*(levels[2] + levels[0]) - levels[1];
-				const double x = levels[1] - levels[0] - x2;
-				hist_ig_pred::CPattern pattern{ levels[2], x2, x };
-
-				auto iter = mPatterns.find(pattern);				
-				if (iter == mPatterns.end()) {
-					auto x = mPatterns.insert(std::pair< hist_ig_pred::CPattern, hist_ig_pred::CPattern>(  pattern, std::move(pattern)));					
-					iter = x.first;
-				}
-							
-				iter->second.Update(ig_level);
-
-				result = iter->second.Level();
+			auto iter = mPatterns.find(pattern);				
+			if (iter == mPatterns.end()) {
+				auto x = mPatterns.insert(std::pair< hist_ig_pred::CPattern, hist_ig_pred::CPattern>(  pattern, std::move(pattern)));					
+				iter = x.first;
 			}
+							
+			iter->second.Update(ig_level);
+
+			result = iter->second.Level();		
 		}
 	}
 
 	return result;
+}
+
+
+
+CHistogram_IG_Prediction_Signal::CHistogram_IG_Prediction_Signal(scgms::WTime_Segment segment) : 
+	CCommon_Calculated_Signal(segment) {
+
+	mIst = segment.Get_Signal(scgms::signal_IG);
+	if (!mIst) throw std::exception{};
+}
+
+HRESULT IfaceCalling CHistogram_IG_Prediction_Signal::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
+	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
+
+	if (derivation_order != scgms::apxNo_Derivation) return E_NOTIMPL;
+
+	const hist_ig_pred::TParameters &parameters = scgms::Convert_Parameters<hist_ig_pred::TParameters>(params, hist_ig_pred::default_parameters.vector.data());
+
+	for (size_t i = 0; i < count; i++) {
+		size_t band_idx;
+		hist_ig_pred::NPattern_Dir x2, x;
+		if (Classify(times[i] - mDt, band_idx, x2, x)) {
+			levels[i] = hist_ig_pred::Histogram_Index_To_Level(
+							parameters.bands[static_cast<const size_t>(band_idx)][static_cast<const size_t>(x2)][static_cast<const size_t>(x)]);
+		}
+		else
+			levels[i] = std::numeric_limits<double>::quiet_NaN();
+	}
+
+	return S_OK;
+}
+
+HRESULT IfaceCalling CHistogram_IG_Prediction_Signal::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const {
+	double *params = const_cast<double*>(hist_ig_pred::default_parameters.vector.data());
+	return parameters->set(params, params + hist_ig_pred::default_parameters.vector.size());
 }

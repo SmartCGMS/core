@@ -40,6 +40,7 @@
 
 #include "../../../../common/iface/DeviceIface.h"
 #include "../../../../common/rtl/FilterLib.h"
+#include "../../../../common/rtl/Common_Calculated_Signal.h"
 
 #include "../descriptor.h"
 
@@ -56,10 +57,8 @@ namespace hist_ig_pred {
 		size_t mBand_Idx;
 		NPattern_Dir mX2, mX;
 		THistogram mHistogram;		
-	protected:
-		NPattern_Dir dbl_2_pat(const double x) const;
 	public:
-		CPattern(const double current_level, double x2, double x);
+		CPattern(const size_t current_band, NPattern_Dir x2, NPattern_Dir x);
 		void Update(const double future_level);
 		double Level() const;
 
@@ -71,10 +70,16 @@ namespace hist_ig_pred {
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CHistogram_IG_Prediction : public virtual scgms::CBase_Filter {
+class CHistogram_Classification {
+protected:
+	hist_ig_pred::NPattern_Dir dbl_2_pat(const double x) const;
 protected:
 	scgms::SSignal mIst;
 	double mDt = 30.0*scgms::One_Minute;
+	bool Classify(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
+};
+
+class CHistogram_IG_Prediction_Filter : public virtual scgms::CBase_Filter, public CHistogram_Classification {
 protected:
 	std::map<hist_ig_pred::CPattern, hist_ig_pred::CPattern> mPatterns;
 	double Update_And_Predict(const double current_time, const double ig_level);//returns prediction at current_time + mDt
@@ -83,8 +88,20 @@ protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 public:
-	CHistogram_IG_Prediction(scgms::IFilter *output);
-	virtual ~CHistogram_IG_Prediction();
+	CHistogram_IG_Prediction_Filter(scgms::IFilter *output);
+	virtual ~CHistogram_IG_Prediction_Filter();
 };
+
+class CHistogram_IG_Prediction_Signal : public virtual CCommon_Calculated_Signal, public CHistogram_Classification {
+public:
+	CHistogram_IG_Prediction_Signal(scgms::WTime_Segment segment);
+	virtual ~CHistogram_IG_Prediction_Signal() = default;
+
+	//scgms::ISignal iface
+	virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
+		const double* times, double* const levels, const size_t count, const size_t derivation_order) const final;
+	virtual HRESULT IfaceCalling Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const final;
+};
+
 
 #pragma warning( pop )
