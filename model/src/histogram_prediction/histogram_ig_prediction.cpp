@@ -283,8 +283,9 @@ HRESULT IfaceCalling CHistogram_IG_Prediction_Signal::Get_Continuous_Levels(scgm
 		size_t band_idx;
 		hist_ig_pred::NPattern_Dir x2, x;
 		if (Classify(times[i] - mDt, band_idx, x2, x)) {
+			const double raw_band = parameters.bands[static_cast<const size_t>(band_idx)][static_cast<const size_t>(x2)][static_cast<const size_t>(x)];
 			levels[i] = hist_ig_pred::Histogram_Index_To_Level(
-							parameters.bands[static_cast<const size_t>(band_idx)][static_cast<const size_t>(x2)][static_cast<const size_t>(x)]);
+				static_cast<size_t>(round(raw_band)));
 		}
 		else
 			levels[i] = std::numeric_limits<double>::quiet_NaN();

@@ -43,7 +43,7 @@
 
 #undef max
 
-constexpr double Infintity_Diff_Penalty = 1'000.0;	//the more levels that won't be calculated would considerably increase the overall penalty
+constexpr double Infinity_Diff_Penalty = 1'000.0;	//the more levels that won't be calculated would considerably increase the overall penalty
 													//however, we cannot use double_max to avoid overflow, so we need a small number (yet overly great compared to glucose levels)
 
 CCommon_Metric::CCommon_Metric(const scgms::TMetric_Parameters& params) : mParameters(params) {
@@ -52,18 +52,24 @@ CCommon_Metric::CCommon_Metric(const scgms::TMetric_Parameters& params) : mParam
 
 HRESULT IfaceCalling CCommon_Metric::Accumulate(const double *times, const double *expected, const double *calculated, const size_t count) {
 
-	for (size_t i = 0; i < count; i++) {
+	for (size_t i = 0; i < count; i++) {		
 		TProcessed_Difference tmp;
 
 		tmp.raw.datetime = times[i];
-		tmp.raw.calculated = std::isnan(calculated[i]) ? Infintity_Diff_Penalty : calculated[i];
+		tmp.raw.calculated = std::isnan(calculated[i]) ? Infinity_Diff_Penalty : calculated[i];		
 		tmp.raw.expected = expected[i];		
 		
 		tmp.difference = fabs(expected[i] - tmp.raw.calculated);
-		if (mParameters.use_relative_error)
-			tmp.difference /= fabs(tmp.raw.calculated);	//with wrong (e.g., MetaDE random) parameters, the result could be negative
-		if (mParameters.use_squared_differences)
-			tmp.difference *= tmp.difference;
+
+		if (std::isnormal(tmp.raw.expected)) {
+
+			if (mParameters.use_relative_error)
+				tmp.difference /= fabs(tmp.raw.expected);	//with wrong (e.g., MetaDE random) parameters, the result could be negative
+			if (mParameters.use_squared_differences)
+				tmp.difference *= tmp.difference;
+		}
+		else
+			tmp.difference = Infinity_Diff_Penalty;
 
 		mDifferences.push_back(tmp);
 	}
@@ -85,7 +91,7 @@ HRESULT IfaceCalling CCommon_Metric::Calculate(double *metric, size_t *levels_ac
 
 	*levels_accumulated = 0;
 	for (const auto &diff : mDifferences)
-		if (diff.difference != Infintity_Diff_Penalty) (*levels_accumulated)++;
+		if (diff.difference != Infinity_Diff_Penalty) (*levels_accumulated)++;
 
 	levels_required = std::max((decltype(levels_required))1, levels_required);
 

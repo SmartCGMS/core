@@ -65,7 +65,10 @@ double CAbsDiffAvgMetric::Do_Calculate_Metric() {
 	double accumulator = 0.0;
 	
 	for (const auto &diff : mDifferences) {
-		accumulator += diff.difference;
+		if (std::isnormal(diff.difference))
+			accumulator += diff.difference;
+		else 
+			accumulator = 0.0;
 	}
 
 	return accumulator / static_cast<double>(mDifferences.size());
