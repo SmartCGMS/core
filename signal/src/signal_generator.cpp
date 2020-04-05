@@ -141,6 +141,12 @@ HRESULT signal_generator_internal::CSynchronized_Generator::Execute_Sync(scgms::
 
 		if (step_the_model) rc = mSync_Model->Step(dynamic_stepping);
 	}
+	else {
+		//process events we might have triggerd while catching up
+		scgms::IDevice_Event *raw_event = event.get();
+		event.release();
+		rc = mSync_Model->Execute(raw_event);
+	}
 
 	return rc;
 }
