@@ -372,7 +372,7 @@ void CHistogram_IG_Prediction_Filter::Dump_Params() {
 		str << "counter " << counter;
 		const double lvl = hist_ig_pred::Histogram_Index_To_Level(pattern.band_idx());
 		str << "; band index: " << pattern.band_idx();
-		str << "; band " << lvl - hist_ig_pred::Half_Band_Size << " - " << lvl + lvl - hist_ig_pred::Half_Band_Size;
+		str << "; band " << lvl - hist_ig_pred::Half_Band_Size << " - " << lvl + hist_ig_pred::Half_Band_Size;
 		str << "; " << dir_chars[static_cast<size_t>(pattern.x2())] << dir_chars[static_cast<size_t>(pattern.x())];
 		str << "; freq: " << pattern.freq();
 		str << std::endl;
