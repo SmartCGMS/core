@@ -51,6 +51,7 @@
 namespace hist_ig_pred {
 
 	using THistogram = Eigen::Array<double, 1, Band_Count, Eigen::RowMajor>;
+	constexpr size_t mOffset_Count = 6	;
 
 	class CPattern {
 	protected:
@@ -73,9 +74,29 @@ namespace hist_ig_pred {
 class CHistogram_Classification {
 protected:
 	hist_ig_pred::NPattern_Dir dbl_2_pat(const double x) const;
+
+	struct TDir_Pattern {
+		double sum = 0.0;
+		hist_ig_pred::NPattern_Dir mX2 = hist_ig_pred::NPattern_Dir::zero;
+		hist_ig_pred::NPattern_Dir mX = hist_ig_pred::NPattern_Dir::zero;
+	};
+
+	std::array<TDir_Pattern, 9> mLeft_Hand_Sums = Calculate_Left_Hand_Sum();
+	std::array<TDir_Pattern, 9> Calculate_Left_Hand_Sum();
+
+	bool Classify_Lookup(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
+	bool Classify_Poly(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
+
 protected:
 	scgms::SSignal mIst;
-	double mDt = 30.0*scgms::One_Minute;
+	double mDt = 30.0*scgms::One_Minute;	
+	const std::array<double, hist_ig_pred::mOffset_Count> mOffset = { 
+		-25 * scgms::One_Minute,
+		 -20 * scgms::One_Minute,
+		- 15 * scgms::One_Minute,
+		 -10 * scgms::One_Minute,
+										    - 5 * scgms::One_Minute,
+										    - 0 * scgms::One_Minute };
 	bool Classify(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
 };
 

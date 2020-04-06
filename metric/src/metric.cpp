@@ -123,9 +123,8 @@ double CAbsDiffThresholdMetric::Do_Calculate_Metric() {
 		);
 
 	//return 1.0 / std::distance(thebegin, iter);
-	size_t thresholdcount = std::distance(thebegin, iter);
-
-	return (double) (mAll_Levels_Count - thresholdcount);
+	const auto thresholdcount = std::distance(thebegin, iter);
+	return static_cast<double>(mDifferences.size() - thresholdcount);
 }
 
 

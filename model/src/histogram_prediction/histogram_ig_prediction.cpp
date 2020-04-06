@@ -147,7 +147,94 @@ hist_ig_pred::NPattern_Dir CHistogram_Classification::dbl_2_pat(const double x) 
 }
 
 
-bool CHistogram_Classification::Classify(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
+std::array<CHistogram_Classification::TDir_Pattern, 9> CHistogram_Classification::Calculate_Left_Hand_Sum() {
+	std::array<CHistogram_Classification::TDir_Pattern, 9> result;
+	
+	size_t idx = 0;
+	//try all combinations of a: -1, 0 and 1
+	double a = -1.0;
+	do {
+
+		//try all combinations of b: -1, 0 and 1
+		double b = -1.0;
+		do {
+
+			//calculate the error for this particular combination of and b
+			double left_hand_sum = 0.0;
+			for (size_t t = 1; t < hist_ig_pred::mOffset_Count; t ++ ) {
+				const double tt = static_cast<double>(t);
+				left_hand_sum = a * tt*tt + b * tt;
+			}
+			result[idx].sum = left_hand_sum;
+			result[idx].mX2 = dbl_2_pat(a);
+			result[idx].mX = dbl_2_pat(b);
+			idx++;
+
+			b += 1.0;
+		} while (b < 2.0);
+
+		a += 1.0;
+	} while (a < 2.0);
+
+	std::sort(result.begin(), result.end(), [](auto a, auto b) {return a.sum < b.sum; });
+		
+	return result;
+}
+
+bool CHistogram_Classification::Classify_Lookup(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
+	bool result = false;
+
+	std::array<double, hist_ig_pred::mOffset_Count> times, levels;
+	for (size_t i = 0; i < mOffset.size(); i++)
+		times[i] = current_time - mDt - mOffset[i];
+	if (mIst->Get_Continuous_Levels(nullptr, times.data(), levels.data(), times.size(), scgms::apxNo_Derivation) == S_OK) {
+
+		bool all_normals = true;
+		for (auto &level : levels)
+			if (!std::isnormal(level)) {
+				all_normals = false;
+				break;
+			}
+
+		if (all_normals) {
+			double right_hand_sum = 0.0;
+			for (size_t t = 1; t < levels.size(); t++) {
+				right_hand_sum += levels[t] - levels[0];
+			}
+
+			//let's find the index
+			auto lb = std::lower_bound(mLeft_Hand_Sums.begin(), mLeft_Hand_Sums.end(),
+				CHistogram_Classification::TDir_Pattern{ right_hand_sum, hist_ig_pred::NPattern_Dir::zero, hist_ig_pred::NPattern_Dir::zero },
+				[](auto a, auto b) {return a.sum < b.sum; });
+			
+			size_t pattern_idx = 0;
+			if (lb != mLeft_Hand_Sums.end()) {
+				pattern_idx = std::distance(mLeft_Hand_Sums.begin(), lb);
+				if (pattern_idx > 0) {
+					const size_t prev_pattern_idx = pattern_idx - 1;
+					const double diff_prev = std::fabs(right_hand_sum - mLeft_Hand_Sums[prev_pattern_idx].sum);
+					const double diff_curr = std::fabs(right_hand_sum - mLeft_Hand_Sums[pattern_idx].sum);
+
+					if (diff_prev < diff_curr)
+						pattern_idx = prev_pattern_idx;
+				}
+			} else
+				pattern_idx = mLeft_Hand_Sums.size() - 1;
+				
+
+
+			band_idx = hist_ig_pred::Level_To_Histogram_Index(levels[hist_ig_pred::mOffset_Count-1]);
+			x2 = mLeft_Hand_Sums[pattern_idx].mX2;
+			x = mLeft_Hand_Sums[pattern_idx].mX;
+
+			result = true;
+		}
+	}
+
+	return result;
+}
+
+bool CHistogram_Classification::Classify_Poly(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
 	bool result = false;
 
 	const std::array<double, 3> times = { current_time - mDt - 10 * scgms::One_Minute,
@@ -193,6 +280,11 @@ bool CHistogram_Classification::Classify(const double current_time, size_t &band
 	}
 
 	return result;
+}
+
+bool CHistogram_Classification::Classify(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
+	return Classify_Lookup(current_time, band_idx, x2, x);
+	//return Classify_Poly(current_time, band_idx, x2, x);
 }
 
 CHistogram_IG_Prediction_Filter::CHistogram_IG_Prediction_Filter(scgms::IFilter *output) 
