@@ -89,17 +89,19 @@ HRESULT IfaceCalling CCommon_Metric::Reset() {
 
 HRESULT IfaceCalling CCommon_Metric::Calculate(double *metric, size_t *levels_accumulated, size_t levels_required) {
 
-	*levels_accumulated = mDifferences.size();
-	levels_required = std::max((decltype(levels_required))1, levels_required);
+	if (levels_accumulated) {
+		*levels_accumulated = mDifferences.size();
+		levels_required = std::max((decltype(levels_required))1, levels_required);
 
-	if (*levels_accumulated < levels_required) return S_FALSE;
+		if (*levels_accumulated < levels_required) return S_FALSE;
+	}
 
 	double local_metric = Do_Calculate_Metric();	//caching into the register
 	
 	const auto cl = std::fpclassify(local_metric);
 	if ((cl != FP_NORMAL) && (cl != FP_ZERO)) return S_FALSE;
 
-	if (mParameters.prefer_more_levels != 0) local_metric /= static_cast<double>(*levels_accumulated);
+	if (mParameters.prefer_more_levels != 0) local_metric /= static_cast<double>(mDifferences.size());
 
 	*metric = local_metric;
 

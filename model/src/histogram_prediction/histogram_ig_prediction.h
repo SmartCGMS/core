@@ -64,6 +64,11 @@ namespace hist_ig_pred {
 		double Level() const;
 
 		bool operator< (const CPattern &other) const;
+
+		size_t band_idx() { return mBand_Idx; };
+		NPattern_Dir x2() { return mX2; };
+		NPattern_Dir x() { return mX; };
+		size_t freq() { return static_cast<size_t>(mHistogram.sum()); };
 	};
 }
 
@@ -104,6 +109,9 @@ class CHistogram_IG_Prediction_Filter : public virtual scgms::CBase_Filter, publ
 protected:
 	std::map<hist_ig_pred::CPattern, hist_ig_pred::CPattern> mPatterns;
 	double Update_And_Predict(const double current_time, const double ig_level);//returns prediction at current_time + mDt
+protected:
+	const bool mDump_Params = true;
+	void Dump_Params();
 protected:	
 	// scgms::CBase_Filter iface implementation
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;

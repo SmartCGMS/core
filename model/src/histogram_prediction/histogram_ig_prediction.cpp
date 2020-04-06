@@ -40,8 +40,11 @@
 #include "../descriptor.h"
 #include "../../../../common/rtl/SolverLib.h"
 #include "../../../../common/utils/math_utils.h"
+#include "../../../../common/utils/DebugHelper.h"
 
 #include <numeric>
+#include <sstream>
+#include <iomanip>
 
 namespace hist_ig_pred {
 	size_t Level_To_Histogram_Index(const double level) {
@@ -186,7 +189,7 @@ bool CHistogram_Classification::Classify_Lookup(const double current_time, size_
 
 	std::array<double, hist_ig_pred::mOffset_Count> times, levels;
 	for (size_t i = 0; i < mOffset.size(); i++)
-		times[i] = current_time - mDt - mOffset[i];
+		times[i] = current_time + mOffset[i];
 	if (mIst->Get_Continuous_Levels(nullptr, times.data(), levels.data(), times.size(), scgms::apxNo_Derivation) == S_OK) {
 
 		bool all_normals = true;
@@ -237,9 +240,9 @@ bool CHistogram_Classification::Classify_Lookup(const double current_time, size_
 bool CHistogram_Classification::Classify_Poly(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
 	bool result = false;
 
-	const std::array<double, 3> times = { current_time - mDt - 10 * scgms::One_Minute,
-										  current_time - mDt - 5 * scgms::One_Minute,
-										  current_time - mDt - 0 * scgms::One_Minute };
+	const std::array<double, 3> times = { current_time - 10 * scgms::One_Minute,
+										  current_time - 5 * scgms::One_Minute,
+										  current_time - 0 * scgms::One_Minute };
 	std::array<double, 3> levels;
 	if (mIst->Get_Continuous_Levels(nullptr, times.data(), levels.data(), times.size(), scgms::apxNo_Derivation) == S_OK) {
 
@@ -292,7 +295,8 @@ CHistogram_IG_Prediction_Filter::CHistogram_IG_Prediction_Filter(scgms::IFilter 
 }
 
 CHistogram_IG_Prediction_Filter::~CHistogram_IG_Prediction_Filter() {
-
+	if (mDump_Params)
+		Dump_Params();
 }
 
 HRESULT CHistogram_IG_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
@@ -353,6 +357,84 @@ double CHistogram_IG_Prediction_Filter::Update_And_Predict(const double current_
 	}
 
 	return result;
+}
+
+void CHistogram_IG_Prediction_Filter::Dump_Params() {
+	std::stringstream def_params, used_rules, unused_rules;
+	size_t unused_counter = 0, used_counter = 0;
+	const char *dir_chars = "v-^";
+
+	std::array<std::array<size_t, 3>, 3> x2x_freq;
+	memset(&x2x_freq, 0, sizeof(x2x_freq));
+
+	auto log_params = [&](std::stringstream &str, size_t &counter, hist_ig_pred::CPattern &pattern) {
+		counter++;
+		str << "counter " << counter;
+		const double lvl = hist_ig_pred::Histogram_Index_To_Level(pattern.band_idx());
+		str << "; band index: " << pattern.band_idx();
+		str << "; band " << lvl - hist_ig_pred::Half_Band_Size << " - " << lvl + lvl - hist_ig_pred::Half_Band_Size;
+		str << "; " << dir_chars[static_cast<size_t>(pattern.x2())] << dir_chars[static_cast<size_t>(pattern.x())];
+		str << "; freq: " << pattern.freq();
+		str << std::endl;
+	};
+
+	used_rules << std::fixed << std::setprecision(1);
+	unused_rules << std::fixed << std::setprecision(1);
+
+	def_params << "const TParameters default_parameters = { ";
+	def_params << mDt;
+
+	const size_t pattern_count = static_cast<size_t>(hist_ig_pred::NPattern_Dir::count);
+	for (auto band_idx = 0; band_idx < hist_ig_pred::Band_Count; band_idx++) {
+		
+		for (size_t x2 = 0; x2 < pattern_count; x2++) {
+			for (size_t x = 0; x < pattern_count; x++) {
+				hist_ig_pred::CPattern search_pattern{ static_cast<const size_t>(band_idx), static_cast<const hist_ig_pred::NPattern_Dir>(x2), static_cast<const hist_ig_pred::NPattern_Dir>(x) };
+
+				def_params << ", ";
+
+				auto iter = mPatterns.find(search_pattern);
+				if (iter != mPatterns.end()) {
+					def_params << hist_ig_pred::Level_To_Histogram_Index(iter->second.Level());					
+
+					log_params(used_rules, used_counter, iter->second);
+
+					x2x_freq[x2][x]++;
+				}
+				else {
+					def_params << band_idx;	//stay in the same band if we know anything better
+
+					log_params(unused_rules, unused_counter, search_pattern);
+				}				
+
+				def_params << ".0";
+			}					
+		}
+
+		def_params << std::endl;
+	}
+
+	def_params << "};" << std::endl;
+
+	dprintf("\nX2 X rules frequency\n");
+	for (size_t x2 = 0; x2 < pattern_count; x2++) {
+		for (size_t x = 0; x < pattern_count; x++) {
+			dprintf(dir_chars[x2]);
+			dprintf(dir_chars[x]);
+			dprintf(": ");
+			dprintf(x2x_freq[x2][x]);
+			dprintf("\n");
+		}
+	}
+
+
+
+	dprintf("\nDefault parameters:\n");
+	dprintf(def_params.str());
+	dprintf("\nUsed rules:\n");
+	dprintf(used_rules.str());
+	dprintf("\nUnused rules:\n");
+	dprintf(unused_rules.str());
 }
 
 
