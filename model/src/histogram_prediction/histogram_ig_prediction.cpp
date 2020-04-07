@@ -184,6 +184,123 @@ std::array<CHistogram_Classification::TDir_Pattern, 9> CHistogram_Classification
 	return result;
 }
 
+bool CHistogram_Classification::Classify_Slow_Fast_AUC(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
+	bool result = false;
+
+	std::array<double, hist_ig_pred::mOffset_Count> times, levels;
+	for (size_t i = 0; i < mOffset.size(); i++)
+		times[i] = current_time + mOffset[i];
+	if (mIst->Get_Continuous_Levels(nullptr, times.data(), levels.data(), times.size(), scgms::apxNo_Derivation) == S_OK) {
+
+		bool all_normals = true;
+		for (auto &level : levels)
+			if (!std::isnormal(level)) {
+				all_normals = false;
+				break;
+			}
+
+		if (all_normals) {
+			
+			//fast channel - all the levels
+			{
+				double sum = static_cast<double>(levels.size()-1)*levels[0];
+				for (size_t i = 1; i < levels.size(); i++)
+					sum += levels[i];
+				x2 = sum > 0.0 ? hist_ig_pred::NPattern_Dir::positive : hist_ig_pred::NPattern_Dir::negative;
+			}
+
+			//fast channel - only three last levels
+			{				
+				const size_t st_idx = levels.size()-3;
+				const double sum = levels[st_idx+1] + levels[st_idx + 2] - 2.0*levels[st_idx];				
+				x = sum > 0.0 ? hist_ig_pred::NPattern_Dir::positive : hist_ig_pred::NPattern_Dir::negative;
+			}
+
+			band_idx = hist_ig_pred::Level_To_Histogram_Index(levels[hist_ig_pred::mOffset_Count - 1]);
+
+			result = true;
+		}
+	}
+
+	return result;
+}
+
+
+bool CHistogram_Classification::Classify_Slow_Fast_Line(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
+	bool result = false;
+
+	std::array<double, hist_ig_pred::mOffset_Count> times, levels;
+	for (size_t i = 0; i < mOffset.size(); i++)
+		times[i] = current_time + mOffset[i];
+	if (mIst->Get_Continuous_Levels(nullptr, times.data(), levels.data(), times.size(), scgms::apxNo_Derivation) == S_OK) {
+
+		bool all_normals = true;
+		for (auto &level : levels)
+			if (!std::isnormal(level)) {
+				all_normals = false;
+				break;
+			}
+
+		if (all_normals) {
+			//fast channel - all the levels
+			{
+				const double ds = static_cast<double>(levels.size());
+
+				double left_hand_sum_P = 0.5*ds*(0.0 + (ds - 1.0));
+				double left_hand_sum_Z = ds * levels[0];
+				double left_hand_sum_N = left_hand_sum_Z - left_hand_sum_P;
+				left_hand_sum_P += left_hand_sum_Z;
+
+				double right_hand_sum = 0.0;
+				for (size_t i = 0; i < levels.size(); i++)
+					right_hand_sum += levels[i];
+
+				x2 = hist_ig_pred::NPattern_Dir::negative;
+				double least_diff = fabs(right_hand_sum - left_hand_sum_N);
+				double diff = fabs(right_hand_sum - left_hand_sum_Z);
+				if (diff < least_diff) {
+					least_diff = diff;
+					x2 = hist_ig_pred::NPattern_Dir::negative;
+				}
+				if (least_diff > fabs(right_hand_sum - left_hand_sum_P))
+					x2 = hist_ig_pred::NPattern_Dir::positive;
+			}
+
+
+			//fast channel - only three last levels
+			{
+				double left_hand_sum_P = 0.0 + 1.0 + 2.0;
+				double left_hand_sum_Z = 3.0 * levels[levels.size() - 3];
+				double left_hand_sum_N = left_hand_sum_Z - left_hand_sum_P;
+				left_hand_sum_P += left_hand_sum_Z;
+
+				double right_hand_sum = 0.0;
+				for (size_t i = levels.size()-3; i < levels.size(); i++)
+					right_hand_sum += levels[i];
+
+				x = hist_ig_pred::NPattern_Dir::negative;
+				double least_diff = fabs(right_hand_sum - left_hand_sum_N);
+				double diff = fabs(right_hand_sum - left_hand_sum_Z);
+				if (diff < least_diff) {
+					least_diff = diff;
+					x = hist_ig_pred::NPattern_Dir::negative;
+				}
+				if (least_diff > fabs(right_hand_sum - left_hand_sum_P))
+					x = hist_ig_pred::NPattern_Dir::positive;
+			}
+			
+
+
+			band_idx = hist_ig_pred::Level_To_Histogram_Index(levels[hist_ig_pred::mOffset_Count - 1]);
+			
+
+			result = true;
+		}
+	}
+
+	return result;
+}
+
 bool CHistogram_Classification::Classify_Lookup(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
 	bool result = false;
 
@@ -287,7 +404,9 @@ bool CHistogram_Classification::Classify_Poly(const double current_time, size_t 
 
 bool CHistogram_Classification::Classify(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
 	return Classify_Lookup(current_time, band_idx, x2, x);
-	//return Classify_Poly(current_time, band_idx, x2, x);
+	return Classify_Poly(current_time, band_idx, x2, x);	
+	return Classify_Slow_Fast_AUC(current_time, band_idx, x2, x);
+	return Classify_Slow_Fast_Line(current_time, band_idx, x2, x);
 }
 
 CHistogram_IG_Prediction_Filter::CHistogram_IG_Prediction_Filter(scgms::IFilter *output) 
