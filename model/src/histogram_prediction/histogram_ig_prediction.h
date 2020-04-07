@@ -51,7 +51,7 @@
 namespace hist_ig_pred {
 
 	using THistogram = Eigen::Array<double, 1, Band_Count, Eigen::RowMajor>;
-	constexpr size_t mOffset_Count = 6;
+	constexpr size_t mOffset_Count = 3;
 
 	class CPattern {
 	protected:
@@ -93,15 +93,16 @@ protected:
 	bool Classify_Slow_Fast_Line(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
 	bool Classify_Lookup(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
 	bool Classify_Poly(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
+	bool Classify_Poly_Eigen(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
 
 protected:
 	scgms::SSignal mIst;
 	double mDt = 30.0*scgms::One_Minute;	
 	const std::array<double, hist_ig_pred::mOffset_Count> mOffset = { 
-		 -25 * scgms::One_Minute,
+/*		 -25 * scgms::One_Minute,
 		 -20 * scgms::One_Minute,
 		- 15 * scgms::One_Minute,
-		 -10 * scgms::One_Minute,
+	*/	 -10 * scgms::One_Minute,
 										    - 5 * scgms::One_Minute,
 										    - 0 * scgms::One_Minute };
 	bool Classify(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
@@ -112,7 +113,7 @@ protected:
 	std::map<hist_ig_pred::CPattern, hist_ig_pred::CPattern> mPatterns;
 	double Update_And_Predict(const double current_time, const double ig_level);//returns prediction at current_time + mDt
 protected:
-	const bool mDump_Params = true;
+	const bool mDump_Params = false;
 	void Dump_Params();
 protected:	
 	// scgms::CBase_Filter iface implementation
