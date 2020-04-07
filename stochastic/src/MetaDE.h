@@ -264,9 +264,11 @@ public:
 			auto &solution = mPopulation[i];
 			Generate_Meta_Params(solution);
 			solution.population_index = i;
-			solution.current_fitness = mSetup.objective(mSetup.data, solution.current.data());
-			
 		}
+
+		std::for_each(std::execution::par_unseq, mPopulation.begin(), mPopulation.end(), [this](auto &candidate_solution) {
+			candidate_solution.current_fitness = mSetup.objective(mSetup.data, candidate_solution.current.data());
+		});
 
 		//3. finally, create and fill mpopulation indexes
 		std::iota(mPopulation_Best.begin(), mPopulation_Best.end(), 0);
