@@ -64,10 +64,15 @@ namespace pathfinder {
 	const scgms::TSolver_Descriptor desc_landscape = Describe_Non_Specialized_Solver(id_landscape, dsPathfinder_Landscape);
 }
 
+namespace sequential_brute_force_scan {
+	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsSequential_Brute_Force_Scan);
+}
 
-const std::array<scgms::TSolver_Descriptor, 6> solver_descriptions = 
+
+const std::array<scgms::TSolver_Descriptor, 7> solver_descriptions = 
 	{ mt_metade::desc, halton_metade::desc, rnd_metade::desc, 
-	  pathfinder::desc_fast, pathfinder::desc_spiral, pathfinder::desc_landscape };
+	  pathfinder::desc_fast, pathfinder::desc_spiral, pathfinder::desc_landscape,
+	  sequential_brute_force_scan::desc};
 
 
 HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end) {

@@ -48,23 +48,23 @@
 #include <set>
 
 #ifdef __cpp_lib_execution
-#include <execution>
+	#include <execution>
 #else
-namespace std
-{
-	// minimal substitute for missing execution header (for pre C++20 compilers)
-
-	enum class execution {
-		par_unseq
-	};
-
-	template<typename Fnc, typename It>
-	void for_each(const execution ex, const It& begin, const It& end, Fnc fnc)
+	namespace std
 	{
-		for (It itr = begin; itr != end; itr++)
-			fnc(*itr);
+		// minimal substitute for missing execution header (for pre C++20 compilers)
+
+		enum class execution {
+			par_unseq
+		};
+
+		template<typename Fnc, typename It>
+		void for_each(const execution ex, const It& begin, const It& end, Fnc fnc)
+		{
+			for (It itr = begin; itr != end; itr++)
+				fnc(*itr);
+		}
 	}
-}
 #endif
 
 #undef max
@@ -242,7 +242,7 @@ public:
 		}
 
 		//b) by complementing it with randomly generated numbers
-			const auto bounds_range = mUpper_Bound - mLower_Bound;
+		const auto bounds_range = mUpper_Bound - mLower_Bound;
 		for (size_t i = initialized_count; i < mPopulation.size(); i++) {
 			TUsed_Solution tmp;
 
