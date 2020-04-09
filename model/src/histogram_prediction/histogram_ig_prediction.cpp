@@ -440,8 +440,8 @@ bool CHistogram_Classification::Classify_Poly(const double current_time, size_t 
 
 
 bool CHistogram_Classification::Classify(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
-//	return Classify_Poly_Eigen(current_time, band_idx, x2, x);
-//	return Classify_Lookup(current_time, band_idx, x2, x);
+	//return Classify_Poly_Eigen(current_time, band_idx, x2, x);
+	//return Classify_Lookup(current_time, band_idx, x2, x);
 	return Classify_Poly(current_time, band_idx, x2, x);	
 	return Classify_Slow_Fast_AUC(current_time, band_idx, x2, x);
 	return Classify_Slow_Fast_Line(current_time, band_idx, x2, x);
@@ -495,6 +495,7 @@ HRESULT CHistogram_IG_Prediction_Filter::Do_Configure(scgms::SFilter_Configurati
 double CHistogram_IG_Prediction_Filter::Update_And_Predict(const double current_time, const double ig_level) {
 	double result = std::numeric_limits<double>::quiet_NaN();
  
+	//1st phase - learning
 	if (SUCCEEDED(mIst->Update_Levels(&current_time, &ig_level, 1))) {
 		size_t band_idx;
 		hist_ig_pred::NPattern_Dir x2, x;
@@ -507,9 +508,21 @@ double CHistogram_IG_Prediction_Filter::Update_And_Predict(const double current_
 				iter = x.first;
 			}
 							
-			iter->second.Update(ig_level);
+			iter->second.Update(ig_level);			
+		}
+	}
 
-			result = iter->second.Level();		
+
+	//2nd phase - obtaining a learned result
+	{
+		size_t band_idx;
+		hist_ig_pred::NPattern_Dir x2, x;
+		if (Classify(current_time, band_idx, x2, x)) {
+			hist_ig_pred::CPattern pattern{ band_idx, x2, x };
+
+			auto iter = mPatterns.find(pattern);
+			if (iter != mPatterns.end()) 
+				result = iter->second.Level();						
 		}
 	}
 
@@ -534,6 +547,7 @@ void CHistogram_IG_Prediction_Filter::Dump_Params() {
 		str << "; band " << lvl - hist_ig_pred::Half_Band_Size << " - " << lvl + hist_ig_pred::Half_Band_Size;
 		str << "; " << dir_chars[static_cast<size_t>(pattern.x2())] << dir_chars[static_cast<size_t>(pattern.x())];
 		str << "; freq: " << pattern.freq();
+		str << "; stddev: " << pattern.stdev();
 		str << std::endl;
 	};
 
@@ -633,7 +647,7 @@ HRESULT IfaceCalling CHistogram_IG_Prediction_Signal::Get_Continuous_Levels(scgm
 	for (size_t i = 0; i < count; i++) {
 		size_t band_idx;
 		hist_ig_pred::NPattern_Dir x2, x;
-		if (Classify(times[i] - mDt, band_idx, x2, x)) {
+		if (Classify(times[i], band_idx, x2, x)) {
 			const double raw_band = parameters.bands[static_cast<const size_t>(band_idx)][static_cast<const size_t>(x2)][static_cast<const size_t>(x)];
 			levels[i] = hist_ig_pred::Histogram_Index_To_Level(
 				static_cast<size_t>(round(raw_band)));			

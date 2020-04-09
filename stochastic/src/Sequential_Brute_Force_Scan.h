@@ -65,33 +65,43 @@ public:
 		std::vector<size_t> val_indexes(mStepping.size());
 		std::iota(val_indexes.begin(), val_indexes.end(), 0);
 
-		for (size_t param_idx = 0; param_idx < mSetup.problem_size; param_idx++) {			
-			if (progress.cancelled != FALSE) break;
+		bool improved = true;
 
-			if (mLower_Bound[param_idx] != mUpper_Bound[param_idx]) {													
-								
-				std::for_each(std::execution::par_unseq, val_indexes.begin(), val_indexes.end(),
-					[this, &best_solution, &best_mutex, &progress, &atomic_progress, &param_idx](const auto &val_idx) {
-					
-					progress.current_progress = atomic_progress.fetch_add(1);
-					if (progress.cancelled != FALSE) return;
-				
-					static thread_local TUsed_Solution local_solution;
-					{
-						std::shared_lock read_lock{ best_mutex };
-						local_solution = best_solution.solution;
-					}
-					local_solution(param_idx) = mStepping[val_idx](param_idx);
-					const double local_solution_fitness = mSetup.objective(mSetup.data, local_solution.data());
+		size_t improved_counter = 0;
+		while (improved && (improved_counter++ < mSetup.max_generations)) {
+			improved = false;
+			progress.current_progress = 0;
 
-					if (local_solution_fitness < best_solution.fitness) {
-						std::unique_lock write_lock{ best_mutex };
+			for (size_t param_idx = 0; param_idx < mSetup.problem_size; param_idx++) {
+				if (progress.cancelled != FALSE) break;
 
-						best_solution.solution = local_solution;
-						best_solution.fitness = local_solution_fitness;
-						progress.best_metric = local_solution_fitness;
-					}
-				});
+				if (mLower_Bound[param_idx] != mUpper_Bound[param_idx]) {
+
+					std::for_each(std::execution::par_unseq, val_indexes.begin(), val_indexes.end(),
+						[this, &best_solution, &best_mutex, &progress, &atomic_progress, &param_idx, &improved](const auto &val_idx) {
+
+						progress.current_progress = atomic_progress.fetch_add(1);
+						if (progress.cancelled != FALSE) return;
+
+						static thread_local TUsed_Solution local_solution;
+						{
+							std::shared_lock read_lock{ best_mutex };
+							local_solution = best_solution.solution;
+						}
+						local_solution(param_idx) = mStepping[val_idx](param_idx);
+						const double local_solution_fitness = mSetup.objective(mSetup.data, local_solution.data());
+
+						if (local_solution_fitness < best_solution.fitness) {
+							std::unique_lock write_lock{ best_mutex };
+
+							best_solution.solution = local_solution;
+							best_solution.fitness = local_solution_fitness;
+							progress.best_metric = local_solution_fitness;
+
+							improved = true;
+						}
+					});
+				}				
 			}
 		}
 

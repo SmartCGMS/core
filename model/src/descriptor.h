@@ -390,7 +390,7 @@ namespace hist_ig_pred {
 
 	constexpr double Low_Threshold = 3.0;			//mmol/L below which a medical attention is needed
 	constexpr double High_Threshold = 13.0;			//dtto above
-	constexpr size_t Internal_Bound_Count = 7;
+	constexpr size_t Internal_Bound_Count = 30;
 
 	constexpr double Band_Size = (High_Threshold - Low_Threshold) / static_cast<double>(Internal_Bound_Count);						//must imply relative error <= 10% 
 	constexpr double Inv_Band_Size = 1.0 / Band_Size;		//abs(Low_Threshold-Band_Size)/Low_Threshold 
