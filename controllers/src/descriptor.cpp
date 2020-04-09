@@ -255,7 +255,7 @@ const std::array<scgms::TModel_Descriptor, 5> model_descriptions = { { iob::desc
 
 const std::array<scgms::TSignal_Descriptor, 9> signals_descriptors = { {iob::act_bi_desc, iob::act_exp_desc, iob::iob_bi_desc, iob::iob_exp_desc, cob::bi_desc,
 																		betapid_insulin_regulation::pid_desc, betapid_insulin_regulation::pid2_desc, betapid3_insulin_regulation::pid3_desc,
-																		lgs_basal_insulin::lgs_desc} };
+																		lgs_basal_insulin::lgs_desc } };
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
 	*begin = const_cast<scgms::TModel_Descriptor*>(model_descriptions.data());

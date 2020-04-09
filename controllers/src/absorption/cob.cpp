@@ -45,7 +45,7 @@
 #include "../../../../common/rtl/SolverLib.h"
 
 CCarbohydrates_On_Board::CCarbohydrates_On_Board(scgms::WTime_Segment segment)
-	: CCommon_Calculated_Signal(segment), mSource_Signal(segment.Get_Signal(scgms::signal_Carb_Intake)) {
+	: CCommon_Calculated_Signal(segment), mCarb_Intake(segment.Get_Signal(scgms::signal_Carb_Intake)), mCarb_Rescue(segment.Get_Signal(scgms::signal_Carb_Rescue)) {
 }
 
 double CCarbohydrates_On_Board_Bilinear::Calculate_Signal(double bolusTime, double bolusValue, double nowTime, double peak, double dia) const
@@ -84,19 +84,19 @@ double CCarbohydrates_On_Board_Bilinear::Calculate_Signal(double bolusTime, doub
 	return value;
 }
 
-double CCarbohydrates_On_Board::Calculate_Total_COB(double nowTime, double peak, double dia) const
+double CCarbohydrates_On_Board::Calculate_Total_COB(const scgms::SSignal& source, double nowTime, double peak, double dia) const
 {
 	double totalCob = 0;
 	size_t cnt, filled;
 	std::vector<double> carbTimes, carbLevels;
 
 	// get carbs levels and times, add it to total COB contrib
-	if (mSource_Signal->Get_Discrete_Bounds(nullptr, nullptr, &cnt) == S_OK && cnt != 0)
+	if (source->Get_Discrete_Bounds(nullptr, nullptr, &cnt) == S_OK && cnt != 0)
 	{
 		carbTimes.resize(cnt);
 		carbLevels.resize(cnt);
 		
-		if (mSource_Signal->Get_Discrete_Levels(carbTimes.data(), carbLevels.data(), cnt, &filled) == S_OK)
+		if (source->Get_Discrete_Levels(carbTimes.data(), carbLevels.data(), cnt, &filled) == S_OK)
 		{
 			if (cnt != filled)
 			{
@@ -126,7 +126,8 @@ HRESULT CCarbohydrates_On_Board::Get_Continuous_Levels(scgms::IModel_Parameter_V
 
 	for (size_t i = 0; i < count; i++)
 	{
-		double totalCob = Calculate_Total_COB(times[i], parameters.peak, parameters.dia);
+		double totalCob = Calculate_Total_COB(mCarb_Intake, times[i], parameters.peak, parameters.dia)
+						  + Calculate_Total_COB(mCarb_Rescue, times[i], parameters.peak, parameters.dia);
 
 		levels[i] = totalCob;
 	}
