@@ -174,6 +174,55 @@ void CGraph_Generator::Write_LinearCurve(const ValueVector& values)
 	}
 }
 
+void CGraph_Generator::Write_StepCurve(const ValueVector& values)
+{
+	if (values.empty())
+		return;
+
+	auto findNext = [&values](size_t &pos, uint64_t segId) -> size_t {
+		// the unsigned overflow is well defined, so if "pos" equals Invalid_Position (-1), it will overflow to 0
+		for (pos++; pos < values.size(); pos++)
+		{
+			if (values[pos].segment_id == segId)
+				return pos;
+		}
+
+		pos = Invalid_Position;
+		return Invalid_Position;
+	};
+
+	// extract segment IDs from values
+	std::set<uint64_t> segmentIds;
+	for (auto& val : values)
+		segmentIds.insert(val.segment_id);
+
+	// draw segment lines separatelly
+	for (uint64_t segId : segmentIds)
+	{
+		size_t pos = Invalid_Position, next;
+
+		size_t previous = findNext(pos, segId);
+		if (pos == Invalid_Position)
+			continue;
+
+		mSvg << "<path d =\"M " << Normalize_Time_X(values[previous].date) << " " << Normalize_Y(values[previous].value);
+
+		while (pos != Invalid_Position)
+		{
+			next = findNext(pos, segId);
+			if (next == Invalid_Position)
+				break;
+
+			mSvg << " L " << Normalize_Time_X(values[next].date) << " " << Normalize_Y(values[previous].value);
+			mSvg << " L " << Normalize_Time_X(values[next].date) << " " << Normalize_Y(values[next].value);
+			pos = next;
+			previous = next;
+		}
+
+		mSvg << "\"/>" << std::endl;
+	}
+}
+
 void CGraph_Generator::Write_Normalized_Lines(ValueVector istVector, ValueVector bloodVector)
 {
     mSvg.Set_Stroke(1, "blue", "none");
@@ -219,7 +268,7 @@ void CGraph_Generator::Write_Normalized_Lines(ValueVector istVector, ValueVector
 
 		mSvg.Set_Stroke(1, "#55DDDD", "none");
 		SVG::GroupGuard grp(mSvg, "basal_insulin_rateCurve", true);
-		Write_LinearCurve(cobs);
+		Write_StepCurve(cobs);
 	}
 	catch (...)
 	{
