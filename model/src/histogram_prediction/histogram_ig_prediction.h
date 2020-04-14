@@ -58,6 +58,7 @@ namespace hist_ig_pred {
 		size_t mBand_Idx;
 		NPattern_Dir mX2, mX;
 		THistogram mHistogram;		
+		THistogram mFailures;
 	public:
 		CPattern(const size_t current_band, NPattern_Dir x2, NPattern_Dir x);
 		void Update(const double future_level);
@@ -95,7 +96,7 @@ protected:
 	bool Classify_Lookup(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
 	bool Classify_Poly(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
 	bool Classify_Poly_Eigen(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
-
+	bool Classify_Diff3(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
 protected:
 	scgms::SSignal mIst;
 	double mDt = 30.0*scgms::One_Minute;	

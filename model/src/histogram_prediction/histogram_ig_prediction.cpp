@@ -67,12 +67,19 @@ namespace hist_ig_pred {
 	CPattern::CPattern(const size_t current_band, NPattern_Dir x2, NPattern_Dir x) :
 		mBand_Idx(current_band), mX2(x2), mX(x) {
 		mHistogram.setZero();
+		mFailures.setZero();
 	}
 
 
 	void CPattern::Update(const double future_level) {
 		const size_t band_idx = Level_To_Histogram_Index(future_level);
 		mHistogram(band_idx) += 1.0;
+
+		//updated, let's verify succes of this prediction
+		const size_t predicted_band_idx = Level_To_Histogram_Index(Level());
+		if (band_idx != predicted_band_idx) {
+			mFailures(predicted_band_idx) += 1.0;	//increase negative rating for this level
+		}
 	}
 
 	double CPattern::Level() const {
@@ -80,11 +87,25 @@ namespace hist_ig_pred {
 		auto find_max = [&]() {
 			size_t bi = 0;
 			double m = mHistogram(0);
-			for (auto i = 1; i < mHistogram.cols(); i++)
+			for (auto i = 1; i < mHistogram.cols(); i++)				
 				if (m < mHistogram(i)) {
 					bi = i;
 					m = mHistogram(i);
 				}
+
+			return Histogram_Index_To_Level(bi);
+		};
+
+		auto find_max_rating = [&]() {
+			size_t bi = 0;
+			double m = mHistogram(0) > 0.0 ? mHistogram(0) / (mFailures(0) + mHistogram(0)) : 0.0;
+			for (auto i = 1; i < mHistogram.cols(); i++) {
+				const double rating = mHistogram(i) > 0.0 ? mHistogram(i) / (mFailures(i) + mHistogram(i)) : 0.0;
+				if (m < rating) {
+					bi = i;
+					m = rating;
+				}
+			}
 
 			return Histogram_Index_To_Level(bi);
 		};
@@ -130,7 +151,35 @@ namespace hist_ig_pred {
 			return Histogram_Index_To_Level(result_idx);
 		};
 
+		auto find_centroid_rating = [&]() {
+			THistogram prob = mHistogram;
+			
+			for (auto i = 0; i < prob.cols(); i++) {
+				const double rating = mHistogram(i) > 0.0 ?
+					mHistogram(i) / (mFailures(i) + mHistogram(i))
+					: 0.0;
 
+				prob(i) *= rating;
+			}
+
+			const double mx = prob.maxCoeff();
+			if (mx > 0.0) {
+				prob /= mx;
+
+				const double area = prob.sum();
+				double moments = 0.0;
+				for (auto i = 0; i < prob.cols(); i++) {					
+					moments += prob(i) *static_cast<double>(i);
+				}
+
+				const size_t result_idx = static_cast<size_t>(std::round(moments / area));
+
+				return Histogram_Index_To_Level(result_idx);
+			}
+			else
+				return std::numeric_limits<double>::quiet_NaN();
+		};
+				
 		return find_centroid();
 	}
 
@@ -439,7 +488,36 @@ bool CHistogram_Classification::Classify_Poly(const double current_time, size_t 
 }
 
 
+bool CHistogram_Classification::Classify_Diff3(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
+	bool result = false;
+
+	const std::array<double, 3> times = { current_time - 10 * scgms::One_Minute,
+										  current_time - 5 * scgms::One_Minute,
+										  current_time - 0 * scgms::One_Minute };
+	std::array<double, 3> levels;
+	if (mIst->Get_Continuous_Levels(nullptr, times.data(), levels.data(), times.size(), scgms::apxNo_Derivation) == S_OK) {
+
+		bool all_normals = true;
+		for (auto &level : levels)
+			if (!std::isnormal(level)) {
+				all_normals = false;
+				break;
+			}
+
+		if (all_normals) {
+			band_idx = hist_ig_pred::Level_To_Histogram_Index(levels[2]);
+			x2 = dbl_2_pat(static_cast<double>(hist_ig_pred::Level_To_Histogram_Index(levels[1] - hist_ig_pred::Level_To_Histogram_Index(levels[2]))));
+			x = dbl_2_pat(static_cast<double>(hist_ig_pred::Level_To_Histogram_Index(levels[0] - hist_ig_pred::Level_To_Histogram_Index(levels[1]))));
+			result = true;
+		}
+	}
+
+	return result;
+
+}
+
 bool CHistogram_Classification::Classify(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
+	//return Classify_Poly_Diff3(current_time, band_idx, x2, x);
 	//return Classify_Poly_Eigen(current_time, band_idx, x2, x);
 	//return Classify_Lookup(current_time, band_idx, x2, x);
 	return Classify_Poly(current_time, band_idx, x2, x);	

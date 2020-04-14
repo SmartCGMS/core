@@ -103,7 +103,9 @@ HRESULT CSignal_Stats::Do_Execute(scgms::UDevice_Event event) {
                     }
                     else {                            
                         auto& levels = series->second;
-                        if (levels.last_level != level) {
+
+						const bool discard_level = mDiscard_Repeating_Level && (levels.last_level == level);
+                        if (!discard_level) {
                             levels.last_level = level;
                             levels.level.push_back(level);
                             levels.datetime.push_back(date_time);
