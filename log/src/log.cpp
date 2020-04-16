@@ -139,8 +139,14 @@ HRESULT IfaceCalling CLog_Filter::Do_Configure(scgms::SFilter_Configuration conf
 
 	mIs_Terminated = false;
 
+	const HRESULT rc = Open_Log(mLog_Filename) ? S_OK : MK_E_CANTOPENFILE;
+	if (rc != S_OK) {
+		std::wstring desc = dsCannot_Open_File;
+		desc += mLog_Filename;
+		error_description.push(desc);
+	}
 
-	return Open_Log(mLog_Filename) ? S_OK : S_FALSE;
+	return rc;
 }
 
 HRESULT IfaceCalling CLog_Filter::Do_Execute(scgms::UDevice_Event event) {

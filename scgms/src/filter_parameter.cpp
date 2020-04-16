@@ -33,7 +33,7 @@ HRESULT IfaceCalling CFilter_Parameter::Set_WChar_Container(refcnt::wstr_contain
 	mSystem_Variable_Name.clear();
 	if (tmp.size() > 3) {
 		if ((tmp[0] == '$') && (tmp[1] == L'(') && (tmp[tmp.size() - 1] == L')')) {
-			mSystem_Variable_Name = Narrow_WString(tmp.substr(2, tmp.size() - 2));
+			mSystem_Variable_Name = Narrow_WString(tmp.substr(2, tmp.size() - 3));
 		}
 	}
 
