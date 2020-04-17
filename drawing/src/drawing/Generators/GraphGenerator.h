@@ -71,7 +71,7 @@ class CGraph_Generator : public IGenerator
         // writes bezier curve and counts errors on the path from supplied value vector values
 		void Write_QuadraticBezierCurve(const ValueVector& values);
 		// writes linear polyline
-		void Write_LinearCurve(const ValueVector& values);
+		void Write_LinearCurve(const ValueVector& values, const double y_scale = 1.0);
 
         virtual double Normalize_Time_X(time_t x) const override;
         virtual double Normalize_Y(double y) const override;

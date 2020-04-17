@@ -127,7 +127,7 @@ void CGraph_Generator::Write_QuadraticBezierCurve(const ValueVector& values)
 	}
 }
 
-void CGraph_Generator::Write_LinearCurve(const ValueVector& values)
+void CGraph_Generator::Write_LinearCurve(const ValueVector& values, const double y_scale)
 {
 	if (values.empty())
 		return;
@@ -158,7 +158,7 @@ void CGraph_Generator::Write_LinearCurve(const ValueVector& values)
 		if (pos == Invalid_Position)
 			continue;
 
-		mSvg << "<path d =\"M " << Normalize_Time_X(values[previous].date) << " " << Normalize_Y(values[previous].value);
+		mSvg << "<path d =\"M " << Normalize_Time_X(values[previous].date) << " " << Normalize_Y(values[previous].value*y_scale);
 
 		while (pos != Invalid_Position)
 		{
@@ -166,7 +166,7 @@ void CGraph_Generator::Write_LinearCurve(const ValueVector& values)
 			if (next == Invalid_Position)
 				break;
 
-			mSvg << " L " << Normalize_Time_X(values[next].date) << " " << Normalize_Y(values[next].value);
+			mSvg << " L " << Normalize_Time_X(values[next].date) << " " << Normalize_Y(values[next].value*y_scale);
 			pos = next;
 		}
 
@@ -203,9 +203,11 @@ void CGraph_Generator::Write_Normalized_Lines(ValueVector istVector, ValueVector
 	{
 		ValueVector& cobs = Utility::Get_Value_Vector_Ref(mInputData, "cob");
 
-		mSvg.Set_Stroke(1, "#55DD55", "none");
-		SVG::GroupGuard grp(mSvg, "cobCurve", true);
-		Write_LinearCurve(cobs);
+		if (!cobs.empty()) {
+			mSvg.Set_Stroke(1, "#55DD55", "none");
+			SVG::GroupGuard grp(mSvg, "cobCurve", true);
+			Write_LinearCurve(cobs, 0.1);
+		}
 	}
 	catch (...)
 	{
@@ -215,11 +217,13 @@ void CGraph_Generator::Write_Normalized_Lines(ValueVector istVector, ValueVector
 	// suggested basal curve group scope
 	try
 	{
-		ValueVector& cobs = Utility::Get_Value_Vector_Ref(mInputData, "basal_insulin_rate");
+		ValueVector& rates = Utility::Get_Value_Vector_Ref(mInputData, "basal_insulin_rate");
 
-		mSvg.Set_Stroke(1, "#55DDDD", "none");
-		SVG::GroupGuard grp(mSvg, "basal_insulin_rateCurve", true);
-		Write_LinearCurve(cobs);
+		if (!rates.empty()) {
+			mSvg.Set_Stroke(1, "#55DDDD", "none");
+			SVG::GroupGuard grp(mSvg, "basal_insulin_rateCurve", true);
+			Write_LinearCurve(rates);
+		}
 	}
 	catch (...)
 	{
