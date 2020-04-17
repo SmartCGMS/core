@@ -390,11 +390,12 @@ namespace hist_ig_pred {
 
 	constexpr double Low_Threshold = 3.0;			//mmol/L below which a medical attention is needed
 	constexpr double High_Threshold = 13.0;			//dtto above
+	constexpr size_t Internal_Bound_Count = 30;
 
-	constexpr double Band_Size = 1.0 / 3.0;						//must imply relative error <= 10% 
+	constexpr double Band_Size = (High_Threshold - Low_Threshold) / static_cast<double>(Internal_Bound_Count);						//must imply relative error <= 10% 
 	constexpr double Inv_Band_Size = 1.0 / Band_Size;		//abs(Low_Threshold-Band_Size)/Low_Threshold 
 	constexpr double Half_Band_Size = 0.5 / Inv_Band_Size;
-	constexpr size_t Band_Count = 2 + static_cast<size_t>((High_Threshold - Low_Threshold)*Inv_Band_Size);
+	constexpr size_t Band_Count = 2 + Internal_Bound_Count;
 	//1 band < mLow_Threshold, n bands in between, and 1 band >=mHigh_Threshold	
 
 	enum class NPattern_Dir : uint8_t {
@@ -438,7 +439,41 @@ namespace hist_ig_pred {
 	}
 
 	
-	const TParameters default_parameters = init_params(30.0*scgms::One_Minute, static_cast<double>(Band_Count / 2));		
+	//const TParameters default_parameters = init_params(30.0*scgms::One_Minute, static_cast<double>(Band_Count / 2));		
+	
+	const TParameters default_parameters = { 0.0208333, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 3.0
+			, 1.0, 1.0, 2.0, 3.0, 0.0, 1.0, 3.0, 1.0, 5.0
+			, 2.0, 2.0, 3.0, 1.0, 3.0, 2.0, 3.0, 2.0, 6.0
+			, 2.0, 3.0, 3.0, 2.0, 3.0, 3.0, 4.0, 3.0, 7.0
+			, 3.0, 4.0, 4.0, 5.0, 4.0, 4.0, 4.0, 4.0, 8.0
+			, 2.0, 5.0, 5.0, 11.0, 3.0, 5.0, 5.0, 5.0, 8.0
+			, 3.0, 6.0, 6.0, 3.0, 5.0, 7.0, 5.0, 6.0, 9.0
+			, 4.0, 7.0, 7.0, 7.0, 6.0, 7.0, 6.0, 7.0, 10.0
+			, 5.0, 8.0, 7.0, 6.0, 6.0, 7.0, 6.0, 8.0, 12.0
+			, 5.0, 9.0, 8.0, 5.0, 8.0, 9.0, 8.0, 9.0, 12.0
+			, 6.0, 10.0, 10.0, 10.0, 8.0, 10.0, 9.0, 10.0, 13.0
+			, 8.0, 11.0, 10.0, 9.0, 9.0, 11.0, 9.0, 11.0, 14.0
+			, 8.0, 12.0, 12.0, 11.0, 12.0, 12.0, 10.0, 12.0, 15.0
+			, 8.0, 13.0, 13.0, 11.0, 13.0, 13.0, 12.0, 13.0, 16.0
+			, 10.0, 14.0, 13.0, 14.0, 14.0, 14.0, 13.0, 14.0, 17.0
+			, 10.0, 15.0, 14.0, 15.0, 13.0, 15.0, 13.0, 15.0, 17.0
+			, 12.0, 16.0, 15.0, 14.0, 14.0, 16.0, 14.0, 16.0, 19.0
+			, 12.0, 17.0, 17.0, 15.0, 16.0, 16.0, 15.0, 17.0, 19.0
+			, 12.0, 18.0, 17.0, 17.0, 17.0, 17.0, 16.0, 18.0, 20.0
+			, 14.0, 19.0, 17.0, 18.0, 18.0, 19.0, 17.0, 19.0, 21.0
+			, 14.0, 20.0, 19.0, 18.0, 20.0, 16.0, 18.0, 20.0, 22.0
+			, 15.0, 21.0, 19.0, 20.0, 20.0, 22.0, 18.0, 21.0, 22.0
+			, 16.0, 22.0, 21.0, 22.0, 24.0, 22.0, 20.0, 22.0, 24.0
+			, 16.0, 23.0, 22.0, 20.0, 23.0, 23.0, 20.0, 23.0, 26.0
+			, 18.0, 24.0, 22.0, 24.0, 23.0, 25.0, 21.0, 24.0, 24.0
+			, 19.0, 25.0, 23.0, 25.0, 24.0, 25.0, 21.0, 25.0, 27.0
+			, 18.0, 26.0, 25.0, 26.0, 25.0, 27.0, 24.0, 26.0, 27.0
+			, 20.0, 27.0, 25.0, 27.0, 27.0, 27.0, 23.0, 27.0, 28.0
+			, 22.0, 28.0, 25.0, 28.0, 28.0, 31.0, 24.0, 28.0, 29.0
+			, 22.0, 29.0, 27.0, 24.0, 29.0, 29.0, 23.0, 29.0, 28.0
+			, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0
+			, 26.0, 31.0, 29.0, 31.0, 31.0, 31.0, 28.0, 31.0, 31.0
+				};
 }
 
 

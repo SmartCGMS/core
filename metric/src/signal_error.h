@@ -78,6 +78,7 @@ protected:
 	bool mEmit_Metric_As_Signal = false;
 	bool mEmit_Last_Value_Only = false;
 	double mLast_Emmitted_Time = std::numeric_limits<double>::quiet_NaN();
+	bool mShutdown_Received = false;
 
 	void Emit_Metric_Signal(const uint64_t segment_id, const double device_time);
 

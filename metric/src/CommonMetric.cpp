@@ -53,28 +53,29 @@ CCommon_Metric::CCommon_Metric(const scgms::TMetric_Parameters& params) : mParam
 HRESULT IfaceCalling CCommon_Metric::Accumulate(const double *times, const double *expected, const double *calculated, const size_t count) {
 
 	for (size_t i = 0; i < count; i++) {		
-		TProcessed_Difference tmp;
+		if (!std::isnan(calculated[i])) {
+			TProcessed_Difference tmp;
 
-		tmp.raw.datetime = times[i];
-		tmp.raw.calculated = std::isnan(calculated[i]) ? Infinity_Diff_Penalty : calculated[i];		
-		tmp.raw.expected = expected[i];		
-		
-		tmp.difference = fabs(expected[i] - tmp.raw.calculated);
+			tmp.raw.datetime = times[i];
+			
+			tmp.raw.calculated = std::isnan(calculated[i]) ? Infinity_Diff_Penalty : calculated[i];
+			tmp.raw.expected = expected[i];
 
-		if (std::isnormal(tmp.raw.expected)) {
+			tmp.difference = fabs(expected[i] - tmp.raw.calculated);
 
-			if (mParameters.use_relative_error)
-				tmp.difference /= fabs(tmp.raw.expected);	//with wrong (e.g., MetaDE random) parameters, the result could be negative
-			if (mParameters.use_squared_differences)
-				tmp.difference *= tmp.difference;
+			if (std::isnormal(tmp.raw.expected)) {
+
+				if (mParameters.use_relative_error)
+					tmp.difference /= fabs(tmp.raw.expected);	//with wrong (e.g., MetaDE random) parameters, the result could be negative
+				if (mParameters.use_squared_differences)
+					tmp.difference *= tmp.difference;
+			}
+			else
+				tmp.difference = Infinity_Diff_Penalty;
+
+			mDifferences.push_back(tmp);
 		}
-		else
-			tmp.difference = Infinity_Diff_Penalty;
-
-		mDifferences.push_back(tmp);
 	}
-
-	mAll_Levels_Count += count;
 
 	return S_OK;
 }
@@ -82,27 +83,25 @@ HRESULT IfaceCalling CCommon_Metric::Accumulate(const double *times, const doubl
 
 HRESULT IfaceCalling CCommon_Metric::Reset() {
 	mDifferences.clear();
-	mAll_Levels_Count = 0;
 	return S_OK;
 }
 
 
 HRESULT IfaceCalling CCommon_Metric::Calculate(double *metric, size_t *levels_accumulated, size_t levels_required) {
 
-	*levels_accumulated = 0;
-	for (const auto &diff : mDifferences)
-		if (diff.difference != Infinity_Diff_Penalty) (*levels_accumulated)++;
+	if (levels_accumulated) {
+		*levels_accumulated = mDifferences.size();
+		levels_required = std::max((decltype(levels_required))1, levels_required);
 
-	levels_required = std::max((decltype(levels_required))1, levels_required);
-
-	if (*levels_accumulated < levels_required) return S_FALSE;
+		if (*levels_accumulated < levels_required) return S_FALSE;
+	}
 
 	double local_metric = Do_Calculate_Metric();	//caching into the register
 	
 	const auto cl = std::fpclassify(local_metric);
 	if ((cl != FP_NORMAL) && (cl != FP_ZERO)) return S_FALSE;
 
-	if (mParameters.prefer_more_levels != 0) local_metric /= static_cast<double>(*levels_accumulated);
+	if (mParameters.prefer_more_levels != 0) local_metric /= static_cast<double>(mDifferences.size());
 
 	*metric = local_metric;
 

@@ -59,7 +59,6 @@ struct TProcessed_Difference {
 
 class CCommon_Metric : public virtual scgms::IMetric, public virtual refcnt::CReferenced {
 protected:
-	size_t mAll_Levels_Count = 0;
 	const scgms::TMetric_Parameters mParameters;
 	std::vector<TProcessed_Difference> mDifferences;
 protected:

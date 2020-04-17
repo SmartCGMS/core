@@ -93,9 +93,7 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 		}
 	};
 
-	auto add_segment = [&raw_event, this, add_level](const bool is_reference_signal) {
-		std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
-
+	auto add_segment = [&raw_event, this, add_level](const bool is_reference_signal) {		
 		auto signals = mSignal_Series.find(raw_event->segment_id);
 		if (signals == mSignal_Series.end()) {
 			TSegment_Signals signals;
@@ -116,8 +114,10 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 				const bool is_reference_signal = raw_event->signal_id == mReference_Signal_ID;				
 				if (is_reference_signal || (raw_event->signal_id == mError_Signal_ID)) {
 
-					if (!(std::isnan(event.level()) || std::isnan(event.device_time())))
-						add_segment(is_reference_signal);	
+					if (!(std::isnan(event.level()) || std::isnan(event.device_time()))) {
+						std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
+						add_segment(is_reference_signal);
+					}
 				}
 
 				break;
@@ -127,6 +127,7 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 			{
 				std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
 				mSignal_Series.clear();
+				mShutdown_Received = false;
 				mNew_Data_Logical_Clock++;
 				break;
 			}
@@ -134,7 +135,9 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 
 
 			case scgms::NDevice_Event_Code::Time_Segment_Stop:
-				if (mEmit_Metric_As_Signal && mEmit_Last_Value_Only) {
+				if (mEmit_Metric_As_Signal && mEmit_Last_Value_Only && !mShutdown_Received) {
+					std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
+
 					auto signals = mSignal_Series.find(raw_event->segment_id);
 					if (signals != mSignal_Series.end()) {
 						Emit_Metric_Signal(raw_event->segment_id, raw_event->device_time);
@@ -143,8 +146,26 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 				}
 				break;
 
+			/*
+				There could be an intriguing situation, which may look like an error.
+				If async filtr produces events, it can emit events in a separate thread
+				after the shutdown signal - for performance reasons.
+				In such a case, it may emit segment stop after shutdown. This will produce
+				two metric values, event if it is set to emit single metric value only.
+				We can prevent this by moving the shutdown handler to dtor. But, this would break
+				the logic that shutdown is the last event processed.
+				Hence, we emit nothing after the shutdown.
+				
+				Anyone truly intersted in the cumulative final value, should used the promised metric
+				that's called from dtor. This value will include all levels received, regadless
+				segment stop and shutdown.
+			*/
+
 			case scgms::NDevice_Event_Code::Shut_Down:
+				mShutdown_Received = true;
 				if (mEmit_Metric_As_Signal && mEmit_Last_Value_Only) {
+					std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
+
 					//emit any last value, which we have not emitted due to missing segment stop marker
 					for (auto& signals: mSignal_Series) {
 

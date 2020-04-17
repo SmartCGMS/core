@@ -598,7 +598,7 @@ namespace hist_ig_pred {
 			tmp += ui ? L' ' : L'_';
 			tmp += std::to_wstring(i);
 
-			const size_t idx = 2 * i + (ui ? 0 : 1);
+			const size_t idx = static_cast<size_t>(2) * i + (ui ? static_cast<size_t>(0) : static_cast<size_t>(1));
 			name_placeholder[idx] = std::move(tmp);
 			result[i] = const_cast<wchar_t*>(name_placeholder[idx].c_str());
 		}

@@ -132,7 +132,7 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename, u
 				//we do so, to ensure that all the events are time sorted and and events't logical clock are monotonically increasing
 
 	// read all lines from log file
-	while (std::getline(log, line))  {
+	while (std::getline(log, line) && !mShutdown_Received)  {
 		line_counter++;
 
 		trim(line);
@@ -183,6 +183,8 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename, u
 	});
 		
 	for (size_t i = 0; i < log_lines.size(); i++) {
+		if (mShutdown_Received) break;
+
 		try {
 			line_counter = std::get<idxLog_Entry_Counter>(log_lines[i]);	//for the error reporting
 
@@ -326,7 +328,8 @@ void CLog_Replay_Filter::Open_Logs() {
 
 	//3. eventually, replay the logs
 	for (auto &log : logs_to_replay) 
-		Replay_Log(log.file_name, log.segment_id);
+		if (!mShutdown_Received)
+			Replay_Log(log.file_name, log.segment_id);
 
 	//issue shutdown after the last log, if we were not asked to ignore it
 	if (mEmit_Shutdown) {
@@ -346,6 +349,8 @@ HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(scgms::SFilter_Configurati
 
 
 HRESULT CLog_Replay_Filter::Do_Execute(scgms::UDevice_Event event) {
+	if (event.event_code() == scgms::NDevice_Event_Code::Shut_Down)
+		mShutdown_Received = true;
 	return Send(event);
 }
 

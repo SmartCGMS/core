@@ -40,8 +40,11 @@
 #include "../descriptor.h"
 #include "../../../../common/rtl/SolverLib.h"
 #include "../../../../common/utils/math_utils.h"
+#include "../../../../common/utils/DebugHelper.h"
 
 #include <numeric>
+#include <sstream>
+#include <iomanip>
 
 namespace hist_ig_pred {
 	size_t Level_To_Histogram_Index(const double level) {
@@ -64,12 +67,19 @@ namespace hist_ig_pred {
 	CPattern::CPattern(const size_t current_band, NPattern_Dir x2, NPattern_Dir x) :
 		mBand_Idx(current_band), mX2(x2), mX(x) {
 		mHistogram.setZero();
+		mFailures.setZero();
 	}
 
 
 	void CPattern::Update(const double future_level) {
 		const size_t band_idx = Level_To_Histogram_Index(future_level);
 		mHistogram(band_idx) += 1.0;
+
+		//updated, let's verify succes of this prediction
+		const size_t predicted_band_idx = Level_To_Histogram_Index(Level());
+		if (band_idx != predicted_band_idx) {
+			mFailures(predicted_band_idx) += 1.0;	//increase negative rating for this level
+		}
 	}
 
 	double CPattern::Level() const {
@@ -77,11 +87,25 @@ namespace hist_ig_pred {
 		auto find_max = [&]() {
 			size_t bi = 0;
 			double m = mHistogram(0);
-			for (auto i = 1; i < mHistogram.cols(); i++)
+			for (auto i = 1; i < mHistogram.cols(); i++)				
 				if (m < mHistogram(i)) {
 					bi = i;
 					m = mHistogram(i);
 				}
+
+			return Histogram_Index_To_Level(bi);
+		};
+
+		auto find_max_rating = [&]() {
+			size_t bi = 0;
+			double m = mHistogram(0) > 0.0 ? mHistogram(0) / (mFailures(0) + mHistogram(0)) : 0.0;
+			for (auto i = 1; i < mHistogram.cols(); i++) {
+				const double rating = mHistogram(i) > 0.0 ? mHistogram(i) / (mFailures(i) + mHistogram(i)) : 0.0;
+				if (m < rating) {
+					bi = i;
+					m = rating;
+				}
+			}
 
 			return Histogram_Index_To_Level(bi);
 		};
@@ -127,7 +151,35 @@ namespace hist_ig_pred {
 			return Histogram_Index_To_Level(result_idx);
 		};
 
+		auto find_centroid_rating = [&]() {
+			THistogram prob = mHistogram;
+			
+			for (auto i = 0; i < prob.cols(); i++) {
+				const double rating = mHistogram(i) > 0.0 ?
+					mHistogram(i) / (mFailures(i) + mHistogram(i))
+					: 0.0;
 
+				prob(i) *= rating;
+			}
+
+			const double mx = prob.maxCoeff();
+			if (mx > 0.0) {
+				prob /= mx;
+
+				const double area = prob.sum();
+				double moments = 0.0;
+				for (auto i = 0; i < prob.cols(); i++) {					
+					moments += prob(i) *static_cast<double>(i);
+				}
+
+				const size_t result_idx = static_cast<size_t>(std::round(moments / area));
+
+				return Histogram_Index_To_Level(result_idx);
+			}
+			else
+				return std::numeric_limits<double>::quiet_NaN();
+		};
+				
 		return find_centroid();
 	}
 
@@ -147,12 +199,252 @@ hist_ig_pred::NPattern_Dir CHistogram_Classification::dbl_2_pat(const double x) 
 }
 
 
-bool CHistogram_Classification::Classify(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
+std::array<CHistogram_Classification::TDir_Pattern, 9> CHistogram_Classification::Calculate_Left_Hand_Sum() {
+	std::array<CHistogram_Classification::TDir_Pattern, 9> result;
+	
+	size_t idx = 0;
+	//try all combinations of a: -1, 0 and 1
+	double a = -1.0;
+	do {
+
+		//try all combinations of b: -1, 0 and 1
+		double b = -1.0;
+		do {
+
+			//calculate the error for this particular combination of and b
+			double left_hand_sum = 0.0;
+			for (size_t t = 1; t < hist_ig_pred::mOffset_Count; t ++ ) {
+				const double tt = static_cast<double>(t);
+				left_hand_sum = a * tt*tt + b * tt;
+			}
+			result[idx].sum = left_hand_sum;
+			result[idx].mX2 = dbl_2_pat(a);
+			result[idx].mX = dbl_2_pat(b);
+			idx++;
+
+			b += 1.0;
+		} while (b < 2.0);
+
+		a += 1.0;
+	} while (a < 2.0);
+
+	std::sort(result.begin(), result.end(), [](auto a, auto b) {return a.sum < b.sum; });
+		
+	return result;
+}
+
+bool CHistogram_Classification::Classify_Slow_Fast_AUC(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
 	bool result = false;
 
-	const std::array<double, 3> times = { current_time - mDt - 10 * scgms::One_Minute,
-										  current_time - mDt - 5 * scgms::One_Minute,
-										  current_time - mDt - 0 * scgms::One_Minute };
+	std::array<double, hist_ig_pred::mOffset_Count> times, levels;
+	for (size_t i = 0; i < mOffset.size(); i++)
+		times[i] = current_time + mOffset[i];
+	if (mIst->Get_Continuous_Levels(nullptr, times.data(), levels.data(), times.size(), scgms::apxNo_Derivation) == S_OK) {
+
+		bool all_normals = true;
+		for (auto &level : levels)
+			if (!std::isnormal(level)) {
+				all_normals = false;
+				break;
+			}
+
+		if (all_normals) {
+			
+			//fast channel - all the levels
+			{
+				double sum = static_cast<double>(levels.size()-1)*levels[0];
+				for (size_t i = 1; i < levels.size(); i++)
+					sum += levels[i];
+				x2 = sum > 0.0 ? hist_ig_pred::NPattern_Dir::positive : hist_ig_pred::NPattern_Dir::negative;
+			}
+
+			//fast channel - only three last levels
+			{				
+				const size_t st_idx = levels.size()-3;
+				const double sum = levels[st_idx+1] + levels[st_idx + 2] - 2.0*levels[st_idx];				
+				x = sum > 0.0 ? hist_ig_pred::NPattern_Dir::positive : hist_ig_pred::NPattern_Dir::negative;
+			}
+
+			band_idx = hist_ig_pred::Level_To_Histogram_Index(levels[hist_ig_pred::mOffset_Count - 1]);
+
+			result = true;
+		}
+	}
+
+	return result;
+}
+
+
+bool CHistogram_Classification::Classify_Slow_Fast_Line(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
+	bool result = false;
+
+	std::array<double, hist_ig_pred::mOffset_Count> times, levels;
+	for (size_t i = 0; i < mOffset.size(); i++)
+		times[i] = current_time + mOffset[i];
+	if (mIst->Get_Continuous_Levels(nullptr, times.data(), levels.data(), times.size(), scgms::apxNo_Derivation) == S_OK) {
+
+		bool all_normals = true;
+		for (auto &level : levels)
+			if (!std::isnormal(level)) {
+				all_normals = false;
+				break;
+			}
+
+		if (all_normals) {
+			//fast channel - all the levels
+			{
+				const double ds = static_cast<double>(levels.size());
+
+				double left_hand_sum_P = 0.5*ds*(0.0 + (ds - 1.0));
+				double left_hand_sum_Z = ds * levels[0];
+				double left_hand_sum_N = left_hand_sum_Z - left_hand_sum_P;
+				left_hand_sum_P += left_hand_sum_Z;
+
+				double right_hand_sum = 0.0;
+				for (size_t i = 0; i < levels.size(); i++)
+					right_hand_sum += levels[i];
+
+				x2 = hist_ig_pred::NPattern_Dir::negative;
+				double least_diff = fabs(right_hand_sum - left_hand_sum_N);
+				double diff = fabs(right_hand_sum - left_hand_sum_Z);
+				if (diff < least_diff) {
+					least_diff = diff;
+					x2 = hist_ig_pred::NPattern_Dir::negative;
+				}
+				if (least_diff > fabs(right_hand_sum - left_hand_sum_P))
+					x2 = hist_ig_pred::NPattern_Dir::positive;
+			}
+
+
+			//fast channel - only three last levels
+			{
+				double left_hand_sum_P = 0.0 + 1.0 + 2.0;
+				double left_hand_sum_Z = 3.0 * levels[levels.size() - 3];
+				double left_hand_sum_N = left_hand_sum_Z - left_hand_sum_P;
+				left_hand_sum_P += left_hand_sum_Z;
+
+				double right_hand_sum = 0.0;
+				for (size_t i = levels.size()-3; i < levels.size(); i++)
+					right_hand_sum += levels[i];
+
+				x = hist_ig_pred::NPattern_Dir::negative;
+				double least_diff = fabs(right_hand_sum - left_hand_sum_N);
+				double diff = fabs(right_hand_sum - left_hand_sum_Z);
+				if (diff < least_diff) {
+					least_diff = diff;
+					x = hist_ig_pred::NPattern_Dir::negative;
+				}
+				if (least_diff > fabs(right_hand_sum - left_hand_sum_P))
+					x = hist_ig_pred::NPattern_Dir::positive;
+			}
+			
+
+
+			band_idx = hist_ig_pred::Level_To_Histogram_Index(levels[hist_ig_pred::mOffset_Count - 1]);
+			
+
+			result = true;
+		}
+	}
+
+	return result;
+}
+
+bool CHistogram_Classification::Classify_Lookup(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
+	bool result = false;
+
+	std::array<double, hist_ig_pred::mOffset_Count> times, levels;
+	for (size_t i = 0; i < mOffset.size(); i++)
+		times[i] = current_time + mOffset[i];
+	if (mIst->Get_Continuous_Levels(nullptr, times.data(), levels.data(), times.size(), scgms::apxNo_Derivation) == S_OK) {
+
+		bool all_normals = true;
+		for (auto &level : levels)
+			if (!std::isnormal(level)) {
+				all_normals = false;
+				break;
+			}
+
+		if (all_normals) {
+			double right_hand_sum = 0.0;
+			for (size_t t = 1; t < levels.size(); t++) {
+				right_hand_sum += levels[t] - levels[0];
+			}
+
+			//let's find the index
+			auto lb = std::lower_bound(mLeft_Hand_Sums.begin(), mLeft_Hand_Sums.end(),
+				CHistogram_Classification::TDir_Pattern{ right_hand_sum, hist_ig_pred::NPattern_Dir::zero, hist_ig_pred::NPattern_Dir::zero },
+				[](auto a, auto b) {return a.sum < b.sum; });
+			
+			size_t pattern_idx = 0;
+			if (lb != mLeft_Hand_Sums.end()) {
+				pattern_idx = std::distance(mLeft_Hand_Sums.begin(), lb);
+				if (pattern_idx > 0) {
+					const size_t prev_pattern_idx = pattern_idx - 1;
+					const double diff_prev = std::fabs(right_hand_sum - mLeft_Hand_Sums[prev_pattern_idx].sum);
+					const double diff_curr = std::fabs(right_hand_sum - mLeft_Hand_Sums[pattern_idx].sum);
+
+					if (diff_prev < diff_curr)
+						pattern_idx = prev_pattern_idx;
+				}
+			} else
+				pattern_idx = mLeft_Hand_Sums.size() - 1;
+				
+
+
+			band_idx = hist_ig_pred::Level_To_Histogram_Index(levels[hist_ig_pred::mOffset_Count-1]);
+			x2 = mLeft_Hand_Sums[pattern_idx].mX2;
+			x = mLeft_Hand_Sums[pattern_idx].mX;
+
+			result = true;
+		}
+	}
+
+	return result;
+}
+
+bool CHistogram_Classification::Classify_Poly_Eigen(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
+	bool result = false;
+
+	std::array<double, hist_ig_pred::mOffset_Count> times, levels;
+	for (size_t i = 0; i < mOffset.size(); i++)
+		times[i] = current_time + mOffset[i];
+	if (mIst->Get_Continuous_Levels(nullptr, times.data(), levels.data(), times.size(), scgms::apxNo_Derivation) == S_OK) {
+
+		bool all_normals = true;
+		for (auto &level : levels)
+			if (!std::isnormal(level)) {
+				all_normals = false;
+				break;
+			}
+
+		if (all_normals) {
+			Eigen::Matrix<double, hist_ig_pred::mOffset_Count, 2> A;
+			Eigen::Matrix<double, hist_ig_pred::mOffset_Count, 1> b;
+
+			for (size_t t = 0; t < hist_ig_pred::mOffset_Count; t++) {				
+				A(t, 0) = times[t] * times[t]; A(t, 1) = times[t]; b(t) = levels[t] - levels[0];
+			}
+
+			const Eigen::Vector2d coeff = A.fullPivHouseholderQr().solve(b);
+			x2 = dbl_2_pat(coeff[0]);
+			x = dbl_2_pat(coeff[1]);
+
+			band_idx = hist_ig_pred::Level_To_Histogram_Index(levels[hist_ig_pred::mOffset_Count - 1]);
+			result = true;
+		}
+	}
+
+	return result;
+
+}
+
+bool CHistogram_Classification::Classify_Poly(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
+	bool result = false;
+
+	const std::array<double, 3> times = { current_time - 10 * scgms::One_Minute,
+										  current_time - 5 * scgms::One_Minute,
+										  current_time - 0 * scgms::One_Minute };
 	std::array<double, 3> levels;
 	if (mIst->Get_Continuous_Levels(nullptr, times.data(), levels.data(), times.size(), scgms::apxNo_Derivation) == S_OK) {
 
@@ -195,12 +487,51 @@ bool CHistogram_Classification::Classify(const double current_time, size_t &band
 	return result;
 }
 
+
+bool CHistogram_Classification::Classify_Diff3(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
+	bool result = false;
+
+	const std::array<double, 3> times = { current_time - 10 * scgms::One_Minute,
+										  current_time - 5 * scgms::One_Minute,
+										  current_time - 0 * scgms::One_Minute };
+	std::array<double, 3> levels;
+	if (mIst->Get_Continuous_Levels(nullptr, times.data(), levels.data(), times.size(), scgms::apxNo_Derivation) == S_OK) {
+
+		bool all_normals = true;
+		for (auto &level : levels)
+			if (!std::isnormal(level)) {
+				all_normals = false;
+				break;
+			}
+
+		if (all_normals) {
+			band_idx = hist_ig_pred::Level_To_Histogram_Index(levels[2]);
+			x2 = dbl_2_pat(static_cast<double>(hist_ig_pred::Level_To_Histogram_Index(levels[1] - hist_ig_pred::Level_To_Histogram_Index(levels[2]))));
+			x = dbl_2_pat(static_cast<double>(hist_ig_pred::Level_To_Histogram_Index(levels[0] - hist_ig_pred::Level_To_Histogram_Index(levels[1]))));
+			result = true;
+		}
+	}
+
+	return result;
+
+}
+
+bool CHistogram_Classification::Classify(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const {
+	//return Classify_Poly_Diff3(current_time, band_idx, x2, x);
+	//return Classify_Poly_Eigen(current_time, band_idx, x2, x);
+	//return Classify_Lookup(current_time, band_idx, x2, x);
+	return Classify_Poly(current_time, band_idx, x2, x);	
+	return Classify_Slow_Fast_AUC(current_time, band_idx, x2, x);
+	return Classify_Slow_Fast_Line(current_time, band_idx, x2, x);
+}
+
 CHistogram_IG_Prediction_Filter::CHistogram_IG_Prediction_Filter(scgms::IFilter *output) 
 	: scgms::CBase_Filter(output, hist_ig_pred::filter_id) {
 }
 
 CHistogram_IG_Prediction_Filter::~CHistogram_IG_Prediction_Filter() {
-
+	if (mDump_Params)
+		Dump_Params();
 }
 
 HRESULT CHistogram_IG_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
@@ -242,10 +573,11 @@ HRESULT CHistogram_IG_Prediction_Filter::Do_Configure(scgms::SFilter_Configurati
 double CHistogram_IG_Prediction_Filter::Update_And_Predict(const double current_time, const double ig_level) {
 	double result = std::numeric_limits<double>::quiet_NaN();
  
+	//1st phase - learning
 	if (SUCCEEDED(mIst->Update_Levels(&current_time, &ig_level, 1))) {
 		size_t band_idx;
 		hist_ig_pred::NPattern_Dir x2, x;
-		if (Classify(current_time, band_idx, x2, x)) {
+		if (Classify(current_time - mDt, band_idx, x2, x)) {			
 			hist_ig_pred::CPattern pattern{ band_idx, x2, x };
 
 			auto iter = mPatterns.find(pattern);				
@@ -254,13 +586,124 @@ double CHistogram_IG_Prediction_Filter::Update_And_Predict(const double current_
 				iter = x.first;
 			}
 							
-			iter->second.Update(ig_level);
+			iter->second.Update(ig_level);			
+		}
+	}
 
-			result = iter->second.Level();		
+
+	//2nd phase - obtaining a learned result
+	{
+		size_t band_idx;
+		hist_ig_pred::NPattern_Dir x2, x;
+		if (Classify(current_time, band_idx, x2, x)) {
+			hist_ig_pred::CPattern pattern{ band_idx, x2, x };
+
+			auto iter = mPatterns.find(pattern);
+			if (iter != mPatterns.end()) 
+				result = iter->second.Level();						
 		}
 	}
 
 	return result;
+}
+
+void CHistogram_IG_Prediction_Filter::Dump_Params() {
+	std::stringstream def_params, used_rules, unused_rules;
+	size_t unused_counter = 0, used_counter = 0;
+	const char *dir_chars = "v-^";
+
+	std::stringstream lb_params, effective_params, ub_params;
+
+	std::array<std::array<size_t, 3>, 3> x2x_freq;
+	memset(&x2x_freq, 0, sizeof(x2x_freq));
+
+	auto log_params = [&](std::stringstream &str, size_t &counter, hist_ig_pred::CPattern &pattern) {
+		counter++;
+		str << "counter " << counter;
+		const double lvl = hist_ig_pred::Histogram_Index_To_Level(pattern.band_idx());
+		str << "; band index: " << pattern.band_idx();
+		str << "; band " << lvl - hist_ig_pred::Half_Band_Size << " - " << lvl + hist_ig_pred::Half_Band_Size;
+		str << "; " << dir_chars[static_cast<size_t>(pattern.x2())] << dir_chars[static_cast<size_t>(pattern.x())];
+		str << "; freq: " << pattern.freq();
+		str << "; stddev: " << pattern.stdev();
+		str << std::endl;
+	};
+
+	used_rules << std::fixed << std::setprecision(1);
+	unused_rules << std::fixed << std::setprecision(1);
+
+	def_params << "const TParameters default_parameters = { ";
+	def_params << mDt;
+
+	lb_params << mDt << " ";
+	effective_params << mDt << " ";
+	ub_params << mDt << " ";
+
+	const size_t pattern_count = static_cast<size_t>(hist_ig_pred::NPattern_Dir::count);
+	for (auto band_idx = 0; band_idx < hist_ig_pred::Band_Count; band_idx++) {
+		
+		for (size_t x2 = 0; x2 < pattern_count; x2++) {
+			for (size_t x = 0; x < pattern_count; x++) {
+				hist_ig_pred::CPattern search_pattern{ static_cast<const size_t>(band_idx), static_cast<const hist_ig_pred::NPattern_Dir>(x2), static_cast<const hist_ig_pred::NPattern_Dir>(x) };
+
+				def_params << ", ";				
+
+				auto iter = mPatterns.find(search_pattern);
+				if (iter != mPatterns.end()) {
+					def_params << hist_ig_pred::Level_To_Histogram_Index(iter->second.Level());					
+
+					log_params(used_rules, used_counter, iter->second);
+
+					x2x_freq[x2][x]++;
+
+					lb_params << 0 << " ";
+					effective_params << band_idx << " ";
+					ub_params << hist_ig_pred::Band_Count - 1 << " ";
+				}
+				else {
+					def_params << band_idx;	//stay in the same band if we know anything better
+
+					lb_params << band_idx << " ";	//unused => do not optimize
+					effective_params << band_idx << " ";
+					ub_params << band_idx << " ";
+
+					log_params(unused_rules, unused_counter, search_pattern);
+				}				
+
+				def_params << ".0";
+			}					
+		}
+
+		def_params << std::endl;
+	}
+
+	def_params << "};" << std::endl;
+
+	dprintf("\nX2 X rules frequency:\n");
+	for (size_t x2 = 0; x2 < pattern_count; x2++) {
+		for (size_t x = 0; x < pattern_count; x++) {
+			dprintf(dir_chars[x2]);
+			dprintf(dir_chars[x]);
+			dprintf(": ");
+			dprintf(x2x_freq[x2][x]);
+			dprintf("\n");
+		}
+	}
+
+
+
+	dprintf("\nDefault parameters:\n");
+	dprintf(def_params.str());
+	dprintf("\nUsed rules:\n");
+	dprintf(used_rules.str());
+	dprintf("\nUnused rules:\n");
+	dprintf(unused_rules.str());
+
+	lb_params << " " << effective_params.str() << " " << ub_params.str();
+	dprintf("\nIni parameters:\n");
+	dprintf("Model_Bounds = ");
+	dprintf(lb_params.str());
+	dprintf("\n");
 }
 
 
@@ -285,7 +728,7 @@ HRESULT IfaceCalling CHistogram_IG_Prediction_Signal::Get_Continuous_Levels(scgm
 		if (Classify(times[i] - mDt, band_idx, x2, x)) {
 			const double raw_band = parameters.bands[static_cast<const size_t>(band_idx)][static_cast<const size_t>(x2)][static_cast<const size_t>(x)];
 			levels[i] = hist_ig_pred::Histogram_Index_To_Level(
-				static_cast<size_t>(round(raw_band)));
+				static_cast<size_t>(round(raw_band)));			
 		}
 		else
 			levels[i] = std::numeric_limits<double>::quiet_NaN();
