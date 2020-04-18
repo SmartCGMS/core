@@ -70,7 +70,7 @@ HRESULT IfaceCalling signal_generator_internal::CSynchronized_Generator::Configu
 	if (!mSync_Model)
 		return E_FAIL;
 
-	HRESULT rc = mSync_Model->Configure(configuration, error_description);		
+	HRESULT rc = mSync_Model->Configure(configuration, error_description);
 	return rc;
 }
 
@@ -182,7 +182,7 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 				rc = Send(event);
 		} else {
 			//this event is intended for a single segment only
-			auto sync_model_iter = mSync_Models.find(event.segment_id());			
+			auto sync_model_iter = mSync_Models.find(event.segment_id());
 			if (sync_model_iter == mSync_Models.end()) {
 				TSync_Model sync_model = std::make_unique<signal_generator_internal::CSynchronized_Generator>(mOutput.get(), mLast_Sync_Generator, event.segment_id());
 				refcnt::Swstr_list errs;
@@ -232,7 +232,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 	if (!mSync_To_Signal && (mFixed_Stepping <= 0.0)) {
 		std::wstring str = dsAsync_Stepping_Not_Positive;
 		scgms::TModel_Descriptor desc = scgms::Null_Model_Descriptor;
-		if (scgms::get_model_descriptor_by_id(model_id, desc))  str += desc.description;		
+		if (scgms::get_model_descriptor_by_id(model_id, desc))  str += desc.description;
 			else str += GUID_To_WString(model_id);
 		
 		error_description.push(str);

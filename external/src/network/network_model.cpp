@@ -101,8 +101,11 @@ CNetwork_Discrete_Model::TSlot CNetwork_Discrete_Model::Acquire_Pool_Slot()
 	return static_cast<TSlot>(allocSlot);
 }
 
-void CNetwork_Discrete_Model::Releae_Pool_Slot(TSlot slot)
+void CNetwork_Discrete_Model::Release_Pool_Slot(TSlot slot)
 {
+	if (slot == Invalid_Pool_Slot)
+		return;
+
 	std::unique_lock<std::mutex> lck(mConnection_Pool_Mtx);
 
 	mConnection_Pool[slot].available = true;
@@ -168,6 +171,8 @@ void CNetwork_Discrete_Model::Network_Thread_Fnc()
 			}
 		}
 	}
+
+	mSlot.Release_Slot();
 }
 
 bool CNetwork_Discrete_Model::Handle_Incoming_Data()
@@ -430,6 +435,13 @@ HRESULT CNetwork_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 {
 	if (event.event_code() == scgms::NDevice_Event_Code::Level)
 	{
+		if (mRunning && !mPending_Shut_Down)
+			mSession.Ensure_State(CSession_Handler::NSession_State::Running);
+		else if (mRunning)
+			return S_FALSE;
+		else
+			return E_FAIL;
+
 		auto itr = mRequested_Signals.find(event.signal_id());
 		if (itr != mRequested_Signals.end())
 		{
@@ -448,6 +460,8 @@ HRESULT CNetwork_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 	}
 	else if (event.event_code() == scgms::NDevice_Event_Code::Shut_Down)
 	{
+		mSession.Interrupt();
+
 		std::unique_lock<std::mutex> lck(mExt_Model_Mtx);
 
 		mPending_Shut_Down = true;

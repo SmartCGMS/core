@@ -124,11 +124,12 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public virtual scgms
 			TSlot pool_slot = Invalid_Pool_Slot;
 
 			TPool_Slot_Guard(CNetwork_Discrete_Model& _parent) : parent(_parent) {};
-			~TPool_Slot_Guard() { if (Has_Slot()) parent.Releae_Pool_Slot(pool_slot); }
+			~TPool_Slot_Guard() { Release_Slot(); }
 
 			// precondition: !Has_Slot()
 			void Set_Slot(TSlot slot) { pool_slot = slot; }
 			bool Has_Slot() const { return (pool_slot != Invalid_Pool_Slot); }
+			void Release_Slot() { if (Has_Slot()) parent.Release_Pool_Slot(pool_slot); }
 
 			// precondition: Has_Slot()
 			TConnection_Slot& operator()() const { return mConnection_Pool[pool_slot]; }
@@ -139,7 +140,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public virtual scgms
 		// allocates network slot; blocks if no slot is available
 		TSlot Acquire_Pool_Slot();
 		// frees a network slot, signalizes waiting entities in Alloc_Pool_Slot
-		void Releae_Pool_Slot(TSlot slot);
+		void Release_Pool_Slot(TSlot slot);
 
 		// handles incoming data on the slot socket
 		bool Handle_Incoming_Data();
@@ -171,8 +172,15 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public virtual scgms
 				// mutex to guard sending method
 				std::mutex mSend_Mtx;
 
+				// session state change synchronization elements
+				std::mutex mSession_State_Mtx;
+				std::condition_variable mSession_State_Changed_Cv;
+				bool mInterrupted = false;
+
 			private:
 				int Send(const void* data, size_t length);
+
+				void Set_State(NSession_State state);
 
 			public:
 				CSession_Handler(CNetwork_Discrete_Model& _parent) : mParent(_parent) {};
@@ -180,6 +188,12 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public virtual scgms
 				void Setup();
 				void Set_Needs_Reinit();
 				bool Process_Pending_Packet();
+
+				// ensures desired state, waits if not satisfied
+				bool Ensure_State(const NSession_State desired_state);
+				void Interrupt();
+
+				NSession_State Get_State() const;
 
 				// incoming packet handlers
 

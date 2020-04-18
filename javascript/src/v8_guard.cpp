@@ -54,6 +54,8 @@ CV8_Guard::CV8_Guard(bool init)
 {
 	std::unique_lock<std::mutex> lck(sInit_Mtx);
 
+	mDisposed = false;
+
 	sInstance_Ctr++;
 
 	if (init)
@@ -65,6 +67,9 @@ CV8_Guard::CV8_Guard(bool init)
 			sPlatform = v8::platform::NewDefaultPlatform();
 			v8::V8::InitializePlatform(sPlatform.get());
 			v8::V8::Initialize();
+
+			// platform object is released during ShutdownPlatform call below
+			sPlatform.release();
 		}
 
 		sInit_Ctr++;
@@ -73,17 +78,24 @@ CV8_Guard::CV8_Guard(bool init)
 
 CV8_Guard::~CV8_Guard()
 {
+	Dispose();
+}
+
+void CV8_Guard::Dispose()
+{
 	std::unique_lock<std::mutex> lck(sInit_Mtx);
+
+	if (mDisposed)
+		return;
+
+	mDisposed = true;
 
 	sInstance_Ctr--;
 
 	if (sInstance_Ctr == 0)
 	{
-		// platform object is released during ShutdownPlatform call below
-		sPlatform.release();
-
 		v8::V8::Dispose();
-		v8::V8::ShutdownPlatform();
+		//v8::V8::ShutdownPlatform(); // TODO: fix this; causes crash for very unclear reasons
 
 		sInit_Ctr = 0;
 	}

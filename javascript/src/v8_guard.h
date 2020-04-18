@@ -55,7 +55,13 @@ class CV8_Guard
 		static size_t sInit_Ctr;
 		static size_t sInstance_Ctr;
 
+		bool mDisposed = false;
+
 	public:
 		CV8_Guard(bool init = false);
 		~CV8_Guard();
+
+		void Dispose();
 };
+
+extern CV8_Guard gV8_Guard;
