@@ -180,7 +180,7 @@ namespace hist_ig_pred {
 				return std::numeric_limits<double>::quiet_NaN();
 		};
 				
-		return find_centroid();
+		return find_centroid_rating();
 	}
 
 	bool CPattern::operator< (const CPattern &other) const {
