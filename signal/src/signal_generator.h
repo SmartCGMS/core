@@ -45,6 +45,7 @@
 #include <memory>
 #include <thread>
 #include <map>
+#include <atomic>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
@@ -92,7 +93,7 @@ protected:
 protected:
 	std::wstring mFeedback_Name;	
 	std::unique_ptr<std::thread> mThread;
-	bool mQuitting = false;
+	std::atomic<bool> mQuitting = false;
 	void Stop_Generator(bool wait);
 protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;

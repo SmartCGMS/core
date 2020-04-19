@@ -200,14 +200,12 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 	} else {
 		if (mAsync_Model) {
 
+			if (shutdown) 
+				Stop_Generator(true);
+
 			scgms::IDevice_Event *raw_event = event.get();
 			event.release();
 			rc = mAsync_Model->Execute(raw_event);
-
-			if (shutdown) {
-				Stop_Generator(false);
-				mAsync_Model.reset();
-			}
 		}
 		else
 			rc = ENODEV;
@@ -269,7 +267,9 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 					if (!SUCCEEDED(model->Step(mFixed_Stepping))) break;
 
 					total_time += mFixed_Stepping;
-					if (mMax_Time > 0.0) mQuitting |= total_time >= mMax_Time;
+					if (mMax_Time > 0.0) {
+						if (total_time >= mMax_Time) break;
+					}
 				}
 
 				if ((total_time >= mMax_Time) && mEmit_Shutdown) {
