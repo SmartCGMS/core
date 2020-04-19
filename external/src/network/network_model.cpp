@@ -462,20 +462,26 @@ HRESULT CNetwork_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 	{
 		mSession.Interrupt();
 
-		std::unique_lock<std::mutex> lck(mExt_Model_Mtx);
-
-		mPending_Shut_Down = true;
-
-		size_t retries = 0;
-
-		while (++retries < 5 && mRunning)
+		// lock scope
 		{
-			mSession.Send_Teardown_Request();
-			mExt_Model_Cv.wait_for(lck, std::chrono::milliseconds(200));
+			std::unique_lock<std::mutex> lck(mExt_Model_Mtx);
+
+			mPending_Shut_Down = true;
+
+			size_t retries = 0;
+
+			while (++retries < 5 && mRunning)
+			{
+				mSession.Send_Teardown_Request();
+				mExt_Model_Cv.wait_for(lck, std::chrono::milliseconds(200));
+			}
+
+			mRunning = false;
+			mExt_Model_Cv.notify_all();
 		}
 
-		mRunning = false;
-		mExt_Model_Cv.notify_all();
+		if (mNetThread && mNetThread->joinable())
+			mNetThread->join();
 	}
 
 	return Send(event);

@@ -68,9 +68,10 @@
 /*
  * Network generic discrete model
  */
-class CNetwork_Discrete_Model : public scgms::CBase_Filter, public virtual scgms::IDiscrete_Model
+class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscrete_Model
 {
 	using TSlot = size_t;
+	static_assert(std::is_unsigned_v<TSlot>, "CNetwork_Discrete_Model::TSlot type has to be unsigned");
 	static constexpr TSlot Invalid_Pool_Slot = ~(static_cast<TSlot>(0));
 
 	// how many connections to hold during simulation; setting this to 1 will result in serializing all external simulations

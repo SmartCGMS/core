@@ -80,7 +80,7 @@ namespace bergman_model
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CBergman_Discrete_Model : public virtual scgms::CBase_Filter, public virtual scgms::IDiscrete_Model
+class CBergman_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscrete_Model
 {
 	private:
 		// maximum accepted error estimate for ODE solvers for this model

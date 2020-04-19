@@ -44,7 +44,7 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CDiscrete_Insulin_Bolus_Calculator : public virtual scgms::CBase_Filter, public virtual scgms::IDiscrete_Model {
+class CDiscrete_Insulin_Bolus_Calculator : public scgms::CBase_Filter, public scgms::IDiscrete_Model {
 protected:
     insulin_bolus::TParameters mParameters;
 protected:

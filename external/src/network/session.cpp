@@ -159,6 +159,8 @@ bool CNetwork_Discrete_Model::CSession_Handler::Process_Handshake_Reply(scgms::T
 			mParent.Emit_Error(dsExtModel_Protocol_Version_Mismatch);
 		else if (packet.status == scgms::NNet_Status_Code::FAIL_UNK_MODEL)
 			mParent.Emit_Error(dsExtModel_Unknown_Model_Requested);
+		else if (packet.status == scgms::NNet_Status_Code::FAIL_NO_SLOT)
+			return true;
 		else
 			mParent.Emit_Error(dsExtModel_Unknown_Handshake_Error);
 
