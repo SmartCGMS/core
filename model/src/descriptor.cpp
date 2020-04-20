@@ -47,7 +47,7 @@
 #include "bergman/bergman.h"
 #include "uva_padova/uva_padova.h"
 #include "bolus/insulin_bolus.h"
-#include "histogram_prediction/histogram_ig_prediction.h"
+#include "pattern_prediction/pattern_prediction.h"
 
 #include <vector>
 
@@ -563,36 +563,28 @@ namespace const_cr {
 }
 
 
-namespace hist_ig_pred {
-	const size_t filter_param_count = 1;
-	const scgms::NParameter_Type filter_param_types[param_count] = { scgms::NParameter_Type::ptRatTime };
+namespace helper {
+	template <typename R, typename T>
+	R init_desc(const T first, const T follower, const size_t param_count) {
+		using Q = typename std::remove_const<R>::type;
+		Q result;
+		result[0] = first;
+		for (auto i = 1; i < param_count; i++)
+			result[i] = follower;
+		return result;
+	}
 
-	
-	const wchar_t *filter_param_ui_names[filter_param_count] = { dsDt };
-	const wchar_t *filter_param_config_names[filter_param_count] = { rsDt_Column };
-	const wchar_t *filter_param_tooltips[filter_param_count] = { nullptr};
-	
-	const scgms::TFilter_Descriptor filter_desc = {
-		filter_id,
-		scgms::NFilter_Flags::None,		
-		dsHistogram_IG_Prediction_Model,
-		filter_param_count,
-		filter_param_types,
-		filter_param_ui_names,
-		filter_param_config_names,
-		filter_param_tooltips
-	};
-
-	const std::array<scgms::NModel_Parameter_Value, param_count> calc_param_types =
-		init_desc<decltype(calc_param_types), scgms::NModel_Parameter_Value>(scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble);
-	
-	
-	std::vector<std::wstring> name_placeholder (2* param_count);
 	template <typename R>
-	R desc_param(const wchar_t* first, const wchar_t *follower_prefix, bool ui) {
-		using Q = typename std::remove_const<R>::type;		
+	R init_params(const double dt, const double level, const size_t param_count) {
+		R result = { dt };
+		result.vector = init_desc<decltype(result.vector), double>(dt, level, param_count);
+		return result;
+	}
+	template <typename R>
+	R desc_param(const wchar_t* first, const wchar_t *follower_prefix, bool ui, const size_t param_count, std::vector<std::wstring> &name_placeholder) {
+		using Q = typename std::remove_const<R>::type;
 
-		Q result = { const_cast<wchar_t*>(first) };		
+		Q result = { const_cast<wchar_t*>(first) };
 		for (auto i = 1; i < param_count; i++) {
 			std::wstring tmp = follower_prefix;
 			tmp += ui ? L' ' : L'_';
@@ -605,24 +597,86 @@ namespace hist_ig_pred {
 
 		return result;
 	}
+}
+
+namespace pattern_prediction {
+	std::vector<std::wstring> name_placeholder(2 * param_count);
+
+	const size_t filter_param_count = 1;
+	const scgms::NParameter_Type filter_param_types[param_count] = { scgms::NParameter_Type::ptRatTime };
+
+	//const TParameters default_parameters = init_params(30.0*scgms::One_Minute, static_cast<double>(Band_Count / 2));		
+	const TParameters default_parameters = { 0.0208333, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 3.0
+			, 1.0, 1.0, 2.0, 3.0, 0.0, 1.0, 3.0, 1.0, 5.0
+			, 2.0, 2.0, 3.0, 1.0, 3.0, 2.0, 3.0, 2.0, 6.0
+			, 2.0, 3.0, 3.0, 2.0, 3.0, 3.0, 4.0, 3.0, 7.0
+			, 3.0, 4.0, 4.0, 5.0, 4.0, 4.0, 4.0, 4.0, 8.0
+			, 2.0, 5.0, 5.0, 11.0, 3.0, 5.0, 5.0, 5.0, 8.0
+			, 3.0, 6.0, 6.0, 3.0, 5.0, 7.0, 5.0, 6.0, 9.0
+			, 4.0, 7.0, 7.0, 7.0, 6.0, 7.0, 6.0, 7.0, 10.0
+			, 5.0, 8.0, 7.0, 6.0, 6.0, 7.0, 6.0, 8.0, 12.0
+			, 5.0, 9.0, 8.0, 5.0, 8.0, 9.0, 8.0, 9.0, 12.0
+			, 6.0, 10.0, 10.0, 10.0, 8.0, 10.0, 9.0, 10.0, 13.0
+			, 8.0, 11.0, 10.0, 9.0, 9.0, 11.0, 9.0, 11.0, 14.0
+			, 8.0, 12.0, 12.0, 11.0, 12.0, 12.0, 10.0, 12.0, 15.0
+			, 8.0, 13.0, 13.0, 11.0, 13.0, 13.0, 12.0, 13.0, 16.0
+			, 10.0, 14.0, 13.0, 14.0, 14.0, 14.0, 13.0, 14.0, 17.0
+			, 10.0, 15.0, 14.0, 15.0, 13.0, 15.0, 13.0, 15.0, 17.0
+			, 12.0, 16.0, 15.0, 14.0, 14.0, 16.0, 14.0, 16.0, 19.0
+			, 12.0, 17.0, 17.0, 15.0, 16.0, 16.0, 15.0, 17.0, 19.0
+			, 12.0, 18.0, 17.0, 17.0, 17.0, 17.0, 16.0, 18.0, 20.0
+			, 14.0, 19.0, 17.0, 18.0, 18.0, 19.0, 17.0, 19.0, 21.0
+			, 14.0, 20.0, 19.0, 18.0, 20.0, 16.0, 18.0, 20.0, 22.0
+			, 15.0, 21.0, 19.0, 20.0, 20.0, 22.0, 18.0, 21.0, 22.0
+			, 16.0, 22.0, 21.0, 22.0, 24.0, 22.0, 20.0, 22.0, 24.0
+			, 16.0, 23.0, 22.0, 20.0, 23.0, 23.0, 20.0, 23.0, 26.0
+			, 18.0, 24.0, 22.0, 24.0, 23.0, 25.0, 21.0, 24.0, 24.0
+			, 19.0, 25.0, 23.0, 25.0, 24.0, 25.0, 21.0, 25.0, 27.0
+			, 18.0, 26.0, 25.0, 26.0, 25.0, 27.0, 24.0, 26.0, 27.0
+			, 20.0, 27.0, 25.0, 27.0, 27.0, 27.0, 23.0, 27.0, 28.0
+			, 22.0, 28.0, 25.0, 28.0, 28.0, 31.0, 24.0, 28.0, 29.0
+			, 22.0, 29.0, 27.0, 24.0, 29.0, 29.0, 23.0, 29.0, 28.0
+			, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0
+			, 26.0, 31.0, 29.0, 31.0, 31.0, 31.0, 28.0, 31.0, 31.0
+	};
+
+	
+	const wchar_t *filter_param_ui_names[filter_param_count] = { dsDt };
+	const wchar_t *filter_param_config_names[filter_param_count] = { rsDt_Column };
+	const wchar_t *filter_param_tooltips[filter_param_count] = { nullptr};
+	
+	const scgms::TFilter_Descriptor filter_desc = {
+		filter_id,
+		scgms::NFilter_Flags::None,		
+		dsPattern_Prediction_Model,
+		filter_param_count,
+		filter_param_types,
+		filter_param_ui_names,
+		filter_param_config_names,
+		filter_param_tooltips
+	};
+
+	const std::array<scgms::NModel_Parameter_Value, param_count> calc_param_types =
+		helper::init_desc<decltype(calc_param_types), scgms::NModel_Parameter_Value>(scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, param_count);
+
 	
 	const std::array<const wchar_t *, param_count> calc_param_names =
-		desc_param<decltype(calc_param_names)>(dsDt, dsBand, true);
+		helper::desc_param<decltype(calc_param_names)>(dsDt, dsBand, true, param_count, name_placeholder);
 	const std::array<wchar_t *, param_count> calc_param_columns = 
-		desc_param<decltype(calc_param_columns)>(rsDt_Column, rsBand, false);	
+		helper::desc_param<decltype(calc_param_columns)>(rsDt_Column, rsBand, false, param_count, name_placeholder);
 
-	const TParameters lower_bound = init_params(0.0, 0.0);
-	const TParameters upper_bound = init_params(scgms::One_Hour, static_cast<double>(Band_Count - 1));
+	const TParameters lower_bound = helper::init_params<TParameters>(0.0, 0.0, param_count);
+	const TParameters upper_bound = helper::init_params<TParameters>(scgms::One_Hour, static_cast<double>(Band_Count - 1), param_count);
 
 	const size_t signal_count = 1;
-	const GUID signal_ids[signal_count] = { signal_Histogram_IG_Prediction };
+	const GUID signal_ids[signal_count] = { signal_Pattern_Prediction };
 	const GUID reference_signal_ids[signal_count] = { scgms::signal_IG };
 
 	const scgms::TModel_Descriptor calc_desc = {
 		calc_id,
 		scgms::NModel_Flags::Signal_Model,
-		dsHistogram_IG_Prediction_Model,
-		rsDiffusion_v2_Table,
+		dsPattern_Prediction_Model,
+		rsPattern_Prediction_Model,
 		param_count,
 		calc_param_types.data(),
 		const_cast<const wchar_t**>(calc_param_names.data()),
@@ -635,11 +689,51 @@ namespace hist_ig_pred {
 		reference_signal_ids
 	};
 
-	const scgms::TSignal_Descriptor sig_desc{ signal_Histogram_IG_Prediction, dsHistogram_IG_Prediction_Signal, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFF5BD1F, 0xFFF5BD1F, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor sig_desc{ signal_Pattern_Prediction, dsPattern_Prediction_Signal, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFF5BD1F, 0xFFF5BD1F, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 }
 
 
-const std::array<scgms::TFilter_Descriptor, 1> filter_descriptions = { hist_ig_pred::filter_desc};
+namespace const_neural_net {
+	std::vector<std::wstring> name_placeholder(2 * param_count);
+
+	const TParameters lower_bound = helper::init_params<TParameters>(0.0, 0.0, param_count);
+	const TParameters default_parameters = helper::init_params<TParameters>(30.0*scgms::One_Minute, 0.5, param_count);
+	const TParameters upper_bound = helper::init_params<TParameters>(scgms::One_Hour, 1.0, param_count);
+
+	const std::array<const wchar_t *, param_count> calc_param_names =
+		helper::desc_param<decltype(calc_param_names)>(dsDt, dsBand, true, param_count, name_placeholder);
+	const std::array<wchar_t *, param_count> calc_param_columns =
+		helper::desc_param<decltype(calc_param_columns)>(rsDt_Column, rsBand, false, param_count, name_placeholder);
+
+
+	const std::array<scgms::NModel_Parameter_Value, param_count> calc_param_types =
+		helper::init_desc<decltype(calc_param_types), scgms::NModel_Parameter_Value>(scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, param_count);
+
+	const size_t signal_count = 1;
+	const GUID signal_ids[signal_count] = { signal_Neural_Net_Prediction };
+	const GUID reference_signal_ids[signal_count] = { scgms::signal_IG };
+
+	const scgms::TModel_Descriptor calc_desc = {
+		calc_id,
+		scgms::NModel_Flags::Signal_Model,
+		dsNeural_Net_Prediction_Model,
+		rsNeural_Net_Prediction_Model,
+		param_count,
+		calc_param_types.data(),
+		const_cast<const wchar_t**>(calc_param_names.data()),
+		const_cast<const wchar_t**>(calc_param_columns.data()),
+		lower_bound.vector.data(),
+		default_parameters.vector.data(),
+		upper_bound.vector.data(),
+		signal_count,
+		signal_ids,
+		reference_signal_ids
+	};
+
+	const scgms::TSignal_Descriptor sig_desc{ signal_Neural_Net_Prediction, dsNeural_Net_Prediction_Signal, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF1FBDFF, 0xFF1FBDFF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+}
+
+const std::array<scgms::TFilter_Descriptor, 1> filter_descriptions = { pattern_prediction::filter_desc};
 
 const std::array<scgms::TModel_Descriptor, 11> model_descriptions = { { diffusion_v2_model::desc,
 																		 steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc, diffusion_prediction::desc,
@@ -648,7 +742,7 @@ const std::array<scgms::TModel_Descriptor, 11> model_descriptions = { { diffusio
 																		 uva_padova_S2013::desc,
 																		 insulin_bolus::desc,
 																		 const_isf::desc, const_cr::desc,
-																		 hist_ig_pred::calc_desc} };
+																		 pattern_prediction::calc_desc} };
 
 
 const std::array<scgms::TSignal_Descriptor, 16> signals_descriptors = { {diffusion_v2_model::bg_desc, diffusion_v2_model::ig_desc, steil_rebrin::bg_desc, 
@@ -656,7 +750,7 @@ const std::array<scgms::TSignal_Descriptor, 16> signals_descriptors = { {diffusi
 																		 constant_model::const_desc,
 																		 bergman_model::bg_desc, bergman_model::ig_desc, bergman_model::iob_desc, bergman_model::cob_desc, bergman_model::basal_insulin_desc, bergman_model::insulin_activity_desc,
 																		 uva_padova_S2013::ig_desc, uva_padova_S2013::bg_desc, uva_padova_S2013::ins_desc,
-																		 hist_ig_pred::sig_desc
+																		 pattern_prediction::sig_desc
 																		}};
 
 HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
@@ -690,8 +784,8 @@ HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin
 
 
 HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
-	if (*id == hist_ig_pred::filter_desc.id)
-		return Manufacture_Object<CHistogram_IG_Prediction_Filter>(filter, output);
+	if (*id == pattern_prediction::filter_desc.id)
+		return Manufacture_Object<CPattern_Prediction_Filter>(filter, output);
 
 	return ENOENT;
 }

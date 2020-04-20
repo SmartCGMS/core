@@ -48,7 +48,7 @@
 
 #include <map>
 
-namespace hist_ig_pred {
+namespace pattern_prediction {
 
 	using THistogram = Eigen::Array<double, 1, Band_Count, Eigen::RowMajor>;
 	constexpr size_t mOffset_Count = 6;
@@ -78,58 +78,41 @@ namespace hist_ig_pred {
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CHistogram_Classification {
+class CPattern_Classification {
 protected:
-	hist_ig_pred::NPattern_Dir dbl_2_pat(const double x) const;
+	pattern_prediction::NPattern_Dir dbl_2_pat(const double x) const;
 
 	struct TDir_Pattern {
-		double sum = 0.0;
-		hist_ig_pred::NPattern_Dir mX2 = hist_ig_pred::NPattern_Dir::zero;
-		hist_ig_pred::NPattern_Dir mX = hist_ig_pred::NPattern_Dir::zero;
+		pattern_prediction::NPattern_Dir mX2 = pattern_prediction::NPattern_Dir::zero;
+		pattern_prediction::NPattern_Dir mX = pattern_prediction::NPattern_Dir::zero;
 	};
-
-	std::array<TDir_Pattern, 9> mLeft_Hand_Sums = Calculate_Left_Hand_Sum();
-	std::array<TDir_Pattern, 9> Calculate_Left_Hand_Sum();
-
-	bool Classify_Slow_Fast_AUC(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
-	bool Classify_Slow_Fast_Line(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
-	bool Classify_Lookup(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
-	bool Classify_Poly(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
-	bool Classify_Poly_Eigen(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
-	bool Classify_Diff3(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
 protected:
 	scgms::SSignal mIst;
 	double mDt = 30.0*scgms::One_Minute;	
-	const std::array<double, hist_ig_pred::mOffset_Count> mOffset = { 
-		 -25 * scgms::One_Minute,
-		 -20 * scgms::One_Minute,
-		- 15 * scgms::One_Minute,
-		 -10 * scgms::One_Minute,
-										    - 5 * scgms::One_Minute,
-										    - 0 * scgms::One_Minute };
-	bool Classify(const double current_time, size_t &band_idx, hist_ig_pred::NPattern_Dir &x2, hist_ig_pred::NPattern_Dir &x) const;
+	
+	bool Classify(const double current_time, size_t &band_idx, pattern_prediction::NPattern_Dir &x2, pattern_prediction::NPattern_Dir &x) const;
 };
 
-class CHistogram_IG_Prediction_Filter : public virtual scgms::CBase_Filter, public CHistogram_Classification {
+class CPattern_Prediction_Filter : public virtual scgms::CBase_Filter, public CPattern_Classification {
 protected:
-	std::map<hist_ig_pred::CPattern, hist_ig_pred::CPattern> mPatterns;
+	std::map<pattern_prediction::CPattern, pattern_prediction::CPattern> mPatterns;
 	double Update_And_Predict(const double current_time, const double ig_level);//returns prediction at current_time + mDt
 protected:
-	const bool mDump_Params = true;
+	const bool mDump_Params = false;
 	void Dump_Params();
 protected:	
 	// scgms::CBase_Filter iface implementation
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 public:
-	CHistogram_IG_Prediction_Filter(scgms::IFilter *output);
-	virtual ~CHistogram_IG_Prediction_Filter();
+	CPattern_Prediction_Filter(scgms::IFilter *output);
+	virtual ~CPattern_Prediction_Filter();
 };
 
-class CHistogram_IG_Prediction_Signal : public virtual CCommon_Calculated_Signal, public CHistogram_Classification {
+class CPattern_Prediction_Signal : public virtual CCommon_Calculated_Signal, public CPattern_Classification {
 public:
-	CHistogram_IG_Prediction_Signal(scgms::WTime_Segment segment);
-	virtual ~CHistogram_IG_Prediction_Signal() = default;
+	CPattern_Prediction_Signal(scgms::WTime_Segment segment);
+	virtual ~CPattern_Prediction_Signal() = default;
 
 	//scgms::ISignal iface
 	virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,

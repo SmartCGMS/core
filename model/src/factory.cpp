@@ -45,7 +45,7 @@
 #include "diffusion/Diffusion_Prediction.h"
 #include "constant/Constant_Model.h"
 #include "sensitivity/sensitivity.h"
-#include "histogram_prediction/histogram_ig_prediction.h"
+#include "pattern_prediction/pattern_prediction.h"
 #include "descriptor.h"
 
 #include <map>
@@ -82,7 +82,7 @@ public:
 		Add_Signal<CConstant_Model>(constant_model::signal_Constant);
 		Add_Signal<CConstant_Insulin_Sensitivity_Model>(const_isf::const_isf_signal_id);
 		Add_Signal<CConstant_Carb_Ratio_Model>(const_cr::const_cr_signal_id);
-		Add_Signal<CHistogram_IG_Prediction_Signal>(hist_ig_pred::signal_Histogram_IG_Prediction);
+		Add_Signal<CPattern_Prediction_Signal>(pattern_prediction::signal_Pattern_Prediction);
 	}
 
 	HRESULT Create_Signal(const GUID &calc_id, scgms::ITime_Segment *segment, scgms::ISignal **signal) const {
