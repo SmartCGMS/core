@@ -701,9 +701,9 @@ namespace const_neural_net {
 	const TParameters upper_bound = helper::init_params<TParameters>(scgms::One_Hour, 1.0, param_count);
 
 	const std::array<const wchar_t *, param_count> calc_param_names =
-		helper::desc_param<decltype(calc_param_names)>(dsDt, dsBand, true, param_count, name_placeholder);
+		helper::desc_param<decltype(calc_param_names)>(dsDt, dsWeight, true, param_count, name_placeholder);
 	const std::array<wchar_t *, param_count> calc_param_columns =
-		helper::desc_param<decltype(calc_param_columns)>(rsDt_Column, rsBand, false, param_count, name_placeholder);
+		helper::desc_param<decltype(calc_param_columns)>(rsDt_Column, rsWeight, false, param_count, name_placeholder);
 
 
 	const std::array<scgms::NModel_Parameter_Value, param_count> calc_param_types =
@@ -735,22 +735,24 @@ namespace const_neural_net {
 
 const std::array<scgms::TFilter_Descriptor, 1> filter_descriptions = { pattern_prediction::filter_desc};
 
-const std::array<scgms::TModel_Descriptor, 11> model_descriptions = { { diffusion_v2_model::desc,
+const std::array<scgms::TModel_Descriptor, 12> model_descriptions = { { diffusion_v2_model::desc,
 																		 steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc, diffusion_prediction::desc,
 																		 constant_model::desc,
 																		 bergman_model::desc,
 																		 uva_padova_S2013::desc,
 																		 insulin_bolus::desc,
 																		 const_isf::desc, const_cr::desc,
-																		 pattern_prediction::calc_desc} };
+																		 pattern_prediction::calc_desc,
+																		 const_neural_net::calc_desc} };
 
 
-const std::array<scgms::TSignal_Descriptor, 16> signals_descriptors = { {diffusion_v2_model::bg_desc, diffusion_v2_model::ig_desc, steil_rebrin::bg_desc, 
+const std::array<scgms::TSignal_Descriptor, 17> signals_descriptors = { {diffusion_v2_model::bg_desc, diffusion_v2_model::ig_desc, steil_rebrin::bg_desc, 
 																		 steil_rebrin_diffusion_prediction::ig_desc, diffusion_prediction::ig_desc, 
 																		 constant_model::const_desc,
 																		 bergman_model::bg_desc, bergman_model::ig_desc, bergman_model::iob_desc, bergman_model::cob_desc, bergman_model::basal_insulin_desc, bergman_model::insulin_activity_desc,
 																		 uva_padova_S2013::ig_desc, uva_padova_S2013::bg_desc, uva_padova_S2013::ins_desc,
-																		 pattern_prediction::sig_desc
+																		 pattern_prediction::sig_desc,
+																		 const_neural_net::sig_desc
 																		}};
 
 HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {

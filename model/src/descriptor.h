@@ -451,11 +451,16 @@ namespace const_neural_net {
 		union {
 			struct {				
 				double dt;
-				std::array<double, param_count-1> weight;					
+				std::array<double, input_count    * layers_size[0]> weight0;
+				std::array<double, layers_size[0] * layers_size[1]> weight1;
+				std::array<double, layers_size[1] * layers_size[2]> weight2;
+				std::array<double, layers_size[2] * layers_size[3]> weight3;
 			};
 			std::array<double, param_count> vector;
 		};
 	};	
+
+	extern const TParameters default_parameters;
 }
 
 
