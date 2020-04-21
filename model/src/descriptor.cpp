@@ -696,9 +696,9 @@ namespace pattern_prediction {
 namespace const_neural_net {
 	std::vector<std::wstring> name_placeholder(2 * param_count);
 
-	const TParameters lower_bound = helper::init_params<TParameters>(0.0, 0.0, param_count);
+	const TParameters lower_bound = helper::init_params<TParameters>(30.0*scgms::One_Minute, -10.0, param_count);
 	const TParameters default_parameters = helper::init_params<TParameters>(30.0*scgms::One_Minute, 0.5, param_count);
-	const TParameters upper_bound = helper::init_params<TParameters>(scgms::One_Hour, 1.0, param_count);
+	const TParameters upper_bound = helper::init_params<TParameters>(30.0*scgms::One_Minute, 10.0, param_count);
 
 	const std::array<const wchar_t *, param_count> calc_param_names =
 		helper::desc_param<decltype(calc_param_names)>(dsDt, dsWeight, true, param_count, name_placeholder);

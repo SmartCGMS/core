@@ -71,11 +71,12 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 	TI2 i2;
 	TI3 i3;
 
-	auto ident = [](const auto Z, auto &A) { A = Z; };
+	auto identity = [](const auto Z, auto &A) { A = Z; };
 	auto ReLU = [](const auto Z, auto &A) { A.array() = Z.array().max(0.0); };
 	auto sigmoid = [](const auto Z, auto &A) { A.array() = 1.0/(1.0 + (-Z.array()).exp()); };
 
-	auto activate = sigmoid;
+	auto activate = identity;
+	const double final_threshold = 0.5;
 
 	for (size_t i = 0; i < count; i++) {
 		double iob, cob;
@@ -96,18 +97,19 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 			activate(l1 * i1,	i2);
 			activate(l1 * i2,	i3);
 			
-			auto classes = i3.array();
+			/*auto classes = i3.array();
 			classes = classes.cwiseMin(1.0);
 			classes = classes.cwiseMax(0.0);
-
+			*/
 			double sum = 0.0;
 			double power = 1.0;
 			for (size_t i = 0; i < TI3::RowsAtCompileTime; i++) {
-				sum += std::round(classes(i))*power;
+				//sum += std::round(classes(i))*power;
+				sum += power * (i3(i) >= final_threshold ? 1.0 : 0.0);
 				power *= 2.0;
 			}
 
-			levels[i] = sum;
+			levels[i] = i3.sum();
 		} else
 			levels[i] = std::numeric_limits<double>::quiet_NaN();
 	}
