@@ -75,15 +75,16 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 	auto ReLU = [](const auto Z, auto &A) { A.array() = Z.array().max(0.0); };
 	auto sigmoid = [](const auto Z, auto &A) { A.array() = 1.0/(1.0 + (-Z.array()).exp()); };
 
-	auto activate = identity;
+	auto activate = sigmoid;
 	const double final_threshold = 0.5;
 
-	for (size_t i = 0; i < count; i++) {
+	for (size_t levels_idx = 0; levels_idx < count; levels_idx++) {
 		double iob, cob;
 		std::array<double, 3> ist;
-		std::array<double, 3> ist_times = { times[i] - parameters.dt - 10.0*scgms::One_Minute, 
-			                                times[i] - parameters.dt - 5.0*scgms::One_Minute,
-											times[i] - parameters.dt };
+		const double back_time = times[levels_idx] - parameters.dt;
+		std::array<double, 3> ist_times = { back_time - 10.0*scgms::One_Minute,
+											back_time - 5.0*scgms::One_Minute,
+											back_time };
 		
 		bool data_ok = mIOB->Get_Continuous_Levels(nullptr, &ist_times[2], &iob, 1, scgms::apxNo_Derivation) == S_OK;
 		data_ok &= mCOB->Get_Continuous_Levels(nullptr, &ist_times[2], &cob, 1, scgms::apxNo_Derivation) == S_OK;
@@ -95,7 +96,7 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 			activate(l0 * input, i0);
 			activate(l1 * i0,	i1);
 			activate(l1 * i1,	i2);
-			activate(l1 * i2,	i3);
+			sigmoid(l1 * i2,	i3);
 			
 			/*auto classes = i3.array();
 			classes = classes.cwiseMin(1.0);
@@ -103,15 +104,17 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 			*/
 			double sum = 0.0;
 			double power = 1.0;
-			for (size_t i = 0; i < TI3::RowsAtCompileTime; i++) {
+			for (size_t i3_idx = 0; i3_idx < TI3::RowsAtCompileTime; i3_idx++) {
 				//sum += std::round(classes(i))*power;
-				sum += power * (i3(i) >= final_threshold ? 1.0 : 0.0);
+				//sum += power * (i3(i) >= final_threshold ? 1.0 : 0.0);
+				const double tmp = i3(i3_idx);
+				if (std::isnormal(tmp)) sum += tmp*power;
 				power *= 2.0;
 			}
 
-			levels[i] = i3.sum();
+			levels[levels_idx] = sum != 0.0 ? sum : std::numeric_limits<double>::quiet_NaN();
 		} else
-			levels[i] = std::numeric_limits<double>::quiet_NaN();
+			levels[levels_idx] = std::numeric_limits<double>::quiet_NaN();
 	}
 
 	return S_OK;
