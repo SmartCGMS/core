@@ -50,7 +50,7 @@ CConst_Neural_Net_Prediction_Signal::CConst_Neural_Net_Prediction_Signal(scgms::
 	mIOB(segment.Get_Signal(scgms::signal_IOB)) {
 
 
-	if (!refcnt::Shared_Valid_All(mIst, mCOB, mIOB)) throw std::exception{"Cannot obtain all segment signals!"};
+	if (!refcnt::Shared_Valid_All(mIst, mCOB, mIOB)) throw std::exception{};
 }
 
 HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
@@ -71,9 +71,9 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 	TI2 i2;
 	TI3 i3;
 
-	auto identity = [](const auto Z, auto &A) { A = Z; };
-	auto ReLU = [](const auto Z, auto &A) { A.array() = Z.array().max(0.0); };
-	auto sigmoid = [](const auto Z, auto &A) { A.array() = 1.0/(1.0 + (-Z.array()).exp()); };
+	auto identity = [](const auto &Z, auto &A) { A = Z; };
+	auto ReLU = [](const auto &Z, auto &A) { A.array() = Z.array().max(0.0); };
+	auto sigmoid = [](const auto &Z, auto &A) { A.array() = 1.0/(1.0 + (-Z.array()).exp()); };
 
 	auto activate = sigmoid;
 	const double final_threshold = 0.5;
@@ -92,27 +92,75 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 		data_ok &= !Is_NaN(iob, cob, ist[0], ist[1], ist[2]);
 
 		if (data_ok) {
-			input(0) = ist[0]; input(1) = ist[1]; input(2) = ist[2]; input(3) = iob; input(4) = cob;
+			auto dbl_2_dir = [](const double val) {
+				if (val == 0.0) return 0.0;
+				return val < 0.0 ? -1.0 : 1.0;
+			};
+			
+			auto lev_2_idx = [](const double level) {
+				double result = std::max(level, 12.0);
+				result -= 2.0;
+				result /= 10.0;
+				return result / static_cast<double>(const_neural_net::layers_size[const_neural_net::layers_count-1]);
+			};
+
+			auto idx_2_level = [](const double idx) {
+				double result = idx * static_cast<double>(const_neural_net::layers_size[const_neural_net::layers_count - 1]);
+				result *= 10.0;
+				result += 2.0;
+				return result;
+			};
+
+			const double raw_x2 = 0.5*(ist[2] + ist[0]) - ist[1];
+			const double raw_x = ist[1] - ist[0] - raw_x2;
+
+			
+			input(0) = dbl_2_dir(raw_x2);
+			input(1) = dbl_2_dir(raw_x);
+			input(2) = lev_2_idx(ist[2]);
+					
+
+			//input(0) = ist[0]; input(1) = ist[1]; input(2) = ist[2]; 
+			input(3) = iob; input(4) = cob;
 			activate(l0 * input, i0);
 			activate(l1 * i0,	i1);
 			activate(l1 * i1,	i2);
-			sigmoid(l1 * i2,	i3);
+			activate(l1 * i2,	i3);
+
+			i3.normalize();
+			double sum = 0.0;
+			const double area = i3.sum();
 			
-			/*auto classes = i3.array();
-			classes = classes.cwiseMin(1.0);
-			classes = classes.cwiseMax(0.0);
-			*/
+			if (area > 0.0) {
+				const double base = 4.0;
+				const double width = 4.0;
+
+				double moments = 0.0;
+				for (auto i = 0; i < TI3::RowsAtCompileTime; i++) {
+					moments += i3(i)*static_cast<double>(i);
+				}
+
+				sum = moments / area;
+
+				sum = idx_2_level(sum);
+			}
+
+			/*
 			double sum = 0.0;
 			double power = 1.0;
 			for (size_t i3_idx = 0; i3_idx < TI3::RowsAtCompileTime; i3_idx++) {
 				//sum += std::round(classes(i))*power;
-				//sum += power * (i3(i) >= final_threshold ? 1.0 : 0.0);
+			
 				const double tmp = i3(i3_idx);
-				if (std::isnormal(tmp)) sum += tmp*power;
+				if (std::isnormal(tmp)) 
+					//sum += tmp*power;
+					sum += power * (tmp >= final_threshold ? 1.0 : 0.0);
 				power *= 2.0;
 			}
-
-			levels[levels_idx] = sum != 0.0 ? sum : std::numeric_limits<double>::quiet_NaN();
+			
+			//sum *= max_level;
+			*/
+			levels[levels_idx] = sum != 0.0 ? sum : std::numeric_limits<double>::quiet_NaN();			
 		} else
 			levels[levels_idx] = std::numeric_limits<double>::quiet_NaN();
 	}
