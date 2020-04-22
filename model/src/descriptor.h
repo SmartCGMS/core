@@ -381,11 +381,11 @@ namespace const_cr {
 	};
 }
 
-namespace hist_ig_pred {
+namespace pattern_prediction {
 	const GUID filter_id = { 0xa730a576, 0xe84d, 0x4834, { 0x82, 0x6f, 0xfa, 0xee, 0x56, 0x4e, 0x6a, 0xbd } };  // {A730A576-E84D-4834-826F-FAEE564E6ABD}
 	const GUID calc_id = { 0x16f8ebcc, 0xafca, 0x4cd3, { 0x9c, 0x8a, 0xe1, 0xa5, 0x17, 0x89, 0xef, 0xdc } }; // {16F8EBCC-AFCA-4CD3-9C8A-E1A51789EFDC}
 
-	constexpr const GUID signal_Histogram_IG_Prediction = { 0x4f9d0e51, 0x65e3, 0x4aaf, { 0xa3, 0x87, 0xd4, 0xd, 0xee, 0xe0, 0x72, 0x50 } }; 		// {4F9D0E51-65E3-4AAF-A387-D40DEEE07250}
+	constexpr const GUID signal_Pattern_Prediction = { 0x4f9d0e51, 0x65e3, 0x4aaf, { 0xa3, 0x87, 0xd4, 0xd, 0xee, 0xe0, 0x72, 0x50 } }; 		// {4F9D0E51-65E3-4AAF-A387-D40DEEE07250}
 
 
 	constexpr double Low_Threshold = 3.0;			//mmol/L below which a medical attention is needed
@@ -420,62 +420,48 @@ namespace hist_ig_pred {
 			std::array<double, param_count> vector;
 		};
 	};
-
 	
-	template <typename R, typename T>
-	constexpr R init_desc(const T first, const T follower) {
-		using Q = typename std::remove_const<R>::type;
-		Q result;
-		result[0] = first;
-		for (auto i = 1; i < param_count; i++)
-			result[i] = follower;
-		return result;
-	}
-
-	constexpr TParameters init_params(const double dt, const double level) {
-		TParameters result = { dt };
-		result.vector = init_desc<decltype(result.vector), double>(dt, level);		
-		return result;
-	}
-
-	
-	//const TParameters default_parameters = init_params(30.0*scgms::One_Minute, static_cast<double>(Band_Count / 2));		
-	
-	const TParameters default_parameters = { 0.0208333, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 3.0
-			, 1.0, 1.0, 2.0, 3.0, 0.0, 1.0, 3.0, 1.0, 5.0
-			, 2.0, 2.0, 3.0, 1.0, 3.0, 2.0, 3.0, 2.0, 6.0
-			, 2.0, 3.0, 3.0, 2.0, 3.0, 3.0, 4.0, 3.0, 7.0
-			, 3.0, 4.0, 4.0, 5.0, 4.0, 4.0, 4.0, 4.0, 8.0
-			, 2.0, 5.0, 5.0, 11.0, 3.0, 5.0, 5.0, 5.0, 8.0
-			, 3.0, 6.0, 6.0, 3.0, 5.0, 7.0, 5.0, 6.0, 9.0
-			, 4.0, 7.0, 7.0, 7.0, 6.0, 7.0, 6.0, 7.0, 10.0
-			, 5.0, 8.0, 7.0, 6.0, 6.0, 7.0, 6.0, 8.0, 12.0
-			, 5.0, 9.0, 8.0, 5.0, 8.0, 9.0, 8.0, 9.0, 12.0
-			, 6.0, 10.0, 10.0, 10.0, 8.0, 10.0, 9.0, 10.0, 13.0
-			, 8.0, 11.0, 10.0, 9.0, 9.0, 11.0, 9.0, 11.0, 14.0
-			, 8.0, 12.0, 12.0, 11.0, 12.0, 12.0, 10.0, 12.0, 15.0
-			, 8.0, 13.0, 13.0, 11.0, 13.0, 13.0, 12.0, 13.0, 16.0
-			, 10.0, 14.0, 13.0, 14.0, 14.0, 14.0, 13.0, 14.0, 17.0
-			, 10.0, 15.0, 14.0, 15.0, 13.0, 15.0, 13.0, 15.0, 17.0
-			, 12.0, 16.0, 15.0, 14.0, 14.0, 16.0, 14.0, 16.0, 19.0
-			, 12.0, 17.0, 17.0, 15.0, 16.0, 16.0, 15.0, 17.0, 19.0
-			, 12.0, 18.0, 17.0, 17.0, 17.0, 17.0, 16.0, 18.0, 20.0
-			, 14.0, 19.0, 17.0, 18.0, 18.0, 19.0, 17.0, 19.0, 21.0
-			, 14.0, 20.0, 19.0, 18.0, 20.0, 16.0, 18.0, 20.0, 22.0
-			, 15.0, 21.0, 19.0, 20.0, 20.0, 22.0, 18.0, 21.0, 22.0
-			, 16.0, 22.0, 21.0, 22.0, 24.0, 22.0, 20.0, 22.0, 24.0
-			, 16.0, 23.0, 22.0, 20.0, 23.0, 23.0, 20.0, 23.0, 26.0
-			, 18.0, 24.0, 22.0, 24.0, 23.0, 25.0, 21.0, 24.0, 24.0
-			, 19.0, 25.0, 23.0, 25.0, 24.0, 25.0, 21.0, 25.0, 27.0
-			, 18.0, 26.0, 25.0, 26.0, 25.0, 27.0, 24.0, 26.0, 27.0
-			, 20.0, 27.0, 25.0, 27.0, 27.0, 27.0, 23.0, 27.0, 28.0
-			, 22.0, 28.0, 25.0, 28.0, 28.0, 31.0, 24.0, 28.0, 29.0
-			, 22.0, 29.0, 27.0, 24.0, 29.0, 29.0, 23.0, 29.0, 28.0
-			, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0
-			, 26.0, 31.0, 29.0, 31.0, 31.0, 31.0, 28.0, 31.0, 31.0
-				};
+	extern const TParameters default_parameters;
 }
 
+namespace const_neural_net {
+
+	constexpr GUID calc_id = { 0xe34c6737, 0x1637, 0x48d1, { 0x9a, 0x53, 0xe8, 0xba, 0xd, 0xa, 0x5, 0x60 } };	// {E34C6737-1637-48D1-9A53-E8BA0D0A0560}
+
+	constexpr GUID signal_Neural_Net_Prediction = { 0x43607228, 0x6d87, 0x44a4, { 0x84, 0x35, 0xe4, 0xf3, 0xc5, 0xda, 0x62, 0xdd } };	// {43607228-6D87-44A4-8435-E4F3C5DA62DD}
+
+	
+	constexpr size_t layers_count = 4;
+	constexpr double band_offset = 4.0;
+	constexpr double band_size = 1.0 / 3.0;	//mmol/L
+	constexpr size_t input_count = 5;
+	constexpr std::array<size_t, layers_count> layers_size = {5, 5, 5, 5};
+
+	constexpr size_t count_param_count() {
+		size_t result = input_count * layers_size[0];
+
+		for (size_t i = 1; i < layers_size.size() - 1; i++)
+			result += layers_size[i - 1] * layers_size[i];
+
+		return result;
+	}
+
+	constexpr size_t param_count = count_param_count() + 1;	//+ dt
+	struct TParameters {
+		union {
+			struct {				
+				double dt;
+				std::array<double, input_count    * layers_size[0]> weight0;
+				std::array<double, layers_size[0] * layers_size[1]> weight1;
+				std::array<double, layers_size[1] * layers_size[2]> weight2;
+				std::array<double, layers_size[2] * layers_size[3]> weight3;
+			};
+			std::array<double, param_count> vector;
+		};
+	};	
+
+	extern const TParameters default_parameters;
+}
 
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end);
