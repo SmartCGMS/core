@@ -42,6 +42,23 @@
 #include "../../../../common/rtl/Eigen_Buffer.h"
 #include "../../../../common/utils/math_utils.h"
 
+double Level_To_Histogram_Index(const double level) {
+	if (level >= const_neural_net::High_Threshold) return static_cast<double>(const_neural_net::Band_Count - 1);
+
+	const double tmp = level - const_neural_net::Low_Threshold;
+	if (tmp < 0.0) return 0.0;
+
+	return floor(tmp * const_neural_net::Inv_Band_Size);
+}
+
+double Histogram_Index_To_Level(double index) {
+	index = floor(index);
+	if (index == 0.0) return const_neural_net::Low_Threshold - const_neural_net::Half_Band_Size;
+	if (index >= const_neural_net::Band_Count - 1) return const_neural_net::High_Threshold + const_neural_net::Half_Band_Size;
+
+	return const_neural_net::Low_Threshold + static_cast<double>(index - 1) * const_neural_net::Band_Size + const_neural_net::Half_Band_Size;
+}
+
 
 CConst_Neural_Net_Prediction_Signal::CConst_Neural_Net_Prediction_Signal(scgms::WTime_Segment segment) : 
 	CCommon_Calculated_Signal(segment), 
@@ -49,8 +66,8 @@ CConst_Neural_Net_Prediction_Signal::CConst_Neural_Net_Prediction_Signal(scgms::
 	mCOB(segment.Get_Signal(scgms::signal_COB)),
 	mIOB(segment.Get_Signal(scgms::signal_IOB)) {
 
-
-	if (!refcnt::Shared_Valid_All(mIst, mCOB, mIOB)) throw std::exception{};
+	if (!refcnt::Shared_Valid_All(mIst, mCOB, mIOB)) 
+		throw std::runtime_error{ "Cannot obtain all segment signals!" };
 }
 
 HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
@@ -60,22 +77,25 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 
 	const const_neural_net::TParameters &parameters = scgms::Convert_Parameters<const_neural_net::TParameters>(params, const_neural_net::default_parameters.vector.data());
 
-	TIn input;
-	const TL0 l0 = Map_Double_To_Eigen<TL0>(parameters.weight0.data());
-	const TL1 l1 = Map_Double_To_Eigen<TL1>(parameters.weight1.data());
-	const TL2 l2 = Map_Double_To_Eigen<TL2>(parameters.weight2.data());
-	const TL3 l3 = Map_Double_To_Eigen<TL3>(parameters.weight3.data());
+	TA_In input;
+	const TW_H1 w_h1 = Map_Double_To_Eigen<TW_H1>(parameters.weight_input_to_hidden1.data());
+	const TW_H2 w_h2 = Map_Double_To_Eigen<TW_H2>(parameters.weight_hidden1_to_hidden2.data());
+	const TW_Out w_out = Map_Double_To_Eigen<TW_Out>(parameters.weight_hidden2_to_output.data());
 	
-	TI0 i0;
-	TI1 i1;
-	TI2 i2;
-	TI3 i3;
+	TA_H1 a_h1;
+	TA_H2 a_h2;
+	TA_Out a_out;
+	
 
+	//https://github.com/yixuan/MiniDNN
 	auto identity = [](const auto &Z, auto &A) { A = Z; };
 	auto ReLU = [](const auto &Z, auto &A) { A.array() = Z.array().max(0.0); };
 	auto sigmoid = [](const auto &Z, auto &A) { A.array() = 1.0/(1.0 + (-Z.array()).exp()); };
+	auto soft_max = [this](const auto& Z, auto& A) { 
+		soft_max_t<std::remove_reference_t<decltype(Z)>, std::remove_reference_t<decltype(A)>>(Z, A);			
+	};
 
-	auto activate = sigmoid;
+	auto activate = ReLU;
 	const double final_threshold = 0.5;
 
 	for (size_t levels_idx = 0; levels_idx < count; levels_idx++) {
@@ -97,70 +117,34 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 				return val < 0.0 ? -1.0 : 1.0;
 			};
 			
-			auto lev_2_idx = [](const double level) {
-				double result = std::max(level, 12.0);
-				result -= 2.0;
-				result /= 10.0;
-				return result / static_cast<double>(const_neural_net::layers_size[const_neural_net::layers_count-1]);
-			};
-
-			auto idx_2_level = [](const double idx) {
-				double result = idx * static_cast<double>(const_neural_net::layers_size[const_neural_net::layers_count - 1]);
-				result *= 10.0;
-				result += 2.0;
-				return result;
-			};
-
 			const double raw_x2 = 0.5*(ist[2] + ist[0]) - ist[1];
 			const double raw_x = ist[1] - ist[0] - raw_x2;
 
 			
 			input(0) = dbl_2_dir(raw_x2);
 			input(1) = dbl_2_dir(raw_x);
-			input(2) = lev_2_idx(ist[2]);
+			input(2) = Level_To_Histogram_Index(ist[2]);
 					
 
 			//input(0) = ist[0]; input(1) = ist[1]; input(2) = ist[2]; 
 			input(3) = iob; input(4) = cob;
-			activate(l0 * input, i0);
-			activate(l1 * i0,	i1);
-			activate(l1 * i1,	i2);
-			activate(l1 * i2,	i3);
-
-			i3.normalize();
-			double sum = 0.0;
-			const double area = i3.sum();
+			activate(w_h1 * input, a_h1);
+			activate(w_h2 * a_h1, a_h2);
+			soft_max(w_out * a_h2, a_out);
 			
-			if (area > 0.0) {
-				const double base = 4.0;
-				const double width = 4.0;
 
-				double moments = 0.0;
-				for (auto i = 0; i < TI3::RowsAtCompileTime; i++) {
-					moments += i3(i)*static_cast<double>(i);
+			size_t best_idx = 0;
+			double best_val = a_out(0);
+
+			
+			for (auto i = 1; i < TA_Out::RowsAtCompileTime; i++) {
+				if (a_out(i) > best_val) {
+					best_val = a_out(i);
+					best_idx = i;
 				}
-
-				sum = moments / area;
-
-				sum = idx_2_level(sum);
 			}
 
-			/*
-			double sum = 0.0;
-			double power = 1.0;
-			for (size_t i3_idx = 0; i3_idx < TI3::RowsAtCompileTime; i3_idx++) {
-				//sum += std::round(classes(i))*power;
-			
-				const double tmp = i3(i3_idx);
-				if (std::isnormal(tmp)) 
-					//sum += tmp*power;
-					sum += power * (tmp >= final_threshold ? 1.0 : 0.0);
-				power *= 2.0;
-			}
-			
-			//sum *= max_level;
-			*/
-			levels[levels_idx] = sum != 0.0 ? sum : std::numeric_limits<double>::quiet_NaN();			
+			levels[levels_idx] = Histogram_Index_To_Level(static_cast<double>(best_idx));
 		} else
 			levels[levels_idx] = std::numeric_limits<double>::quiet_NaN();
 	}
