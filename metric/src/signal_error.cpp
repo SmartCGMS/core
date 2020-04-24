@@ -77,19 +77,21 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 	auto add_level = [&raw_event, this](TSegment_Signals &signals, const bool is_reference_signal) {
 		auto signal = is_reference_signal ? signals.reference_signal : signals.error_signal;
 
-		if (mEmit_Metric_As_Signal && !mEmit_Last_Value_Only) {
-			if (raw_event->device_time != mLast_Emmitted_Time) {
-				//emit the signal only if the last time has changed to avoid emmiting duplicate values
-				if (!std::isnan(mLast_Emmitted_Time)) {
-					Emit_Metric_Signal(raw_event->segment_id, mLast_Emmitted_Time);
-				}
-				
-				mLast_Emmitted_Time = raw_event->device_time;
-			}
-		}
+		if (signal) {
+			if (mEmit_Metric_As_Signal && !mEmit_Last_Value_Only) {
+				if (raw_event->device_time != mLast_Emmitted_Time) {
+					//emit the signal only if the last time has changed to avoid emmiting duplicate values
+					if (!std::isnan(mLast_Emmitted_Time)) {
+						Emit_Metric_Signal(raw_event->segment_id, mLast_Emmitted_Time);
+					}
 
-		if (signal->Update_Levels(&raw_event->device_time, &raw_event->level, 1) == S_OK) {
-			mNew_Data_Logical_Clock++;
+					mLast_Emmitted_Time = raw_event->device_time;
+				}
+			}
+
+			if (signal->Update_Levels(&raw_event->device_time, &raw_event->level, 1) == S_OK) {
+				mNew_Data_Logical_Clock++;
+			}
 		}
 	};
 

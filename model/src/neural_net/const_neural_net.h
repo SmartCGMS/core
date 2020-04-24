@@ -51,17 +51,25 @@
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 class CConst_Neural_Net_Prediction_Signal : public virtual CCommon_Calculated_Signal {
-protected:
-	using TIn = Eigen::Matrix<double, const_neural_net::input_count, 1>;
-	using TL0 = Eigen::Matrix<double, const_neural_net::layers_size[0], const_neural_net::input_count>;
-	using TL1 = Eigen::Matrix<double, const_neural_net::layers_size[1], const_neural_net::layers_size[0]>;
-	using TL2 = Eigen::Matrix<double, const_neural_net::layers_size[2], const_neural_net::layers_size[1]>;
-	using TL3 = Eigen::Matrix<double, const_neural_net::layers_size[3], const_neural_net::layers_size[2]>;
+protected:	
+	using TW_H1 = Eigen::Matrix<double, const_neural_net::weights_size[0], const_neural_net::input_count>;
+	using TW_H2 = Eigen::Matrix<double, const_neural_net::weights_size[1], const_neural_net::weights_size[0]>;
+	using TW_Out = Eigen::Matrix<double, const_neural_net::weights_size[2], const_neural_net::weights_size[1]>;	
 
-	using TI0 = Eigen::Matrix<double, const_neural_net::layers_size[0], 1>;
-	using TI1 = Eigen::Matrix<double, const_neural_net::layers_size[1], 1>;
-	using TI2 = Eigen::Matrix<double, const_neural_net::layers_size[2], 1>;
-	using TI3 = Eigen::Matrix<double, const_neural_net::layers_size[3], 1>;
+    using TA_In = Eigen::Matrix<double, const_neural_net::input_count, 1>;
+	using TA_H1 = Eigen::Matrix<double, const_neural_net::weights_size[0], 1>;
+	using TA_H2 = Eigen::Matrix<double, const_neural_net::weights_size[1], 1>;
+	using TA_Out = Eigen::Matrix<double, const_neural_net::weights_size[2], 1>;
+
+protected:
+    template <typename TZ, typename TA>
+    void soft_max_t(const TZ& Z, TA& A) {
+        using RowArray = Eigen::Array<double, 1, TA::ColsAtCompileTime>;
+
+        A.array() = (Z.rowwise() - Z.colwise().maxCoeff()).array().exp();
+        RowArray  colsums = A.colwise().sum();
+        A.array().rowwise() /= colsums;
+    }
 protected:
 	scgms::SSignal mIst, mCOB, mIOB;
 public:

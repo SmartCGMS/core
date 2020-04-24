@@ -59,7 +59,6 @@ namespace imported {
 
 class CLoaded_Filters {
 protected:
-	//on tbb_allocator, see comment at mLibraries declaration
 	std::vector<scgms::TFilter_Descriptor> mFilter_Descriptors;
 	std::vector<scgms::TMetric_Descriptor> mMetric_Descriptors;
 	std::vector<scgms::TModel_Descriptor> mModel_Descriptors;
@@ -130,6 +129,7 @@ public:
 	HRESULT get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end);
 	
 	HRESULT add_filters(const scgms::TFilter_Descriptor *begin, const scgms::TFilter_Descriptor *end, const scgms::TCreate_Filter create_filter);
+	void describe_loaded_filters(refcnt::Swstr_list error_description);
 };
 
 extern "C" HRESULT IfaceCalling create_filter(const GUID *id, scgms::IFilter* next_filter, scgms::IFilter **filter);
@@ -151,3 +151,4 @@ extern "C" HRESULT IfaceCalling add_filters(const scgms::TFilter_Descriptor *beg
 
 
 scgms::SFilter create_filter(const GUID &id, scgms::IFilter *next_filter);
+void describe_loaded_filters(refcnt::Swstr_list error_description);

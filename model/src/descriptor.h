@@ -431,36 +431,43 @@ namespace const_neural_net {
 	constexpr GUID signal_Neural_Net_Prediction = { 0x43607228, 0x6d87, 0x44a4, { 0x84, 0x35, 0xe4, 0xf3, 0xc5, 0xda, 0x62, 0xdd } };	// {43607228-6D87-44A4-8435-E4F3C5DA62DD}
 
 	
-	constexpr size_t layers_count = 4;
-	constexpr double band_offset = 4.0;
-	constexpr double band_size = 1.0 / 3.0;	//mmol/L
+	constexpr size_t weights_count = 3;
 	constexpr size_t input_count = 5;
-	constexpr std::array<size_t, layers_count> layers_size = {5, 5, 5, 5};
+	constexpr std::array<size_t, weights_count> weights_size = {5, 5, 5};
 
-	constexpr size_t count_param_count() {
-		size_t result = input_count * layers_size[0];
+	constexpr double Low_Threshold = 4.0;			//mmol/L below which a medical attention is needed
+	constexpr double High_Threshold = 10.0;			//dtto above
+	constexpr size_t Internal_Bound_Count = weights_size[weights_size.size() - 1] - 2;
 
-		for (size_t i = 1; i < layers_size.size() - 1; i++)
-			result += layers_size[i - 1] * layers_size[i];
+	constexpr double Band_Size = (High_Threshold - Low_Threshold) / static_cast<double>(Internal_Bound_Count);						//must imply relative error <= 10% 
+	constexpr double Inv_Band_Size = 1.0 / Band_Size;		//abs(Low_Threshold-Band_Size)/Low_Threshold 
+	constexpr double Half_Band_Size = 0.5 / Inv_Band_Size;
+	const size_t Band_Count = Internal_Bound_Count + 2;
+
+	constexpr size_t count_weight_param_count() {
+		size_t result = input_count * weights_size[0];
+
+		for (size_t i = 1; i < weights_size.size() - 1; i++)
+			result += weights_size[i - 1] * weights_size[i];
 
 		return result;
 	}
 
-	constexpr size_t param_count = count_param_count() + 1;	//+ dt
+	constexpr size_t param_count = count_weight_param_count() + 1;	//+ dt
 	struct TParameters {
 		union {
 			struct {				
 				double dt;
-				std::array<double, input_count    * layers_size[0]> weight0;
-				std::array<double, layers_size[0] * layers_size[1]> weight1;
-				std::array<double, layers_size[1] * layers_size[2]> weight2;
-				std::array<double, layers_size[2] * layers_size[3]> weight3;
+				std::array<double, input_count     * weights_size[0]> weight_input_to_hidden1;
+				std::array<double, weights_size[0] * weights_size[1]> weight_hidden1_to_hidden2;
+				std::array<double, weights_size[1] * weights_size[2]> weight_hidden2_to_output;
 			};
 			std::array<double, param_count> vector;
 		};
 	};	
 
-	extern const TParameters default_parameters;
+
+		extern const TParameters default_parameters;
 }
 
 
