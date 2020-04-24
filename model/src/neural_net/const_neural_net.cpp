@@ -90,12 +90,13 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 	//https://github.com/yixuan/MiniDNN
 	auto identity = [](const auto &Z, auto &A) { A = Z; };
 	auto ReLU = [](const auto &Z, auto &A) { A.array() = Z.array().max(0.0); };
+	auto tanh = [](const auto& Z, auto& A) { A.array() = Z.array().tanh(); };
 	auto sigmoid = [](const auto &Z, auto &A) { A.array() = 1.0/(1.0 + (-Z.array()).exp()); };
 	auto soft_max = [this](const auto& Z, auto& A) { 
 		soft_max_t<std::remove_reference_t<decltype(Z)>, std::remove_reference_t<decltype(A)>>(Z, A);			
 	};
 
-	auto activate = ReLU;
+	auto activate = tanh;
 	const double final_threshold = 0.5;
 
 	for (size_t levels_idx = 0; levels_idx < count; levels_idx++) {
@@ -123,7 +124,7 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 			
 			input(0) = dbl_2_dir(raw_x2);
 			input(1) = dbl_2_dir(raw_x);
-			input(2) = Level_To_Histogram_Index(ist[2]);
+			input(2) = Level_To_Histogram_Index(ist[2])-static_cast<double>(const_neural_net::Band_Count)*0.5;
 					
 
 			//input(0) = ist[0]; input(1) = ist[1]; input(2) = ist[2]; 
