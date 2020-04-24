@@ -289,6 +289,22 @@ HRESULT CLoaded_Filters::get_signal_descriptors(scgms::TSignal_Descriptor** begi
 	return do_get_descriptors<scgms::TSignal_Descriptor>(mSignal_Descriptors, begin, end);
 }
 
+void CLoaded_Filters::describe_loaded_filters(refcnt::Swstr_list error_description) {
+	std::wstring desc = dsDefault_Filters_Path;	
+	auto appdir = Get_Application_Dir();
+	desc += Path_Append(appdir, rsSolversDir);	
+	
+	error_description.push(desc);
+	error_description.push(dsLoaded_Filters);
+
+	if (!mLibraries.empty()) {
+		for (auto& lib : mLibraries)
+			error_description.push(lib.library.Lib_Path());
+	}
+	else
+		error_description.push(dsNone);
+}
+
 scgms::SFilter create_filter(const GUID &id, scgms::IFilter *next_filter) {
 	scgms::SFilter result;
 	scgms::IFilter *filter;
@@ -298,4 +314,9 @@ scgms::SFilter create_filter(const GUID &id, scgms::IFilter *next_filter) {
 		result = refcnt::make_shared_reference_ext<scgms::SFilter, scgms::IFilter>(filter, false);
 
 	return result;
+}
+
+
+void describe_loaded_filters(refcnt::Swstr_list error_description) {
+	loaded_filters.describe_loaded_filters(error_description);
 }

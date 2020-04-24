@@ -91,6 +91,7 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 				std::wstring err_str{dsFailed_to_configure_filter};
 				err_str += GUID_To_WString(filter_id);
 				
+				bool failed_to_resolve_descriptor = false;
 				{//try to obtain filter's name
 					scgms::TFilter_Descriptor desc = scgms::Null_Filter_Descriptor;
 					if (scgms::get_filter_descriptor_by_id(filter_id, desc) ) {
@@ -98,8 +99,14 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 						err_str += desc.description;
 						err_str += L'"';
 					}
+					else
+						failed_to_resolve_descriptor = true;
 				}
 				error_description.push(err_str.c_str());
+
+				if (failed_to_resolve_descriptor)
+					describe_loaded_filters(error_description);
+
 				mExecutors.clear();
 				return rc;
 			}

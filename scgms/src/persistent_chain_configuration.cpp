@@ -37,8 +37,8 @@
  */
 
 #include "persistent_chain_configuration.h"
-
 #include "configuration_link.h"
+#include "filters.h"
 
 #include "../../../common/rtl/FilesystemLib.h" 
 #include "../../../common/rtl/UILib.h"
@@ -235,7 +235,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 						add(&raw_filter_config, &raw_filter_config + 1);
 					}
 				}
-				else {
+				else {					
 					loaded_all_filters = false;
 					std::wstring error_desc = dsCannot_Resolve_Filter_Descriptor + section_id_str;
 					shared_error_description.push(error_desc.c_str());
@@ -258,6 +258,9 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 	catch (...) {
 		return E_FAIL;
 	}
+
+	if (!loaded_all_filters)
+		describe_loaded_filters(shared_error_description);
 
 	return loaded_all_filters ? S_OK : S_FALSE;
 }
