@@ -41,6 +41,8 @@
 #include <string>
 #include <memory>
 
+#include "../../../../common/rtl/guid.h"
+
 #include "CSVFormat.h"
 #include "XMLFormat.h"
 
