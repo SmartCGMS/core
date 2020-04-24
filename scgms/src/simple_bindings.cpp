@@ -44,7 +44,10 @@
 
 #include "filter_configuration_executor.h"
 
-class CSimple_SCGMS_Execution : public virtual scgms::IFilter, public virtual refcnt::CNotReferenced{
+#pragma warning( push )
+#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
+
+class CSimple_SCGMS_Execution : public virtual scgms::IFilter, public virtual refcnt::CNotReferenced {
 protected:
 	TSCGMS_Execution_Callback mCallback;
 	scgms::SFilter_Executor mExecutor;
@@ -152,6 +155,8 @@ public:
 	}
 
 };
+
+#pragma warning( pop )
 
 scgms_execution_t SimpleCalling Execute_SCGMS_Configuration(const char *config, TSCGMS_Execution_Callback callback) {
 	std::unique_ptr<CSimple_SCGMS_Execution> result = std::make_unique<CSimple_SCGMS_Execution>(callback);
