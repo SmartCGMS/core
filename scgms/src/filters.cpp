@@ -124,7 +124,7 @@ HRESULT IfaceCalling add_filters(const scgms::TFilter_Descriptor *begin, const s
 }
 
 void CLoaded_Filters::load_libraries() {
-	auto appdir = Get_Current_Module_Dir();
+	auto appdir = Get_Application_Dir();	
 	auto allFiles = List_Directory(Path_Append(appdir, rsSolversDir));
 
 	for (const auto& filepath : allFiles) {
