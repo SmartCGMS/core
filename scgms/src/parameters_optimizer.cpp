@@ -364,7 +364,7 @@ public:
 	
 
 	double Calculate_Fitness(const void* solution, refcnt::Swstr_list empty_error_description) {
-		
+		bool failure_detected = false;
 
 		TFast_Configuration configuration = Clone_Configuration(mFirst_Effective_Filter_Index, empty_error_description);	//later on, we will replace this with a pool
 																								//or rather not as there might a be problem with filters,
@@ -382,25 +382,35 @@ public:
 		std::recursive_mutex communication_guard;
 		CTerminal_Filter terminal_filter{ nullptr };
 		{			
-			CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely 
-																		//call its dtor to get the future error properly		
+			CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely
+																		//call its dtor to get the future error properly
 
 
 			if (composite_filter.Build_Filter_Chain(configuration.configuration.get(), &terminal_filter, On_Filter_Created_Wrapper, &error_metric_future, empty_error_description) != S_OK)
 				return std::numeric_limits<double>::quiet_NaN();
 
 			//wait for the result
-			if (mEvents_To_Replay.empty()) terminal_filter.Wait_For_Shutdown();		//no pre-calculated events can be replayed=> we need to go the old-fashioned way
-				else for (size_t i = 0; i < mEvents_To_Replay.size(); i++) {		//we can replay the pre-calculated events
-						scgms::IDevice_Event *event_to_replay = static_cast<scgms::IDevice_Event*> (new CDevice_Event{ mEvents_To_Replay[i] });
-						if (composite_filter.Execute(event_to_replay) != S_OK) break;
+			if (!mEvents_To_Replay.empty()) { 						
+				for (size_t i = 0; i < mEvents_To_Replay.size(); i++) {		//we can replay the pre-calculated events
+					scgms::IDevice_Event* event_to_replay = static_cast<scgms::IDevice_Event*> (new CDevice_Event{ mEvents_To_Replay[i] });
+					failure_detected = !SUCCEEDED(composite_filter.Execute(event_to_replay));
+					if (failure_detected) {
+						//something has not gone well => break, but be that nice to issue the shutdown event first
+						scgms::IDevice_Event* shutdown_event = static_cast<scgms::IDevice_Event*> (new CDevice_Event{ scgms::NDevice_Event_Code::Shut_Down });
+						if (SUCCEEDED(composite_filter.Execute(event_to_replay))) 
+							terminal_filter.Wait_For_Shutdown();	//wait only if the shutdown did go through succesfully
+						break;
+					}
 				}
+			} else 			  
+			  terminal_filter.Wait_For_Shutdown();//no pre-calculated events can be replayed=> we need to go the old-fashioned way
+			
 		}	//calls dtor of the signal error filter, thus filling the future error metric
 
 		//once implemented, we should return the configuration back to the pool
 
 		//pickup the fitness value/error metric and return it
-		return error_metric_future.Get_Error_Metric();
+		return failure_detected ? std::numeric_limits<double>::quiet_NaN() : error_metric_future.Get_Error_Metric();
 	}
 };
 
