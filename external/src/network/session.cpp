@@ -265,6 +265,13 @@ bool CNetwork_Discrete_Model::CSession_Handler::Send_Advance_Model(scgms::TNet_D
 	return Send_Packet(req, data_items, data_items_count * sizeof(scgms::TNet_Data_Item));
 }
 
+bool CNetwork_Discrete_Model::CSession_Handler::Send_Keepalive_Request()
+{
+	scgms::TNet_Packet<void> keepalive(scgms::NOpcodes::UU_KEEPALIVE_REQUEST);
+
+	return Send_Packet(keepalive);
+}
+
 bool CNetwork_Discrete_Model::CSession_Handler::Send_Teardown_Request()
 {
 	Set_State(NSession_State::Tearing_Down);

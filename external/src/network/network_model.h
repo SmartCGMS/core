@@ -97,6 +97,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 		bool mRunning = false;
 		double mCur_Time = 0;
 		double mCur_Ext_Time = 0;
+		double mStart_Time = 0;
 
 		std::vector<scgms::TNet_Data_Item> mPending_External_Data;
 		std::mutex mExt_Model_Mtx;
@@ -194,6 +195,8 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 				bool Ensure_State(const NSession_State desired_state);
 				void Interrupt();
 
+				scgms::NOpcodes mlastrecvd = scgms::NOpcodes::UU_NONE, mlastsent = scgms::NOpcodes::UU_NONE;
+
 				NSession_State Get_State() const;
 
 				// incoming packet handlers
@@ -209,6 +212,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 
 				void Send_Handshake_Request(double tick_interval, uint64_t sessionId = scgms::Invalid_Session_Id, const GUID& session_secret = Invalid_GUID, const GUID& model_id = Invalid_GUID);
 				bool Send_Advance_Model(scgms::TNet_Data_Item* data_items, size_t data_items_count);
+				bool Send_Keepalive_Request();
 				bool Send_Teardown_Request();
 				bool Send_Teardown_Reply();
 

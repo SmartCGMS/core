@@ -69,6 +69,8 @@ CNetwork_Discrete_Model::CNetwork_Discrete_Model(scgms::IModel_Parameter_Vector 
 
 CNetwork_Discrete_Model::~CNetwork_Discrete_Model()
 {
+	mRunning = false;
+
 	if (mNetThread && mNetThread->joinable())
 		mNetThread->join();
 
@@ -110,7 +112,7 @@ void CNetwork_Discrete_Model::Release_Pool_Slot(TSlot slot)
 
 	mConnection_Pool[slot].available = true;
 	mConnection_Pool[slot].session_id = scgms::Invalid_Session_Id;
-	mConnection_Pool_Cv.notify_one();
+	mConnection_Pool_Cv.notify_all();
 }
 
 void CNetwork_Discrete_Model::Network_Thread_Fnc()
@@ -120,8 +122,6 @@ void CNetwork_Discrete_Model::Network_Thread_Fnc()
 	FD_ZERO(&rdset);
 
 	timeval tv;
-
-	mRunning = true;
 
 	size_t pingCounter = 0;
 
@@ -142,17 +142,13 @@ void CNetwork_Discrete_Model::Network_Thread_Fnc()
 
 		if (retval == 0)
 		{
-			// send ping once every X ticks
-			if (pingCounter++ >= mPing_Interval)
-			{
-				pingCounter = 0;
-
-				scgms::TNet_Packet<void> keepalive(scgms::NOpcodes::UU_KEEPALIVE_REQUEST);
-				mSession.Send_Packet(keepalive);
-			}
-
 			if (mPending_Shut_Down)
 				mSession.Send_Teardown_Request();
+			else if (pingCounter++ >= mPing_Interval) // send ping once every X ticks
+			{
+				pingCounter = 0;
+				mSession.Send_Keepalive_Request();
+			}
 		}
 		else if (retval < 0)
 		{
@@ -172,7 +168,7 @@ void CNetwork_Discrete_Model::Network_Thread_Fnc()
 		}
 	}
 
-	mSlot.Release_Slot();
+	Release_Pool_Slot(mSlot.pool_slot);
 }
 
 bool CNetwork_Discrete_Model::Handle_Incoming_Data()
@@ -357,7 +353,6 @@ HRESULT CNetwork_Discrete_Model::Connect(const std::wstring& addr, uint16_t port
 	int param = 1;
 	setsockopt(mSlot().skt, IPPROTO_TCP, TCP_NODELAY, (char *)&param, sizeof(int));
 
-
 	return S_OK;
 }
 
@@ -394,7 +389,7 @@ void CNetwork_Discrete_Model::Signal_Data_Obtained(double current_device_time, s
 	if (!mRunning || mPending_Shut_Down)
 		return;
 
-	mCur_Ext_Time = current_device_time;
+	mCur_Ext_Time = mStart_Time + current_device_time;
 	mPending_External_Data.assign(data_items, data_items + count);
 
 	mExt_Model_Cv.notify_all();
@@ -435,11 +430,11 @@ HRESULT CNetwork_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 {
 	if (event.event_code() == scgms::NDevice_Event_Code::Level)
 	{
-		if (mRunning && !mPending_Shut_Down)
+		if (mRunning && !mPending_Shut_Down) // everything's OK, we can receive events; just ensure the Running state of the session
 			mSession.Ensure_State(CSession_Handler::NSession_State::Running);
-		else if (mRunning)
+		else if (mRunning) // if the teardown is in progress - we can still receive levels (e.g. last basal rate values from feedback, etc.)
 			return S_FALSE;
-		else
+		else // otherwise it's an error
 			return E_FAIL;
 
 		auto itr = mRequested_Signals.find(event.signal_id());
@@ -521,11 +516,14 @@ HRESULT CNetwork_Discrete_Model::Do_Configure(scgms::SFilter_Configuration confi
 
 	mInBuffer.resize(scgms::Max_Packet_Length);
 
+	mRunning = true;
+
 	mSlot.Set_Slot(Acquire_Pool_Slot());
 
 	// this happens only if a fatal error has occurred
 	if (!mSlot.Has_Slot())
 	{
+		mRunning = false;
 		error_description.push(dsCoult_Not_Allocate_Network_Pool_Slot);
 		return E_FAIL;
 	}
@@ -539,6 +537,7 @@ HRESULT IfaceCalling CNetwork_Discrete_Model::Initialize(const double current_ti
 {
 	mCur_Time = current_time;
 	mCur_Ext_Time = mCur_Time;
+	mStart_Time = mCur_Time;
 	mSegment_Id = segment_id;
 
 	return S_OK;
@@ -547,6 +546,9 @@ HRESULT IfaceCalling CNetwork_Discrete_Model::Initialize(const double current_ti
 HRESULT IfaceCalling CNetwork_Discrete_Model::Step(const double time_advance_delta)
 {
 	std::unique_lock<std::mutex> lck(mExt_Model_Mtx);
+
+	if (!mRunning)
+		return S_FALSE;
 
 	const double nextFutureTime = mCur_Time + time_advance_delta;
 
@@ -562,6 +564,7 @@ HRESULT IfaceCalling CNetwork_Discrete_Model::Step(const double time_advance_del
 		// we don't need the ext model lock anymore - this is here to avoid deaclock on Send, as another thread may be sending us Shut_Down event
 		lck.unlock();
 
+		// interrupted during simulation
 		if (!mRunning)
 			return S_FALSE;
 
