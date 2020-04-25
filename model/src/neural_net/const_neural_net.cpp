@@ -119,7 +119,7 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 			};
 			
 			auto cent_lev = [](const double lev) {
-				double result = Level_To_Histogram_Index(lev) - 3.0;// static_cast<double>(const_neural_net::Band_Count) * 0.5;
+				double result = Level_To_Histogram_Index(lev) - 2.0;// static_cast<double>(const_neural_net::Band_Count) * 0.5;
 				return result * 0.5;
 			};
 
