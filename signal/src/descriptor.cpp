@@ -349,13 +349,14 @@ namespace signal_generator {
 
 namespace network_signal_generator {
 
-	constexpr size_t filter_param_count = 11;
+	constexpr size_t filter_param_count = 12;
 
 	const wchar_t *filter_ui_names[filter_param_count] = {
 		dsSelected_Model,
 		dsFeedback_Name,
 		dsSynchronize_to_Signal,
 		dsSynchronization_Signal,
+		dsTime_Segment_ID,
 		dsStepping,
 		dsMaximum_Time,
 		dsShutdown_After_Last,
@@ -370,6 +371,7 @@ namespace network_signal_generator {
 		rsFeedback_Name,
 		rsSynchronize_to_Signal,
 		rsSynchronization_Signal,
+		rsTime_Segment_ID,
 		rsStepping,
 		rsMaximum_Time,
 		rsShutdown_After_Last,
@@ -390,6 +392,7 @@ namespace network_signal_generator {
 		nullptr,
 		nullptr,
 		nullptr,
+		nullptr,
 		nullptr
 	};
 
@@ -398,6 +401,7 @@ namespace network_signal_generator {
 		scgms::NParameter_Type::ptWChar_Array,
 		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptInt64,
 		scgms::NParameter_Type::ptRatTime,
 		scgms::NParameter_Type::ptRatTime,
 		scgms::NParameter_Type::ptBool,
