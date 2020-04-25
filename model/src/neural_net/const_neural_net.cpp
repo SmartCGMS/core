@@ -118,17 +118,27 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 				return val < 0.0 ? -1.0 : 1.0;
 			};
 			
+			auto cent_lev = [](const double lev) {
+				double result = Level_To_Histogram_Index(lev) - static_cast<double>(const_neural_net::Band_Count) * 0.5;
+				return result * 0.5;
+			};
+
 			const double raw_x2 = 0.5*(ist[2] + ist[0]) - ist[1];
 			const double raw_x = ist[1] - ist[0] - raw_x2;
 
 			
 			input(0) = dbl_2_dir(raw_x2);
 			input(1) = dbl_2_dir(raw_x);
-			input(2) = Level_To_Histogram_Index(ist[2])-static_cast<double>(const_neural_net::Band_Count)*0.5;
-					
+			
+			//input(2) = Level_To_Histogram_Index(ist[2])-static_cast<double>(const_neural_net::Band_Count)*0.5;
+			
+			input(2) = cent_lev(ist[2]);
+			input(3) = cent_lev(iob);
+			input(4) = cent_lev(cob);
 
 			//input(0) = ist[0]; input(1) = ist[1]; input(2) = ist[2]; 
-			input(3) = iob; input(4) = cob;
+			//input(3) = iob; input(4) = cob;
+
 			activate(w_h1 * input, a_h1);
 			activate(w_h2 * a_h1, a_h2);
 			soft_max(w_out * a_h2, a_out);
