@@ -195,8 +195,6 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 				bool Ensure_State(const NSession_State desired_state);
 				void Interrupt();
 
-				scgms::NOpcodes mlastrecvd = scgms::NOpcodes::UU_NONE, mlastsent = scgms::NOpcodes::UU_NONE;
-
 				NSession_State Get_State() const;
 
 				// incoming packet handlers
