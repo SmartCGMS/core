@@ -46,73 +46,35 @@
 
 #include <Eigen/Dense>
 
-#include <map>
-
-namespace pattern_prediction {
-
-	using THistogram = Eigen::Array<double, 1, Band_Count, Eigen::RowMajor>;
-	constexpr size_t mOffset_Count = 6;
-
-	class CPattern {
-	protected:
-		size_t mBand_Idx;
-		NPattern_Dir mX2, mX;
-		THistogram mHistogram;		
-		THistogram mFailures;
-	public:
-		CPattern(const size_t current_band, NPattern_Dir x2, NPattern_Dir x);
-		void Update(const double future_level);
-		double Level() const;
-
-		bool operator< (const CPattern &other) const;
-
-		size_t band_idx() { return mBand_Idx; };
-		NPattern_Dir x2() { return mX2; };
-		NPattern_Dir x() { return mX; };
-		size_t freq() { return static_cast<size_t>(mHistogram.sum()); };
-		double stdev() { return std::sqrt((mHistogram - mHistogram.mean()).square().sum() / (mHistogram.size() - 1)); };
-	};
-}
-
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CPattern_Classification {
-protected:
-	pattern_prediction::NPattern_Dir dbl_2_pat(const double x) const;
-
-	struct TDir_Pattern {
-		pattern_prediction::NPattern_Dir mX2 = pattern_prediction::NPattern_Dir::zero;
-		pattern_prediction::NPattern_Dir mX = pattern_prediction::NPattern_Dir::zero;
-	};
-protected:
-	scgms::SSignal mIst;
-	double mDt = 30.0*scgms::One_Minute;	
-	
-	bool Classify(const double current_time, size_t &band_idx, pattern_prediction::NPattern_Dir &x2, pattern_prediction::NPattern_Dir &x) const;
-};
-
-class CPattern_Prediction_Filter : public virtual scgms::CBase_Filter, public CPattern_Classification {
-protected:
-	std::map<pattern_prediction::CPattern, pattern_prediction::CPattern> mPatterns;
-	double Update_And_Predict(const double current_time, const double ig_level);//returns prediction at current_time + mDt
-protected:
-	const bool mDump_Params = true;
-	void Dump_Params();
+class CConst_Neural_Net_Prediction_Signal : public virtual CCommon_Calculated_Signal {
 protected:	
-	// scgms::CBase_Filter iface implementation
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-	CPattern_Prediction_Filter(scgms::IFilter *output);
-	virtual ~CPattern_Prediction_Filter();
-};
+	using TW_H1 = Eigen::Matrix<double, const_neural_net::weights_size[0], const_neural_net::input_count>;
+	using TW_H2 = Eigen::Matrix<double, const_neural_net::weights_size[1], const_neural_net::weights_size[0]>;
+	using TW_Out = Eigen::Matrix<double, const_neural_net::weights_size[2], const_neural_net::weights_size[1]>;	
 
-class CPattern_Prediction_Signal : public virtual CCommon_Calculated_Signal, public CPattern_Classification {
+    using TA_In = Eigen::Matrix<double, const_neural_net::input_count, 1>;
+	using TA_H1 = Eigen::Matrix<double, const_neural_net::weights_size[0], 1>;
+	using TA_H2 = Eigen::Matrix<double, const_neural_net::weights_size[1], 1>;
+	using TA_Out = Eigen::Matrix<double, const_neural_net::weights_size[2], 1>;
+
+protected:
+    template <typename TZ, typename TA>
+    void soft_max_t(const TZ& Z, TA& A) {
+        using RowArray = Eigen::Array<double, 1, TA::ColsAtCompileTime>;
+
+        A.array() = (Z.rowwise() - Z.colwise().maxCoeff()).array().exp();
+        RowArray  colsums = A.colwise().sum();
+        A.array().rowwise() /= colsums;
+    }
+protected:
+	scgms::SSignal mIst, mCOB, mIOB;
 public:
-	CPattern_Prediction_Signal(scgms::WTime_Segment segment);
-	virtual ~CPattern_Prediction_Signal() = default;
+	CConst_Neural_Net_Prediction_Signal(scgms::WTime_Segment segment);
+	virtual ~CConst_Neural_Net_Prediction_Signal() = default;
 
 	//scgms::ISignal iface
 	virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,

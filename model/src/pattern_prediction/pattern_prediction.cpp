@@ -189,9 +189,33 @@ bool CPattern_Classification::Classify(const double current_time, size_t &band_i
 				a= 0.5*(l3+l1) - l2
 			*/
 
+			//actually, we will keep this experiment as it performs better than the polynomial approach
+			//x2_raw = 1.0 in both cases is surprising, but does not seem to be an error after all
+			//it seems that we only the basic direction and bool acceleration
+#define Dexperiment
+#ifdef Dexperiment		
+			const double x_raw = levels[2] - levels[0];
+			double x2_raw = 0.0;
+
+			if (x_raw != 0.0) {
+				const double d1 = fabs(levels[1] - levels[0]);
+				const double d2 = fabs(levels[2] - levels[1]);
+				const bool acc = d2 > d1;
+				if (acc) {
+					if (x_raw > 0.0) {
+						if ((levels[1] > levels[0]) && (levels[2] > levels[1])) x2_raw = 1.0;
+					}
+
+					if (x_raw < 0.0) {
+						if ((levels[1] < levels[0]) && (levels[2] < levels[1])) x2_raw = 1.0;
+					}
+				}
+			}
+#undef Dexperiment
+#else
 			const double x2_raw = 0.5*(levels[2] + levels[0]) - levels[1];
 			const double x_raw = levels[1] - levels[0] - x2_raw;
-
+#endif
 			band_idx = pattern_prediction::Level_To_Histogram_Index(levels[2]);
 			x2 = dbl_2_pat(x2_raw);
 			x = dbl_2_pat(x_raw);
