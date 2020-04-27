@@ -109,7 +109,7 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 		bool data_ok = mIOB->Get_Continuous_Levels(nullptr, ist_times.data(), iob.data(), 1, scgms::apxNo_Derivation) == S_OK;
 		data_ok &= mCOB->Get_Continuous_Levels(nullptr, ist_times.data(), cob.data(), 1, scgms::apxNo_Derivation) == S_OK;
 		data_ok &= mIst->Get_Continuous_Levels(nullptr, ist_times.data(), ist.data(), ist.size(), scgms::apxNo_Derivation) == S_OK;
-		data_ok &= !Is_NaN(iob, cob, ist);
+		data_ok &= !Is_NaN(iob, cob, ist[0], ist[1], ist[2]);
 
 		if (data_ok) {
 			auto dbl_2_dir = [](const double val) {
