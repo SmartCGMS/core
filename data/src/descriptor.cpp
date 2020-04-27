@@ -41,7 +41,7 @@
 #include "db_writer.h"
 #include "file_reader.h"
 #include "sincos_generator.h"
-#include "../../../common/rtl/descriptor_utils.h"
+#include "../../../common/utils/descriptor_utils.h"
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"

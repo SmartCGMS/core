@@ -42,7 +42,7 @@
 #include "signal_stats.h"
 
 #include "../../../common/lang/dstrings.h"
-#include "../../../common/rtl/descriptor_utils.h"
+#include "../../../common/utils/descriptor_utils.h"
 
 const std::array < scgms::TMetric_Descriptor, 12 > metric_descriptor = { {
 	 scgms::TMetric_Descriptor{ mtrAvg_Abs, dsAvg_Abs },

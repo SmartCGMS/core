@@ -37,9 +37,12 @@
  */
 
 #include "descriptor.h"
+#include "../../../common/utils/descriptor_utils.h"
+#include "neural_net/neural_net_descriptor.h"
+#include "neural_net/reference_neural_net.h"
+
 #include "../../../common/iface/DeviceIface.h"
 #include "../../../common/lang/dstrings.h"
-#include "../../../common/rtl/descriptor_utils.h"
 #include "../../../common/rtl/manufactory.h"
 #include "diffusion/Diffusion_v2_blood.h"
 #include "diffusion/Diffusion_v2_ist.h"
@@ -48,6 +51,7 @@
 #include "uva_padova/uva_padova.h"
 #include "bolus/insulin_bolus.h"
 #include "pattern_prediction/pattern_prediction.h"
+
 
 #include <vector>
 
@@ -563,42 +567,6 @@ namespace const_cr {
 }
 
 
-namespace helper {
-	template <typename R, typename T>
-	R init_desc(const T first, const T follower, const size_t param_count) {
-		using Q = typename std::remove_const<R>::type;
-		Q result;
-		result[0] = first;
-		for (auto i = 1; i < param_count; i++)
-			result[i] = follower;
-		return result;
-	}
-
-	template <typename R>
-	R init_params(const double dt, const double level, const size_t param_count) {
-		R result = { dt };
-		result.vector = init_desc<decltype(result.vector), double>(dt, level, param_count);
-		return result;
-	}
-	template <typename R>
-	R desc_param(const wchar_t* first, const wchar_t *follower_prefix, bool ui, const size_t param_count, std::vector<std::wstring> &name_placeholder) {
-		using Q = typename std::remove_const<R>::type;
-
-		Q result = { const_cast<wchar_t*>(first) };
-		for (auto i = 1; i < param_count; i++) {
-			std::wstring tmp = follower_prefix;
-			tmp += ui ? L' ' : L'_';
-			tmp += std::to_wstring(i);
-
-			const size_t idx = static_cast<size_t>(2) * i + (ui ? static_cast<size_t>(0) : static_cast<size_t>(1));
-			name_placeholder[idx] = std::move(tmp);
-			result[i] = const_cast<wchar_t*>(name_placeholder[idx].c_str());
-		}
-
-		return result;
-	}
-}
-
 namespace pattern_prediction {
 	std::vector<std::wstring> name_placeholder(2 * param_count);
 
@@ -657,16 +625,16 @@ namespace pattern_prediction {
 	};
 
 	const std::array<scgms::NModel_Parameter_Value, param_count> calc_param_types =
-		helper::init_desc<decltype(calc_param_types), scgms::NModel_Parameter_Value>(scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, param_count);
+		Set_Value_First_Followers<decltype(calc_param_types), scgms::NModel_Parameter_Value>(scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, param_count);
 
 	
 	const std::array<const wchar_t *, param_count> calc_param_names =
-		helper::desc_param<decltype(calc_param_names)>(dsDt, dsBand, true, param_count, name_placeholder);
+		Name_Parameters_First_Followers<decltype(calc_param_names)>(dsDt, dsBand, true, param_count, name_placeholder);
 	const std::array<wchar_t *, param_count> calc_param_columns = 
-		helper::desc_param<decltype(calc_param_columns)>(rsDt_Column, rsBand, false, param_count, name_placeholder);
+		Name_Parameters_First_Followers<decltype(calc_param_columns)>(rsDt_Column, rsBand, false, param_count, name_placeholder);
 
-	const TParameters lower_bound = helper::init_params<TParameters>(0.0, 0.0, param_count);
-	const TParameters upper_bound = helper::init_params<TParameters>(scgms::One_Hour, static_cast<double>(Band_Count - 1), param_count);
+	const TParameters lower_bound = Set_Double_First_Followers<TParameters>(0.0, 0.0, param_count);
+	const TParameters upper_bound = Set_Double_First_Followers<TParameters>(scgms::One_Hour, static_cast<double>(Band_Count - 1), param_count);
 
 	const size_t signal_count = 1;
 	const GUID signal_ids[signal_count] = { signal_Pattern_Prediction };
@@ -693,47 +661,8 @@ namespace pattern_prediction {
 }
 
 
-namespace const_neural_net {
-	std::vector<std::wstring> name_placeholder(2 * param_count);
-
-	const TParameters lower_bound = helper::init_params<TParameters>(30.0*scgms::One_Minute, -100.0, param_count);
-	const TParameters default_parameters = helper::init_params<TParameters>(30.0*scgms::One_Minute, 0.5, param_count);
-	const TParameters upper_bound = helper::init_params<TParameters>(30.0*scgms::One_Minute, 100.0, param_count);
-
-	const std::array<const wchar_t *, param_count> calc_param_names =
-		helper::desc_param<decltype(calc_param_names)>(dsDt, dsWeight, true, param_count, name_placeholder);
-	const std::array<wchar_t *, param_count> calc_param_columns =
-		helper::desc_param<decltype(calc_param_columns)>(rsDt_Column, rsWeight, false, param_count, name_placeholder);
-
-
-	const std::array<scgms::NModel_Parameter_Value, param_count> calc_param_types =
-		helper::init_desc<decltype(calc_param_types), scgms::NModel_Parameter_Value>(scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, param_count);
-
-	const size_t signal_count = 1;
-	const GUID signal_ids[signal_count] = { signal_Neural_Net_Prediction };
-	const GUID reference_signal_ids[signal_count] = { scgms::signal_IG };
-
-	const scgms::TModel_Descriptor calc_desc = {
-		calc_id,
-		scgms::NModel_Flags::Signal_Model,
-		dsNeural_Net_Prediction_Model,
-		rsNeural_Net_Prediction_Model,
-		param_count,
-		calc_param_types.data(),
-		const_cast<const wchar_t**>(calc_param_names.data()),
-		const_cast<const wchar_t**>(calc_param_columns.data()),
-		lower_bound.vector.data(),
-		default_parameters.vector.data(),
-		upper_bound.vector.data(),
-		signal_count,
-		signal_ids,
-		reference_signal_ids
-	};
-
-	const scgms::TSignal_Descriptor sig_desc{ signal_Neural_Net_Prediction, dsNeural_Net_Prediction_Signal, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF1FBDFF, 0xFF1FBDFF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
-}
-
-const std::array<scgms::TFilter_Descriptor, 1> filter_descriptions = { pattern_prediction::filter_desc};
+const std::array<scgms::TFilter_Descriptor, 2> filter_descriptions = { pattern_prediction::filter_desc,
+																	   reference_neural_net::filter_desc};
 
 const std::array<scgms::TModel_Descriptor, 12> model_descriptions = { { diffusion_v2_model::desc,
 																		 steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc, diffusion_prediction::desc,
@@ -743,7 +672,7 @@ const std::array<scgms::TModel_Descriptor, 12> model_descriptions = { { diffusio
 																		 insulin_bolus::desc,
 																		 const_isf::desc, const_cr::desc,
 																		 pattern_prediction::calc_desc,
-																		 const_neural_net::calc_desc} };
+																		 const_neural_net::get_calc_desc()} };
 
 
 const std::array<scgms::TSignal_Descriptor, 17> signals_descriptors = { {diffusion_v2_model::bg_desc, diffusion_v2_model::ig_desc, steil_rebrin::bg_desc, 
@@ -752,7 +681,7 @@ const std::array<scgms::TSignal_Descriptor, 17> signals_descriptors = { {diffusi
 																		 bergman_model::bg_desc, bergman_model::ig_desc, bergman_model::iob_desc, bergman_model::cob_desc, bergman_model::basal_insulin_desc, bergman_model::insulin_activity_desc,
 																		 uva_padova_S2013::ig_desc, uva_padova_S2013::bg_desc, uva_padova_S2013::ins_desc,
 																		 pattern_prediction::sig_desc,
-																		 const_neural_net::sig_desc
+																		 neural_net::sig_desc,				
 																		}};
 
 HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
@@ -788,6 +717,8 @@ HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin
 HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
 	if (*id == pattern_prediction::filter_desc.id)
 		return Manufacture_Object<CPattern_Prediction_Filter>(filter, output);
+	else if (*id == reference_neural_net::filter_desc.id) 
+		return Manufacture_Object<CReference_Neural_Net_Signal>(filter, output);
 
 	return ENOENT;
 }

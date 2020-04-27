@@ -42,23 +42,6 @@
 #include "../../../../common/rtl/Eigen_Buffer.h"
 #include "../../../../common/utils/math_utils.h"
 
-double Level_To_Histogram_Index(const double level) {
-	if (level >= const_neural_net::High_Threshold) return static_cast<double>(const_neural_net::Band_Count - 1);
-
-	const double tmp = level - const_neural_net::Low_Threshold;
-	if (tmp < 0.0) return 0.0;
-
-	return floor(tmp * const_neural_net::Inv_Band_Size);
-}
-
-double Histogram_Index_To_Level(double index) {
-	index = floor(index);
-	if (index == 0.0) return const_neural_net::Low_Threshold - const_neural_net::Half_Band_Size;
-	if (index >= const_neural_net::Band_Count - 1) return const_neural_net::High_Threshold + const_neural_net::Half_Band_Size;
-
-	return const_neural_net::Low_Threshold + static_cast<double>(index - 1) * const_neural_net::Band_Size + const_neural_net::Half_Band_Size;
-}
-
 
 CConst_Neural_Net_Prediction_Signal::CConst_Neural_Net_Prediction_Signal(scgms::WTime_Segment segment) : 
 	CCommon_Calculated_Signal(segment), 
@@ -118,7 +101,7 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 			};
 			
 			auto cent_lev = [](const double lev) {
-				double result = Level_To_Histogram_Index(lev) - 2.0;// static_cast<double>(const_neural_net::Band_Count) * 0.5;
+				double result = neural_net::Level_To_Histogram_Index(lev) - 2.0;// static_cast<double>(const_neural_net::Band_Count) * 0.5;
 				return result * 0.5;
 			};
 
@@ -154,7 +137,7 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 				}
 			}
 
-			levels[levels_idx] = Histogram_Index_To_Level(static_cast<double>(best_idx));
+			levels[levels_idx] = neural_net::Histogram_Index_To_Level(best_idx);
 		} else
 			levels[levels_idx] = std::numeric_limits<double>::quiet_NaN();
 	}

@@ -42,7 +42,7 @@
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
-#include "../../../common/rtl/descriptor_utils.h"
+#include "../../../common/utils/descriptor_utils.h"
 
 #include <vector>
 

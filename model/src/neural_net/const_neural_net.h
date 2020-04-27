@@ -42,7 +42,7 @@
 #include "../../../../common/rtl/FilterLib.h"
 #include "../../../../common/rtl/Common_Calculated_Signal.h"
 
-#include "../descriptor.h"
+#include "neural_net_descriptor.h"
 
 #include <Eigen/Dense>
 

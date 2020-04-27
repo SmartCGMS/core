@@ -40,7 +40,7 @@
 #include "fitness.h"
 
 #include "../../../common/rtl/FilesystemLib.h"
-#include "../../../common/rtl/descriptor_utils.h"
+#include "../../../common/utils/descriptor_utils.h"
 #include "../../../common/utils/winapi_mapping.h"
 #include "../../../common/lang/dstrings.h"
 

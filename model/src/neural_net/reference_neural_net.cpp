@@ -36,45 +36,38 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "descriptor.h"
-#include "../../../common/iface/DeviceIface.h"
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/utils/descriptor_utils.h"
-#include <vector>
+#include "reference_neural_net.h"
 
-
-
-namespace mt_metade {
-	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsMT_MetaDE);
+CReference_Neural_Net_Signal::CReference_Neural_Net_Signal(scgms::IFilter* output) : CBase_Filter(output) {
 }
 
-namespace halton_metade {
-	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsHalton_MetaDE);
-}
-
-namespace rnd_metade {
-	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsRnd_MetaDE);
+HRESULT CReference_Neural_Net_Signal::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
+    mDt = configuration.Read_Double(rsDt_Column, mDt);
+    return S_OK;
 }
 
 
+HRESULT CReference_Neural_Net_Signal::Do_Execute(scgms::UDevice_Event event) {
+    HRESULT rc = E_UNEXPECTED;
 
-namespace pathfinder {
-	const scgms::TSolver_Descriptor desc_fast = Describe_Non_Specialized_Solver(id_fast, dsPathfinder_Fast);
-    const scgms::TSolver_Descriptor desc_spiral = Describe_Non_Specialized_Solver(id_spiral, dsPathfinder_Spiral);
-	const scgms::TSolver_Descriptor desc_landscape = Describe_Non_Specialized_Solver(id_landscape, dsPathfinder_Landscape);
-}
+    if (event.is_level_event() && (event.signal_id() == scgms::signal_IG)) {        
+        const scgms::NDevice_Event_Code code = event.event_code();
+        const uint64_t segment_id = event.segment_id();
+        const double event_time = event.device_time();
+        const double level = event.level();
+        rc = Send(event);
 
-namespace sequential_brute_force_scan {
-	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsSequential_Brute_Force_Scan);
-}
+        if (SUCCEEDED(rc)) {
+            scgms::UDevice_Event ref_event{ code };
+            ref_event.signal_id() = neural_net::signal_Neural_Net_Prediction;
+            ref_event.level() = neural_net::Histogram_Index_To_Level(neural_net::Level_To_Histogram_Index(level));
+            ref_event.device_time() = event_time + mDt;
+            ref_event.device_id() = reference_neural_net::filter_id;
+            ref_event.segment_id() = segment_id;
+            rc = Send(ref_event);
+        }
+    } else
+        rc =  Send(event);     
 
-
-const std::array<scgms::TSolver_Descriptor, 7> solver_descriptions = 
-	{ mt_metade::desc, halton_metade::desc, rnd_metade::desc, 
-	  pathfinder::desc_fast, pathfinder::desc_spiral, pathfinder::desc_landscape,
-	  sequential_brute_force_scan::desc};
-
-
-HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end) {
-	return do_get_descriptors(solver_descriptions, begin, end);
+    return rc;
 }
