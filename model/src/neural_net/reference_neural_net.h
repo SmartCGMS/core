@@ -51,8 +51,6 @@
 
 class CReference_Neural_Net_Signal : public virtual scgms::CBase_Filter {
 protected:
-    double mDt = 30.0*scgms::One_Minute;
-protected:
     // scgms::CBase_Filter iface implementation
     virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
     virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;

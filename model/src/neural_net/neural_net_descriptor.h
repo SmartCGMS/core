@@ -71,7 +71,7 @@ namespace const_neural_net {
 	constexpr size_t count_weight_param_count() {
 		size_t result = input_count * weights_size[0];
 
-		for (size_t i = 1; i < weights_size.size() - 1; i++)
+		for (size_t i = 1; i < weights_size.size(); i++)
 			result += weights_size[i - 1] * weights_size[i];
 
 		return result;

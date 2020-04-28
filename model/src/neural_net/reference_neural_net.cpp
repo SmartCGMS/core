@@ -41,8 +41,7 @@
 CReference_Neural_Net_Signal::CReference_Neural_Net_Signal(scgms::IFilter* output) : CBase_Filter(output) {
 }
 
-HRESULT CReference_Neural_Net_Signal::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
-    mDt = configuration.Read_Double(rsDt_Column, mDt);
+HRESULT CReference_Neural_Net_Signal::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {    
     return S_OK;
 }
 
@@ -59,9 +58,12 @@ HRESULT CReference_Neural_Net_Signal::Do_Execute(scgms::UDevice_Event event) {
 
         if (SUCCEEDED(rc)) {
             scgms::UDevice_Event ref_event{ code };
-            ref_event.signal_id() = neural_net::signal_Neural_Net_Prediction;
+            ref_event.signal_id() = neural_net::signal_Neural_Net_Prediction;            
+            
+#undef min
+//            ref_event.level() = std::trunc(std::min(16.0, level) * 2.0) * 0.5;
             ref_event.level() = neural_net::Histogram_Index_To_Level(neural_net::Level_To_Histogram_Index(level));
-            ref_event.device_time() = event_time + mDt;
+            ref_event.device_time() = event_time;
             ref_event.device_id() = reference_neural_net::filter_id;
             ref_event.segment_id() = segment_id;
             rc = Send(ref_event);

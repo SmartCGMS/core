@@ -109,22 +109,17 @@ namespace const_neural_net {
 
 namespace reference_neural_net {
 
-	const size_t filter_param_count = 1;
-	const scgms::NParameter_Type filter_param_types[filter_param_count] = { scgms::NParameter_Type::ptRatTime };
-
-	const wchar_t* filter_param_ui_names[filter_param_count] = { dsDt };
-	const wchar_t* filter_param_config_names[filter_param_count] = { rsDt_Column };
-	const wchar_t* filter_param_tooltips[filter_param_count] = { nullptr };
-
+	const size_t filter_param_count = 0;
+	
 	const scgms::TFilter_Descriptor filter_desc = {
 		filter_id,
 		scgms::NFilter_Flags::None,
 		dsReference_Neural_Net_Filter,
 		filter_param_count,
-		filter_param_types,
-		filter_param_ui_names,
-		filter_param_config_names,
-		filter_param_tooltips
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr
 	};
 
 }

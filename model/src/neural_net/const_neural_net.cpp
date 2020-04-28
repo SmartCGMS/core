@@ -51,6 +51,12 @@ CConst_Neural_Net_Prediction_Signal::CConst_Neural_Net_Prediction_Signal(scgms::
 
 	if (!refcnt::Shared_Valid_All(mIst, mCOB, mIOB)) 
 		throw std::runtime_error{ "Cannot obtain all segment signals!" };
+
+	size_t power = 1;
+	for (auto i = 0; i < TA_Out::RowsAtCompileTime; i++) {
+		mMulti_Label_2_Scalar(i) = static_cast<double>(power);
+		power *= 2;
+	}
 }
 
 HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
@@ -95,37 +101,65 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 		data_ok &= !Is_NaN(iob, cob, ist);
 
 		if (data_ok) {
-			auto dbl_2_dir = [](const double val) {
-				if (val == 0.0) return 0.0;
-				return val < 0.0 ? -1.0 : 1.0;
-			};
-			
-			auto cent_lev = [](const double lev) {
-				double result = neural_net::Level_To_Histogram_Index(lev) - 2.0;// static_cast<double>(const_neural_net::Band_Count) * 0.5;
-				return result * 0.5;
-			};
+		
 
-			const double raw_x2 = 0.5*(ist[2] + ist[0]) - ist[1];
-			const double raw_x = ist[1] - ist[0] - raw_x2;
+#define Dexperiment
+#ifdef Dexperiment		
+			const double x_raw = levels[2] - levels[0];
+			double x2_raw = -1.0;
 
-			
-			input(0) = dbl_2_dir(raw_x2);
-			input(1) = dbl_2_dir(raw_x);
-			
-			//input(2) = Level_To_Histogram_Index(ist[2])-static_cast<double>(const_neural_net::Band_Count)*0.5;
-			
-			input(2) = cent_lev(ist[2]);
-			input(3) = dbl_2_dir(iob[2] - iob[0]);
-			input(4) = dbl_2_dir(cob[2] - cob[0]);
+			if (x_raw != 0.0) {
+				const double d1 = fabs(levels[1] - levels[0]);
+				const double d2 = fabs(levels[2] - levels[1]);
 
-			//input(0) = ist[0]; input(1) = ist[1]; input(2) = ist[2]; 
-			//input(3) = iob; input(4) = cob;
+				//if ((d1 != 0.0) && (d2 > d1)) x2_raw = 1.0;	-- the ifs below are more accurate
+
+				const bool acc = d2 > d1;
+				if (acc) {
+					if (x_raw > 0.0) {
+						if ((levels[1] > levels[0]) && (levels[2] > levels[1])) x2_raw = 1.0;
+					}
+
+					if (x_raw < 0.0) {
+						if ((levels[1] < levels[0]) && (levels[2] < levels[1])) x2_raw = 1.0;
+					}
+				}
+			}
+#undef Dexperiment
+#else
+			const double x2_raw = 0.5 * (levels[2] + levels[0]) - levels[1];
+			const double x_raw = levels[1] - levels[0] - x2_raw;
+#endif
+			
+			
+			if (levels[2] != levels[0]) input(0) = levels[2] - levels[0] > 0.0 ? 1.0 : -1.0;
+				else input(0) = 0.0;
+			
+			input(1) = x2_raw;
+			
+#define DMultiClass
+#ifdef DMultiClass
+
+			input(2) = neural_net::Level_To_Histogram_Index(ist[2])-static_cast<double>(neural_net::Band_Count)*0.5;
+			input(2) /= static_cast<double>(neural_net::Band_Count) * 0.5;
+#else
+			input(2) /= (std::min(16.0, ist[2]) - 8.0)/8.0;
+#endif
+			
+			input(3) = iob[2] - iob[0] > 0.0 ? 1.0 : -1.0;
+			input(4) = cob[2] - cob[0] > 0.0 ? 1.0 : -1.0;
 
 			activate(w_h1 * input, a_h1);
 			activate(w_h2 * a_h1, a_h2);
-			soft_max(w_out * a_h2, a_out);
-			
 
+#ifdef DMultiClass
+			soft_max(w_out * a_h2, a_out);
+#else
+			sigmoid(w_out * a_h2, a_out);
+#endif
+							
+
+#ifdef DMultiClass
 			size_t best_idx = 0;
 			double best_val = a_out(0);
 
@@ -138,6 +172,12 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 			}
 
 			levels[levels_idx] = neural_net::Histogram_Index_To_Level(best_idx);
+#else
+			for (auto i = 0; i < TA_Out::RowsAtCompileTime; i++) {
+				a_out(i) = a_out(i) < final_threshold ? 0.0 : 1.0;
+			}
+			levels[levels_idx] = mMulti_Label_2_Scalar.dot(a_out) * 0.5;
+#endif
 		} else
 			levels[levels_idx] = std::numeric_limits<double>::quiet_NaN();
 	}

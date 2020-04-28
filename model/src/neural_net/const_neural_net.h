@@ -62,6 +62,8 @@ protected:
 	using TA_Out = Eigen::Matrix<double, const_neural_net::weights_size[2], 1>;
 
 protected:
+    TA_Out mMulti_Label_2_Scalar;
+
     template <typename TZ, typename TA>
     void soft_max_t(const TZ& Z, TA& A) {
         using RowArray = Eigen::Array<double, 1, TA::ColsAtCompileTime>;

@@ -200,6 +200,9 @@ bool CPattern_Classification::Classify(const double current_time, size_t &band_i
 			if (x_raw != 0.0) {
 				const double d1 = fabs(levels[1] - levels[0]);
 				const double d2 = fabs(levels[2] - levels[1]);
+			
+				//if ((d1 != 0.0) && (d2 > d1)) x2_raw = 1.0;	-- the ifs below are more accurate
+				
 				const bool acc = d2 > d1;
 				if (acc) {
 					if (x_raw > 0.0) {
@@ -209,7 +212,7 @@ bool CPattern_Classification::Classify(const double current_time, size_t &band_i
 					if (x_raw < 0.0) {
 						if ((levels[1] < levels[0]) && (levels[2] < levels[1])) x2_raw = 1.0;
 					}
-				}
+				}				
 			}
 #undef Dexperiment
 #else

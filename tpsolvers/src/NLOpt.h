@@ -174,9 +174,14 @@ public:
 		}
 
 
-		memcpy(mSetup.solution, x.data(), mSetup.problem_size * sizeof(double));	//copy the parameters, which possibly stays the same
-		for (auto i = 0; i < mDimension_Remap.size(); i++)					//and copy those, which changed at their correct positions in the final solution
-			mSetup.solution[mDimension_Remap[i]] = x[i];
+		if (mDimension_Remap.size() == mSetup.problem_size) {
+			//no remap
+			memcpy(mSetup.solution, x.data(), mSetup.problem_size * sizeof(double));
+		} else {
+			memcpy(mSetup.solution, mSetup.lower_bound, mSetup.problem_size * sizeof(double));	//copy the parameters, which possibly stays the same
+			for (auto i = 0; i < mDimension_Remap.size(); i++)					//and copy those, which changed at their correct positions in the final solution
+				mSetup.solution[mDimension_Remap[i]] = x[i];
+		}
 
 		return (result == nlopt::result::SUCCESS || result == nlopt::result::FTOL_REACHED || result == nlopt::result::MAXEVAL_REACHED);
 	}
