@@ -107,8 +107,8 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 			input(3) = iob[2] - iob[0] > 0.0 ? 1.0 : -1.0;
 			input(4) = cob[2] - cob[0] > 0.0 ? 1.0 : -1.0;
 			
-			//levels[levels_idx] = neural_net::Histogram_Index_To_Level(neural_net.Forward(input));
-			levels[levels_idx] = static_cast<double>(neural_net.Forward(input).to_ulong())*0.5;
+			levels[levels_idx] = neural_net::Histogram_Index_To_Level(neural_net.Forward(input));
+			//levels[levels_idx] = static_cast<double>(neural_net.Forward(input).to_ulong())*0.5;
 
 		} else
 			levels[levels_idx] = std::numeric_limits<double>::quiet_NaN();

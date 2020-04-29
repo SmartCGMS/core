@@ -65,9 +65,11 @@ namespace neural_net {
 }
 
 namespace const_neural_net {      
-    //using TOutput = CMulti_Class_Ouput<neural_net::Band_Count>;
-    using TOutput = CMulti_Label_Ouput<neural_net::Band_Count>;
+    using TOutput = CMulti_Class_Ouput<neural_net::Band_Count>;
     using TOutput_Layer = CNeural_Layer<5, CSigmoid, TOutput>;
+    //using TOutput = CMulti_Label_Ouput<neural_net::Band_Count>;
+    //using TOutput_Layer = CNeural_Layer<5, CSoft_Max, TOutput>;
+
     using T2nd_Hidden_Layer = CNeural_Layer<5, CTanH, TOutput_Layer>;
     using T1st_Hidden_Layer = CNeural_Layer<5, CTanH, T2nd_Hidden_Layer>;
     using CNeural_Network = T1st_Hidden_Layer;
