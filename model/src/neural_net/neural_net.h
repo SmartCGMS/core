@@ -83,7 +83,7 @@ public:
 
 
 template <size_t input_size>
-class CNeural_Ouput {
+class CNeural_Terminal {
 public:
     static const size_t Input_Size = input_size;
     using TInput = Eigen::Matrix<double, 1, input_size>;
@@ -93,14 +93,14 @@ public:
 };
 
 template <size_t input_size>
-class CMulti_Class_Ouput : public CNeural_Ouput<input_size> {
+class CMulti_Class_Terminal : public CNeural_Terminal<input_size> {
 public:
     using TFinal_Output = size_t;
 public:    
-    TFinal_Output Forward(const CNeural_Ouput<input_size>::TInput& input) const {
+    TFinal_Output Forward(const CNeural_Terminal<input_size>::TInput& input) const {
         TFinal_Output max_index = 0;
         double max_val = input[0];
-        for (auto i = 1; i < CNeural_Ouput<input_size>::TInput::ColsAtCompileTime; i++) {
+        for (auto i = 1; i < CNeural_Terminal<input_size>::TInput::ColsAtCompileTime; i++) {
             if (input[i] > max_val) {
                 max_val = input[i];
                 max_index = i;
@@ -112,13 +112,13 @@ public:
 };
 
 template <size_t input_size>
-class CMulti_Label_Ouput : public CNeural_Ouput<input_size> {
+class CMulti_Label_Terminal : public CNeural_Terminal<input_size> {
 public:    
     using TFinal_Output = std::bitset<input_size>;
 public:
-    TFinal_Output Forward(const CNeural_Ouput<input_size>::TInput& input) const {
+    TFinal_Output Forward(const CNeural_Terminal<input_size>::TInput& input) const {
         TFinal_Output result;
-        for (auto i = 0; i < CNeural_Ouput<input_size>::TInput::ColsAtCompileTime; i++)
+        for (auto i = 0; i < CNeural_Terminal<input_size>::TInput::ColsAtCompileTime; i++)
             if (input[i] >= 0.5) result.set(i);
 
         return result;
@@ -173,3 +173,9 @@ public:
                + TNext_Layer::Parameter_Count();
     }
 };
+
+template <size_t output_size, typename TActivation = CSigmoid>
+using CMulti_Label_Output = CNeural_Layer<output_size, TActivation, CMulti_Label_Terminal<output_size>>;
+
+template <size_t output_size, typename TActivation = CSoft_Max>
+using CMulti_Class_Output = CNeural_Layer<output_size, TActivation, CMulti_Class_Terminal<output_size>>;
