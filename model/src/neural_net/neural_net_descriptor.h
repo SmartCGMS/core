@@ -43,6 +43,8 @@
 #include "../../../../common/rtl/ModelsLib.h"
 #include "../../../../common/rtl/guid.h"
 
+#include "neural_net.h"
+
 #include <array>
 
 namespace neural_net {
@@ -62,29 +64,22 @@ namespace neural_net {
     extern const scgms::TSignal_Descriptor sig_desc;
 }
 
-namespace const_neural_net {
-	constexpr size_t weights_count = 3;
-	constexpr size_t input_count = 5;
-	constexpr std::array<size_t, weights_count> weights_size = {5, 5, neural_net::Band_Count};
+namespace const_neural_net {      
+    //using TOutput = CMulti_Class_Ouput<neural_net::Band_Count>;
+    using TOutput = CMulti_Label_Ouput<neural_net::Band_Count>;
+    using TOutput_Layer = CNeural_Layer<5, CSigmoid, TOutput>;
+    using T2nd_Hidden_Layer = CNeural_Layer<5, CTanH, TOutput_Layer>;
+    using T1st_Hidden_Layer = CNeural_Layer<5, CTanH, T2nd_Hidden_Layer>;
+    using CNeural_Network = T1st_Hidden_Layer;
 
-	
-	constexpr size_t count_weight_param_count() {
-		size_t result = input_count * weights_size[0];
 
-		for (size_t i = 1; i < weights_size.size(); i++)
-			result += weights_size[i - 1] * weights_size[i];
 
-		return result;
-	}
-
-	constexpr size_t param_count = count_weight_param_count() + 1;	//+ dt
+    constexpr size_t param_count = CNeural_Network::Parameter_Count() + 1;	//+ dt
 	struct TParameters {
 		union {
 			struct {				
 				double dt;
-				std::array<double, input_count     * weights_size[0]> weight_input_to_hidden1;
-				std::array<double, weights_size[0] * weights_size[1]> weight_hidden1_to_hidden2;
-				std::array<double, weights_size[1] * weights_size[2]> weight_hidden2_to_output;
+                std::array<double, CNeural_Network::Parameter_Count()> neural_parameters;
 			};
 			std::array<double, param_count> vector;
 		};
