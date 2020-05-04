@@ -53,36 +53,24 @@ namespace neural_net {
     public:
         template <typename TZ, typename TA>
         static void Activate(const TZ& Z, TA& A) { A = Z; };
-
-        template <typename TZ, typename TA, typename TF, typename TG>
-        static void Apply_Jacobian(const TZ& Z, const TA& A, const TF& F, TG& G) { G.noalias() = F; }
     };
 
     class CReLU {
     public:
         template <typename TZ, typename TA>
         static void Activate(const TZ& Z, TA& A) { A.array() = Z.array().max(0.0); };
-
-        template <typename TZ, typename TA, typename TF, typename TG>
-        static void Apply_Jacobian(const TZ& Z, const TA& A, const TF& F, TG& G) { G.array() = (A.array() > 0.0).select(F, 0.0); }
     };
 
     class CTanH {
     public:
         template <typename TZ, typename TA>
         static void Activate(const TZ& Z, TA& A) { A.array() = Z.array().tanh(); };
-
-        template <typename TZ, typename TA, typename TF, typename TG>
-        static void Apply_Jacobian(const TZ& Z, const TA& A, const TF& F, TG& G) { G.array() = (1.0 - A.array().square()) * F.array(); }
     };
 
     class CSigmoid {
     public:
         template <typename TZ, typename TA>
         static void Activate(const TZ& Z, TA& A) { A.array() = 1.0 / (1.0 + (-Z.array()).exp()); };
-
-        template <typename TZ, typename TA, typename TF, typename TG>
-        static void Apply_Jacobian(const TZ& Z, const TA& A, const TF& F, TG& G) { G.array() = A.array() * (1.0 - A.array()) * F.array(); }
     };
 
     class CSoft_Max {
@@ -96,14 +84,6 @@ namespace neural_net {
             A.array().rowwise() /= colsums;
         };
 
-        template <typename TZ, typename TA, typename TF, typename TG>
-        static void Apply_Jacobian(const TZ& Z, const TA& A, const TF& F, TG& G) {
-            using RowArray = Eigen::Array<double, 1, TA::ColsAtCompileTime>;
-
-            RowArray a_dot_f = A.cwiseProduct(F).colwise().sum();
-            G.array() = A.array() * (F.array().rowwise() - a_dot_f);
-        }
-
     };
 
 
@@ -115,11 +95,14 @@ namespace neural_net {
     public:
         constexpr static size_t Parameter_Count() { return 0; }
         bool Initialize(const double* data, const size_t available_count) { return true; }
-        template <typename T, typename TOptimizer>
-        void Backpropagate(const TInput& input, const T& reference_output, TOptimizer& optimizer) {}
-        
-        template <typename T>
-        T Intermediate_Output(const T& input) const { return input; }
+
+        TInput Compute_dBias(const TInput& input, const TInput& cost) {
+            //as this is the terminal, this input is output of the very last layer
+            const TInput dA_by_dZ = input.cwiseProduct((1.0 - input.array()).matrix());
+            const TInput /*dCost_by_dZ is dBias*/ dBias = cost.cwiseProduct(dA_by_dZ);
+
+            return dBias;
+        }
     };
 
     template <size_t input_size>
@@ -127,7 +110,7 @@ namespace neural_net {
     public:
         using TFinal_Output = size_t;
     public:
-        TFinal_Output Forward(const CNeural_Terminal<input_size>::TInput& input) const {
+        TFinal_Output Forward(const typename CNeural_Terminal<input_size>::TInput& input) const {
             TFinal_Output max_index = 0;
             double max_val = input[0];
             for (auto i = 1; i < CNeural_Terminal<input_size>::TInput::RowsAtCompileTime; i++) {
@@ -140,12 +123,13 @@ namespace neural_net {
             return max_index;
         }
 
-        double Loss(const CNeural_Terminal<input_size>::TInput& activation, const TFinal_Output& reference_output) {
+        template <typename TOptimizer>
+        typename CNeural_Terminal<input_size>::TInput Backpropagate(const typename CNeural_Terminal<input_size>::TInput& input, const TFinal_Output& reference_output, TOptimizer& optimizer) {
             //error is ideal_activation - activation 
             //ideal activation has all elements set to zero, except the one at the target position
-            typename CNeural_Terminal<input_size>::TInput error = 0.0 - activation;
-            error[reference_output] = 1.0 - activation[reference_output];
-            return error.squaredNorm();
+            typename CNeural_Terminal<input_size>::TInput error = 0.0 - input;
+            error[reference_output] = 1.0 - input[reference_output];
+            return CNeural_Terminal<input_size>::Compute_dBias(input, error);
         }
     };
 
@@ -154,7 +138,7 @@ namespace neural_net {
     public:
         using TFinal_Output = std::bitset<input_size>;
     public:
-        TFinal_Output Forward(const CNeural_Terminal<input_size>::TInput& input) const {
+        TFinal_Output Forward(const typename CNeural_Terminal<input_size>::TInput& input) const {
             TFinal_Output result{ 0 };
             for (auto i = 0; i < CNeural_Terminal<input_size>::TInput::RowsAtCompileTime; i++)
                 if (input[i] >= 0.5) result.set(i);
@@ -162,15 +146,16 @@ namespace neural_net {
             return result;
         }
 
-        double Loss(const CNeural_Terminal<input_size>::TInput& activation, const TFinal_Output& reference_output) {
+        template <typename TOptimizer>
+        typename CNeural_Terminal<input_size>::TInput Backpropagate(const typename CNeural_Terminal<input_size>::TInput& input, const TFinal_Output& reference_output, TOptimizer& optimizer) {
             typename CNeural_Terminal<input_size>::TInput error;
 
             //error is ideal_activation - activation 
             //ideal activation has all elements set to the target's bits
             for (auto i = 0; i < CNeural_Terminal<input_size>::TInput::RowsAtCompileTime; i++)
-                error[i] = (reference_output[i] ? 1.0 : 0.0) - activation[i];
+                error[i] = (reference_output[i] ? 1.0 : 0.0) - input[i];
 
-            return error.squaredNorm();
+            return CNeural_Terminal<input_size>::Compute_dBias(input, error);
         }
     };
 
@@ -196,7 +181,7 @@ namespace neural_net {
             return mNext_Layer.Loss(Intermediate_Output(input), reference_output);
         }
 
-        typename TOutput Intermediate_Output(const TInput& input) const {
+        TOutput Intermediate_Output(const TInput& input) const {
             TOutput activated;
             TActivation::Activate(mWeights*input + mBias, activated);
             return activated;
@@ -204,41 +189,22 @@ namespace neural_net {
 
 
         template <typename TOptimizer>
-        void Backpropagate(const TInput& input, const TFinal_Output& reference_output, TOptimizer& optimizer) {
-            //1. learn the layers after us
-            mNext_Layer.Backpropagate(input, reference_output, optimizer);
+        TInput Backpropagate(const TInput& input, const TFinal_Output& reference_output, TOptimizer& optimizer) {
+            const TOutput activated = Intermediate_Output(input);
+            //calculate dCost/dIntermediateOutput is the return value of our backprop method
+            const TOutput current_dBias = mNext_Layer.Backpropagate(activated, reference_output, optimizer);
 
-            //2. learn this particular layer
-            TWeights best_weights = mWeights;
-            TOutput best_bias = mBias;
-            double best_loss = Loss(input, reference_output);
+            const TOutput dCost_by_IntermediateOutput = mWeights * current_dBias;
+            const TOutput dA_by_dZ = activated.cwiseProduct((1.0 - activated.array()).matrix());
 
-            bool improved = true;
-            while (improved) {
-                TOutput dLz, activated;
+            const TOutput previous_layer_dBias = dCost_by_IntermediateOutput.cwiseProduct(dA_by_dZ);
+            TWeights dWeight;
+            dWeight.colwise() = current_dBias.cwiseProduct(input);
 
-                const TOutput z = mWeights*input + mBias;
-                TActivation::Activate(z, activated);
-                TActivation::Apply_Jacobian(z, activated, mNext_Layer.Intermediate_Output(activated), dLz);
+            optimizer.Update(mWeights, dWeight);
+            optimizer.Update(mBias, current_dBias);
 
-                const TOutput weight_derivative = input * dLz.transpose();
-                const TOutput bias_derivative = dLz.rowwise().mean();
-
-
-                optimizer.Update(mWeights, weight_derivative);
-                optimizer.Update(mBias, bias_derivative);
-
-                const double current_loss = mNext_Layer.Loss(activated, reference_output);
-                improved = current_loss < best_loss;
-                if (improved) {
-                    best_weights.noalias() = mWeights;
-                    best_bias.noalias() = mBias;
-                    best_loss = current_loss;
-                }
-            }
-
-            mWeights.noalias() = best_weights;
-            mBias.noalias() = best_bias;
+            return previous_layer_dBias;
         }
 
 
