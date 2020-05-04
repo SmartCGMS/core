@@ -87,16 +87,16 @@ protected:
 		pattern_prediction::NPattern_Dir mX = pattern_prediction::NPattern_Dir::zero;
 	};
 protected:
-	scgms::SSignal mIst;
+	std::map<uint64_t, scgms::SSignal> mIst;	//ist signals per segments
 	double mDt = 30.0*scgms::One_Minute;	
 	
-	bool Classify(const double current_time, size_t &band_idx, pattern_prediction::NPattern_Dir &x2, pattern_prediction::NPattern_Dir &x) const;
+	bool Classify(scgms::SSignal &ist, const double current_time, size_t &band_idx, pattern_prediction::NPattern_Dir &x2, pattern_prediction::NPattern_Dir &x) const;
 };
 
 class CPattern_Prediction_Filter : public virtual scgms::CBase_Filter, public CPattern_Classification {
 protected:
 	std::map<pattern_prediction::CPattern, pattern_prediction::CPattern> mPatterns;
-	double Update_And_Predict(const double current_time, const double ig_level);//returns prediction at current_time + mDt
+	double Update_And_Predict(const uint64_t segment_id, const double current_time, const double ig_level);//returns prediction at current_time + mDt
 protected:
 	const bool mDump_Params = true;
 	void Dump_Params();
@@ -110,6 +110,8 @@ public:
 };
 
 class CPattern_Prediction_Signal : public virtual CCommon_Calculated_Signal, public CPattern_Classification {
+protected:
+	mutable scgms::SSignal mIst;
 public:
 	CPattern_Prediction_Signal(scgms::WTime_Segment segment);
 	virtual ~CPattern_Prediction_Signal() = default;

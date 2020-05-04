@@ -74,29 +74,29 @@ HRESULT IfaceCalling CConst_Neural_Net_Prediction_Signal::Get_Continuous_Levels(
 		data_ok &= !Is_NaN(iob, cob, ist);
 
 		if (data_ok) {
-			const double x_raw = levels[2] - levels[0];
+			const double x_raw = ist[2] - ist[0];
 			double x2_raw = -1.0;
 
 			if (x_raw != 0.0) {
-				const double d1 = fabs(levels[1] - levels[0]);
-				const double d2 = fabs(levels[2] - levels[1]);
+				const double d1 = fabs(ist[1] - ist[0]);
+				const double d2 = fabs(ist[2] - ist[1]);
 
 				//if ((d1 != 0.0) && (d2 > d1)) x2_raw = 1.0;	-- the ifs below are more accurate
 
 				const bool acc = d2 > d1;
 				if (acc) {
 					if (x_raw > 0.0) {
-						if ((levels[1] > levels[0]) && (levels[2] > levels[1])) x2_raw = 1.0;
+						if ((ist[1] > ist[0]) && (ist[2] > ist[1])) x2_raw = 1.0;
 					}
 
 					if (x_raw < 0.0) {
-						if ((levels[1] < levels[0]) && (levels[2] < levels[1])) x2_raw = 1.0;
+						if ((ist[1] < ist[0]) && (ist[2] < ist[1])) x2_raw = 1.0;
 					}
 				}
 			}
 
-			if (levels[2] != levels[0]) input(0) = levels[2] - levels[0] > 0.0 ? 1.0 : -1.0;
-			else input(0) = 0.0;
+			if (x_raw != 0.0) input(0) = x_raw > 0.0 ? 1.0 : -1.0;
+				else input(0) = 0.0;
 
 			input(1) = x2_raw;
 

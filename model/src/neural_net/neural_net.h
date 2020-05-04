@@ -46,6 +46,8 @@
 
 namespace neural_net {
 
+    //https://blog.demofox.org/2017/03/09/how-to-train-neural-networks-with-backpropagation/
+    //https://www.guivi.one/2019/03/19/neural-network-with-eigen-lib-19/
     //https://github.com/yixuan/MiniDNN
     class CIdentity {
     public:
@@ -109,12 +111,15 @@ namespace neural_net {
     class CNeural_Terminal {
     public:
         static const size_t Input_Size = input_size;
-        using TInput = Eigen::Matrix<double, 1, input_size>;
+        using TInput = Eigen::Matrix<double, input_size, 1>;
     public:
         constexpr static size_t Parameter_Count() { return 0; }
         bool Initialize(const double* data, const size_t available_count) { return true; }
         template <typename T, typename TOptimizer>
         void Backpropagate(const TInput& input, const T& reference_output, TOptimizer& optimizer) {}
+        
+        template <typename T>
+        T Intermediate_Output(const T& input) const { return input; }
     };
 
     template <size_t input_size>
@@ -125,7 +130,7 @@ namespace neural_net {
         TFinal_Output Forward(const CNeural_Terminal<input_size>::TInput& input) const {
             TFinal_Output max_index = 0;
             double max_val = input[0];
-            for (auto i = 1; i < CNeural_Terminal<input_size>::TInput::ColsAtCompileTime; i++) {
+            for (auto i = 1; i < CNeural_Terminal<input_size>::TInput::RowsAtCompileTime; i++) {
                 if (input[i] > max_val) {
                     max_val = input[i];
                     max_index = i;
@@ -151,7 +156,7 @@ namespace neural_net {
     public:
         TFinal_Output Forward(const CNeural_Terminal<input_size>::TInput& input) const {
             TFinal_Output result{ 0 };
-            for (auto i = 0; i < CNeural_Terminal<input_size>::TInput::ColsAtCompileTime; i++)
+            for (auto i = 0; i < CNeural_Terminal<input_size>::TInput::RowsAtCompileTime; i++)
                 if (input[i] >= 0.5) result.set(i);
 
             return result;
@@ -162,7 +167,7 @@ namespace neural_net {
 
             //error is ideal_activation - activation 
             //ideal activation has all elements set to the target's bits
-            for (auto i = 0; i < CNeural_Terminal<input_size>::TInput::ColsAtCompileTime; i++)
+            for (auto i = 0; i < CNeural_Terminal<input_size>::TInput::RowsAtCompileTime; i++)
                 error[i] = (reference_output[i] ? 1.0 : 0.0) - activation[i];
 
             return error.squaredNorm();
@@ -172,7 +177,7 @@ namespace neural_net {
     template <size_t input_size, typename TActivation, typename TNext_Layer>
     class CNeural_Layer {
     public:
-        using TInput = Eigen::Matrix<double, 1, input_size>;
+        using TInput = Eigen::Matrix<double, input_size, 1>;
         using TOutput = typename TNext_Layer::TInput;
         using TFinal_Output = typename TNext_Layer::TFinal_Output;
         static const size_t Input_Size = input_size;
@@ -193,7 +198,7 @@ namespace neural_net {
 
         typename TOutput Intermediate_Output(const TInput& input) const {
             TOutput activated;
-            TActivation::Activate(input * mWeights + mBias, activated);
+            TActivation::Activate(mWeights*input + mBias, activated);
             return activated;
         }
 
@@ -201,7 +206,7 @@ namespace neural_net {
         template <typename TOptimizer>
         void Backpropagate(const TInput& input, const TFinal_Output& reference_output, TOptimizer& optimizer) {
             //1. learn the layers after us
-            mNext_Layer.Backpropagate(input, reference_output);
+            mNext_Layer.Backpropagate(input, reference_output, optimizer);
 
             //2. learn this particular layer
             TWeights best_weights = mWeights;
@@ -212,11 +217,11 @@ namespace neural_net {
             while (improved) {
                 TOutput dLz, activated;
 
-                const TOutput z = input * mWeights + mBias;
+                const TOutput z = mWeights*input + mBias;
                 TActivation::Activate(z, activated);
                 TActivation::Apply_Jacobian(z, activated, mNext_Layer.Intermediate_Output(activated), dLz);
 
-                const TOutput weight_derivative = input * dLz.transpose() / input_size;
+                const TOutput weight_derivative = input * dLz.transpose();
                 const TOutput bias_derivative = dLz.rowwise().mean();
 
 
@@ -276,6 +281,7 @@ namespace neural_net {
         TFirst_Layer mFirst_Layer;
     public:
         using TInput = typename TFirst_Layer::TInput;
+        using TFinal_Output = typename TFirst_Layer::TFinal_Output;
     public:
         //no data means init with random values
         bool Initialize(const double* data = nullptr, const size_t available_count = 0) {
@@ -302,8 +308,8 @@ namespace neural_net {
         double mLearning_Rate = 0.001;
         double mDecay = 0.0;
     public:
-        template <typename TGradient, typename TTarget>
-        void Update(const TGradient& gradient, TTarget& target) {
+        template <typename TTarget, typename TGradient>
+        void Update(TTarget& target, const TGradient& gradient) {
             target.noalias() -= mLearning_Rate * (gradient + mDecay * target);
         }
     };

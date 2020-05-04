@@ -37,7 +37,6 @@
  */
 
 #pragma once
-
 #include "../../../../common/iface/UIIface.h"
 #include "../../../../common/rtl/hresult.h"
 #include "../../../../common/rtl/ModelsLib.h"
@@ -87,11 +86,17 @@ namespace const_neural_net {
 
     
 	extern const TParameters default_parameters;
-    scgms::TModel_Descriptor get_calc_desc();
+    scgms::TModel_Descriptor get_calc_desc();   //func to avoid static init fiasco as this is another unit than descriptor.cpp
 }
 
 namespace reference_neural_net {
     constexpr GUID filter_id = { 0xa2cecd41, 0xd73b, 0x497d, { 0x8a, 0x4c, 0x40, 0x77, 0x8, 0x2b, 0x76, 0x3b } };  // {A2CECD41-D73B-497D-8A4C-4077082B763B}
+    
+    scgms::TFilter_Descriptor get_filter_desc();    //func to avoid static init fiasco as this is another unit than descriptor.cpp
+}
 
-    extern const scgms::TFilter_Descriptor filter_desc;
+namespace neural_prediction {
+    constexpr GUID filter_id = { 0x1b21f589, 0x5b69, 0x4d4a, { 0x9a, 0x81, 0xe5, 0xe0, 0x4b, 0xf4, 0x78, 0x14 } };  // {1B21F589-5B69-4D4A-9A81-E5E04BF47814}
+        
+    scgms::TFilter_Descriptor get_filter_desc();    //func to avoid static init fiasco as this is another unit than descriptor.cpp
 }

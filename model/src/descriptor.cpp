@@ -40,6 +40,7 @@
 #include "../../../common/utils/descriptor_utils.h"
 #include "neural_net/neural_net_descriptor.h"
 #include "neural_net/reference_neural_net.h"
+#include "neural_net/neural_prediction.h"
 
 #include "../../../common/iface/DeviceIface.h"
 #include "../../../common/lang/dstrings.h"
@@ -661,8 +662,9 @@ namespace pattern_prediction {
 }
 
 
-const std::array<scgms::TFilter_Descriptor, 2> filter_descriptions = { pattern_prediction::filter_desc,
-																	   reference_neural_net::filter_desc};
+const std::array<const scgms::TFilter_Descriptor, 3> filter_descriptions = { { pattern_prediction::filter_desc,
+																	   reference_neural_net::get_filter_desc(),
+																	   neural_prediction::get_filter_desc() } };
 
 const std::array<scgms::TModel_Descriptor, 12> model_descriptions = { { diffusion_v2_model::desc,
 																		 steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc, diffusion_prediction::desc,
@@ -715,10 +717,12 @@ HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin
 
 
 HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
-	if (*id == pattern_prediction::filter_desc.id)
+	if (*id == pattern_prediction::filter_id)
 		return Manufacture_Object<CPattern_Prediction_Filter>(filter, output);
-	else if (*id == reference_neural_net::filter_desc.id) 
+	else if (*id == reference_neural_net::filter_id) 
 		return Manufacture_Object<CReference_Neural_Net_Signal>(filter, output);
+	else if (*id == neural_prediction::filter_id)
+		return Manufacture_Object<CNN_Prediction_Filter>(filter, output);
 
 	return ENOENT;
 }

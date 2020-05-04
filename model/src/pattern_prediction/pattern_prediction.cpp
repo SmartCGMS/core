@@ -154,14 +154,14 @@ pattern_prediction::NPattern_Dir CPattern_Classification::dbl_2_pat(const double
 }
 
 
-bool CPattern_Classification::Classify(const double current_time, size_t &band_idx, pattern_prediction::NPattern_Dir &x2, pattern_prediction::NPattern_Dir &x) const {
+bool CPattern_Classification::Classify(scgms::SSignal& ist, const double current_time, size_t &band_idx, pattern_prediction::NPattern_Dir &x2, pattern_prediction::NPattern_Dir &x) const {
 	bool result = false;
 
 	const std::array<double, 3> times = { current_time - 10 * scgms::One_Minute,
 										  current_time - 5 * scgms::One_Minute,
 										  current_time - 0 * scgms::One_Minute };
 	std::array<double, 3> levels;
-	if (mIst->Get_Continuous_Levels(nullptr, times.data(), levels.data(), times.size(), scgms::apxNo_Derivation) == S_OK) {
+	if (ist->Get_Continuous_Levels(nullptr, times.data(), levels.data(), times.size(), scgms::apxNo_Derivation) == S_OK) {
 
 		bool all_normals = true;
 		for (auto &level : levels)
@@ -249,7 +249,7 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 		
 		HRESULT rc = Send(event);
 		if (SUCCEEDED(rc)) {			
-			const double pred_level = Update_And_Predict(dev_time, level);
+			const double pred_level = Update_And_Predict(seg_id, dev_time, level);
 
 			if (std::isnormal(pred_level)) {
 				scgms::UDevice_Event pred{ scgms::NDevice_Event_Code::Level };
@@ -269,20 +269,30 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 }
 
 HRESULT CPattern_Prediction_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
-	mDt = configuration.Read_Double(rsDt_Column, mDt);
-
-	mIst = scgms::SSignal{ scgms::STime_Segment{}, scgms::signal_IG };
+	mDt = configuration.Read_Double(rsDt_Column, mDt);	
 	return S_OK;
 }
 
-double CPattern_Prediction_Filter::Update_And_Predict(const double current_time, const double ig_level) {
+double CPattern_Prediction_Filter::Update_And_Predict(const uint64_t segment_id, const double current_time, const double ig_level) {
 	double result = std::numeric_limits<double>::quiet_NaN();
  
+	auto seg_iter = mIst.find(segment_id);
+	if (seg_iter == mIst.end()) {
+		scgms::SSignal ist = scgms::SSignal{ scgms::STime_Segment{}, scgms::signal_IG };
+		if (!ist) return result;	//failed, but why?
+
+		auto inserted = mIst.insert(std::make_pair(segment_id, ist));
+		if (!inserted.second) return result;
+
+		seg_iter = inserted.first;
+	}
+	auto ist = seg_iter->second;
+
 	//1st phase - learning
-	if (SUCCEEDED(mIst->Update_Levels(&current_time, &ig_level, 1))) {
+	if (SUCCEEDED(ist->Update_Levels(&current_time, &ig_level, 1))) {
 		size_t band_idx;
 		pattern_prediction::NPattern_Dir x2, x;
-		if (Classify(current_time - mDt, band_idx, x2, x)) {			
+		if (Classify(ist, current_time - mDt, band_idx, x2, x)) {			
 			pattern_prediction::CPattern pattern{ band_idx, x2, x };
 
 			auto iter = mPatterns.find(pattern);				
@@ -300,7 +310,7 @@ double CPattern_Prediction_Filter::Update_And_Predict(const double current_time,
 	{
 		size_t band_idx;
 		pattern_prediction::NPattern_Dir x2, x;
-		if (Classify(current_time, band_idx, x2, x)) {
+		if (Classify(ist, current_time, band_idx, x2, x)) {
 			pattern_prediction::CPattern pattern{ band_idx, x2, x };
 
 			auto iter = mPatterns.find(pattern);
@@ -430,7 +440,7 @@ HRESULT IfaceCalling CPattern_Prediction_Signal::Get_Continuous_Levels(scgms::IM
 	for (size_t i = 0; i < count; i++) {
 		size_t band_idx;
 		pattern_prediction::NPattern_Dir x2, x;
-		if (Classify(times[i] - mDt, band_idx, x2, x)) {
+		if (Classify(mIst, times[i] - mDt, band_idx, x2, x)) {
 			const double raw_band = parameters.bands[static_cast<const size_t>(band_idx)][static_cast<const size_t>(x2)][static_cast<const size_t>(x)];
 			levels[i] = pattern_prediction::Histogram_Index_To_Level(
 				static_cast<size_t>(round(raw_band)));			
