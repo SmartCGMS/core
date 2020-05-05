@@ -75,12 +75,7 @@ public:
 			if (!mError_Metric_Available) return E_FAIL;
 		}
 
-		HRESULT res = S_OK;
-
-		if (mOn_Filter_Created)
-			res = mOn_Filter_Created(filter, mOn_Filter_Created_Data);
-
-		return res;
+		return mOn_Filter_Created ? mOn_Filter_Created(filter, mOn_Filter_Created_Data) : S_OK;
 	}
 
 	double Get_Error_Metric() {
