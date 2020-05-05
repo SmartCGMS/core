@@ -240,15 +240,16 @@ CPattern_Prediction_Filter::~CPattern_Prediction_Filter() {
 }
 
 HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
-	if ((event.event_code() == scgms::NDevice_Event_Code::Level) &&
-		(event.signal_id() == scgms::signal_IG)) {
+	bool sent = false;
 
+	auto handle_ig_level = [&event, &sent, this]() {
 		const double dev_time = event.device_time();
 		const uint64_t seg_id = event.segment_id();
 		const double level = event.level();
-		
+
 		HRESULT rc = Send(event);
-		if (SUCCEEDED(rc)) {			
+		sent = SUCCEEDED(rc);
+		if (sent) {
 			const double pred_level = Update_And_Predict(seg_id, dev_time, level);
 
 			if (std::isnormal(pred_level)) {
@@ -263,9 +264,33 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 		}
 
 		return rc;
+	};
+
+	auto free_segment = [&event, this]() {
+		auto iter = mIst.find(event.segment_id());
+		if (iter != mIst.end())
+			mIst.erase(iter);
+	};
+
+
+	HRESULT rc = E_UNEXPECTED;
+	
+	switch (event.event_code()) {
+		case scgms::NDevice_Event_Code::Level:
+			if (event.signal_id() == scgms::signal_IG) 				
+				rc = handle_ig_level();
+			break;
+
+		case scgms::NDevice_Event_Code::Time_Segment_Stop:
+			free_segment();
+			break;
+
+		default: break;
 	}
-	else
-		return Send(event);	
+
+	if (!sent) rc = Send(event);	
+
+	return rc;
 }
 
 HRESULT CPattern_Prediction_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {

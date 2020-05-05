@@ -86,8 +86,7 @@ protected:
 		pattern_prediction::NPattern_Dir mX2 = pattern_prediction::NPattern_Dir::zero;
 		pattern_prediction::NPattern_Dir mX = pattern_prediction::NPattern_Dir::zero;
 	};
-protected:
-	std::map<uint64_t, scgms::SSignal> mIst;	//ist signals per segments
+protected:	
 	double mDt = 30.0*scgms::One_Minute;	
 	
 	bool Classify(scgms::SSignal &ist, const double current_time, size_t &band_idx, pattern_prediction::NPattern_Dir &x2, pattern_prediction::NPattern_Dir &x) const;
@@ -95,6 +94,7 @@ protected:
 
 class CPattern_Prediction_Filter : public virtual scgms::CBase_Filter, public CPattern_Classification {
 protected:
+	std::map<uint64_t, scgms::SSignal> mIst;	//ist signals per segments
 	std::map<pattern_prediction::CPattern, pattern_prediction::CPattern> mPatterns;
 	double Update_And_Predict(const uint64_t segment_id, const double current_time, const double ig_level);//returns prediction at current_time + mDt
 protected:
