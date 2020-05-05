@@ -20,6 +20,9 @@ IF (Matlab_FOUND)
 
 	TARGET_INCLUDE_DIRECTORIES(${PROJ} PUBLIC ${Matlab_INCLUDE_DIRS})
 	TARGET_LINK_LIBRARIES(${PROJ} scgms ${Matlab_LIBRARIES})
+
+	# Matlab R2018a+ contains some deprecated functions and approaches
+	TARGET_COMPILE_OPTIONS(${PROJ} PUBLIC "-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS")
 ELSE()
 	MESSAGE(WARNING "Matlab libraries was not found, matlab solver will not be built.")
 ENDIF()

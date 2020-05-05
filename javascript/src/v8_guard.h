@@ -38,26 +38,30 @@
 
 #pragma once
 
-#include "../../../../common/rtl/FilterLib.h"
-#include "../descriptor.h"
+#include <mutex>
+#include <memory>
 
-#pragma warning( push )
-#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
+#include <libplatform/libplatform.h>
+#include <v8.h>
 
-class CDiscrete_Insulin_Bolus_Calculator : public scgms::CBase_Filter, public scgms::IDiscrete_Model {
-protected:
-    insulin_bolus::TParameters mParameters;
-protected:
-    // scgms::CBase_Filter iface implementation
-    virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-    virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-    CDiscrete_Insulin_Bolus_Calculator(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output);
-	virtual ~CDiscrete_Insulin_Bolus_Calculator() = default;
+/*
+ * V8 initializer class, to initialize V8 engine at load and deinitialize at unload
+ */
+class CV8_Guard
+{
+	private:
+		static std::unique_ptr<v8::Platform> sPlatform;
+		static std::mutex sInit_Mtx;
+		static size_t sInit_Ctr;
+		static size_t sInstance_Ctr;
 
-    // scgms::IDiscrete_Model iface
-    virtual HRESULT IfaceCalling Initialize(const double current_time, const uint64_t segment_id) final;
-    virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
+		bool mDisposed = false;
+
+	public:
+		CV8_Guard(bool init = false);
+		~CV8_Guard();
+
+		void Dispose();
 };
 
-#pragma warning( pop )
+extern CV8_Guard gV8_Guard;

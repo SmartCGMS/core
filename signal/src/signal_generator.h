@@ -51,7 +51,7 @@
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 namespace signal_generator_internal {
-	class CSynchronized_Generator : public virtual scgms::IFilter, public virtual refcnt::CNotReferenced {
+	class CSynchronized_Generator : public scgms::IFilter, public refcnt::CNotReferenced {
 	protected:
 		uint64_t mSegment_Id = scgms::Invalid_Segment_Id;
 		bool mCatching_Up = false;
@@ -77,7 +77,7 @@ namespace signal_generator_internal {
 /*
  * Filter class for generating signals using a specific model 
  */
-class CSignal_Generator : public virtual scgms::CBase_Filter, public virtual scgms::IFilter_Feedback_Receiver {
+class CSignal_Generator : public scgms::CBase_Filter, public scgms::IFilter_Feedback_Receiver {
 protected:
 	bool mSync_To_Signal = false;	
 	double mFixed_Stepping = 5.0*scgms::One_Minute;

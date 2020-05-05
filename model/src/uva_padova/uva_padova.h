@@ -92,7 +92,7 @@ namespace uva_padova_S2013
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 //DOI: 10.1177/1932296813514502
-class CUVA_Padova_S2013_Discrete_Model : public virtual scgms::CBase_Filter, public virtual scgms::IDiscrete_Model
+class CUVA_Padova_S2013_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscrete_Model
 {
 	private:
 		// maximum accepted error estimate for ODE solvers for this model

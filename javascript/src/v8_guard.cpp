@@ -36,28 +36,67 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
+#include "v8_guard.h"
 
-#include "../../../../common/rtl/FilterLib.h"
-#include "../descriptor.h"
+#include "../../../common/rtl/FilesystemLib.h"
+#include "../../../common/utils/string_utils.h"
 
-#pragma warning( push )
-#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
+std::unique_ptr<v8::Platform> CV8_Guard::sPlatform;
+std::mutex CV8_Guard::sInit_Mtx;
+size_t CV8_Guard::sInit_Ctr = 0;
+size_t CV8_Guard::sInstance_Ctr = 0;
 
-class CDiscrete_Insulin_Bolus_Calculator : public scgms::CBase_Filter, public scgms::IDiscrete_Model {
-protected:
-    insulin_bolus::TParameters mParameters;
-protected:
-    // scgms::CBase_Filter iface implementation
-    virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-    virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-    CDiscrete_Insulin_Bolus_Calculator(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output);
-	virtual ~CDiscrete_Insulin_Bolus_Calculator() = default;
+// do not initialize during library load, it may lead to some wrong assumptions by V8
+// rather, every subsystem, that needs V8, creates its own CV8_Guard instance with init parameter == true
+CV8_Guard gV8_Guard{ false };
 
-    // scgms::IDiscrete_Model iface
-    virtual HRESULT IfaceCalling Initialize(const double current_time, const uint64_t segment_id) final;
-    virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
-};
+CV8_Guard::CV8_Guard(bool init)
+{
+	std::unique_lock<std::mutex> lck(sInit_Mtx);
 
-#pragma warning( pop )
+	mDisposed = false;
+
+	sInstance_Ctr++;
+
+	if (init)
+	{
+		if (sInit_Ctr == 0)
+		{
+			v8::V8::InitializeICUDefaultLocation(Narrow_WString(Get_Application_Dir()).c_str());
+			v8::V8::InitializeExternalStartupData(Narrow_WString(Get_Application_Dir()).c_str());
+			sPlatform = v8::platform::NewDefaultPlatform();
+			v8::V8::InitializePlatform(sPlatform.get());
+			v8::V8::Initialize();
+
+			// platform object is released during ShutdownPlatform call below
+			sPlatform.release();
+		}
+
+		sInit_Ctr++;
+	}
+}
+
+CV8_Guard::~CV8_Guard()
+{
+	Dispose();
+}
+
+void CV8_Guard::Dispose()
+{
+	std::unique_lock<std::mutex> lck(sInit_Mtx);
+
+	if (mDisposed)
+		return;
+
+	mDisposed = true;
+
+	sInstance_Ctr--;
+
+	if (sInstance_Ctr == 0)
+	{
+		v8::V8::Dispose();
+		//v8::V8::ShutdownPlatform(); // TODO: fix this; causes crash for very unclear reasons
+
+		sInit_Ctr = 0;
+	}
+}

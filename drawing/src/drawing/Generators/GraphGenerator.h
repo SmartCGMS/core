@@ -72,6 +72,8 @@ class CGraph_Generator : public IGenerator
 		void Write_QuadraticBezierCurve(const ValueVector& values);
 		// writes linear polyline
 		void Write_LinearCurve(const ValueVector& values, const double y_scale = 1.0);
+		// writes step function polyline
+		void Write_StepCurve(const ValueVector& values);
 
         virtual double Normalize_Time_X(time_t x) const override;
         virtual double Normalize_Y(double y) const override;

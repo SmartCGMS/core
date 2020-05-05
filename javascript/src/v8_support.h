@@ -38,26 +38,54 @@
 
 #pragma once
 
-#include "../../../../common/rtl/FilterLib.h"
-#include "../descriptor.h"
+#include <libplatform/libplatform.h>
+#include <v8.h>
 
-#pragma warning( push )
-#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
+#include <string>
+#include <list>
 
-class CDiscrete_Insulin_Bolus_Calculator : public scgms::CBase_Filter, public scgms::IDiscrete_Model {
-protected:
-    insulin_bolus::TParameters mParameters;
-protected:
-    // scgms::CBase_Filter iface implementation
-    virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-    virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-    CDiscrete_Insulin_Bolus_Calculator(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output);
-	virtual ~CDiscrete_Insulin_Bolus_Calculator() = default;
+#include "v8_guard.h"
 
-    // scgms::IDiscrete_Model iface
-    virtual HRESULT IfaceCalling Initialize(const double current_time, const uint64_t segment_id) final;
-    virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
-};
+namespace v8_support
+{
+	v8::MaybeLocal<v8::String> Read_File(v8::Isolate* isolate, const std::wstring& name);
+	v8::MaybeLocal<v8::Value> Execute_String_Unchecked(v8::Isolate* isolate, v8::Local<v8::String> source, v8::Local<v8::Value> name);
 
-#pragma warning( pop )
+	class CExecution_Environment
+	{
+		private:
+			// initialize V8 with class instance, if needed
+			CV8_Guard mV8_Guard{ true };
+
+			v8::Isolate* mIsolate;
+			v8::Global<v8::Context> mContext;
+			v8::Global<v8::ObjectTemplate> mGlobal;
+			v8::Isolate::CreateParams mCreate_Params;
+
+			std::list<std::wstring> mPending_Exceptions;
+
+		public:
+			CExecution_Environment();
+			virtual ~CExecution_Environment();
+
+			bool Initialize();
+
+			v8::Local<v8::Value> Locked_Run_Program(const std::string& str, const std::string& origin_name = "unnamed");
+			v8::Local<v8::Value> Run_Program(const std::string& str, const std::string& origin_name = "unnamed");
+			v8::Local<v8::Value> Locked_Run_Program_From_File(const std::string& path);
+			v8::Local<v8::Value> Run_Program_From_File(const std::string& path);
+
+			const std::list<std::wstring>& Get_Exceptions_List() const;
+			void Flush_Exceptions();
+
+			// the following methods are specialized to what we really need
+
+			bool Run_And_Fetch(const std::string& program, std::string& target);
+			bool Run_And_Fetch(const std::string& program, std::vector<double>& target);
+	};
+}
+
+namespace v8_nodejs
+{
+	void Require(const v8::FunctionCallbackInfo<v8::Value>& args);
+}

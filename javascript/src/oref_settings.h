@@ -38,26 +38,53 @@
 
 #pragma once
 
-#include "../../../../common/rtl/FilterLib.h"
-#include "../descriptor.h"
+#include <string>
+#include <vector>
+#include <ctime>
 
-#pragma warning( push )
-#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
+constexpr double Rat_Seconds(double secs)
+{
+	return (secs / (24.0*60.0*60.0));
+}
 
-class CDiscrete_Insulin_Bolus_Calculator : public scgms::CBase_Filter, public scgms::IDiscrete_Model {
-protected:
-    insulin_bolus::TParameters mParameters;
-protected:
-    // scgms::CBase_Filter iface implementation
-    virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-    virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-    CDiscrete_Insulin_Bolus_Calculator(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output);
-	virtual ~CDiscrete_Insulin_Bolus_Calculator() = default;
+namespace oref_model
+{
+	constexpr double delta_history_start = Rat_Seconds(420);				// 17.5 min
+	constexpr double delta_history_end = Rat_Seconds(150);					// 2.5 min
+	constexpr double delta_history_sample_step = Rat_Seconds(30);
 
-    // scgms::IDiscrete_Model iface
-    virtual HRESULT IfaceCalling Initialize(const double current_time, const uint64_t segment_id) final;
-    virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
+	constexpr double short_avgdelta_history_start = Rat_Seconds(1050);		// 17.5 min
+	constexpr double short_avgdelta_history_end = Rat_Seconds(150);			// 2.5 min
+	constexpr double short_avgdelta_history_sample_step = Rat_Seconds(60);
+
+	constexpr double long_avgdelta_history_start = Rat_Seconds(2550);		// 42.5 min
+	constexpr double long_avgdelta_history_end = Rat_Seconds(1050);			// 17.5 min
+	constexpr double long_avgdelta_history_sample_step = Rat_Seconds(120);
+}
+
+struct COref_Instance_Data
+{
+	time_t mLastCarbTime = 0;
+	double mLastCarbValue = 0;
+	time_t mLastBolusTime = 0;
+	double mLastBolusValue = 0;
+	double mCurCOB = 0;
+	time_t mCurTime = 0;
+	time_t mLastTime = 0;
+	double mShortAvgDelta, mLongAvgDelta, mDelta, mGlucose;
+	std::vector<double> mCurIOB, mCurInsulinActivity;
+
+	double mResultRate;
+	double mResultDuration;
 };
 
-#pragma warning( pop )
+namespace oref_model
+{
+	struct TParameters;
+}
+
+namespace oref_utils
+{
+	void Substr_Replace(std::string& str, const std::string& what, const std::string& replace);
+	std::string Prepare_Base_Program(const COref_Instance_Data& data, const oref_model::TParameters& parameters);
+}

@@ -46,11 +46,11 @@
 class CCarbohydrates_On_Board : public CCommon_Calculated_Signal {
 
 	private:
-		double Calculate_Total_COB(double nowTime, double peak, double dia) const;
+		double Calculate_Total_COB(const scgms::SSignal& source, double nowTime, double peak, double dia) const;
 		virtual double Calculate_Signal(double bolusTime, double bolusValue, double nowTime, double peak, double dia) const = 0;
 
 	protected:
-		scgms::SSignal mSource_Signal;
+		scgms::SSignal mCarb_Intake, mCarb_Rescue;
 
 	public:
 		CCarbohydrates_On_Board(scgms::WTime_Segment segment);

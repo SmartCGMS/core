@@ -42,7 +42,7 @@
 #include "../../../common/utils/string_utils.h"
 
 CSignal_Feedback::CSignal_Feedback(scgms::IFilter *output) : CBase_Filter(output) {
-
+	//
 }
 
 CSignal_Feedback::~CSignal_Feedback() {
@@ -56,46 +56,50 @@ HRESULT IfaceCalling CSignal_Feedback::QueryInterface(const GUID*  riid, void **
 
 HRESULT CSignal_Feedback::Do_Execute(scgms::UDevice_Event event) {
 
-    auto send_to_receiver = [this](scgms::UDevice_Event &event)->HRESULT {
-        if (!mReceiver) return ERROR_DS_DRA_EXTN_CONNECTION_FAILED;
+	auto send_to_receiver = [this](scgms::UDevice_Event &event)->HRESULT {
+		if (!mReceiver)
+			return ERROR_DS_DRA_EXTN_CONNECTION_FAILED;
 
-        scgms::IDevice_Event* raw_event = event.get();
-        event.release();
-        return mReceiver->Execute(raw_event);
-    };
+		scgms::IDevice_Event* raw_event = event.get();
+		event.release();
+		return mReceiver->Execute(raw_event);
+	};
 
 	if (event.event_code() == scgms::NDevice_Event_Code::Level) {
-        if (event.signal_id() == mSignal_ID) {
-            if (mForward_Clone) {
-                scgms::UDevice_Event clone = event.Clone();                
-                if (clone) {
-                    HRESULT rc = send_to_receiver(event);
-                    if (SUCCEEDED(rc)) rc = Send(clone);
-                    return rc;
-                }
-
-            } else
-                return send_to_receiver(event);
-        }
-	} 
-    else if (event.event_code() == scgms::NDevice_Event_Code::Shut_Down) {
-        mReceiver.reset();
-    }
+		if (event.signal_id() == mSignal_ID) {
+			if (mForward_Clone) {
+				scgms::UDevice_Event clone = event.Clone();
+				if (clone) {
+					HRESULT rc = send_to_receiver(event);
+					if (SUCCEEDED(rc)) rc = Send(clone);
+					return rc;
+				}
+			}
+			else
+				return send_to_receiver(event);
+		}
+	}
+	else if (event.event_code() == scgms::NDevice_Event_Code::Shut_Down) {
+		mReceiver.reset();
+	}
 
 	return Send(event);
 }
 
 HRESULT CSignal_Feedback::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
-    mFeedback_Name = configuration.Read_String(rsFeedback_Name);
-    mSignal_ID = configuration.Read_GUID(rsSignal_Source_Id);
-    if (Is_Empty(mFeedback_Name) || Is_Invalid_GUID(mSignal_ID)) return E_INVALIDARG;
-    mForward_Clone = configuration.Read_Bool(rsRemove_From_Source);
+
+	mFeedback_Name = configuration.Read_String(rsFeedback_Name);
+	mSignal_ID = configuration.Read_GUID(rsSignal_Source_Id);
+	mForward_Clone = configuration.Read_Bool(rsRemove_From_Source);
+
+	if (Is_Empty(mFeedback_Name) || Is_Invalid_GUID(mSignal_ID))
+		return E_INVALIDARG;
 
 	return S_OK;
 }
 
-HRESULT IfaceCalling CSignal_Feedback::Sink(scgms::IFilter_Feedback_Receiver *receiver)
-{
+HRESULT IfaceCalling CSignal_Feedback::Sink(scgms::IFilter_Feedback_Receiver *receiver) {
+
 	if (receiver)
 		mReceiver = refcnt::make_shared_reference_ext<scgms::SFilter_Feedback_Receiver, scgms::IFilter_Feedback_Receiver>(receiver, true);
 	else
@@ -104,7 +108,8 @@ HRESULT IfaceCalling CSignal_Feedback::Sink(scgms::IFilter_Feedback_Receiver *re
 	return S_OK;
 }
 
-HRESULT IfaceCalling CSignal_Feedback::Name(wchar_t** const name) {	
+HRESULT IfaceCalling CSignal_Feedback::Name(wchar_t** const name) {
+
 	*name = const_cast<wchar_t*>(mFeedback_Name.c_str());
 	return S_OK;
 }

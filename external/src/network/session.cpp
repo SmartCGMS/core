@@ -50,9 +50,23 @@
 #include "../../../../common/lang/dstrings.h"
 #include "../../../../common/utils/net_utils.h"
 
+void CNetwork_Discrete_Model::CSession_Handler::Set_State(NSession_State state)
+{
+	std::unique_lock<std::mutex> lck(mSession_State_Mtx);
+
+	mState = state;
+
+	mSession_State_Changed_Cv.notify_all();
+}
+
+CNetwork_Discrete_Model::CSession_Handler::NSession_State CNetwork_Discrete_Model::CSession_Handler::Get_State() const
+{
+	return mState;
+}
+
 void CNetwork_Discrete_Model::CSession_Handler::Setup()
 {
-	if (mState != NSession_State::None && mState != NSession_State::Teared_Down)
+	if (Get_State() != NSession_State::None && Get_State() != NSession_State::Teared_Down)
 		return;
 
 	auto& slot = mParent.mSlot();
@@ -65,7 +79,7 @@ void CNetwork_Discrete_Model::CSession_Handler::Setup()
 
 void CNetwork_Discrete_Model::CSession_Handler::Set_Needs_Reinit()
 {
-	mState = NSession_State::None;
+	Set_State(NSession_State::None);
 }
 
 bool CNetwork_Discrete_Model::CSession_Handler::Process_Pending_Packet()
@@ -103,9 +117,30 @@ bool CNetwork_Discrete_Model::CSession_Handler::Process_Pending_Packet()
 	return true;
 }
 
+bool CNetwork_Discrete_Model::CSession_Handler::Ensure_State(const NSession_State desired_state)
+{
+	std::unique_lock<std::mutex> lck(mSession_State_Mtx);
+
+	mInterrupted = false;
+
+	while (!mInterrupted && Get_State() != desired_state)
+		mSession_State_Changed_Cv.wait(lck);
+
+	return (Get_State() == desired_state);
+}
+
+void CNetwork_Discrete_Model::CSession_Handler::Interrupt()
+{
+	std::unique_lock<std::mutex> lck(mSession_State_Mtx);
+
+	mInterrupted = true;
+
+	mSession_State_Changed_Cv.notify_all();
+}
+
 bool CNetwork_Discrete_Model::CSession_Handler::Process_Handshake_Reply(scgms::TNet_Packet_Header& header, scgms::TPacket_Handshake_Reply_Body& packet, scgms::TNet_Requested_Signal_Item* signal_items)
 {
-	if (mState != NSession_State::Initiating && mState != NSession_State::Restoring)
+	if (Get_State() != NSession_State::Initiating && Get_State() != NSession_State::Restoring)
 	{
 		mParent.Emit_Error(dsExtModel_Invalid_State_Handshake_Reply);
 		return false;
@@ -124,6 +159,8 @@ bool CNetwork_Discrete_Model::CSession_Handler::Process_Handshake_Reply(scgms::T
 			mParent.Emit_Error(dsExtModel_Protocol_Version_Mismatch);
 		else if (packet.status == scgms::NNet_Status_Code::FAIL_UNK_MODEL)
 			mParent.Emit_Error(dsExtModel_Unknown_Model_Requested);
+		else if (packet.status == scgms::NNet_Status_Code::FAIL_NO_SLOT)
+			return true;
 		else
 			mParent.Emit_Error(dsExtModel_Unknown_Handshake_Error);
 
@@ -136,7 +173,7 @@ bool CNetwork_Discrete_Model::CSession_Handler::Process_Handshake_Reply(scgms::T
 	mParent.Set_Requested_Signals(signal_items, packet.requested_signal_count);
 	mParent.Set_Synchronization_Source(packet.sync_source);
 
-	mState = NSession_State::Running;
+	Set_State(NSession_State::Running);
 
 	return true;
 }
@@ -144,10 +181,10 @@ bool CNetwork_Discrete_Model::CSession_Handler::Process_Handshake_Reply(scgms::T
 bool CNetwork_Discrete_Model::CSession_Handler::Process_Advance_Model(scgms::TNet_Packet_Header& header, scgms::TPacket_Advance_Model_Body& packet, scgms::TNet_Data_Item* data_items)
 {
 	// data may come between tear down requests (e.g.; when we just requested Tear_Down and the remote has just send the data packet) - just ignore them
-	if (mState == NSession_State::Tearing_Down || mState == NSession_State::Teared_Down)
+	if (Get_State() == NSession_State::Tearing_Down || Get_State() == NSession_State::Teared_Down)
 		return true;
 
-	if (mState != NSession_State::Running)
+	if (Get_State() != NSession_State::Running)
 	{
 		mParent.Emit_Error(dsExtModel_Invalid_State_Data);
 		return false;
@@ -173,13 +210,14 @@ bool CNetwork_Discrete_Model::CSession_Handler::Process_Keepalive_Response(scgms
 bool CNetwork_Discrete_Model::CSession_Handler::Process_Teardown_Request(scgms::TNet_Packet_Header& header)
 {
 	// allow Tearing_Down state due to mutual simultaneous session teardown
-	if (mState != NSession_State::Running && mState != NSession_State::Tearing_Down)
+	if (Get_State() != NSession_State::Running && Get_State() != NSession_State::Tearing_Down)
 	{
 		mParent.Emit_Error(dsExtModel_Invalid_State_Teardown_Request);
 		return false;
 	}
 
-	mState = NSession_State::Tearing_Down;
+	Set_State(NSession_State::Tearing_Down);
+	Interrupt();
 
 	mParent.Signal_Tear_Down();
 
@@ -188,13 +226,14 @@ bool CNetwork_Discrete_Model::CSession_Handler::Process_Teardown_Request(scgms::
 
 bool CNetwork_Discrete_Model::CSession_Handler::Process_Teardown_Reply(scgms::TNet_Packet_Header& header)
 {
-	if (mState != NSession_State::Tearing_Down)
+	if (Get_State() != NSession_State::Tearing_Down)
 	{
 		mParent.Emit_Error(dsExtModel_Invalid_State_Teardown_Reply);
 		return false;
 	}
 
 	mParent.Signal_Tear_Down();
+	Interrupt();
 
 	return true;
 }
@@ -209,11 +248,12 @@ void CNetwork_Discrete_Model::CSession_Handler::Send_Handshake_Request(double ti
 	req.body.tick_interval = tick_interval;
 	memcpy(&req.body.session_secret, &session_secret, sizeof(GUID));
 	memcpy(&req.body.requested_model_id, &model_id, sizeof(GUID));
+	wcsncpy_s(req.body.subject_name, mParent.mRequested_Subject_Name.c_str(), std::min(scgms::Subject_Name_Length, mParent.mRequested_Subject_Name.length()));
 
 	if (sessionId == scgms::Invalid_Session_Id)
-		mState = NSession_State::Initiating;
+		Set_State(NSession_State::Initiating);
 	else
-		mState = NSession_State::Restoring;
+		Set_State(NSession_State::Restoring);
 
 	Send_Packet(req);
 }
@@ -228,9 +268,17 @@ bool CNetwork_Discrete_Model::CSession_Handler::Send_Advance_Model(scgms::TNet_D
 	return Send_Packet(req, data_items, data_items_count * sizeof(scgms::TNet_Data_Item));
 }
 
+bool CNetwork_Discrete_Model::CSession_Handler::Send_Keepalive_Request()
+{
+	scgms::TNet_Packet<void> keepalive(scgms::NOpcodes::UU_KEEPALIVE_REQUEST);
+
+	return Send_Packet(keepalive);
+}
+
 bool CNetwork_Discrete_Model::CSession_Handler::Send_Teardown_Request()
 {
-	mState = NSession_State::Tearing_Down;
+	Set_State(NSession_State::Tearing_Down);
+	Interrupt();
 
 	scgms::TNet_Packet<void> req(scgms::NOpcodes::UU_TEARDOWN_REQUEST);
 	return Send_Packet(req);
@@ -238,6 +286,7 @@ bool CNetwork_Discrete_Model::CSession_Handler::Send_Teardown_Request()
 
 bool CNetwork_Discrete_Model::CSession_Handler::Send_Teardown_Reply()
 {
+	Interrupt();
 	scgms::TNet_Packet<void> resp(scgms::NOpcodes::UU_TEARDOWN_REPLY);
 	return Send_Packet(resp);
 }

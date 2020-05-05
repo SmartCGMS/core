@@ -38,26 +38,66 @@
 
 #pragma once
 
-#include "../../../../common/rtl/FilterLib.h"
-#include "../descriptor.h"
+#include "../../../common/rtl/FilterLib.h"
+#include "../../../common/rtl/referencedImpl.h"
+#include "../../../common/rtl/UILib.h"
+
+#include "descriptor.h"
+
+#include <libplatform/libplatform.h>
+#include <v8.h>
+
+#include <list>
+
+#include "v8_guard.h"
+#include "v8_support.h"
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CDiscrete_Insulin_Bolus_Calculator : public scgms::CBase_Filter, public scgms::IDiscrete_Model {
-protected:
-    insulin_bolus::TParameters mParameters;
-protected:
-    // scgms::CBase_Filter iface implementation
-    virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-    virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-    CDiscrete_Insulin_Bolus_Calculator(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output);
-	virtual ~CDiscrete_Insulin_Bolus_Calculator() = default;
+class COref_Discrete_Model : public virtual scgms::CBase_Filter, public virtual scgms::IDiscrete_Model {
 
-    // scgms::IDiscrete_Model iface
-    virtual HRESULT IfaceCalling Initialize(const double current_time, const uint64_t segment_id) final;
-    virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
+	private:
+		struct TOref_Model_State
+		{
+			double current_basal_rate;
+			double calculated_smb;
+		};
+
+	private:
+		oref_model::TParameters mParameters;
+
+		std::string mOref_Path_Base;
+
+		v8_support::CExecution_Environment mJSEnv;
+
+		scgms::STime_Segment mSegment{};
+		scgms::SSignal mIG, mCarbs, mBoluses, mCOB, mIOBCalc, mInsActCalc, mDeliveredInsulin;
+
+		double mCurrent_Time;
+		uint64_t mSegment_Id;
+
+		TOref_Model_State mState, mLastState;
+
+	protected:
+		// scgms::CBase_Filter iface implementation
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+
+		bool Emit_Level(const GUID& signal_id, double time, double level);
+		bool Emit_Error(const std::wstring& str, double time);
+
+		double Calculate_Avg_Blood(double hist_start, double hist_end, double step) const;
+
+		bool Call_Oref(double time_advance_delta);
+
+	public:
+		COref_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output);
+		virtual ~COref_Discrete_Model() = default;
+
+		// scgms::IDiscrete_Model iface
+		virtual HRESULT IfaceCalling Initialize(const double current_time, const uint64_t segment_id) override final;
+		virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
 };
 
 #pragma warning( pop )
