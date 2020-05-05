@@ -349,7 +349,7 @@ namespace signal_generator {
 
 namespace network_signal_generator {
 
-	constexpr size_t filter_param_count = 12;
+	constexpr size_t filter_param_count = 13;
 
 	const wchar_t *filter_ui_names[filter_param_count] = {
 		dsSelected_Model,
@@ -364,6 +364,7 @@ namespace network_signal_generator {
 		dsRemote_Host,
 		dsRemote_Port,
 		dsRemote_Model_Id,
+		dsRemote_Subject_Name,
 	};
 
 	const wchar_t *filter_config_names[filter_param_count] = {
@@ -379,10 +380,12 @@ namespace network_signal_generator {
 		rsRemote_Host,
 		rsRemote_Port,
 		rsRemote_Model_Id,
+		rsRemote_Subject_Name,
 	};
 
 	const wchar_t *filter_tooltips[filter_param_count] = {
 		dsSelected_Model_Tooltip,
+		nullptr,
 		nullptr,
 		nullptr,
 		nullptr,
@@ -409,6 +412,7 @@ namespace network_signal_generator {
 		scgms::NParameter_Type::ptWChar_Array,
 		scgms::NParameter_Type::ptInt64,
 		scgms::NParameter_Type::ptSignal_Id,		// NOTE: this model will not be enumerated in GUI as its descriptor is missing
+		scgms::NParameter_Type::ptWChar_Array,
 	};
 
 	scgms::TFilter_Descriptor desc = {
