@@ -94,15 +94,7 @@ namespace neural_net {
         using TInput = Eigen::Matrix<double, input_size, 1>;
     public:
         constexpr static size_t Parameter_Count() { return 0; }
-        bool Initialize(const double* data, const size_t available_count) { return true; }
-
-        TInput Compute_dBias(const TInput& input, const TInput& cost) {
-            //as this is the terminal, this input is output of the very last layer
-            const TInput dA_by_dZ = input.cwiseProduct((1.0 - input.array()).matrix());
-            const TInput /*dCost_by_dZ is dBias*/ dBias = cost.cwiseProduct(dA_by_dZ);
-
-            return dBias;
-        }
+        bool Initialize(const double* data, const size_t available_count) { return true; }       
     };
 
     template <size_t input_size>
@@ -129,7 +121,7 @@ namespace neural_net {
             //ideal activation has all elements set to zero, except the one at the target position
             typename CNeural_Terminal<input_size>::TInput error = 0.0 - input;
             error[reference_output] = 1.0 - input[reference_output];
-            return CNeural_Terminal<input_size>::Compute_dBias(input, error);
+            return input;
         }
     };
 
@@ -155,7 +147,7 @@ namespace neural_net {
             for (auto i = 0; i < CNeural_Terminal<input_size>::TInput::RowsAtCompileTime; i++)
                 error[i] = (reference_output[i] ? 1.0 : 0.0) - input[i];
 
-            return CNeural_Terminal<input_size>::Compute_dBias(input, error);
+            return error;
         }
     };
 
@@ -177,10 +169,6 @@ namespace neural_net {
             return mNext_Layer.Forward(Intermediate_Output(input));
         }
 
-        double Loss(const TInput& input, const TFinal_Output& reference_output) {
-            return mNext_Layer.Loss(Intermediate_Output(input), reference_output);
-        }
-
         TOutput Intermediate_Output(const TInput& input) const {
             TOutput activated;
             TActivation::Activate(mWeights*input + mBias, activated);
@@ -191,20 +179,27 @@ namespace neural_net {
         template <typename TOptimizer>
         TInput Backpropagate(const TInput& input, const TFinal_Output& reference_output, TOptimizer& optimizer) {
             const TOutput activated = Intermediate_Output(input);
-            //calculate dCost/dIntermediateOutput is the return value of our backprop method
-            const TOutput current_dBias = mNext_Layer.Backpropagate(activated, reference_output, optimizer);
-
-            const TOutput dCost_by_IntermediateOutput = mWeights * current_dBias;
+            // dCost/dIntermediateOutput is the return value of our backprop method,
+            // thus, it is calculated by the next layer
+            const TOutput next_dCost_by_dIntermediateOutput = mNext_Layer.Backpropagate(activated, reference_output, optimizer);
+            
             const TOutput dA_by_dZ = activated.cwiseProduct((1.0 - activated.array()).matrix());
+            const TOutput /*dCost_by_dZ is dBias*/ dBias = next_dCost_by_dIntermediateOutput.cwiseProduct(dA_by_dZ);
 
-            const TOutput previous_layer_dBias = dCost_by_IntermediateOutput.cwiseProduct(dA_by_dZ);
-            TWeights dWeight;
-            dWeight.colwise() = current_dBias.cwiseProduct(input);
+            TWeights dWeight;   //dWeight.array() = dBias.rowwise() * input.array(); but how?
+            for (auto i = 0; i < TOutput::RowsAtCompileTime; i++) {
+                dWeight.row(i) = dBias(i) * input;
+            }
+
+            
+            
+            const TInput dCost_by_dIntermediateOutput = mWeights.transpose() * dBias;
 
             optimizer.Update(mWeights, dWeight);
-            optimizer.Update(mBias, current_dBias);
+            optimizer.Update(mBias, dBias);
 
-            return previous_layer_dBias;
+
+            return dCost_by_dIntermediateOutput;
         }
 
 
@@ -212,7 +207,7 @@ namespace neural_net {
             if (data) {
                 const size_t required_count = input_size + input_size * TNext_Layer::Input_Size;
                 if (available_count >= required_count) {
-                    mBias = Map_Double_To_Eigen<TInput>(data);
+                    mBias = Map_Double_To_Eigen<TOutput>(data);
                     mWeights = Map_Double_To_Eigen<TWeights>(data + input_size);
 
                     return mNext_Layer.Initialize(data + required_count, available_count - required_count);
