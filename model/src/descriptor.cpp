@@ -683,7 +683,7 @@ const std::array<scgms::TSignal_Descriptor, 17> signals_descriptors = { {diffusi
 																		 bergman_model::bg_desc, bergman_model::ig_desc, bergman_model::iob_desc, bergman_model::cob_desc, bergman_model::basal_insulin_desc, bergman_model::insulin_activity_desc,
 																		 uva_padova_S2013::ig_desc, uva_padova_S2013::bg_desc, uva_padova_S2013::ins_desc,
 																		 pattern_prediction::sig_desc,
-																		 neural_net::sig_desc,				
+																		 neural_net::get_sig_desc(),
 																		}};
 
 HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {

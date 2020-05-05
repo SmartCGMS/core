@@ -96,7 +96,7 @@ HRESULT CNN_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 			const double level = event.level();
 			const GUID sig_id = event.signal_id();
 
-			HRESULT rc = Send(event);
+			rc = Send(event);
 			if (SUCCEEDED(rc)) {
 				const double pred_level = Update_And_Predict(sig_idx, seg_id, dev_time, level);
 
@@ -137,46 +137,10 @@ double CNN_Prediction_Filter::Update_And_Predict(const size_t sig_idx, const uin
 
 	//1st phase - learning
 	Learn(signals_iter->second, sig_idx, current_time, current_level);
-	
-	
+		
 	
 	//2nd phase - obtaining a learned result
-	{
-
-	}
-
-/*	
-	if (SUCCEEDED(mIst->Update_Levels(&current_time, &ig_level, 1))) {
-		size_t band_idx;
-		pattern_prediction::NPattern_Dir x2, x;
-		if (Classify(current_time - mDt, band_idx, x2, x)) {			
-			pattern_prediction::CPattern pattern{ band_idx, x2, x };
-
-			auto iter = mPatterns.find(pattern);				
-			if (iter == mPatterns.end()) {
-				auto x = mPatterns.insert(std::pair< pattern_prediction::CPattern, pattern_prediction::CPattern>(  pattern, std::move(pattern)));					
-				iter = x.first;
-			}
-							
-			iter->second.Update(ig_level);			
-		}
-	}
-
-
-	//2nd phase - obtaining a learned result
-	{
-		size_t band_idx;
-		pattern_prediction::NPattern_Dir x2, x;
-		if (Classify(current_time, band_idx, x2, x)) {
-			pattern_prediction::CPattern pattern{ band_idx, x2, x };
-
-			auto iter = mPatterns.find(pattern);
-			if (iter != mPatterns.end()) 
-				result = iter->second.Level();						
-		}
-	}
-	*/
-	return result;
+	return Predict(signals_iter->second, current_time);	
 }
 
 void CNN_Prediction_Filter::Learn(neural_prediction::CSegment_Signals& signals, const size_t sig_idx, const double current_time, const double current_level) {
@@ -192,6 +156,16 @@ void CNN_Prediction_Filter::Learn(neural_prediction::CSegment_Signals& signals, 
 			}
 		}
 	}
+}
+
+double CNN_Prediction_Filter::Predict(neural_prediction::CSegment_Signals& signals, const double current_time) {
+	double result = std::numeric_limits<double>::quiet_NaN();
+
+	typename const_neural_net::CNeural_Network::TInput input = Prepare_Input(signals, current_time);
+	if (!std::isnan(input(0))) 
+		result = static_cast<double>(mNeural_Net.Forward(input).to_ulong() * 0.5);	
+
+	return result;
 }
 
 typename const_neural_net::CNeural_Network::TInput CNN_Prediction_Filter::Prepare_Input(neural_prediction::CSegment_Signals& signals, const double current_time) {

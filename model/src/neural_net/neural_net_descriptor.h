@@ -60,7 +60,7 @@ namespace neural_net {
     double Histogram_Index_To_Level(const size_t index);
 
     constexpr GUID signal_Neural_Net_Prediction = { 0x43607228, 0x6d87, 0x44a4, { 0x84, 0x35, 0xe4, 0xf3, 0xc5, 0xda, 0x62, 0xdd } };	// {43607228-6D87-44A4-8435-E4F3C5DA62DD}	
-    extern const scgms::TSignal_Descriptor sig_desc;
+    scgms::TSignal_Descriptor get_sig_desc();
 }
 
 namespace const_neural_net {      

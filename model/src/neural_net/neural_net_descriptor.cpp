@@ -59,7 +59,10 @@ namespace neural_net {
 		return Low_Threshold + static_cast<double>(index - 1) * Band_Size + Half_Band_Size;
 	}
 
-	const scgms::TSignal_Descriptor sig_desc{ signal_Neural_Net_Prediction, dsNeural_Net_Prediction_Signal, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF1FBDFF, 0xFF1FBDFF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	scgms::TSignal_Descriptor get_sig_desc() {
+		const scgms::TSignal_Descriptor sig_desc{ signal_Neural_Net_Prediction, dsNeural_Net_Prediction_Signal, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF1FBDFF, 0xFF1FBDFF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+		return sig_desc;
+	}
 }
 
 namespace const_neural_net {
@@ -111,18 +114,18 @@ namespace reference_neural_net {
 
 	const size_t filter_param_count = 0;
 	
-	const scgms::TFilter_Descriptor filter_desc = {
-		filter_id,
-		scgms::NFilter_Flags::None,
-		dsReference_Neural_Net_Filter,
-		filter_param_count,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr
-	};
-
 	scgms::TFilter_Descriptor get_filter_desc() {
+		const scgms::TFilter_Descriptor filter_desc = {
+				filter_id,
+				scgms::NFilter_Flags::None,
+				dsReference_Neural_Net_Filter,
+				filter_param_count,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr
+			};
+
 		return filter_desc;
 	}
 }
@@ -133,20 +136,20 @@ namespace neural_prediction {
 
 	const wchar_t* filter_param_ui_names[filter_param_count] = { dsDt };
 	const wchar_t* filter_param_config_names[filter_param_count] = { rsDt_Column };
-	const wchar_t* filter_param_tooltips[filter_param_count] = { nullptr };
-
-	const scgms::TFilter_Descriptor filter_desc = {
-		filter_id,
-		scgms::NFilter_Flags::None,
-		dsNeural_Net_Prediction_Filter,
-		filter_param_count,
-		filter_param_types,
-		filter_param_ui_names,
-		filter_param_config_names,
-		filter_param_tooltips
-	};
+	const wchar_t* filter_param_tooltips[filter_param_count] = { nullptr };	
 
 	scgms::TFilter_Descriptor get_filter_desc() {
+		const scgms::TFilter_Descriptor filter_desc = {
+				filter_id,
+				scgms::NFilter_Flags::None,
+				dsNeural_Net_Prediction_Filter,
+				filter_param_count,
+				filter_param_types,
+				filter_param_ui_names,
+				filter_param_config_names,
+				filter_param_tooltips
+			};
+
 		return filter_desc;
 	}
 }

@@ -80,7 +80,7 @@ protected:
     double Update_And_Predict(const size_t sig_idx, const uint64_t segment_id, const double current_time, const double current_level);   
     typename const_neural_net::CNeural_Network::TInput Prepare_Input(neural_prediction::CSegment_Signals& signals, const double current_time);
     void Learn(neural_prediction::CSegment_Signals& signals, const size_t sig_idx, const double current_time, const double current_level);
-
+    double Predict(neural_prediction::CSegment_Signals& signals, const double current_time);
 protected:
     const bool mDump_Params = true;
     void Dump_Params();
