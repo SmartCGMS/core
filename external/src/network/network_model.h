@@ -61,6 +61,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
@@ -107,6 +108,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 		size_t mSocket_Timeout = 0;
 		size_t mPing_Interval = 0;
 		GUID mRequested_Model_GUID = Invalid_GUID;
+		std::wstring mRequested_Subject_Name;
 
 		std::wstring mRemoteAddr;
 		uint16_t mRemotePort = 0;
@@ -123,7 +125,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 		struct TPool_Slot_Guard
 		{
 			CNetwork_Discrete_Model& parent;
-			TSlot pool_slot = Invalid_Pool_Slot;
+			std::atomic<TSlot> pool_slot = Invalid_Pool_Slot;
 
 			TPool_Slot_Guard(CNetwork_Discrete_Model& _parent) : parent(_parent) {};
 			~TPool_Slot_Guard() { Release_Slot(); }
@@ -131,7 +133,12 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 			// precondition: !Has_Slot()
 			void Set_Slot(TSlot slot) { pool_slot = slot; }
 			bool Has_Slot() const { return (pool_slot != Invalid_Pool_Slot); }
-			void Release_Slot() { if (Has_Slot()) parent.Release_Pool_Slot(pool_slot); }
+			void Release_Slot() {
+				if (Has_Slot()) {
+					TSlot slot = pool_slot.exchange(Invalid_Pool_Slot);
+					parent.Release_Pool_Slot(slot);
+				}
+			}
 
 			// precondition: Has_Slot()
 			TConnection_Slot& operator()() const { return mConnection_Pool[pool_slot]; }

@@ -217,6 +217,7 @@ bool CNetwork_Discrete_Model::CSession_Handler::Process_Teardown_Request(scgms::
 	}
 
 	Set_State(NSession_State::Tearing_Down);
+	Interrupt();
 
 	mParent.Signal_Tear_Down();
 
@@ -232,6 +233,7 @@ bool CNetwork_Discrete_Model::CSession_Handler::Process_Teardown_Reply(scgms::TN
 	}
 
 	mParent.Signal_Tear_Down();
+	Interrupt();
 
 	return true;
 }
@@ -246,6 +248,7 @@ void CNetwork_Discrete_Model::CSession_Handler::Send_Handshake_Request(double ti
 	req.body.tick_interval = tick_interval;
 	memcpy(&req.body.session_secret, &session_secret, sizeof(GUID));
 	memcpy(&req.body.requested_model_id, &model_id, sizeof(GUID));
+	wcsncpy_s(req.body.subject_name, mParent.mRequested_Subject_Name.c_str(), std::min(scgms::Subject_Name_Length, mParent.mRequested_Subject_Name.length()));
 
 	if (sessionId == scgms::Invalid_Session_Id)
 		Set_State(NSession_State::Initiating);
@@ -275,6 +278,7 @@ bool CNetwork_Discrete_Model::CSession_Handler::Send_Keepalive_Request()
 bool CNetwork_Discrete_Model::CSession_Handler::Send_Teardown_Request()
 {
 	Set_State(NSession_State::Tearing_Down);
+	Interrupt();
 
 	scgms::TNet_Packet<void> req(scgms::NOpcodes::UU_TEARDOWN_REQUEST);
 	return Send_Packet(req);
@@ -282,6 +286,7 @@ bool CNetwork_Discrete_Model::CSession_Handler::Send_Teardown_Request()
 
 bool CNetwork_Discrete_Model::CSession_Handler::Send_Teardown_Reply()
 {
+	Interrupt();
 	scgms::TNet_Packet<void> resp(scgms::NOpcodes::UU_TEARDOWN_REPLY);
 	return Send_Packet(resp);
 }

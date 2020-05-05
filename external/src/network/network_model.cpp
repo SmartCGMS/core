@@ -168,7 +168,7 @@ void CNetwork_Discrete_Model::Network_Thread_Fnc()
 		}
 	}
 
-	Release_Pool_Slot(mSlot.pool_slot);
+	mSlot.Release_Slot();
 }
 
 bool CNetwork_Discrete_Model::Handle_Incoming_Data()
@@ -430,8 +430,9 @@ HRESULT CNetwork_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 {
 	if (event.event_code() == scgms::NDevice_Event_Code::Level)
 	{
-		if (mRunning && !mPending_Shut_Down) // everything's OK, we can receive events; just ensure the Running state of the session
+		if (mRunning && !mPending_Shut_Down) {// everything's OK, we can receive events; just ensure the Running state of the session
 			mSession.Ensure_State(CSession_Handler::NSession_State::Running);
+		}
 		else if (mRunning) // if the teardown is in progress - we can still receive levels (e.g. last basal rate values from feedback, etc.)
 			return S_FALSE;
 		else // otherwise it's an error
@@ -513,6 +514,8 @@ HRESULT CNetwork_Discrete_Model::Do_Configure(scgms::SFilter_Configuration confi
 		error_description.push(dsInvalid_Model_GUID);
 		return E_FAIL;
 	}
+
+	mRequested_Subject_Name = configuration.Read_String(rsRemote_Subject_Name, true);
 
 	mInBuffer.resize(scgms::Max_Packet_Length);
 
