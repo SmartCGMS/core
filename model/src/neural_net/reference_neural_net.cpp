@@ -59,10 +59,7 @@ HRESULT CReference_Neural_Net_Signal::Do_Execute(scgms::UDevice_Event event) {
         if (SUCCEEDED(rc)) {
             scgms::UDevice_Event ref_event{ code };
             ref_event.signal_id() = neural_net::signal_Neural_Net_Prediction;            
-            
-#undef min
-//            ref_event.level() = std::trunc(std::min(16.0, level) * 2.0) * 0.5;
-            ref_event.level() = neural_net::Histogram_Index_To_Level(neural_net::Level_To_Histogram_Index(level));
+            ref_event.level() = const_neural_net::Output_2_Level(const_neural_net::Level_2_Output(level));
             ref_event.device_time() = event_time;
             ref_event.device_id() = reference_neural_net::filter_id;
             ref_event.segment_id() = segment_id;

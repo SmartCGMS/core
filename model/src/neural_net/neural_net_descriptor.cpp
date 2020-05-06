@@ -42,6 +42,8 @@
 #include "../../../../common/utils/descriptor_utils.h"
 #include "../../../../common/lang/dstrings.h"
 
+#undef min
+
 namespace neural_net {
 	size_t Level_To_Histogram_Index(const double level) {
 		if (level >= High_Threshold) return Band_Count - 1;
@@ -70,9 +72,9 @@ namespace const_neural_net {
 
 	constexpr GUID calc_id = { 0xe34c6737, 0x1637, 0x48d1, { 0x9a, 0x53, 0xe8, 0xba, 0xd, 0xa, 0x5, 0x60 } };	// {E34C6737-1637-48D1-9A53-E8BA0D0A0560}	
 
-	const TParameters lower_bound = Set_Double_First_Followers<TParameters>(30.0*scgms::One_Minute, -100.0, param_count);
+	const TParameters lower_bound = Set_Double_First_Followers<TParameters>(30.0*scgms::One_Minute, -1.0, param_count);
 	const TParameters default_parameters = Set_Double_First_Followers<TParameters>(30.0*scgms::One_Minute, 0.5, param_count);
-	const TParameters upper_bound = Set_Double_First_Followers<TParameters>(30.0*scgms::One_Minute, 100.0, param_count);
+	const TParameters upper_bound = Set_Double_First_Followers<TParameters>(30.0*scgms::One_Minute, 1.0, param_count);
 
 	const std::array<const wchar_t *, param_count> calc_param_names =
 		Name_Parameters_First_Followers<decltype(calc_param_names)>(dsDt, dsWeight, true, param_count, name_placeholder);
@@ -106,6 +108,33 @@ namespace const_neural_net {
 			reference_signal_ids
 		};
 
+		return result;
+	}
+
+	double calc_level_granularity() {
+		typename const_neural_net::CNeural_Network::TFinal_Output target;
+		return pow(2.0, target.size());
+	}
+
+	static const double level_granularity = calc_level_granularity();
+	static const double max_level = level_granularity * 0.5;
+
+	double Level_2_Input(const double level) {				
+		double result = std::min(max_level, std::max(0.0, level));
+		result = 1.0 - (result / level_granularity);
+		return result;
+	}
+
+	double Output_2_Level(const typename CNeural_Network::TFinal_Output& output) {
+		double result = static_cast<double>(output.to_ulong());
+		return result * 0.5;
+	}
+
+	typename CNeural_Network::TFinal_Output Level_2_Output(const double level) {
+		double discretized_level = std::min(max_level, std::max(0.0, level));
+		discretized_level = std::floor(discretized_level) * 2.0;
+
+		typename CNeural_Network::TFinal_Output result{ static_cast<size_t>(discretized_level) };
 		return result;
 	}
 }

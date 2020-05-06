@@ -148,11 +148,9 @@ void CNN_Prediction_Filter::Learn(neural_prediction::CSegment_Signals& signals, 
 
 		if (sig_idx == neural_prediction::CSegment_Signals::ist_idx) {
 			typename const_neural_net::CNeural_Network::TInput input = Prepare_Input(signals, current_time - mDt);
-			if (!std::isnan(input(0))) {
-				typename const_neural_net::CNeural_Network::TFinal_Output target;
-				double target_level = std::floor(std::min(current_level * 2.0, pow(2.0, target.size())));
-				target = static_cast<size_t>(target_level);
-				mNeural_Net.Learn(input, target);
+			if (!std::isnan(input(0))) {				
+				for (size_t i=0; i<100; i++)
+					mNeural_Net.Learn(input, const_neural_net::Level_2_Output(current_level));
 			}
 		}
 	}
@@ -162,8 +160,8 @@ double CNN_Prediction_Filter::Predict(neural_prediction::CSegment_Signals& signa
 	double result = std::numeric_limits<double>::quiet_NaN();
 
 	typename const_neural_net::CNeural_Network::TInput input = Prepare_Input(signals, current_time);
-	if (!std::isnan(input(0))) 
-		result = static_cast<double>(mNeural_Net.Forward(input).to_ulong() * 0.5);	
+	if (!std::isnan(input(0)))
+		result = const_neural_net::Output_2_Level(mNeural_Net.Forward(input));
 
 	return result;
 }
@@ -202,10 +200,8 @@ typename const_neural_net::CNeural_Network::TInput CNN_Prediction_Filter::Prepar
 			else input(0) = 0.0;
 
 		input(1) = x2_raw;
-
-		//input(2) = neural_net::Level_To_Histogram_Index(ist[2]) - static_cast<double>(neural_net::Band_Count) * 0.5;
-		//input(2) /= static_cast<double>(neural_net::Band_Count) * 0.5;
-		input(2) /= (std::min(16.0, ist[2]) - 8.0) / 8.0;
+		
+		input(2) = const_neural_net::Level_2_Input(ist[2]);
 
 		input(3) = iob[2] - iob[0] > 0.0 ? 1.0 : -1.0;
 		input(4) = cob[2] - cob[0] > 0.0 ? 1.0 : -1.0;

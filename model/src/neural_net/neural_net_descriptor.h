@@ -71,6 +71,9 @@ namespace const_neural_net {
     using T1st_Hidden_Layer = neural_net::CNeural_Layer<7, neural_net::CTanH, T2nd_Hidden_Layer>;
     using CNeural_Network = neural_net::CNeural_Network<T1st_Hidden_Layer, neural_net::CSGD>;
 
+    double Level_2_Input(const double level);
+    double Output_2_Level(const typename CNeural_Network::TFinal_Output &output);
+    typename CNeural_Network::TFinal_Output Level_2_Output(const double level);
 
 
     constexpr size_t param_count = CNeural_Network::Parameter_Count() + 1;	//+ dt
