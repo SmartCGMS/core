@@ -112,7 +112,6 @@ HRESULT IfaceCalling CMeasured_Signal::Update_Levels(const double *times, const 
 		}
 		else {
 			//update or insert?
-
 			//check whether the times[i] is already present and we will updated it
 
 			//need to reevaluate every time for i as the insertion might change memory addresses
@@ -120,7 +119,7 @@ HRESULT IfaceCalling CMeasured_Signal::Update_Levels(const double *times, const 
 			//as we assume that updates would occur for a certain recent period only.
 			//Hence, there is no need to search all the times.
 			decltype(mTimes)::iterator search_begin, search_end;
-			if (times[i] < mTimes[mLast_Update_Index]) {
+			if (!mTimes.empty() && (times[i] < mTimes[mLast_Update_Index])) {
 				search_begin = mTimes.begin();
 				search_end = mTimes.begin() + mLast_Update_Index;
 			}

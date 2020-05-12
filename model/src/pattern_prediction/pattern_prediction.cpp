@@ -281,6 +281,10 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 				rc = handle_ig_level();
 			break;
 
+		case scgms::NDevice_Event_Code::Time_Segment_Start:
+			mRecent_Predicted_Level = std::numeric_limits<double>::quiet_NaN();
+			break;
+
 		case scgms::NDevice_Event_Code::Time_Segment_Stop:
 			free_segment();
 			break;
@@ -299,7 +303,7 @@ HRESULT CPattern_Prediction_Filter::Do_Configure(scgms::SFilter_Configuration co
 }
 
 double CPattern_Prediction_Filter::Update_And_Predict(const uint64_t segment_id, const double current_time, const double ig_level) {
-	double result = std::numeric_limits<double>::quiet_NaN();
+	double result = mRecent_Predicted_Level;//std::numeric_limits<double>::quiet_NaN();
  
 	auto seg_iter = mIst.find(segment_id);
 	if (seg_iter == mIst.end()) {
@@ -311,6 +315,7 @@ double CPattern_Prediction_Filter::Update_And_Predict(const uint64_t segment_id,
 
 		seg_iter = inserted.first;
 	}
+
 	auto ist = seg_iter->second;
 
 	//1st phase - learning
@@ -324,7 +329,7 @@ double CPattern_Prediction_Filter::Update_And_Predict(const uint64_t segment_id,
 			if (iter == mPatterns.end()) {
 				auto x = mPatterns.insert(std::pair< pattern_prediction::CPattern, pattern_prediction::CPattern>(  pattern, std::move(pattern)));					
 				iter = x.first;
-			}
+			} 
 							
 			iter->second.Update(ig_level);			
 		}
@@ -340,7 +345,12 @@ double CPattern_Prediction_Filter::Update_And_Predict(const uint64_t segment_id,
 
 			auto iter = mPatterns.find(pattern);
 			if (iter != mPatterns.end()) 
-				result = iter->second.Level();						
+				result = iter->second.Level();
+
+			if (mDump_Params) {
+				if (iter != mPatterns.end()) mKnown_Counter++;
+					else mUnknown_Counter++;
+			} 
 		}
 	}
 
@@ -430,7 +440,11 @@ void CPattern_Prediction_Filter::Dump_Params() {
 		}
 	}
 
-
+	dprintf("Known patterns: ");
+	dprintf(mKnown_Counter);
+	dprintf("\nUnknown patterns: ");
+	dprintf(mUnknown_Counter);
+	dprintf("\n");
 
 	dprintf("\nDefault parameters:\n");
 	dprintf(def_params.str());

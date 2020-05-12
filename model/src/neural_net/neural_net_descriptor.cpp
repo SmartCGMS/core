@@ -45,22 +45,6 @@
 #undef min
 
 namespace neural_net {
-	size_t Level_To_Histogram_Index(const double level) {
-		if (level >= High_Threshold) return Band_Count - 1;
-
-		const double tmp = level - Low_Threshold;
-		if (tmp < 0.0) return 0;
-
-		return static_cast<size_t>(floor(tmp * Inv_Band_Size));
-	}
-
-	double Histogram_Index_To_Level(const size_t index) {
-		if (index == 0) return Low_Threshold - Half_Band_Size;
-		if (index >= Band_Count - 1) return High_Threshold + Half_Band_Size;
-
-		return Low_Threshold + static_cast<double>(index - 1) * Band_Size + Half_Band_Size;
-	}
-
 	scgms::TSignal_Descriptor get_sig_desc() {
 		const scgms::TSignal_Descriptor sig_desc{ signal_Neural_Net_Prediction, dsNeural_Net_Prediction_Signal, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF1FBDFF, 0xFF1FBDFF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 		return sig_desc;
@@ -111,30 +95,34 @@ namespace const_neural_net {
 		return result;
 	}
 
-	double calc_level_granularity() {
-		typename const_neural_net::CNeural_Network::TFinal_Output target;
-		return pow(2.0, target.size());
+
+	size_t Level_2_Band_Index(const double level) {
+		if (level >= neural_net::High_Threshold) return neural_net::Band_Count - 1;
+
+		const double tmp = level - neural_net::Low_Threshold;
+		if (tmp < 0.0) return 0;
+
+		return static_cast<size_t>(floor(tmp * neural_net::Inv_Band_Size));
 	}
 
-	static const double level_granularity = calc_level_granularity();
-	static const double max_level = level_granularity * 0.5;
+	double Band_Index_2_Level(const size_t index) {
+		if (index == 0) return neural_net::Low_Threshold - neural_net::Half_Band_Size;
+		if (index >= neural_net::Band_Count - 1) return neural_net::High_Threshold + neural_net::Half_Band_Size;
+
+		return neural_net::Low_Threshold + static_cast<double>(index - 1) * neural_net::Band_Size + neural_net::Half_Band_Size;
+	}
 
 	double Level_2_Input(const double level) {				
-		double result = std::min(max_level, std::max(0.0, level));
-		result = 1.0 - (result / level_granularity);
-		return result;
+		const double dbl_index = static_cast<double>(Level_2_Band_Index(level));
+		return static_cast<double>(neural_net::Band_Count) * 0.5 - dbl_index;
 	}
 
 	double Output_2_Level(const typename CNeural_Network::TFinal_Output& output) {
-		double result = static_cast<double>(output.to_ulong());
-		return result * 0.5;
+		return Band_Index_2_Level(output.to_ulong());
 	}
 
 	typename CNeural_Network::TFinal_Output Level_2_Output(const double level) {
-		double discretized_level = std::min(max_level, std::max(0.0, level));
-		discretized_level = std::floor(discretized_level) * 2.0;
-
-		typename CNeural_Network::TFinal_Output result{ static_cast<size_t>(discretized_level) };
+		typename CNeural_Network::TFinal_Output result{ Level_2_Band_Index(level) };
 		return result;
 	}
 }

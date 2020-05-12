@@ -42,9 +42,11 @@
 #include "../../../../common/rtl/FilterLib.h"
 
 #include "neural_net_descriptor.h"
+#include "neural_prediction_pattern.h"
 
 #include <map>
 #include <array>
+#include <algorithm>
 
 namespace neural_prediction {
     using TLevels = std::array<double, 3>;
@@ -74,13 +76,28 @@ namespace neural_prediction {
 
 class CNN_Prediction_Filter : public virtual scgms::CBase_Filter {
 protected:
+    using TNN_Input = typename const_neural_net::CNeural_Network::TInput;
+    std::map< TNN_Input, CNeural_Prediction_Data,
+        std::function<bool(const TNN_Input&, const TNN_Input&)>> mPatterns{ 
+        [](const TNN_Input& a, const TNN_Input& b) {
+        return std::lexicographical_compare(a.data(),a.data() + a.size(),
+                                            b.data(),b.data() + b.size()); } };
+        
+    size_t mKnown_Counter = 0;
+    size_t mUnknown_Counter = 0;
+protected:
     double mDt = 30.0 * scgms::One_Minute;
+    double mRecent_Predicted_Level = std::numeric_limits<double>::quiet_NaN();
     const_neural_net::CNeural_Network mNeural_Net;
     std::map<uint64_t, neural_prediction::CSegment_Signals> mSignals;
     double Update_And_Predict(const size_t sig_idx, const uint64_t segment_id, const double current_time, const double current_level);   
-    typename const_neural_net::CNeural_Network::TInput Prepare_Input(neural_prediction::CSegment_Signals& signals, const double current_time);
+    typename const_neural_net::CNeural_Network::TInput Prepare_Input(neural_prediction::CSegment_Signals& signals, const double current_time, double &delta);
     void Learn(neural_prediction::CSegment_Signals& signals, const size_t sig_idx, const double current_time, const double current_level);
     double Predict(neural_prediction::CSegment_Signals& signals, const double current_time);
+
+    double Predict_Conservative(neural_prediction::CSegment_Signals& signals, const double current_time);
+    double Predict_Poly(neural_prediction::CSegment_Signals& signals, const double current_time);
+    double Predict_Akima(neural_prediction::CSegment_Signals& signals, const double current_time);
 protected:
     const bool mDump_Params = true;
     void Dump_Params();
@@ -94,4 +111,3 @@ public:
 };
 
 #pragma warning( pop )
-

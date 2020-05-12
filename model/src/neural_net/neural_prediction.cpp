@@ -39,11 +39,12 @@
 #include "neural_prediction.h"
 
 #include "../../../../common/utils/math_utils.h"
+#include "../../../../common/utils/DebugHelper.h"
 
 #undef min
 
 neural_prediction::CSegment_Signals::CSegment_Signals() {
-	signals[ist_idx] = scgms::SSignal{ scgms::STime_Segment{}, scgms::signal_IG };	
+	signals[ist_idx] = scgms::SSignal{ scgms::STime_Segment{}, scgms::signal_IG };
 	signals[cob_idx] = scgms::SSignal{ scgms::STime_Segment{}, scgms::signal_COB };
 	signals[iob_idx] = scgms::SSignal{ scgms::STime_Segment{}, scgms::signal_IOB };
 
@@ -82,14 +83,14 @@ CNN_Prediction_Filter::~CNN_Prediction_Filter() {
 }
 
 HRESULT CNN_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
-	HRESULT rc = E_UNEXPECTED;
-	bool our_signal = event.event_code() == scgms::NDevice_Event_Code::Level;
+	bool sent = false;
 
-	if (our_signal) {
+	auto handle_level = [&event, &sent, this]() {				
+		HRESULT rc = E_UNEXPECTED;
+
 		const size_t sig_idx = neural_prediction::CSegment_Signals::Signal_Id_2_Idx(event.signal_id());
-		our_signal = sig_idx != neural_prediction::CSegment_Signals::invalid;
-
-		if (our_signal) {
+		
+		if (sig_idx != neural_prediction::CSegment_Signals::invalid) {
 
 			const double dev_time = event.device_time();
 			const uint64_t seg_id = event.segment_id();
@@ -97,13 +98,14 @@ HRESULT CNN_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 			const GUID sig_id = event.signal_id();
 
 			rc = Send(event);
-			if (SUCCEEDED(rc)) {
-				const double pred_level = Update_And_Predict(sig_idx, seg_id, dev_time, level);
+			sent = SUCCEEDED(rc);
+			if (sent) {
+				mRecent_Predicted_Level = Update_And_Predict(sig_idx, seg_id, dev_time, level);
 
-				if (std::isnormal(pred_level)) {
+				if (std::isnormal(mRecent_Predicted_Level)) {
 					scgms::UDevice_Event pred{ scgms::NDevice_Event_Code::Level };
 					pred.device_id() = neural_prediction::filter_id;
-					pred.level() = pred_level;
+					pred.level() = mRecent_Predicted_Level;
 					pred.device_time() = dev_time + mDt;
 					pred.signal_id() = neural_net::signal_Neural_Net_Prediction;
 					pred.segment_id() = seg_id;
@@ -111,12 +113,41 @@ HRESULT CNN_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 				}
 			}
 		}
+		else
+			rc = S_OK;
+		
+		return rc;
+	};
+
+	auto free_segment = [&event, this]() {
+		auto iter = mSignals.find(event.segment_id());
+		if (iter != mSignals.end())
+			mSignals.erase(iter);
+	};
+
+
+	HRESULT rc = E_UNEXPECTED;
+
+	switch (event.event_code()) {
+		case scgms::NDevice_Event_Code::Level:			
+			rc = handle_level();
+			break;
+
+		case scgms::NDevice_Event_Code::Time_Segment_Start:
+			mRecent_Predicted_Level = std::numeric_limits<double>::quiet_NaN();
+			break;
+
+		case scgms::NDevice_Event_Code::Time_Segment_Stop:
+			free_segment();
+			break;
+
+		default: break;
 	}
 
-	if (!our_signal)
-		rc = Send(event);
+	if (!sent) rc = Send(event);
 
 	return rc;
+
 }
 
 HRESULT CNN_Prediction_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
@@ -147,26 +178,45 @@ void CNN_Prediction_Filter::Learn(neural_prediction::CSegment_Signals& signals, 
 	if (signals.Update(sig_idx, current_time, current_level)) {
 
 		if (sig_idx == neural_prediction::CSegment_Signals::ist_idx) {
-			typename const_neural_net::CNeural_Network::TInput input = Prepare_Input(signals, current_time - mDt);
-			if (!std::isnan(input(0))) {				
-				for (size_t i=0; i<100; i++)
-					mNeural_Net.Learn(input, const_neural_net::Level_2_Output(current_level));
+			double delta;
+			typename const_neural_net::CNeural_Network::TInput input = Prepare_Input(signals, current_time - mDt, delta);
+
+			if (!std::isnan(input(0))) {			
+				mPatterns[input].Update(current_level, delta);
+
+//				for (size_t i=0; i<100; i++)
+//					mNeural_Net.Learn(input, const_neural_net::Level_2_Output(current_level));
 			}
 		}
 	}
 }
 
-double CNN_Prediction_Filter::Predict(neural_prediction::CSegment_Signals& signals, const double current_time) {
+double CNN_Prediction_Filter::Predict_Conservative(neural_prediction::CSegment_Signals& signals, const double current_time) {
 	double result = std::numeric_limits<double>::quiet_NaN();
 
-	typename const_neural_net::CNeural_Network::TInput input = Prepare_Input(signals, current_time);
-	if (!std::isnan(input(0)))
-		result = const_neural_net::Output_2_Level(mNeural_Net.Forward(input));
+	double delta;
+	typename const_neural_net::CNeural_Network::TInput input = Prepare_Input(signals, current_time, delta);
+	if (!std::isnan(input(0))) {
+		//Do we know this pattern as a reliable one, or should we use NN compute it?
+		auto pattern = mPatterns.find(input);
+		const bool reliable_pattern = (pattern != mPatterns.end());//&& pattern->second.Is_Reliable();
+
+		if (reliable_pattern) {
+			result = pattern->second.Level();
+			mKnown_Counter++;
+		}
+		else {
+			result = Predict_Poly(signals, current_time);
+//			if (mKnown_Counter>100)
+//				result = const_neural_net::Output_2_Level(mNeural_Net.Forward(input));		
+			mUnknown_Counter++;
+		}
+	}
 
 	return result;
 }
 
-typename const_neural_net::CNeural_Network::TInput CNN_Prediction_Filter::Prepare_Input(neural_prediction::CSegment_Signals& signals, const double current_time) {
+typename const_neural_net::CNeural_Network::TInput CNN_Prediction_Filter::Prepare_Input(neural_prediction::CSegment_Signals& signals, const double current_time, double& delta) {
 	typename const_neural_net::CNeural_Network::TInput input;
 	input(0) = std::numeric_limits<double>::quiet_NaN();
 
@@ -201,17 +251,106 @@ typename const_neural_net::CNeural_Network::TInput CNN_Prediction_Filter::Prepar
 
 		input(1) = x2_raw;
 		
-		input(2) = const_neural_net::Level_2_Input(ist[2]);
+		input(2) = const_neural_net::Level_2_Input(ist[2]);		
 
-		input(3) = iob[2] - iob[0] > 0.0 ? 1.0 : -1.0;
-		input(4) = cob[2] - cob[0] > 0.0 ? 1.0 : -1.0;
+		input(3) = 0;// iob[2] - iob[0] > 0.0 ? 1.0 : -1.0;
+		input(4) = 0;// cob[2] - cob[0] > 0.0 ? 1.0 : -1.0;
+
+		delta = ist[2] - ist[1];
 	}
+	else
+		delta = std::numeric_limits<double>::quiet_NaN();
 
 	return input;
 }
 
 
 void CNN_Prediction_Filter::Dump_Params() {
-	
+	dprintf("Known patterns: ");
+	dprintf(mKnown_Counter);
+	dprintf("\nUnknown patterns: ");
+	dprintf(mUnknown_Counter);
+	dprintf("\n");
+}
+
+
+
+double CNN_Prediction_Filter::Predict_Poly(neural_prediction::CSegment_Signals& signals, const double current_time) {
+	double result = std::numeric_limits<double>::quiet_NaN();
+
+	double delta;
+	typename const_neural_net::CNeural_Network::TInput input = Prepare_Input(signals, current_time, delta);
+	if (!std::isnan(input(0))) {		
+		std::vector<double> x, y;
+		for (const auto & pattern: mPatterns) {
+			if ((pattern.first(0) == input(0)) && (pattern.first(1) == input(1))) {
+				x.push_back(pattern.first(2));
+				y.push_back(pattern.second.Level());
+			}
+		}
+
+		if (x.size() > 3) {
+			Eigen::Matrix<double, Eigen::Dynamic, 3> A;
+			Eigen::Matrix<double, Eigen::Dynamic, 1> b;
+
+			A.resize(x.size(), Eigen::NoChange);
+			b.resize(x.size(), Eigen::NoChange);
+
+			for (size_t i = 0; i < x.size(); i++) {
+				A(i, 0) = x[i] * x[i]; A(i, 1) = x[i]; A(i, 2) = 1; b(i) = y[i];
+			}
+
+			const Eigen::Vector3d coeff = A.fullPivHouseholderQr().solve(b);
+
+			result = coeff[0] * input(2)*  input(2) +
+				coeff[1] * input(2) +
+				coeff[2];			
+
+
+			auto pattern = mPatterns.find(input);
+			if (pattern != mPatterns.end()) {
+				pattern->second.Apply_Max_Delta(result, mRecent_Predicted_Level);
+			} else {
+				result = std::min(result, const_neural_net::Band_Index_2_Level(neural_net::Band_Count - 1));
+				result = std::max(result, const_neural_net::Band_Index_2_Level(0));
+			}
+		}
+
+	}
+
+	return result;
+}
+
+double CNN_Prediction_Filter::Predict_Akima(neural_prediction::CSegment_Signals& signals, const double current_time) {
+	double result = std::numeric_limits<double>::quiet_NaN();
+
+	double delta;
+	typename const_neural_net::CNeural_Network::TInput input = Prepare_Input(signals, current_time, delta);
+	if (!std::isnan(input(0))) {
+		std::vector<double> x, y;
+		for (const auto& pattern : mPatterns) {
+			if ((pattern.first(0) == input(0)) && (pattern.first(1) == input(1))) {
+				x.push_back(pattern.first(2));
+				y.push_back(pattern.second.Level());
+			}
+		}
+
+		if (x.size() > 3) {
+			scgms::SSignal approx{ scgms::STime_Segment{}, scgms::signal_BG };
+
+			approx->Update_Levels(x.data(), y.data(), x.size());
+
+			approx->Get_Continuous_Levels(nullptr, &input(2), &result, 1, scgms::apxNo_Derivation);
+		}
+
+	}
+
+	return result;
+}
+
+double CNN_Prediction_Filter::Predict(neural_prediction::CSegment_Signals& signals, const double current_time) {
+	double result = Predict_Poly(signals, current_time);
+
+	return result;
 }
 

@@ -96,9 +96,12 @@ class CPattern_Prediction_Filter : public virtual scgms::CBase_Filter, public CP
 protected:
 	std::map<uint64_t, scgms::SSignal> mIst;	//ist signals per segments
 	std::map<pattern_prediction::CPattern, pattern_prediction::CPattern> mPatterns;
+	double mRecent_Predicted_Level = std::numeric_limits<double>::quiet_NaN();
 	double Update_And_Predict(const uint64_t segment_id, const double current_time, const double ig_level);//returns prediction at current_time + mDt
 protected:
-	const bool mDump_Params = true;
+	size_t mKnown_Counter = 0;
+	size_t mUnknown_Counter = 0;
+	const bool mDump_Params = false;
 	void Dump_Params();
 protected:	
 	// scgms::CBase_Filter iface implementation

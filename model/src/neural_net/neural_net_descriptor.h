@@ -47,17 +47,14 @@
 #include <array>
 
 namespace neural_net {
-    constexpr double Low_Threshold = 4.0;			//mmol/L below which a medical attention is needed
-    constexpr double High_Threshold = 10.0;			//dtto above
-    constexpr size_t Internal_Bound_Count = 3;      //number of bounds inside the thresholds
+    constexpr double Low_Threshold = 3.0;			//mmol/L below which a medical attention is needed
+    constexpr double High_Threshold = 13.0;			//dtto above
+    constexpr size_t Internal_Bound_Count = 30;      //number of bounds inside the thresholds
 
     constexpr double Band_Size = (High_Threshold - Low_Threshold) / static_cast<double>(Internal_Bound_Count);						//must imply relative error <= 10% 
     constexpr double Inv_Band_Size = 1.0 / Band_Size;		//abs(Low_Threshold-Band_Size)/Low_Threshold 
     constexpr double Half_Band_Size = 0.5 / Inv_Band_Size;
     const size_t Band_Count = Internal_Bound_Count + 2;    
-
-    size_t Level_To_Histogram_Index(const double level);
-    double Histogram_Index_To_Level(const size_t index);
 
     constexpr GUID signal_Neural_Net_Prediction = { 0x43607228, 0x6d87, 0x44a4, { 0x84, 0x35, 0xe4, 0xf3, 0xc5, 0xda, 0x62, 0xdd } };	// {43607228-6D87-44A4-8435-E4F3C5DA62DD}	
     scgms::TSignal_Descriptor get_sig_desc();
@@ -68,9 +65,11 @@ namespace const_neural_net {
     using TOutput_Layer = neural_net::CMulti_Label_Output<neural_net::Band_Count>;
 
     using T2nd_Hidden_Layer = neural_net::CNeural_Layer<5, neural_net::CTanH, TOutput_Layer>;
-    using T1st_Hidden_Layer = neural_net::CNeural_Layer<7, neural_net::CTanH, T2nd_Hidden_Layer>;
+    using T1st_Hidden_Layer = neural_net::CNeural_Layer<5, neural_net::CTanH, T2nd_Hidden_Layer>;
     using CNeural_Network = neural_net::CNeural_Network<T1st_Hidden_Layer, neural_net::CSGD>;
 
+    size_t Level_2_Band_Index(const double level);
+    double Band_Index_2_Level(const size_t index);
     double Level_2_Input(const double level);
     double Output_2_Level(const typename CNeural_Network::TFinal_Output &output);
     typename CNeural_Network::TFinal_Output Level_2_Output(const double level);
