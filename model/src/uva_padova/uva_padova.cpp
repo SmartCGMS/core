@@ -332,6 +332,8 @@ HRESULT CUVA_Padova_S2013_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 													//although we could allow this by setting it (if no newer basal is requested),
 													//it would defeat the purpose of any verification
 
+				std::unique_lock<std::mutex> lck(mStep_Mtx);
+
 				mBasal_Ext.Add_Uptake(event.device_time(), std::numeric_limits<double>::max(), (event.level() / 60.0));
 				if (!mRequested_Basal.requested || event.device_time() > mRequested_Basal.time) {
 					mRequested_Basal.amount = event.level();
@@ -348,6 +350,8 @@ HRESULT CUVA_Padova_S2013_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 
 				// spread boluses to this much minutes
 				constexpr double MinsBolusing = 1.0;
+
+				std::unique_lock<std::mutex> lck(mStep_Mtx);
 
 				mBolus_Ext.Add_Uptake(event.device_time(), MinsBolusing * scgms::One_Minute, (event.level() / MinsBolusing));
 
@@ -367,6 +371,8 @@ HRESULT CUVA_Padova_S2013_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 				// TODO: this should be a parameter of CHO intake
 				constexpr double MinsEating = 10.0;
 				constexpr double InvMinsEating = 1.0 / MinsEating;
+
+				std::unique_lock<std::mutex> lck(mStep_Mtx);
 
 				mMeal_Ext.Add_Uptake(event.device_time(), MinsEating * scgms::One_Minute, InvMinsEating * 1000.0 * event.level());
 				// res = S_OK; - do not unless we have another signal called consumed CHO
@@ -396,13 +402,18 @@ HRESULT IfaceCalling CUVA_Padova_S2013_Discrete_Model::Step(const double time_ad
 		constexpr size_t microStepCount = 5;
 		const double microStepSize = time_advance_delta / static_cast<double>(microStepCount);
 
-		for (size_t i = 0; i < microStepCount; i++)
+		// lock scope
 		{
-			const double nowTime = mState.lastTime + static_cast<double>(i)*microStepSize;
+			std::unique_lock<std::mutex> lck(mStep_Mtx);
 
-			// Note: times in ODE solver is represented in minutes (and its fractions), as original model parameters are tuned to one minute unit
-			for (auto& binding : mEquation_Binding)
-				binding.x = ODE_Solver.Step(binding.fnc, nowTime / scgms::One_Minute, binding.x, microStepSize / scgms::One_Minute);
+			for (size_t i = 0; i < microStepCount; i++)
+			{
+				const double nowTime = mState.lastTime + static_cast<double>(i)*microStepSize;
+
+				// Note: times in ODE solver is represented in minutes (and its fractions), as original model parameters are tuned to one minute unit
+				for (auto& binding : mEquation_Binding)
+					binding.x = ODE_Solver.Step(binding.fnc, nowTime / scgms::One_Minute, binding.x, microStepSize / scgms::One_Minute);
+			}
 		}
 
 		// several state variables should be non-negative, as it would mean invalid state - if the substance is depleted, then there's no way it could reach

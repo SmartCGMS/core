@@ -39,6 +39,7 @@
 #pragma once
 
 #include <functional>
+#include <mutex>
 
 #include "../descriptor.h"
 #include "../../../../common/rtl/FilterLib.h"
@@ -101,6 +102,8 @@ class CUVA_Padova_S2013_Discrete_Model : public scgms::CBase_Filter, public scgm
 
 	private:
 		uva_padova_S2013::TParameters mParameters;
+
+		std::mutex mStep_Mtx;
 
 		// meal uptake accumulator
 		Uptake_Accumulator mMeal_Ext;
