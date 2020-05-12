@@ -66,7 +66,7 @@ CNetwork_Discrete_Model::CSession_Handler::NSession_State CNetwork_Discrete_Mode
 
 void CNetwork_Discrete_Model::CSession_Handler::Setup()
 {
-	if (Get_State() != NSession_State::None && Get_State() != NSession_State::Teared_Down)
+	if (Get_State() != NSession_State::None)
 		return;
 
 	auto& slot = mParent.mSlot();

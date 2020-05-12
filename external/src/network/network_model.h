@@ -268,10 +268,14 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 
 		std::unique_ptr<std::thread> mNetThread;
 
+		std::mutex mEmit_Mtx;
+
+		std::vector<scgms::UDevice_Event> mDeferred_Events_To_Send;
+
 	protected:
 		uint64_t mSegment_Id = scgms::Invalid_Segment_Id;
 		bool Emit_Signal_Level(const GUID& id, double device_time, double level);
-		bool Emit_Error(const std::wstring& error);
+		bool Emit_Error(const std::wstring& error, bool deferred = true);
 
 		HRESULT Connect(const std::wstring& addr, uint16_t port);
 		void Network_Thread_Fnc();
@@ -282,6 +286,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 		void Signal_Tear_Down();
 
 		void Send_Requested_Data();
+		void Send_Deferred_Events();
 
 	protected:
 		// scgms::CBase_Filter iface implementation

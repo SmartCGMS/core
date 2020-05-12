@@ -125,6 +125,12 @@ void CNetwork_Discrete_Model::Network_Thread_Fnc()
 
 	size_t pingCounter = 0;
 
+	// discard pending bytes
+	unsigned long byteCnt = 0;
+	char dummy = 0;
+	while (ioctlsocket(mSlot().skt, FIONREAD, &byteCnt) >= 0 && byteCnt > 0)
+		recv(mSlot().skt, &dummy, 1, 0);
+
 	while (mRunning)
 	{
 		mSession.Setup();
@@ -430,10 +436,13 @@ HRESULT CNetwork_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 {
 	if (event.event_code() == scgms::NDevice_Event_Code::Level)
 	{
-		if (mRunning && !mPending_Shut_Down) {// everything's OK, we can receive events; just ensure the Running state of the session
+		// if the session is being torn down (by the other end), or has already ended, do not receive any more events and just reply with S_FALSE
+		if (mSession.Get_State() == CSession_Handler::NSession_State::Tearing_Down || mSession.Get_State() == CSession_Handler::NSession_State::Teared_Down)
+			return S_FALSE;
+		// everything's OK, we can receive events; just ensure the Running state of the session - this is here due to possibility that an event appeared before the session was fully established
+		else if (mRunning && !mPending_Shut_Down)
 			mSession.Ensure_State(CSession_Handler::NSession_State::Running);
-		}
-		else if (mRunning) // if the teardown is in progress - we can still receive levels (e.g. last basal rate values from feedback, etc.)
+		else if (mRunning) // if the teardown (initiated by us for any reason) is in progress - we can still receive levels (e.g. last basal rate values from feedback, etc.)
 			return S_FALSE;
 		else // otherwise it's an error
 			return E_FAIL;
@@ -546,8 +555,20 @@ HRESULT IfaceCalling CNetwork_Discrete_Model::Initialize(const double current_ti
 	return S_OK;
 }
 
+void CNetwork_Discrete_Model::Send_Deferred_Events()
+{
+	std::unique_lock<std::mutex> lck(mEmit_Mtx);
+
+	for (auto& evt : mDeferred_Events_To_Send)
+		Send(std::move(evt));
+
+	mDeferred_Events_To_Send.clear();
+}
+
 HRESULT IfaceCalling CNetwork_Discrete_Model::Step(const double time_advance_delta)
 {
+	Send_Deferred_Events();
+
 	std::unique_lock<std::mutex> lck(mExt_Model_Mtx);
 
 	if (!mRunning)
@@ -590,6 +611,8 @@ HRESULT IfaceCalling CNetwork_Discrete_Model::Step(const double time_advance_del
 	mCur_Time = nextFutureTime;
 	mPending_Shut_Down = false;
 
+	Send_Deferred_Events();
+
 	return S_OK;
 }
 
@@ -605,13 +628,22 @@ bool CNetwork_Discrete_Model::Emit_Signal_Level(const GUID& id, double device_ti
 	return SUCCEEDED(Send(evt));
 }
 
-bool CNetwork_Discrete_Model::Emit_Error(const std::wstring& error)
+bool CNetwork_Discrete_Model::Emit_Error(const std::wstring& error, bool deferred)
 {
+	HRESULT rc = S_OK;
+
+	std::unique_lock<std::mutex> lck(mEmit_Mtx);
+
 	scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Error };
 	evt.device_id() = network_model::model_id;
 	evt.device_time() = Unix_Time_To_Rat_Time(time(nullptr));
 	evt.info.set(error.c_str());
 	evt.segment_id() = mSegment_Id;
 
-	return SUCCEEDED(Send(evt));
+	if (deferred)
+		mDeferred_Events_To_Send.push_back(std::move(evt));
+	else
+		rc = Send(evt);
+
+	return SUCCEEDED(rc);
 }
