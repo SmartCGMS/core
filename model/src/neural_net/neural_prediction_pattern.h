@@ -48,7 +48,18 @@ using THistogram = Eigen::Array<double, 1, neural_net::Band_Count, Eigen::RowMaj
 
 class CNeural_Prediction_Data {
 protected:
-    THistogram mHistogram;
+    //experimental
+    //https://stackoverflow.com/questions/10657503/find-running-median-from-a-stream-of-integers
+    //https://stackoverflow.com/questions/1309263/rolling-median-algorithm-in-c
+    //https://stackoverflow.com/questions/10930732/c-efficiently-calculating-a-running-median
+    //https://www.johndcook.com/blog/skewness_kurtosis/
+    std::vector<double> mLevels;
+    
+    double mCount = 0.0;
+    double mRunning_Avg = std::numeric_limits<double>::quiet_NaN();
+    double mRunning_Median = std::numeric_limits<double>::quiet_NaN();
+protected:
+    THistogram mHistogram;    
     double mMax_Increase_Delta = std::numeric_limits<double>::quiet_NaN();
     double mMax_Decrease_Delta = std::numeric_limits<double>::quiet_NaN();
 public:

@@ -256,6 +256,12 @@ typename const_neural_net::CNeural_Network::TInput CNN_Prediction_Filter::Prepar
 		input(3) = 0;// iob[2] - iob[0] > 0.0 ? 1.0 : -1.0;
 		input(4) = 0;// cob[2] - cob[0] > 0.0 ? 1.0 : -1.0;
 
+		if (cob[2] != 0.0) {
+			//input(0) = 1.0;
+			//input(1) = 1.0;
+			//input(1) = cob[2] > cob[0] ? 1.0 : -1.0;
+		}
+
 		delta = ist[2] - ist[1];
 	}
 	else
@@ -280,7 +286,9 @@ double CNN_Prediction_Filter::Predict_Poly(neural_prediction::CSegment_Signals& 
 
 	double delta;
 	typename const_neural_net::CNeural_Network::TInput input = Prepare_Input(signals, current_time, delta);
-	if (!std::isnan(input(0))) {		
+	if (!std::isnan(input(0))) {	
+		if (input(1) == 0.0) return mRecent_Predicted_Level;
+
 		std::vector<double> x, y;
 		for (const auto & pattern: mPatterns) {
 			if ((pattern.first(0) == input(0)) && (pattern.first(1) == input(1))) {
