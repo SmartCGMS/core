@@ -40,30 +40,32 @@
 
 #include "neural_net_descriptor.h"
 
+
+#include "../../../../common/utils/DebugHelper.h"
+
 #undef min
 #undef max
 
 CNeural_Prediction_Data::CNeural_Prediction_Data() {
     mHistogram.setZero();
-
-
 }
 
 void CNeural_Prediction_Data::Update(const double level, const double delta) {
     if (std::isnan(level)) return;
-
+       
 
     mCount += 1.0;
     if (!std::isnan(mRunning_Avg)) {
-        const double delta_n = (level - mRunning_Avg) / mCount;
+        const double delta = level - mRunning_Avg;
+        const double delta_n = delta / mCount;
         mRunning_Avg += delta_n;
         mRunning_Median += copysign(mRunning_Avg * 0.01, level - mRunning_Median);
+        mRunning_Variance += delta * delta_n * (mCount - 1.0);
     }
-    else
+    else {
         mRunning_Median = mRunning_Avg = level;
-
-    //mLevels.push_back(level);    
-    //std::sort(mLevels.begin(), mLevels.end());
+        mRunning_Variance = 0.0;
+    }
 
     const size_t band_idx =  const_neural_net::Level_2_Band_Index(level);
     mHistogram(band_idx) += 1.0;
@@ -78,18 +80,9 @@ void CNeural_Prediction_Data::Update(const double level, const double delta) {
 }
 
 double CNeural_Prediction_Data::Level() const {    
-    //median += _copysign(average * 0.01, sample - median);
-    //return mRunning_Avg;
     return mCount > 100.0 ? mRunning_Median : mRunning_Avg;
 
-    if (!mLevels.empty()) {
-      
-//    
-        return mLevels[mLevels.size() / 2];        
-    }
-    else
-        return std::numeric_limits<double>::quiet_NaN();
-        
+       
 
     const double area = mHistogram.sum();
     double moments = 0.0;
@@ -105,8 +98,18 @@ double CNeural_Prediction_Data::Level() const {
 
 double CNeural_Prediction_Data::Apply_Max_Delta(const double calculated_level, const double reference_level) {
     double result = calculated_level;
-   // if (!std::isnan(mMax_Increase_Delta)) result = std::max(calculated_level, reference_level + 2.0*mMax_Increase_Delta);
-    //if (!std::isnan(mMax_Decrease_Delta)) result = std::min(calculated_level, reference_level + 2.0*mMax_Decrease_Delta);
+//    if (!std::isnan(mMax_Increase_Delta)) result = std::max(calculated_level, reference_level + 2.0*mMax_Increase_Delta);
+//    if (!std::isnan(mMax_Decrease_Delta)) result = std::min(calculated_level, reference_level + 2.0*mMax_Decrease_Delta);
 
     return result;
+}
+
+void CNeural_Prediction_Data::Dump_Params() const {
+    dprintf("Count: ");     dprintf(mCount);
+    dprintf("\tMedian: ");    dprintf(mRunning_Median);
+    dprintf("\tAvg: ");       dprintf(mRunning_Avg);
+    dprintf("\tSD: ");
+    if (mCount > 1.0) dprintf(sqrt(mRunning_Variance / (mCount - 1.0)));
+       else dprintf("n/a");
+    dprintf("\n");
 }

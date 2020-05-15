@@ -101,6 +101,7 @@ HRESULT CNN_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 			sent = SUCCEEDED(rc);
 			if (sent) {
 				mRecent_Predicted_Level = Update_And_Predict(sig_idx, seg_id, dev_time, level);
+				
 
 				if (std::isnormal(mRecent_Predicted_Level)) {
 					scgms::UDevice_Event pred{ scgms::NDevice_Event_Code::Level };
@@ -162,7 +163,7 @@ double CNN_Prediction_Filter::Update_And_Predict(const size_t sig_idx, const uin
 	auto signals_iter = mSignals.find(segment_id);
 	if (signals_iter == mSignals.end()) {
 		const auto inserted = mSignals.insert(std::make_pair(segment_id, neural_prediction::CSegment_Signals{}));
-		if (inserted.second) return result;	//failure
+		if (!inserted.second) return result;	//failure - how could it exist now, if it was not there a moment ago?
 		signals_iter = inserted.first;
 	}
 
@@ -225,6 +226,7 @@ typename const_neural_net::CNeural_Network::TInput CNN_Prediction_Filter::Prepar
 									current_time - 5.0 * scgms::One_Minute,
 									current_time };
 	if (signals.Get_Levels(times, ist, iob, cob)) {
+
 		const double x_raw = ist[2] - ist[0];
 		double x2_raw = -1.0;
 
@@ -253,6 +255,14 @@ typename const_neural_net::CNeural_Network::TInput CNN_Prediction_Filter::Prepar
 		
 		input(2) = const_neural_net::Level_2_Input(ist[2]);		
 
+
+		/*if (input(2) == static_cast<double>(neural_net::Band_Count - 1)) {
+			if (input(0) > 0.0) {
+				input(0) = 0.0;
+				input(1) = 0.0;
+			}
+		}*/
+
 		input(3) = 0;// iob[2] - iob[0] > 0.0 ? 1.0 : -1.0;
 		input(4) = 0;// cob[2] - cob[0] > 0.0 ? 1.0 : -1.0;
 
@@ -272,11 +282,20 @@ typename const_neural_net::CNeural_Network::TInput CNN_Prediction_Filter::Prepar
 
 
 void CNN_Prediction_Filter::Dump_Params() {
-	dprintf("Known patterns: ");
-	dprintf(mKnown_Counter);
-	dprintf("\nUnknown patterns: ");
-	dprintf(mUnknown_Counter);
-	dprintf("\n");
+	dprintf("Learned patterns: ");
+	dprintf(mPatterns.size());	
+	dprintf("\n\n");
+
+	for (const auto& pattern : mPatterns) {
+		dprintf(pattern.first(0));
+		dprintf("-");
+		dprintf(pattern.first(1));
+		dprintf("-");
+		dprintf(pattern.first(2));
+		dprintf("\t\t");
+
+		pattern.second.Dump_Params();
+	}
 }
 
 
@@ -287,7 +306,7 @@ double CNN_Prediction_Filter::Predict_Poly(neural_prediction::CSegment_Signals& 
 	double delta;
 	typename const_neural_net::CNeural_Network::TInput input = Prepare_Input(signals, current_time, delta);
 	if (!std::isnan(input(0))) {	
-		if (input(1) == 0.0) return mRecent_Predicted_Level;
+		//if (input(0) == 0.0) return mRecent_Predicted_Level;
 
 		std::vector<double> x, y;
 		for (const auto & pattern: mPatterns) {

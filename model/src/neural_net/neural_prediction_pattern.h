@@ -53,11 +53,14 @@ protected:
     //https://stackoverflow.com/questions/1309263/rolling-median-algorithm-in-c
     //https://stackoverflow.com/questions/10930732/c-efficiently-calculating-a-running-median
     //https://www.johndcook.com/blog/skewness_kurtosis/
-    std::vector<double> mLevels;
     
     double mCount = 0.0;
     double mRunning_Avg = std::numeric_limits<double>::quiet_NaN();
     double mRunning_Median = std::numeric_limits<double>::quiet_NaN();
+protected:
+    //diagnostics
+    bool mDump_Params = true;
+    double mRunning_Variance = std::numeric_limits<double>::quiet_NaN();    
 protected:
     THistogram mHistogram;    
     double mMax_Increase_Delta = std::numeric_limits<double>::quiet_NaN();
@@ -69,4 +72,5 @@ public:
     double Level() const;
 
     double Apply_Max_Delta(const double calculated_level, const double reference_level);
+    void Dump_Params() const;
 };
