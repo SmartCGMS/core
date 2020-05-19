@@ -381,48 +381,6 @@ namespace const_cr {
 	};
 }
 
-namespace pattern_prediction {
-	const GUID filter_id = { 0xa730a576, 0xe84d, 0x4834, { 0x82, 0x6f, 0xfa, 0xee, 0x56, 0x4e, 0x6a, 0xbd } };  // {A730A576-E84D-4834-826F-FAEE564E6ABD}
-	const GUID calc_id = { 0x16f8ebcc, 0xafca, 0x4cd3, { 0x9c, 0x8a, 0xe1, 0xa5, 0x17, 0x89, 0xef, 0xdc } }; // {16F8EBCC-AFCA-4CD3-9C8A-E1A51789EFDC}
-
-	constexpr const GUID signal_Pattern_Prediction = { 0x4f9d0e51, 0x65e3, 0x4aaf, { 0xa3, 0x87, 0xd4, 0xd, 0xee, 0xe0, 0x72, 0x50 } }; 		// {4F9D0E51-65E3-4AAF-A387-D40DEEE07250}
-
-
-	constexpr double Low_Threshold = 3.0;			//mmol/L below which a medical attention is needed
-	constexpr double High_Threshold = 13.0;			//dtto above
-	constexpr size_t Internal_Bound_Count = 30;
-
-	constexpr double Band_Size = (High_Threshold - Low_Threshold) / static_cast<double>(Internal_Bound_Count);						//must imply relative error <= 10% 
-	constexpr double Inv_Band_Size = 1.0 / Band_Size;		//abs(Low_Threshold-Band_Size)/Low_Threshold 
-	constexpr double Half_Band_Size = 0.5 / Inv_Band_Size;
-	constexpr size_t Band_Count = 2 + Internal_Bound_Count;
-	//1 band < mLow_Threshold, n bands in between, and 1 band >=mHigh_Threshold	
-
-	enum class NPattern_Dir : uint8_t {
-		negative = 0,
-		zero,
-		positive,
-		count
-	};
-
-	constexpr size_t param_count = 1 + Band_Count * static_cast<size_t>(NPattern_Dir::count) * static_cast<size_t>(NPattern_Dir::count);
-
-	struct TParameters {
-		union {
-			struct {
-				double dt;
-				std::array<
-					std::array<
-						std::array<double, static_cast<size_t>(NPattern_Dir::count)>, 
-						static_cast<size_t>(NPattern_Dir::count)>, 
-					Band_Count> bands;
-			};
-			std::array<double, param_count> vector;
-		};
-	};
-	
-	extern const TParameters default_parameters;
-}
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end);
 extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end);

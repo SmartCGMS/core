@@ -36,33 +36,48 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
+#include "pattern_prediction_data.h"
 
-#include "../../../../common/iface/DeviceIface.h"
-#include "../../../../common/rtl/FilterLib.h"
-#include "../../../../common/rtl/Common_Calculated_Signal.h"
+#include "../../../../common/utils/DebugHelper.h"
 
-#include "neural_net_descriptor.h"
-#include "neural_net.h"
+#undef min
+#undef max
 
-#include <Eigen/Dense>
+CPattern_Prediction_Data::CPattern_Prediction_Data() {
+}
 
+void CPattern_Prediction_Data::Update(const double level) {
+    if (std::isnan(level)) return;
+       
 
-#pragma warning( push )
-#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
+    mCount += 1.0;
+    if (!std::isnan(mRunning_Avg)) {
+        const double delta = level - mRunning_Avg;
+        const double delta_n = delta / mCount;
+        mRunning_Avg += delta_n;
+        mRunning_Median += copysign(mRunning_Avg * 0.01, level - mRunning_Median);
+        mRunning_Variance += delta * delta_n * (mCount - 1.0);
+    }
+    else {
+        mRunning_Median = mRunning_Avg = level;
+        mRunning_Variance = 0.0;
+    }
+}
 
-class CConst_Neural_Net_Prediction_Signal : public virtual CCommon_Calculated_Signal {
-protected:
-	scgms::SSignal mIst, mCOB, mIOB;
-public:
-	CConst_Neural_Net_Prediction_Signal(scgms::WTime_Segment segment);
-	virtual ~CConst_Neural_Net_Prediction_Signal() = default;
+double CPattern_Prediction_Data::Level() const {    
+    return mCount > 100.0 ? mRunning_Median : mRunning_Avg;
+}
 
-	//scgms::ISignal iface
-	virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
-		const double* times, double* const levels, const size_t count, const size_t derivation_order) const final;
-	virtual HRESULT IfaceCalling Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const final;
-};
+bool CPattern_Prediction_Data::Valid() const {
+    return mCount > 0.0;
+}
 
-
-#pragma warning( pop )
+void CPattern_Prediction_Data::Dump_Params() const {
+    dprintf("Count: ");     dprintf(mCount);
+    dprintf("\tMedian: ");    dprintf(mRunning_Median);
+    dprintf("\tAvg: ");       dprintf(mRunning_Avg);
+    dprintf("\tSD: ");
+    if (mCount > 1.0) dprintf(sqrt(mRunning_Variance / (mCount - 1.0)));
+    else dprintf("n/a");
+    dprintf("\n");
+}

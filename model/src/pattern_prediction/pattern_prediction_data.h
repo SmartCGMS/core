@@ -38,20 +38,12 @@
 
 #pragma once
 
-#include "neural_net_descriptor.h"
-
-#include <Eigen/Dense>
+#include "pattern_prediction_descriptor.h"
 
 #include <vector>
 
-class CNeural_Prediction_Data {
-protected:
-    //experimental
-    //https://stackoverflow.com/questions/10657503/find-running-median-from-a-stream-of-integers
-    //https://stackoverflow.com/questions/1309263/rolling-median-algorithm-in-c
-    //https://stackoverflow.com/questions/10930732/c-efficiently-calculating-a-running-median
-    //https://www.johndcook.com/blog/skewness_kurtosis/
-    
+class CPattern_Prediction_Data {
+protected:  
     double mCount = 0.0;
     double mRunning_Avg = std::numeric_limits<double>::quiet_NaN();
     double mRunning_Median = std::numeric_limits<double>::quiet_NaN();
@@ -60,7 +52,7 @@ protected:
     bool mDump_Params = true;
     double mRunning_Variance = std::numeric_limits<double>::quiet_NaN();    
 public:
-    CNeural_Prediction_Data();
+    CPattern_Prediction_Data();
 
     void Update(const double level);
     double Level() const;

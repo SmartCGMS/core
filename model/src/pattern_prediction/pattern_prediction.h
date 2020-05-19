@@ -40,90 +40,70 @@
 
 #include "../../../../common/iface/DeviceIface.h"
 #include "../../../../common/rtl/FilterLib.h"
-#include "../../../../common/rtl/Common_Calculated_Signal.h"
 
-#include "../descriptor.h"
+#include "pattern_prediction_descriptor.h"
+#include "pattern_prediction_data.h"
 
 #include <Eigen/Dense>
 
 #include <map>
-
-namespace pattern_prediction {
-
-	using THistogram = Eigen::Array<double, 1, Band_Count, Eigen::RowMajor>;
-	constexpr size_t mOffset_Count = 6;
-
-	class CPattern {
-	protected:
-		size_t mBand_Idx;
-		NPattern_Dir mX2, mX;
-		THistogram mHistogram;		
-		THistogram mFailures;
-	public:
-		CPattern(const size_t current_band, NPattern_Dir x2, NPattern_Dir x);
-		void Update(const double future_level);
-		double Level() const;
-
-		bool operator< (const CPattern &other) const;
-
-		size_t band_idx() { return mBand_Idx; };
-		NPattern_Dir x2() { return mX2; };
-		NPattern_Dir x() { return mX; };
-		size_t freq() { return static_cast<size_t>(mHistogram.sum()); };
-		double stdev() { return std::sqrt((mHistogram - mHistogram.mean()).square().sum() / (mHistogram.size() - 1)); };
-	};
-}
-
+#include <array>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CPattern_Classification {
+class CPattern_Prediction_Filter : public virtual scgms::CBase_Filter {
 protected:
-	pattern_prediction::NPattern_Dir dbl_2_pat(const double x) const;
+    static constexpr double Low_Threshold = 3.0;			//mmol/L below which a medical attention is needed
+    static constexpr double High_Threshold = 13.0;			//dtto above
+    static constexpr size_t Internal_Bound_Count = 30;      //number of bounds inside the thresholds
 
-	struct TDir_Pattern {
-		pattern_prediction::NPattern_Dir mX2 = pattern_prediction::NPattern_Dir::zero;
-		pattern_prediction::NPattern_Dir mX = pattern_prediction::NPattern_Dir::zero;
-	};
-protected:	
-	double mDt = 30.0*scgms::One_Minute;	
-	
-	bool Classify(scgms::SSignal &ist, const double current_time, size_t &band_idx, pattern_prediction::NPattern_Dir &x2, pattern_prediction::NPattern_Dir &x) const;
-};
+    static constexpr double Band_Size = (High_Threshold - Low_Threshold) / static_cast<double>(Internal_Bound_Count);						//must imply relative error <= 10% 
+    static constexpr double Inv_Band_Size = 1.0 / Band_Size;		//abs(Low_Threshold-Band_Size)/Low_Threshold 
+    static constexpr double Half_Band_Size = 0.5 / Inv_Band_Size;
+    static constexpr size_t Band_Count = Internal_Bound_Count + 2;
+    
+    size_t Level_2_Band_Index(const double level);
+protected:
+    enum NClassify : size_t {
+        pattern = 0,
+        band = 1,
+        success = 2
+    };
 
-class CPattern_Prediction_Filter : public virtual scgms::CBase_Filter, public CPattern_Classification {
+    enum class NPattern : size_t {
+        deccel = 0,                 //falls down, while the falling accelerate              - negative 2nd derivative
+        down,                       //falls down, but the falling does not accelerate       - negative 1st derivative, 2nd zero
+        steady,                     //no change                                             - const function
+        up,                         //increases, but does not accelerate                    - positive 1s derivative, 2nd zero
+        accel,                      //increases and the increase accelerates                - positive 2nd derivative
+        count
+    };
+    
+
+    std::tuple<NPattern, size_t, bool> Classify(scgms::SSignal& ist, const double current_time);
 protected:
-	std::map<uint64_t, scgms::SSignal> mIst;	//ist signals per segments
-	std::map<pattern_prediction::CPattern, pattern_prediction::CPattern> mPatterns;
-	double mRecent_Predicted_Level = std::numeric_limits<double>::quiet_NaN();
-	double Update_And_Predict(const uint64_t segment_id, const double current_time, const double ig_level);//returns prediction at current_time + mDt
+    double mDt = 30.0 * scgms::One_Minute;
+
+    Eigen::Matrix<double, Band_Count, 3> mA;
+    Eigen::Matrix<double, Band_Count, 1> mb;
+
+    std::map<uint64_t, scgms::SSignal> mIst;	//ist signals per segments
+    std::array<std::array<CPattern_Prediction_Data, Band_Count>, static_cast<size_t>(NPattern::count)> mPatterns;
+    
+    double Update_And_Predict(const uint64_t segment_id, const double current_time, const double current_level);   
+    void Learn(scgms::SSignal &ist, const double current_time, const double current_ig_level);
+    double Predict(scgms::SSignal &ist, const double current_time);
 protected:
-	size_t mKnown_Counter = 0;
-	size_t mUnknown_Counter = 0;
-	const bool mDump_Params = false;
-	void Dump_Params();
-protected:	
-	// scgms::CBase_Filter iface implementation
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+    const bool mDump_Params = true;
+    void Dump_Params();
+protected:
+    // scgms::CBase_Filter iface implementation
+    virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+    virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 public:
-	CPattern_Prediction_Filter(scgms::IFilter *output);
-	virtual ~CPattern_Prediction_Filter();
+    CPattern_Prediction_Filter(scgms::IFilter* output);
+    virtual ~CPattern_Prediction_Filter();
 };
-
-class CPattern_Prediction_Signal : public virtual CCommon_Calculated_Signal, public CPattern_Classification {
-protected:
-	mutable scgms::SSignal mIst;
-public:
-	CPattern_Prediction_Signal(scgms::WTime_Segment segment);
-	virtual ~CPattern_Prediction_Signal() = default;
-
-	//scgms::ISignal iface
-	virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
-		const double* times, double* const levels, const size_t count, const size_t derivation_order) const final;
-	virtual HRESULT IfaceCalling Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const final;
-};
-
 
 #pragma warning( pop )

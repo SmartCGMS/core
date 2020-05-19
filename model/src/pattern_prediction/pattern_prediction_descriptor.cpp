@@ -36,37 +36,41 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "reference_neural_net.h"
 
-CReference_Neural_Net_Signal::CReference_Neural_Net_Signal(scgms::IFilter* output) : CBase_Filter(output) {
-}
+#include "pattern_prediction_descriptor.h"
 
-HRESULT CReference_Neural_Net_Signal::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {    
-    return S_OK;
-}
+#include "../../../../common/utils/descriptor_utils.h"
+#include "../../../../common/lang/dstrings.h"
+
+#undef min
+
+namespace pattern_prediction {
+	scgms::TSignal_Descriptor get_sig_desc() {
+		const scgms::TSignal_Descriptor sig_desc{ signal_Pattern_Prediction, dsPattern_Prediction_Signal, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFF5BD1F, 0xFFF5BD1F, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+
+		return sig_desc;
+	}
 
 
-HRESULT CReference_Neural_Net_Signal::Do_Execute(scgms::UDevice_Event event) {
-    HRESULT rc = E_UNEXPECTED;
+	const size_t filter_param_count = 1;
+	const scgms::NParameter_Type filter_param_types[filter_param_count] = { scgms::NParameter_Type::ptRatTime };
+	const wchar_t* filter_param_ui_names[filter_param_count] = { dsDt };
+	const wchar_t* filter_param_config_names[filter_param_count] = { rsDt_Column };
+	const wchar_t* filter_param_tooltips[filter_param_count] = { nullptr };
 
-    if (event.is_level_event() && (event.signal_id() == scgms::signal_IG)) {        
-        const scgms::NDevice_Event_Code code = event.event_code();
-        const uint64_t segment_id = event.segment_id();
-        const double event_time = event.device_time();
-        const double level = event.level();
-        rc = Send(event);
+	scgms::TFilter_Descriptor get_filter_desc() {
+		const scgms::TFilter_Descriptor filter_desc = {
+				filter_id,
+				scgms::NFilter_Flags::None,
+				dsPattern_Prediction_Model,
+				filter_param_count,
+				filter_param_types,
+				filter_param_ui_names,
+				filter_param_config_names,
+				filter_param_tooltips
+		};
 
-        if (SUCCEEDED(rc)) {
-            scgms::UDevice_Event ref_event{ code };
-            ref_event.signal_id() = neural_net::signal_Neural_Net_Prediction;            
-            ref_event.level() = const_neural_net::Output_2_Level(const_neural_net::Level_2_Output(level));
-            ref_event.device_time() = event_time;
-            ref_event.device_id() = reference_neural_net::filter_id;
-            ref_event.segment_id() = segment_id;
-            rc = Send(ref_event);
-        }
-    } else
-        rc =  Send(event);     
+		return filter_desc;
+	}
 
-    return rc;
 }

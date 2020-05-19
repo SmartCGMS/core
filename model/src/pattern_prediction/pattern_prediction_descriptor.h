@@ -36,51 +36,22 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "neural_prediction_pattern.h"
+#pragma once
 
-#include "neural_net_descriptor.h"
+#include "../../../../common/iface/UIIface.h"
+#include "../../../../common/rtl/hresult.h"
+#include "../../../../common/rtl/ModelsLib.h"
+#include "../../../../common/rtl/guid.h"
 
 
-#include "../../../../common/utils/DebugHelper.h"
 
-#undef min
-#undef max
+namespace pattern_prediction {        
 
-CNeural_Prediction_Data::CNeural_Prediction_Data() {
-}
+	const GUID filter_id = { 0xa730a576, 0xe84d, 0x4834, { 0x82, 0x6f, 0xfa, 0xee, 0x56, 0x4e, 0x6a, 0xbd } };  // {A730A576-E84D-4834-826F-FAEE564E6ABD}
+    constexpr const GUID signal_Pattern_Prediction = { 0x4f9d0e51, 0x65e3, 0x4aaf, { 0xa3, 0x87, 0xd4, 0xd, 0xee, 0xe0, 0x72, 0x50 } }; 		// {4F9D0E51-65E3-4AAF-A387-D40DEEE07250}
+   
 
-void CNeural_Prediction_Data::Update(const double level) {
-    if (std::isnan(level)) return;
-       
+    scgms::TSignal_Descriptor get_sig_desc();
 
-    mCount += 1.0;
-    if (!std::isnan(mRunning_Avg)) {
-        const double delta = level - mRunning_Avg;
-        const double delta_n = delta / mCount;
-        mRunning_Avg += delta_n;
-        mRunning_Median += copysign(mRunning_Avg * 0.01, level - mRunning_Median);
-        mRunning_Variance += delta * delta_n * (mCount - 1.0);
-    }
-    else {
-        mRunning_Median = mRunning_Avg = level;
-        mRunning_Variance = 0.0;
-    }
-}
-
-double CNeural_Prediction_Data::Level() const {    
-    return mCount > 100.0 ? mRunning_Median : mRunning_Avg;
-}
-
-bool CNeural_Prediction_Data::Valid() const {
-    return mCount > 0.0;
-}
-
-void CNeural_Prediction_Data::Dump_Params() const {
-    dprintf("Count: ");     dprintf(mCount);
-    dprintf("\tMedian: ");    dprintf(mRunning_Median);
-    dprintf("\tAvg: ");       dprintf(mRunning_Avg);
-    dprintf("\tSD: ");
-    if (mCount > 1.0) dprintf(sqrt(mRunning_Variance / (mCount - 1.0)));
-    else dprintf("n/a");
-    dprintf("\n");
+    scgms::TFilter_Descriptor get_filter_desc();    //func to avoid static init fiasco as this is another unit than descriptor.cpp
 }
