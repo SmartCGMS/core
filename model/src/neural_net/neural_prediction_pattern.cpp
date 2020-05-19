@@ -47,10 +47,9 @@
 #undef max
 
 CNeural_Prediction_Data::CNeural_Prediction_Data() {
-    mHistogram.setZero();
 }
 
-void CNeural_Prediction_Data::Update(const double level, const double delta) {
+void CNeural_Prediction_Data::Update(const double level) {
     if (std::isnan(level)) return;
        
 
@@ -66,42 +65,14 @@ void CNeural_Prediction_Data::Update(const double level, const double delta) {
         mRunning_Median = mRunning_Avg = level;
         mRunning_Variance = 0.0;
     }
-
-    const size_t band_idx =  const_neural_net::Level_2_Band_Index(level);
-    mHistogram(band_idx) += 1.0;
-
-    if (!std::isnan(delta)) {
-        if (std::isnan(mMax_Increase_Delta)) mMax_Increase_Delta = delta;
-            else mMax_Increase_Delta = std::max(delta, mMax_Increase_Delta);
-
-        if (std::isnan(mMax_Decrease_Delta)) mMax_Decrease_Delta = delta;
-            else mMax_Decrease_Delta = std::min(delta, mMax_Decrease_Delta);
-    }
 }
 
 double CNeural_Prediction_Data::Level() const {    
     return mCount > 100.0 ? mRunning_Median : mRunning_Avg;
-
-       
-
-    const double area = mHistogram.sum();
-    double moments = 0.0;
-    for (auto i = 0; i < mHistogram.cols(); i++) {
-        moments += mHistogram(i) * static_cast<double>(i);
-    }
-
-    const size_t result_idx = static_cast<size_t>(std::round(moments / area));
-
-    return const_neural_net::Band_Index_2_Level(result_idx);
 }
 
-
-double CNeural_Prediction_Data::Apply_Max_Delta(const double calculated_level, const double reference_level) {
-    double result = calculated_level;
-//    if (!std::isnan(mMax_Increase_Delta)) result = std::max(calculated_level, reference_level + 2.0*mMax_Increase_Delta);
-//    if (!std::isnan(mMax_Decrease_Delta)) result = std::min(calculated_level, reference_level + 2.0*mMax_Decrease_Delta);
-
-    return result;
+bool CNeural_Prediction_Data::Valid() const {
+    return mCount > 0.0;
 }
 
 void CNeural_Prediction_Data::Dump_Params() const {
@@ -110,6 +81,6 @@ void CNeural_Prediction_Data::Dump_Params() const {
     dprintf("\tAvg: ");       dprintf(mRunning_Avg);
     dprintf("\tSD: ");
     if (mCount > 1.0) dprintf(sqrt(mRunning_Variance / (mCount - 1.0)));
-       else dprintf("n/a");
+    else dprintf("n/a");
     dprintf("\n");
 }

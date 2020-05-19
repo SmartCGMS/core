@@ -47,6 +47,16 @@
 #include <array>
 
 namespace neural_net {
+    enum class NPattern : size_t {
+        deccel = 0,                 //falls down, while the falling accelerate              - negative 2nd derivative
+        down,                       //falls down, but the falling does not accelerate       - negative 1st derivative, 2nd zero
+        steady,                     //no change                                             - const function
+        up,                         //increases, but does not accelerate                    - positive 1s derivative, 2nd zero
+        accel,                      //increases and the increase accelerates                - positive 2nd derivative
+        count
+    };
+
+
     constexpr double Low_Threshold = 3.0;			//mmol/L below which a medical attention is needed
     constexpr double High_Threshold = 13.0;			//dtto above
     constexpr size_t Internal_Bound_Count = 30;      //number of bounds inside the thresholds
@@ -54,7 +64,7 @@ namespace neural_net {
     constexpr double Band_Size = (High_Threshold - Low_Threshold) / static_cast<double>(Internal_Bound_Count);						//must imply relative error <= 10% 
     constexpr double Inv_Band_Size = 1.0 / Band_Size;		//abs(Low_Threshold-Band_Size)/Low_Threshold 
     constexpr double Half_Band_Size = 0.5 / Inv_Band_Size;
-    const size_t Band_Count = Internal_Bound_Count + 2;    
+    constexpr size_t Band_Count = Internal_Bound_Count + 2;    
 
     constexpr GUID signal_Neural_Net_Prediction = { 0x43607228, 0x6d87, 0x44a4, { 0x84, 0x35, 0xe4, 0xf3, 0xc5, 0xda, 0x62, 0xdd } };	// {43607228-6D87-44A4-8435-E4F3C5DA62DD}	
     scgms::TSignal_Descriptor get_sig_desc();

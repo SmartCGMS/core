@@ -46,58 +46,31 @@
 
 #include <map>
 #include <array>
-#include <algorithm>
-
-namespace neural_prediction {
-    using TLevels = std::array<double, 3>;
-
-    class CSegment_Signals {
-    public:
-        
-
-        const static size_t ist_idx = 0;
-        const static size_t cob_idx = 1;
-        const static size_t iob_idx = 2;
-        const static size_t invalid = std::numeric_limits<size_t>::max();
-
-        std::array<scgms::SSignal, 3> signals;        
-
-        static size_t Signal_Id_2_Idx(const GUID& id);
-    public:
-        CSegment_Signals();
-
-        bool Update(const size_t sig_idx, const double time, const double level);
-        bool Get_Levels(const TLevels times, TLevels& ist, TLevels& iob, TLevels& cob);
-    };
-}
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 class CNN_Prediction_Filter : public virtual scgms::CBase_Filter {
 protected:
-    using TNN_Input = typename const_neural_net::CNeural_Network::TInput;
-    std::map< TNN_Input, CNeural_Prediction_Data,
-        std::function<bool(const TNN_Input&, const TNN_Input&)>> mPatterns{ 
-        [](const TNN_Input& a, const TNN_Input& b) {
-        return std::lexicographical_compare(a.data(),a.data() + a.size(),
-                                            b.data(),b.data() + b.size()); } };
-        
-    size_t mKnown_Counter = 0;
-    size_t mUnknown_Counter = 0;
+    enum NClassify : size_t {
+        pattern = 0,
+        band = 1,
+        success = 2
+    };
+
+    std::tuple<neural_net::NPattern, size_t, bool> Classify(scgms::SSignal& ist, const double current_time);
 protected:
     double mDt = 30.0 * scgms::One_Minute;
-    double mRecent_Predicted_Level = std::numeric_limits<double>::quiet_NaN();
-    const_neural_net::CNeural_Network mNeural_Net;
-    std::map<uint64_t, neural_prediction::CSegment_Signals> mSignals;
-    double Update_And_Predict(const size_t sig_idx, const uint64_t segment_id, const double current_time, const double current_level);   
-    typename const_neural_net::CNeural_Network::TInput Prepare_Input(neural_prediction::CSegment_Signals& signals, const double current_time, double &delta);
-    void Learn(neural_prediction::CSegment_Signals& signals, const size_t sig_idx, const double current_time, const double current_level);
-    double Predict(neural_prediction::CSegment_Signals& signals, const double current_time);
 
-    double Predict_Conservative(neural_prediction::CSegment_Signals& signals, const double current_time);
-    double Predict_Poly(neural_prediction::CSegment_Signals& signals, const double current_time);
-    double Predict_Akima(neural_prediction::CSegment_Signals& signals, const double current_time);
+    Eigen::Matrix<double, neural_net::Band_Count, 3> mA;
+    Eigen::Matrix<double, neural_net::Band_Count, 1> mb;
+
+    std::map<uint64_t, scgms::SSignal> mIst;	//ist signals per segments
+    std::array<std::array<CNeural_Prediction_Data, neural_net::Band_Count>, static_cast<size_t>(neural_net::NPattern::count)> mPatterns;
+    
+    double Update_And_Predict(const uint64_t segment_id, const double current_time, const double current_level);   
+    void Learn(scgms::SSignal &ist, const double current_time, const double current_ig_level);
+    double Predict(scgms::SSignal &ist, const double current_time);
 protected:
     const bool mDump_Params = true;
     void Dump_Params();

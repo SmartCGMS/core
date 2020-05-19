@@ -60,7 +60,7 @@ HRESULT IfaceCalling signal_generator_internal::CSynchronized_Generator::Configu
 
 	mFixed_Stepping = shared_configuration.Read_Double(rsStepping, mFixed_Stepping);
 	const GUID model_id = shared_configuration.Read_GUID(rsSelected_Model);
-	if (Is_Invalid_GUID(model_id) || Is_NaN(mFixed_Stepping)) return E_INVALIDARG;
+	if (Is_Invalid_GUID(model_id) || Is_Any_NaN(mFixed_Stepping)) return E_INVALIDARG;
 	mSync_Signal = shared_configuration.Read_GUID(rsSynchronization_Signal);
 	
 	std::vector<double> lower, parameters, upper;
@@ -220,7 +220,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 	mSync_To_Signal = configuration.Read_Bool(rsSynchronize_to_Signal, mSync_To_Signal);
 	mFixed_Stepping = configuration.Read_Double(rsStepping, mFixed_Stepping);
 	const GUID model_id = configuration.Read_GUID(rsSelected_Model);
-	if (Is_Invalid_GUID(model_id) || Is_NaN(mFixed_Stepping, mMax_Time)) return E_INVALIDARG;
+	if (Is_Invalid_GUID(model_id) || Is_Any_NaN(mFixed_Stepping, mMax_Time)) return E_INVALIDARG;
 	
 	uint64_t segment_id = configuration.Read_Int(rsTime_Segment_ID, scgms::Invalid_Segment_Id);
 	if (!mSync_To_Signal && ((segment_id == scgms::Invalid_Segment_Id) || (segment_id == scgms::All_Segments_Id)))

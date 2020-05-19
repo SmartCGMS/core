@@ -44,8 +44,6 @@
 
 #include <vector>
 
-using THistogram = Eigen::Array<double, 1, neural_net::Band_Count, Eigen::RowMajor>;
-
 class CNeural_Prediction_Data {
 protected:
     //experimental
@@ -61,16 +59,12 @@ protected:
     //diagnostics
     bool mDump_Params = true;
     double mRunning_Variance = std::numeric_limits<double>::quiet_NaN();    
-protected:
-    THistogram mHistogram;    
-    double mMax_Increase_Delta = std::numeric_limits<double>::quiet_NaN();
-    double mMax_Decrease_Delta = std::numeric_limits<double>::quiet_NaN();
 public:
     CNeural_Prediction_Data();
 
-    void Update(const double level, const double delta);
+    void Update(const double level);
     double Level() const;
+    bool Valid() const;
 
-    double Apply_Max_Delta(const double calculated_level, const double reference_level);
     void Dump_Params() const;
 };
