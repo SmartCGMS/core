@@ -95,7 +95,7 @@ protected:
     void Learn(scgms::SSignal &ist, const double current_time, const double current_ig_level);
     double Predict(scgms::SSignal &ist, const double current_time);
 protected:
-    const bool mDump_Params = true;
+    static constexpr bool mDump_Params = false;
     void Dump_Params();
 protected:
     // scgms::CBase_Filter iface implementation

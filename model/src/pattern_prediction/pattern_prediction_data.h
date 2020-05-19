@@ -49,7 +49,7 @@ protected:
     double mRunning_Median = std::numeric_limits<double>::quiet_NaN();
 protected:
     //diagnostics
-    bool mDump_Params = true;
+    static constexpr bool mDump_Params = false;
     double mRunning_Variance = std::numeric_limits<double>::quiet_NaN();    
 public:
     CPattern_Prediction_Data();
