@@ -64,7 +64,6 @@ protected:
 	double mError_Metric = std::numeric_limits<double>::quiet_NaN();
 	bool mError_Metric_Available = false;
 public:
-
 	CError_Metric_Future(scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) : mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data) {};
 
 	HRESULT On_Filter_Created(scgms::IFilter *filter) {

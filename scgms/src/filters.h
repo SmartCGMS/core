@@ -115,10 +115,10 @@ public:
 
 	HRESULT create_filter(const GUID *id, scgms::IFilter *next_filter, scgms::IFilter **filter);
 	HRESULT create_metric(const scgms::TMetric_Parameters *parameters, scgms::IMetric **metric);
-	HRESULT create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, scgms::ISignal **signal);
+	HRESULT create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID* approx_id, scgms::ISignal **signal);
 	HRESULT solve_model_parameters(const scgms::TSolver_Setup *setup);
 	HRESULT solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress);
-	HRESULT create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApprox_Parameters_Vector* configuration, scgms::IApproximator **approx);
+	HRESULT create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApproximator **approx);
 	HRESULT create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model);
 
 	HRESULT get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end);
@@ -134,11 +134,11 @@ public:
 
 extern "C" HRESULT IfaceCalling create_filter(const GUID *id, scgms::IFilter* next_filter, scgms::IFilter **filter);
 extern "C" HRESULT IfaceCalling create_metric(const scgms::TMetric_Parameters *parameters, scgms::IMetric **metric);
-extern "C" HRESULT IfaceCalling create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, scgms::ISignal **signal);
+extern "C" HRESULT IfaceCalling create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal);
 extern "C" HRESULT IfaceCalling create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model);
 extern "C" HRESULT IfaceCalling solve_model_parameters(const scgms::TSolver_Setup *setup);
 extern "C" HRESULT IfaceCalling solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress);
-extern "C" HRESULT IfaceCalling create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApprox_Parameters_Vector* configuration, scgms::IApproximator **approx);
+extern "C" HRESULT IfaceCalling create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApproximator **approx);
 
 extern "C" HRESULT IfaceCalling get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end);
 extern "C" HRESULT IfaceCalling get_metric_descriptors(scgms::TMetric_Descriptor **begin, scgms::TMetric_Descriptor **end);

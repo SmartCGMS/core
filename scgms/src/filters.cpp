@@ -99,8 +99,8 @@ HRESULT IfaceCalling create_metric(const scgms::TMetric_Parameters *parameters, 
 	return loaded_filters.create_metric(parameters, metric);
 }
 
-HRESULT IfaceCalling create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, scgms::ISignal **signal) {
-	return loaded_filters.create_signal(calc_id, segment, signal);
+HRESULT IfaceCalling create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID *approx_id, scgms::ISignal **signal) {
+	return loaded_filters.create_signal(calc_id, segment, approx_id, signal);
 }
 
 HRESULT IfaceCalling create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
@@ -115,8 +115,8 @@ HRESULT IfaceCalling solve_generic(const GUID *solver_id, const solver::TSolver_
 	return loaded_filters.solve_generic(solver_id, setup, progress);
 }
 
-HRESULT IfaceCalling create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApprox_Parameters_Vector* configuration, scgms::IApproximator **approx) {
-	return loaded_filters.create_approximator(approx_id, signal, configuration, approx);
+HRESULT IfaceCalling create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApproximator **approx) {
+	return loaded_filters.create_approximator(approx_id, signal, approx);
 }
 
 HRESULT IfaceCalling add_filters(const scgms::TFilter_Descriptor *begin, const scgms::TFilter_Descriptor *end, const scgms::TCreate_Filter create_filter) {
@@ -186,9 +186,9 @@ HRESULT CLoaded_Filters::create_metric(const scgms::TMetric_Parameters *paramete
 	return Call_Func(call_create_metric, parameters, metric);
 }
 
-HRESULT CLoaded_Filters::create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, scgms::ISignal **signal) {
+HRESULT CLoaded_Filters::create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID* approx_id, scgms::ISignal **signal) {
 	auto call_create_signal = [](const imported::TLibraryInfo &info) { return info.create_signal; };
-	return Call_Func(call_create_signal, calc_id, segment, signal);
+	return Call_Func(call_create_signal, calc_id, segment, approx_id, signal);
 }
 
 HRESULT CLoaded_Filters::create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
@@ -260,9 +260,9 @@ HRESULT CLoaded_Filters::solve_generic(const GUID *solver_id, const solver::TSol
 	return Call_Func(call_solve_filter, solver_id, setup, progress);
 }
 
-HRESULT CLoaded_Filters::create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApprox_Parameters_Vector* configuration, scgms::IApproximator **approx) {
+HRESULT CLoaded_Filters::create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApproximator **approx) {
 	auto call_create_approx = [](const imported::TLibraryInfo &info) { return info.create_approximator; };
-	return Call_Func(call_create_approx, approx_id, signal, configuration, approx);
+	return Call_Func(call_create_approx, approx_id, signal, approx);
 }
 
 HRESULT CLoaded_Filters::get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {

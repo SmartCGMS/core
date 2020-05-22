@@ -52,11 +52,11 @@ namespace pattern_prediction {
 	}
 
 
-	const size_t filter_param_count = 1;
-	const scgms::NParameter_Type filter_param_types[filter_param_count] = { scgms::NParameter_Type::ptRatTime };
-	const wchar_t* filter_param_ui_names[filter_param_count] = { dsDt };
-	const wchar_t* filter_param_config_names[filter_param_count] = { rsDt_Column };
-	const wchar_t* filter_param_tooltips[filter_param_count] = { nullptr };
+	const size_t filter_param_count = 4;
+	const scgms::NParameter_Type filter_param_types[filter_param_count] = { scgms::NParameter_Type::ptRatTime, scgms::NParameter_Type::ptWChar_Array, scgms::NParameter_Type::ptBool, scgms::NParameter_Type::ptBool };
+	const wchar_t* filter_param_ui_names[filter_param_count] = { dsDt, dsParameters_File, dsUpdate_Parameters_File, dsDo_Not_Learn };
+	const wchar_t* filter_param_config_names[filter_param_count] = { rsDt_Column, rsParameters_File, rsUpdate_Parameters_File, rsDo_Not_Learn };
+	const wchar_t* filter_param_tooltips[filter_param_count] = { nullptr, nullptr, nullptr, nullptr };
 
 	scgms::TFilter_Descriptor get_filter_desc() {
 		const scgms::TFilter_Descriptor filter_desc = {

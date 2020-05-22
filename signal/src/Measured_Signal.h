@@ -55,7 +55,7 @@ protected:
     scgms::SApproximator mApprox;
 
 public:
-    CMeasured_Signal();
+    CMeasured_Signal(const GUID* approx_id);
     virtual ~CMeasured_Signal() {};
 
     virtual HRESULT IfaceCalling Get_Discrete_Levels(double* const times, double* const levels, const size_t count, size_t* filled) const override;

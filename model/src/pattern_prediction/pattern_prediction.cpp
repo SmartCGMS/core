@@ -38,6 +38,7 @@
 
 #include "pattern_prediction.h"
 
+#include "../../../../common/iface/ApproxIface.h"
 #include "../../../../common/utils/math_utils.h"
 #include "../../../../common/utils/DebugHelper.h"
 
@@ -120,7 +121,7 @@ HRESULT CPattern_Prediction_Filter::Do_Configure(scgms::SFilter_Configuration co
 double CPattern_Prediction_Filter::Update_And_Predict(const uint64_t segment_id, const double current_time, const double current_level) {
 	auto seg_iter = mIst.find(segment_id);
 	if (seg_iter == mIst.end()) {
-		scgms::SSignal new_ist = scgms::SSignal{ scgms::STime_Segment{}, scgms::signal_IG };
+		scgms::SSignal new_ist = scgms::SSignal{ scgms::STime_Segment{}, scgms::signal_IG};
 		if (new_ist) {
 			auto inserted = mIst.insert(std::make_pair(segment_id, new_ist));
 			seg_iter = inserted.first;
@@ -171,7 +172,7 @@ std::tuple<CPattern_Prediction_Filter::NPattern, size_t, bool> CPattern_Predicti
 	const std::array<double, 3> times = { current_time - 10.0 * scgms::One_Minute,
 										  current_time - 5.0 * scgms::One_Minute,
 										  current_time };
-	if (SUCCEEDED(ist->Get_Continuous_Levels(nullptr, times.data(), levels.data(), levels.size(), scgms::apxNo_Derivation))) {
+	if (ist->Get_Continuous_Levels(nullptr, times.data(), levels.data(), levels.size(), scgms::apxNo_Derivation) == S_OK) {
 		if (!Is_Any_NaN(levels)) {
 			std::get<NClassify::success>(result) = true;	//classified ok
 			std::get<NClassify::band>(result) = Level_2_Band_Index(levels[2]);

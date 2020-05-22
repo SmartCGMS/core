@@ -45,7 +45,7 @@
 
 #undef max
 
-CAkima::CAkima(scgms::WSignal signal, scgms::IApprox_Parameters_Vector* configuration) : mSignal(signal) {
+CAkima::CAkima(scgms::WSignal signal) : mSignal(signal) {
 	Update();
 }
 

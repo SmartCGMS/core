@@ -44,22 +44,11 @@
 #include <numeric>
 #include <assert.h>
 
-CMeasured_Signal::CMeasured_Signal(): mApprox(nullptr) {
-	// TODO: proper approximator configuration
-	//		 now we just pick the first one, which is obviously wrong
+CMeasured_Signal::CMeasured_Signal(const GUID* approx_id): mApprox(nullptr) {
+	scgms::ISignal* self_signal = static_cast<scgms::ISignal*>(this);
+	
 
-	const auto approx_descriptors = scgms::get_approx_descriptors();
-
-	// TODO: passing approximation parameters through architecture to Approximate method
-	//		 for now, we just send nullptr so the approximation method uses default parameters
-
-	if (!approx_descriptors.empty()) {
-
-		scgms::ISignal* self_signal = static_cast<scgms::ISignal*>(this);
-		scgms::SApprox_Parameters_Vector params;
-
-		mApprox = scgms::Create_Approximator(approx_descriptors[0].id, self_signal, params);
-	}
+	mApprox = approx_id ? scgms::Create_Approximator(*approx_id, self_signal) : scgms::Create_Approximator(self_signal);				
 }
 
 HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Levels(double* const times, double* const levels, const size_t count, size_t *filled) const {

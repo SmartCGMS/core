@@ -83,7 +83,7 @@ extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descripto
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, scgms::ISignal **signal)
+extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal)
 {
 	if ((calc_id == nullptr) || (segment == nullptr))
 		return E_INVALIDARG;

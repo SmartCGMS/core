@@ -530,13 +530,13 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 	return ENOENT;
 }
 
-extern "C" HRESULT IfaceCalling do_create_signal(const GUID *signal_id, scgms::ITime_Segment *segment, scgms::ISignal **signal) {
+extern "C" HRESULT IfaceCalling do_create_signal(const GUID *signal_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal) {
 	if (signal_id == nullptr)	//signal error sets segment to nullptr as it does not need it, so we check signal_id only
 		return E_INVALIDARG;
 
 	for (const auto& supported_signal : signal_descriptor::signals) {
 		if (supported_signal.id == *signal_id)
-			return Manufacture_Object<CMeasured_Signal>(signal);
+			return Manufacture_Object<CMeasured_Signal>(signal, approx_id);
 	}
 
 	return E_FAIL;

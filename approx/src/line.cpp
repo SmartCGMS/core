@@ -42,9 +42,7 @@
 #include <cmath>
 #include <algorithm>
 
-CLine_Approximator::CLine_Approximator(scgms::WSignal signal, scgms::IApprox_Parameters_Vector* configuration)
-	: mSignal(signal)
-{
+CLine_Approximator::CLine_Approximator(scgms::WSignal signal): mSignal(signal) {
 	Update();
 }
 
