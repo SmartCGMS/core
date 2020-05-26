@@ -43,6 +43,7 @@
 #include "executor.h"
 #include "composite_filter.h"
 #include "device_event.h"
+#include "persistent_chain_configuration.h"
 
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/utils/DebugHelper.h"
@@ -92,26 +93,43 @@ protected:
 	size_t mProblem_Size = 0;
 	std::vector<double> mLower_Bound, mUpper_Bound, mFound_Parameters;
 protected:
+	scgms::SFilter_Chain_Configuration Empty_Chain() {
+		return Manufacture_Object_Shared<CPersistent_Chain_Configuration, scgms::IFilter_Chain_Configuration, scgms::SFilter_Chain_Configuration>();
+	}
+protected:
 	std::vector<scgms::IDevice_Event*> mEvents_To_Replay;	
 
 	scgms::SFilter_Chain_Configuration Copy_Reduced_Configuration(const size_t end_index) {
-		scgms::SFilter_Chain_Configuration reduced_filter_configuration = refcnt::Create_Container_shared<scgms::IFilter_Configuration_Link*, scgms::SFilter_Chain_Configuration>(nullptr, nullptr);
+					
+		scgms::SFilter_Chain_Configuration reduced_filter_configuration = Empty_Chain();
+		bool success = reduced_filter_configuration.operator bool();
 
-		bool success = true;
-		for (size_t link_counter = 0; link_counter < end_index; link_counter++) {
-			scgms::SFilter_Configuration_Link single_filter = mConfiguration[link_counter];
-			if (!single_filter) {
-				success = false;
-				break;
+		if (success) {
+
+
+			refcnt::wstr_container* parent_path = nullptr;
+			success = mConfiguration->Get_Parent_Path(&parent_path) == S_OK;
+			if (success) {
+				success = reduced_filter_configuration->Set_Parent_Path(refcnt::WChar_Container_To_WString(parent_path).c_str()) == S_OK;
+				parent_path->Release();
 			}
-			auto raw_filter = single_filter.get();
-			if (reduced_filter_configuration->add(&raw_filter, &raw_filter + 1) != S_OK) {
-				success = false;
-				break;
+
+
+			for (size_t link_counter = 0; link_counter < end_index; link_counter++) {
+				scgms::SFilter_Configuration_Link single_filter = mConfiguration[link_counter];
+				if (!single_filter) {
+					success = false;
+					break;
+				}
+				auto raw_filter = single_filter.get();
+				if (reduced_filter_configuration->add(&raw_filter, &raw_filter + 1) != S_OK) {
+					success = false;
+					break;
+				}
 			}
 		}
 
-		return success ? reduced_filter_configuration : refcnt::Create_Container_shared<scgms::IFilter_Configuration_Link*, scgms::SFilter_Chain_Configuration>(nullptr, nullptr);
+		return success ? reduced_filter_configuration : Empty_Chain();
 	}
 
 	size_t Find_Minimal_Receiver_Index_End() {
@@ -187,7 +205,14 @@ protected:
 		std::lock_guard<std::mutex> lg{ mClone_Guard };
 
 		TFast_Configuration result;
-		result.configuration = refcnt::Create_Container_shared<scgms::IFilter_Configuration_Link*, scgms::SFilter_Chain_Configuration>(nullptr, nullptr);
+		result.configuration = Empty_Chain();
+		
+		refcnt::wstr_container* parent_path = nullptr;
+		result.failed = mConfiguration->Get_Parent_Path(&parent_path) != S_OK;
+		if (!result.failed) {
+			result.failed = result.configuration->Set_Parent_Path(refcnt::WChar_Container_To_WString(parent_path).c_str()) != S_OK;
+			parent_path->Release();
+		}
 
 		const std::set<GUID> ui_filters = { scgms::IID_Drawing_Filter, scgms::IID_Log_Filter };	//let's optimize away thos filters, which would only slow down
 
@@ -197,84 +222,85 @@ protected:
 		// 3. where, we insert new configuration-parameters
 		//thus all other objects stays the same, we only increase their reference counters		
 
-		result.failed = false;
+		
 		size_t link_counter = 0;
-		mConfiguration.for_each([&link_counter, &result, &ui_filters, this, first_effective_filter, &error_description](scgms::SFilter_Configuration_Link src_link) {
-			if (result.failed) return;
+		if (!result.failed)
+			mConfiguration.for_each([&link_counter, &result, &ui_filters, this, first_effective_filter, &error_description](scgms::SFilter_Configuration_Link src_link) {
+				if (result.failed) return;
 
-			if ((link_counter < first_effective_filter) && !mEvents_To_Replay.empty()) {
-				//we will replay events produced by the first filters
-				link_counter++;
-				return;
-			}
-
-
-			GUID filter_id = Invalid_GUID;
-			if (src_link->Get_Filter_Id(&filter_id) == S_OK) {
-				if (ui_filters.find(filter_id) != ui_filters.end()) {
+				if ((link_counter < first_effective_filter) && !mEvents_To_Replay.empty()) {
+					//we will replay events produced by the first filters
 					link_counter++;
 					return;
 				}
-			}
 
-			scgms::IFilter_Configuration_Link* raw_link_to_add = src_link.get();
 
-			if (link_counter == mFilter_Index) {
-				if (filter_id == Invalid_GUID) {
-					result.failed = true;
-					return;
+				GUID filter_id = Invalid_GUID;
+				if (src_link->Get_Filter_Id(&filter_id) == S_OK) {
+					if (ui_filters.find(filter_id) != ui_filters.end()) {
+						link_counter++;
+						return;
+					}
 				}
+
+				scgms::IFilter_Configuration_Link* raw_link_to_add = src_link.get();
+
+				if (link_counter == mFilter_Index) {
+					if (filter_id == Invalid_GUID) {
+						result.failed = true;
+						return;
+					}
 				
-				raw_link_to_add = static_cast<scgms::IFilter_Configuration_Link*>(new CFilter_Configuration_Link(filter_id)); //so far, zero RC which is correct right now because we do not call dtor here
-				//now, we need to emplace new configuration-parameters
+					raw_link_to_add = static_cast<scgms::IFilter_Configuration_Link*>(new CFilter_Configuration_Link(filter_id)); //so far, zero RC which is correct right now because we do not call dtor here
+					//now, we need to emplace new configuration-parameters
 
-				bool found_parameters = false;
-				src_link.for_each([&raw_link_to_add, &found_parameters, &result, this](scgms::SFilter_Parameter src_parameter) {
+					bool found_parameters = false;
+					src_link.for_each([&raw_link_to_add, &found_parameters, &result, this](scgms::SFilter_Parameter src_parameter) {
 					
-					scgms::IFilter_Parameter* raw_parameter = src_parameter.get();
+						scgms::IFilter_Parameter* raw_parameter = src_parameter.get();
 
-					if (!found_parameters && (mParameters_Config_Name == src_parameter.configuration_name())) {
-						//parameters - we need to create a new copy
+						if (!found_parameters && (mParameters_Config_Name == src_parameter.configuration_name())) {
+							//parameters - we need to create a new copy
 
-						raw_parameter = static_cast<scgms::IFilter_Parameter*>(new CFilter_Parameter{scgms::NParameter_Type::ptDouble_Array, mParameters_Config_Name.c_str()});
-						scgms::IModel_Parameter_Vector *src_parameters, *dst_parameters;
-						if (src_parameter->Get_Model_Parameters(&src_parameters) == S_OK) {
-							dst_parameters = refcnt::Copy_Container<double>(src_parameters);							
-							if (raw_parameter->Set_Model_Parameters(dst_parameters) != S_OK) 
-									result.failed = true;	//increases RC by 1
-							src_parameters->Release();
-							dst_parameters->Release();
+							raw_parameter = static_cast<scgms::IFilter_Parameter*>(new CFilter_Parameter{scgms::NParameter_Type::ptDouble_Array, mParameters_Config_Name.c_str()});
+							scgms::IModel_Parameter_Vector *src_parameters, *dst_parameters;
+							if (src_parameter->Get_Model_Parameters(&src_parameters) == S_OK) {
+								dst_parameters = refcnt::Copy_Container<double>(src_parameters);							
+								if (raw_parameter->Set_Model_Parameters(dst_parameters) != S_OK) 
+										result.failed = true;	//increases RC by 1
+								src_parameters->Release();
+								dst_parameters->Release();
 
-							//find the very first number to overwrite later on with new values
-							double *begin, *end;
-							if (dst_parameters->get(&begin, &end) == S_OK) {
-								result.first_parameter = begin + mProblem_Size;
-								found_parameters = true;
+								//find the very first number to overwrite later on with new values
+								double *begin, *end;
+								if (dst_parameters->get(&begin, &end) == S_OK) {
+									result.first_parameter = begin + mProblem_Size;
+									found_parameters = true;
+								}
+								else
+									result.failed = true;
 							}
 							else
 								result.failed = true;
 						}
-						else
-							result.failed = true;
-					}
 
-					if (raw_link_to_add->add(&raw_parameter, &raw_parameter + 1) != S_OK) 
-							result.failed = true;
+						if (raw_link_to_add->add(&raw_parameter, &raw_parameter + 1) != S_OK) 
+								result.failed = true;
 
 					
-				});
+					});
 
-				if (!found_parameters) {
-					result.failed = true;	//we need the parameters, because they also include the bounds!
-					error_description.push(dsParameters_to_optimize_not_found);
+					if (!found_parameters) {
+						result.failed = true;	//we need the parameters, because they also include the bounds!
+						error_description.push(dsParameters_to_optimize_not_found);
+					}
+
 				}
 
-			}
+				result.configuration->add(&raw_link_to_add, &raw_link_to_add + 1);	//increases RC by one
+				link_counter++;
 
-			result.configuration->add(&raw_link_to_add, &raw_link_to_add + 1);	//increases RC by one
-			link_counter++;
-
-		});
+			});
 		
 		if (result.failed) {
 			error_description.push(dsFailed_to_clone_configuration);

@@ -51,32 +51,47 @@
 #include <fstream>
 #include <exception>
 
-HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar_t* file_path, refcnt::wstr_list* error_description) {
+void CPersistent_Chain_Configuration::Advertise_Parent_Path() {
+	std::wstring parent_path = mFile_Path.empty() ? Get_Application_Dir() : mFile_Path.parent_path();
+	
+	for (scgms::IFilter_Configuration_Link* link : *this) {
+		link->Set_Parent_Path(parent_path.c_str());
+	}
+}
+
+HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar_t* file_path, refcnt::wstr_list* error_description) {	
+	mFile_Path.clear();
 	HRESULT rc = E_UNEXPECTED;
 
-	if ((file_path == nullptr) || (*file_path == 0)) {
-		mFile_Path = Get_Application_Dir();
-		mFile_Name = rsConfig_File_Name;
-		Path_Append(mFile_Path, mFile_Name.c_str());
-	}
-	else {
-		mFile_Path = file_path;
-		mFile_Name = file_path;
-	}
+	if ((file_path == nullptr) || (*file_path == 0))
+		return E_INVALIDARG;
+	
+	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
+
+	std::error_code ec;
+	std::filesystem::path working_file_path = std::filesystem::absolute(file_path, ec);
+	if (ec) {
+		shared_error_description.push(Widen_Char(ec.message().c_str()));
+		return E_INVALIDARG;
+	}	
 
 	std::vector<char> buf;
 	std::ifstream configfile;
 
-	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
-	try {
-		configfile.open(Narrow_WString(mFile_Path));
+	
+	try {		
+		configfile.open(working_file_path);
 
 		if (configfile.is_open()) {
 			buf.assign(std::istreambuf_iterator<char>(configfile), std::istreambuf_iterator<char>());
 			// fix valgrind's "Conditional jump or move depends on uninitialised value(s)"
 			// although we are sending proper length, SimpleIni probably reaches one byte further and reads uninitialized memory
 			buf.push_back(0);
-			rc = Load_From_Memory(buf.data(), buf.size(), error_description);
+			rc = Load_From_Memory(buf.data(), buf.size(), error_description);	//also clears mFile_Path!
+			if (SUCCEEDED(rc)) {
+				mFile_Path = std::move(working_file_path);	//so that we clearly sets new one whehn we succeed
+				Advertise_Parent_Path();
+			}
 		}
 
 		configfile.close();
@@ -85,7 +100,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 		// specific handling for all exceptions extending std::exception, except
 		// std::runtime_error which is handled explicitly
 		std::wstring error_desc = Widen_Char(ex.what());
-		shared_error_description.push(error_desc.c_str());
+		
 		return E_FAIL;
 	}
 	catch (...) {
@@ -101,6 +116,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
 
 	try {
+		mFile_Path = Get_Application_Dir();		
+
 		mIni.LoadData(memory, len);
 
 		std::list<CSimpleIniW::Entry> section_names;
@@ -247,6 +264,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 			}
 
 		}
+
+		Advertise_Parent_Path();
 	}
 	catch (const std::exception & ex) {
 		// specific handling for all exceptions extending std::exception, except
@@ -265,7 +284,26 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 	return loaded_all_filters ? S_OK : S_FALSE;
 }
 
-HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t* file_path) {
+HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t* file_path, refcnt::wstr_list* error_description) {
+	//1. determine the file path to save to
+	const bool empty_file_path = (file_path == nullptr) || (*file_path == 0);
+
+	if (empty_file_path && (mFile_Path.empty())) return E_ILLEGAL_METHOD_CALL;
+
+	std::filesystem::path working_file_path;
+	if (empty_file_path) working_file_path = mFile_Path;
+	else {
+		std::error_code ec;
+		working_file_path = std::filesystem::absolute(file_path, ec);
+		if (ec) {
+			refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
+			shared_error_description.push(Widen_Char(ec.message().c_str()));
+			return E_INVALIDARG;
+		}		
+	}
+
+
+	//2. produce the ini file content
 	CSimpleIniW ini;
 	uint32_t section_counter = 1;
 
@@ -385,10 +423,17 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 
 		std::string content;
 		ini.Save(content);
-		std::ofstream config_file(Narrow_WString(mFile_Path), std::ofstream::binary);
+
+		//3. save the content
+		std::ofstream config_file(working_file_path, std::ofstream::binary);
 		if (config_file.is_open()) {
 			config_file << content;
 			config_file.close();
+
+			if (!empty_file_path) {
+				mFile_Path = std::move(working_file_path);
+				Advertise_Parent_Path();
+			}
 		}
 	}
 	catch (...) {
@@ -398,6 +443,32 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 	return S_OK;
 }
 
+HRESULT IfaceCalling CPersistent_Chain_Configuration::add(scgms::IFilter_Configuration_Link** begin, scgms::IFilter_Configuration_Link** end) {
+	HRESULT rc = refcnt::internal::CVector_Container<scgms::IFilter_Configuration_Link*>::add(begin, end);
+	if (rc == S_OK)
+		Advertise_Parent_Path();
+
+	return rc;	
+}
+
 HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersistent_Filter_Chain_Configuration** configuration) {
 	return Manufacture_Object<CPersistent_Chain_Configuration, scgms::IPersistent_Filter_Chain_Configuration>(configuration);
+}
+
+HRESULT IfaceCalling CPersistent_Chain_Configuration::Get_Parent_Path(refcnt::wstr_container** path) {
+	const std::wstring path_to_return = mFile_Path.empty() ? Get_Application_Dir() : mFile_Path.parent_path().wstring();
+	*path = refcnt::WString_To_WChar_Container(path_to_return.c_str());
+	return S_OK;
+}
+
+HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Parent_Path(const wchar_t* parent_path) {
+	if (!parent_path || (*parent_path)) return E_INVALIDARG;
+
+	HRESULT rc = S_OK;
+	for (scgms::IFilter_Configuration_Link* link : *this) {
+		if (!SUCCEEDED(link->Set_Parent_Path(parent_path)))
+			rc = E_UNEXPECTED;
+	}
+
+	return S_OK;
 }

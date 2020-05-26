@@ -41,18 +41,26 @@
 #include "../../../common/iface/FilterIface.h"
 #include "../../../common/rtl/referencedImpl.h"
 
+#include <filesystem>
+
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
 class CPersistent_Chain_Configuration : public virtual scgms::IPersistent_Filter_Chain_Configuration, public virtual refcnt::internal::CVector_Container<scgms::IFilter_Configuration_Link*> {
 protected:
-	std::wstring mFile_Path;	
-	std::wstring mFile_Name;		// stored filename to be used in e.g. window title
+	std::filesystem::path mFile_Path;
+	void Advertise_Parent_Path();
 public:
 	virtual ~CPersistent_Chain_Configuration() {};
+
+	virtual HRESULT IfaceCalling add(scgms::IFilter_Configuration_Link** begin, scgms::IFilter_Configuration_Link** end) override;
+
+	virtual HRESULT IfaceCalling Get_Parent_Path(refcnt::wstr_container** path) override final;
+	virtual HRESULT IfaceCalling Set_Parent_Path(const wchar_t* parent_path) override final;
+
 	virtual HRESULT IfaceCalling Load_From_File(const wchar_t *file_path, refcnt::wstr_list *error_description) override final;
 	virtual HRESULT IfaceCalling Load_From_Memory(const char *memory, const size_t len, refcnt::wstr_list *error_description) override final;
-	virtual HRESULT IfaceCalling Save_To_File(const wchar_t *file_path) override final;
+	virtual HRESULT IfaceCalling Save_To_File(const wchar_t *file_path, refcnt::wstr_list* error_description) override final;
 };
 
 #pragma warning( pop )

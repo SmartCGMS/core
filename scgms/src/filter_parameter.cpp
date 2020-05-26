@@ -17,7 +17,6 @@ HRESULT IfaceCalling CFilter_Parameter::Get_Config_Name(wchar_t **config_name) {
 	return S_OK;
 }
 
-
 HRESULT IfaceCalling CFilter_Parameter::Get_WChar_Container(refcnt::wstr_container **wstr, BOOL read_interpreted) {
 	if ((read_interpreted == TRUE) && !mSystem_Variable_Name.empty()) {
 		const char* sys = std::getenv(mSystem_Variable_Name.c_str());
@@ -38,6 +37,35 @@ HRESULT IfaceCalling CFilter_Parameter::Set_WChar_Container(refcnt::wstr_contain
 	}
 
 	mWChar_Container = wstr;
+	return S_OK;
+}
+
+HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** wstr) {
+	std::filesystem::path result_path;
+
+	if (mSystem_Variable_Name.empty()) {
+		result_path = refcnt::WChar_Container_To_WString(mWChar_Container.get());
+	} else {
+		const char* sys = std::getenv(mSystem_Variable_Name.c_str());
+		if (!sys) return E_NOT_SET;
+
+		result_path = sys;
+	}
+
+	if (result_path.is_relative()) {		
+		result_path = std::filesystem::canonical(mParent_Path / result_path);
+	}
+
+
+	*wstr = refcnt::WString_To_WChar_Container(result_path.wstring().c_str());
+
+	return S_OK;
+}
+
+HRESULT IfaceCalling CFilter_Parameter::Set_Parent_Path(const wchar_t* parent_path) {
+	if ((!parent_path) || (*parent_path == 0)) return E_INVALIDARG;
+
+	mParent_Path = parent_path;
 	return S_OK;
 }
 
