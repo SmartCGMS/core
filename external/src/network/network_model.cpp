@@ -174,6 +174,8 @@ void CNetwork_Discrete_Model::Network_Thread_Fnc()
 		}
 	}
 
+	mRunning = false;
+	mSession.Interrupt();
 	mSlot.Release_Slot();
 }
 
@@ -304,8 +306,7 @@ HRESULT CNetwork_Discrete_Model::Connect(const std::wstring& addr, uint16_t port
 			socket_cleanup();
 			return E_FAIL;
 		}
-		
-		
+
 		result = connect(mSlot().skt, reinterpret_cast<sockaddr*>(&conaddr), sizeof(conaddr));
 		if (result < 0)
 		{
@@ -353,7 +354,7 @@ HRESULT CNetwork_Discrete_Model::Connect(const std::wstring& addr, uint16_t port
 			break;
 	}
 
-	mSession.Set_Needs_Reinit();
+	mSession.Set_Needs_Reinit(false);
 	Set_Socket_Blocking_State(mSlot().skt, true);
 
 	int param = 1;
@@ -441,7 +442,11 @@ HRESULT CNetwork_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 			return S_FALSE;
 		// everything's OK, we can receive events; just ensure the Running state of the session - this is here due to possibility that an event appeared before the session was fully established
 		else if (mRunning && !mPending_Shut_Down)
-			mSession.Ensure_State(CSession_Handler::NSession_State::Running);
+		{
+			// we may get interrupted during wait
+			if (!mSession.Ensure_State(CSession_Handler::NSession_State::Running))
+				return S_FALSE;
+		}
 		else if (mRunning) // if the teardown (initiated by us for any reason) is in progress - we can still receive levels (e.g. last basal rate values from feedback, etc.)
 			return S_FALSE;
 		else // otherwise it's an error

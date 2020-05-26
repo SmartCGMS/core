@@ -185,6 +185,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 				std::mutex mSession_State_Mtx;
 				std::condition_variable mSession_State_Changed_Cv;
 				bool mInterrupted = false;
+				bool mReinitExisting = false;
 
 			private:
 				int Send(const void* data, size_t length);
@@ -195,7 +196,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 				CSession_Handler(CNetwork_Discrete_Model& _parent) : mParent(_parent) {};
 
 				void Setup();
-				void Set_Needs_Reinit();
+				void Set_Needs_Reinit(bool reinit_existing);
 				bool Process_Pending_Packet();
 
 				// ensures desired state, waits if not satisfied
