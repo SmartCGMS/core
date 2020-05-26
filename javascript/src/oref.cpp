@@ -69,6 +69,8 @@
 
 namespace external
 {
+	// oref0 explicitly expects to have these signals as inputs
+
 	constexpr GUID signal_Insulin_Activity_Exponential = { 0x19974ff5, 0x9eb1, 0x4a99, { 0xb7, 0xf2, 0xdc, 0x9b, 0xfa, 0xe, 0x31, 0x5e } };
 	constexpr GUID signal_IOB_Exponential = { 0x238d2353, 0x6d37, 0x402c, { 0xaf, 0x39, 0x6c, 0x55, 0x52, 0xa7, 0x7e, 0x1f } };
 	constexpr GUID signal_COB_Bilinear = { 0xe29a9d38, 0x551e, 0x4f3f, { 0xa9, 0x1d, 0x1f, 0x14, 0xd9, 0x34, 0x67, 0xe3 } };
@@ -225,12 +227,11 @@ bool COref_Discrete_Model::Call_Oref(double time_advance_delta)
 	std::fill(data.mCurInsulinActivity.begin(), data.mCurInsulinActivity.end(), std::numeric_limits<double>::quiet_NaN());
 
 	std::generate(futureTimes.begin(), futureTimes.end(), [gtime = nowTime - scgms::One_Minute * 5]() mutable {
-		return gtime += scgms::One_Minute * 5;
+		return gtime += oref_model::assumed_stepping;
 	});
 
 	double cob = 0;
-	double pastCOBTime = nowTime - scgms::One_Minute * 6;
-	if (mCOB->Get_Continuous_Levels(nullptr, &pastCOBTime, &cob, 1, scgms::apxNo_Derivation) != S_OK) {
+	if (mCOB->Get_Continuous_Levels(nullptr, &nowTime, &cob, 1, scgms::apxNo_Derivation) != S_OK) {
 		return false;
 	}
 	if (mIOBCalc->Get_Continuous_Levels(nullptr, futureTimes.data(), data.mCurIOB.data(), data.mCurIOB.size(), scgms::apxNo_Derivation) != S_OK) {
@@ -244,6 +245,7 @@ bool COref_Discrete_Model::Call_Oref(double time_advance_delta)
 	data.mLastTime = Rat_Time_To_Unix_Time(mCurrent_Time);
 	data.mGlucose = glucose;
 
+	// carb times are ordered; rbegin points to last dosed carbs
 	if (!std::isnan(cob) && cob > 0 && carbTimes.size() > 0 && !std::isnan(*carbValues.rbegin()) && *carbValues.rbegin() > 0) {
 		data.mLastCarbTime = Rat_Time_To_Unix_Time(*carbTimes.rbegin());
 		data.mLastCarbValue = *carbValues.rbegin();
@@ -254,6 +256,7 @@ bool COref_Discrete_Model::Call_Oref(double time_advance_delta)
 		data.mCurCOB = 0;
 	}
 
+	// bolus times are ordered; rbegin points to last dosed bolus
 	if (bolusTimes.size() > 0 && !std::isnan(*bolusValues.rbegin()) && *bolusValues.rbegin() > 0) {
 		data.mLastBolusTime = Rat_Time_To_Unix_Time(*bolusTimes.rbegin());
 		data.mLastBolusValue = *bolusValues.rbegin();

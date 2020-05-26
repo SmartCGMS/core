@@ -60,6 +60,8 @@ namespace oref_model
 	constexpr double long_avgdelta_history_start = Rat_Seconds(2550);		// 42.5 min
 	constexpr double long_avgdelta_history_end = Rat_Seconds(1050);			// 17.5 min
 	constexpr double long_avgdelta_history_sample_step = Rat_Seconds(120);
+
+	constexpr double assumed_stepping = Rat_Seconds(300);					// 5 minutes
 }
 
 struct COref_Instance_Data
