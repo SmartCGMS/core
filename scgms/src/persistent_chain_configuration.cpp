@@ -52,7 +52,7 @@
 #include <exception>
 
 void CPersistent_Chain_Configuration::Advertise_Parent_Path() {
-	std::wstring parent_path = mFile_Path.empty() ? Get_Application_Dir() : mFile_Path.parent_path();
+	std::wstring parent_path = mFile_Path.empty() ? Get_Dll_Dir() : mFile_Path.parent_path();
 	
 	for (scgms::IFilter_Configuration_Link* link : *this) {
 		link->Set_Parent_Path(parent_path.c_str());
@@ -116,7 +116,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
 
 	try {
-		mFile_Path = Get_Application_Dir();		
+		mFile_Path = Get_Dll_Dir();
 
 		mIni.LoadData(memory, len);
 
@@ -456,7 +456,7 @@ HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersis
 }
 
 HRESULT IfaceCalling CPersistent_Chain_Configuration::Get_Parent_Path(refcnt::wstr_container** path) {
-	const std::wstring path_to_return = mFile_Path.empty() ? Get_Application_Dir() : mFile_Path.parent_path().wstring();
+	const std::wstring path_to_return = mFile_Path.empty() ? Get_Dll_Dir() : mFile_Path.parent_path().wstring();
 	*path = refcnt::WString_To_WChar_Container(path_to_return.c_str());
 	return S_OK;
 }

@@ -60,7 +60,7 @@ public:
 
 	virtual HRESULT IfaceCalling Load_From_File(const wchar_t *file_path, refcnt::wstr_list *error_description) override final;
 	virtual HRESULT IfaceCalling Load_From_Memory(const char *memory, const size_t len, refcnt::wstr_list *error_description) override final;
-	virtual HRESULT IfaceCalling Save_To_File(const wchar_t *file_path, refcnt::wstr_list* error_description) override final;
+	virtual HRESULT IfaceCalling Save_To_File(const wchar_t *file_path, refcnt::wstr_list* error_description) override final;	
 };
 
 #pragma warning( pop )

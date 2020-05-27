@@ -45,6 +45,7 @@
 #include "device_event.h"
 #include "persistent_chain_configuration.h"
 
+#include "../../../common/rtl/referencedImpl.h"
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/utils/DebugHelper.h"
 #include "../../../common/lang/dstrings.h"
@@ -94,7 +95,7 @@ protected:
 	std::vector<double> mLower_Bound, mUpper_Bound, mFound_Parameters;
 protected:
 	scgms::SFilter_Chain_Configuration Empty_Chain() {
-		return Manufacture_Object_Shared<CPersistent_Chain_Configuration, scgms::IFilter_Chain_Configuration, scgms::SFilter_Chain_Configuration>();
+		return refcnt::Manufacture_Object_Shared<CPersistent_Chain_Configuration, scgms::IFilter_Chain_Configuration, scgms::SFilter_Chain_Configuration>();
 	}
 protected:
 	std::vector<scgms::IDevice_Event*> mEvents_To_Replay;	
