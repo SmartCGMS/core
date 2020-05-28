@@ -50,34 +50,42 @@ void CPattern_Prediction_Data::Update(const double level) {
     if (std::isnan(level)) return;
        
 
-    mCount += 1.0;
-    if (!std::isnan(mRunning_Avg)) {
-        const double delta = level - mRunning_Avg;
-        const double delta_n = delta / mCount;
-        mRunning_Avg += delta_n;
-        mRunning_Median += copysign(mRunning_Avg * 0.01, level - mRunning_Median);
-        mRunning_Variance += delta * delta_n * (mCount - 1.0);
+    mState.count += 1.0;
+    if (!std::isnan(mState.running_avg)) {
+        const double delta = level - mState.running_avg;
+        const double delta_n = delta / mState.count;
+        mState.running_avg += delta_n;
+        mState.running_median += copysign(mState.running_avg * 0.01, level - mState.running_median);
+        mState.running_variance_accumulator += delta * delta_n * (mState.count - 1.0);
     }
     else {
-        mRunning_Median = mRunning_Avg = level;
-        mRunning_Variance = 0.0;
+        mState.running_median = mState.running_avg = level;
+        mState.running_variance_accumulator = 0.0;
     }
 }
 
 double CPattern_Prediction_Data::Level() const {    
-    return mCount > 100.0 ? mRunning_Median : mRunning_Avg;
+    return mState.count > 100.0 ? mState.running_median : mState.running_avg;
 }
 
 bool CPattern_Prediction_Data::Valid() const {
-    return mCount > 0.0;
+    return mState.count > 0.0;
 }
 
-void CPattern_Prediction_Data::Dump_Params() const {
-    dprintf("Count: ");     dprintf(mCount);
-    dprintf("\tMedian: ");    dprintf(mRunning_Median);
-    dprintf("\tAvg: ");       dprintf(mRunning_Avg);
-    dprintf("\tSD: ");
-    if (mCount > 1.0) dprintf(sqrt(mRunning_Variance / (mCount - 1.0)));
-    else dprintf("n/a");
-    dprintf("\n");
+TPattern_Prediction_Pattern_State CPattern_Prediction_Data::Get_State() const {
+    //first, update the running standard deviation
+    
+    TPattern_Prediction_Pattern_State result = mState;
+
+
+    result.running_stddev = result.count > 1.0 ?
+                                sqrt(result.running_variance_accumulator / (result.count - 1.0)) :
+                                0.0;
+
+
+    return result;
+}
+
+void CPattern_Prediction_Data::Set_State(const TPattern_Prediction_Pattern_State& state) {
+    mState = state;
 }

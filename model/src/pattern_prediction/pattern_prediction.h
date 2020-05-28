@@ -92,11 +92,26 @@ protected:
     std::array<std::array<CPattern_Prediction_Data, Band_Count>, static_cast<size_t>(NPattern::count)> mPatterns;
     
     double Update_And_Predict(const uint64_t segment_id, const double current_time, const double current_level);   
-    void Learn(scgms::SSignal &ist, const double current_time, const double current_ig_level);
+    void Update_Learn(scgms::SSignal &ist, const double current_time, const double current_ig_level);
     double Predict(scgms::SSignal &ist, const double current_time);
 protected:
-    static constexpr bool mDump_Params = false;
-    void Dump_Params();
+    bool mDo_Not_Learn = false;    
+    bool mUpdate_Parameters_File = true;
+    std::wstring mParameters_File_Path;
+
+    bool mUpdated_Levels = false;   //flag to eliminate unnecessary writes to the parameters file
+
+    const wchar_t* isPattern = L"Pattern_";
+    const wchar_t* isBand = L"_Band_";
+
+    const wchar_t* iiCount = L"Count";
+    const wchar_t* iiAvg = L"Avg";
+    const wchar_t* iiMedian = L"Median";
+    const wchar_t* iiVariance_Accumulator = L"Variance_Accumulator";
+    const wchar_t* iiStdDev = L"StdDev";
+
+    HRESULT Read_Parameters_File(refcnt::Swstr_list error_description);
+    void Write_Parameters_File();
 protected:
     // scgms::CBase_Filter iface implementation
     virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;

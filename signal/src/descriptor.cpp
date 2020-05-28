@@ -527,7 +527,7 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 	else if (*id == feedback_sender::desc.id)
 		return Manufacture_Object<CSignal_Feedback>(filter, output);
 
-	return ENOENT;
+	return E_NOTIMPL;
 }
 
 extern "C" HRESULT IfaceCalling do_create_signal(const GUID *signal_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal) {

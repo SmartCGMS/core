@@ -74,15 +74,14 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 		shared_error_description.push(Widen_Char(ec.message().c_str()));
 		return E_INVALIDARG;
 	}	
-
-	std::vector<char> buf;
-	std::ifstream configfile;
-
+	
 	
 	try {		
+		std::ifstream configfile;
 		configfile.open(working_file_path);
 
 		if (configfile.is_open()) {
+			std::vector<char> buf;
 			buf.assign(std::istreambuf_iterator<char>(configfile), std::istreambuf_iterator<char>());
 			// fix valgrind's "Conditional jump or move depends on uninitialised value(s)"
 			// although we are sending proper length, SimpleIni probably reaches one byte further and reads uninitialized memory
@@ -92,14 +91,19 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 				mFile_Path = std::move(working_file_path);	//so that we clearly sets new one whehn we succeed
 				Advertise_Parent_Path();
 			}
-		}
 
-		configfile.close();
+			configfile.close();
+		}
+		else
+			rc = ERROR_FILE_NOT_FOUND;
+
+		
 	}
 	catch (const std::exception & ex) {
 		// specific handling for all exceptions extending std::exception, except
 		// std::runtime_error which is handled explicitly
 		std::wstring error_desc = Widen_Char(ex.what());
+		shared_error_description.push(error_desc);
 		
 		return E_FAIL;
 	}
@@ -368,7 +372,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 						rc = parameter->Get_Double(&val);
 						if (rc != S_OK) return rc;
 
-						ini.SetDoubleValue(id_str.c_str(), config_name, val);
+						ini.SetValue(id_str.c_str(), config_name, dbl_2_wstr(val).c_str());	//more precise than ini's SetDoubleValue
 					}
 					break;
 

@@ -623,5 +623,5 @@ HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, sc
 		return Manufacture_Object<CPattern_Prediction_Filter>(filter, output);
 
 
-	return ENOENT;
+	return E_NOTIMPL;
 }

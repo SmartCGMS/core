@@ -40,17 +40,20 @@
 
 #include "../../../../common/iface/ApproxIface.h"
 #include "../../../../common/utils/math_utils.h"
+#include "../../../../common/utils/string_utils.h"
 #include "../../../../common/utils/DebugHelper.h"
+#include "../../../../common/utils/SimpleIni.h"
+#include "../../../../common/rtl/FilesystemLib.h"
 
 #undef min
 
 CPattern_Prediction_Filter::CPattern_Prediction_Filter(scgms::IFilter *output)
-	: scgms::CBase_Filter(output, pattern_prediction::filter_id) {
+	: scgms::CBase_Filter(output, pattern_prediction::filter_id), mUpdated_Levels(false) {
 }
 
 CPattern_Prediction_Filter::~CPattern_Prediction_Filter() {
-	if (mDump_Params)
-		Dump_Params();
+	if (mUpdate_Parameters_File)
+		Write_Parameters_File();
 }
 
 HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
@@ -83,26 +86,33 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 		return rc;
 	};
 
-	auto free_segment = [&event, this]() {
+	auto handle_segment_stop = [&event, this]() {
 		auto iter = mIst.find(event.segment_id());
 		if (iter != mIst.end())
 			mIst.erase(iter);
+
+		if (mUpdate_Parameters_File)
+			Write_Parameters_File();
 	};
 
 
 	HRESULT rc = E_UNEXPECTED;
 
 	switch (event.event_code()) {
-	case scgms::NDevice_Event_Code::Level:
-		if (event.signal_id() == scgms::signal_IG)
-			rc = handle_ig_level();
-		break;
+		case scgms::NDevice_Event_Code::Level:
+			if (event.signal_id() == scgms::signal_IG)
+				rc = handle_ig_level();
+			break;
 
-	case scgms::NDevice_Event_Code::Time_Segment_Stop:
-		free_segment();
-		break;
+		case scgms::NDevice_Event_Code::Time_Segment_Stop:
+			handle_segment_stop();
+			break;
 
-	default: break;
+		case scgms::NDevice_Event_Code::Shut_Down:
+			handle_segment_stop();
+			break;
+
+		default: break;
 	}
 
 	if (!sent) rc = Send(event);
@@ -115,7 +125,21 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 HRESULT CPattern_Prediction_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mDt = configuration.Read_Double(rsDt_Column, mDt);
 	
-	return Is_Any_NaN(mDt) ? E_INVALIDARG : S_OK;
+	if (Is_Any_NaN(mDt))
+		return E_INVALIDARG;
+	
+	mDo_Not_Learn = configuration.Read_Bool(rsDo_Not_Learn, mDo_Not_Learn);
+	mParameters_File_Path = configuration.Read_File_Path(rsParameters_File);
+	mUpdate_Parameters_File = !mParameters_File_Path.empty() &&
+		                      !configuration.Read_Bool(rsDo_Not_Update_Parameters_File, !mUpdate_Parameters_File);
+
+	if (!mParameters_File_Path.empty()) {
+		HRESULT rc = Read_Parameters_File(error_description);
+		if (SUCCEEDED(rc))
+			return rc;
+	}
+
+	return S_OK;
 }
 
 double CPattern_Prediction_Filter::Update_And_Predict(const uint64_t segment_id, const double current_time, const double current_level) {
@@ -133,34 +157,22 @@ double CPattern_Prediction_Filter::Update_And_Predict(const uint64_t segment_id,
 	auto ist = seg_iter->second;
 
 	//1st phase - learning
-	Learn(ist, current_time, current_level);
+	Update_Learn(ist, current_time, current_level);
 
 	//2nd phase - obtaining a learned result
 	return Predict(ist, current_time);
 }
 
-void CPattern_Prediction_Filter::Learn(scgms::SSignal& ist, const double current_time, const double current_ig_level) {
+void CPattern_Prediction_Filter::Update_Learn(scgms::SSignal& ist, const double current_time, const double current_ig_level) {
 	if (SUCCEEDED(ist->Update_Levels(&current_time, &current_ig_level, 1))) {
 		auto [pattern, band_index, classified_ok] = Classify(ist, current_time - mDt);
 
-		if (classified_ok)
-			mPatterns[static_cast<size_t>(pattern)][band_index].Update(current_ig_level);
-	}
-}
+		if (!mDo_Not_Learn) {
 
+			if (classified_ok)
+				mPatterns[static_cast<size_t>(pattern)][band_index].Update(current_ig_level);
 
-void CPattern_Prediction_Filter::Dump_Params() {
-	for (size_t pattern_idx = 0; pattern_idx < static_cast<size_t>(NPattern::count); pattern_idx++) {
-		for (size_t band_idx = 0; band_idx < Band_Count; band_idx++) {
-
-			const auto& pattern = mPatterns[pattern_idx][band_idx];
-
-			dprintf(pattern_idx);
-			dprintf("-");
-			dprintf(band_idx);
-			dprintf("\t\t");
-
-			pattern.Dump_Params();
+			mUpdated_Levels = true;
 		}
 	}
 }
@@ -253,4 +265,127 @@ size_t CPattern_Prediction_Filter::Level_2_Band_Index(const double level) {
 	if (tmp < 0.0) return 0;
 
 	return static_cast<size_t>(floor(tmp * Inv_Band_Size));
+}
+
+HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list error_description) {
+	auto load_from_ini = [this](CSimpleIniW& ini) {
+
+		std::list<CSimpleIniW::Entry> section_names;
+		ini.GetAllSections(section_names);
+
+		const std::wstring format = isPattern + std::wstring{L"%d"} + isBand + L"%d";
+		for (auto& section_name : section_names) {
+			int pattern_idx = std::numeric_limits<int>::max();
+			int band_idx = std::numeric_limits<int>::max();
+
+			if (swscanf_s(section_name.pItem, format.c_str(), &pattern_idx, &band_idx) == 2) {
+
+				if ((pattern_idx < static_cast<size_t>(NPattern::count)) && (band_idx < Band_Count)) {
+
+					auto& pattern = mPatterns[pattern_idx][band_idx];
+					bool all_valid = true;
+
+					auto read_dbl = [&ini, &section_name, &all_valid](const wchar_t* identifier)->double {
+						bool valid = false;
+						double val = wstr_2_dbl(ini.GetValue(section_name.pItem, identifier), valid);
+					
+						if (!valid || std::isnan(val))
+							all_valid = false;
+							
+						return val;
+					};
+
+					TPattern_Prediction_Pattern_State pattern_state;
+					pattern_state.count = read_dbl(iiCount);
+					pattern_state.running_avg = read_dbl(iiAvg);
+					pattern_state.running_median = read_dbl(iiMedian);
+					pattern_state.running_variance_accumulator = read_dbl(iiVariance_Accumulator);
+					pattern_state.running_stddev = read_dbl(iiStdDev);
+
+					if (all_valid)
+						pattern.Set_State(pattern_state);
+
+
+				} //else, invalid record - let's ignore it
+			}
+		}
+
+
+	};
+
+	HRESULT rc = S_FALSE;
+	try {
+		std::ifstream configfile;
+		configfile.open(mParameters_File_Path);
+
+		if (configfile.is_open()) {
+			std::vector<char> buf;
+			buf.assign(std::istreambuf_iterator<char>(configfile), std::istreambuf_iterator<char>());
+			// fix valgrind's "Conditional jump or move depends on uninitialised value(s)"
+			// although we are sending proper length, SimpleIni probably reaches one byte further and reads uninitialized memory
+			buf.push_back(0);
+			
+			CSimpleIniW ini;
+			ini.LoadData(buf.data(), buf.size());
+			load_from_ini(ini);
+
+			configfile.close();
+			rc = S_OK;
+		}
+		else {
+			std::wstring desc = dsCannot_Open_File + mParameters_File_Path;			
+			error_description.push(desc);
+		}
+
+
+	}
+	catch (const std::exception& ex) {
+		// specific handling for all exceptions extending std::exception, except
+		// std::runtime_error which is handled explicitly
+		std::wstring error_desc = Widen_Char(ex.what());
+
+		return E_FAIL;
+	}
+	catch (...) {
+		rc = E_FAIL;
+	}
+
+	if (rc == S_OK) 
+		mUpdated_Levels = false;	//if not S_OK, keep the current state
+	return rc;	
+}
+
+void CPattern_Prediction_Filter::Write_Parameters_File() {
+	if (!mUpdated_Levels) return;
+
+	CSimpleIniW ini;
+
+	for (size_t pattern_idx = 0; pattern_idx < static_cast<size_t>(NPattern::count); pattern_idx++) {
+		for (size_t band_idx = 0; band_idx < Band_Count; band_idx++) {
+
+			const auto& pattern = mPatterns[pattern_idx][band_idx];
+
+			if (pattern.Valid()) {
+				const auto pattern_state = pattern.Get_State();
+
+				const std::wstring section_name = isPattern+std::to_wstring(pattern_idx) + isBand + std::to_wstring(band_idx);
+				const wchar_t* section_name_ptr = section_name.c_str();
+
+				ini.SetValue(section_name_ptr, iiCount, dbl_2_wstr(pattern_state.count).c_str());
+				ini.SetValue(section_name_ptr, iiAvg, dbl_2_wstr(pattern_state.running_avg).c_str());
+				ini.SetValue(section_name_ptr, iiMedian, dbl_2_wstr(pattern_state.running_median).c_str());
+				ini.SetValue(section_name_ptr, iiVariance_Accumulator, dbl_2_wstr(pattern_state.running_variance_accumulator).c_str());
+				ini.SetValue(section_name_ptr, iiStdDev, dbl_2_wstr(pattern_state.running_stddev).c_str());
+			}
+		}
+	}
+
+	std::string content;
+	ini.Save(content);
+	
+	std::ofstream config_file(mParameters_File_Path, std::ofstream::binary);
+	if (config_file.is_open()) {
+		config_file << content;
+		config_file.close();
+	}
 }

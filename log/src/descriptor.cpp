@@ -130,5 +130,5 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 	else if (*id == logger::Log_Descriptor.id)
 		return Manufacture_Object<CLog_Filter>(filter, output);
 
-	return ENOENT;
+	return E_NOTIMPL;
 }

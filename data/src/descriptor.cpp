@@ -314,5 +314,5 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 	else if (*id == sincos_generator::SinCos_Generator_Descriptor.id)
 		return Manufacture_Object<CSinCos_Generator>(filter, next_filter);
 
-	return ENOENT;
+	return E_NOTIMPL;
 }

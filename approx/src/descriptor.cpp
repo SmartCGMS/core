@@ -92,5 +92,5 @@ extern "C" HRESULT IfaceCalling do_create_approximator(const GUID *approx_id, sc
 	else if (*approx_id == avgexp::AvgExp_Descriptor.id)
 		return Manufacture_Object<CAvgExpApprox>(approx, scgms::WSignal{ signal }, AvgExpElementary);
 
-	return ENOENT;
+	return E_NOTIMPL;
 }

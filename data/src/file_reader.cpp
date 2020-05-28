@@ -347,7 +347,7 @@ HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration con
 		std::wstring desc = dsCannot_Open_File;
 		desc += mFileName;
 		error_description.push(desc);
-		rc = ENOENT;
+		rc = E_NOTIMPL;
 	}
 	
 	return rc;
