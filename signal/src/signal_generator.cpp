@@ -223,7 +223,10 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 	if (Is_Invalid_GUID(model_id) || Is_Any_NaN(mFixed_Stepping, mMax_Time)) return E_INVALIDARG;
 	
 	uint64_t segment_id = configuration.Read_Int(rsTime_Segment_ID, scgms::Invalid_Segment_Id);
-	if (!mSync_To_Signal && ((segment_id == scgms::Invalid_Segment_Id) || (segment_id == scgms::All_Segments_Id))) {
+
+	const bool seg_id_async_wrong = !mSync_To_Signal && ((segment_id == scgms::Invalid_Segment_Id) || (segment_id == scgms::All_Segments_Id));
+	const bool seg_id_sync_wrong = mSync_To_Signal && (segment_id == scgms::Invalid_Segment_Id);
+	if (seg_id_async_wrong || seg_id_sync_wrong) {
 		error_description.push(dsAsync_Sig_Gen_Req_Seg_Id);
 		return E_INVALIDARG;
 	}
