@@ -243,7 +243,13 @@ HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 				// res = S_OK; - do not unless we have another signal called consumed CHO
 			}
 		}
-	}
+	} else 
+		if (event.event_code() == scgms::NDevice_Event_Code::Level) {
+			if ((event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate) ||
+				(event.signal_id() == scgms::signal_Requested_Insulin_Bolus) ||
+				(event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue))
+				res = E_ILLEGAL_STATE_CHANGE;	//cannot modify our state prior initialization!
+		}
 
 	if (res == S_FALSE)
 		res = Send(event);

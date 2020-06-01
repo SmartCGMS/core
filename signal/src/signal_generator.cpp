@@ -108,6 +108,10 @@ HRESULT signal_generator_internal::CSynchronized_Generator::Execute_Sync(scgms::
 			else {
 				//cannot advance the model because this is the very first event, thus we do not have the delta
 				mSync_Model->Initialize(event.device_time(), mSegment_Id);	//for which we need to set the current time
+
+				//do not move the initialize from here - if we would replay a historical log, combined
+				//with events produced in the present, it could produce wrong dynamic stepping
+				//because we nee to lock our time hearbeat on the historical sync_signal, not any signal
 			}
 
 			mLast_Device_Time = event.device_time();

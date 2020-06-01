@@ -65,6 +65,8 @@ namespace icarus_v1_boluses {
 			double vector[param_count];
 		};
 	};
+
+	extern const double default_parameters[param_count];
 }
 
 

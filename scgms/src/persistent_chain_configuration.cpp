@@ -41,9 +41,9 @@
 #include "filters.h"
 
 #include "../../../common/rtl/FilesystemLib.h" 
-#include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/manufactory.h"
+#include "../../../common/rtl/rattime.h"
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/utils/SimpleIni.h" 
 #include "../../../common/utils/string_utils.h" 
@@ -305,11 +305,12 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 			return E_INVALIDARG;
 		}		
 	}
-
+	
 
 	//2. produce the ini file content
 	CSimpleIniW ini;
 	uint32_t section_counter = 1;
+	scgms::CSignal_Description signal_descriptors;	//make the GUID in the ini human-readable by attaching comments
 
 	try {
 		scgms::IFilter_Configuration_Link** filter_begin, ** filter_end;
@@ -372,7 +373,15 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 						rc = parameter->Get_Double(&val);
 						if (rc != S_OK) return rc;
 
-						ini.SetValue(id_str.c_str(), config_name, dbl_2_wstr(val).c_str());	//more precise than ini's SetDoubleValue
+						std::wstring time_str;
+						
+						if (param_type == scgms::NParameter_Type::ptRatTime) {
+							time_str = Rat_Time_To_Local_Time_WStr(val, rsLog_Date_Time_Format);
+							if (!time_str.empty()) time_str = L"; " + time_str;
+						}
+
+						ini.SetValue(id_str.c_str(), config_name, dbl_2_wstr(val).c_str(),  //dbl_2_wstr is more precise than ini's SetDoubleValue
+										time_str.empty() ? nullptr : time_str.c_str());	
 					}
 					break;
 
@@ -406,7 +415,14 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 						rc = parameter->Get_GUID(&val);
 						if (rc != S_OK) return rc;
 
-						ini.SetValue(id_str.c_str(), config_name, GUID_To_WString(val).c_str());
+						wchar_t* id_desc_ptr = Describe_GUID(val, param_type, signal_descriptors);
+						std::wstring commented_comment = L"; ";
+						if (id_desc_ptr) {
+							commented_comment += id_desc_ptr;
+							id_desc_ptr = const_cast<wchar_t*>(commented_comment.c_str());
+						}
+						
+						ini.SetValue(id_str.c_str(), config_name, GUID_To_WString(val).c_str(), id_desc_ptr);
 					}
 					break;
 
@@ -466,7 +482,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Get_Parent_Path(refcnt::ws
 }
 
 HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Parent_Path(const wchar_t* parent_path) {
-	if (!parent_path || (*parent_path)) return E_INVALIDARG;
+	if (!parent_path || (*parent_path == 0)) return E_INVALIDARG;
 
 	HRESULT rc = S_OK;
 	for (scgms::IFilter_Configuration_Link* link : *this) {
@@ -475,4 +491,52 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Parent_Path(const wcha
 	}
 
 	return S_OK;
+}
+
+
+wchar_t* CPersistent_Chain_Configuration::Describe_GUID(const GUID& val, const scgms::NParameter_Type param_type, const scgms::CSignal_Description & signal_descriptors) const {
+	wchar_t* result = nullptr;
+
+	switch (param_type) {
+
+		case scgms::NParameter_Type::ptModel_Produced_Signal_Id:
+		case scgms::NParameter_Type::ptSignal_Id:
+			{
+				scgms::TSignal_Descriptor sig_desc = scgms::Null_Signal_Descriptor;
+				if (signal_descriptors.Get_Descriptor(val, sig_desc))
+					result = const_cast<wchar_t*>(sig_desc.signal_description);
+			}
+			break;
+
+		case scgms::NParameter_Type::ptSignal_Model_Id:
+		case scgms::NParameter_Type::ptDiscrete_Model_Id: {
+			{
+				scgms::TModel_Descriptor model_desc = scgms::Null_Model_Descriptor;
+				if (scgms::get_model_descriptor_by_id(val, model_desc))
+					result = const_cast<wchar_t*>(model_desc.description);
+			}
+			break;
+		}
+
+		case scgms::NParameter_Type::ptMetric_Id:
+			{
+				scgms::TMetric_Descriptor metric_desc = scgms::Null_Metric_Descriptor;
+				if (scgms::get_metric_descriptor_by_id(val, metric_desc))
+					result = const_cast<wchar_t*>(metric_desc.description);
+			}
+			break;
+
+		case scgms::NParameter_Type::ptSolver_Id:
+			{
+				scgms::TSolver_Descriptor solver_desc = scgms::Null_Solver_Descriptor;
+				if (scgms::get_solver_descriptor_by_id(val, solver_desc))
+					result = const_cast<wchar_t*>(solver_desc.description);
+			}
+			break;
+
+
+		default: result = nullptr; break;
+	}
+
+	return result;
 }

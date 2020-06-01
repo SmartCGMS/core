@@ -253,6 +253,16 @@ protected:
 					}
 				
 					raw_link_to_add = static_cast<scgms::IFilter_Configuration_Link*>(new CFilter_Configuration_Link(filter_id)); //so far, zero RC which is correct right now because we do not call dtor here
+
+					{					
+						refcnt::wstr_container* parent_path = nullptr;
+						result.failed = mConfiguration->Get_Parent_Path(&parent_path) != S_OK;
+						if (!result.failed) 
+							result.failed = raw_link_to_add->Set_Parent_Path(refcnt::WChar_Container_To_WString(parent_path).c_str()) != S_OK;
+						parent_path->Release();
+					}
+
+
 					//now, we need to emplace new configuration-parameters
 
 					bool found_parameters = false;

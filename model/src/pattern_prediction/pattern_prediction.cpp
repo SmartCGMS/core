@@ -376,6 +376,9 @@ void CPattern_Prediction_Filter::Write_Parameters_File() {
 				ini.SetValue(section_name_ptr, iiMedian, dbl_2_wstr(pattern_state.running_median).c_str());
 				ini.SetValue(section_name_ptr, iiVariance_Accumulator, dbl_2_wstr(pattern_state.running_variance_accumulator).c_str());
 				ini.SetValue(section_name_ptr, iiStdDev, dbl_2_wstr(pattern_state.running_stddev).c_str());
+
+				//diagnostic
+				//ini.SetLongValue(section_name_ptr, L"Predicted_Band", Level_2_Band_Index(pattern_state.running_median));
 			}
 		}
 	}

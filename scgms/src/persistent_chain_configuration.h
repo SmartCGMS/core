@@ -40,6 +40,7 @@
 
 #include "../../../common/iface/FilterIface.h"
 #include "../../../common/rtl/referencedImpl.h"
+#include "../../../common/rtl/UILib.h"
 
 #include <filesystem>
 
@@ -50,6 +51,8 @@ class CPersistent_Chain_Configuration : public virtual scgms::IPersistent_Filter
 protected:
 	std::filesystem::path mFile_Path;
 	void Advertise_Parent_Path();
+protected:
+	wchar_t* Describe_GUID(const GUID& val, const scgms::NParameter_Type param_type, const scgms::CSignal_Description& signal_descriptors) const;
 public:
 	virtual ~CPersistent_Chain_Configuration() {};
 

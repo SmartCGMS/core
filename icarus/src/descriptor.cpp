@@ -37,6 +37,7 @@
  */
 
 #include "descriptor.h"
+#include "v1_boluses.h"
 
 #include "../../../common/iface/DeviceIface.h"
 #include "../../../common/lang/dstrings.h"
@@ -119,5 +120,10 @@ HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, 
 
 
 HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
+	if (!model_id) return E_INVALIDARG;
+
+	if (*model_id == icarus_v1_boluses::model_id) 
+		return Manufacture_Object<CV1_Boluses>(model, parameters, output);
+
 	return E_NOTIMPL;
 }
