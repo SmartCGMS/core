@@ -88,7 +88,8 @@ namespace icarus_v1_boluses {
 	const double meal_period = 6.095232 * scgms::One_Hour;
 
 	const double lower_bound[param_count] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-	const double upper_bound[param_count] = { 2.0, 0.0, 100.0,  0.0, 100.0, 0.0, 100.0, 0.0, 100.0, 0.0, 100.0, 0.0, 100.0, 0.0, 100.0, 0.0, 100.0 };
+	const double upper_bound[param_count] = { 10.0, experiment_time, 100.0,  experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, 
+											experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0 };
 
 	const double default_parameters[param_count] = { 2.0, 1.0* meal_period, 10.0,  2.0 * meal_period, 10.0, 3.0 * meal_period, 10.0, 4.0 * meal_period, 10.0, 5.0 * meal_period, 10.0, 6.0 * meal_period, 10.0, 7.0 * meal_period, 10.0, 8.0 * meal_period, 10.0 };
 
