@@ -376,7 +376,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 						std::wstring time_str;
 						
 						if (param_type == scgms::NParameter_Type::ptRatTime) {
-							time_str = Rat_Time_To_Local_Time_WStr(val, rsLog_Date_Time_Format);
+							time_str = Rat_Time_To_Default_WStr(val);
 							if (!time_str.empty()) time_str = L"; " + time_str;
 						}
 
