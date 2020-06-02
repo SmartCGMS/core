@@ -38,6 +38,7 @@
 
 #include "descriptor.h"
 #include "v1_boluses.h"
+#include "basal_and_bolus.h"
 
 #include "../../../common/iface/DeviceIface.h"
 #include "../../../common/lang/dstrings.h"
@@ -110,7 +111,37 @@ namespace icarus_v1_boluses {
 		nullptr
 	};
 }
-const std::array<scgms::TModel_Descriptor, 1> model_descriptions = { { icarus_v1_boluses::desc } };
+
+namespace basal_and_bolus {
+	const wchar_t* param_names[param_count] = { dsBasal_Insulin_Rate, dsCarb_To_Insulin_Ratio };
+	const wchar_t* param_columns[param_count] = { rsBasal_Insulin_Rate, rsCarb_To_Insulin_Ratio };
+	const scgms::NModel_Parameter_Value param_types[param_count] = { scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble };
+
+	const double lower_bound[param_count] = { 0.0, 0.0 };
+	const double upper_bound[param_count] = { 10.0, 10.0 };
+
+	const double default_parameters[param_count] = { 2.0, 1.0/20.20 };
+
+	const scgms::TModel_Descriptor desc = {
+		model_id,
+		scgms::NModel_Flags::Discrete_Model,
+		dsIcarus_Basal_And_Bolus,
+		rsIcarus_Basal_And_Bolus,
+		param_count,
+		param_types,
+		param_names,
+		param_columns,
+		lower_bound,
+		default_parameters,
+		upper_bound,
+		0,
+		nullptr,
+		nullptr
+	};
+}
+
+
+const std::array<scgms::TModel_Descriptor, 2> model_descriptions = { { icarus_v1_boluses::desc, basal_and_bolus::desc } };
 
 
 HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
@@ -125,6 +156,8 @@ HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IMode
 
 	if (*model_id == icarus_v1_boluses::model_id) 
 		return Manufacture_Object<CV1_Boluses>(model, parameters, output);
+	else if (*model_id == basal_and_bolus::model_id)
+		return Manufacture_Object<CBasal_And_Bolus> (model, parameters, output);
 
 	return E_NOTIMPL;
 }

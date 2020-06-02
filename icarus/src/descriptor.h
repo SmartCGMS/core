@@ -70,6 +70,24 @@ namespace icarus_v1_boluses {
 }
 
 
+namespace basal_and_bolus {
+	constexpr GUID model_id = { 0x3498d722, 0x701f, 0x4745, { 0x9f, 0xa8, 0x69, 0x1d, 0xc0, 0xaf, 0xf8, 0xdf } }; // {3498D722-701F-4745-9FA8-691DC0AFF8DF}
+
+	constexpr size_t param_count = 2;
+
+	struct TParameters {
+		union {
+			struct {
+				double basal_rate;
+				double carb_to_insulin;	//carbs to insulin eliminates check for a division by zero and setting minimum value!
+			};
+			double vector[param_count];
+		};
+	};
+
+	extern const double default_parameters[param_count];
+}
+
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end);
 extern "C" HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model);
