@@ -434,9 +434,12 @@ namespace signal_descriptor {
 	const scgms::TSignal_Descriptor isig_desc{ scgms::signal_ISIG, dsSignal_GUI_Name_ISIG, dsA, scgms::NSignal_Unit::A, 0xFF8080FF, 0xFF8080FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor req_bolus_desc{ scgms::signal_Requested_Insulin_Bolus, dsSignal_Requested_Insulin_Bolus, dsU, scgms::NSignal_Unit::U_insulin, 0xFFF59053, 0xFFF59053, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor req_ibr_desc{ scgms::signal_Requested_Insulin_Basal_Rate, dsSignal_Requested_Insulin_Basal_Rate, dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0xFFDDDD55, 0xFFDDDD55, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor req_iidr_desc{ scgms::signal_Requested_Insulin_Intradermal_Rate, dsSignal_Requested_Insulin_Intradermal_Rate, dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0xFFDD8855, 0xFFDD8855, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor del_bolus_desc{ scgms::signal_Delivered_Insulin_Bolus, dsSignal_Delivered_Insulin_Bolus, dsU, scgms::NSignal_Unit::U_insulin, 0xFFF59053, 0xFFF59053, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor del_ins_total_desc{ scgms::signal_Delivered_Insulin_Total, dsSignal_Delivered_Insulin_Total, dsU, scgms::NSignal_Unit::U_insulin, 0xFFF49083, 0xFFF49083, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor del_ibr_desc{ scgms::signal_Delivered_Insulin_Basal_Rate, dsSignal_Delivered_Insulin_Basal_Rate, dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0xFFF59053, 0xFFF59053, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor del_iidr_desc{ scgms::signal_Delivered_Insulin_Intradermal_Rate, dsSignal_Delivered_Insulin_Intradermal_Rate, dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0xFFF54053, 0xFFF54053, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor del_ihins_desc{ scgms::signal_Delivered_Insulin_Inhaled, dsSignal_Delivered_Insulin_Inhaled, dsU, scgms::NSignal_Unit::U_insulin, 0xFF859053, 0xFF859053, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor ins_act_desc{ scgms::signal_Insulin_Activity, dsSignal_GUI_Name_Insulin_Activity, L"", scgms::NSignal_Unit::Other, 0xFF0055DD, 0xFF0055DD, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor iob_desc{ scgms::signal_IOB, dsSignal_GUI_Name_IOB, L"", scgms::NSignal_Unit::Other, 0xFFDD5555, 0xFFDD5555, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor cob_desc{ scgms::signal_COB, dsSignal_GUI_Name_COB, L"", scgms::NSignal_Unit::Other, 0xFF55DD55, 0xFF55DD55, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
@@ -455,8 +458,8 @@ namespace signal_descriptor {
 	const scgms::TSignal_Descriptor ins_sens_desc{ scgms::signal_Insulin_Sensitivity, dsSignal_GUI_Name_Insulin_Sensitivity, L"", scgms::NSignal_Unit::Other, 0xFF0088DD, 0xFF0088DD, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor carb_ratio_desc{ scgms::signal_Carb_Ratio, dsSignal_GUI_Name_Carb_Ratio, L"", scgms::NSignal_Unit::Other, 0xFF00DD88, 0xFF00DD88, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 
-	const std::array<scgms::TSignal_Descriptor, 24> signals = { {bg_desc, bg_cal_desc, ig_desc, isig_desc, req_bolus_desc, req_ibr_desc, del_bolus_desc, del_ins_total_desc, del_ibr_desc, ins_act_desc, iob_desc, cob_desc, cho_in_desc, cho_resc_desc, phys_act_desc,
-																 skin_temp_desc, air_temp_desc, heartbeat_desc, eda_desc, steps_desc, accel_desc, sleep_quality_desc, ins_sens_desc, carb_ratio_desc} };
+	const std::array<scgms::TSignal_Descriptor, 27> signals = { {bg_desc, bg_cal_desc, ig_desc, isig_desc, req_bolus_desc, req_ibr_desc, del_bolus_desc, del_ins_total_desc, del_ibr_desc, ins_act_desc, iob_desc, cob_desc, cho_in_desc, cho_resc_desc, phys_act_desc,
+																 skin_temp_desc, air_temp_desc, heartbeat_desc, eda_desc, steps_desc, accel_desc, sleep_quality_desc, ins_sens_desc, carb_ratio_desc, req_iidr_desc, del_iidr_desc, del_ihins_desc} };
 }
 
 namespace feedback_sender {
