@@ -506,6 +506,7 @@ HRESULT CNetwork_Discrete_Model::Do_Configure(scgms::SFilter_Configuration confi
 	}
 
 	mRemoteAddr = configuration.Read_String(rsRemote_Host, Net_Default_Host);
+	mMax_Time = configuration.Read_Double(rsMaximum_Time, mMax_Time);
 
 	int tmpPort = static_cast<decltype(tmpPort)>(configuration.Read_Int(rsRemote_Port, Net_Default_Port));
 	if (tmpPort < 0 || tmpPort > 65535)
@@ -545,8 +546,6 @@ HRESULT CNetwork_Discrete_Model::Do_Configure(scgms::SFilter_Configuration confi
 		return E_FAIL;
 	}
 
-	mNetThread = std::make_unique<std::thread>(&CNetwork_Discrete_Model::Network_Thread_Fnc, this);
-
 	return S_OK;
 }
 
@@ -556,6 +555,8 @@ HRESULT IfaceCalling CNetwork_Discrete_Model::Initialize(const double current_ti
 	mCur_Ext_Time = mCur_Time;
 	mStart_Time = mCur_Time;
 	mSegment_Id = segment_id;
+
+	mNetThread = std::make_unique<std::thread>(&CNetwork_Discrete_Model::Network_Thread_Fnc, this);
 
 	return S_OK;
 }

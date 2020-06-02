@@ -250,6 +250,8 @@ void CNetwork_Discrete_Model::CSession_Handler::Send_Handshake_Request(double ti
 	req.body.protocol_version_minor = scgms::ProtoVersionMinor;
 	req.body.session_id = sessionId;
 	req.body.tick_interval = tick_interval;
+	req.body.initial_time = mParent.mCur_Time;
+	req.body.requested_duration = mParent.mMax_Time;
 	memcpy(&req.body.session_secret, &session_secret, sizeof(GUID));
 	memcpy(&req.body.requested_model_id, &model_id, sizeof(GUID));
 	wcsncpy_s(req.body.subject_name, mParent.mRequested_Subject_Name.c_str(), std::min(scgms::Subject_Name_Length, mParent.mRequested_Subject_Name.length()));

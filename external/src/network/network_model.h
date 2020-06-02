@@ -109,6 +109,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 		size_t mPing_Interval = 0;
 		GUID mRequested_Model_GUID = Invalid_GUID;
 		std::wstring mRequested_Subject_Name;
+		double mMax_Time = 0;
 
 		std::wstring mRemoteAddr;
 		uint16_t mRemotePort = 0;
