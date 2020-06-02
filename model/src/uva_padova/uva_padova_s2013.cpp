@@ -36,7 +36,7 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "uva_padova.h"
+#include "uva_padova_s2013.h"
 #include "../../../../common/rtl/SolverLib.h"
 #include "../../../../common/rtl/rattime.h"
 
@@ -303,7 +303,7 @@ void CUVA_Padova_S2013_Discrete_Model::Emit_All_Signals(double time_advance_delt
 
 	// sum of all insulin delivered by the pump
 	const double dosedinsulin = (mBolus_Ext.Get_Disturbance(mState.lastTime, _T) + mBasal_Ext.Get_Recent(_T)) * (time_advance_delta / scgms::One_Minute);
-	Emit_Signal_Level(uva_padova_S2013::signal_UVa_Padova_Delivered_Insulin, _T, dosedinsulin);
+	Emit_Signal_Level(uva_padova_S2013::signal_Delivered_Insulin, _T, dosedinsulin);
 
 	/*
 	 * Virtual sensor (glucometer, CGM) signals
@@ -311,11 +311,11 @@ void CUVA_Padova_S2013_Discrete_Model::Emit_All_Signals(double time_advance_delt
 
 	// BG - glucometer
 	const double bglevel = scgms::mgdl_2_mmoll * (mState.Gp / mParameters.Vg);
-	Emit_Signal_Level(uva_padova_S2013::signal_UVa_Padova_BG, _T, bglevel);
+	Emit_Signal_Level(uva_padova_S2013::signal_BG, _T, bglevel);
 
 	// IG
 	const double iglevel = scgms::mgdl_2_mmoll * (mState.Gs / mParameters.Vg);
-	Emit_Signal_Level(uva_padova_S2013::signal_UVa_Padova_IG, _T, iglevel);
+	Emit_Signal_Level(uva_padova_S2013::signal_IG, _T, iglevel);
 }
 
 HRESULT CUVA_Padova_S2013_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
@@ -401,6 +401,8 @@ HRESULT IfaceCalling CUVA_Padova_S2013_Discrete_Model::Step(const double time_ad
 		// and error remain in acceptable range
 		constexpr size_t microStepCount = 5;
 		const double microStepSize = time_advance_delta / static_cast<double>(microStepCount);
+		const double oldTime = mState.lastTime;
+		const double futureTime = mState.lastTime + time_advance_delta;
 
 		// lock scope
 		{
@@ -413,6 +415,8 @@ HRESULT IfaceCalling CUVA_Padova_S2013_Discrete_Model::Step(const double time_ad
 				// Note: times in ODE solver is represented in minutes (and its fractions), as original model parameters are tuned to one minute unit
 				for (auto& binding : mEquation_Binding)
 					binding.x = ODE_Solver.Step(binding.fnc, nowTime / scgms::One_Minute, binding.x, microStepSize / scgms::One_Minute);
+
+				mState.lastTime += static_cast<double>(i)*microStepSize;
 			}
 		}
 
@@ -427,13 +431,15 @@ HRESULT IfaceCalling CUVA_Padova_S2013_Discrete_Model::Step(const double time_ad
 		mState.Hsc1 = std::max(0.0, mState.Hsc1);
 		mState.Hsc2 = std::max(0.0, mState.Hsc2);
 
+		mState.lastTime = oldTime;
+
 		Emit_All_Signals(time_advance_delta);
 
 		mMeal_Ext.Cleanup(mState.lastTime);
 		mBolus_Ext.Cleanup(mState.lastTime);
 		mBasal_Ext.Cleanup_Not_Recent(mState.lastTime);
 
-		mState.lastTime += time_advance_delta;
+		mState.lastTime = futureTime;
 
 		rc = S_OK;
 	}
