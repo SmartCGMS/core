@@ -57,20 +57,26 @@ protected:
 		return Manufacture_Object<T, scgms::IMetric>(metric, params);
 	}
 
+	template <typename T>
+	inline void Bind_Metric_Factory(const GUID& id) {
+		id_map[id] = std::bind(&CId_Dispatcher::Create_X<T>, this, std::placeholders::_1, std::placeholders::_2);
+	}
+
 public:
 	CId_Dispatcher() {
-		id_map[mtrAvg_Abs] = std::bind(&CId_Dispatcher::Create_X<CAbsDiffAvgMetric>, this, std::placeholders::_1, std::placeholders::_2);
-		id_map[mtrMax_Abs] = std::bind(&CId_Dispatcher::Create_X<CAbsDiffMaxMetric>, this, std::placeholders::_1, std::placeholders::_2);
-		id_map[mtrPerc_Abs] = std::bind(&CId_Dispatcher::Create_X<CAbsDiffPercentilMetric>, this, std::placeholders::_1, std::placeholders::_2);
-		id_map[mtrThresh_Abs] = std::bind(&CId_Dispatcher::Create_X<CAbsDiffThresholdMetric>, this, std::placeholders::_1, std::placeholders::_2);
-		id_map[mtrLeal_2010] = std::bind(&CId_Dispatcher::Create_X<CLeal2010Metric>, this, std::placeholders::_1, std::placeholders::_2);
-		id_map[mtrAIC] = std::bind(&CId_Dispatcher::Create_X<CAICMetric>, this, std::placeholders::_1, std::placeholders::_2);
-		id_map[mtrStd_Dev] = std::bind(&CId_Dispatcher::Create_X<CStdDevMetric>, this, std::placeholders::_1, std::placeholders::_2);
-		id_map[mtrVariance] = std::bind(&CId_Dispatcher::Create_X<CVariance_Metric>, this, std::placeholders::_1, std::placeholders::_2);
-		id_map[mtrCrosswalk] = std::bind(&CId_Dispatcher::Create_X<CCrossWalkMetric>, this, std::placeholders::_1, std::placeholders::_2);
-		id_map[mtrIntegral_CDF] = std::bind(&CId_Dispatcher::Create_X<CIntegralCDFMetric>, this, std::placeholders::_1, std::placeholders::_2);
-		id_map[mtrAvg_Plus_Bessel_Std_Dev] = std::bind(&CId_Dispatcher::Create_X<CAvgPlusBesselStdDevMetric>, this, std::placeholders::_1, std::placeholders::_2);
-		id_map[mtrRMSE] = std::bind(&CId_Dispatcher::Create_X<CRMSE_Metric>, this, std::placeholders::_1, std::placeholders::_2);		
+		Bind_Metric_Factory<CAbsDiffAvgMetric>(mtrAvg_Abs);
+		Bind_Metric_Factory<CAbsDiffMaxMetric>(mtrMax_Abs);
+		Bind_Metric_Factory<CAbsDiffPercentilMetric>(mtrPerc_Abs);
+		Bind_Metric_Factory<CAbsDiffThresholdMetric>(mtrThresh_Abs);
+		Bind_Metric_Factory<CLeal2010Metric>(mtrLeal_2010);
+		Bind_Metric_Factory<CAICMetric>(mtrAIC);
+		Bind_Metric_Factory<CStdDevMetric>(mtrStd_Dev);
+		Bind_Metric_Factory<CVariance_Metric>(mtrVariance);
+		Bind_Metric_Factory<CCrossWalkMetric>(mtrCrosswalk);
+		Bind_Metric_Factory<CIntegralCDFMetric>(mtrIntegral_CDF);
+		Bind_Metric_Factory<CAvgPlusBesselStdDevMetric>(mtrAvg_Plus_Bessel_Std_Dev);
+		Bind_Metric_Factory<CRMSE_Metric>(mtrRMSE);
+		Bind_Metric_Factory<CExpWeightedDiffAvgPolar_Metric>(mtrExpWtDiff);
 	}
 
 	HRESULT Create_Metric(const scgms::TMetric_Parameters &parameters, scgms::IMetric **metric) const {

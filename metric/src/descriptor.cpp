@@ -44,7 +44,7 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/descriptor_utils.h"
 
-const std::array < scgms::TMetric_Descriptor, 12 > metric_descriptor = { {
+const std::array < scgms::TMetric_Descriptor, 13 > metric_descriptor = { {
 	 scgms::TMetric_Descriptor{ mtrAvg_Abs, dsAvg_Abs },
 	 scgms::TMetric_Descriptor{ mtrMax_Abs, dsMax_Abs },
 	 scgms::TMetric_Descriptor{ mtrPerc_Abs, dsPerc_Abs },
@@ -52,11 +52,12 @@ const std::array < scgms::TMetric_Descriptor, 12 > metric_descriptor = { {
 	 scgms::TMetric_Descriptor{ mtrLeal_2010, dsLeal_2010 },
 	 scgms::TMetric_Descriptor{ mtrAIC, dsAIC },
 	 scgms::TMetric_Descriptor{ mtrStd_Dev, dsBessel_Std_Dev },
-	 scgms::TMetric_Descriptor{ mtrVariance, dsBessel_Variance },	 
+	 scgms::TMetric_Descriptor{ mtrVariance, dsBessel_Variance },
 	 scgms::TMetric_Descriptor{ mtrCrosswalk, dsCrosswalk },
 	 scgms::TMetric_Descriptor{ mtrIntegral_CDF, dsIntegral_CDF },
 	 scgms::TMetric_Descriptor{ mtrAvg_Plus_Bessel_Std_Dev, dsAvg_Plus_Bessel_Std_Dev },
 	 scgms::TMetric_Descriptor{ mtrRMSE, dsRMSE },
+	 scgms::TMetric_Descriptor{ mtrExpWtDiff, dsExpWtDiffPolar },
 } };
 
 HRESULT IfaceCalling do_get_metric_descriptors(scgms::TMetric_Descriptor const **begin, scgms::TMetric_Descriptor const **end) {
@@ -74,7 +75,7 @@ namespace signal_error {
 		scgms::NParameter_Type::ptSignal_Id,
 		scgms::NParameter_Type::ptSignal_Id,
 		scgms::NParameter_Type::ptMetric_Id,
-		scgms::NParameter_Type::ptInt64,		
+		scgms::NParameter_Type::ptInt64,
 		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptBool,
@@ -93,7 +94,7 @@ namespace signal_error {
 		dsUse_Relative_Error,
 		dsUse_Squared_Diff,
 		dsUse_Prefer_More_Levels,
-		dsMetric_Threshold,		
+		dsMetric_Threshold,
 		nullptr,
 		dsEmit_metric_as_signal,
 		dsEmit_last_value_only
@@ -104,7 +105,7 @@ namespace signal_error {
 		rsReference_Signal,
 		rsError_Signal,
 		rsSelected_Metric,
-		rsMetric_Levels_Required,		
+		rsMetric_Levels_Required,
 		rsUse_Relative_Error,
 		rsUse_Squared_Diff,
 		rsUse_Prefer_More_Levels,
@@ -119,7 +120,7 @@ namespace signal_error {
 		nullptr,
 		nullptr,
 		nullptr,
-		dsMetric_Levels_Required_Hint,		
+		dsMetric_Levels_Required_Hint,
 		nullptr,
 		nullptr,
 		nullptr,
