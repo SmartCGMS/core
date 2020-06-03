@@ -118,7 +118,7 @@ HRESULT IfaceCalling CDecoupling_Filter::Do_Execute(scgms::UDevice_Event event) 
                 auto clone = event.Clone();
                 clone.signal_id() = mDestination_Id;
                 HRESULT rc = Send(clone);
-                if (!SUCCEEDED(rc)) return rc;
+                if (!Succeeded(rc)) return rc;
             }
         }
     }

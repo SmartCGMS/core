@@ -71,7 +71,7 @@ HRESULT CSignal_Feedback::Do_Execute(scgms::UDevice_Event event) {
 				scgms::UDevice_Event clone = event.Clone();
 				if (clone) {
 					HRESULT rc = send_to_receiver(event);
-					if (SUCCEEDED(rc)) rc = Send(clone);
+					if (Succeeded(rc)) rc = Send(clone);
 					return rc;
 				}
 			}

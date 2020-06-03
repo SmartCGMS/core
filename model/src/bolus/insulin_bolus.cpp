@@ -51,7 +51,7 @@ HRESULT CDiscrete_Insulin_Bolus_Calculator::Do_Execute(scgms::UDevice_Event even
 			const double bolus_time = event.device_time();
 			const uint64_t bolus_segment = event.segment_id();
 			HRESULT rc = Send(event);
-			if (SUCCEEDED(rc)) {
+			if (Succeeded(rc)) {
 				scgms::UDevice_Event bolus{ scgms::NDevice_Event_Code::Level };
 				bolus.level() = bolus_level;
 				bolus.device_time() = bolus_time;

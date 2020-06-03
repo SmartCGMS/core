@@ -221,7 +221,7 @@ bool CSignal_Error::Prepare_Levels(const uint64_t segment_id, std::vector<double
 	auto prepare_levels_per_single_segment = [](TSegment_Signals &signals, std::vector<double>& times, std::vector<double>& reference, std::vector<double>& error)->bool {
 		size_t reference_count = 0;
 
-		if (SUCCEEDED(signals.reference_signal->Get_Discrete_Bounds(nullptr, nullptr, &reference_count))) {
+		if (Succeeded(signals.reference_signal->Get_Discrete_Bounds(nullptr, nullptr, &reference_count))) {
 			if (reference_count > 0) {
 
 				const size_t offset = times.size();

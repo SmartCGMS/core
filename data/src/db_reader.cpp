@@ -103,7 +103,7 @@ bool CDb_Reader::Emit_Segment_Marker(scgms::NDevice_Event_Code code, int64_t seg
 	evt.device_id() = Db_Reader_Device_GUID;
 	evt.segment_id() = segment_id;
 
-	return SUCCEEDED(Send(evt));
+	return Succeeded(Send(evt));
 }
 
 bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
@@ -141,7 +141,7 @@ bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
 						evt.signal_id() = descriptor.calculated_signal_ids[i];
 						evt.segment_id() = segment_id;
 						if (evt.parameters.set(sql_result))
-							if (!SUCCEEDED(Send(evt))) return false;
+							if (!Succeeded(Send(evt))) return false;
 					}
 				}
 			}

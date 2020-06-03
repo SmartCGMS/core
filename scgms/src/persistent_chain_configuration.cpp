@@ -87,7 +87,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 			// although we are sending proper length, SimpleIni probably reaches one byte further and reads uninitialized memory
 			buf.push_back(0);
 			rc = Load_From_Memory(buf.data(), buf.size(), error_description);	//also clears mFile_Path!
-			if (SUCCEEDED(rc)) {
+			if (Succeeded(rc)) {
 				mFile_Path = std::move(working_file_path);	//so that we clearly sets new one whehn we succeed
 				Advertise_Parent_Path();
 			}
@@ -333,7 +333,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 
 			scgms::IFilter_Parameter** parameter_begin, ** parameter_end;
 			rc = filter->get(&parameter_begin, &parameter_end);
-			if (!SUCCEEDED(rc)) return rc;	//rc may be also S_FALSE if no parameter has been set yet
+			if (!Succeeded(rc)) return rc;	//rc may be also S_FALSE if no parameter has been set yet
 
 			for (; parameter_begin != parameter_end; parameter_begin++) {
 				auto parameter = *parameter_begin;
@@ -486,7 +486,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Parent_Path(const wcha
 
 	HRESULT rc = S_OK;
 	for (scgms::IFilter_Configuration_Link* link : *this) {
-		if (!SUCCEEDED(link->Set_Parent_Path(parent_path)))
+		if (!Succeeded(link->Set_Parent_Path(parent_path)))
 			rc = E_UNEXPECTED;
 	}
 

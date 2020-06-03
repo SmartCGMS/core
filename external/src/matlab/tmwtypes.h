@@ -109,7 +109,7 @@ typedef unsigned long long  ulonglong_T;
  * would mean that 32 bit comparisons can't be done accurately.  
  * To increase robustness to this, comparisons are done against
  * smaller values first.  An inaccurate 32 bit comparison isn't
- * attempted if the 16 bit comparison has already succeeded.
+ * attempted if the 16 bit comparison has already Succeeded.
  *
  * Limitations on preprocessor math can also be stricter than
  * for the target.  There are known cases where a compiler

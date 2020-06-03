@@ -84,7 +84,7 @@ HRESULT IfaceCalling execute_filter_configuration(scgms::IFilter_Chain_Configura
 	HRESULT rc = raw_executor->Build_Filter_Chain(configuration, on_filter_created, on_filter_created_data, shared_error_description);
 	raw_executor.release();	//can release the unique pointer as it did its job and is needed no more
 
-	if (!SUCCEEDED(rc)) {
+	if (!Succeeded(rc)) {
 		(*executor)->Release();
 		return rc;
 	}
