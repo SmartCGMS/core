@@ -57,7 +57,7 @@ HRESULT IfaceCalling CMapping_Filter::Do_Configure(scgms::SFilter_Configuration 
 
 HRESULT IfaceCalling CMapping_Filter::Do_Execute(scgms::UDevice_Event event) {
     if (event.signal_id() == mSource_Id) {
-        if (mDestination_Null && !event.is_control_event()) {
+        if (mDestination_Null && !event.is_control_event() && !event.is_info_event()) {
             event.reset(nullptr);
             return S_OK;
         }
