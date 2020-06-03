@@ -124,7 +124,7 @@ HRESULT signal_generator_internal::CSynchronized_Generator::Execute_Sync(scgms::
 				while (mTime_To_Catch_Up >= mFixed_Stepping) {
 
 					rc = mSync_Model->Step(mFixed_Stepping);
-					if (!SUCCEEDED(rc)) {
+					if (!Succeeded(rc)) {
 						mCatching_Up = false;
 						return rc;
 					}
@@ -140,7 +140,7 @@ HRESULT signal_generator_internal::CSynchronized_Generator::Execute_Sync(scgms::
 		scgms::IDevice_Event *raw_event = event.get();
 		event.release();
 		rc = mSync_Model->Execute(raw_event);
-		if (!SUCCEEDED(rc))
+		if (!Succeeded(rc))
 			return rc;
 
 		if (step_the_model) rc = mSync_Model->Step(dynamic_stepping);
@@ -191,7 +191,7 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 				TSync_Model sync_model = std::make_unique<signal_generator_internal::CSynchronized_Generator>(mOutput.get(), mLast_Sync_Generator, event.segment_id());
 				refcnt::Swstr_list errs;
 				rc = sync_model->Configure(mSync_Configuration.get(), errs.get());
-				if (!SUCCEEDED(rc)) return rc;
+				if (!Succeeded(rc)) return rc;
 
 				auto inserted_sync_model = mSync_Models.insert(std::pair<uint64_t, TSync_Model>(event.segment_id(), std::move(sync_model)));
 				sync_model_iter = inserted_sync_model.first;
@@ -263,17 +263,17 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 			return E_FAIL;
 
 		HRESULT rc = mAsync_Model->Configure(configuration.get(), error_description.get());
-		if (!SUCCEEDED(rc))
+		if (!Succeeded(rc))
 			return rc;
 
 		mThread = std::make_unique<std::thread>([this, segment_id]() {
 			double total_time = 0.0;
 			
 			scgms::SDiscrete_Model model = mAsync_Model; // hold local instance to avoid race conditions with Execute shutdown code
-			if (SUCCEEDED(model->Initialize(Unix_Time_To_Rat_Time(time(nullptr)), segment_id))) {
+			if (Succeeded(model->Initialize(Unix_Time_To_Rat_Time(time(nullptr)), segment_id))) {
 				model->Step(0.0);	//emit the initial state as this is the current state now
 				while (!mQuitting) {
-					if (!SUCCEEDED(model->Step(mFixed_Stepping))) break;
+					if (!Succeeded(model->Step(mFixed_Stepping))) break;
 
 					total_time += mFixed_Stepping;
 					if (mMax_Time > 0.0) {

@@ -631,7 +631,7 @@ bool CNetwork_Discrete_Model::Emit_Signal_Level(const GUID& id, double device_ti
 	evt.level() = level;
 	evt.segment_id() = mSegment_Id;
 
-	return SUCCEEDED(Send(evt));
+	return Succeeded(Send(evt));
 }
 
 bool CNetwork_Discrete_Model::Emit_Error(const std::wstring& error, bool deferred)
@@ -651,5 +651,5 @@ bool CNetwork_Discrete_Model::Emit_Error(const std::wstring& error, bool deferre
 	else
 		rc = Send(evt);
 
-	return SUCCEEDED(rc);
+	return Succeeded(rc);
 }

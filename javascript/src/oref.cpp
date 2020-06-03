@@ -325,7 +325,7 @@ bool COref_Discrete_Model::Emit_Level(const GUID& signal_id, double time, double
 	evt.device_id() = oref_model::model_id;
 	evt.device_time() = time;
 	evt.level() = level;
-	return SUCCEEDED(Send(evt));
+	return Succeeded(Send(evt));
 }
 
 bool COref_Discrete_Model::Emit_Error(const std::wstring& str, double time)
@@ -336,5 +336,5 @@ bool COref_Discrete_Model::Emit_Error(const std::wstring& str, double time)
 	evt.device_id() = oref_model::model_id;
 	evt.device_time() = time;
 	evt.info.set(str.c_str());
-	return SUCCEEDED(Send(evt));
+	return Succeeded(Send(evt));
 }

@@ -200,7 +200,7 @@ BOOL SimpleCalling Inject_SCGMS_Event(const scgms_execution_t execution, const T
 
 	CSimple_SCGMS_Execution* executor = static_cast<CSimple_SCGMS_Execution*>(execution);
 	
-	return SUCCEEDED(executor->Inject_Event(event_to_send)) ? TRUE : FALSE;
+	return Succeeded(executor->Inject_Event(event_to_send)) ? TRUE : FALSE;
 }
 
 void SimpleCalling Shutdown_SCGMS(const scgms_execution_t execution, BOOL wait_for_shutdown) {

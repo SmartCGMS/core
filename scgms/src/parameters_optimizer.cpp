@@ -467,11 +467,11 @@ public:
 			if (!mEvents_To_Replay.empty()) {
 				for (size_t i = 0; i < mEvents_To_Replay.size(); i++) {		//we can replay the pre-calculated events
 					scgms::IDevice_Event* event_to_replay = static_cast<scgms::IDevice_Event*> (new CDevice_Event{ mEvents_To_Replay[i] });
-					failure_detected = !SUCCEEDED(composite_filter.Execute(event_to_replay));
+					failure_detected = !Succeeded(composite_filter.Execute(event_to_replay));
 					if (failure_detected) {
 						//something has not gone well => break, but be that nice to issue the shutdown event first
 						scgms::IDevice_Event* shutdown_event = static_cast<scgms::IDevice_Event*> (new CDevice_Event{ scgms::NDevice_Event_Code::Shut_Down });
-						if (SUCCEEDED(composite_filter.Execute(shutdown_event)))
+						if (Succeeded(composite_filter.Execute(shutdown_event)))
 							terminal_filter.Wait_For_Shutdown();	//wait only if the shutdown did go through succesfully
 						break;
 					}

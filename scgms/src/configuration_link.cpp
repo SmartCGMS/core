@@ -20,7 +20,7 @@ HRESULT IfaceCalling CFilter_Configuration_Link::Set_Parent_Path(const wchar_t* 
 
 	HRESULT rc = S_OK;
 	for (auto param : *this) {
-		if (!SUCCEEDED(param->Set_Parent_Path(path)))
+		if (!Succeeded(param->Set_Parent_Path(path)))
 			rc = E_UNEXPECTED;
 	}
 

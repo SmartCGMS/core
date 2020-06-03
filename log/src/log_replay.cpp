@@ -275,25 +275,26 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename, u
 
 }
 
-void CLog_Replay_Filter::Open_Logs() {
-
-	struct TLog_Segment_id {
-		std::filesystem::path file_name;
-		uint64_t segment_id;
-	};
+std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_Log_Segments() {
 	std::vector<TLog_Segment_id> logs_to_replay;
 
+	std::error_code ec;
+	if (!std::filesystem::exists(mLog_Filename_Or_Dirpath, ec) || ec)
+		return logs_to_replay;
+
+
 	//1. gather a list of all segments we will try to replay
-	if (Is_Directory(mLog_Filename_Or_Dirpath))	{
+	if (Is_Directory(mLog_Filename_Or_Dirpath)) {
 		auto dir = List_Directory(mLog_Filename_Or_Dirpath);
 		for (const auto& path : dir) {
 			if (Is_Regular_File_Or_Symlink(path))
-				logs_to_replay.push_back({ path, scgms::Invalid_Segment_Id });				
+				logs_to_replay.push_back({ path, scgms::Invalid_Segment_Id });
 		}
 	}
-	else
-		logs_to_replay.push_back({ mLog_Filename_Or_Dirpath, scgms::Invalid_Segment_Id });		
+	else 
+		logs_to_replay.push_back({ mLog_Filename_Or_Dirpath, scgms::Invalid_Segment_Id });
 	
+
 	if (!logs_to_replay.empty()) {
 		//2. determine segment_ids if asked to do so
 		if (mInterpret_Filename_As_Segment_Id) {
@@ -328,15 +329,16 @@ void CLog_Replay_Filter::Open_Logs() {
 
 			std::sort(logs_to_replay.begin(), logs_to_replay.end(), [](auto& a, auto& b) {return a.segment_id < b.segment_id; });
 		}
-
-
-		//3. eventually, replay the logs
-		for (auto& log : logs_to_replay)
-			if (!mShutdown_Received)
-				Replay_Log(log.file_name, log.segment_id);
+		
 	}
-	else
-		Emit_Info(scgms::NDevice_Event_Code::Error, dsCannot_Open_File + mLog_Filename_Or_Dirpath);
+
+	return logs_to_replay;
+}
+
+void CLog_Replay_Filter::Open_Logs(std::vector<CLog_Replay_Filter::TLog_Segment_id> logs_to_replay) {
+	for (auto& log : logs_to_replay)
+		if (!mShutdown_Received)
+			Replay_Log(log.file_name, log.segment_id);
 
 	//issue shutdown after the last log, if we were not asked to ignore it
 	if (mEmit_Shutdown) {
@@ -350,7 +352,14 @@ HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(scgms::SFilter_Configurati
 	mInterpret_Filename_As_Segment_Id = configuration.Read_Bool(rsInterpret_Filename_As_Segment_Id, mInterpret_Filename_As_Segment_Id);
 	mLog_Filename_Or_Dirpath = configuration.Read_File_Path(rsLog_Output_File);
 
-	mLog_Replay_Thread = std::make_unique<std::thread>(&CLog_Replay_Filter::Open_Logs, this);
+	std::vector<CLog_Replay_Filter::TLog_Segment_id> logs_to_replay = Enumerate_Log_Segments();
+	if (!logs_to_replay.empty())
+		mLog_Replay_Thread = std::make_unique<std::thread>(&CLog_Replay_Filter::Open_Logs, this, std::move(logs_to_replay));
+	else {
+		error_description.push(dsCannot_Open_File + mLog_Filename_Or_Dirpath);
+		return ERROR_FILE_NOT_FOUND;
+	}
+
 	return S_OK;
 }
 

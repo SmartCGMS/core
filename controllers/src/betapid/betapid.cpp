@@ -64,12 +64,12 @@ HRESULT CBetaPID_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Paramet
 	std::vector<double> BGs(count);
 	std::fill(BGs.begin(), BGs.end(), std::numeric_limits<double>::quiet_NaN());
 	HRESULT rc = mIG->Get_Continuous_Levels(nullptr, times, BGs.data(), count, scgms::apxNo_Derivation);
-	if (!SUCCEEDED(rc)) return rc;
+	if (!Succeeded(rc)) return rc;
 
 	std::vector<double> IOBs(count);
 	std::fill(IOBs.begin(), IOBs.end(), 0.0);
 	rc = mIOB->Get_Continuous_Levels(nullptr, times, IOBs.data(), count, scgms::apxNo_Derivation);
-	if (!SUCCEEDED(rc)) return rc;
+	if (!Succeeded(rc)) return rc;
 
 	for (size_t i = 0; i < count; i++)
 	{
@@ -99,14 +99,14 @@ HRESULT CBetaPID_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Paramet
 
 		// retrieve history
 		rc = mIG->Get_Continuous_Levels(nullptr, historyTimes.data(), historyIGs.data(), integral_history, scgms::apxNo_Derivation);
-		if (!SUCCEEDED(rc)) return rc;
+		if (!Succeeded(rc)) return rc;
 
 		// approximate integral of error, int_0^t e(tau) dtau =~= sum_i=0^hist e(t-i*h)*h
 		for (size_t j = 0; j < integral_history; j++)
 			eintegral += std::isnan(historyIGs[j]) ? 0.0 : (targetBG - historyIGs[j]); // *h --> omit the width parameter, as its constant, and would still be included in Ki parameter
 
 		rc = mIG->Get_Continuous_Levels(nullptr, &times[i], &ederivative, 1, scgms::apxFirst_Order_Derivation);
-		if (SUCCEEDED(rc)) {
+		if (Succeeded(rc)) {
 			// error trend has exactly opposite sign than current BG trend
 			ederivative *= -1;
 		} else
@@ -166,17 +166,17 @@ HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 	std::vector<double> IGs(count);
 	std::fill(IGs.begin(), IGs.end(), std::numeric_limits<double>::quiet_NaN());
 	HRESULT rc = mIG->Get_Continuous_Levels(nullptr, times, IGs.data(), count, scgms::apxNo_Derivation);
-	if (!SUCCEEDED(rc)) return rc;
+	if (!Succeeded(rc)) return rc;
 
 	std::vector<double> IOBs(count);
 	std::fill(IOBs.begin(), IOBs.end(), 0.0);
 	rc = mIOB->Get_Continuous_Levels(nullptr, times, IOBs.data(), count, scgms::apxNo_Derivation);
-	if (!SUCCEEDED(rc)) return rc;
+	if (!Succeeded(rc)) return rc;
 
 	std::vector<double> COBs(count);
 	std::fill(COBs.begin(), COBs.end(), 0.0);
 	rc = mCOB->Get_Continuous_Levels(nullptr, times, COBs.data(), count, scgms::apxNo_Derivation);
-	if (!SUCCEEDED(rc)) return rc;
+	if (!Succeeded(rc)) return rc;
 
 	const auto e = [targetBG](const double v) {
 		return targetBG - v;
@@ -213,7 +213,7 @@ HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 
 		// retrieve history
 		rc = mIG->Get_Continuous_Levels(nullptr, historyTimes.data(), historyIGs.data(), integral_history, scgms::apxNo_Derivation);
-		if (!SUCCEEDED(rc)) return rc;
+		if (!Succeeded(rc)) return rc;
 
 		// approximate integral of error, int_0^t e(tau) dtau =~= sum_i=0^hist e(t-i*h)*h
 		for (size_t j = 0; j < integral_history; j++)
@@ -225,7 +225,7 @@ HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 			derTimes[j - 1] = times[i] - (scgms::One_Minute * 5 * (derivative_smooth_history - j));
 
 		rc = mIG->Get_Continuous_Levels(nullptr, derTimes, valArray, derivative_smooth_history, scgms::apxNo_Derivation);
-		if (SUCCEEDED(rc))
+		if (Succeeded(rc))
 		{
 			bool valid = true;
 			for (size_t j = 0; j < derivative_smooth_history; j++)
@@ -291,27 +291,27 @@ HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 	std::vector<double> IGs(count);
 	std::fill(IGs.begin(), IGs.end(), std::numeric_limits<double>::quiet_NaN());
 	HRESULT rc = mIG->Get_Continuous_Levels(nullptr, times, IGs.data(), count, scgms::apxNo_Derivation);
-	if (!SUCCEEDED(rc)) return rc;
+	if (!Succeeded(rc)) return rc;
 
 	std::vector<double> IOBs(count);
 	std::fill(IOBs.begin(), IOBs.end(), 0.0);
 	rc = mIOB->Get_Continuous_Levels(nullptr, times, IOBs.data(), count, scgms::apxNo_Derivation);
-	if (!SUCCEEDED(rc)) return rc;
+	if (!Succeeded(rc)) return rc;
 
 	std::vector<double> COBs(count);
 	std::fill(COBs.begin(), COBs.end(), 0.0);
 	rc = mCOB->Get_Continuous_Levels(nullptr, times, COBs.data(), count, scgms::apxNo_Derivation);
-	if (!SUCCEEDED(rc)) return rc;
+	if (!Succeeded(rc)) return rc;
 
 	std::vector<double> ISFs(count);
 	std::fill(ISFs.begin(), ISFs.end(), 0.0);
 	rc = mISF->Get_Continuous_Levels(nullptr, times, ISFs.data(), count, scgms::apxNo_Derivation);
-	if (!SUCCEEDED(rc)) return rc;
+	if (!Succeeded(rc)) return rc;
 
 	std::vector<double> CRs(count);
 	std::fill(CRs.begin(), CRs.end(), 0.0);
 	rc = mCR->Get_Continuous_Levels(nullptr, times, CRs.data(), count, scgms::apxNo_Derivation);
-	if (!SUCCEEDED(rc)) return rc;
+	if (!Succeeded(rc)) return rc;
 
 	double derTimes[derivative_smooth_history];
 	double valArray[derivative_smooth_history];
@@ -356,7 +356,7 @@ HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 
 			// retrieve history
 			rc = mIG->Get_Continuous_Levels(nullptr, historyTimes.data(), historyBGs.data(), integral_history, scgms::apxNo_Derivation);
-			if (!SUCCEEDED(rc)) return rc;
+			if (!Succeeded(rc)) return rc;
 
 			// approximate integral of error (Riemann), int_0^t e(tau) dtau =~= sum_i=0^hist e(t-i*h)*h
 			for (size_t i = 0; i < integral_history; i++)
@@ -374,7 +374,7 @@ HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 				derTimes[j - 1] = times[i] - (scgms::One_Minute * 5 * (derivative_smooth_history - j));
 
 			rc = mIG->Get_Continuous_Levels(nullptr, derTimes, valArray, derivative_smooth_history, scgms::apxNo_Derivation);
-			if (SUCCEEDED(rc))
+			if (Succeeded(rc))
 			{
 				valid = true;
 				// for the derivative to be valid, we need all values in smoothed history (in order to calculate Nth order accurate derivative) to be valid

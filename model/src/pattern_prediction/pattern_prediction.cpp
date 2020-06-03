@@ -67,7 +67,7 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 		const GUID sig_id = event.signal_id();
 
 		HRESULT rc = Send(event);
-		sent = SUCCEEDED(rc);
+		sent = Succeeded(rc);
 		if (sent) {
 			const double predicted_level = Update_And_Predict(seg_id, dev_time, level);
 
@@ -135,7 +135,7 @@ HRESULT CPattern_Prediction_Filter::Do_Configure(scgms::SFilter_Configuration co
 
 	if (!mParameters_File_Path.empty()) {
 		HRESULT rc = Read_Parameters_File(error_description);
-		if (SUCCEEDED(rc))
+		if (Succeeded(rc))
 			return rc;
 	}
 
@@ -164,7 +164,7 @@ double CPattern_Prediction_Filter::Update_And_Predict(const uint64_t segment_id,
 }
 
 void CPattern_Prediction_Filter::Update_Learn(scgms::SSignal& ist, const double current_time, const double current_ig_level) {
-	if (SUCCEEDED(ist->Update_Levels(&current_time, &current_ig_level, 1))) {
+	if (Succeeded(ist->Update_Levels(&current_time, &current_ig_level, 1))) {
 		auto [pattern, band_index, classified_ok] = Classify(ist, current_time - mDt);
 
 		if (!mDo_Not_Learn) {

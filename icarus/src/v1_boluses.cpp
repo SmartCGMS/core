@@ -68,7 +68,7 @@ void CV1_Boluses::Check_Bolus_Delivery(const double current_time) {
 		evt.device_time() = mStepped_Current_Time;
 		evt.segment_id() = mSegment_id;
 		evt.level() = mParameters.basal_rate;		
-		mBasal_Rate_Issued = SUCCEEDED(Send(evt));
+		mBasal_Rate_Issued = Succeeded(Send(evt));
 	}
 
 
@@ -84,7 +84,7 @@ void CV1_Boluses::Check_Bolus_Delivery(const double current_time) {
 			evt.segment_id() = mSegment_id;
 			evt.level() = mParameters.bolus[mBolus_Index].bolus;
 
-			if (SUCCEEDED(Send(evt)))
+			if (Succeeded(Send(evt)))
 				mBolus_Index++;
 		}
 	}
