@@ -90,7 +90,7 @@ HRESULT CSignal_Feedback::Do_Configure(scgms::SFilter_Configuration configuratio
 
 	mFeedback_Name = configuration.Read_String(rsFeedback_Name);
 	mSignal_ID = configuration.Read_GUID(rsSignal_Source_Id);
-	mForward_Clone = configuration.Read_Bool(rsRemove_From_Source);
+	mForward_Clone = !configuration.Read_Bool(rsRemove_From_Source);
 
 	if (Is_Empty(mFeedback_Name) || Is_Invalid_GUID(mSignal_ID))
 		return E_INVALIDARG;

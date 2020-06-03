@@ -81,7 +81,7 @@ protected:
 	std::vector<double> Interpolate_Hermite_Scalar(std::vector<double> coefsOfPolynFunc);
 public:
 public:
-	CAkima(scgms::WSignal signal, scgms::IApprox_Parameters_Vector* configuration);
+	CAkima(scgms::WSignal signal);
 	virtual ~CAkima() {};
 
 	virtual HRESULT IfaceCalling GetLevels(const double* times, double* const levels, const size_t count, const size_t derivation_order) override;

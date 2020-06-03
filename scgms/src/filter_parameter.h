@@ -3,6 +3,8 @@
 #include "../../../common/iface/FilterIface.h"
 #include "../../../common/rtl/referencedImpl.h"
 
+#include <filesystem>
+
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
@@ -11,6 +13,7 @@ protected:
 	const scgms::NParameter_Type mType;
 	const std::wstring mConfig_Name;
 	std::string mSystem_Variable_Name;
+	std::filesystem::path mParent_Path;
 
 	//the following SReferenced variables are not part of the union to prevent memory corruption
 	refcnt::SReferenced<refcnt::wstr_container> mWChar_Container;
@@ -46,6 +49,8 @@ public:
 	//read-write
 	virtual HRESULT IfaceCalling Get_WChar_Container(refcnt::wstr_container** wstr, BOOL read_interpreted) override final;
 	virtual HRESULT IfaceCalling Set_WChar_Container(refcnt::wstr_container *wstr) override final;
+	virtual HRESULT IfaceCalling Get_File_Path(refcnt::wstr_container** wstr) override final;
+	virtual HRESULT IfaceCalling Set_Parent_Path(const wchar_t* parent_path) override final;
 
 	virtual HRESULT IfaceCalling Get_Time_Segment_Id_Container(scgms::time_segment_id_container **ids) override final;
 	virtual HRESULT IfaceCalling Set_Time_Segment_Id_Container(scgms::time_segment_id_container *ids) override final;

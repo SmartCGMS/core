@@ -42,7 +42,7 @@
 #include "signal_stats.h"
 
 #include "../../../common/lang/dstrings.h"
-#include "../../../common/rtl/descriptor_utils.h"
+#include "../../../common/utils/descriptor_utils.h"
 
 const std::array < scgms::TMetric_Descriptor, 13 > metric_descriptor = { {
 	 scgms::TMetric_Descriptor{ mtrAvg_Abs, dsAvg_Abs },
@@ -206,5 +206,5 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 	if (*id == signal_error::desc.id) return Manufacture_Object<CSignal_Error>(filter, output);
 		else if (*id == signal_stats::desc.id) return Manufacture_Object<CSignal_Stats>(filter, output);
 
-	return ENOENT;
+	return E_NOTIMPL;
 }

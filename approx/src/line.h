@@ -62,7 +62,7 @@ class CLine_Approximator : public scgms::IApproximator, public virtual refcnt::C
 		bool Update();
 
 	public:
-		CLine_Approximator(scgms::WSignal signal, scgms::IApprox_Parameters_Vector* configuration);
+		CLine_Approximator(scgms::WSignal signal);
 		virtual ~CLine_Approximator() {};
 
 		virtual HRESULT IfaceCalling GetLevels(const double* times, double* const levels, const size_t count, const size_t derivation_order) override;

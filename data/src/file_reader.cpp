@@ -331,7 +331,7 @@ HRESULT CFile_Reader::Extract(ExtractionResult &values)
 HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	HRESULT rc = E_UNEXPECTED;
 
-	mFileName = configuration.Read_String(rsInput_Values_File);
+	mFileName = configuration.Read_File_Path(rsInput_Values_File);
 	mSegmentSpacing = configuration.Read_Int(rsInput_Segment_Spacing) * 1000.0 * InvMSecsPerDay;
 	if (mSegmentSpacing == 0.0) mSegmentSpacing = file_reader::Default_Segment_Spacing;	//likely default, misconfigured value
 
@@ -347,7 +347,7 @@ HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration con
 		std::wstring desc = dsCannot_Open_File;
 		desc += mFileName;
 		error_description.push(desc);
-		rc = ENOENT;
+		rc = E_NOTIMPL;
 	}
 	
 	return rc;

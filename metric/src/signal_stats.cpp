@@ -60,7 +60,7 @@ HRESULT CSignal_Stats::Do_Configure(scgms::SFilter_Configuration configuration, 
     mSignal_ID = configuration.Read_GUID(rsSelected_Signal);
     if (mSignal_ID == Invalid_GUID) return E_INVALIDARG;
 
-    mCSV_Path = configuration.Read_String(rsOutput_CSV_File);
+    mCSV_Path = configuration.Read_File_Path(rsOutput_CSV_File);
     mDiscard_Repeating_Level = configuration.Read_Bool(rsDiscard_Repeating_Level, mDiscard_Repeating_Level);
         
     if (mCSV_Path.empty()) {

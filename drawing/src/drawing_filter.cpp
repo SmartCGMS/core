@@ -408,12 +408,12 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 HRESULT CDrawing_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mCanvasWidth = static_cast<int>(configuration.Read_Int(rsDrawing_Filter_Canvas_Width, mCanvasWidth));
 	mCanvasHeight = static_cast<int>(configuration.Read_Int(rsDrawing_Filter_Canvas_Height, mCanvasHeight));
-	mAGP_FilePath = configuration.Read_String(rsDrawing_Filter_Filename_AGP);
-	mClark_FilePath = configuration.Read_String(rsDrawing_Filter_Filename_Clark);
-	mDay_FilePath = configuration.Read_String(rsDrawing_Filter_Filename_Day);
-	mGraph_FilePath = configuration.Read_String(rsDrawing_Filter_Filename_Graph);
-	mParkes_FilePath = configuration.Read_String(rsDrawing_Filter_Filename_Parkes);
-	mECDF_FilePath = configuration.Read_String(rsDrawing_Filter_Filename_ECDF);
+	mAGP_FilePath = configuration.Read_File_Path(rsDrawing_Filter_Filename_AGP);
+	mClark_FilePath = configuration.Read_File_Path(rsDrawing_Filter_Filename_Clark);
+	mDay_FilePath = configuration.Read_File_Path(rsDrawing_Filter_Filename_Day);
+	mGraph_FilePath = configuration.Read_File_Path(rsDrawing_Filter_Filename_Graph);
+	mParkes_FilePath = configuration.Read_File_Path(rsDrawing_Filter_Filename_Parkes);
+	mECDF_FilePath = configuration.Read_File_Path(rsDrawing_Filter_Filename_ECDF);
 
 	if (mCanvasWidth != 0 && mCanvasHeight != 0)
 	{

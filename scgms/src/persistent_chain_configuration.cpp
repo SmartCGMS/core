@@ -41,9 +41,9 @@
 #include "filters.h"
 
 #include "../../../common/rtl/FilesystemLib.h" 
-#include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/manufactory.h"
+#include "../../../common/rtl/rattime.h"
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/utils/SimpleIni.h" 
 #include "../../../common/utils/string_utils.h" 
@@ -51,41 +51,60 @@
 #include <fstream>
 #include <exception>
 
-HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar_t* file_path, refcnt::wstr_list* error_description) {
+void CPersistent_Chain_Configuration::Advertise_Parent_Path() {
+	std::wstring parent_path = mFile_Path.empty() ? Get_Dll_Dir() : mFile_Path.parent_path();
+	
+	for (scgms::IFilter_Configuration_Link* link : *this) {
+		link->Set_Parent_Path(parent_path.c_str());
+	}
+}
+
+HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar_t* file_path, refcnt::wstr_list* error_description) {	
+	mFile_Path.clear();
 	HRESULT rc = E_UNEXPECTED;
 
-	if ((file_path == nullptr) || (*file_path == 0)) {
-		mFile_Path = Get_Application_Dir();
-		mFile_Name = rsConfig_File_Name;
-		Path_Append(mFile_Path, mFile_Name.c_str());
-	}
-	else {
-		mFile_Path = file_path;
-		mFile_Name = file_path;
-	}
-
-	std::vector<char> buf;
-	std::ifstream configfile;
-
+	if ((file_path == nullptr) || (*file_path == 0))
+		return E_INVALIDARG;
+	
 	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
-	try {
-		configfile.open(Narrow_WString(mFile_Path));
+
+	std::error_code ec;
+	std::filesystem::path working_file_path = std::filesystem::absolute(file_path, ec);
+	if (ec) {
+		shared_error_description.push(Widen_Char(ec.message().c_str()));
+		return E_INVALIDARG;
+	}	
+	
+	
+	try {		
+		std::ifstream configfile;
+		configfile.open(working_file_path);
 
 		if (configfile.is_open()) {
+			std::vector<char> buf;
 			buf.assign(std::istreambuf_iterator<char>(configfile), std::istreambuf_iterator<char>());
 			// fix valgrind's "Conditional jump or move depends on uninitialised value(s)"
 			// although we are sending proper length, SimpleIni probably reaches one byte further and reads uninitialized memory
 			buf.push_back(0);
-			rc = Load_From_Memory(buf.data(), buf.size(), error_description);
-		}
+			rc = Load_From_Memory(buf.data(), buf.size(), error_description);	//also clears mFile_Path!
+			if (SUCCEEDED(rc)) {
+				mFile_Path = std::move(working_file_path);	//so that we clearly sets new one whehn we succeed
+				Advertise_Parent_Path();
+			}
 
-		configfile.close();
+			configfile.close();
+		}
+		else
+			rc = ERROR_FILE_NOT_FOUND;
+
+		
 	}
 	catch (const std::exception & ex) {
 		// specific handling for all exceptions extending std::exception, except
 		// std::runtime_error which is handled explicitly
 		std::wstring error_desc = Widen_Char(ex.what());
-		shared_error_description.push(error_desc.c_str());
+		shared_error_description.push(error_desc);
+		
 		return E_FAIL;
 	}
 	catch (...) {
@@ -101,6 +120,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
 
 	try {
+		mFile_Path = Get_Dll_Dir();
+
 		mIni.LoadData(memory, len);
 
 		std::list<CSimpleIniW::Entry> section_names;
@@ -247,6 +268,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 			}
 
 		}
+
+		Advertise_Parent_Path();
 	}
 	catch (const std::exception & ex) {
 		// specific handling for all exceptions extending std::exception, except
@@ -265,9 +288,29 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 	return loaded_all_filters ? S_OK : S_FALSE;
 }
 
-HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t* file_path) {
+HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t* file_path, refcnt::wstr_list* error_description) {
+	//1. determine the file path to save to
+	const bool empty_file_path = (file_path == nullptr) || (*file_path == 0);
+
+	if (empty_file_path && (mFile_Path.empty())) return E_ILLEGAL_METHOD_CALL;
+
+	std::filesystem::path working_file_path;
+	if (empty_file_path) working_file_path = mFile_Path;
+	else {
+		std::error_code ec;
+		working_file_path = std::filesystem::absolute(file_path, ec);
+		if (ec) {
+			refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
+			shared_error_description.push(Widen_Char(ec.message().c_str()));
+			return E_INVALIDARG;
+		}		
+	}
+	
+
+	//2. produce the ini file content
 	CSimpleIniW ini;
 	uint32_t section_counter = 1;
+	scgms::CSignal_Description signal_descriptors;	//make the GUID in the ini human-readable by attaching comments
 
 	try {
 		scgms::IFilter_Configuration_Link** filter_begin, ** filter_end;
@@ -330,7 +373,15 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 						rc = parameter->Get_Double(&val);
 						if (rc != S_OK) return rc;
 
-						ini.SetDoubleValue(id_str.c_str(), config_name, val);
+						std::wstring time_str;
+						
+						if (param_type == scgms::NParameter_Type::ptRatTime) {
+							time_str = Rat_Time_To_Default_WStr(val);
+							if (!time_str.empty()) time_str = L"; " + time_str;
+						}
+
+						ini.SetValue(id_str.c_str(), config_name, dbl_2_wstr(val).c_str(),  //dbl_2_wstr is more precise than ini's SetDoubleValue
+										time_str.empty() ? nullptr : time_str.c_str());	
 					}
 					break;
 
@@ -364,7 +415,14 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 						rc = parameter->Get_GUID(&val);
 						if (rc != S_OK) return rc;
 
-						ini.SetValue(id_str.c_str(), config_name, GUID_To_WString(val).c_str());
+						wchar_t* id_desc_ptr = Describe_GUID(val, param_type, signal_descriptors);
+						std::wstring commented_comment = L"; ";
+						if (id_desc_ptr) {
+							commented_comment += id_desc_ptr;
+							id_desc_ptr = const_cast<wchar_t*>(commented_comment.c_str());
+						}
+						
+						ini.SetValue(id_str.c_str(), config_name, GUID_To_WString(val).c_str(), id_desc_ptr);
 					}
 					break;
 
@@ -385,10 +443,17 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 
 		std::string content;
 		ini.Save(content);
-		std::ofstream config_file(Narrow_WString(mFile_Path), std::ofstream::binary);
+
+		//3. save the content
+		std::ofstream config_file(working_file_path, std::ofstream::binary);
 		if (config_file.is_open()) {
 			config_file << content;
 			config_file.close();
+
+			if (!empty_file_path) {
+				mFile_Path = std::move(working_file_path);
+				Advertise_Parent_Path();
+			}
 		}
 	}
 	catch (...) {
@@ -398,6 +463,80 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 	return S_OK;
 }
 
+HRESULT IfaceCalling CPersistent_Chain_Configuration::add(scgms::IFilter_Configuration_Link** begin, scgms::IFilter_Configuration_Link** end) {
+	HRESULT rc = refcnt::internal::CVector_Container<scgms::IFilter_Configuration_Link*>::add(begin, end);
+	if (rc == S_OK)
+		Advertise_Parent_Path();
+
+	return rc;	
+}
+
 HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersistent_Filter_Chain_Configuration** configuration) {
 	return Manufacture_Object<CPersistent_Chain_Configuration, scgms::IPersistent_Filter_Chain_Configuration>(configuration);
+}
+
+HRESULT IfaceCalling CPersistent_Chain_Configuration::Get_Parent_Path(refcnt::wstr_container** path) {
+	const std::wstring path_to_return = mFile_Path.empty() ? Get_Dll_Dir() : mFile_Path.parent_path().wstring();
+	*path = refcnt::WString_To_WChar_Container(path_to_return.c_str());
+	return S_OK;
+}
+
+HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Parent_Path(const wchar_t* parent_path) {
+	if (!parent_path || (*parent_path == 0)) return E_INVALIDARG;
+
+	HRESULT rc = S_OK;
+	for (scgms::IFilter_Configuration_Link* link : *this) {
+		if (!SUCCEEDED(link->Set_Parent_Path(parent_path)))
+			rc = E_UNEXPECTED;
+	}
+
+	return S_OK;
+}
+
+
+wchar_t* CPersistent_Chain_Configuration::Describe_GUID(const GUID& val, const scgms::NParameter_Type param_type, const scgms::CSignal_Description & signal_descriptors) const {
+	wchar_t* result = nullptr;
+
+	switch (param_type) {
+
+		case scgms::NParameter_Type::ptModel_Produced_Signal_Id:
+		case scgms::NParameter_Type::ptSignal_Id:
+			{
+				scgms::TSignal_Descriptor sig_desc = scgms::Null_Signal_Descriptor;
+				if (signal_descriptors.Get_Descriptor(val, sig_desc))
+					result = const_cast<wchar_t*>(sig_desc.signal_description);
+			}
+			break;
+
+		case scgms::NParameter_Type::ptSignal_Model_Id:
+		case scgms::NParameter_Type::ptDiscrete_Model_Id: {
+			{
+				scgms::TModel_Descriptor model_desc = scgms::Null_Model_Descriptor;
+				if (scgms::get_model_descriptor_by_id(val, model_desc))
+					result = const_cast<wchar_t*>(model_desc.description);
+			}
+			break;
+		}
+
+		case scgms::NParameter_Type::ptMetric_Id:
+			{
+				scgms::TMetric_Descriptor metric_desc = scgms::Null_Metric_Descriptor;
+				if (scgms::get_metric_descriptor_by_id(val, metric_desc))
+					result = const_cast<wchar_t*>(metric_desc.description);
+			}
+			break;
+
+		case scgms::NParameter_Type::ptSolver_Id:
+			{
+				scgms::TSolver_Descriptor solver_desc = scgms::Null_Solver_Descriptor;
+				if (scgms::get_solver_descriptor_by_id(val, solver_desc))
+					result = const_cast<wchar_t*>(solver_desc.description);
+			}
+			break;
+
+
+		default: result = nullptr; break;
+	}
+
+	return result;
 }

@@ -39,7 +39,7 @@
 #include "descriptor.h"
 #include "../../../common/iface/DeviceIface.h"
 #include "../../../common/lang/dstrings.h"
-#include "../../../common/rtl/descriptor_utils.h"
+#include "../../../common/utils/descriptor_utils.h"
 #include <array>
 
 namespace nlopt {

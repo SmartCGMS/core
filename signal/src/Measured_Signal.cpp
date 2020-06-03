@@ -44,22 +44,11 @@
 #include <numeric>
 #include <assert.h>
 
-CMeasured_Signal::CMeasured_Signal(): mApprox(nullptr) {
-	// TODO: proper approximator configuration
-	//		 now we just pick the first one, which is obviously wrong
+CMeasured_Signal::CMeasured_Signal(const GUID* approx_id): mApprox(nullptr) {
+	scgms::ISignal* self_signal = static_cast<scgms::ISignal*>(this);
+	
 
-	const auto approx_descriptors = scgms::get_approx_descriptors();
-
-	// TODO: passing approximation parameters through architecture to Approximate method
-	//		 for now, we just send nullptr so the approximation method uses default parameters
-
-	if (!approx_descriptors.empty()) {
-
-		scgms::ISignal* self_signal = static_cast<scgms::ISignal*>(this);
-		scgms::SApprox_Parameters_Vector params;
-
-		mApprox = scgms::Create_Approximator(approx_descriptors[0].id, self_signal, params);
-	}
+	mApprox = approx_id ? scgms::Create_Approximator(*approx_id, self_signal) : scgms::Create_Approximator(self_signal);				
 }
 
 HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Levels(double* const times, double* const levels, const size_t count, size_t *filled) const {
@@ -112,7 +101,6 @@ HRESULT IfaceCalling CMeasured_Signal::Update_Levels(const double *times, const 
 		}
 		else {
 			//update or insert?
-
 			//check whether the times[i] is already present and we will updated it
 
 			//need to reevaluate every time for i as the insertion might change memory addresses
@@ -120,7 +108,7 @@ HRESULT IfaceCalling CMeasured_Signal::Update_Levels(const double *times, const 
 			//as we assume that updates would occur for a certain recent period only.
 			//Hence, there is no need to search all the times.
 			decltype(mTimes)::iterator search_begin, search_end;
-			if (times[i] < mTimes[mLast_Update_Index]) {
+			if (!mTimes.empty() && (times[i] < mTimes[mLast_Update_Index])) {
 				search_begin = mTimes.begin();
 				search_end = mTimes.begin() + mLast_Update_Index;
 			}

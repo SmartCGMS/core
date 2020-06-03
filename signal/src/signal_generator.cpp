@@ -60,7 +60,7 @@ HRESULT IfaceCalling signal_generator_internal::CSynchronized_Generator::Configu
 
 	mFixed_Stepping = shared_configuration.Read_Double(rsStepping, mFixed_Stepping);
 	const GUID model_id = shared_configuration.Read_GUID(rsSelected_Model);
-	if (Is_Invalid_GUID(model_id) || Is_NaN(mFixed_Stepping)) return E_INVALIDARG;
+	if (Is_Invalid_GUID(model_id) || Is_Any_NaN(mFixed_Stepping)) return E_INVALIDARG;
 	mSync_Signal = shared_configuration.Read_GUID(rsSynchronization_Signal);
 	
 	std::vector<double> lower, parameters, upper;
@@ -108,6 +108,10 @@ HRESULT signal_generator_internal::CSynchronized_Generator::Execute_Sync(scgms::
 			else {
 				//cannot advance the model because this is the very first event, thus we do not have the delta
 				mSync_Model->Initialize(event.device_time(), mSegment_Id);	//for which we need to set the current time
+
+				//do not move the initialize from here - if we would replay a historical log, combined
+				//with events produced in the present, it could produce wrong dynamic stepping
+				//because we nee to lock our time hearbeat on the historical sync_signal, not any signal
 			}
 
 			mLast_Device_Time = event.device_time();
@@ -220,11 +224,16 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 	mSync_To_Signal = configuration.Read_Bool(rsSynchronize_to_Signal, mSync_To_Signal);
 	mFixed_Stepping = configuration.Read_Double(rsStepping, mFixed_Stepping);
 	const GUID model_id = configuration.Read_GUID(rsSelected_Model);
-	if (Is_Invalid_GUID(model_id) || Is_NaN(mFixed_Stepping, mMax_Time)) return E_INVALIDARG;
+	if (Is_Invalid_GUID(model_id) || Is_Any_NaN(mFixed_Stepping, mMax_Time)) return E_INVALIDARG;
 	
 	uint64_t segment_id = configuration.Read_Int(rsTime_Segment_ID, scgms::Invalid_Segment_Id);
-	if (!mSync_To_Signal && ((segment_id == scgms::Invalid_Segment_Id) || (segment_id == scgms::All_Segments_Id)))
+
+	const bool seg_id_async_wrong = !mSync_To_Signal && ((segment_id == scgms::Invalid_Segment_Id) || (segment_id == scgms::All_Segments_Id));
+	const bool seg_id_sync_wrong = mSync_To_Signal && (segment_id == scgms::Invalid_Segment_Id);
+	if (seg_id_async_wrong || seg_id_sync_wrong) {
+		error_description.push(dsAsync_Sig_Gen_Req_Seg_Id);
 		return E_INVALIDARG;
+	}
 
 
 	if (!mSync_To_Signal && (mFixed_Stepping <= 0.0)) {

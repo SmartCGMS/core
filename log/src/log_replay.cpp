@@ -75,7 +75,10 @@ void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename, u
 	if (log_filename.empty()) return;
 
 	std::wifstream log{ log_filename.string().c_str() };
-	if (!log.is_open()) return;
+	if (!log.is_open()) {
+		Emit_Info(scgms::NDevice_Event_Code::Error, dsCannot_Open_File + mLog_Filename_Or_Dirpath);
+		return;
+	}
 
 	if (mInterpret_Filename_As_Segment_Id)
 		Emit_Info(scgms::NDevice_Event_Code::Information, std::wstring{ dsProcessing_File } +log_filename.wstring().c_str(), filename_segment_id);
@@ -290,46 +293,50 @@ void CLog_Replay_Filter::Open_Logs() {
 	}
 	else
 		logs_to_replay.push_back({ mLog_Filename_Or_Dirpath, scgms::Invalid_Segment_Id });		
+	
+	if (!logs_to_replay.empty()) {
+		//2. determine segment_ids if asked to do so
+		if (mInterpret_Filename_As_Segment_Id) {
+			std::set<uint64_t> used_ids;
+			uint64_t recent_id = 0;
 
-	//2. determine segment_ids if asked to do so
-	if (mInterpret_Filename_As_Segment_Id) {
-		std::set<uint64_t> used_ids;
-		uint64_t recent_id = 0;
+			for (auto& log : logs_to_replay) {
+				std::string name = log.file_name.stem().string();
+				//let's find first digit in the filename
+				char* first_char = nullptr;
+				char* end_char = nullptr;
+				for (size_t i = 0; i < name.size(); i++)
+					if (std::isdigit(name[i])) {
+						first_char = name.data() + i;
+						break;
+					}
 
-		for (auto &log : logs_to_replay) {
-			std::string name = log.file_name.stem().string();
-			//let's find first digit in the filename
-			char* first_char = nullptr;
-			char* end_char = nullptr;
-			for (size_t i = 0; i < name.size(); i++)
-				if (std::isdigit(name[i])) {
-					first_char = name.data() + i;
-					break;
+				//try to convert
+				if (first_char)
+					log.segment_id = std::strtoull(first_char, &end_char, 10);
+
+				while ((log.segment_id <= 0) ||	//<= just in the case that we would change max_id to signed it
+					(log.segment_id == scgms::Invalid_Segment_Id) ||
+					(log.segment_id == scgms::All_Segments_Id) ||
+					(used_ids.find(log.segment_id) != used_ids.end())) {
+
+					log.segment_id = ++recent_id;
 				}
 
-			//try to convert
-			if (first_char)
-				log.segment_id = std::strtoull(first_char, &end_char, 10);
-
-			while ((log.segment_id <= 0) ||	//<= just in the case that we would change max_id to signed it
-				(log.segment_id == scgms::Invalid_Segment_Id) ||
-				(log.segment_id == scgms::All_Segments_Id) ||
-				(used_ids.find(log.segment_id) != used_ids.end())) {
-
-				log.segment_id = ++recent_id;
+				used_ids.insert(log.segment_id);
 			}
 
-			used_ids.insert(log.segment_id);
+			std::sort(logs_to_replay.begin(), logs_to_replay.end(), [](auto& a, auto& b) {return a.segment_id < b.segment_id; });
 		}
 
-		std::sort(logs_to_replay.begin(), logs_to_replay.end(), [](auto &a, auto &b) {return a.segment_id < b.segment_id; });
+
+		//3. eventually, replay the logs
+		for (auto& log : logs_to_replay)
+			if (!mShutdown_Received)
+				Replay_Log(log.file_name, log.segment_id);
 	}
-
-
-	//3. eventually, replay the logs
-	for (auto &log : logs_to_replay) 
-		if (!mShutdown_Received)
-			Replay_Log(log.file_name, log.segment_id);
+	else
+		Emit_Info(scgms::NDevice_Event_Code::Error, dsCannot_Open_File + mLog_Filename_Or_Dirpath);
 
 	//issue shutdown after the last log, if we were not asked to ignore it
 	if (mEmit_Shutdown) {
@@ -341,7 +348,7 @@ void CLog_Replay_Filter::Open_Logs() {
 HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mEmit_Shutdown = configuration.Read_Bool(rsEmit_Shutdown_Msg, mEmit_Shutdown);
 	mInterpret_Filename_As_Segment_Id = configuration.Read_Bool(rsInterpret_Filename_As_Segment_Id, mInterpret_Filename_As_Segment_Id);
-	mLog_Filename_Or_Dirpath = configuration.Read_String(rsLog_Output_File);
+	mLog_Filename_Or_Dirpath = configuration.Read_File_Path(rsLog_Output_File);
 
 	mLog_Replay_Thread = std::make_unique<std::thread>(&CLog_Replay_Filter::Open_Logs, this);
 	return S_OK;
@@ -364,7 +371,7 @@ void CLog_Replay_Filter::WStr_To_Parameters(const std::wstring& src, scgms::SMod
 	// matches the correct count and order, which is safe to assume, if the log file wasn't modified after being written by logger filter
 
 	while ((pos = src.find(L"=", pos + 1)) != std::string::npos) {
-		pos2 = src.find(L", ", pos2 + 1); // this will produce npos in last iteration, but that's fine, we want to cut the rest of string anyways
+		pos2 = src.find(L", ", pos2 + 1); // this will produce npos in last iteration, but that's fine, we want to cut the rest of string anyway
 		params.push_back(std::stod(src.substr(pos + 1, pos - pos2 - 1)));
 	}
 

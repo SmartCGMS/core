@@ -68,7 +68,7 @@ HRESULT IfaceCalling CDecoupling_Filter::Do_Configure(scgms::SFilter_Configurati
     mCondition = Parse_AST_Tree(configuration.Read_String(rsCondition), error_description);
 
     mCollect_Statistics = configuration.Read_Bool(rsCollect_Statistics, mCollect_Statistics);
-    mCSV_Path = configuration.Read_String(rsOutput_CSV_File);
+    mCSV_Path = configuration.Read_File_Path(rsOutput_CSV_File);
 
     if (mCollect_Statistics && mCSV_Path.empty()) {
         error_description.push(dsOutput_to_file_enabled_but_no_filename_given);

@@ -39,38 +39,40 @@
 #include "descriptor.h"
 #include "line.h"
 #include "Akima.h"
+#include "avgexp/AvgExpApprox.h"
+#include "avgexp/AvgElementaryFunctions.h"
 
+#include "../../../common/iface/ApproxIface.h"
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
 
 #include <vector>
 
-namespace line
-{
-	constexpr size_t param_count = 0;
-
+namespace line {	
 	const scgms::TApprox_Descriptor LineApprox_Descriptor = {
-		{ 0xb89204aa, 0x5842, 0xa8f1, { 0x4c, 0xa1, 0x43, 0x12, 0x5f, 0x4e, 0xb2, 0xa7 } },	// {B89204AA-5842-A8F1-4CA1-43125F4EB2A7}
-		dsLine_Approx,
-		param_count,
-		nullptr,
-		nullptr
+		scgms::apxLine,
+		dsLine_Approx
 	};
 }
 
 namespace akima {
-	constexpr size_t param_count = 0;
-
 	const scgms::TApprox_Descriptor Akima_Descriptor = {
-		{ 0xc3e9669d, 0x594a, 0x4fd4,{ 0xb0, 0xf4, 0x44, 0xab, 0x9d, 0x4e, 0x7, 0x39 } },	// {C3E9669D-594A-4FD4-B0F4-44AB9D4E0739}
-		dsAkima,
-		param_count,
-		nullptr,
-		nullptr
+		scgms::apxAkima,	
+		dsAkima		
 	};
 }
 
-const std::array<scgms::TApprox_Descriptor, 2> approx_descriptions = { { line::LineApprox_Descriptor, akima::Akima_Descriptor } };
+namespace avgexp {
+	const scgms::TApprox_Descriptor AvgExp_Descriptor = {
+		scgms::apxAvgExpAppx,
+		dsAvgExp
+	};
+}
+
+
+const std::array<scgms::TApprox_Descriptor, 3> approx_descriptions = { { line::LineApprox_Descriptor, 
+																		  akima::Akima_Descriptor,
+																		 avgexp::AvgExp_Descriptor	} };
 
 extern "C" HRESULT IfaceCalling do_get_approximator_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end) {
 	*begin = const_cast<scgms::TApprox_Descriptor*>(approx_descriptions.data());
@@ -78,15 +80,17 @@ extern "C" HRESULT IfaceCalling do_get_approximator_descriptors(scgms::TApprox_D
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApprox_Parameters_Vector* configuration, scgms::IApproximator **approx) {
+extern "C" HRESULT IfaceCalling do_create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApproximator **approx) {
 
-	// TODO: fix this; temporary construct before approximator configuration is defined - use Akima spline despite another approximator is defined
-	return Manufacture_Object<CAkima>(approx, scgms::WSignal{ signal }, configuration);
+	if (approx_id == nullptr)	//if no id is given, let's use the default approximator
+		return Manufacture_Object<CAkima>(approx, scgms::WSignal{ signal });
 
 	if (*approx_id == line::LineApprox_Descriptor.id)
-		return Manufacture_Object<CLine_Approximator>(approx, scgms::WSignal{ signal }, configuration);
+		return Manufacture_Object<CLine_Approximator>(approx, scgms::WSignal{ signal });
 	else if (*approx_id == akima::Akima_Descriptor.id)
-		return Manufacture_Object<CAkima>(approx, scgms::WSignal{ signal }, configuration);
+		return Manufacture_Object<CAkima>(approx, scgms::WSignal{ signal });
+	else if (*approx_id == avgexp::AvgExp_Descriptor.id)
+		return Manufacture_Object<CAvgExpApprox>(approx, scgms::WSignal{ signal }, AvgExpElementary);
 
-	return ENOENT;
+	return E_NOTIMPL;
 }

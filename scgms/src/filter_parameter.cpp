@@ -17,7 +17,6 @@ HRESULT IfaceCalling CFilter_Parameter::Get_Config_Name(wchar_t **config_name) {
 	return S_OK;
 }
 
-
 HRESULT IfaceCalling CFilter_Parameter::Get_WChar_Container(refcnt::wstr_container **wstr, BOOL read_interpreted) {
 	if ((read_interpreted == TRUE) && !mSystem_Variable_Name.empty()) {
 		const char* sys = std::getenv(mSystem_Variable_Name.c_str());
@@ -38,6 +37,42 @@ HRESULT IfaceCalling CFilter_Parameter::Set_WChar_Container(refcnt::wstr_contain
 	}
 
 	mWChar_Container = wstr;
+	return S_OK;
+}
+
+HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** wstr) {
+	std::filesystem::path result_path;
+
+	if (mSystem_Variable_Name.empty()) {
+		result_path = refcnt::WChar_Container_To_WString(mWChar_Container.get());
+	} else {
+		const char* sys = std::getenv(mSystem_Variable_Name.c_str());
+		if (!sys) return E_NOT_SET;
+
+		result_path = sys;
+	}
+
+	if (result_path.is_relative()) {		
+		std::error_code ec;
+		std::filesystem::path relative_part = result_path;
+		result_path = std::filesystem::canonical(mParent_Path / relative_part, ec);
+		if (ec) {
+			result_path = std::filesystem::weakly_canonical(mParent_Path / relative_part, ec);
+			if (ec)
+				result_path = mParent_Path / relative_part, ec;
+		}
+	}
+
+
+	*wstr = refcnt::WString_To_WChar_Container(result_path.wstring().c_str());
+
+	return S_OK;
+}
+
+HRESULT IfaceCalling CFilter_Parameter::Set_Parent_Path(const wchar_t* parent_path) {
+	if ((!parent_path) || (*parent_path == 0)) return E_INVALIDARG;
+
+	mParent_Path = parent_path;
 	return S_OK;
 }
 
@@ -107,7 +142,9 @@ HRESULT IfaceCalling CFilter_Parameter::Clone(scgms::IFilter_Parameter **deep_co
 	clone->mTime_Segment_ID = refcnt::Copy_Container<int64_t>(mTime_Segment_ID.get());
 	clone->mModel_Parameters = refcnt::Copy_Container<double>(mModel_Parameters.get());
 	clone->mData = mData;
-	
+
+	clone->mParent_Path = mParent_Path;
+
 	(*deep_copy) = static_cast<scgms::IFilter_Parameter*>(clone.get());
 	(*deep_copy)->AddRef();
 	clone.release();

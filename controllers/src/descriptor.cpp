@@ -39,7 +39,7 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
 #include "../../../common/rtl/UILib.h"
-#include "../../../common/rtl/descriptor_utils.h"
+#include "../../../common/utils/descriptor_utils.h"
 #include "../../../common/rtl/DeviceLib.h"
 #include "../../../common/rtl/FilterLib.h"
 
@@ -269,7 +269,7 @@ extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descrip
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, scgms::ISignal **signal) {
+extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal) {
 	if ((calc_id == nullptr) || (segment == nullptr)) return E_INVALIDARG;
 
 	scgms::WTime_Segment weak_segment{ segment };
