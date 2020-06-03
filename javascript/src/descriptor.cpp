@@ -51,7 +51,7 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/iface/DeviceIface.h"
 #include "../../../common/rtl/SolverLib.h"
-#include "../../../common/rtl/descriptor_utils.h"
+#include "../../../common/utils/descriptor_utils.h"
 #include "../../../common/rtl/manufactory.h"
 
 #include "oref.h"
