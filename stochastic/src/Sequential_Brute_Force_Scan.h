@@ -31,7 +31,6 @@ public:
 			mStepping.push_back(mUpper_Bound.min(mLower_Bound.max(Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size))));//also ensure the bounds
 		}
 
-
 		TUsed_Solution stepping;
 		stepping.resize(mUpper_Bound.cols());
 		for (auto i = 0; i < mUpper_Bound.cols(); i++) {

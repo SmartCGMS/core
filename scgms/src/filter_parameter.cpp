@@ -59,7 +59,7 @@ HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** w
 		if (ec) {
 			result_path = std::filesystem::weakly_canonical(mParent_Path / relative_part, ec);
 			if (ec)
-				result_path = mParent_Path / relative_part, ec;
+				result_path = mParent_Path / relative_part;
 		}
 	}
 

@@ -39,6 +39,9 @@
 #include "pattern_prediction_data.h"
 
 #include "../../../../common/utils/DebugHelper.h"
+#include "../../../../common/utils/math_utils.h"
+
+#include <cmath>
 
 #undef min
 #undef max
@@ -47,15 +50,15 @@ CPattern_Prediction_Data::CPattern_Prediction_Data() {
 }
 
 void CPattern_Prediction_Data::Update(const double level) {
-    if (std::isnan(level)) return;
+    if (Is_Any_NaN(level)) return;
        
 
     mState.count += 1.0;
-    if (!std::isnan(mState.running_avg)) {
+    if (!Is_Any_NaN(mState.running_avg)) {
         const double delta = level - mState.running_avg;
         const double delta_n = delta / mState.count;
         mState.running_avg += delta_n;
-        mState.running_median += copysign(mState.running_avg * 0.01, level - mState.running_median);
+        mState.running_median += std::copysign(mState.running_avg * 0.01, level - mState.running_median);
         mState.running_variance_accumulator += delta * delta_n * (mState.count - 1.0);
     }
     else {
@@ -79,7 +82,7 @@ TPattern_Prediction_Pattern_State CPattern_Prediction_Data::Get_State() const {
 
 
     result.running_stddev = result.count > 1.0 ?
-                                sqrt(result.running_variance_accumulator / (result.count - 1.0)) :
+                                std::sqrt(result.running_variance_accumulator / (result.count - 1.0)) :
                                 0.0;
 
 

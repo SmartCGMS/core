@@ -72,7 +72,7 @@ HRESULT IfaceCalling CEvent_Export_Filter::Do_Execute(scgms::UDevice_Event evt)
 		for (auto& cb : mCallbacks)
 		{
 			rc = cb.second(evt.event_code(), &evt.device_id(), &evt.signal_id(), evt.device_time(), evt.logical_time(), evt.segment_id(), evt.level(), parameters, info);
-			if (!SUCCEEDED(rc))
+			if (!Succeeded(rc))
 				break;
 		}
 
@@ -82,7 +82,7 @@ HRESULT IfaceCalling CEvent_Export_Filter::Do_Execute(scgms::UDevice_Event evt)
 	}
 
 	// if a callback has failed, do not propagate event further; this may indicate a critical error
-	if (!SUCCEEDED(rc))
+	if (!Succeeded(rc))
 		return rc;
 
 	return Send(evt);

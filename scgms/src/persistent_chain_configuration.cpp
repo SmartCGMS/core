@@ -52,7 +52,7 @@
 #include <exception>
 
 void CPersistent_Chain_Configuration::Advertise_Parent_Path() {
-	std::wstring parent_path = mFile_Path.empty() ? Get_Dll_Dir() : mFile_Path.parent_path();
+	std::wstring parent_path = mFile_Path.empty() ? Get_Dll_Dir() : mFile_Path.parent_path().wstring();
 	
 	for (scgms::IFilter_Configuration_Link* link : *this) {
 		link->Set_Parent_Path(parent_path.c_str());
@@ -490,7 +490,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Parent_Path(const wcha
 			rc = E_UNEXPECTED;
 	}
 
-	return S_OK;
+	return rc;
 }
 
 

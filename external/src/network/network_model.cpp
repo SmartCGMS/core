@@ -566,7 +566,7 @@ void CNetwork_Discrete_Model::Send_Deferred_Events()
 	std::unique_lock<std::mutex> lck(mEmit_Mtx);
 
 	for (auto& evt : mDeferred_Events_To_Send)
-		Send(std::move(evt));
+		Send(evt);
 
 	mDeferred_Events_To_Send.clear();
 }

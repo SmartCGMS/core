@@ -64,7 +64,6 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 		const double dev_time = event.device_time();
 		const uint64_t seg_id = event.segment_id();
 		const double level = event.level();
-		const GUID sig_id = event.signal_id();
 
 		HRESULT rc = Send(event);
 		sent = Succeeded(rc);
@@ -280,7 +279,7 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list erro
 
 			if (swscanf_s(section_name.pItem, format.c_str(), &pattern_idx, &band_idx) == 2) {
 
-				if ((pattern_idx < static_cast<size_t>(NPattern::count)) && (band_idx < Band_Count)) {
+				if ((pattern_idx < static_cast<int>(NPattern::count)) && (band_idx < static_cast<int>(Band_Count))) {
 
 					auto& pattern = mPatterns[pattern_idx][band_idx];
 					bool all_valid = true;
@@ -316,7 +315,7 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list erro
 	HRESULT rc = S_FALSE;
 	try {
 		std::ifstream configfile;
-		configfile.open(mParameters_File_Path);
+		configfile.open(Narrow_WString(mParameters_File_Path));
 
 		if (configfile.is_open()) {
 			std::vector<char> buf;
@@ -333,7 +332,7 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list erro
 			rc = S_OK;
 		}
 		else {
-			std::wstring desc = dsCannot_Open_File + mParameters_File_Path;			
+			std::wstring desc = dsCannot_Open_File + mParameters_File_Path;
 			error_description.push(desc);
 		}
 
@@ -386,7 +385,7 @@ void CPattern_Prediction_Filter::Write_Parameters_File() {
 	std::string content;
 	ini.Save(content);
 	
-	std::ofstream config_file(mParameters_File_Path, std::ofstream::binary);
+	std::ofstream config_file(Narrow_WString(mParameters_File_Path), std::ofstream::binary);
 	if (config_file.is_open()) {
 		config_file << content;
 		config_file.close();

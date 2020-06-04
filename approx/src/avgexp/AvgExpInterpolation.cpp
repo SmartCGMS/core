@@ -1,5 +1,6 @@
 #include <vector>
 #include <algorithm>
+#include <cmath>
 
 #include "AvgExpInterpolation.h"
 #include "AvgExpApprox.h"
@@ -29,7 +30,7 @@ HRESULT Enum2Vector(scgms::WSignal src, bool AllowPhantom, TControlVector *dst, 
 
 	*/
 
-	size_t index, j, iBufSize=256;	
+	size_t index, j;
 	
 	
 
@@ -84,7 +85,7 @@ HRESULT Enum2Vector(scgms::WSignal src, bool AllowPhantom, TControlVector *dst, 
 				//as processes in body goes by exponential function,
 				//let's guess a better y with i				
 				k = avgelementary.ComputeExpK((*dst)[index - 1].pt, (*dst)[index].pt);
-				cpt.pt.level = (*dst)[index-1].pt.level*exp(k*(cpt.pt.datetime-(*dst)[index-1].pt.datetime));
+				cpt.pt.level = (*dst)[index-1].pt.level*std::exp(k*(cpt.pt.datetime-(*dst)[index-1].pt.datetime));
 
 				cpt.phantom = true;
 
@@ -129,8 +130,6 @@ HRESULT AvgExpDistille(TControlVector *src, TAvgExpVector *dst, size_t passes, c
 		//Now, compute k-coefficients
 		(*dst)[iDstHigh - iDstStride].k = avgelementary.ComputeExpK((*dst)[iDstHigh - iDstStride].pt, (*dst)[iDstHigh].pt);
 		//the last segment was a special case
-
-		size_t NumberOfSteps = (iDstHigh - iHelperIndex) / iDstStride;
 		
 		//serial version
 		dst2 = &(*dst)[iDstHigh];
@@ -168,15 +167,11 @@ HRESULT AvgExpDistille(TControlVector *src, TAvgExpVector *dst, size_t passes, c
 
 		//fill the last but one as a special case
 		(*dst)[iDstHigh - iHelperIndex].pt.level = avgelementary.ComputeExpKX((*dst)[iDstHigh - iDstStride], (*dst)[iDstHigh - iHelperIndex].pt.datetime);
-
-
-		NumberOfSteps = (iDstHigh - iDstStride * 2) / iDstStride;
 		
 		//serial solution
 		dst3 = &(*dst)[iDstHigh - iDstStride * 2];
 		dst2 = dst3 + iHelperIndex;
 		dst1 = dst3 - iDstStride;
-
 
 		for (size_t i = iDstHigh - iDstStride * 2; i >= iDstStride; i -= iDstStride) {
 
@@ -379,7 +374,7 @@ HRESULT AvgExpInterpolateData(TControlVector *testvector, TAvgExpVector *dst, co
 
 					switch (params.EpsilonType) {
 						//max average absolute difference
-					case etMaxAbsDiff:     approxLevel = fabs(diff);
+					case etMaxAbsDiff:     approxLevel = std::fabs(diff);
 						if (approxLevel > ftMaxEpsilon) ftMaxEpsilon = approxLevel;
 						break;
 
@@ -445,84 +440,90 @@ HRESULT AvgExpApproximateData(scgms::WSignal src, CAvgExpApprox **dst, const TAv
 	const size_t firstPreCalcIters = 20;
 	const size_t lastCalcIters = 75;
 
-  TControlVector cv;
-  TAvgExpVector bounds;
-  HRESULT res = Enum2Vector(src, params.Iterations>0 ? true : false, &cv, avgelementary);
-  if ((res == S_OK) && (cv.size()>2))
-	  try {
+	TControlVector cv;
+	TAvgExpVector bounds;
+	HRESULT res = Enum2Vector(src, params.Iterations>0 ? true : false, &cv, avgelementary);
+	if ((res == S_OK) && (cv.size()>2))
+	{
+		try {
 
-		CAvgExpApprox *approx = new CAvgExpApprox(src, avgelementary);		
+			CAvgExpApprox *approx = new CAvgExpApprox(src, avgelementary);		
 		
-		switch (params.EpsilonType) {
-			case etApproxRelative:
-				//Calculate approximated values first				
-				res = Approx2RelativeBounds(&cv, &bounds, params.Epsilon, params.Passes, avgelementary);
+			switch (params.EpsilonType) {
+				case etApproxRelative:
+					//Calculate approximated values first
+					res = Approx2RelativeBounds(&cv, &bounds, params.Epsilon, params.Passes, avgelementary);
 
-				if (res == S_OK) {
-					res = AvgExpInterpolateData(&cv, approx->getPoints(), params, NULL, NULL, &bounds, avgelementary);
-				}
-				
-				break; //case etApproxRelative:
+					if (res == S_OK) {
+						res = AvgExpInterpolateData(&cv, approx->getPoints(), params, NULL, NULL, &bounds, avgelementary);
+					}
 
-			case etMaxAbsDiff: 
-				if (params.Epsilon>=0.0)
-					res = AvgExpInterpolateData(&cv, approx->getPoints(), params, NULL, NULL, NULL, avgelementary);
-					else res = E_INVALIDARG;
-				break;
+					break; //case etApproxRelative:
 
-			case etFixedIterations:
-				if ((params.Passes>3) && (params.Iterations>=firstPreCalcIters*2)) {
-				//it seems that user want some more precision - this takes time
-				//so, sacrifice 20 iterations on a fast pre-calculation
+				case etMaxAbsDiff: 
+					if (params.Epsilon>=0.0)
+						res = AvgExpInterpolateData(&cv, approx->getPoints(), params, NULL, NULL, NULL, avgelementary);
+					else
+						res = E_INVALIDARG;
+					break;
 
-				TControlVector tmp;
-				size_t RemainingIterations = params.Iterations;
+				case etFixedIterations:
+					if ((params.Passes > 3) && (params.Iterations >= firstPreCalcIters * 2)) {
+						//it seems that user want some more precision - this takes time
+						//so, sacrifice 20 iterations on a fast pre-calculation
 
-				TAvgExpApproximationParams tmpAP = params;
-				tmpAP.Passes = firstPreCalcPasses;
-				tmpAP.Iterations = firstPreCalcIters;
+						TControlVector tmp;
+						size_t RemainingIterations = params.Iterations;
 
-				//do first amount of fast precalculations
-				res = AvgExpInterpolateData(&cv, approx->getPoints(), tmpAP, NULL, &tmp, NULL, avgelementary);
-				if (res == S_OK) RemainingIterations = RemainingIterations - firstPreCalcIters;
+						TAvgExpApproximationParams tmpAP = params;
+						tmpAP.Passes = firstPreCalcPasses;
+						tmpAP.Iterations = firstPreCalcIters;
 
-				//do second amount of fast precalculations
-				//based on numerical analysis of results, we can do most of the work with 5 passes
-				//to reduce error, while needing far less time than with e.g. 10 iterations
-				if ((params.Passes>5) && (RemainingIterations>lastCalcIters) && (res == S_OK)) {
+						//do first amount of fast precalculations
+						res = AvgExpInterpolateData(&cv, approx->getPoints(), tmpAP, NULL, &tmp, NULL, avgelementary);
+						if (res == S_OK) RemainingIterations = RemainingIterations - firstPreCalcIters;
 
-					tmpAP.Passes = secondPreCalcPasses;
-					tmpAP.Iterations = RemainingIterations-lastCalcIters;
+						//do second amount of fast precalculations
+						//based on numerical analysis of results, we can do most of the work with 5 passes
+						//to reduce error, while needing far less time than with e.g. 10 iterations
+						if ((params.Passes > 5) && (RemainingIterations > lastCalcIters) && (res == S_OK)) {
 
-					res = AvgExpInterpolateData(&cv, approx->getPoints(), tmpAP, &tmp, &tmp, NULL, avgelementary);
-					if (res == S_OK) RemainingIterations = lastCalcIters;
-				}
+							tmpAP.Passes = secondPreCalcPasses;
+							tmpAP.Iterations = RemainingIterations - lastCalcIters;
 
-				//and finalize
-				if (res == S_OK) {
-					tmpAP.Passes = params.Passes;
-					tmpAP.Iterations = RemainingIterations;
-					res = AvgExpInterpolateData(&cv, approx->getPoints(), tmpAP, &tmp, NULL, NULL, avgelementary);
-				} else 
-					res = AvgExpInterpolateData(&cv, approx->getPoints(), params, NULL, NULL, NULL, avgelementary);
+							res = AvgExpInterpolateData(&cv, approx->getPoints(), tmpAP, &tmp, &tmp, NULL, avgelementary);
+							if (res == S_OK) RemainingIterations = lastCalcIters;
+						}
 
-			} else
-				res = AvgExpInterpolateData(&cv, approx->getPoints(), params, NULL, NULL, NULL, avgelementary);
-				break; //case etFixedIterations:
+						//and finalize
+						if (res == S_OK) {
+							tmpAP.Passes = params.Passes;
+							tmpAP.Iterations = RemainingIterations;
+							res = AvgExpInterpolateData(&cv, approx->getPoints(), tmpAP, &tmp, NULL, NULL, avgelementary);
+						}
+						else
+							res = AvgExpInterpolateData(&cv, approx->getPoints(), params, NULL, NULL, NULL, avgelementary);
+					}
 
-			default: res = E_INVALIDARG;
-		} //switch (params->EpsilonType) {
+					break; //case etFixedIterations:
 
-		if (res == S_OK)
-			*dst = approx;			  
-			else delete approx;
-	  } catch(...) {
-		  res = E_UNEXPECTED;
-	  } else {
-		  res = res == S_OK ? E_INVALIDARG : res;
-			//return E_INVALIDARG to indicate input vector with too little input values
-		    //if the previous call did not already fail for another reason
-	  } //if ((res == S_OK) && (cv.size()>2))
+				default:
+					res = E_INVALIDARG;
+			} //switch (params->EpsilonType) {
 
-  return res;
+			if (res == S_OK)
+				*dst = approx;
+			else
+				delete approx;
+		}
+		catch (...) {
+			res = E_UNEXPECTED;
+		}
+	} else {
+		res = (res == S_OK) ? E_INVALIDARG : res;
+		//return E_INVALIDARG to indicate input vector with too little input values
+		//if the previous call did not already fail for another reason
+	} //if ((res == S_OK) && (cv.size()>2))
+
+	return res;
 }
