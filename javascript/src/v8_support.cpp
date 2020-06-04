@@ -346,8 +346,8 @@ namespace v8_nodejs
 		auto basefilename = v8::StackTrace::CurrentStackTrace(args.GetIsolate(), 1, v8::StackTrace::kScriptName)->GetFrame(args.GetIsolate(), 0)->GetScriptName();
 		std::string basefn{ *v8::String::Utf8Value(args.GetIsolate(), basefilename) };
 
-		std::filesystem::path base;
-		std::filesystem::path scriptpath{ filename_w };
+		filesystem::path base;
+		filesystem::path scriptpath{ filename_w };
 
 		if (scriptpath.is_relative())
 		{
@@ -362,12 +362,12 @@ namespace v8_nodejs
 			}
 			base /= filename_w;
 			base = base.make_preferred();
-			base = std::filesystem::absolute(base);
+			base = filesystem::absolute(base);
 		}
 		else
 		{
 			base = scriptpath.make_preferred();
-			base = std::filesystem::absolute(base);
+			base = filesystem::absolute(base);
 		}
 
 		filename_w = base.wstring();

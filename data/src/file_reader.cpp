@@ -49,7 +49,6 @@
 
 #include <iostream>
 #include <chrono>
-#include <filesystem>
 #include <string>
 
 namespace file_reader
@@ -340,7 +339,7 @@ HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration con
 	mRequireBG_IG = configuration.Read_Bool(rsRequire_IG_BG);
 
 	std::error_code ec;
-	if (Is_Regular_File_Or_Symlink(mFileName) && std::filesystem::exists(mFileName, ec)) {
+	if (Is_Regular_File_Or_Symlink(mFileName) && filesystem::exists(mFileName, ec)) {
 		mReaderThread = std::make_unique<std::thread>(&CFile_Reader::Run_Reader, this);
 		rc = S_OK;
 	} else {

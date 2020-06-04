@@ -41,15 +41,14 @@
 #include "../../../common/iface/FilterIface.h"
 #include "../../../common/rtl/referencedImpl.h"
 #include "../../../common/rtl/UILib.h"
-
-#include <filesystem>
+#include "../../../common/rtl/FilesystemLib.h"
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
 class CPersistent_Chain_Configuration : public virtual scgms::IPersistent_Filter_Chain_Configuration, public virtual refcnt::internal::CVector_Container<scgms::IFilter_Configuration_Link*> {
 protected:
-	std::filesystem::path mFile_Path;
+	filesystem::path mFile_Path;
 	void Advertise_Parent_Path();
 protected:
 	wchar_t* Describe_GUID(const GUID& val, const scgms::NParameter_Type param_type, const scgms::CSignal_Description& signal_descriptors) const;
