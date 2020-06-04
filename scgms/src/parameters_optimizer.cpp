@@ -95,7 +95,18 @@ protected:
 	std::vector<double> mLower_Bound, mUpper_Bound, mFound_Parameters;
 protected:
 	scgms::SFilter_Chain_Configuration Empty_Chain() {
-		return refcnt::Manufacture_Object_Shared<CPersistent_Chain_Configuration, scgms::IFilter_Chain_Configuration, scgms::SFilter_Chain_Configuration>();
+		auto result = refcnt::Manufacture_Object_Shared<CPersistent_Chain_Configuration, scgms::IFilter_Chain_Configuration, scgms::SFilter_Chain_Configuration>();
+
+		refcnt::wstr_container* parent_path = nullptr;
+		if (Succeeded(mConfiguration->Get_Parent_Path(&parent_path))) {
+			if (!Succeeded(result->Set_Parent_Path(refcnt::WChar_Container_To_WString(parent_path).c_str())))
+				result.reset();
+			parent_path->Release();
+		}
+		else
+			result.reset();
+
+		return result;
 	}
 protected:
 	std::vector<scgms::IDevice_Event*> mEvents_To_Replay;	
@@ -207,13 +218,7 @@ protected:
 
 		TFast_Configuration result;
 		result.configuration = Empty_Chain();
-		
-		refcnt::wstr_container* parent_path = nullptr;
-		result.failed = mConfiguration->Get_Parent_Path(&parent_path) != S_OK;
-		if (!result.failed) {
-			result.failed = result.configuration->Set_Parent_Path(refcnt::WChar_Container_To_WString(parent_path).c_str()) != S_OK;
-			parent_path->Release();
-		}
+		result.failed = !result.configuration.operator bool();		
 
 		const std::set<GUID> ui_filters = { scgms::IID_Drawing_Filter, scgms::IID_Log_Filter };	//let's optimize away thos filters, which would only slow down
 

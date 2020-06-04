@@ -485,6 +485,11 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Parent_Path(const wcha
 	if (!parent_path || (*parent_path == 0)) return E_INVALIDARG;
 
 	HRESULT rc = S_OK;
+	mFile_Path = parent_path;
+
+	if (Is_Directory(parent_path))
+		mFile_Path /= ".";
+
 	for (scgms::IFilter_Configuration_Link* link : *this) {
 		if (!Succeeded(link->Set_Parent_Path(parent_path)))
 			rc = E_UNEXPECTED;

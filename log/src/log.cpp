@@ -135,17 +135,24 @@ bool CLog_Filter::Open_Log(const std::wstring &log_filename) {
 HRESULT IfaceCalling CLog_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	// load model descriptors to be able to properly format log outputs of parameters	
 	mModelDescriptors = scgms::get_model_descriptors();
-	mLog_Filename = configuration.Read_File_Path(rsLog_Output_File);
+	mLog_Filename = configuration.Read_String(rsLog_Output_File);
+
+	HRESULT rc = S_OK;
+	if (!mLog_Filename.empty()) {
+		mLog_Filename = configuration.Read_File_Path(rsLog_Output_File);	//resolve possibly relative path
+
+		if (!Open_Log(mLog_Filename)) {
+			std::wstring desc = dsCannot_Open_File;
+			desc += mLog_Filename;
+			error_description.push(desc);
+
+			rc = MK_E_CANTOPENFILE;
+		}
+
+	} //empty log file path just means that we simply do not write the log to the disk
+	  //but collect it in the memory, e.g.; for GUI	
 
 	mIs_Terminated = false;
-
-	const HRESULT rc = Open_Log(mLog_Filename) ? S_OK : MK_E_CANTOPENFILE;
-	if (rc != S_OK) {
-		std::wstring desc = dsCannot_Open_File;
-		desc += mLog_Filename;
-		error_description.push(desc);
-	}
-
 	return rc;
 }
 
