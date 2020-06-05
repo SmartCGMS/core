@@ -67,7 +67,7 @@ class CEvent_Export_Filter : public scgms::CBase_Filter, public scgms::IEvent_Ex
 		virtual ~CEvent_Export_Filter() = default;
 
 		// refcnt::IReferenced implementation
-		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj);
+		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
 
 		// scgms::IEvent_Export_Filter_Inspection iface implementation
 		virtual HRESULT IfaceCalling Register_Callback(const GUID* registered_device_id, scgms::TEvent_Export_Callback callback) override final;

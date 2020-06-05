@@ -23,8 +23,8 @@ protected:
 	solver::TSolver_Setup mSetup;
 public:
 	CSequential_Brute_Force_Scan(const solver::TSolver_Setup &setup) :
-		mSetup(solver::Check_Default_Parameters(setup, /*100'000*/0, 100)),
-		mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)) {
+		mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)),
+		mSetup(solver::Check_Default_Parameters(setup, /*100'000*/0, 100)) {
 
 		//a) by storing suggested params
 		for (size_t i = 0; i < mSetup.hint_count; i++) {
@@ -39,7 +39,7 @@ public:
 
 		TUsed_Solution step = mLower_Bound;
 		mStepping.push_back(step);
-		for (auto i = 0; i < mSetup.population_size; i++) {
+		for (size_t i = 0; i < mSetup.population_size; i++) {
 			step += stepping;
 			mStepping.push_back(step);
 		}
