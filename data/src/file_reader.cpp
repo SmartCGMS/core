@@ -41,6 +41,7 @@
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/FilesystemLib.h"
 #include "../../../common/rtl/rattime.h"
+#include "../../../common/rtl/hresult.h"
 #include "../../../common/lang/dstrings.h"
 
 #include "fileloader/FormatRuleLoader.h"
@@ -86,7 +87,15 @@ bool CFile_Reader::Send_Event(scgms::NDevice_Event_Code code, double device_time
 	evt.segment_id() = segment_id;
 	evt.signal_id() = signalId;
 
-	return Send(evt) == S_OK;
+	const HRESULT rc = Send(evt);
+	if (rc != S_OK) {		
+		std::wstring desc{ dsFile_Reader };
+		desc += dsFailed_To_Send_Event;
+		desc += Describe_Error(rc);
+		Emit_Info(scgms::NDevice_Event_Code::Error, desc);
+	}
+
+	return rc == S_OK;
 }
 
 void CFile_Reader::Resolve_Segments(TValue_Vector const& src, std::list<TSegment_Limits>& targetList) const
@@ -260,9 +269,7 @@ void CFile_Reader::Run_Reader() {
 				break;
 		}
 	} else {
-		 std::wstring desc = dsUnexpected_Error_While_Parsing;
-		 desc += mFileName;
-		 Emit_Info(scgms::NDevice_Event_Code::Error, desc); 
+		 Emit_Info(scgms::NDevice_Event_Code::Error, dsUnexpected_Error_While_Parsing + mFileName.wstring());
 	}
 
 	if (mShutdownAfterLast)	{
@@ -342,10 +349,8 @@ HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration con
 	if (Is_Regular_File_Or_Symlink(mFileName) && filesystem::exists(mFileName, ec)) {
 		mReaderThread = std::make_unique<std::thread>(&CFile_Reader::Run_Reader, this);
 		rc = S_OK;
-	} else {
-		std::wstring desc = dsCannot_Open_File;
-		desc += mFileName;
-		error_description.push(desc);
+	} else {		
+		error_description.push(dsCannot_Open_File + mFileName.wstring());
 		rc = E_NOTIMPL;
 	}
 	

@@ -118,9 +118,9 @@ HRESULT CDMMS_Lib_Discrete_Model::Do_Configure(scgms::SFilter_Configuration conf
 	};
 
 
-	filesystem::path mainfest_path = root_path / L"dmms_manifest.xml";
+	filesystem::path manifest_path = root_path / L"dmms_manifest.xml";
 
-	CXML_Parser<wchar_t> parser(mainfest_path);
+	CXML_Parser<wchar_t> parser(manifest_path);
 	if (!parser.Is_Valid())
 		return false;
 
@@ -131,14 +131,14 @@ HRESULT CDMMS_Lib_Discrete_Model::Do_Configure(scgms::SFilter_Configuration conf
 	if (!mDmmsLib || !mDmmsLib->Is_Loaded())
 	{
 		auto dllpath = Get_Application_Dir();
-		Path_Append(dllpath, L"DmmsLib");
+		dllpath /= L"DmmsLib";
 
 		// needed due to possibility of multiple dependency library versions coexisting in different fallback search paths
 		// TODO: revisit this in future DMMS.dll releases
 		//       last check: version 1.2.1
 		SetDllDirectoryW(dllpath.c_str());
 
-		Path_Append(dllpath, L"DMMS.dll");
+		dllpath /= L"DMMS.dll";
 
 		mDmmsLib = std::make_unique<CDynamic_Library>();
 

@@ -40,6 +40,7 @@
 
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
+#include "../../../common/rtl/FilesystemLib.h"
 
 #include "fileloader/Structures.h"
 #include "fileloader/FormatAdapter.h"
@@ -62,7 +63,7 @@ using TSegment_Limits = std::pair<size_t, size_t>;
 class CFile_Reader : public scgms::CBase_Filter {
 	protected:
 		// original filename from configuration
-		std::wstring mFileName;
+		filesystem::path mFileName;
 		// segment spacing as julian date
 		double mSegmentSpacing = 0.0;
 		// merged extracted values from given file

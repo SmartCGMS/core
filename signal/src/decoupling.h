@@ -40,6 +40,7 @@
 
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
+#include "../../../common/rtl/FilesystemLib.h"
 
 #include "expression/expression.h"
 
@@ -60,7 +61,7 @@ protected:
     bool mRemove_From_Source = false;
     bool mDestination_Null = false;
     bool mCollect_Statistics = false;
-    std::wstring mCSV_Path;
+    filesystem::path mCSV_Path;
 
     CExpression mCondition;
 protected:

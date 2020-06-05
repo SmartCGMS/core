@@ -41,7 +41,7 @@
 
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
-
+#include "../../../common/rtl/FilesystemLib.h"
 
 #include <map>
 #include <vector>
@@ -58,7 +58,7 @@ protected:
     std::map<uint64_t, TLevels> mSignal_Series;              //int identifies the segment
 protected:
     GUID mSignal_ID = Invalid_GUID; //keeping analyzer happy    
-    std::wstring mCSV_Path;
+    filesystem::path mCSV_Path;
     bool mDiscard_Repeating_Level = false;
     void Flush_Stats();
 protected:

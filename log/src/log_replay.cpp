@@ -74,14 +74,14 @@ CLog_Replay_Filter::~CLog_Replay_Filter() {
 void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64_t filename_segment_id) {
 	if (log_filename.empty()) return;
 
-	std::wifstream log{ log_filename.string().c_str() };
+	std::wifstream log{ log_filename };
 	if (!log.is_open()) {
-		Emit_Info(scgms::NDevice_Event_Code::Error, dsCannot_Open_File + mLog_Filename_Or_Dirpath);
+		Emit_Info(scgms::NDevice_Event_Code::Error, dsCannot_Open_File + log_filename.wstring());
 		return;
 	}
 
 	if (mInterpret_Filename_As_Segment_Id)
-		Emit_Info(scgms::NDevice_Event_Code::Information, std::wstring{ dsProcessing_File } +log_filename.wstring().c_str(), filename_segment_id);
+		Emit_Info(scgms::NDevice_Event_Code::Information, dsProcessing_File + log_filename.wstring(), filename_segment_id);
 
 	//unused keeps static analysis happy about creating an unnamed object
 	auto unused = log.imbue(std::locale(std::cout.getloc(), new CDecimal_Separator<char>{ '.'})); //locale takes owner ship of dec_sep
@@ -119,7 +119,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 	auto emit_parsing_exception_w = [this, &log_filename, line_counter](const std::wstring &what) {	
 
 		std::wstring msg{ dsUnexpected_Error_While_Parsing };
-		msg += log_filename.wstring();		
+		msg += log_filename.wstring();
 		msg.append(dsLine_No);
 		msg.append(std::to_wstring(line_counter));
 		
@@ -279,19 +279,18 @@ std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_L
 	std::vector<TLog_Segment_id> logs_to_replay;
 
 	std::error_code ec;
-	if (!filesystem::exists(mLog_Filename_Or_Dirpath, ec) || ec)
+	if (mLog_Filename_Or_Dirpath.empty() || (!filesystem::exists(mLog_Filename_Or_Dirpath, ec) || ec))
 		return logs_to_replay;
 
 
 	//1. gather a list of all segments we will try to replay
-	if (Is_Directory(mLog_Filename_Or_Dirpath)) {
-		auto dir = List_Directory(mLog_Filename_Or_Dirpath);
-		for (const auto& path : dir) {
+	if (Is_Directory(mLog_Filename_Or_Dirpath)) {		
+
+		for (auto& path : filesystem::directory_iterator(mLog_Filename_Or_Dirpath)) {
 			if (Is_Regular_File_Or_Symlink(path))
 				logs_to_replay.push_back({ path, scgms::Invalid_Segment_Id });
 		}
-	}
-	else 
+	} else 
 		logs_to_replay.push_back({ mLog_Filename_Or_Dirpath, scgms::Invalid_Segment_Id });
 	
 
@@ -356,7 +355,7 @@ HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(scgms::SFilter_Configurati
 	if (!logs_to_replay.empty())
 		mLog_Replay_Thread = std::make_unique<std::thread>(&CLog_Replay_Filter::Open_Logs, this, std::move(logs_to_replay));
 	else {
-		error_description.push(dsCannot_Open_File + mLog_Filename_Or_Dirpath);
+		error_description.push(dsCannot_Open_File + mLog_Filename_Or_Dirpath.wstring());
 		return ERROR_FILE_NOT_FOUND;
 	}
 

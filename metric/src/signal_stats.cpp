@@ -121,9 +121,9 @@ HRESULT CSignal_Stats::Do_Execute(scgms::UDevice_Event event) {
 
 
 void CSignal_Stats::Flush_Stats() {
-    std::wofstream stats_file{ Narrow_WChar(mCSV_Path.c_str()) };
+    std::wofstream stats_file{ mCSV_Path };
     if (!stats_file.is_open()) {
-        Emit_Info(scgms::NDevice_Event_Code::Error, std::wstring{ dsCannot_Open_File }+mCSV_Path);
+        Emit_Info(scgms::NDevice_Event_Code::Error, std::wstring{ dsCannot_Open_File }+mCSV_Path.wstring());
         return;
     }
 

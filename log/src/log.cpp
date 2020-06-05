@@ -135,16 +135,13 @@ bool CLog_Filter::Open_Log(const std::wstring &log_filename) {
 HRESULT IfaceCalling CLog_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	// load model descriptors to be able to properly format log outputs of parameters	
 	mModelDescriptors = scgms::get_model_descriptors();
-	mLog_Filename = configuration.Read_String(rsLog_Output_File);
+	mLog_Filename = configuration.Read_File_Path(rsLog_Output_File);
 
 	HRESULT rc = S_OK;
-	if (!mLog_Filename.empty()) {
-		mLog_Filename = configuration.Read_File_Path(rsLog_Output_File);	//resolve possibly relative path
+	if (!mLog_Filename.empty()) {			
 
 		if (!Open_Log(mLog_Filename)) {
-			std::wstring desc = dsCannot_Open_File;
-			desc += mLog_Filename;
-			error_description.push(desc);
+			error_description.push(dsCannot_Open_File + mLog_Filename.wstring());
 
 			rc = MK_E_CANTOPENFILE;
 		}

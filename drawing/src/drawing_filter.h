@@ -82,17 +82,17 @@ protected:
 	std::string mProfile_Insulin_SVG;
 
 	// AGP file path
-	std::wstring mAGP_FilePath;
+	filesystem::path mAGP_FilePath;
 	// Clark file path
-	std::wstring mClark_FilePath;
+	filesystem::path mClark_FilePath;
 	// day plot file path
-	std::wstring mDay_FilePath;
+	filesystem::path mDay_FilePath;
 	// graph file path
-	std::wstring mGraph_FilePath;
+	filesystem::path mGraph_FilePath;
 	// Parkes file path
-	std::wstring mParkes_FilePath;
+	filesystem::path mParkes_FilePath;
 	// ECDF file path
-	std::wstring mECDF_FilePath;
+	filesystem::path mECDF_FilePath;
 
 	// input data changed (external state to indicate future redraw intent)
 	std::atomic<bool> mChanged = false;
@@ -144,7 +144,7 @@ protected:
 	// generates graphs for input values
 	void Generate_Graphs(DataMap& valueMap, double maxValue, LocalizationMap& locales);
 	// stores string to file path
-	void Store_To_File(std::string& str, std::wstring& filePath);
+	void Store_To_File(std::string& str, const filesystem::path& filePath);
 
 	// resets stored values and parameter changes for given signal (must be valid signal id)
 	void Reset_Signal(const GUID& signal_id, const uint64_t segment_id);

@@ -180,9 +180,9 @@ void CDecoupling_Filter::Update_Stats(scgms::UDevice_Event& event, bool conditio
 }
 
 void CDecoupling_Filter::Flush_Stats() {
-    std::wofstream stats_file{ Narrow_WChar(mCSV_Path.c_str()) };
+    std::wofstream stats_file{ mCSV_Path.c_str() };
     if (!stats_file.is_open()) {
-        Emit_Info(scgms::NDevice_Event_Code::Error, std::wstring{ dsCannot_Open_File }+mCSV_Path);
+        Emit_Info(scgms::NDevice_Event_Code::Error, std::wstring{ dsCannot_Open_File }+mCSV_Path.wstring());
         return;
     }
 

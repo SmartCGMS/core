@@ -457,12 +457,12 @@ HRESULT CDrawing_Filter::Do_Configure(scgms::SFilter_Configuration configuration
 	return S_OK;
 }
 
-void CDrawing_Filter::Store_To_File(std::string& str, std::wstring& filePath)
+void CDrawing_Filter::Store_To_File(std::string& str, const filesystem::path& filePath)
 {
 	if (filePath.empty())
 		return;
 
-	std::ofstream ofs(Narrow_WString(filePath));
+	std::ofstream ofs(filePath);
 	ofs << str;
 }
 

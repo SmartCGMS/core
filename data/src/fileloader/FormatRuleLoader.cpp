@@ -48,9 +48,9 @@
 bool CFormat_Rule_Loader::Load_Format_Config(const char *default_config, const wchar_t* file_name, std::function<bool(CSimpleIniA&)> func) {
 
 	auto resolve_config_file_path = [](const wchar_t* filename) {
-		std::wstring path = Get_Application_Dir();
-		Path_Append(path, L"formats");
-		Path_Append(path, filename);
+		auto path = Get_Application_Dir();
+		path /= L"formats";
+		path /= filename;
 
 		return path;
 	};
@@ -80,7 +80,8 @@ bool CFormat_Rule_Loader::Load_Format_Config(const char *default_config, const w
 	
 	//first, load default configs from memory, then update with file config if they are present
 	bool result = load_config(default_config, load_config_from_memory);
-	load_config(Narrow_WString(resolve_config_file_path(file_name)).c_str(), load_config_from_file);	//optionally, load external configs
+	const std::string path_to_load = resolve_config_file_path(file_name).make_preferred().string();
+	load_config(path_to_load.c_str(), load_config_from_file);	//optionally, load external configs
 	
 	return result;
 }

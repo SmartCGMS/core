@@ -44,10 +44,18 @@ HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** w
 	filesystem::path result_path;
 
 	if (mSystem_Variable_Name.empty()) {
+		if (mWChar_Container->empty() == S_OK) {
+			*wstr = nullptr;
+			return S_FALSE;
+		}
+
 		result_path = refcnt::WChar_Container_To_WString(mWChar_Container.get());
 	} else {
 		const char* sys = std::getenv(mSystem_Variable_Name.c_str());
-		if (!sys) return E_NOT_SET;
+		if (!sys) {
+			*wstr = nullptr;
+			return E_NOT_SET;
+		}
 
 		result_path = sys;
 	}

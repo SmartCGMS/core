@@ -123,16 +123,15 @@ HRESULT IfaceCalling add_filters(const scgms::TFilter_Descriptor *begin, const s
 	return loaded_filters.add_filters(begin, end, create_filter);
 }
 
-void CLoaded_Filters::load_libraries() {
-	auto scgms_dir = Get_Dll_Dir();	
-	auto allFiles = List_Directory(Path_Append(scgms_dir, rsSolversDir));
-
-	for (const auto& filepath : allFiles) {
+void CLoaded_Filters::load_libraries() {	
+	const auto filters_dir = Get_Dll_Dir() / rsSolversDir;
+	for (const auto& dir_entry : filesystem::directory_iterator(filters_dir)) {
+		const auto filepath = dir_entry.path();
 
 		if (CDynamic_Library::Is_Library(filepath)) {				//just checks the extension
 			imported::TLibraryInfo lib;
 
-			if (lib.library.Load(filepath.c_str())) {
+			if (lib.library.Load(filepath)) {
 				bool lib_used = Resolve_Func<scgms::TCreate_Filter>(lib.create_filter, lib.library, imported::rsDo_Create_Filter);
 				
 				lib_used |= Resolve_Func<scgms::TCreate_Metric>(lib.create_metric, lib.library, imported::rsDo_Create_Metric);
@@ -292,7 +291,7 @@ HRESULT CLoaded_Filters::get_signal_descriptors(scgms::TSignal_Descriptor** begi
 void CLoaded_Filters::describe_loaded_filters(refcnt::Swstr_list error_description) {
 	std::wstring desc = dsDefault_Filters_Path;	
 	auto appdir = Get_Application_Dir();
-	desc += Path_Append(appdir, rsSolversDir);	
+	desc += (appdir / rsSolversDir).wstring();
 	
 	error_description.push(desc);
 	error_description.push(dsLoaded_Filters);

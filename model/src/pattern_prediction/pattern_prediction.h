@@ -97,7 +97,7 @@ protected:
 protected:
     bool mDo_Not_Learn = false;    
     bool mUpdate_Parameters_File = true;
-    std::wstring mParameters_File_Path;
+    filesystem::path mParameters_File_Path;
 
     bool mUpdated_Levels = false;   //flag to eliminate unnecessary writes to the parameters file
 

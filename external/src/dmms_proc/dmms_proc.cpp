@@ -115,9 +115,9 @@ bool CDMMS_Proc_Discrete_Model::Configure_DMMS() {
 	};
 
 	
-	filesystem::path mainfest_path = root_path / L"dmms_manifest.xml";
+	filesystem::path manifest_path = root_path / L"dmms_manifest.xml";
 	
-	CXML_Parser<wchar_t> parser(mainfest_path);
+	CXML_Parser<wchar_t> parser(manifest_path);
 	if (!parser.Is_Valid())
 		return false;
 

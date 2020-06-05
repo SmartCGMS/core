@@ -469,3 +469,10 @@ HRESULT IfaceCalling optimize_parameters(scgms::IFilter_Chain_Configuration *con
 	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
 	return optimizer.Optimize(*solver_id, population_size, max_generations, *progress, shared_error_description);
 }
+
+HRESULT IfaceCalling optimize_multiple_parameters(scgms::IFilter_Chain_Configuration *configuration, const size_t *filter_indices, const wchar_t **parameters_configuration_names, size_t filter_count,
+												  scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data,
+												  const GUID *solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress *progress,
+												  refcnt::wstr_list *error_description) {
+	return E_NOTIMPL;
+ }

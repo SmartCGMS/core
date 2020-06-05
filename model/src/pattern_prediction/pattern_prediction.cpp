@@ -315,7 +315,7 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list erro
 	HRESULT rc = S_FALSE;
 	try {
 		std::ifstream configfile;
-		configfile.open(Narrow_WString(mParameters_File_Path));
+		configfile.open(mParameters_File_Path);
 
 		if (configfile.is_open()) {
 			std::vector<char> buf;
@@ -332,7 +332,7 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list erro
 			rc = S_OK;
 		}
 		else {
-			std::wstring desc = dsCannot_Open_File + mParameters_File_Path;
+			std::wstring desc = dsCannot_Open_File + mParameters_File_Path.wstring();
 			error_description.push(desc);
 		}
 
@@ -385,7 +385,7 @@ void CPattern_Prediction_Filter::Write_Parameters_File() {
 	std::string content;
 	ini.Save(content);
 	
-	std::ofstream config_file(Narrow_WString(mParameters_File_Path), std::ofstream::binary);
+	std::ofstream config_file(mParameters_File_Path, std::ofstream::binary);
 	if (config_file.is_open()) {
 		config_file << content;
 		config_file.close();
