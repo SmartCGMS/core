@@ -36,7 +36,7 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "uva_padova.h"
+#include "uva_padova_s2013.h"
 #include "../../../../common/rtl/SolverLib.h"
 #include "../../../../common/rtl/rattime.h"
 
@@ -303,7 +303,7 @@ void CUVA_Padova_S2013_Discrete_Model::Emit_All_Signals(double time_advance_delt
 
 	// sum of all insulin delivered by the pump
 	const double dosedinsulin = (mBolus_Ext.Get_Disturbance(mState.lastTime, _T) + mBasal_Ext.Get_Recent(_T)) * (time_advance_delta / scgms::One_Minute);
-	Emit_Signal_Level(uva_padova_S2013::signal_UVa_Padova_Delivered_Insulin, _T, dosedinsulin);
+	Emit_Signal_Level(uva_padova_S2013::signal_Delivered_Insulin, _T, dosedinsulin);
 
 	/*
 	 * Virtual sensor (glucometer, CGM) signals
@@ -311,11 +311,11 @@ void CUVA_Padova_S2013_Discrete_Model::Emit_All_Signals(double time_advance_delt
 
 	// BG - glucometer
 	const double bglevel = scgms::mgdl_2_mmoll * (mState.Gp / mParameters.Vg);
-	Emit_Signal_Level(uva_padova_S2013::signal_UVa_Padova_BG, _T, bglevel);
+	Emit_Signal_Level(uva_padova_S2013::signal_BG, _T, bglevel);
 
 	// IG
 	const double iglevel = scgms::mgdl_2_mmoll * (mState.Gs / mParameters.Vg);
-	Emit_Signal_Level(uva_padova_S2013::signal_UVa_Padova_IG, _T, iglevel);
+	Emit_Signal_Level(uva_padova_S2013::signal_IG, _T, iglevel);
 }
 
 HRESULT CUVA_Padova_S2013_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
@@ -331,6 +331,8 @@ HRESULT CUVA_Padova_S2013_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 					return E_ILLEGAL_STATE_CHANGE;	//got no time-machine to deliver insulin in the past
 													//although we could allow this by setting it (if no newer basal is requested),
 													//it would defeat the purpose of any verification
+
+				std::unique_lock<std::mutex> lck(mStep_Mtx);
 
 				mBasal_Ext.Add_Uptake(event.device_time(), std::numeric_limits<double>::max(), (event.level() / 60.0));
 				if (!mRequested_Basal.requested || event.device_time() > mRequested_Basal.time) {
@@ -348,6 +350,8 @@ HRESULT CUVA_Padova_S2013_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 
 				// spread boluses to this much minutes
 				constexpr double MinsBolusing = 1.0;
+
+				std::unique_lock<std::mutex> lck(mStep_Mtx);
 
 				mBolus_Ext.Add_Uptake(event.device_time(), MinsBolusing * scgms::One_Minute, (event.level() / MinsBolusing));
 
@@ -367,6 +371,8 @@ HRESULT CUVA_Padova_S2013_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 				// TODO: this should be a parameter of CHO intake
 				constexpr double MinsEating = 10.0;
 				constexpr double InvMinsEating = 1.0 / MinsEating;
+
+				std::unique_lock<std::mutex> lck(mStep_Mtx);
 
 				mMeal_Ext.Add_Uptake(event.device_time(), MinsEating * scgms::One_Minute, InvMinsEating * 1000.0 * event.level());
 				// res = S_OK; - do not unless we have another signal called consumed CHO
@@ -395,14 +401,23 @@ HRESULT IfaceCalling CUVA_Padova_S2013_Discrete_Model::Step(const double time_ad
 		// and error remain in acceptable range
 		constexpr size_t microStepCount = 5;
 		const double microStepSize = time_advance_delta / static_cast<double>(microStepCount);
+		const double oldTime = mState.lastTime;
+		const double futureTime = mState.lastTime + time_advance_delta;
 
-		for (size_t i = 0; i < microStepCount; i++)
+		// lock scope
 		{
-			const double nowTime = mState.lastTime + static_cast<double>(i)*microStepSize;
+			std::unique_lock<std::mutex> lck(mStep_Mtx);
 
-			// Note: times in ODE solver is represented in minutes (and its fractions), as original model parameters are tuned to one minute unit
-			for (auto& binding : mEquation_Binding)
-				binding.x = ODE_Solver.Step(binding.fnc, nowTime / scgms::One_Minute, binding.x, microStepSize / scgms::One_Minute);
+			for (size_t i = 0; i < microStepCount; i++)
+			{
+				const double nowTime = mState.lastTime + static_cast<double>(i)*microStepSize;
+
+				// Note: times in ODE solver is represented in minutes (and its fractions), as original model parameters are tuned to one minute unit
+				for (auto& binding : mEquation_Binding)
+					binding.x = ODE_Solver.Step(binding.fnc, nowTime / scgms::One_Minute, binding.x, microStepSize / scgms::One_Minute);
+
+				mState.lastTime += static_cast<double>(i)*microStepSize;
+			}
 		}
 
 		// several state variables should be non-negative, as it would mean invalid state - if the substance is depleted, then there's no way it could reach
@@ -416,13 +431,15 @@ HRESULT IfaceCalling CUVA_Padova_S2013_Discrete_Model::Step(const double time_ad
 		mState.Hsc1 = std::max(0.0, mState.Hsc1);
 		mState.Hsc2 = std::max(0.0, mState.Hsc2);
 
+		mState.lastTime = oldTime;
+
 		Emit_All_Signals(time_advance_delta);
 
 		mMeal_Ext.Cleanup(mState.lastTime);
 		mBolus_Ext.Cleanup(mState.lastTime);
 		mBasal_Ext.Cleanup_Not_Recent(mState.lastTime);
 
-		mState.lastTime += time_advance_delta;
+		mState.lastTime = futureTime;
 
 		rc = S_OK;
 	}

@@ -1,10 +1,10 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 
-SET(PROJ "approx")
+SET(PROJ "event_export")
 
 CONFIGURE_COMMON(${PROJ})
 
-FILE(GLOB SRC_FILES "src/*.cpp" "src/*.c" "src/*.h" "src/avgexp/*.cpp" "src/avgexp/*.c" "src/avgexp/*.h")
+FILE(GLOB SRC_FILES "src/*.cpp" "src/*.c" "src/*.h")
 IF(WIN32)
 	FILE(GLOB SRC_WIN_FILES "src/win/*.cpp" "src/win/*.h" "src/win/*.def")
 	SET(SRC_FILES "${SRC_FILES};${SRC_WIN_FILES}")
@@ -12,5 +12,3 @@ ENDIF()
 
 SCGMS_ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES};${COMMON_FILES})
 CONFIGURE_FILTER_OUTPUT(${PROJ})
-
-TARGET_LINK_LIBRARIES(${PROJ} scgms)

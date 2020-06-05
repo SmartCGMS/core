@@ -66,7 +66,7 @@ CNetwork_Discrete_Model::CSession_Handler::NSession_State CNetwork_Discrete_Mode
 
 void CNetwork_Discrete_Model::CSession_Handler::Setup()
 {
-	if (Get_State() != NSession_State::None && Get_State() != NSession_State::Teared_Down)
+	if (Get_State() != NSession_State::None && !mReinitExisting)
 		return;
 
 	auto& slot = mParent.mSlot();
@@ -77,8 +77,10 @@ void CNetwork_Discrete_Model::CSession_Handler::Setup()
 	Send_Handshake_Request(scgms::One_Minute, slot.session_id, slot.session_secret, mParent.mRequested_Model_GUID);
 }
 
-void CNetwork_Discrete_Model::CSession_Handler::Set_Needs_Reinit()
+void CNetwork_Discrete_Model::CSession_Handler::Set_Needs_Reinit(bool reinit_existing)
 {
+	if (mParent.mSlot().session_id != scgms::Invalid_Session_Id && reinit_existing)
+		mReinitExisting = true;
 	Set_State(NSession_State::None);
 }
 
@@ -155,14 +157,16 @@ bool CNetwork_Discrete_Model::CSession_Handler::Process_Handshake_Reply(scgms::T
 			mParent.Emit_Error(dsExtModel_Remote_Fatal_Error);
 			return false;
 		}
+		else if (packet.status == scgms::NNet_Status_Code::FAIL_NO_SLOT)
+			return true;
 		else if (packet.status == scgms::NNet_Status_Code::FAIL_VERSION)
 			mParent.Emit_Error(dsExtModel_Protocol_Version_Mismatch);
 		else if (packet.status == scgms::NNet_Status_Code::FAIL_UNK_MODEL)
 			mParent.Emit_Error(dsExtModel_Unknown_Model_Requested);
-		else if (packet.status == scgms::NNet_Status_Code::FAIL_NO_SLOT)
-			return true;
 		else
 			mParent.Emit_Error(dsExtModel_Unknown_Handshake_Error);
+
+		Interrupt();
 
 		return false;
 	}
@@ -246,6 +250,8 @@ void CNetwork_Discrete_Model::CSession_Handler::Send_Handshake_Request(double ti
 	req.body.protocol_version_minor = scgms::ProtoVersionMinor;
 	req.body.session_id = sessionId;
 	req.body.tick_interval = tick_interval;
+	req.body.initial_time = mParent.mCur_Time;
+	req.body.requested_duration = mParent.mMax_Time;
 	memcpy(&req.body.session_secret, &session_secret, sizeof(GUID));
 	memcpy(&req.body.requested_model_id, &model_id, sizeof(GUID));
 	wcsncpy_s(req.body.subject_name, mParent.mRequested_Subject_Name.c_str(), std::min(scgms::Subject_Name_Length, mParent.mRequested_Subject_Name.length()));

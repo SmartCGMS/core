@@ -47,7 +47,8 @@
 #include "diffusion/Diffusion_v2_ist.h"
 #include "steil_rebrin/Steil_Rebrin_blood.h"
 #include "bergman/bergman.h"
-#include "uva_padova/uva_padova.h"
+#include "uva_padova/uva_padova_s2013.h"
+#include "uva_padova/uva_padova_s2017.h"
 #include "bolus/insulin_bolus.h"
 #include "pattern_prediction/pattern_prediction.h"
 
@@ -409,9 +410,9 @@ namespace uva_padova_S2013 { //DOI: 10.1177/1932296813514502
 	constexpr size_t number_of_calculated_signals = 3;
 
 	const GUID calculated_signal_ids[number_of_calculated_signals] = {
-		signal_UVa_Padova_IG,
-		signal_UVa_Padova_BG,
-		signal_UVa_Padova_Delivered_Insulin,
+		uva_padova_S2013::signal_IG,
+		uva_padova_S2013::signal_BG,
+		uva_padova_S2013::signal_Delivered_Insulin,
 	};
 
 	const wchar_t* calculated_signal_names[number_of_calculated_signals] = {
@@ -446,13 +447,106 @@ namespace uva_padova_S2013 { //DOI: 10.1177/1932296813514502
 	};
 
 	const std::wstring ist_desc = std::wstring{ dsUVa_Padova_IG };
-	const scgms::TSignal_Descriptor ig_desc{ signal_UVa_Padova_IG, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor ig_desc{ uva_padova_S2013::signal_IG, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 
 	const std::wstring bgs_desc = std::wstring{ dsUVa_Padova_BG };
-	const scgms::TSignal_Descriptor bg_desc{ signal_UVa_Padova_BG, bgs_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor bg_desc{ uva_padova_S2013::signal_BG, bgs_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 
 	const std::wstring inss_desc = std::wstring{ dsUVa_Padova_Delivered_Insulin };
-	const scgms::TSignal_Descriptor ins_desc{ signal_UVa_Padova_Delivered_Insulin, inss_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor ins_desc{ uva_padova_S2013::signal_Delivered_Insulin, inss_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+}
+
+namespace uva_padova_S2017 { //DOI: 10.1177/1932296818757747
+
+	const wchar_t *model_param_ui_names[model_param_count] = {
+		// TODO: move to dstrings
+		L"Qsto1_0",L"Qsto2_0",L"Qgut_0",L"Gp_0",L"Gt_0",L"Ip_0",L"X_0",L"I_0",L"XL_0",L"Il_0",L"Isc1_0",L"Isc2_0",L"Iid1_0",L"Iid2_0",L"Iih_0",L"Gsc_0",
+		L"BW",L"Gb",L"Ib",
+		L"kabs",L"kmax",L"kmin",L"beta",L"Vg",L"Vi",L"Vmx",L"Km0",L"k2",L"k1",L"p2u",L"m1",L"m2",L"m4",
+		L"m30",L"ki",L"kp2",L"kp3",L"f",L"ke1",L"ke2",L"Fsnc",L"Vm0",L"kd",L"ka1",L"ka2", L"u2ss",L"kp1",
+		L"kh1",L"kh2",L"kh3",L"SRHb",L"n",L"rho",L"sigma",L"delta",L"xi",
+		L"kH",L"Hb",L"XH_0",L"Hsc1b",L"Hsc2b",L"kir",L"ka",L"kaIih",L"r1",L"r2",L"m3",L"alpha",L"c",L"FIih",L"Ts",
+		L"b1",L"b2",L"a2",
+	};
+
+	const scgms::NModel_Parameter_Value model_param_types[model_param_count] = {
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+	};
+
+	constexpr size_t number_of_calculated_signals = 5;
+
+	const GUID calculated_signal_ids[number_of_calculated_signals] = {
+		uva_padova_S2017::signal_IG,
+		uva_padova_S2017::signal_BG,
+		uva_padova_S2017::signal_Delivered_Insulin,
+		uva_padova_S2017::signal_IOB,
+		uva_padova_S2017::signal_COB,
+	};
+
+	const wchar_t* calculated_signal_names[number_of_calculated_signals] = {
+		dsUVa_Padova_S2017_IG,
+		dsUVa_Padova_S2017_BG,
+		dsUVa_Padova_S2017_Delivered_Insulin,
+		dsUVa_Padova_S2017_IOB,
+		dsUVa_Padova_S2017_COB,
+	};
+
+	const GUID reference_signal_ids[number_of_calculated_signals] = {
+		scgms::signal_IG,
+		scgms::signal_BG,
+		scgms::signal_Delivered_Insulin_Total,
+		scgms::signal_IOB,
+		scgms::signal_COB,
+	};
+
+	scgms::TModel_Descriptor desc = {
+		model_id,
+		scgms::NModel_Flags::Discrete_Model,
+		dsUVa_Padova_S2017,
+		nullptr,
+		model_param_count,
+		model_param_types,
+		model_param_ui_names,
+		nullptr,
+		lower_bounds.vector,
+		default_parameters.vector,
+		upper_bounds.vector,
+
+		number_of_calculated_signals,
+		calculated_signal_ids,
+		reference_signal_ids,
+	};
+
+	const std::wstring ist_desc = std::wstring{ dsUVa_Padova_S2017_IG };
+	const scgms::TSignal_Descriptor ig_desc{ uva_padova_S2017::signal_IG, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+
+	const std::wstring bgs_desc = std::wstring{ dsUVa_Padova_S2017_BG };
+	const scgms::TSignal_Descriptor bg_desc{ uva_padova_S2017::signal_BG, bgs_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+
+	const std::wstring inss_desc = std::wstring{ dsUVa_Padova_S2017_Delivered_Insulin };
+	const scgms::TSignal_Descriptor ins_desc{ uva_padova_S2017::signal_Delivered_Insulin, inss_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+
+	const std::wstring iobs_desc = std::wstring{ dsUVa_Padova_S2017_IOB };
+	const scgms::TSignal_Descriptor iob_desc{ uva_padova_S2017::signal_IOB, iobs_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF456898, 0xFF456898, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+
+	const std::wstring cobs_desc = std::wstring{ dsUVa_Padova_S2017_COB };
+	const scgms::TSignal_Descriptor cob_desc{ uva_padova_S2017::signal_COB, iobs_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 }
 
 namespace insulin_bolus {
@@ -570,21 +664,22 @@ namespace const_cr {
 
 const std::array<const scgms::TFilter_Descriptor, 1> filter_descriptions = { { pattern_prediction::get_filter_desc()} };
 
-const std::array<scgms::TModel_Descriptor, 10> model_descriptions = { { diffusion_v2_model::desc,
+const std::array<scgms::TModel_Descriptor, 11> model_descriptions = { { diffusion_v2_model::desc,
 																		 steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc, diffusion_prediction::desc,
 																		 constant_model::desc,
 																		 bergman_model::desc,
 																		 uva_padova_S2013::desc,
+																		 uva_padova_S2017::desc,
 																		 insulin_bolus::desc,
 																		 const_isf::desc, const_cr::desc
 																		} };
 
-
-const std::array<scgms::TSignal_Descriptor, 16> signals_descriptors = { {diffusion_v2_model::bg_desc, diffusion_v2_model::ig_desc, steil_rebrin::bg_desc, 
+const std::array<scgms::TSignal_Descriptor, 21> signals_descriptors = { {diffusion_v2_model::bg_desc, diffusion_v2_model::ig_desc, steil_rebrin::bg_desc, 
 																		 steil_rebrin_diffusion_prediction::ig_desc, diffusion_prediction::ig_desc, 
 																		 constant_model::const_desc,
 																		 bergman_model::bg_desc, bergman_model::ig_desc, bergman_model::iob_desc, bergman_model::cob_desc, bergman_model::basal_insulin_desc, bergman_model::insulin_activity_desc,
 																		 uva_padova_S2013::ig_desc, uva_padova_S2013::bg_desc, uva_padova_S2013::ins_desc,
+																		 uva_padova_S2017::ig_desc, uva_padova_S2017::bg_desc, uva_padova_S2017::ins_desc, uva_padova_S2017::iob_desc, uva_padova_S2017::cob_desc,
 																		 pattern_prediction::get_sig_desc(),																		 
 																		}};
 
@@ -600,16 +695,13 @@ HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begi
 	return S_OK;
 }
 
-
-
 HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
 	if (*model_id == bergman_model::model_id) return Manufacture_Object<CBergman_Discrete_Model>(model, parameters, output);
 	else if (*model_id == uva_padova_S2013::model_id) return Manufacture_Object<CUVA_Padova_S2013_Discrete_Model>(model, parameters, output);
+	else if (*model_id == uva_padova_S2017::model_id) return Manufacture_Object<CUVA_Padova_S2017_Discrete_Model>(model, parameters, output);
 	else if (*model_id == insulin_bolus::model_id) return Manufacture_Object<CDiscrete_Insulin_Bolus_Calculator>(model, parameters, output);
 		else return E_NOTIMPL;
 }
-
-
 
 HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 	*begin = const_cast<scgms::TFilter_Descriptor*>(filter_descriptions.data());
@@ -617,11 +709,9 @@ HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin
 	return S_OK;
 }
 
-
 HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
 	if (*id == pattern_prediction::filter_id)
 		return Manufacture_Object<CPattern_Prediction_Filter>(filter, output);
-
 
 	return E_NOTIMPL;
 }

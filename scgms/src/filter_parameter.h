@@ -2,8 +2,7 @@
 
 #include "../../../common/iface/FilterIface.h"
 #include "../../../common/rtl/referencedImpl.h"
-
-#include <filesystem>
+#include "../../../common/rtl/FilesystemLib.h"
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
@@ -13,7 +12,7 @@ protected:
 	const scgms::NParameter_Type mType;
 	const std::wstring mConfig_Name;
 	std::string mSystem_Variable_Name;
-	std::filesystem::path mParent_Path;
+	filesystem::path mParent_Path;
 
 	//the following SReferenced variables are not part of the union to prevent memory corruption
 	refcnt::SReferenced<refcnt::wstr_container> mWChar_Container;

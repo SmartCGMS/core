@@ -83,6 +83,9 @@ static constexpr GUID mtrAvg_Plus_Bessel_Std_Dev =	//average plus standard devia
 static const GUID mtrRMSE =
 { 0xa5594fe2, 0x4e2, 0x45c5, { 0xa1, 0x47, 0xda, 0x54, 0xee, 0x6c, 0x5d, 0x3d } };	// {A5594FE2-04E2-45C5-A147-DA54EE6C5D3D}
 
+static constexpr GUID mtrExpWtDiff =	// weigthed average preferring values higher than expected values (hyper rather than hypo)
+{ 0xcdb1c206, 0x7894, 0x42fd, { 0xa8, 0x5f, 0x4e, 0xd5, 0x21, 0x80, 0x27, 0x27 } };	// {CDB1C206-7894-42FD-A85F-4ED521802727}
+
 
 
 extern "C" HRESULT IfaceCalling do_get_metric_descriptors(scgms::TMetric_Descriptor const **begin, scgms::TMetric_Descriptor const **end);

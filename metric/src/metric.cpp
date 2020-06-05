@@ -72,6 +72,21 @@ double CAbsDiffAvgMetric::Do_Calculate_Metric() {
 }
 
 
+double CExpWeightedDiffAvgPolar_Metric::Do_Calculate_Metric() {
+	double accumulator = 0.0;
+
+	for (const auto &diff : mDifferences) {
+
+		double accdiff = diff.difference;
+		if (diff.raw.calculated + mParameters.threshold < diff.raw.expected)
+			accdiff *= sqrt(diff.difference); // use power of 1.5 for values below expected and threshold
+
+		accumulator += accdiff;
+	}
+
+	return accumulator / static_cast<double>(mDifferences.size());
+}
+
 double CAbsDiffMaxMetric::Do_Calculate_Metric() {
 	
 	double maximum = -std::numeric_limits<double>::max();

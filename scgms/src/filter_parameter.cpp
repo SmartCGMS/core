@@ -41,7 +41,7 @@ HRESULT IfaceCalling CFilter_Parameter::Set_WChar_Container(refcnt::wstr_contain
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** wstr) {
-	std::filesystem::path result_path;
+	filesystem::path result_path;
 
 	if (mSystem_Variable_Name.empty()) {
 		result_path = refcnt::WChar_Container_To_WString(mWChar_Container.get());
@@ -54,12 +54,12 @@ HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** w
 
 	if (result_path.is_relative()) {		
 		std::error_code ec;
-		std::filesystem::path relative_part = result_path;
-		result_path = std::filesystem::canonical(mParent_Path / relative_part, ec);
+		filesystem::path relative_part = result_path;
+		result_path = filesystem::canonical(mParent_Path / relative_part, ec);
 		if (ec) {
-			result_path = std::filesystem::weakly_canonical(mParent_Path / relative_part, ec);
+			result_path = filesystem::weakly_canonical(mParent_Path / relative_part, ec);
 			if (ec)
-				result_path = mParent_Path / relative_part, ec;
+				result_path = mParent_Path / relative_part;
 		}
 	}
 

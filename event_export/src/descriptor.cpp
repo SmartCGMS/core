@@ -8,10 +8,10 @@
  * diabetes@mail.kiv.zcu.cz
  * Medical Informatics, Department of Computer Science and Engineering
  * Faculty of Applied Sciences, University of West Bohemia
- * Univerzitni 8, 301 00 Pilsen
- * Czech Republic
- *
- *
+ * Univerzitni 8
+ * 301 00, Pilsen
+ * 
+ * 
  * Purpose of this software:
  * This software is intended to demonstrate work of the diabetes.zcu.cz research
  * group to other scientists, to complement our published papers. It is strictly
@@ -36,57 +36,43 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
+#include "descriptor.h"
+#include "event_export.h"
 
-#include <string>
+#include "../../../common/lang/dstrings.h"
+#include "../../../common/rtl/manufactory.h"
+#include "../../../common/utils/descriptor_utils.h"
+
 #include <vector>
-#include <ctime>
 
-constexpr double Rat_Seconds(double secs)
+namespace event_export
 {
-	return (secs / (24.0*60.0*60.0));
+	constexpr const GUID id = { 0x6d3a3153, 0x67b6, 0x405c, { 0x85, 0x59, 0x7b, 0x5f, 0xaf, 0xc2, 0xeb, 0xe2 } }; // {6D3A3153-67B6-405C-8559-7B5FAFC2EBE2}
+
+	constexpr size_t param_count = 0;
+
+	const scgms::TFilter_Descriptor descriptor = {
+		id,
+		scgms::NFilter_Flags::None,
+		L"Event export",
+		param_count,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr
+	};
 }
 
-namespace oref_model
-{
-	constexpr double delta_history_start = Rat_Seconds(420);				// 17.5 min
-	constexpr double delta_history_end = Rat_Seconds(150);					// 2.5 min
-	constexpr double delta_history_sample_step = Rat_Seconds(30);
+const std::array<scgms::TFilter_Descriptor, 1> filter_descriptions = { { event_export::descriptor } };
 
-	constexpr double short_avgdelta_history_start = Rat_Seconds(1050);		// 17.5 min
-	constexpr double short_avgdelta_history_end = Rat_Seconds(150);			// 2.5 min
-	constexpr double short_avgdelta_history_sample_step = Rat_Seconds(60);
-
-	constexpr double long_avgdelta_history_start = Rat_Seconds(2550);		// 42.5 min
-	constexpr double long_avgdelta_history_end = Rat_Seconds(1050);			// 17.5 min
-	constexpr double long_avgdelta_history_sample_step = Rat_Seconds(120);
-
-	constexpr double assumed_stepping = Rat_Seconds(300);					// 5 minutes
+extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
+	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-struct COref_Instance_Data
+extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter)
 {
-	time_t mLastCarbTime = 0;
-	double mLastCarbValue = 0;
-	time_t mLastBolusTime = 0;
-	double mLastBolusValue = 0;
-	double mCurCOB = 0;
-	time_t mCurTime = 0;
-	time_t mLastTime = 0;
-	double mShortAvgDelta, mLongAvgDelta, mDelta, mGlucose;
-	std::vector<double> mCurIOB, mCurInsulinActivity;
+	if (*id == event_export::descriptor.id)
+		return Manufacture_Object<CEvent_Export_Filter>(filter, output);
 
-	double mResultRate;
-	double mResultDuration;
-};
-
-namespace oref_model
-{
-	struct TParameters;
-}
-
-namespace oref_utils
-{
-	void Substr_Replace(std::string& str, const std::string& what, const std::string& replace);
-	std::string Prepare_Base_Program(const COref_Instance_Data& data, const oref_model::TParameters& parameters);
+	return ENOENT;
 }

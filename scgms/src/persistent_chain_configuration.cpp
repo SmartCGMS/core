@@ -52,7 +52,7 @@
 #include <exception>
 
 void CPersistent_Chain_Configuration::Advertise_Parent_Path() {
-	std::wstring parent_path = mFile_Path.empty() ? Get_Dll_Dir() : mFile_Path.parent_path();
+	std::wstring parent_path = mFile_Path.empty() ? Get_Dll_Dir() : mFile_Path.parent_path().wstring();
 	
 	for (scgms::IFilter_Configuration_Link* link : *this) {
 		link->Set_Parent_Path(parent_path.c_str());
@@ -69,7 +69,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
 
 	std::error_code ec;
-	std::filesystem::path working_file_path = std::filesystem::absolute(file_path, ec);
+	filesystem::path working_file_path = filesystem::absolute(std::wstring{ file_path }, ec);
 	if (ec) {
 		shared_error_description.push(Widen_Char(ec.message().c_str()));
 		return E_INVALIDARG;
@@ -88,7 +88,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 			buf.push_back(0);
 			rc = Load_From_Memory(buf.data(), buf.size(), error_description);	//also clears mFile_Path!
 			if (Succeeded(rc)) {
-				mFile_Path = std::move(working_file_path);	//so that we clearly sets new one whehn we succeed
+				mFile_Path = working_file_path;	//so that we clearly sets new one whehn we succeed
 				Advertise_Parent_Path();
 			}
 
@@ -294,11 +294,11 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 
 	if (empty_file_path && (mFile_Path.empty())) return E_ILLEGAL_METHOD_CALL;
 
-	std::filesystem::path working_file_path;
+	filesystem::path working_file_path;
 	if (empty_file_path) working_file_path = mFile_Path;
 	else {
 		std::error_code ec;
-		working_file_path = std::filesystem::absolute(file_path, ec);
+		working_file_path = filesystem::absolute(std::wstring{ file_path }, ec);
 		if (ec) {
 			refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
 			shared_error_description.push(Widen_Char(ec.message().c_str()));
@@ -495,7 +495,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Parent_Path(const wcha
 			rc = E_UNEXPECTED;
 	}
 
-	return S_OK;
+	return rc;
 }
 
 

@@ -154,5 +154,12 @@ public:
 	CIntegralCDFMetric(scgms::TMetric_Parameters params) : CAbsDiffPercentilMetric(params) {};
 };
 
+class CExpWeightedDiffAvgPolar_Metric : public CCommon_Metric {
+protected:
+	virtual double Do_Calculate_Metric();
+public:
+	CExpWeightedDiffAvgPolar_Metric(const scgms::TMetric_Parameters& params) : CCommon_Metric(params) {};
+};
+
 
 #pragma warning( pop )

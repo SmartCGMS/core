@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <cmath>
 
 const size_t apxmAverageExponential = 1;		//so far, only exp has the derivation implemented
 const size_t apxmAverageLine = 2;			//currently disabled as not derivation is not implemented for the line
@@ -222,7 +223,7 @@ HRESULT IfaceCalling CAvgExpApprox::GetLevels_Internal(const double* times, doub
 			
 			//(*points).y = vmPoints[0].pt.y*exp(leadingK*(X-vmPoints[0].pt.x)) * YScaleOut;
 			//				(*points).y = (*pt1).pt.y*exp(leadingK*(X-(*pt1).pt.x)) * YScaleOut;
-			levels[time_idx] = pt1.pt.level*exp(leadingK*(X - pt1.pt.datetime)) - dfYOffset;
+			levels[time_idx] = pt1.pt.level*std::exp(leadingK*(X - pt1.pt.datetime)) - dfYOffset;
 
 			//calculate derivatives as needed
 			for (size_t deriter = 0; deriter < derivation_order; deriter++) {

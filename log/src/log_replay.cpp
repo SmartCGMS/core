@@ -71,7 +71,7 @@ CLog_Replay_Filter::~CLog_Replay_Filter() {
 }
 
 
-void CLog_Replay_Filter::Replay_Log(const std::filesystem::path& log_filename, uint64_t filename_segment_id) {
+void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64_t filename_segment_id) {
 	if (log_filename.empty()) return;
 
 	std::wifstream log{ log_filename.string().c_str() };
@@ -279,7 +279,7 @@ std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_L
 	std::vector<TLog_Segment_id> logs_to_replay;
 
 	std::error_code ec;
-	if (!std::filesystem::exists(mLog_Filename_Or_Dirpath, ec) || ec)
+	if (!filesystem::exists(mLog_Filename_Or_Dirpath, ec) || ec)
 		return logs_to_replay;
 
 

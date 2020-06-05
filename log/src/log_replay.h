@@ -62,7 +62,7 @@ protected:
 	using TLog_Entry = std::tuple<double, size_t, std::wstring>;
 protected:
 	struct TLog_Segment_id {
-		std::filesystem::path file_name;
+		filesystem::path file_name;
 		uint64_t segment_id;
 	};
 	std::vector<TLog_Segment_id> Enumerate_Log_Segments();
@@ -77,7 +77,7 @@ protected:
 protected:
 	// thread method
 	std::atomic<bool> mShutdown_Received { false};
-	void Replay_Log(const std::filesystem::path& log_filename, uint64_t filename_segment_id);
+	void Replay_Log(const filesystem::path& log_filename, uint64_t filename_segment_id);
 
 	// opens log for reading, returns true if success, false if failed
 	void Open_Logs(std::vector<CLog_Replay_Filter::TLog_Segment_id> logs_to_replay);

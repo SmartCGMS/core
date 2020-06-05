@@ -2,8 +2,6 @@
 
 #include "../../../common/rtl/manufactory.h"
 
-#include <filesystem>
-
 CFilter_Configuration_Link::CFilter_Configuration_Link(const GUID &id) : mID(id) {
 	//
 }

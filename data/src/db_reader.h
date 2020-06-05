@@ -89,6 +89,8 @@ class CDb_Reader : public scgms::CBase_Filter, public db::IDb_Sink{
 		bool Emit_Segment_Parameters(int64_t segment_id);
 		bool Emit_Segment_Levels(int64_t segment_id);
 		bool Emit_Shut_Down();
+
+		bool Emit_Info_Event(const std::wstring& info);
 	protected:
 		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 		HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;

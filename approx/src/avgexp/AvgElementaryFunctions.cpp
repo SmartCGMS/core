@@ -1,5 +1,6 @@
 #include "AvgElementaryFunctions.h"
 
+#include <cmath>
 
 double ComputeExpK(const TGlucoseLevel& lpt, const TGlucoseLevel& rpt) {
 
@@ -9,7 +10,7 @@ double ComputeExpK(const TGlucoseLevel& lpt, const TGlucoseLevel& rpt) {
 
 	double delta = rpt.datetime - lpt.datetime;
 	double k;
-	if (delta != 0.0) k = log(rpt.level / lpt.level) / delta;
+	if (delta != 0.0) k = std::log(rpt.level / lpt.level) / delta;
 		else k = 0.0;	//seems like there are two levels at the same time
 
 	//double k = (rpt.level - lpt.level) / (rpt.datetime - lpt.datetime);	
@@ -22,7 +23,7 @@ double ComputeExpK(const TGlucoseLevel& lpt, const TGlucoseLevel& rpt) {
 }
 
 double ComputeExpKX(const TAvgExpPoint& lpt, const double rx) {
-	double ry = lpt.pt.level*exp(lpt.k*(rx - lpt.pt.datetime));
+	double ry = lpt.pt.level*std::exp(lpt.k*(rx - lpt.pt.datetime));
 
 	//double ry = (rx - lpt->pt.datetime)*lpt->k + lpt->pt.level;
 

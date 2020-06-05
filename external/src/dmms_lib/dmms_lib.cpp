@@ -107,18 +107,18 @@ HRESULT CDMMS_Lib_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 
 HRESULT CDMMS_Lib_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description)
 {
-	std::filesystem::path root_path = Get_Application_Dir();
+	filesystem::path root_path = Get_Application_Dir();
 
 	auto path_to_absolute = [&root_path](const std::wstring& src_path)->std::wstring {
-		std::filesystem::path path{ src_path };
+		filesystem::path path{ src_path };
 		if (path.is_absolute()) return src_path;
 
 		path = root_path / path;
-		return std::filesystem::absolute(path);
+		return filesystem::absolute(path);
 	};
 
 
-	std::filesystem::path mainfest_path = root_path / L"dmms_manifest.xml";
+	filesystem::path mainfest_path = root_path / L"dmms_manifest.xml";
 
 	CXML_Parser<wchar_t> parser(mainfest_path);
 	if (!parser.Is_Valid())

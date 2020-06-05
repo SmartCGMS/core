@@ -39,6 +39,7 @@
 #pragma once
 
 #include <functional>
+#include <mutex>
 
 #include "../descriptor.h"
 #include "../../../../common/rtl/FilterLib.h"
@@ -47,8 +48,64 @@
 #include "../common/ode_solver_parameters.h"
 #include "../common/uptake_accumulator.h"
 
-// state of UVa/Padova model equation system
-struct CUVa_Padova_State
+class CUVA_Padova_S2017_Discrete_Model;
+struct CDiffusion_Compartments_State;
+
+namespace uva_padova_S2017
+{
+	using TDiff_Eq_Fnc = double (CUVA_Padova_S2017_Discrete_Model::*)(const double, const double) const;
+	using TDiff_Eq = decltype(std::bind<double>(std::declval<TDiff_Eq_Fnc>(), std::declval<CUVA_Padova_S2017_Discrete_Model*>(), std::declval<const decltype(std::placeholders::_1)&>(), std::declval<const decltype(std::placeholders::_2)&>()));
+
+	// helper structure for equation binding
+	struct CEquation_Binding
+	{
+		double& x;
+		TDiff_Eq fnc;
+	};
+
+	struct CDiffusion_Compartment_Equation_Binding
+	{
+		CDiffusion_Compartments_State& x;
+		TDiff_Eq fnc_input;
+		TDiff_Eq fnc_intermediate;
+		TDiff_Eq fnc_output;
+	};
+}
+
+// helper structure for diffusion compartments 
+struct CDiffusion_Compartments_State
+{
+	std::vector<double> quantity;
+	double transferCoefficient;
+
+	double output() const {
+		assert(quantity.size() > 0);
+		return *quantity.rbegin();
+	}
+
+	size_t compartmentCount() const {
+		return quantity.size();
+	}
+
+	void setCompartmentCount(size_t count) {
+
+		// TODO: revisit this - shouldn't we preserve output quantity?
+
+		if (count > compartmentCount())
+		{
+			quantity.reserve(count);
+			while (compartmentCount() < count)
+				quantity.push_back(0);
+		}
+		else
+			quantity.resize(count);
+	}
+
+	size_t solverStateIdx; // currently solved index
+};
+
+// state of UVa/Padova S2017 model equation system
+struct CUVa_Padova_S2017_State
 {
 	double lastTime;
 
@@ -61,38 +118,28 @@ struct CUVa_Padova_State
 	double Qgut;
 	double XL;
 	double I;
+	double XH;
 	double X;
 	double Isc1;
 	double Isc2;
-	double Gs;
-	// not present in SimGlucose:
+	double Iid1;
+	double Iid2;
+	double Iih;
+	double Gsc;
 	double H;
-	double XH;
 	double SRHS;
 	double Hsc1;
 	double Hsc2;
+
+	CDiffusion_Compartments_State idt1;
+	CDiffusion_Compartments_State idt2;
 };
-
-class CUVA_Padova_S2013_Discrete_Model;
-
-namespace uva_padova_S2013
-{
-	using TDiff_Eq_Fnc = double (CUVA_Padova_S2013_Discrete_Model::*)(const double, const double) const;
-	using TDiff_Eq = decltype(std::bind<double>(std::declval<TDiff_Eq_Fnc>(), std::declval<CUVA_Padova_S2013_Discrete_Model*>(), std::declval<const decltype(std::placeholders::_1)&>(), std::declval<const decltype(std::placeholders::_2)&>()));
-
-	// helper structure for equation binding
-	struct CEquation_Binding
-	{
-		double& x;
-		TDiff_Eq fnc;
-	};
-}
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-//DOI: 10.1177/1932296813514502
-class CUVA_Padova_S2013_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscrete_Model
+//DOI: 10.1177/1932296818757747
+class CUVA_Padova_S2017_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscrete_Model
 {
 	private:
 		// maximum accepted error estimate for ODE solvers for this model
@@ -100,18 +147,26 @@ class CUVA_Padova_S2013_Discrete_Model : public scgms::CBase_Filter, public scgm
 		static constexpr size_t ODE_Max_Steps = 100;
 
 	private:
-		uva_padova_S2013::TParameters mParameters;
+		uva_padova_S2017::TParameters mParameters;
+
+		std::mutex mStep_Mtx;
 
 		// meal uptake accumulator
 		Uptake_Accumulator mMeal_Ext;
 		// bolus uptake accumulator
-		Uptake_Accumulator mBolus_Ext;
-		// basal uptake accumulator
-		Uptake_Accumulator mBasal_Ext;
+		Uptake_Accumulator mBolus_Insulin_Ext;
+		// inhaled insulin uptake accumulator
+		Uptake_Accumulator mInhaled_Insulin_Ext;
+		// subcutaneous basal insulin uptake accumulator
+		Uptake_Accumulator mSubcutaneous_Basal_Ext;
+		// intradermal insulin uptake accumulator
+		Uptake_Accumulator mIntradermal_Basal_Ext;
 		// current state of Bergman model (all quantities)
-		CUVa_Padova_State mState;
+		CUVa_Padova_S2017_State mState;
 		// bound equations in a single vector - quantity and equation bound together
-		const std::vector<uva_padova_S2013::CEquation_Binding> mEquation_Binding;
+		const std::vector<uva_padova_S2017::CEquation_Binding> mEquation_Binding;
+		// bound equations in a single vector - but instead of binding a single quantity, a diffusion compartment vector is bound instead
+		const std::vector<uva_padova_S2017::CDiffusion_Compartment_Equation_Binding> mDiffusion_Compartment_Equation_Binding;
 
 		struct TRequested_Amount
 		{
@@ -120,8 +175,9 @@ class CUVA_Padova_S2013_Discrete_Model : public scgms::CBase_Filter, public scgm
 			bool requested = false;
 		};
 
-		TRequested_Amount mRequested_Basal;
-		std::vector<TRequested_Amount> mRequested_Boluses;
+		TRequested_Amount mRequested_Subcutaneous_Insulin_Rate;
+		TRequested_Amount mRequested_Intradermal_Insulin_Rate;
+		std::vector<TRequested_Amount> mRequested_Insulin_Boluses;
 
 		ode::default_solver ODE_Solver{ ODE_epsilon0, ODE_Max_Steps };
 
@@ -137,19 +193,29 @@ class CUVA_Padova_S2013_Discrete_Model : public scgms::CBase_Filter, public scgm
 		double eq_dQgut(const double _T, const double _G) const;
 		double eq_dXL(const double _T, const double _G) const;
 		double eq_dI(const double _T, const double _G) const;
+		double eq_dXH(const double _T, const double _G) const;
 		double eq_dX(const double _T, const double _G) const;
 		double eq_dIsc1(const double _T, const double _G) const;
 		double eq_dIsc2(const double _T, const double _G) const;
-		double eq_dGs(const double _T, const double _G) const;
-		// not present in SimGlucose:
+		double eq_dIid1(const double _T, const double _G) const;
+		double eq_dIid2(const double _T, const double _G) const;
+		double eq_dIih(const double _T, const double _G) const;
+		double eq_dGsc(const double _T, const double _G) const;
 		double eq_dH(const double _T, const double _G) const;
-		double eq_dXH(const double _T, const double _G) const;
 		double eq_dSRHS(const double _T, const double _G) const;
 		double eq_dHsc1(const double _T, const double _G) const;
 		double eq_dHsc2(const double _T, const double _G) const;
 
+		// particular diffusion compartments differential equations
+		double eq_didt1_input(const double _T, const double _G) const;
+		double eq_didt1_intermediate(const double _T, const double _G) const;
+		double eq_didt1_output(const double _T, const double _G) const;
+		double eq_didt2_input(const double _T, const double _G) const;
+		double eq_didt2_intermediate(const double _T, const double _G) const;
+		double eq_didt2_output(const double _T, const double _G) const;
+
 		// shared method to retrieve distribution parameter for gut transportion
-		double Get_K_gut(const double _T) const;
+		double Get_K_empt(const double _T) const;
 
 	protected:
 		uint64_t mSegment_Id = scgms::Invalid_Segment_Id;
@@ -162,8 +228,8 @@ class CUVA_Padova_S2013_Discrete_Model : public scgms::CBase_Filter, public scgm
 		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 
 	public:
-		CUVA_Padova_S2013_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output);
-		virtual ~CUVA_Padova_S2013_Discrete_Model() = default;
+		CUVA_Padova_S2017_Discrete_Model(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output);
+		virtual ~CUVA_Padova_S2017_Discrete_Model() = default;
 
 		// scgms::IDiscrete_Model iface
 		virtual HRESULT IfaceCalling Initialize(const double current_time, const uint64_t segment_id) override final;

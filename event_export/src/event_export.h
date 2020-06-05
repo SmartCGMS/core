@@ -8,10 +8,10 @@
  * diabetes@mail.kiv.zcu.cz
  * Medical Informatics, Department of Computer Science and Engineering
  * Faculty of Applied Sciences, University of West Bohemia
- * Univerzitni 8, 301 00 Pilsen
- * Czech Republic
- *
- *
+ * Univerzitni 8
+ * 301 00, Pilsen
+ * 
+ * 
  * Purpose of this software:
  * This software is intended to demonstrate work of the diabetes.zcu.cz research
  * group to other scientists, to complement our published papers. It is strictly
@@ -38,55 +38,40 @@
 
 #pragma once
 
-#include <string>
+#include "../../../common/rtl/FilterLib.h"
+#include "../../../common/rtl/referencedImpl.h"
+#include "../../../common/rtl/UILib.h"
+
+#include <mutex>
 #include <vector>
-#include <ctime>
 
-constexpr double Rat_Seconds(double secs)
+#pragma warning( push )
+#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
+
+/*
+ * Filter class for logging all incoming events and dropping them (terminating the chain)
+ */
+class CEvent_Export_Filter : public scgms::CBase_Filter, public scgms::IEvent_Export_Filter_Inspection
 {
-	return (secs / (24.0*60.0*60.0));
-}
+	protected:
+		std::map<GUID, scgms::TEvent_Export_Callback> mCallbacks;
+		std::mutex mRegister_Mtx;
 
-namespace oref_model
-{
-	constexpr double delta_history_start = Rat_Seconds(420);				// 17.5 min
-	constexpr double delta_history_end = Rat_Seconds(150);					// 2.5 min
-	constexpr double delta_history_sample_step = Rat_Seconds(30);
+	protected:
+		// scgms::CBase_Filter implementation
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list &errors) override final;
 
-	constexpr double short_avgdelta_history_start = Rat_Seconds(1050);		// 17.5 min
-	constexpr double short_avgdelta_history_end = Rat_Seconds(150);			// 2.5 min
-	constexpr double short_avgdelta_history_sample_step = Rat_Seconds(60);
+	public:
+		CEvent_Export_Filter(scgms::IFilter *output);
+		virtual ~CEvent_Export_Filter() = default;
 
-	constexpr double long_avgdelta_history_start = Rat_Seconds(2550);		// 42.5 min
-	constexpr double long_avgdelta_history_end = Rat_Seconds(1050);			// 17.5 min
-	constexpr double long_avgdelta_history_sample_step = Rat_Seconds(120);
+		// refcnt::IReferenced implementation
+		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
 
-	constexpr double assumed_stepping = Rat_Seconds(300);					// 5 minutes
-}
-
-struct COref_Instance_Data
-{
-	time_t mLastCarbTime = 0;
-	double mLastCarbValue = 0;
-	time_t mLastBolusTime = 0;
-	double mLastBolusValue = 0;
-	double mCurCOB = 0;
-	time_t mCurTime = 0;
-	time_t mLastTime = 0;
-	double mShortAvgDelta, mLongAvgDelta, mDelta, mGlucose;
-	std::vector<double> mCurIOB, mCurInsulinActivity;
-
-	double mResultRate;
-	double mResultDuration;
+		// scgms::IEvent_Export_Filter_Inspection iface implementation
+		virtual HRESULT IfaceCalling Register_Callback(const GUID* registered_device_id, scgms::TEvent_Export_Callback callback) override final;
+		virtual HRESULT IfaceCalling Unregister_Callback(const GUID* registered_device_id) override final;
 };
 
-namespace oref_model
-{
-	struct TParameters;
-}
-
-namespace oref_utils
-{
-	void Substr_Replace(std::string& str, const std::string& what, const std::string& replace);
-	std::string Prepare_Base_Program(const COref_Instance_Data& data, const oref_model::TParameters& parameters);
-}
+#pragma warning( pop )

@@ -109,6 +109,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 		size_t mPing_Interval = 0;
 		GUID mRequested_Model_GUID = Invalid_GUID;
 		std::wstring mRequested_Subject_Name;
+		double mMax_Time = 0;
 
 		std::wstring mRemoteAddr;
 		uint16_t mRemotePort = 0;
@@ -185,6 +186,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 				std::mutex mSession_State_Mtx;
 				std::condition_variable mSession_State_Changed_Cv;
 				bool mInterrupted = false;
+				bool mReinitExisting = false;
 
 			private:
 				int Send(const void* data, size_t length);
@@ -195,7 +197,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 				CSession_Handler(CNetwork_Discrete_Model& _parent) : mParent(_parent) {};
 
 				void Setup();
-				void Set_Needs_Reinit();
+				void Set_Needs_Reinit(bool reinit_existing);
 				bool Process_Pending_Packet();
 
 				// ensures desired state, waits if not satisfied
@@ -268,10 +270,14 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 
 		std::unique_ptr<std::thread> mNetThread;
 
+		std::mutex mEmit_Mtx;
+
+		std::vector<scgms::UDevice_Event> mDeferred_Events_To_Send;
+
 	protected:
 		uint64_t mSegment_Id = scgms::Invalid_Segment_Id;
 		bool Emit_Signal_Level(const GUID& id, double device_time, double level);
-		bool Emit_Error(const std::wstring& error);
+		bool Emit_Error(const std::wstring& error, bool deferred = true);
 
 		HRESULT Connect(const std::wstring& addr, uint16_t port);
 		void Network_Thread_Fnc();
@@ -282,6 +288,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 		void Signal_Tear_Down();
 
 		void Send_Requested_Data();
+		void Send_Deferred_Events();
 
 	protected:
 		// scgms::CBase_Filter iface implementation

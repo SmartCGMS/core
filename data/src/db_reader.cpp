@@ -199,6 +199,18 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 	return true;
 }
 
+bool CDb_Reader::Emit_Info_Event(const std::wstring& info)
+{
+	scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Information };
+
+	evt.device_id() = Db_Reader_Device_GUID;
+	evt.signal_id() = Invalid_GUID;
+	evt.device_time() = Unix_Time_To_Rat_Time(time(nullptr));
+	evt.info.set(info.c_str());
+
+	return (Send(evt) == S_OK);
+}
+
 void CDb_Reader::Db_Reader() {
 	
 	mQuit_Flag = false;
@@ -212,7 +224,10 @@ void CDb_Reader::Db_Reader() {
 	if (mDb_Connector)
 		mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
 	if (!mDb_Connection)
+	{
+		Emit_Info_Event(dsError_Could_Not_Connect_To_Db);
 		return;
+	}
 
 	
 
