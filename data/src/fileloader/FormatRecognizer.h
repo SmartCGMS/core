@@ -43,6 +43,7 @@
 #include <list>
 
 #include "FormatAdapter.h"
+#include "../../../../common/rtl/FilesystemLib.h"
 
 using FormatRecognizerRuleMap = std::map<std::string, std::list<std::string>>;
 
@@ -66,7 +67,7 @@ class CFormat_Recognizer
 		void Add_Pattern(const char* formatName, const char* cellLocation, const char* content);
 
 		// recognize data format from supplied path
-		std::string Recognize_And_Open(std::wstring path, CFormat_Adapter& target) const;
+		std::string Recognize_And_Open(filesystem::path path, CFormat_Adapter& target) const;
 		// recognize data format from supplied originalPath (to recognize file format as well) and path
-		std::string Recognize_And_Open(std::wstring originalPath, std::wstring path, CFormat_Adapter& target) const;
+		std::string Recognize_And_Open(filesystem::path originalPath, filesystem::path path, CFormat_Adapter& target) const;
 };

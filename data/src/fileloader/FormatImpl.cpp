@@ -212,10 +212,10 @@ static double stod_custom(std::string& in)
 
 /** CSV format interface implementation **/
 
-void CCsv_File::Init(std::wstring &path)
+void CCsv_File::Init(filesystem::path &path)
 {
 	mOriginalPath = path;
-	mFile = std::make_unique<CCSV_Format>(path.c_str());
+	mFile = std::make_unique<CCSV_Format>(path);
 }
 
 void CCsv_File::Select_Worksheet(int sheetIndex)
@@ -269,12 +269,12 @@ const int assumedCodepage = 1250;
 
 /** XLS format interface implementation **/
 
-void CXls_File::Init(std::wstring &path)
+void CXls_File::Init(filesystem::path &path)
 {
 	mSelectedSheetIndex = 0;
 	mOriginalPath = path;
 	mFile = std::make_unique<ExcelFormat::BasicExcel>();
-	mFile->Load(path.c_str());
+	mFile->Load(path.wstring().c_str());
 }
 
 void CXls_File::Select_Worksheet(int sheetIndex)
@@ -382,16 +382,13 @@ void CXls_File::Finalize()
 
 /** XLSX format interface implementation **/
 
-void CXlsx_File::Init(std::wstring &path)
+void CXlsx_File::Init(filesystem::path &path)
 {
 	mSelectedSheetIndex = 0;
 	mOriginalPath = path;
 	mFile = std::make_unique<xlnt::workbook>();
 
-	
-	std::string spath = Narrow_WString(path);
-
-	mFile->load(spath);
+	mFile->load(path.string());
 }
 
 void CXlsx_File::Select_Worksheet(int sheetIndex)
@@ -540,10 +537,10 @@ void CXlsx_File::Finalize()
 
 /** XML format interface implementation **/
 
-void CXml_File::Init(std::wstring &path)
+void CXml_File::Init(filesystem::path &path)
 {
 	mOriginalPath = path;
-	mFile = std::make_unique<CXML_Format>(path.c_str());
+	mFile = std::make_unique<CXML_Format>(path);
 }
 
 std::string CXml_File::Read(TreePosition& position)

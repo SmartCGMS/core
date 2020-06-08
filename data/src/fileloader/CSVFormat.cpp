@@ -52,14 +52,9 @@ enum class CSVState
 	QuotedQuote
 };
 
-CCSV_Format::CCSV_Format(const wchar_t* path, char separator) : mRowsLoaded(0), mError(0), mFileName(path), mWriteFlag(false), mMaxColumn(0)
+CCSV_Format::CCSV_Format(const filesystem::path path, char separator) : mRowsLoaded(0), mError(0), mFileName(path), mWriteFlag(false), mMaxColumn(0)
 {
-	std::string pathConv(wcslen(path)*sizeof(wchar_t), 0);
-
-	size_t cntconv;
-	wcstombs_s(&cntconv, (char*)pathConv.data(), wcslen(path) * sizeof(wchar_t), path, wcslen(path) * sizeof(wchar_t));
-
-	mFile.open(pathConv);
+	mFile.open(path.wstring());
 	if (mFile.bad())
 	{
 		mError = 1;

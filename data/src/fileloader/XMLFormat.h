@@ -122,7 +122,7 @@ class CXML_Format
 
 	protected:
 		// loads XML from path
-		bool Load(const wchar_t* path);
+		bool Load(const filesystem::path path);
 
 		// loads contents of XML element
 		void Load_To_Element(XMLElement& target, std::ifstream& file);
@@ -142,7 +142,7 @@ class CXML_Format
 		std::string Build_Tag_Parameters_String(XMLElement const& element) const;
 
 	public:
-		CXML_Format(const wchar_t* path);
+		CXML_Format(const filesystem::path path);
 		virtual ~CXML_Format();
 
 		// reads from position using specifier

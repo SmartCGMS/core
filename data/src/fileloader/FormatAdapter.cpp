@@ -48,7 +48,7 @@ CFormat_Adapter::CFormat_Adapter()
 	//
 }
 
-CFormat_Adapter::CFormat_Adapter(const wchar_t* filename, const wchar_t* originalFilename)
+CFormat_Adapter::CFormat_Adapter(const filesystem::path filename, const filesystem::path originalFilename)
 {
 	Init(filename, originalFilename);
 }
@@ -59,16 +59,16 @@ CFormat_Adapter::~CFormat_Adapter()
 		mFormat->Finalize();
 }
 
-void CFormat_Adapter::Init(const wchar_t* filename, const wchar_t* originalFilename)
+void CFormat_Adapter::Init(const filesystem::path filename, filesystem::path originalFilename)
 {
 	mError = 0;
-	if (originalFilename == nullptr)
+	if (originalFilename.empty())
 		originalFilename = filename;
 
 	// at first, try to recognize file format from extension
 
 	KnownFileFormats format;
-	std::wstring path(originalFilename);
+	std::wstring path = originalFilename.wstring();
 	if (path.length() < 4)
 	{
 		mError = 1;

@@ -43,6 +43,7 @@
 #include <assert.h>
 
 #include "FormatImpl.h"
+#include "../../../../common/rtl/FilesystemLib.h"
 
 /*
  * Format adapter class encapsulating file format recognition and interfacing with
@@ -56,7 +57,7 @@ class CFormat_Adapter
 		// error flag
 		int mError;
 		// original path to file
-		std::wstring mOriginalPath;
+		filesystem::path mOriginalPath;
 
 	protected:
 		// converts format pointer to spreadsheet file
@@ -65,12 +66,12 @@ class CFormat_Adapter
 		IHierarchy_File* ToHierarchyFile() const;
 
 	public:
-		CFormat_Adapter(const wchar_t* filename, const wchar_t* originalFilename = nullptr);
+		CFormat_Adapter(const filesystem::path filename, const filesystem::path originalFilename = {});
 		CFormat_Adapter();
 		virtual ~CFormat_Adapter();
 
 		// initializes adapter - recognizes file format, creates appropriate structures, ..
-		void Init(const wchar_t* filename, const wchar_t* originalFilename = nullptr);
+		void Init(const filesystem::path filename, filesystem::path originalFilename = {});
 
 		// reads from cell using cellspec
 		std::string Read(const char* cellSpec) const;
