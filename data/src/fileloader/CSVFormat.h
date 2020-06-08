@@ -58,7 +58,7 @@ class CCSV_Format
 		// error indicator
 		bool mError;
 		// original filename
-		std::wstring mFileName;
+		filesystem::path mFileName;
 		// were contents changed? (do we need to write file?)
 		bool mWriteFlag;
 		// did we recently accessed cell, which is out of range?

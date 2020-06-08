@@ -116,7 +116,7 @@ class CXML_Format
 		XMLElement mRootElement;
 
 		// original filename
-		std::wstring mFileName;
+		filesystem::path mFileName;
 		// something changed?
 		bool mWriteFlag;
 
