@@ -42,6 +42,7 @@
 #include <memory>
 
 #include "../../../../common/rtl/guid.h"
+#include "../../../../common/rtl/FilesystemLib.h"
 
 #include "CSVFormat.h"
 #include "XMLFormat.h"
@@ -107,13 +108,13 @@ class IStorage_File
 		// end of file flag
 		bool mEOF;
 		// original path to file
-		std::wstring mOriginalPath;
+		filesystem::path mOriginalPath;
 
 		public:
 		virtual ~IStorage_File();
 
 		// initializes format, loads from file, etc.
-		virtual void Init(std::wstring &path) = 0;
+		virtual void Init(filesystem::path &path) = 0;
 		// finalizes working with file
 		virtual void Finalize() = 0;
 		// retrieves EOF flag
@@ -141,7 +142,7 @@ class ISpreadsheet_File : public IStorage_File
 		virtual ~ISpreadsheet_File();
 
 		// initializes format, loads from file, etc.
-		virtual void Init(std::wstring &path) = 0;
+		virtual void Init(filesystem::path &path) = 0;
 		// selects worksheet to work with
 		virtual void Select_Worksheet(int sheetIndex) = 0;
 		// reads cell contents (string)
@@ -180,7 +181,7 @@ class IHierarchy_File : public IStorage_File
 		virtual ~IHierarchy_File();
 
 		// initializes format, loads from file, etc.
-		virtual void Init(std::wstring &path) = 0;
+		virtual void Init(filesystem::path &path) = 0;
 		// reads cell contents (string)
 		virtual std::string Read(TreePosition& position) = 0;
 		// reads cell contents (double)
@@ -209,7 +210,7 @@ class CCsv_File : public ISpreadsheet_File
 		std::unique_ptr<CCSV_Format> mFile;
 
 	public:
-		virtual void Init(std::wstring &path);
+		virtual void Init(filesystem::path &path);
 		virtual void Select_Worksheet(int sheetIndex);
 		virtual std::string Read(int row, int col);
 		virtual double Read_Double(int row, int col);
@@ -229,7 +230,7 @@ class CXls_File : public ISpreadsheet_File
 		int mSelectedSheetIndex;
 
 	public:
-		virtual void Init(std::wstring &path);
+		virtual void Init(filesystem::path &path);
 		virtual void Select_Worksheet(int sheetIndex);
 		virtual std::string Read(int row, int col);
 		virtual double Read_Double(int row, int col);
@@ -247,7 +248,7 @@ class CXlsx_File : public ISpreadsheet_File
 		int mSelectedSheetIndex;
 
 	public:
-		virtual void Init(std::wstring &path);
+		virtual void Init(filesystem::path &path);
 		virtual void Select_Worksheet(int sheetIndex);
 		virtual std::string Read(int row, int col);
 		virtual double Read_Double(int row, int col);
@@ -269,7 +270,7 @@ class CXml_File : public IHierarchy_File
 		std::unique_ptr<CXML_Format> mFile;
 
 	public:
-		virtual void Init(std::wstring &path);
+		virtual void Init(filesystem::path &path);
 		virtual std::string Read(TreePosition& position);
 		virtual double Read_Double(TreePosition& position);
 		virtual void Write(TreePosition& position, std::string value);

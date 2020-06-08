@@ -37,6 +37,7 @@
  */
 
 #include "../../../../common/utils/string_utils.h"
+#include "../../../../common/rtl/FilesystemLib.h"
 
 #include "XMLFormat.h"
 #include "Misc.h"
@@ -44,7 +45,7 @@
 #include <fstream>
 #include <string>
 
-CXML_Format::CXML_Format(const wchar_t* path) : mFileName(path), mWriteFlag(false)
+CXML_Format::CXML_Format(const filesystem::path path) : mFileName(path), mWriteFlag(false)
 {
 	Load(path);
 }
@@ -176,9 +177,9 @@ bool CXML_Format::Is_Error() const
 	return false;
 }
 
-bool CXML_Format::Load(const wchar_t* path)
+bool CXML_Format::Load(const filesystem::path path)
 {	
-	std::ifstream f(Narrow_WChar(path));
+	std::ifstream f(path);
 
 	if (!f.is_open())
 		return false;

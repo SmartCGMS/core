@@ -41,6 +41,8 @@
 #include <vector>
 #include <fstream>
 
+#include "../../../../common/rtl/FilesystemLib.h"
+
 /**
  * CSV file reader + writer, implements lazyloading in both directions
  */
@@ -56,7 +58,7 @@ class CCSV_Format
 		// error indicator
 		bool mError;
 		// original filename
-		std::wstring mFileName;
+		filesystem::path mFileName;
 		// were contents changed? (do we need to write file?)
 		bool mWriteFlag;
 		// did we recently accessed cell, which is out of range?
@@ -71,7 +73,7 @@ class CCSV_Format
 		void Load_To_Row(size_t row);
 
 	public:
-		CCSV_Format(const wchar_t* path, char separator = 0);
+		CCSV_Format(const filesystem::path path, char separator = 0);
 		virtual ~CCSV_Format();
 
 		// reads contents of specified cell; always string since we don't convert inputs at load time
