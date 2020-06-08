@@ -3,6 +3,7 @@
 #include <vector>
 #include <mutex>
 #include <shared_mutex>
+#include <climits>
 
 #include "solution.h"
 #include "../../../common/rtl/SolverLib.h"
@@ -13,7 +14,7 @@ protected:
 	template <typename TSolution>
 	struct TCandidate_Solution {
 		TSolution solution;
-		double fitness;
+		double fitness = std::numeric_limits<double>::quiet_NaN();
 	};
 protected:
 	const TUsed_Solution mLower_Bound;

@@ -94,7 +94,7 @@ namespace metade {
 	template <typename TUsed_Solution>
 	struct TMetaDE_Candidate_Solution {
 		size_t population_index = 0;	//only because of the tournament and =0 to keep static analyzer happy
-		NStrategy strategy;
+		NStrategy strategy = NStrategy::desCurrentToPBest;
 		double CR = 0.5, F = 1.0;
 		TUsed_Solution current, next;
 		double current_fitness = std::numeric_limits<double>::max();

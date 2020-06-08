@@ -160,14 +160,15 @@ void Create_And_Initialize_Population() {
 
 	//2. and try to improve with the spiral, which will also generate the rest of the population
 	//we do not throw away any known solution here to maximize the search-space coverage
-	double best_fitness = std::numeric_limits<double>::max();
+	double recent_best_fitness = std::numeric_limits<double>::max();
 	for (size_t zoom_index = 0; zoom_index < 100; zoom_index++) {
 		//find the best solution as the next spiral center
 		auto global_best = std::min_element(unique_by_fitness.begin(), unique_by_fitness.end(),
 			[](const auto &a, const auto &b) {
 			return a.first < b.first; }
 		);
-		if (global_best->first >= best_fitness) break;	//improves no more
+		if (global_best->first >= recent_best_fitness) break;	//improves no more
+		recent_best_fitness = global_best->first;
 
 		const TUsed_Solution unit_offset = Solution_To_Unit_Offset(global_best->second->current);
 		auto solutions = Generate_Spheric_Population(unit_offset);
