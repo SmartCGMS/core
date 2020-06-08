@@ -71,6 +71,7 @@ HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** w
 		}
 	}
 
+	result_path = result_path.make_preferred();
 
 	*wstr = refcnt::WString_To_WChar_Container(result_path.wstring().c_str());
 
