@@ -52,7 +52,7 @@
 #include <exception>
 
 void CPersistent_Chain_Configuration::Advertise_Parent_Path() {
-	std::wstring parent_path = mFile_Path.empty() ? Get_Dll_Dir() : mFile_Path.parent_path().wstring();
+	std::wstring parent_path = mFile_Path.empty() ? Get_Dll_Dir().wstring() : mFile_Path.parent_path().wstring();
 	
 	for (scgms::IFilter_Configuration_Link* link : *this) {
 		link->Set_Parent_Path(parent_path.c_str());
@@ -476,7 +476,7 @@ HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersis
 }
 
 HRESULT IfaceCalling CPersistent_Chain_Configuration::Get_Parent_Path(refcnt::wstr_container** path) {
-	const std::wstring path_to_return = mFile_Path.empty() ? Get_Dll_Dir() : mFile_Path.parent_path().wstring();
+	const std::wstring path_to_return = mFile_Path.empty() ? Get_Dll_Dir().wstring() : mFile_Path.parent_path().wstring();
 	*path = refcnt::WString_To_WChar_Container(path_to_return.c_str());
 	return S_OK;
 }
@@ -487,7 +487,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Parent_Path(const wcha
 	HRESULT rc = S_OK;
 	mFile_Path = parent_path;
 
-	if (Is_Directory(parent_path))
+	if (Is_Directory(mFile_Path))
 		mFile_Path /= ".";
 
 	for (scgms::IFilter_Configuration_Link* link : *this) {

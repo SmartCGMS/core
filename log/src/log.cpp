@@ -113,13 +113,13 @@ std::wstring CLog_Filter::Parameters_To_WStr(const scgms::UDevice_Event& evt) {
 	return stream.str();
 }
 
-bool CLog_Filter::Open_Log(const std::wstring &log_filename) {
+bool CLog_Filter::Open_Log(const filesystem::path &log_filename) {
 	bool result = false;
 
 	// if have output file name
 	if (!log_filename.empty()) {
 		// try to open output file
-		mLog.open(Narrow_WChar(log_filename.c_str()));
+		mLog.open(log_filename);
 	
 		result = mLog.is_open();
 		if (result) {

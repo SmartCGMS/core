@@ -67,7 +67,7 @@ protected:
 	std::mutex mLog_Records_Guard;
 	std::shared_ptr<refcnt::wstr_list> mNew_Log_Records;
 	
-	bool Open_Log(const std::wstring &log_filename);
+	bool Open_Log(const filesystem::path&log_filename);
 	void Log_Event(const scgms::UDevice_Event &evt);
 protected:
 	// vector of model descriptors; stored for parameter formatting

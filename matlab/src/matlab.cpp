@@ -67,7 +67,7 @@ CMatlab_Factory::~CMatlab_Factory() {
 void CMatlab_Factory::Parse_Manifest() {
 
 	auto path = Get_Application_Dir();
-	path = Path_Append(path, rsMatlab_Manifest_File);
+	path = path / std::wstring(rsMatlab_Manifest_File);
 
 	CXML_Parser<wchar_t> parser(path);
 	// although the manifest is required for matlab connection to work, we don't throw an exception or so

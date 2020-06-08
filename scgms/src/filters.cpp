@@ -123,8 +123,8 @@ HRESULT IfaceCalling add_filters(const scgms::TFilter_Descriptor *begin, const s
 	return loaded_filters.add_filters(begin, end, create_filter);
 }
 
-void CLoaded_Filters::load_libraries() {	
-	const auto filters_dir = Get_Dll_Dir() / rsSolversDir;
+void CLoaded_Filters::load_libraries() {
+	const auto filters_dir = Get_Dll_Dir() / std::wstring{rsSolversDir};
 	for (const auto& dir_entry : filesystem::directory_iterator(filters_dir)) {
 		const auto filepath = dir_entry.path();
 
@@ -291,14 +291,14 @@ HRESULT CLoaded_Filters::get_signal_descriptors(scgms::TSignal_Descriptor** begi
 void CLoaded_Filters::describe_loaded_filters(refcnt::Swstr_list error_description) {
 	std::wstring desc = dsDefault_Filters_Path;	
 	auto appdir = Get_Application_Dir();
-	desc += (appdir / rsSolversDir).wstring();
+	desc += (appdir / std::wstring{ rsSolversDir }).wstring();
 	
 	error_description.push(desc);
 	error_description.push(dsLoaded_Filters);
 
 	if (!mLibraries.empty()) {
 		for (auto& lib : mLibraries)
-			error_description.push(lib.library.Lib_Path());
+			error_description.push(lib.library.Lib_Path().wstring());
 	}
 	else
 		error_description.push(dsNone);
