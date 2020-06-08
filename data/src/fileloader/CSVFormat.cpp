@@ -54,7 +54,7 @@ enum class CSVState
 
 CCSV_Format::CCSV_Format(const filesystem::path path, char separator) : mRowsLoaded(0), mError(0), mFileName(path), mWriteFlag(false), mMaxColumn(0)
 {
-	mFile.open(path.wstring());
+	mFile.open(path);
 	if (mFile.bad())
 	{
 		mError = 1;

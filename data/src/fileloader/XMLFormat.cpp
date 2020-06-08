@@ -179,7 +179,7 @@ bool CXML_Format::Is_Error() const
 
 bool CXML_Format::Load(const filesystem::path path)
 {	
-	std::ifstream f(path.wstring());
+	std::ifstream f(path);
 
 	if (!f.is_open())
 		return false;
