@@ -66,8 +66,10 @@ protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 public:
-	CBasal_And_Bolus(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output) 
-		: scgms::CDiscrete_Model<basal_and_bolus::TParameters>(parameters, basal_and_bolus::default_parameters, output) {}
+	CBasal_And_Bolus(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output) :
+		CBase_Filter(output, basal_and_bolus::model_id),
+		scgms::CDiscrete_Model<basal_and_bolus::TParameters>(parameters, basal_and_bolus::default_parameters, output, basal_and_bolus::model_id)
+		{}
 	virtual ~CBasal_And_Bolus() {}
 
 	// scgms::IDiscrete_Model iface
