@@ -57,6 +57,7 @@ signal_generator_internal::CSynchronized_Generator::~CSynchronized_Generator() {
 
 HRESULT IfaceCalling signal_generator_internal::CSynchronized_Generator::Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list* error_description) {
 	scgms::SFilter_Configuration shared_configuration = refcnt::make_shared_reference_ext<scgms::SFilter_Configuration, scgms::IFilter_Configuration>(configuration, true);
+	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
 
 	mFixed_Stepping = shared_configuration.Read_Double(rsStepping, mFixed_Stepping);
 	const GUID model_id = shared_configuration.Read_GUID(rsSelected_Model);
@@ -71,6 +72,28 @@ HRESULT IfaceCalling signal_generator_internal::CSynchronized_Generator::Configu
 		return E_FAIL;
 
 	HRESULT rc = mSync_Model->Configure(configuration, error_description);
+	if (Succeeded(rc)) {
+
+		if (shared_configuration.Read_Bool(rsEcho_Default_Parameters_As_Event)) {
+			scgms::UDevice_Event param_event{ scgms::NDevice_Event_Code::Parameters };
+			param_event.segment_id() = mSegment_Id;
+			param_event.device_id() = model_id;
+			param_event.signal_id() = model_id;
+			param_event.parameters.set(parameters);
+
+			auto raw_event = param_event.get();
+			param_event.release();
+
+			//as the model is already configured for the current segment,
+			//there's no need to let the current sig gen to process this parameters echo
+			rc = mDirect_Output->Execute(raw_event);
+			if (!Succeeded(rc))
+				shared_error_description.push(std::wstring{ dsSignal_Generator } + dsFailed_To_Send_Event + Describe_Error(rc));
+		}
+	}
+	else
+		shared_error_description.push(dsFailed_To_Configure_Model);
+
 	return rc;
 }
 
@@ -248,7 +271,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 	
 	mFeedback_Name = configuration.Read_String(rsFeedback_Name);	
 	mMax_Time = configuration.Read_Double(rsMaximum_Time, mMax_Time);
-	mEmit_Shutdown = configuration.Read_Bool(rsShutdown_After_Last, mEmit_Shutdown);
+	mEmit_Shutdown = configuration.Read_Bool(rsShutdown_After_Last, mEmit_Shutdown);	
 
 	std::vector<double> lower, parameters, upper;
 	configuration.Read_Parameters(rsParameters, lower, parameters, upper);

@@ -51,11 +51,6 @@
 
 #include "../../../common/rtl/SolverLib.h"
 
-CV1_Boluses::CV1_Boluses(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output)
-	: CBase_Filter(output),
-	  mParameters(scgms::Convert_Parameters<icarus_v1_boluses::TParameters>(parameters, icarus_v1_boluses::default_parameters)) {
-}
-
 CV1_Boluses::~CV1_Boluses() {
 
 }

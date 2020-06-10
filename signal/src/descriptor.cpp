@@ -286,7 +286,7 @@ namespace masking
 
 namespace signal_generator {
 
-	constexpr size_t filter_param_count = 9;
+	constexpr size_t filter_param_count = 10;
 	const wchar_t *filter_ui_names[filter_param_count] = {
 		dsSelected_Model,
 		dsFeedback_Name,
@@ -296,6 +296,7 @@ namespace signal_generator {
 		dsStepping,
 		dsMaximum_Time,
 		dsShutdown_After_Last,
+		dsEcho_Default_Parameters_As_Event,
 		dsParameters
 	};
 
@@ -308,11 +309,13 @@ namespace signal_generator {
 		rsStepping,
 		rsMaximum_Time,
 		rsShutdown_After_Last,
+		rsEcho_Default_Parameters_As_Event,
 		rsParameters
 	};
 
 	const wchar_t *filter_tooltips[filter_param_count] = {
 		dsSelected_Model_Tooltip,
+		nullptr,
 		nullptr,
 		nullptr,
 		nullptr,
@@ -332,6 +335,7 @@ namespace signal_generator {
 		scgms::NParameter_Type::ptRatTime,
 		scgms::NParameter_Type::ptRatTime,
 		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptDouble_Array
 	};
 
@@ -349,7 +353,7 @@ namespace signal_generator {
 
 namespace network_signal_generator {
 
-	constexpr size_t filter_param_count = 13;
+	constexpr size_t filter_param_count = 14;
 
 	const wchar_t *filter_ui_names[filter_param_count] = {
 		dsSelected_Model,
@@ -360,6 +364,7 @@ namespace network_signal_generator {
 		dsStepping,
 		dsMaximum_Time,
 		dsShutdown_After_Last,
+		dsEcho_Default_Parameters_As_Event,
 		dsParameters,
 		dsRemote_Host,
 		dsRemote_Port,
@@ -376,6 +381,7 @@ namespace network_signal_generator {
 		rsStepping,
 		rsMaximum_Time,
 		rsShutdown_After_Last,
+		rsEcho_Default_Parameters_As_Event,
 		rsParameters,
 		rsRemote_Host,
 		rsRemote_Port,
@@ -396,6 +402,7 @@ namespace network_signal_generator {
 		nullptr,
 		nullptr,
 		nullptr,
+		nullptr,
 		nullptr
 	};
 
@@ -407,6 +414,7 @@ namespace network_signal_generator {
 		scgms::NParameter_Type::ptInt64,
 		scgms::NParameter_Type::ptRatTime,
 		scgms::NParameter_Type::ptRatTime,
+		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptDouble_Array,
 		scgms::NParameter_Type::ptWChar_Array,

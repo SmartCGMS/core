@@ -51,11 +51,6 @@
 
 #include "../../../common/rtl/SolverLib.h"
 
-CBasal_And_Bolus::CBasal_And_Bolus(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output)
-	: CBase_Filter(output),
-	  mParameters(scgms::Convert_Parameters<basal_and_bolus::TParameters>(parameters, basal_and_bolus::default_parameters)) {
-}
-
 HRESULT CBasal_And_Bolus::Do_Execute(scgms::UDevice_Event event) {
 	if (!mBasal_Rate_Issued) {
 		scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };

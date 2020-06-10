@@ -57,9 +57,8 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CV1_Boluses : public virtual scgms::CBase_Filter, public virtual scgms::IDiscrete_Model {
+class CV1_Boluses : public virtual scgms::CDiscrete_Model<icarus_v1_boluses::TParameters> {
 protected:
-	icarus_v1_boluses::TParameters mParameters;
 	double mSimulation_Start = std::numeric_limits<double>::quiet_NaN();
 	double mStepped_Current_Time = std::numeric_limits<double>::quiet_NaN();
 	size_t mBolus_Index = std::numeric_limits<size_t>::max();		
@@ -74,7 +73,8 @@ protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 public:
-	CV1_Boluses(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output);
+	CV1_Boluses(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output) :
+		scgms::CDiscrete_Model<icarus_v1_boluses::TParameters>( parameters, icarus_v1_boluses::default_parameters, output ) {}
 	virtual ~CV1_Boluses();
 
 	// scgms::IDiscrete_Model iface
