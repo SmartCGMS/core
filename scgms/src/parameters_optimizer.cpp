@@ -56,13 +56,13 @@
 struct TFast_Configuration {
 	bool failed = true;
 	scgms::SFilter_Chain_Configuration configuration;
-	double *first_parameter = nullptr;	//no RC, just for a fast access
+	std::vector<double*> first_parameter_ptrs;
 };
 
 class CError_Metric_Future {
 protected:
 	const scgms::TOn_Filter_Created mOn_Filter_Created;
-	const void* mOn_Filter_Created_Data;	
+	const void* mOn_Filter_Created_Data;
 	double mError_Metric = std::numeric_limits<double>::quiet_NaN();
 	bool mError_Metric_Available = false;
 public:
@@ -109,7 +109,7 @@ protected:
 		return result;
 	}
 protected:
-	std::vector<scgms::IDevice_Event*> mEvents_To_Replay;	
+	std::vector<scgms::IDevice_Event*> mEvents_To_Replay;
 
 	scgms::SFilter_Chain_Configuration Copy_Reduced_Configuration(const size_t end_index) {
 					
@@ -180,7 +180,7 @@ protected:
 													//or, we would need an additional logic to verify that no one connects to this filter
 													//but that would be a special-case, strange behavior => not worth the effort
 
-		mFirst_Effective_Filter_Index = std::min(mFilter_Index, minimal_receiver_end);
+		mFirst_Effective_Filter_Index = std::min(*std::min_element(mFilter_Indices.begin(), mFilter_Indices.end()), minimal_receiver_end);
 		scgms::SFilter_Chain_Configuration reduced_filter_configuration = Copy_Reduced_Configuration(mFirst_Effective_Filter_Index);
 
 
@@ -207,9 +207,10 @@ protected:
 	const void* mOn_Filter_Created_Data;
 protected:
 	scgms::SFilter_Chain_Configuration mConfiguration;
-	const size_t mFilter_Index;
+	const std::vector<size_t> mFilter_Indices;
+	std::vector<size_t> mFilter_Parameter_Counts, mFilter_Parameter_Offsets;
 	size_t mFirst_Effective_Filter_Index = 0;
-	const std::wstring mParameters_Config_Name;
+	const std::vector<std::wstring> mParameters_Config_Names;
 
 	std::mutex mClone_Guard;
 
@@ -218,7 +219,8 @@ protected:
 
 		TFast_Configuration result;
 		result.configuration = Empty_Chain();
-		result.failed = !result.configuration.operator bool();		
+		result.first_parameter_ptrs.resize(mFilter_Indices.size());
+		result.failed = !result.configuration.operator bool();
 
 		const std::set<GUID> ui_filters = { scgms::IID_Drawing_Filter, scgms::IID_Log_Filter };	//let's optimize away thos filters, which would only slow down
 
@@ -226,7 +228,7 @@ protected:
 		// 1. create the root configuration container, because the we can
 		// 2. create a new link configuration for the given filter
 		// 3. where, we insert new configuration-parameters
-		//thus all other objects stays the same, we only increase their reference counters		
+		//thus all other objects stays the same, we only increase their reference counters
 
 		
 		size_t link_counter = 0;
@@ -251,66 +253,69 @@ protected:
 
 				scgms::IFilter_Configuration_Link* raw_link_to_add = src_link.get();
 
-				if (link_counter == mFilter_Index) {
-					if (filter_id == Invalid_GUID) {
-						result.failed = true;
-						return;
-					}
-				
-					raw_link_to_add = static_cast<scgms::IFilter_Configuration_Link*>(new CFilter_Configuration_Link(filter_id)); //so far, zero RC which is correct right now because we do not call dtor here
+				for (size_t index = 0; index < mFilter_Indices.size(); index++) {
 
-					{					
-						refcnt::wstr_container* parent_path = nullptr;
-						result.failed = mConfiguration->Get_Parent_Path(&parent_path) != S_OK;
-						if (!result.failed) 
-							result.failed = raw_link_to_add->Set_Parent_Path(refcnt::WChar_Container_To_WString(parent_path).c_str()) != S_OK;
-						parent_path->Release();
-					}
+					if (link_counter == mFilter_Indices[index]) {
+						if (filter_id == Invalid_GUID) {
+							result.failed = true;
+							return;
+						}
+
+						raw_link_to_add = static_cast<scgms::IFilter_Configuration_Link*>(new CFilter_Configuration_Link(filter_id)); //so far, zero RC which is correct right now because we do not call dtor here
+
+						{
+							refcnt::wstr_container* parent_path = nullptr;
+							result.failed = mConfiguration->Get_Parent_Path(&parent_path) != S_OK;
+							if (!result.failed)
+								result.failed = raw_link_to_add->Set_Parent_Path(refcnt::WChar_Container_To_WString(parent_path).c_str()) != S_OK;
+							parent_path->Release();
+						}
 
 
-					//now, we need to emplace new configuration-parameters
+						//now, we need to emplace new configuration-parameters
 
-					bool found_parameters = false;
-					src_link.for_each([&raw_link_to_add, &found_parameters, &result, this](scgms::SFilter_Parameter src_parameter) {
-					
-						scgms::IFilter_Parameter* raw_parameter = src_parameter.get();
+						bool found_parameters = false;
+						src_link.for_each([&raw_link_to_add, &found_parameters, &result, this, index](scgms::SFilter_Parameter src_parameter) {
 
-						if (!found_parameters && (mParameters_Config_Name == src_parameter.configuration_name())) {
-							//parameters - we need to create a new copy
+							scgms::IFilter_Parameter* raw_parameter = src_parameter.get();
 
-							raw_parameter = static_cast<scgms::IFilter_Parameter*>(new CFilter_Parameter{scgms::NParameter_Type::ptDouble_Array, mParameters_Config_Name.c_str()});
-							scgms::IModel_Parameter_Vector *src_parameters, *dst_parameters;
-							if (src_parameter->Get_Model_Parameters(&src_parameters) == S_OK) {
-								dst_parameters = refcnt::Copy_Container<double>(src_parameters);							
-								if (raw_parameter->Set_Model_Parameters(dst_parameters) != S_OK) 
+							if (!found_parameters && (mParameters_Config_Names[index] == src_parameter.configuration_name())) {
+								//parameters - we need to create a new copy
+
+								raw_parameter = static_cast<scgms::IFilter_Parameter*>(new CFilter_Parameter{ scgms::NParameter_Type::ptDouble_Array, mParameters_Config_Names[index].c_str() });
+								scgms::IModel_Parameter_Vector *src_parameters, *dst_parameters;
+								if (src_parameter->Get_Model_Parameters(&src_parameters) == S_OK) {
+									dst_parameters = refcnt::Copy_Container<double>(src_parameters);
+									if (raw_parameter->Set_Model_Parameters(dst_parameters) != S_OK)
 										result.failed = true;	//increases RC by 1
-								src_parameters->Release();
-								dst_parameters->Release();
+									src_parameters->Release();
+									dst_parameters->Release();
 
-								//find the very first number to overwrite later on with new values
-								double *begin, *end;
-								if (dst_parameters->get(&begin, &end) == S_OK) {
-									result.first_parameter = begin + mProblem_Size;
-									found_parameters = true;
+									//find the very first number to overwrite later on with new values
+									double *begin, *end;
+									if (dst_parameters->get(&begin, &end) == S_OK) {
+										result.first_parameter_ptrs[index] = begin + mFilter_Parameter_Counts[index];
+										found_parameters = true;
+									}
+									else
+										result.failed = true;
 								}
 								else
 									result.failed = true;
 							}
-							else
+
+							if (raw_link_to_add->add(&raw_parameter, &raw_parameter + 1) != S_OK)
 								result.failed = true;
+
+
+							});
+
+						if (!found_parameters) {
+							result.failed = true;	//we need the parameters, because they also include the bounds!
+							error_description.push(dsParameters_to_optimize_not_found);
 						}
 
-						if (raw_link_to_add->add(&raw_parameter, &raw_parameter + 1) != S_OK) 
-								result.failed = true;
-
-					
-					});
-
-					if (!found_parameters) {
-						result.failed = true;	//we need the parameters, because they also include the bounds!
-						error_description.push(dsParameters_to_optimize_not_found);
 					}
-
 				}
 
 				result.configuration->add(&raw_link_to_add, &raw_link_to_add + 1);	//increases RC by one
@@ -329,10 +334,10 @@ protected:
 public:
 	static inline refcnt::Swstr_list mEmpty_Error_Description;	//no thread local as we need to reset it!
 public:
-	CParameters_Optimizer(scgms::IFilter_Chain_Configuration *configuration, const size_t filter_index, const wchar_t *parameters_config_name, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data)
+	CParameters_Optimizer(scgms::IFilter_Chain_Configuration *configuration, const size_t *filter_indices, const wchar_t **parameters_config_names, const size_t filter_count, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data)
 		: mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data),
 		mConfiguration(refcnt::make_shared_reference_ext<scgms::SFilter_Chain_Configuration, scgms::IFilter_Chain_Configuration>(configuration, true)),
-		mFilter_Index(filter_index), mParameters_Config_Name(parameters_config_name) 	{
+		mFilter_Indices{ filter_indices, filter_indices + filter_count }, mParameters_Config_Names{ parameters_config_names, parameters_config_names + filter_count } {
 
 		mEmpty_Error_Description.reset();
 		//having this with nullptr, no error write will actually occur
@@ -349,27 +354,42 @@ public:
 
 	HRESULT Optimize(const GUID solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress &progress, refcnt::Swstr_list error_description) {
 
-		scgms::SFilter_Configuration_Link configuration_link_parameters = mConfiguration[mFilter_Index];
+		std::vector<double> lbound, params, ubound;
 
-		if (!configuration_link_parameters) {
-			error_description.push(dsParameters_to_optimize_not_found);
-			return E_INVALIDARG;
+		mFilter_Parameter_Counts.resize(mFilter_Indices.size());
+		mFilter_Parameter_Offsets.resize(mFilter_Indices.size());
+
+		for (size_t i = 0; i < mFilter_Indices.size(); i++) {
+
+			scgms::SFilter_Configuration_Link configuration_link_parameters = mConfiguration[mFilter_Indices[i]];
+
+			if (!configuration_link_parameters) {
+				error_description.push(dsParameters_to_optimize_not_found);
+				return E_INVALIDARG;
+			}
+
+			if (!configuration_link_parameters.Read_Parameters(mParameters_Config_Names[i].c_str(), lbound, params, ubound)) {
+				error_description.push(dsParameters_to_optimize_could_not_be_read_bounds_including);
+				return E_FAIL;
+			}
+
+			mFilter_Parameter_Offsets[i] = mFound_Parameters.size();	// where does the parameter set begin
+			mFilter_Parameter_Counts[i] = params.size();				// how many parameters does this parameter set have
+
+			std::copy(lbound.begin(), lbound.end(), std::back_inserter(mLower_Bound));
+			std::copy(params.begin(), params.end(), std::back_inserter(mFound_Parameters));
+			std::copy(ubound.begin(), ubound.end(), std::back_inserter(mUpper_Bound));
 		}
 
-		if (!configuration_link_parameters.Read_Parameters(mParameters_Config_Name.c_str(), mLower_Bound, mFound_Parameters, mUpper_Bound)) {
-			error_description.push(dsParameters_to_optimize_could_not_be_read_bounds_including);
-			return E_FAIL;
-		}
-		
 		mProblem_Size = mFound_Parameters.size();
-
 
 		//create initial pool-configuration to determine problem size
 		//and to verify that we are able to clone the configuration
 		{
 			TFast_Configuration configuration = Clone_Configuration(0, error_description);
-			if (configuration.failed) return E_FAIL;	//we release this configuration, because it has not used mFirst_Effective_Filter_Index			
-		}		
+			if (configuration.failed)
+				return E_FAIL;	//we release this configuration, because it has not used mFirst_Effective_Filter_Index
+		}
 
 		if (!Fetch_Events_To_Replay(error_description)) return E_FAIL;
 
@@ -385,14 +405,25 @@ public:
 			max_generations, population_size, std::numeric_limits<double>::min()
 		};
 
-
-		HRESULT rc = solve_generic(&solver_id, &solver_setup, &progress);		
+		HRESULT rc = solve_generic(&solver_id, &solver_setup, &progress);
 
 		//eventually, we need to copy the parameters to the original configuration - on success
 		if (rc == S_OK) {
-			rc = configuration_link_parameters.Write_Parameters(mParameters_Config_Name.c_str(), mLower_Bound, mFound_Parameters, mUpper_Bound) ? rc : E_FAIL;
-			if (rc != S_OK)
-				error_description.push(dsFailed_to_write_parameters);
+			for (size_t i = 0; i < mFilter_Indices.size(); i++) {
+				
+				scgms::SFilter_Configuration_Link configuration_link_parameters = mConfiguration[mFilter_Indices[i]];
+				
+				Get_Parameter_Subset(i, mLower_Bound, lbound);
+				Get_Parameter_Subset(i, mFound_Parameters, params);
+				Get_Parameter_Subset(i, mUpper_Bound, ubound);
+				
+				rc = configuration_link_parameters.Write_Parameters(mParameters_Config_Names[i].c_str(), lbound, params, ubound) ? rc : E_FAIL;
+				
+				if (rc != S_OK) {
+					error_description.push(dsFailed_to_write_parameters);
+					break;
+				}
+			}
 		}
 		else
 			error_description.push(dsSolver_Failed);
@@ -400,9 +431,11 @@ public:
 		return rc;
 	}
 
-
-	
-	
+	void Get_Parameter_Subset(const size_t optimized_filter_idx, const std::vector<double>& parameterSet, std::vector<double>& target)
+	{
+		target.resize(mFilter_Parameter_Counts[optimized_filter_idx]);
+		std::copy(parameterSet.begin() + mFilter_Parameter_Offsets[optimized_filter_idx], parameterSet.begin() + mFilter_Parameter_Offsets[optimized_filter_idx] + mFilter_Parameter_Counts[optimized_filter_idx], target.begin());
+	}
 
 	double Calculate_Fitness(const void* solution, refcnt::Swstr_list empty_error_description) {
 		bool failure_detected = false;
@@ -412,8 +445,10 @@ public:
 																								//which would keep, but not reset their states
 
 		//set the experimental parameters
-		std::copy(reinterpret_cast<const double*>(solution), reinterpret_cast<const double*>(solution) + mProblem_Size, configuration.first_parameter);
-
+		for (size_t i = 0; i < configuration.first_parameter_ptrs.size(); i++) {
+			const double* base = reinterpret_cast<const double*>(solution) + mFilter_Parameter_Offsets[i];
+			std::copy(base, base + mFilter_Parameter_Counts[i], configuration.first_parameter_ptrs[i]);
+		}
 
 		//Have the means to pickup the final metric
 		CError_Metric_Future error_metric_future{ mOn_Filter_Created, mOn_Filter_Created_Data };
@@ -465,7 +500,7 @@ HRESULT IfaceCalling optimize_parameters(scgms::IFilter_Chain_Configuration *con
 									     const GUID *solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress *progress,
 										 refcnt::wstr_list *error_description) {
 
-	CParameters_Optimizer optimizer{ configuration, filter_index, parameters_configuration_name, on_filter_created, on_filter_created_data };
+	CParameters_Optimizer optimizer{ configuration, &filter_index, &parameters_configuration_name, 1, on_filter_created, on_filter_created_data };
 	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
 	return optimizer.Optimize(*solver_id, population_size, max_generations, *progress, shared_error_description);
 }
@@ -474,5 +509,8 @@ HRESULT IfaceCalling optimize_multiple_parameters(scgms::IFilter_Chain_Configura
 												  scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data,
 												  const GUID *solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress *progress,
 												  refcnt::wstr_list *error_description) {
-	return E_NOTIMPL;
- }
+
+	CParameters_Optimizer optimizer{ configuration, filter_indices, parameters_configuration_names, filter_count, on_filter_created, on_filter_created_data };
+	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
+	return optimizer.Optimize(*solver_id, population_size, max_generations, *progress, shared_error_description);
+}
