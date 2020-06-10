@@ -159,6 +159,5 @@ HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IMode
 	else if (*model_id == basal_and_bolus::model_id)
 		return Manufacture_Object<CBasal_And_Bolus> (model, parameters, output);
 
-
 	return E_NOTIMPL;
 }
