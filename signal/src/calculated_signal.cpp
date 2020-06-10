@@ -157,7 +157,7 @@ HRESULT CCalculate_Filter::Do_Execute(scgms::UDevice_Event event)  {
 
 				//send the original event before other events are emitted
 				result = Send(event);
-				if (!Succeeded(result)) {
+				if (Succeeded(result)) {
 					//now, evt is gone!
 					event_already_sent = true;
 					Add_Level(segment_id, signal_id, level, device_time);
