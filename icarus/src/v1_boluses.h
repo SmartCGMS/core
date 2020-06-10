@@ -10,8 +10,8 @@
  * Faculty of Applied Sciences, University of West Bohemia
  * Univerzitni 8, 301 00 Pilsen
  * Czech Republic
- * 
- * 
+ *
+ *
  * Purpose of this software:
  * This software is intended to demonstrate work of the diabetes.zcu.cz research
  * group to other scientists, to complement our published papers. It is strictly
@@ -33,10 +33,10 @@
  * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
  * of the Software, and to permit persons to whom the Software is furnished to do
  * so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -57,11 +57,12 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
+
 class CV1_Boluses : public virtual scgms::CDiscrete_Model<icarus_v1_boluses::TParameters> {
 protected:
 	double mSimulation_Start = std::numeric_limits<double>::quiet_NaN();
 	double mStepped_Current_Time = std::numeric_limits<double>::quiet_NaN();
-	size_t mBolus_Index = std::numeric_limits<size_t>::max();		
+	size_t mBolus_Index = std::numeric_limits<size_t>::max();
 	uint64_t mSegment_id = scgms::Invalid_Segment_Id;
 	bool mBasal_Rate_Issued = false;
 
@@ -73,8 +74,10 @@ protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 public:
-	CV1_Boluses(scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output) :
-		scgms::CDiscrete_Model<icarus_v1_boluses::TParameters>( parameters, icarus_v1_boluses::default_parameters, output ) {}
+	CV1_Boluses(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output) :
+		CBase_Filter(output, icarus_v1_boluses::model_id),
+		scgms::CDiscrete_Model<icarus_v1_boluses::TParameters>(parameters, icarus_v1_boluses::default_parameters, output, icarus_v1_boluses::model_id)
+		{}
 	virtual ~CV1_Boluses();
 
 	// scgms::IDiscrete_Model iface
