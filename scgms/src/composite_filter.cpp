@@ -107,6 +107,9 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 				if (failed_to_resolve_descriptor)
 					describe_loaded_filters(error_description);
 
+				if (!mExecutors.empty())
+					mExecutors[0]->Execute(static_cast<scgms::IDevice_Event*> (new CDevice_Event{ scgms::NDevice_Event_Code::Shut_Down }));
+
 				mExecutors.clear();
 				return rc;
 			}

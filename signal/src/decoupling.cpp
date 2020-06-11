@@ -62,7 +62,8 @@ HRESULT IfaceCalling CDecoupling_Filter::Do_Configure(scgms::SFilter_Configurati
     if (Is_Invalid_GUID(mDestination_Id)) return E_INVALIDARG; //mSource_Id can be Invalid_GUID due to external reasons, such as malformed CSV log events
 
 
-    mDestination_Null = mDestination_Id == scgms::signal_Null;
+    mAny_Source_Signal = mSource_Id == scgms::signal_All;
+    mDestination_Null = mDestination_Id == scgms::signal_Null;    
     mRemove_From_Source = configuration.Read_Bool(rsRemove_From_Source, mRemove_From_Source);
 
     mCondition = Parse_AST_Tree(configuration.Read_String(rsCondition), error_description);
@@ -94,7 +95,7 @@ HRESULT IfaceCalling CDecoupling_Filter::Do_Execute(scgms::UDevice_Event event) 
     }
 
 
-    if (event.signal_id() == mSource_Id) {
+    if ((event.signal_id() == mSource_Id) || mAny_Source_Signal) {
         const bool decouple = mCondition->evaluate(event).bval;
         //cannot test mDestination_Null here, because we would be unable to collect statistics about the expression and release the event if needed
 

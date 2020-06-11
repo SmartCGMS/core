@@ -65,6 +65,10 @@ CLog_Replay_Filter::CLog_Replay_Filter(scgms::IFilter* output) : CBase_Filter(ou
 }
 
 CLog_Replay_Filter::~CLog_Replay_Filter() {
+	mShutdown_Received = true; //ensure that the shutdown flag is set,
+							   //because we are shutting down, regardless of the shutdown messsage received
+							   //e.g.; on aborting from a failed configuration of a successive thread
+
 	if (mLog_Replay_Thread)
 		if (mLog_Replay_Thread->joinable())
 			mLog_Replay_Thread->join();

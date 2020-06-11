@@ -59,6 +59,7 @@ protected:
 	// destination signal ID (to what ID it will be mapped)
 	GUID mDestination_Id = Invalid_GUID;
     bool mRemove_From_Source = false;
+    bool mAny_Source_Signal = false;
     bool mDestination_Null = false;
     bool mCollect_Statistics = false;
     filesystem::path mCSV_Path;
