@@ -78,6 +78,11 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 		auto signal = is_reference_signal ? signals.reference_signal : signals.error_signal;
 
 		if (signal) {
+			if (signal->Update_Levels(&raw_event->device_time, &raw_event->level, 1) == S_OK) {
+				mNew_Data_Logical_Clock++;
+			}
+
+
 			if (mEmit_Metric_As_Signal && !mEmit_Last_Value_Only) {
 				if (raw_event->device_time != mLast_Emmitted_Time) {
 					//emit the signal only if the last time has changed to avoid emmiting duplicate values
@@ -89,9 +94,6 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 				}
 			}
 
-			if (signal->Update_Levels(&raw_event->device_time, &raw_event->level, 1) == S_OK) {
-				mNew_Data_Logical_Clock++;
-			}
 		}
 	};
 
@@ -233,7 +235,7 @@ bool CSignal_Error::Prepare_Levels(const uint64_t segment_id, std::vector<double
 				if (signals.reference_signal->Get_Discrete_Levels(times.data()+ offset, reference.data()+offset, reference_count, &filled) == S_OK) {
 					error.resize(offset+reference_count);
 
-					if (signals.error_signal->Get_Continuous_Levels(nullptr, times.data()+offset, error.data(), filled, scgms::apxNo_Derivation) == S_OK)
+					if (signals.error_signal->Get_Continuous_Levels(nullptr, times.data()+offset, error.data()+offset, filled, scgms::apxNo_Derivation) == S_OK)
 						return true;
 				}
 
@@ -340,9 +342,12 @@ HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(const uint64_t segmen
 					relative_error_count++;
 				}
 
-				absolute_error->count++;
+				absolute_error_count++;
 			}
 		}
+		absolute_differences.resize(absolute_error_count);
+		relative_differences.resize(relative_error_count);
+
 		//2. test the count and if OK, calculate avg and others
 		if (!Calculate_Signal_Stats(absolute_differences, *absolute_error)) return S_FALSE;
 		Calculate_Signal_Stats(relative_differences, *relative_error);
