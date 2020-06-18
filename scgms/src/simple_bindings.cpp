@@ -108,6 +108,10 @@ public:
 			simple_event.logical_time = raw_event->logical_time;
 			simple_event.segment_id = raw_event->segment_id;
 
+			simple_event.parameters = nullptr;
+			simple_event.count = 0;
+			simple_event.str = nullptr;
+
 			switch (scgms::UDevice_Event_internal::major_type(raw_event->event_code)) {
 				case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::level:
 					simple_event.level = raw_event->level;
