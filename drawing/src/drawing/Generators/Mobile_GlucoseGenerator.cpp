@@ -46,7 +46,7 @@
 #include <cmath>
 
 int CMobile_Glucose_Generator::startX = 90;
-int CMobile_Glucose_Generator::startY = 40 + 52; // header + times
+int CMobile_Glucose_Generator::startY = MobileHeaderTextSize + 52; // header + times
 int CMobile_Glucose_Generator::sizeX = 800;
 int CMobile_Glucose_Generator::sizeY = 800;
 
@@ -63,8 +63,9 @@ void CMobile_Glucose_Generator::Write_Description()
 	grp.Set_Default_Fill_Color(RGBColor::From_HTML_Color(TextColor));
 
 	time_t a;
-	grp.Add<drawing::Text>(startX, 3.0 * MobileHeaderTextSize / 4.0, "BLOOD GLUCOSE (mmol/l)")
+	grp.Add<drawing::Text>(startX, 3.0 * MobileHeaderTextSize / 4.0, "BLOOD GLUCOSE (mmol/L)")
 		.Set_Anchor(drawing::Text::TextAnchor::START)
+		.Set_Font_Weight(drawing::Text::FontWeight::BOLD)
 		.Set_Font_Size(MobileHeaderTextSize);
 
 	for (a = mTimeRange.first; a < mTimeRange.second; a += ThreeHours)
@@ -73,7 +74,7 @@ void CMobile_Glucose_Generator::Write_Description()
 			.Set_Fill_Color(RGBColor::From_HTML_Color(Get_Time_Of_Day_Color(a)));
 
 		grp.Add<drawing::Text>(startX + Normalize_Time_X(a), 52 + 3.0 * 40 / 5.0, Get_Time_Of_Day_Title(a))
-			.Set_Anchor((a == mTimeRange.first) ? drawing::Text::TextAnchor::START : drawing::Text::TextAnchor::END)
+			.Set_Anchor((a == mTimeRange.first) ? drawing::Text::TextAnchor::START : drawing::Text::TextAnchor::MIDDLE)
 			.Set_Font_Size(MobileTextSize)
 			.Set_Font_Weight(drawing::Text::FontWeight::BOLD);
 	}
@@ -157,12 +158,22 @@ void CMobile_Glucose_Generator::Set_Stroke_By_Value(drawing::Group& target, doub
 void CMobile_Glucose_Generator::Write_Body()
 {
 	ValueVector& istVector = Utility::Get_Value_Vector_Ref(mInputData, "ist");
+	ValueVector predVector = Utility::Get_Value_Vector(mInputData, "{79EDF100-B0A2-4EE7-AB17-1637418DB15A}");
 
 	// start at targetMin
 	mMinValueY = BG_Target_Min;
 	// start at 10 mmol/l
 	mMaxValueY = 10.0;
 	for (auto& val : istVector)
+	{
+		if (val.date < mTimeRange.first || val.date > mTimeRange.second)
+			continue;
+		if (val.value > mMaxValueY)
+			mMaxValueY = val.value;
+		if (val.value < mMinValueY)
+			mMinValueY = val.value;
+	}
+	for (auto& val : predVector)
 	{
 		if (val.date < mTimeRange.first || val.date > mTimeRange.second)
 			continue;
@@ -195,10 +206,58 @@ void CMobile_Glucose_Generator::Write_Body()
 			curX = startX + Normalize_Time_X(val.date);
 			curY = Normalize_Y(val.value);
 
-			Set_Stroke_By_Value(grp, val.value, 3);
+			Set_Stroke_By_Value(grp, val.value, 7);
 
 			if (!std::isnan(lastX))
 				grp.Add<drawing::Line>(lastX, lastY, curX, curY);
+
+			lastX = curX;
+			lastY = curY;
+		}
+	}
+
+	const double lastMeasuredX = lastX;
+	bool foundInitial = false;
+
+	// ist prediction group scope
+	{
+		auto& grp = mDraw.Root().Add<drawing::Group>("ist_pred");
+
+		grp.Set_Fill_Opacity(0);
+
+		drawing::PolyLine& polyline = grp.Add<drawing::PolyLine>(lastX, lastY);
+		polyline.Set_Stroke_Color(RGBColor::From_HTML_Color(MeasurementElevatedColor));
+		polyline.Set_Stroke_Width(7);
+		polyline.Set_Fill_Opacity(0);
+		polyline.Set_Stroke_Dash_Array({ 3.5, 3.5 });
+
+		drawing::PolyLine& polyline2 = grp.Add<drawing::PolyLine>(lastX, lastY);
+		polyline2.Set_Stroke_Color(RGBColor::From_HTML_Color(MeasurementInRangeColor));
+		polyline2.Set_Stroke_Width(4);
+		polyline2.Set_Fill_Opacity(0);
+		polyline2.Set_Stroke_Dash_Array({ 2, 5 });
+
+		for (auto& val : predVector)
+		{
+			if (val.date < mTimeRange.first || val.date > mTimeRange.second)
+				continue;
+
+			curX = startX + Normalize_Time_X(val.date);
+			curY = Normalize_Y(val.value);
+
+			if (!std::isnan(lastX) && curX > lastMeasuredX)
+			{
+				if (!foundInitial)
+				{
+					foundInitial = true;
+					polyline.Set_Position(lastX, lastY);
+					polyline.Add_Point(lastX, lastY);
+					polyline2.Set_Position(lastX, lastY);
+					polyline2.Add_Point(lastX, lastY);
+				}
+				polyline.Add_Point(curX, curY);
+				polyline2.Add_Point(curX, curY);
+			}
 
 			lastX = curX;
 			lastY = curY;

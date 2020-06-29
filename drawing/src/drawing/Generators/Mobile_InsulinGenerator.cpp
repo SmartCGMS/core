@@ -146,7 +146,8 @@ void CMobile_Insulin_Generator::Write_Body()
 		poly.Set_Stroke_Color(RGBColor::From_HTML_Color(InsulinIoBStrokeColor));
 		poly.Set_Fill_Color(RGBColor::From_HTML_Color(InsulinIoBFillColor));
 		poly.Set_Stroke_Width(3);
-		poly.Set_Opacity(0.5);
+		poly.Set_Stroke_Opacity(0.5);
+		poly.Set_Fill_Opacity(0.5);
 
 		double lastX = Normalize_Time_X(mTimeRange.first);
 		bool first = true;
@@ -196,6 +197,8 @@ void CMobile_Insulin_Generator::Write_Body()
 	{
 		auto& grp = mDraw.Root().Add<drawing::Group>("basal");
 
+		double lastValue = -1000;
+
 		grp.Set_Default_Stroke_Width(0);
 		grp.Set_Default_Fill_Color(RGBColor::From_HTML_Color(InsulinBasalDotColor));
 
@@ -222,7 +225,11 @@ void CMobile_Insulin_Generator::Write_Body()
 				grp.Add<drawing::Circle>(startX + Normalize_Time_X(val.date), Normalize_Y(basalDelivered), 6);
 			}*/
 
-			grp.Add<drawing::Circle>(startX + Normalize_Time_X(val.date), Normalize_Y(val.value), 6);
+			if (val.value != lastValue)
+			{
+				grp.Add<drawing::Circle>(startX + Normalize_Time_X(val.date), Normalize_Y(val.value), 4);
+				lastValue = val.value;
+			}
 		}
 	}
 }

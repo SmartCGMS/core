@@ -54,8 +54,8 @@ constexpr double BG_Target_Min = 3.8;
 constexpr double BG_Target_Max = 7.0;
 constexpr double BG_Elevated_Max = 10.8;
 
-constexpr int MobileTextSize = 32;
-constexpr int MobileHeaderTextSize = 40;
+constexpr int MobileTextSize = 38;
+constexpr int MobileHeaderTextSize = 48;
 
 extern const char* ColumnColor_Shade1;
 extern const char* ColumnColor_Shade2;
