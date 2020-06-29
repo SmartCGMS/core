@@ -79,7 +79,7 @@ double CExpWeightedDiffAvgPolar_Metric::Do_Calculate_Metric() {
 
 		double accdiff = diff.difference;
 		if (diff.raw.calculated + mParameters.threshold < diff.raw.expected)
-			accdiff *= sqrt(diff.difference); // use power of 1.5 for values below expected and threshold
+			accdiff *= 1.0 + diff.difference;
 
 		accumulator += accdiff;
 	}
