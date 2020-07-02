@@ -59,6 +59,7 @@ public:
 
 	virtual HRESULT IfaceCalling Get_Parent_Path(refcnt::wstr_container** path) override final;
 	virtual HRESULT IfaceCalling Set_Parent_Path(const wchar_t* parent_path) override final;
+	virtual HRESULT IfaceCalling Set_Variable(const wchar_t* name, const wchar_t* value) override final;
 
 	virtual HRESULT IfaceCalling Load_From_File(const wchar_t *file_path, refcnt::wstr_list *error_description) override final;
 	virtual HRESULT IfaceCalling Load_From_Memory(const char *memory, const size_t len, refcnt::wstr_list *error_description) override final;

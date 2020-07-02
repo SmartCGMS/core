@@ -25,6 +25,19 @@ HRESULT IfaceCalling CFilter_Configuration_Link::Set_Parent_Path(const wchar_t* 
 	return rc;
 }
 
+HRESULT IfaceCalling CFilter_Configuration_Link::Set_Variable(const wchar_t* name, const wchar_t* value) {
+	if ((!name) || (*name == 0)) return E_INVALIDARG;
+
+	HRESULT rc = S_OK;
+	for (auto param : *this) {
+		if (!Succeeded(param->Set_Variable(name, value)))
+			rc = E_UNEXPECTED;
+	}
+
+	return rc;
+
+}
+
 HRESULT IfaceCalling CFilter_Configuration_Link::add(scgms::IFilter_Parameter** begin, scgms::IFilter_Parameter** end) {
 	HRESULT rc = refcnt::internal::CVector_Container<scgms::IFilter_Parameter*>::add(begin, end);
 	if (rc == S_OK)

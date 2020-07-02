@@ -545,3 +545,15 @@ wchar_t* CPersistent_Chain_Configuration::Describe_GUID(const GUID& val, const s
 
 	return result;
 }
+
+HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Variable(const wchar_t* name, const wchar_t* value) {
+	if (!name || (*name == 0)) return E_INVALIDARG;
+
+	HRESULT rc = S_OK;
+	for (scgms::IFilter_Configuration_Link* link : *this) {
+		if (!Succeeded(link->Set_Variable(name, value)))
+			rc = E_UNEXPECTED;
+	}
+
+	return rc;
+}

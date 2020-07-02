@@ -20,6 +20,7 @@ public:
 
 	virtual HRESULT IfaceCalling Get_Filter_Id(GUID *id) override final;
 	virtual HRESULT IfaceCalling Set_Parent_Path(const wchar_t* path) override final;
+	virtual HRESULT IfaceCalling Set_Variable(const wchar_t* name, const wchar_t* value) override final;
 };
 
 #pragma warning( pop )

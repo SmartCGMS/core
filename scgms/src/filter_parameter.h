@@ -4,6 +4,9 @@
 #include "../../../common/rtl/referencedImpl.h"
 #include "../../../common/rtl/FilesystemLib.h"
 
+#include <map>
+#include <optional>
+
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
@@ -11,7 +14,6 @@ class CFilter_Parameter : public virtual scgms::IFilter_Parameter, public virtua
 protected:
 	const scgms::NParameter_Type mType;
 	const std::wstring mConfig_Name;
-	std::string mSystem_Variable_Name;
 	filesystem::path mParent_Path;
 
 	//the following SReferenced variables are not part of the union to prevent memory corruption
@@ -38,6 +40,10 @@ protected:
 			return E_NOT_SET;
 		}
 	}
+protected:
+	std::string mSystem_Variable_Name;
+	std::map<std::wstring, std::wstring> mNon_OS_Variables;
+	std::optional<std::wstring> Read_Variable(const wchar_t* name);
 public:
 	CFilter_Parameter(const scgms::NParameter_Type type, const wchar_t *config_name);
 	virtual ~CFilter_Parameter() {};
@@ -46,6 +52,8 @@ public:
 	virtual HRESULT IfaceCalling Get_Config_Name(wchar_t **config_name) override final;
 
 	//read-write
+	virtual HRESULT IfaceCalling Set_Variable(const wchar_t* name, const wchar_t* value) override final;
+
 	virtual HRESULT IfaceCalling Get_WChar_Container(refcnt::wstr_container** wstr, BOOL read_interpreted) override final;
 	virtual HRESULT IfaceCalling Set_WChar_Container(refcnt::wstr_container *wstr) override final;
 	virtual HRESULT IfaceCalling Get_File_Path(refcnt::wstr_container** wstr) override final;
