@@ -153,7 +153,14 @@ void CNetwork_Discrete_Model::Network_Thread_Fnc()
 			else if (pingCounter++ >= mPing_Interval) // send ping once every X ticks
 			{
 				pingCounter = 0;
-				mSession.Send_Keepalive_Request();
+				if (!mSession.Send_Keepalive_Request())
+				{
+					if (Connect(mRemoteAddr, mRemotePort) != S_OK)
+					{
+						Signal_Tear_Down();
+						break;
+					}
+				}
 			}
 		}
 		else if (retval < 0)

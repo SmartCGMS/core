@@ -293,6 +293,7 @@ bool CNetwork_Discrete_Model::CSession_Handler::Send_Teardown_Request()
 bool CNetwork_Discrete_Model::CSession_Handler::Send_Teardown_Reply()
 {
 	Interrupt();
+
 	scgms::TNet_Packet<void> resp(scgms::NOpcodes::UU_TEARDOWN_REPLY);
 	return Send_Packet(resp);
 }
