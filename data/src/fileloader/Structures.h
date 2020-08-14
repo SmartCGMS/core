@@ -112,6 +112,8 @@ struct CMeasured_Value
 	COptional<double> mSleepQuality;
 	// sleep end
 	COptional<double> mSleepEnd;
+	// optional information
+	COptional<std::string> mStringNote;
 
 	// reset optional fields to allow reuse
 	void reuse()

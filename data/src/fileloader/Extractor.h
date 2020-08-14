@@ -90,6 +90,7 @@ enum class ExtractorColumns
 	COL_SLEEP,
 	COL_SLEEP_DATETIME,
 	COL_SLEEP_DATETIME_END,
+	COL_MISC_NOTE,
 };
 
 // type of iteration during extraction
@@ -194,6 +195,8 @@ class CExtractor
 
 		// extracts formatted double for specified column
 		bool Formatted_Read_Double(std::string& formatName, ExtractorColumns colType, std::string& source, double& target) const;
+		// extracts formatted string for specified column
+		bool Formatted_Read_String(std::string& formatName, ExtractorColumns colType, std::string& source, std::string& target) const;
 
 	public:
 		CExtractor();

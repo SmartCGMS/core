@@ -77,15 +77,18 @@ CFile_Reader::~CFile_Reader() {
 	}
 }
 
-bool CFile_Reader::Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId, double value)
+bool CFile_Reader::Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId, double value, const std::wstring& winfo)
 {
 	scgms::UDevice_Event evt{ code };
 
 	evt.device_id() = file_reader::File_Reader_Device_GUID;
 	evt.device_time() = device_time;
-	evt.level() = value;
+	if (evt.is_level_event())
+		evt.level() = value;
 	evt.segment_id() = segment_id;
 	evt.signal_id() = signalId;
+	if (evt.is_info_event())
+		evt.info.set(winfo.c_str());
 
 	const HRESULT rc = Send(evt);
 	if (rc != S_OK) {		
@@ -250,6 +253,8 @@ void CFile_Reader::Run_Reader() {
 						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Sleep_Quality, cur->mSleepQuality.value());
 						nextSleepEnd = cur->mSleepEnd.value();
 					}
+					if (cur->mStringNote.has_value())
+						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Information, valDate, currentSegmentId, Invalid_GUID, std::numeric_limits<double>::infinity(), widen_string(cur->mStringNote.value()));
 
 					if (errorRes)
 					{

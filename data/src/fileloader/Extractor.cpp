@@ -89,6 +89,7 @@ const char* rsExtractorColumnStepsDatetime = "steps-datetime";
 const char* rsExtractorColumnSleep = "sleep-quality";
 const char* rsExtractorColumnSleepDatetime = "sleep-datetime";
 const char* rsExtractorColumnSleepDatetimeEnd = "sleep-datetime-end";
+const char* rsExtractorColumnMiscNote = "misc-note";
 
 const char* dsDatabaseTimestampFormatShort = "%FT%T";
 
@@ -194,6 +195,7 @@ CExtractor::CExtractor()
 	mColumnTypes[rsExtractorColumnSleep] = ExtractorColumns::COL_SLEEP;
 	mColumnTypes[rsExtractorColumnSleepDatetime] = ExtractorColumns::COL_SLEEP_DATETIME;
 	mColumnTypes[rsExtractorColumnSleepDatetimeEnd] = ExtractorColumns::COL_SLEEP_DATETIME_END;
+	mColumnTypes[rsExtractorColumnMiscNote] = ExtractorColumns::COL_MISC_NOTE;
 }
 
 void CExtractor::Add_Template(const char* rule, const char* header)
@@ -220,8 +222,8 @@ void CExtractor::Add_Template_String_Format(const char* rule, const char* header
 	if (mColumnTypes.find(header) == mColumnTypes.end())
 		return;
 
-	// the formatter %f must be present
-	if (std::string(stringFormat).find("%f") == std::string::npos)
+	// the formatter %f (or %s) must be present
+	if (std::string(stringFormat).find("%f") == std::string::npos && std::string(stringFormat).find("%s") == std::string::npos)
 		return;
 
 	mRuleStringFormats[rule] = stringFormat;
@@ -298,11 +300,16 @@ ExtractorColumns CExtractor::Get_Conditional_Column(std::string& formatName, Ext
 	if (ctitr == fitr->second.end())
 		return ExtractorColumns::NONE;
 
-	auto vitr = ctitr->second.find(condValue);
+	for (auto& vitr : ctitr->second)
+	{
+		if (condValue.find(vitr.first) != std::string::npos)
+			return vitr.second;
+	}
+	/*auto vitr = ctitr->second.find(condValue);
 	if (vitr == ctitr->second.end())
-		return ExtractorColumns::NONE;
+		return ExtractorColumns::NONE;*/
 
-	return vitr->second;
+	return ExtractorColumns::NONE;
 }
 
 const char* CExtractor::Find_ColSpec_For_Column(const std::string& formatName, ExtractorColumns colType) const
@@ -502,6 +509,54 @@ bool CExtractor::Formatted_Read_Double(std::string& formatName, ExtractorColumns
 			{
 				return false;
 			}
+		}
+		else
+		{
+			// match non-formatted characters
+			if (source[spos] != fmt[dpos])
+				return false;
+
+			spos++;
+			dpos++;
+		}
+	}
+
+	return true;
+}
+
+bool CExtractor::Formatted_Read_String(std::string& formatName, ExtractorColumns colType, std::string& source, std::string& target) const
+{
+	const char* fmt = Get_Column_String_Format(formatName, colType);
+
+	if (!fmt)
+	{
+		target = source;
+		return true;
+	}
+
+	size_t spos = 0, dpos = 0;
+
+	// parse formatted input
+	while (spos < source.length() && dpos < strlen(fmt))
+	{
+		// when we reached format string...
+		if (fmt[dpos] == '%' && fmt[dpos + 1] == 's')
+		{
+			dpos += 2;
+
+			size_t ppos = spos;
+			// iterate to first equal character
+			while (spos < source.length() && source[spos] != fmt[dpos])
+				spos++;
+
+			// characters are not equal / buffer overrun, no match
+			if (spos == source.length() && source[spos] != fmt[dpos])
+				return false;
+
+			// read and convert value
+			std::string valsub = source.substr(ppos, spos - ppos);
+
+			target = valsub;
 		}
 		else
 		{
@@ -1134,6 +1189,7 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 			std::string condition;
 			std::string sval;
 			double dval;
+			ExtractorColumns condColType = ExtractorColumns::COL_EVENT_CONDITION;
 
 			if (eventPos.Valid())
 			{
@@ -1142,11 +1198,16 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 
 				if (eventCondPos.Valid())
 					condition = source.Read(eventCondPos.row, eventCondPos.column, eventCondPos.sheetIndex);
+				else
+				{
+					condition = sval;
+					condColType = ExtractorColumns::COL_EVENT;
+				}
 
 				// resolve condition - retrieve column based on condition value
-				ExtractorColumns ccol = Get_Conditional_Column(formatName, ExtractorColumns::COL_EVENT_CONDITION, condition);
+				ExtractorColumns ccol = Get_Conditional_Column(formatName, condColType, condition);
 				// unknown condition value - no column? try to read formatted input value
-				if (ccol != ExtractorColumns::NONE && Formatted_Read_Double(formatName, ccol, sval, dval))
+				if (ccol != ExtractorColumns::NONE && (ccol == ExtractorColumns::COL_MISC_NOTE || Formatted_Read_Double(formatName, ccol, sval, dval)))
 				{
 					switch (ccol)
 					{
@@ -1165,6 +1226,24 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 						case ExtractorColumns::COL_CARBOHYDRATES:
 						{
 							mval->mCarbohydrates = dval;
+							validValue = true;
+							break;
+						}
+						case ExtractorColumns::COL_PHYSICAL_ACTIVITY:
+						{
+							// TODO: figure out columns with ambiguous values
+
+							mval->mPhysicalActivity = 0.3;
+							if (!mval->mPhysicalActivityDuration.has_value())
+								mval->mPhysicalActivityDuration = dval * scgms::One_Minute;
+							validValue = true;
+							break;
+						}
+						case ExtractorColumns::COL_MISC_NOTE:
+						{
+							std::string sval_fmt;
+							if (Formatted_Read_String(formatName, ccol, sval, sval_fmt))
+								mval->mStringNote = sval_fmt;
 							validValue = true;
 							break;
 						}
