@@ -215,6 +215,8 @@ HRESULT CDrawing_Filter::Do_Execute(scgms::UDevice_Event event) {
 				default:
 					break;
 			}
+
+			mChanged = true;
 		}
 	}
 	else if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start || event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Stop)
@@ -310,6 +312,7 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 	size_t curIdx = 0;
 
 	std::map<GUID, std::string> calcSignalMap;
+	scgms::CSignal_Description signal_descriptions;
 
 	for (auto const& presentData : mInputData)
 	{
@@ -386,6 +389,11 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 				vectorsMap[pkey].identifier = pkey;
 				vectorsMap[pkey].signal_id = presentData.first;
 			}
+
+			signal_descriptions.for_each([this, &vectorsMap, &key, &presentData](scgms::TSignal_Descriptor desc) {
+				if (desc.id == presentData.first)
+					vectorsMap[key].visualization_style = desc.visualization;
+			});
 
 			auto itr = mCalcSignalNameMap.find(signal_id);
 			if (itr != mCalcSignalNameMap.end())
