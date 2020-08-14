@@ -151,12 +151,17 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			auto specificval = cut_column();
 			// device time is parsed as-is using the same format as used when saving
 			specificval = cut_column();
+
+			// skip lines without date - this is valid as log filter allows storing an empty string in device_time field
+			if (specificval.length() == 0)
+				continue;
+
 			const double device_time = Local_Time_WStr_To_Rat_Time(specificval, rsLog_Date_Time_Format);
 			if (std::isnan(device_time)) {
 				std::wstring msg{ dsUnknown_Date_Time_Format };
 				msg.append(specificval);
 				emit_parsing_exception_w(msg);
-				return;
+				continue; // do not consider invalid date in a single row a fatal error
 			}
 
 			// skip; event type name
