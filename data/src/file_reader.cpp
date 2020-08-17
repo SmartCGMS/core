@@ -43,6 +43,7 @@
 #include "../../../common/rtl/rattime.h"
 #include "../../../common/rtl/hresult.h"
 #include "../../../common/lang/dstrings.h"
+#include "../../../common/utils/string_utils.h"
 
 #include "fileloader/FormatRuleLoader.h"
 #include "fileloader/FormatRecognizer.h"
@@ -254,7 +255,7 @@ void CFile_Reader::Run_Reader() {
 						nextSleepEnd = cur->mSleepEnd.value();
 					}
 					if (cur->mStringNote.has_value())
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Information, valDate, currentSegmentId, Invalid_GUID, std::numeric_limits<double>::infinity(), widen_string(cur->mStringNote.value()));
+						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Information, valDate, currentSegmentId, Invalid_GUID, std::numeric_limits<double>::infinity(), Widen_Char(cur->mStringNote.value().c_str()));
 
 					if (errorRes)
 					{
