@@ -320,21 +320,42 @@ HRESULT CFile_Reader::Extract(ExtractionResult &values)
 	values.Value_Count = 0;
 	values.SegmentValues.clear();
 
-	// TODO: support more files at once
-	values.SegmentValues.resize(1);
-	values.SegmentBloodValues.resize(1);
-	values.SegmentMiscValues.resize(1);
+	std::vector<filesystem::path> files_to_extract;
 
-	CFormat_Adapter sfile;
-	std::string format = recognizer.Recognize_And_Open(mFileName, sfile);
+	if (Is_Directory(mFileName))
+	{
+		for (auto& path : filesystem::directory_iterator(mFileName))
+		{
+			if (Is_Regular_File_Or_Symlink(path))
+				files_to_extract.push_back(path);
+		}
+	}
+	else
+		files_to_extract.push_back(mFileName);
 
-	// unrecognized format or error loading file
-	if (format == "" || sfile.Get_Error())
-		return E_FAIL;
+	values.SegmentValues.resize(files_to_extract.size());
+	values.SegmentBloodValues.resize(files_to_extract.size());
+	values.SegmentMiscValues.resize(files_to_extract.size());
 
-	// extract data and fill extraction result
-	if (!extractor.Extract(format, sfile, values, 0))
-		return E_FAIL;
+	for (size_t fileIndex = 0; fileIndex < files_to_extract.size(); fileIndex++)
+	{
+		CFormat_Adapter sfile;
+		std::string format = recognizer.Recognize_And_Open(files_to_extract[fileIndex], sfile);
+
+		// unrecognized format or error loading file
+		if (format == "" || sfile.Get_Error())
+		{
+			Emit_Info(scgms::NDevice_Event_Code::Error, L"Unknown format: " + files_to_extract[fileIndex].wstring());
+			return E_FAIL;
+		}
+
+		// extract data and fill extraction result
+		if (!extractor.Extract(format, sfile, values, fileIndex))
+		{
+			Emit_Info(scgms::NDevice_Event_Code::Error, L"Cannot extract: " + files_to_extract[fileIndex].wstring());
+			return E_FAIL;
+		}
+	}
 
 	return S_OK;
 }
@@ -352,7 +373,7 @@ HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration con
 	mRequireBG_IG = configuration.Read_Bool(rsRequire_IG_BG);
 
 	std::error_code ec;
-	if (Is_Regular_File_Or_Symlink(mFileName) && filesystem::exists(mFileName, ec)) {
+	if ((Is_Regular_File_Or_Symlink(mFileName) || Is_Directory(mFileName)) && filesystem::exists(mFileName, ec)) {
 		mReaderThread = std::make_unique<std::thread>(&CFile_Reader::Run_Reader, this);
 		rc = S_OK;
 	} else {		
