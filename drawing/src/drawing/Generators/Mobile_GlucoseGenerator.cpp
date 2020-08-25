@@ -155,10 +155,45 @@ void CMobile_Glucose_Generator::Set_Stroke_By_Value(drawing::Group& target, doub
 	}
 }
 
+static const std::array<std::string, 6> gPredictionMaps = {
+	"{1FA03911-A62D-4ECF-AFE8-60B8379151B8}",	// 5min  (virtual 90)
+	"{56C37AF2-FA68-43EF-88B6-8EA28E957824}",	// 10min (virtual 91)
+	"{E959B878-74E4-479F-AECE-7AF2F1454498}",	// 15min (virtual 92)
+	"{B6C0CAA3-01A3-402D-823D-57FF8F2D9C45}",	// 20min (virtual 93)
+	"{173FFBB1-51BC-4E9B-9119-5B95EED29042}",	// 25min (virtual 94)
+	"{BBE13567-C1F8-489D-8416-AB3565DE4F67}",	// 30min (virtual 95)
+};
+
+static bool Fill_Pred_Vector(DataMap& inputMap, ValueVector& dst)
+{
+	ValueVector tmp;
+
+	time_t lastTime = 0;
+
+	for (size_t i = 0; i < gPredictionMaps.size(); i++)
+	{
+		tmp = Utility::Get_Value_Vector(inputMap, gPredictionMaps[i]);
+		if (tmp.empty())
+			return false;
+
+		const auto& val = *tmp.rbegin();
+		if (val.date < lastTime)
+			return false;
+
+		dst.push_back(val);
+		lastTime = val.date;
+	}
+
+	return true;
+}
+
 void CMobile_Glucose_Generator::Write_Body()
 {
 	ValueVector& istVector = Utility::Get_Value_Vector_Ref(mInputData, "ist");
-	ValueVector predVector = Utility::Get_Value_Vector(mInputData, "{79EDF100-B0A2-4EE7-AB17-1637418DB15A}");
+	ValueVector predVector;// = Utility::Get_Value_Vector(mInputData, "{79EDF100-B0A2-4EE7-AB17-1637418DB15A}");
+
+	if (!Fill_Pred_Vector(mInputData, predVector))
+		predVector.clear();
 
 	// start at targetMin
 	mMinValueY = BG_Target_Min;
@@ -168,6 +203,8 @@ void CMobile_Glucose_Generator::Write_Body()
 	{
 		if (val.date < mTimeRange.first || val.date > mTimeRange.second)
 			continue;
+		if (val.value < 0 || val.value > 60.0) // NOTE: temporary hack, will not be included in new drawing implementation
+			continue;
 		if (val.value > mMaxValueY)
 			mMaxValueY = val.value;
 		if (val.value < mMinValueY)
@@ -176,6 +213,8 @@ void CMobile_Glucose_Generator::Write_Body()
 	for (auto& val : predVector)
 	{
 		if (val.date < mTimeRange.first || val.date > mTimeRange.second)
+			continue;
+		if (val.value < 0 || val.value > 60.0) // NOTE: temporary hack, will not be included in new drawing implementation
 			continue;
 		if (val.value > mMaxValueY)
 			mMaxValueY = val.value;
@@ -199,6 +238,10 @@ void CMobile_Glucose_Generator::Write_Body()
 		for (auto& val : istVector)
 		{
 			if (val.date < mTimeRange.first || val.date > mTimeRange.second)
+				continue;
+
+			// NOTE: temporary hack, will not be included in new drawing implementation
+			if (val.value < 0 || val.value > 60.0)
 				continue;
 
 			Set_Stroke_By_Value(grp, val.value);
@@ -240,6 +283,10 @@ void CMobile_Glucose_Generator::Write_Body()
 		for (auto& val : predVector)
 		{
 			if (val.date < mTimeRange.first || val.date > mTimeRange.second)
+				continue;
+
+			// NOTE: temporary hack, will not be included in new drawing implementation
+			if (val.value < 0 || val.value > 60.0)
 				continue;
 
 			curX = startX + Normalize_Time_X(val.date);
