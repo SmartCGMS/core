@@ -58,8 +58,10 @@ class CLog_Replay_Filter : public virtual scgms::CBase_Filter {
 protected:
 	static const size_t idxLog_Entry_Time = 0;
 	static const size_t idxLog_Entry_Counter = 1;
-	static const size_t idxLog_Entry_Line = 2;
-	using TLog_Entry = std::tuple<double, size_t, std::wstring>;
+	static const size_t idxLog_Info_Line = 2;
+	static const size_t idxLog_Segment_Id = 3;
+	static const size_t idxLog_Entry_Line = 4;
+	using TLog_Entry = std::tuple<double, size_t, std::wstring, uint64_t, std::wstring>;
 protected:
 	struct TLog_Segment_id {
 		filesystem::path file_name;
