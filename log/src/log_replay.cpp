@@ -402,12 +402,18 @@ std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_L
 				if (first_char)
 					log.segment_id = std::strtoull(first_char, &end_char, 10);
 
+				size_t near_id = 1;
+
 				while ((log.segment_id <= 0) ||	//<= just in the case that we would change max_id to a signed int
 					(log.segment_id == scgms::Invalid_Segment_Id) ||
 					(log.segment_id == scgms::All_Segments_Id) ||
 					(used_ids.find(log.segment_id) != used_ids.end())) {
 
-					log.segment_id = ++recent_id;
+					if (used_ids.find(log.segment_id + near_id) == used_ids.end()) {
+						log.segment_id += ++near_id;
+					} else {
+						log.segment_id = ++recent_id;
+					}					
 				}
 
 				used_ids.insert(log.segment_id);
@@ -456,8 +462,7 @@ HRESULT CLog_Replay_Filter::Do_Execute(scgms::UDevice_Event event) {
 	return Send(event);
 }
 
-void CLog_Replay_Filter::WStr_To_Parameters(const std::wstring& src, scgms::SModel_Parameter_Vector& target)
-{
+void CLog_Replay_Filter::WStr_To_Parameters(const std::wstring& src, scgms::SModel_Parameter_Vector& target) {
 	std::vector<double> params;
 
 	size_t pos = 0, pos2 = 0;

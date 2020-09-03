@@ -160,7 +160,7 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 				the logic that shutdown is the last event processed.
 				Hence, we emit nothing after the shutdown.
 				
-				Anyone truly intersted in the cumulative final value, should used the promised metric
+				Anyone truly interested in the cumulative final value, should used the promised metric
 				that's called from dtor. This value will include all levels received, regadless
 				segment stop and shutdown.
 			*/
