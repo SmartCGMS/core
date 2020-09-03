@@ -59,6 +59,7 @@
 #include <cmath>
 #include <tuple>
 #include <set>
+#include <cwctype>
 
 CLog_Replay_Filter::CLog_Replay_Filter(scgms::IFilter* output) : CBase_Filter(output) {
 	//
@@ -303,12 +304,62 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 
 }
 
+
+bool Match_Wildcard(const std::wstring fname, const std::wstring wcard, const bool case_sensitive) {	
+	size_t f = 0;
+	for (size_t w = 0; w < wcard.size(); w++) {
+		switch (wcard[w]) {
+			case L'?':	
+				if (f >= fname.size()) return false;
+				//there is one char to eat, let's continue
+				f++;
+				break;
+
+
+			case L'*': 
+				//skip everything in the filename until extension or dir separator
+				while (f < fname.size()) {
+					if ((fname[f] == L'.') || (fname[f] == filesystem::path::preferred_separator)) 
+						break;
+					
+					f++;
+				}
+				break;
+
+
+			default:
+				if (f >= fname.size()) return false;
+				if (case_sensitive) {
+					if (wcard[w] != fname[f]) return false;						
+				} else {
+					if (std::towupper(wcard[w]) != std::towupper(fname[f])) return false;					
+				}
+				//wild card and name still matches, continue
+				f++;
+				break;
+
+		}
+
+		
+	}
+
+	return f < fname.size() ? false : true;	//return false if some chars in the fname were not eaten
+}
+
+
+
 std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_Log_Segments() {
 	std::vector<TLog_Segment_id> logs_to_replay;
 
-	const bool has_extension_wildcard = mLog_Filename_Or_Dirpath.stem().string() == "*";
-	const auto effective_path = has_extension_wildcard ? mLog_Filename_Or_Dirpath.parent_path() : mLog_Filename_Or_Dirpath;
-	const auto extension_wild_card = has_extension_wildcard ? mLog_Filename_Or_Dirpath.extension() : filesystem::path{};
+	const auto effective_path = mLog_Filename_Or_Dirpath.parent_path();
+	const std::wstring wildcard =  mLog_Filename_Or_Dirpath.wstring();
+	constexpr bool case_sensitive =
+		#ifdef  _WIN32
+			false
+		#else
+			true
+		#endif   
+		;
 
 
 	std::error_code ec;
@@ -317,13 +368,11 @@ std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_L
 
 
 	//1. gather a list of all segments we will try to replay
-	if (Is_Directory(effective_path)) {
-
-		
+	if (Is_Directory(effective_path)) {		
 		for (auto& path : filesystem::directory_iterator(effective_path)) {
-			const bool matches_wildcard = extension_wild_card.empty() || (path.path().extension() == extension_wild_card) || (extension_wild_card == ".*");
+			const bool matches_wildcard = Match_Wildcard(path.path().wstring(), wildcard, case_sensitive);
 
-			if (matches_wildcard) {
+			if (matches_wildcard) {			
 				if (Is_Regular_File_Or_Symlink(path))
 					logs_to_replay.push_back({ path, scgms::Invalid_Segment_Id });
 			}
@@ -353,7 +402,7 @@ std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_L
 				if (first_char)
 					log.segment_id = std::strtoull(first_char, &end_char, 10);
 
-				while ((log.segment_id <= 0) ||	//<= just in the case that we would change max_id to signed it
+				while ((log.segment_id <= 0) ||	//<= just in the case that we would change max_id to a signed int
 					(log.segment_id == scgms::Invalid_Segment_Id) ||
 					(log.segment_id == scgms::All_Segments_Id) ||
 					(used_ids.find(log.segment_id) != used_ids.end())) {
