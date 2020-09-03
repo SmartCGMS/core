@@ -137,7 +137,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 	auto read_segment_id = [&cut_column, &emit_parsing_exception_w]()->uint64_t {
 		bool ok;
 		const auto str = cut_column();
-		uint64_t result = wstr_2_int(str.c_str(), ok);
+		uint64_t result = wstr_2_uint(str.c_str(), ok);
 		if (!ok) {
 			std::wstring msg{ dsError_In_Number_Format };
 			msg.append(str);
@@ -152,7 +152,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 	std::vector<TLog_Entry> log_lines;	//first, we fetch the lines, and then we parse them
 				//we do so, to ensure that all the events are time sorted and and events't logical clock are monotonically increasing
 
-	std::set<uint64_t> segment_ids;
+	std::map<uint64_t, uint64_t> segment_id_map;
 
 	// read all lines from log file
 	while (std::getline(log, line) && !mShutdown_Received)  {
@@ -182,11 +182,11 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 
 			const auto info_str = std::move(cut_column());
 			const uint64_t original_segment_id = read_segment_id();
-			const bool can_use_filename_as_segment_id = mInterpret_Filename_As_Segment_Id && (original_segment_id != scgms::Invalid_Segment_Id) && (original_segment_id != scgms::All_Segments_Id);
-			const uint64_t segment_id = can_use_filename_as_segment_id ? filename_segment_id : original_segment_id;
 
+			if ((original_segment_id != scgms::Invalid_Segment_Id) && (original_segment_id != scgms::All_Segments_Id))
+				segment_id_map[original_segment_id] = original_segment_id;
 
-			log_lines.push_back(TLog_Entry{ device_time, line_counter, info_str, segment_id, line });
+			log_lines.push_back(TLog_Entry{ device_time, line_counter, info_str, original_segment_id, line });
 		}
 		catch (const std::exception & ex) {				
 			emit_parsing_exception(ex.what());
@@ -211,6 +211,30 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 		else  return std::get<idxLog_Entry_Counter>(a) < std::get<idxLog_Entry_Counter>(b);
 	});
 		
+	//Adjust segment ids if there were multiple segments
+	if (mInterpret_Filename_As_Segment_Id) {
+		if (segment_id_map.size() > 1) {
+			uint64_t last_segment_id = 1;
+			uint64_t segment_id_base = filename_segment_id * 1000;
+			while (segment_id_base < segment_id_map.size() * 1000)
+				segment_id_base *= 10;
+
+
+			for (auto& segment_id : segment_id_map) {
+				
+					segment_id.second = segment_id_base + last_segment_id;
+					last_segment_id++;
+				
+			}
+		}
+		else if (segment_id_map.size() == 1) {
+			segment_id_map.begin()->second = filename_segment_id;
+		}
+	}
+	//add the special cases
+	segment_id_map[scgms::Invalid_Segment_Id] = scgms::Invalid_Segment_Id;
+	segment_id_map[scgms::All_Segments_Id] = scgms::All_Segments_Id;	
+
 	for (size_t i = 0; i < log_lines.size(); i++) {
 		if (mShutdown_Received) break;
 
@@ -221,7 +245,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 
 			// specific column (titled "info", but contains parameters or level)
 			const auto info_str = std::move(std::get<idxLog_Info_Line>(log_lines[i]));
-			const uint64_t segment_id = std::get<idxLog_Segment_Id>(log_lines[i]);
+			const uint64_t segment_id = segment_id_map[std::get<idxLog_Segment_Id>(log_lines[i])];					
 			line = std::move(std::get<idxLog_Entry_Line>(log_lines[i]));
 								
 
@@ -282,9 +306,9 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_Log_Segments() {
 	std::vector<TLog_Segment_id> logs_to_replay;
 
-	const bool has_wildcard = mLog_Filename_Or_Dirpath.stem().string() == "*";
-	const auto effective_path = has_wildcard ? mLog_Filename_Or_Dirpath.parent_path() : mLog_Filename_Or_Dirpath;
-	const auto wild_card = has_wildcard ? mLog_Filename_Or_Dirpath.extension() : filesystem::path{};
+	const bool has_extension_wildcard = mLog_Filename_Or_Dirpath.stem().string() == "*";
+	const auto effective_path = has_extension_wildcard ? mLog_Filename_Or_Dirpath.parent_path() : mLog_Filename_Or_Dirpath;
+	const auto extension_wild_card = has_extension_wildcard ? mLog_Filename_Or_Dirpath.extension() : filesystem::path{};
 
 
 	std::error_code ec;
@@ -297,7 +321,7 @@ std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_L
 
 		
 		for (auto& path : filesystem::directory_iterator(effective_path)) {
-			const bool matches_wildcard = wild_card.empty() || (path.path().extension() == wild_card) || (wild_card == ".*");
+			const bool matches_wildcard = extension_wild_card.empty() || (path.path().extension() == extension_wild_card) || (extension_wild_card == ".*");
 
 			if (matches_wildcard) {
 				if (Is_Regular_File_Or_Symlink(path))
