@@ -178,6 +178,8 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 							signals.second.last_value_emitted = true;
 						}
 					}
+
+					Emit_Metric_Signal(scgms::All_Segments_Id, raw_event->device_time);
 				}
 				break;
 
