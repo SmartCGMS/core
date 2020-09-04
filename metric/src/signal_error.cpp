@@ -39,12 +39,16 @@
 #include "signal_error.h"
 #include "descriptor.h"
 
-#include <cmath>
-
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/utils/math_utils.h"
 #include "../../../common/utils/string_utils.h"
+
+#include <cmath>
+#include <fstream>
+#include <numeric>
+#include <type_traits>
+
 
 constexpr unsigned char bool_2_uc(const bool b) {
 	return b ? static_cast<unsigned char>(1) : static_cast<unsigned char>(0);
@@ -179,8 +183,9 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 						}
 					}
 
-					Emit_Metric_Signal(scgms::All_Segments_Id, raw_event->device_time);
+					Emit_Metric_Signal(scgms::All_Segments_Id, raw_event->device_time);					
 				}
+				Flush_Errors();
 				break;
 
 			default:
@@ -200,6 +205,7 @@ HRESULT CSignal_Error::Do_Configure(scgms::SFilter_Configuration configuration, 
 	
 	if (Is_Invalid_GUID(mReference_Signal_ID, mError_Signal_ID, metric_id) || std::isnan(metric_threshold)) return E_INVALIDARG;
 
+	mCSV_Path = configuration.Read_File_Path(rsOutput_CSV_File);
 
 	mEmit_Metric_As_Signal = configuration.Read_Bool(rsEmit_metric_as_signal, mEmit_Metric_As_Signal);
 	mEmit_Last_Value_Only = configuration.Read_Bool(rsEmit_last_value_only, mEmit_Last_Value_Only);
@@ -373,4 +379,50 @@ void CSignal_Error::Emit_Metric_Signal(const uint64_t segment_id, const double d
 	event.device_time() = device_time;
 
 	Send(event);
+}
+
+void CSignal_Error::Flush_Errors() {
+	if (mCSV_Path.empty()) return;
+
+	std::wofstream stats_file{ mCSV_Path };
+
+	if (!stats_file.is_open()) {
+		Emit_Info(scgms::NDevice_Event_Code::Error, std::wstring{ dsCannot_Open_File } + mCSV_Path.wstring());
+		return;
+	}
+
+	stats_file << rsSignal_Stats_Header << std::endl;
+
+
+	auto flush_stats = [this, &stats_file](const scgms::TSignal_Stats& signal_stats, const wchar_t *marker_string, const uint64_t segment_id) {
+		using et = std::underlying_type < scgms::NECDF>::type;
+
+		if (segment_id == scgms::All_Segments_Id)  stats_file << dsSelect_All_Segments;
+			else stats_file << std::to_wstring(segment_id);
+
+		stats_file << "; " << marker_string << ";; "
+			<< signal_stats.avg << "; " << signal_stats.stddev << "; " << signal_stats.count << ";; "
+			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::min_value)] << "; "
+			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::p25)] << "; "
+			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::median)] << "; "
+			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::p75)] << "; "
+			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::p95)] << "; "
+			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::p99)] << "; "
+			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::max_value)] << std::endl;
+	};
+
+	auto flush_segment = [this, &stats_file, &flush_stats](const uint64_t segment_id) {
+		scgms::TSignal_Stats absolute_error;
+		scgms::TSignal_Stats relative_error;
+		if (Calculate_Signal_Error(segment_id, &absolute_error, &relative_error) == S_OK) {
+			flush_stats(absolute_error, dsAbsolute, segment_id);
+			flush_stats(relative_error, dsRelative, segment_id);
+			
+		}
+	};
+
+	for (auto& signals: mSignal_Series) 
+		flush_segment(signals.first);
+	
+	flush_segment(scgms::All_Segments_Id);
 }
