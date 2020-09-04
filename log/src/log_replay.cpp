@@ -402,7 +402,7 @@ std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_L
 				if (first_char)
 					log.segment_id = std::strtoull(first_char, &end_char, 10);
 
-				size_t near_id = 1;
+				size_t near_id = 0;
 
 				while ((log.segment_id <= 0) ||	//<= just in the case that we would change max_id to a signed int
 					(log.segment_id == scgms::Invalid_Segment_Id) ||
