@@ -13,11 +13,9 @@ FILE(GLOB_RECURSE NETWORK_SRC_FILES "src/network/*.cpp" "src/network/*.c" "src/n
 IF(WIN32)
 	FILE(GLOB_RECURSE DMMS_LIB_FILES "src/dmms_lib/*.cpp" "src/dmms_lib/*.c" "src/dmms_lib/*.h")
 	FILE(GLOB_RECURSE DMMS_PROC_FILES "src/dmms_proc/*.cpp" "src/dmms_proc/*.c" "src/dmms_proc/*.h")
-	FILE(GLOB_RECURSE MATLAB_SRC_FILES "src/matlab/*.cpp" "src/matlab/*.c" "src/matlab/*.h")
 	
 	SOURCE_GROUP("src\\dmms_lib" FILES ${DMMS_LIB_FILES})
 	SOURCE_GROUP("src\\dmms_proc" FILES ${DMMS_PROC_FILES})
-	SOURCE_GROUP("src\\matlab" FILES ${MATLAB_SRC_FILES})
 	
 	IF(WIN32)
 		FILE(GLOB SRC_WIN_FILES "src/win/*.cpp" "src/win/*.h" "src/win/*.def")
@@ -46,7 +44,7 @@ IF(WIN32)
 ENDIF()
 	
 IF(WIN32)
-	TARGET_LINK_LIBRARIES(${PROJ} Ws2_32 ${CMAKE_CURRENT_SOURCE_DIR}/src/matlab/libmx_win64_ms.lib)
+	TARGET_LINK_LIBRARIES(${PROJ} Ws2_32)
 ELSE()
 	TARGET_COMPILE_DEFINITIONS(${PROJ} PUBLIC NO_BUILD_DMMS)
 ENDIF()

@@ -40,7 +40,6 @@
 
 
 #include "../../../../common/utils/DebugHelper.h"
-#include "../matlab/libeng.h"
 
 #include <Windows.h>
 
@@ -50,10 +49,10 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 					 )
 {
 	switch (ul_reason_for_call)	{
-        case DLL_PROCESS_ATTACH:	Libeng_Process_Atach(); break;
+        case DLL_PROCESS_ATTACH:	break;
 		case DLL_THREAD_ATTACH:
         case DLL_THREAD_DETACH:	    break;
-        case DLL_PROCESS_DETACH:    Libeng_Process_Detach();
+        case DLL_PROCESS_DETACH:
 			break;
 	}
 	return TRUE;
