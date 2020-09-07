@@ -68,7 +68,7 @@ HRESULT IfaceCalling do_get_metric_descriptors(scgms::TMetric_Descriptor const *
 
 namespace signal_error {
 
-	constexpr size_t param_count = 12;
+	constexpr size_t param_count = 13;
 
 	const scgms::NParameter_Type parameter_type[param_count] = {
 		scgms::NParameter_Type::ptWChar_Array,
@@ -83,6 +83,7 @@ namespace signal_error {
 		scgms::NParameter_Type::ptNull,
 		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptWChar_Array,
 	};
 
 	const wchar_t* ui_parameter_name[param_count] = {
@@ -97,7 +98,8 @@ namespace signal_error {
 		dsMetric_Threshold,
 		nullptr,
 		dsEmit_metric_as_signal,
-		dsEmit_last_value_only
+		dsEmit_last_value_only,
+		dsOutput_CSV_File
 	};
 
 	const wchar_t* config_parameter_name[param_count] = {
@@ -112,7 +114,8 @@ namespace signal_error {
 		rsMetric_Threshold,
 		nullptr,
 		rsEmit_metric_as_signal,
-		rsEmit_last_value_only
+		rsEmit_last_value_only,
+		rsOutput_CSV_File
 	};
 
 	const wchar_t* ui_parameter_tooltip[param_count] = {
@@ -121,6 +124,7 @@ namespace signal_error {
 		nullptr,
 		nullptr,
 		dsMetric_Levels_Required_Hint,
+		nullptr,
 		nullptr,
 		nullptr,
 		nullptr,

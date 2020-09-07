@@ -161,6 +161,14 @@ HRESULT IfaceCalling CFilter_Parameter::Clone(scgms::IFilter_Parameter **deep_co
 	return S_OK;
 }
 
+HRESULT IfaceCalling CFilter_Parameter::Set_Variable(const wchar_t* name, const wchar_t* value) {
+	return E_NOTIMPL;
+}
+
+std::optional<std::wstring> CFilter_Parameter::Read_Variable(const wchar_t* name) {
+	return std::wstring{};
+}
+
 HRESULT IfaceCalling create_filter_parameter(const scgms::NParameter_Type type, const wchar_t *config_name, scgms::IFilter_Parameter **parameter) {
 	return Manufacture_Object<CFilter_Parameter, scgms::IFilter_Parameter>(parameter, type, config_name);
 }

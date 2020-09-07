@@ -501,7 +501,7 @@ HRESULT CNetwork_Discrete_Model::Do_Configure(scgms::SFilter_Configuration confi
 {
 	if (!mNetwork_Initialized)
 	{
-		error_description.push(dsCoult_Not_Init_Network);
+		error_description.push(dsCould_Not_Init_Network);
 		return E_FAIL;
 	}
 
@@ -542,7 +542,7 @@ HRESULT CNetwork_Discrete_Model::Do_Configure(scgms::SFilter_Configuration confi
 	if (!mSlot.Has_Slot())
 	{
 		mRunning = false;
-		error_description.push(dsCoult_Not_Allocate_Network_Pool_Slot);
+		error_description.push(dsCould_Not_Allocate_Network_Pool_Slot);
 		return E_FAIL;
 	}
 

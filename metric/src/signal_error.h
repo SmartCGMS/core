@@ -56,6 +56,7 @@ class CSignal_Error : public virtual scgms::CBase_Filter, public virtual scgms::
 protected:
 	GUID mReference_Signal_ID = Invalid_GUID;
 	GUID mError_Signal_ID = Invalid_GUID;
+	filesystem::path mCSV_Path;
 
 	std::wstring mDescription;
 
@@ -84,6 +85,8 @@ protected:
 
 	bool Prepare_Levels(const uint64_t segment_id, std::vector<double> &times, std::vector<double> &reference, std::vector<double> &error);
 	double Calculate_Metric(const uint64_t segment_id);	//returns metric or NaN if could not calculate
+
+	void Flush_Errors();
 protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;

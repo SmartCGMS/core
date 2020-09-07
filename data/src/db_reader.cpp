@@ -243,15 +243,20 @@ void CDb_Reader::Db_Reader() {
 }
 
 HRESULT IfaceCalling CDb_Reader::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
-	
 	mDbHost = configuration.Read_String(rsDb_Host);	
 	mDbProvider = configuration.Read_String(rsDb_Provider);
 	mDbPort = static_cast<decltype(mDbPort)>(configuration.Read_Int(rsDb_Port));
-	mDbDatabaseName = configuration.Read_String(rsDb_Name);
+	mDbDatabaseName = db::is_file_db(mDbProvider) ? configuration.Read_File_Path(rsDb_Name).wstring() : configuration.Read_String(rsDb_Name);
 	mDbUsername = configuration.Read_String(rsDb_User_Name);
 	mDbPassword = configuration.Read_String(rsDb_Password);
 	mDbTimeSegmentIds = configuration.Read_Int_Array(rsTime_Segment_ID);	
 	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
+
+	if (mDbTimeSegmentIds.empty()) {
+		error_description.push(dsNo_Time_Segments_Specified);
+		return E_INVALIDARG;
+	}
+		
 
 	return S_OK;
 }
