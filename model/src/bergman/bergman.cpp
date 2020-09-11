@@ -69,10 +69,10 @@ CBergman_Discrete_Model::CBergman_Discrete_Model(scgms::IModel_Parameter_Vector 
 	mState.D1 = mParameters.D10;
 	mState.D2 = mParameters.D20;
 	mState.Isc = mParameters.Isc0;
-	mState.Gsc = mParameters.Gsc0 * scgms::mgdl_2_mmoll;
+	mState.Gsc = mParameters.Gsc0 * scgms::mgdL_2_mmolL;
 	mDiffIG_h_Value = mState.Gsc;
 
-	mLastBG = mState.Q1 * scgms::mgdl_2_mmoll / (10.0 * mParameters.VgDist);
+	mLastBG = mState.Q1 * scgms::mgdL_2_mmolL / (10.0 * mParameters.VgDist);
 	mLastIG = mState.Gsc;
 
 	mBasal_Ext.Add_Uptake(0, std::numeric_limits<double>::infinity(), mParameters.BasalRate0);
@@ -171,7 +171,7 @@ void CBergman_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 	mLastIG = iglevel;
 
 	// blood glucose
-	const double bglevel = mState.Q1 * scgms::mgdl_2_mmoll / (10.0 * mParameters.VgDist);
+	const double bglevel = mState.Q1 * scgms::mgdL_2_mmolL / (10.0 * mParameters.VgDist);
 	Emit_Signal_Level(bergman_model::signal_Bergman_BG, _T, bglevel);
 	mLastBG = bglevel;
 

@@ -310,11 +310,11 @@ void CUVA_Padova_S2013_Discrete_Model::Emit_All_Signals(double time_advance_delt
 	 */
 
 	// BG - glucometer
-	const double bglevel = scgms::mgdl_2_mmoll * (mState.Gp / mParameters.Vg);
+	const double bglevel = scgms::mgdL_2_mmolL * (mState.Gp / mParameters.Vg);
 	Emit_Signal_Level(uva_padova_S2013::signal_BG, _T, bglevel);
 
 	// IG
-	const double iglevel = scgms::mgdl_2_mmoll * (mState.Gs / mParameters.Vg);
+	const double iglevel = scgms::mgdL_2_mmolL * (mState.Gs / mParameters.Vg);
 	Emit_Signal_Level(uva_padova_S2013::signal_IG, _T, iglevel);
 }
 

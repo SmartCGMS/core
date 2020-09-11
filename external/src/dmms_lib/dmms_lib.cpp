@@ -321,8 +321,8 @@ HRESULT IfaceCalling CDMMS_Lib_Discrete_Model::iterationCallback(const dmms::Sub
 	{
 		std::unique_lock<std::mutex> lck(mDmmsSimMtx);
 
-		mToSmartCGMS.glucose_bg = bg * scgms::mgdl_2_mmoll;
-		mToSmartCGMS.glucose_ig = cgm * scgms::mgdl_2_mmoll;
+		mToSmartCGMS.glucose_bg = bg * scgms::mgdL_2_mmolL;
+		mToSmartCGMS.glucose_ig = cgm * scgms::mgdL_2_mmolL;
 		mToSmartCGMS.simulation_time = timeObject->minutesPastSimStart;
 
 		mToSmartCGMS.announced_meal.grams = nextMealObject->amountMg / 1000.0;	// mg -> g

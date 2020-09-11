@@ -161,7 +161,7 @@ double COref_Discrete_Model::Calculate_Avg_Blood(double hist_start, double hist_
 		return std::numeric_limits<double>::quiet_NaN();
 	}
 
-	delta = std::accumulate(deltaLevels.begin(), deltaLevels.end(), delta) / scgms::mgdl_2_mmoll; // to mg/dl
+	delta = std::accumulate(deltaLevels.begin(), deltaLevels.end(), delta) * scgms::molL_2_mgdL; // to mg/dl
 
 	return (delta / static_cast<double>(levelCount));
 }
@@ -200,7 +200,7 @@ bool COref_Discrete_Model::Call_Oref(double time_advance_delta)
 	mIG->Get_Continuous_Levels(nullptr, &mCurrent_Time, &curBG, 1, scgms::apxNo_Derivation);
 
 	const double nowTime = mCurrent_Time + time_advance_delta;
-	const double glucose = curBG / scgms::mgdl_2_mmoll; // oref0 takes inputs in mg/dl
+	const double glucose = curBG / scgms::mgdL_2_mmolL; // oref0 takes inputs in mg/dl
 
 	mLastState = mState;
 

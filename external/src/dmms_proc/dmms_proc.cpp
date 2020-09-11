@@ -186,8 +186,8 @@ void CDMMS_Proc_Discrete_Model::Receive_From_DMMS()
 				mAnnounced.announcedExcercise.intensity = received.announced_excercise.intensity;
 		}
 
-		Emit_Signal_Level(dmms_model::signal_DMMS_IG, device_time, received.glucose_ig * scgms::mgdl_2_mmoll);
-		Emit_Signal_Level(dmms_model::signal_DMMS_BG, device_time, received.glucose_bg * scgms::mgdl_2_mmoll);
+		Emit_Signal_Level(dmms_model::signal_DMMS_IG, device_time, received.glucose_ig * scgms::mgdL_2_mmolL);
+		Emit_Signal_Level(dmms_model::signal_DMMS_BG, device_time, received.glucose_bg * scgms::mgdL_2_mmolL);
 
 		// emit announced carbs, if the time has come
 		if (!std::isnan(mAnnounced.announcedMeal.time) && mAnnounced.announcedMeal.time <= device_time)
