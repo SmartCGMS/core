@@ -96,8 +96,8 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 	size_t line_counter = 0;
 
 	// read header and validate
-	// NOTE: this assumes identical header (as the one used when generating log); maybe we could consider adaptive log parsing later
-	if (!std::getline(log, line) || trim(line) != std::wstring(dsLog_Header)) {
+	// NOTE: this assumes identical header (as the one used when generating log); maybe we could consider adaptive log parsing later	
+	if (!std::getline(log, line) || (trim(line).find(dsLog_Header) != 0)) {	//we permit other (possibly future-version) fields after our header
 		std::wstring msg{ dsFile_Has_Not_Expected_Header };
 		msg += log_filename.wstring();
 		Emit_Info(scgms::NDevice_Event_Code::Warning, msg, filename_segment_id);
