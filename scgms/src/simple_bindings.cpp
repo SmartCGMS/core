@@ -76,13 +76,13 @@ public:
 	}
 
 
-	bool Execute_Configuration(const char* config) {	
+	bool Execute_Configuration(const char* config, scgms::TOn_Filter_Created filterCreatedCallback = nullptr, const void* filterCreatedCallbackData = nullptr) {
 
 		mErrors = refcnt::Swstr_list{};
 		scgms::SPersistent_Filter_Chain_Configuration configuration{};
 		if (configuration->Load_From_Memory(config, strlen(config), mErrors.get()) == S_OK) {
 			scgms::IFilter_Executor *executor;
-			if (execute_filter_configuration(configuration.get(), nullptr, nullptr, mCallback ? this : nullptr, &executor, mErrors.get()) == S_OK)
+			if (execute_filter_configuration(configuration.get(), filterCreatedCallback, filterCreatedCallbackData, mCallback ? this : nullptr, &executor, mErrors.get()) == S_OK)
 				mExecutor.reset(executor, [](scgms::IFilter_Executor* obj_to_release) { if (obj_to_release != nullptr) obj_to_release->Release(); });
 		}
 
@@ -107,6 +107,10 @@ public:
 			simple_event.device_time = raw_event->device_time;
 			simple_event.logical_time = raw_event->logical_time;
 			simple_event.segment_id = raw_event->segment_id;
+
+			simple_event.parameters = nullptr;
+			simple_event.count = 0;
+			simple_event.str = nullptr;
 
 			switch (scgms::UDevice_Event_internal::major_type(raw_event->event_code)) {
 				case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::level:
@@ -158,11 +162,11 @@ public:
 
 #pragma warning( pop )
 
-scgms_execution_t SimpleCalling Execute_SCGMS_Configuration(const char *config, TSCGMS_Execution_Callback callback) {
+scgms_execution_t SimpleCalling Execute_SCGMS_Configuration(const char *config, TSCGMS_Execution_Callback callback, scgms::TOn_Filter_Created filterCreatedCallback) {
 	std::unique_ptr<CSimple_SCGMS_Execution> result = std::make_unique<CSimple_SCGMS_Execution>(callback);
 
 	if (result)
-		if (!result->Execute_Configuration(config))
+		if (!result->Execute_Configuration(config, filterCreatedCallback))
 			result.reset();
 	
 	CSimple_SCGMS_Execution* raw_result = result.get();

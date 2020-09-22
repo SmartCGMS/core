@@ -43,6 +43,7 @@
 #include "../../../common/rtl/rattime.h"
 #include "../../../common/rtl/hresult.h"
 #include "../../../common/lang/dstrings.h"
+#include "../../../common/utils/string_utils.h"
 
 #include "fileloader/FormatRuleLoader.h"
 #include "fileloader/FormatRecognizer.h"
@@ -77,15 +78,18 @@ CFile_Reader::~CFile_Reader() {
 	}
 }
 
-bool CFile_Reader::Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId, double value)
+bool CFile_Reader::Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId, double value, const std::wstring& winfo)
 {
 	scgms::UDevice_Event evt{ code };
 
 	evt.device_id() = file_reader::File_Reader_Device_GUID;
 	evt.device_time() = device_time;
-	evt.level() = value;
+	if (evt.is_level_event())
+		evt.level() = value;
 	evt.segment_id() = segment_id;
 	evt.signal_id() = signalId;
+	if (evt.is_info_event())
+		evt.info.set(winfo.c_str());
 
 	const HRESULT rc = Send(evt);
 	if (rc != S_OK) {		
@@ -250,6 +254,8 @@ void CFile_Reader::Run_Reader() {
 						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Sleep_Quality, cur->mSleepQuality.value());
 						nextSleepEnd = cur->mSleepEnd.value();
 					}
+					if (cur->mStringNote.has_value())
+						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Information, valDate, currentSegmentId, Invalid_GUID, std::numeric_limits<double>::infinity(), Widen_Char(cur->mStringNote.value().c_str()));
 
 					if (errorRes)
 					{
@@ -314,21 +320,42 @@ HRESULT CFile_Reader::Extract(ExtractionResult &values)
 	values.Value_Count = 0;
 	values.SegmentValues.clear();
 
-	// TODO: support more files at once
-	values.SegmentValues.resize(1);
-	values.SegmentBloodValues.resize(1);
-	values.SegmentMiscValues.resize(1);
+	std::vector<filesystem::path> files_to_extract;
 
-	CFormat_Adapter sfile;
-	std::string format = recognizer.Recognize_And_Open(mFileName, sfile);
+	if (Is_Directory(mFileName))
+	{
+		for (auto& path : filesystem::directory_iterator(mFileName))
+		{
+			if (Is_Regular_File_Or_Symlink(path))
+				files_to_extract.push_back(path);
+		}
+	}
+	else
+		files_to_extract.push_back(mFileName);
 
-	// unrecognized format or error loading file
-	if (format == "" || sfile.Get_Error())
-		return E_FAIL;
+	values.SegmentValues.resize(files_to_extract.size());
+	values.SegmentBloodValues.resize(files_to_extract.size());
+	values.SegmentMiscValues.resize(files_to_extract.size());
 
-	// extract data and fill extraction result
-	if (!extractor.Extract(format, sfile, values, 0))
-		return E_FAIL;
+	for (size_t fileIndex = 0; fileIndex < files_to_extract.size(); fileIndex++)
+	{
+		CFormat_Adapter sfile;
+		std::string format = recognizer.Recognize_And_Open(files_to_extract[fileIndex], sfile);
+
+		// unrecognized format or error loading file
+		if (format == "" || sfile.Get_Error())
+		{
+			Emit_Info(scgms::NDevice_Event_Code::Error, L"Unknown format: " + files_to_extract[fileIndex].wstring());
+			return E_FAIL;
+		}
+
+		// extract data and fill extraction result
+		if (!extractor.Extract(format, sfile, values, fileIndex))
+		{
+			Emit_Info(scgms::NDevice_Event_Code::Error, L"Cannot extract: " + files_to_extract[fileIndex].wstring());
+			return E_FAIL;
+		}
+	}
 
 	return S_OK;
 }
@@ -346,7 +373,7 @@ HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration con
 	mRequireBG_IG = configuration.Read_Bool(rsRequire_IG_BG);
 
 	std::error_code ec;
-	if (Is_Regular_File_Or_Symlink(mFileName) && filesystem::exists(mFileName, ec)) {
+	if ((Is_Regular_File_Or_Symlink(mFileName) || Is_Directory(mFileName)) && filesystem::exists(mFileName, ec)) {
 		mReaderThread = std::make_unique<std::thread>(&CFile_Reader::Run_Reader, this);
 		rc = S_OK;
 	} else {		

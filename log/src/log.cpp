@@ -133,9 +133,13 @@ bool CLog_Filter::Open_Log(const filesystem::path &log_filename) {
 }
 
 HRESULT IfaceCalling CLog_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
-	// load model descriptors to be able to properly format log outputs of parameters	
+	// load model descriptors to be able to properly format log outputs of parameters
+#ifdef ANDROID
+	mLog_Filename = configuration.Read_String(rsLog_Output_File, false);
+#else
 	mModelDescriptors = scgms::get_model_descriptors();
 	mLog_Filename = configuration.Read_File_Path(rsLog_Output_File);
+#endif
 
 	HRESULT rc = S_OK;
 	if (!mLog_Filename.empty()) {			

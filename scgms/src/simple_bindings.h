@@ -39,8 +39,9 @@
 #pragma once
 
 #include "../../../common/iface/SimpleIface.h"
+#include "../../../common/iface/FilterIface.h"
 
-extern "C" scgms_execution_t SimpleCalling Execute_SCGMS_Configuration(const char *config, TSCGMS_Execution_Callback callback);
+extern "C" scgms_execution_t SimpleCalling Execute_SCGMS_Configuration(const char *config, TSCGMS_Execution_Callback callback, scgms::TOn_Filter_Created filterCreatedCallback);
 
 extern "C" BOOL SimpleCalling Inject_SCGMS_Event(const scgms_execution_t execution, const TSCGMS_Event_Data *event);
 

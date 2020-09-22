@@ -205,7 +205,9 @@ void CGraph_Generator::Write_StepCurve(const ValueVector& values)
 		if (pos == Invalid_Position)
 			continue;
 
-		mSvg << "<path d =\"M " << Normalize_Time_X(values[previous].date) << " " << Normalize_Y(values[previous].value);
+		mSvg << "<path d =\"M " << Normalize_Time_X(values[previous].date) << " " << Normalize_Y(0);
+
+		mSvg << " L " << Normalize_Time_X(values[previous].date) << " " << Normalize_Y(values[previous].value);
 
 		while (pos != Invalid_Position)
 		{
@@ -304,7 +306,10 @@ void CGraph_Generator::Write_Normalized_Lines(ValueVector istVector, ValueVector
 			// calculated curve group scope
 			{
 				SVG::GroupGuard grp(mSvg, dataVector.second.identifier + "Curve", true);
-				Write_LinearCurve(Utility::Get_Value_Vector(mInputData, dataVector.first));
+				if (dataVector.second.visualization_style == scgms::NSignal_Visualization::step)
+					Write_StepCurve(Utility::Get_Value_Vector(mInputData, dataVector.first));
+				else
+					Write_LinearCurve(Utility::Get_Value_Vector(mInputData, dataVector.first));
 			}
 
 			std::string paramVecName = "param_" + dataVector.second.identifier;

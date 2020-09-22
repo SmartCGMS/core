@@ -54,7 +54,7 @@ enum class CSV_Header_Fields
     DIFF3,
     INSULIN,
     CARBOHYDRATES,
-    ISIG,
+    IST_ISIG,
 
     _END,
     _BEGIN = DATETIME,

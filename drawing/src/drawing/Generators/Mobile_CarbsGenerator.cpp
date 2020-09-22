@@ -130,7 +130,8 @@ void CMobile_Carbs_Generator::Write_Body()
 		poly.Set_Stroke_Color(RGBColor::From_HTML_Color(CarbsCoBStrokeColor));
 		poly.Set_Fill_Color(RGBColor::From_HTML_Color(CarbsCoBFillColor));
 		poly.Set_Stroke_Width(3);
-		poly.Set_Opacity(0.5);
+		poly.Set_Stroke_Opacity(0.5);
+		poly.Set_Fill_Opacity(0.5);
 
 		double lastX = Normalize_Time_X(mTimeRange.first);
 		bool first = true;

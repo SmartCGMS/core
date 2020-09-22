@@ -453,7 +453,7 @@ namespace signal_descriptor {
 	const scgms::TSignal_Descriptor cob_desc{ scgms::signal_COB, dsSignal_GUI_Name_COB, L"", scgms::NSignal_Unit::Other, 0xFF55DD55, 0xFF55DD55, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor cho_in_desc{ scgms::signal_Carb_Intake, dsSignal_GUI_Name_Carbs, L"", scgms::NSignal_Unit::g, 0xF00FF00, 0xF00FF00, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor cho_resc_desc{ scgms::signal_Carb_Rescue, dsSignal_GUI_Name_Carb_Rescue, L"", scgms::NSignal_Unit::g, 0xFF80FF80, 0xFF80FF80, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::none, nullptr };
-	const scgms::TSignal_Descriptor phys_act_desc{ scgms::signal_Physical_Activity, dsSignal_GUI_Name_Physical_Activity, L"", scgms::NSignal_Unit::Percent, 0xFF80FFFF, 0xFF80FFFF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor phys_act_desc{ scgms::signal_Physical_Activity, dsSignal_GUI_Name_Physical_Activity, L"", scgms::NSignal_Unit::Percent, 0xFF80FFFF, 0xFF80FFFF, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
 
 	const scgms::TSignal_Descriptor skin_temp_desc{ scgms::signal_Skin_Temperature, dsSignal_GUI_Name_Skin_Temperature, L"", scgms::NSignal_Unit::Percent, 0xFF808080, 0xFF808080, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor air_temp_desc{ scgms::signal_Air_Temperature, dsSignal_GUI_Name_Air_Temperature, L"", scgms::NSignal_Unit::Percent, 0xFF808080, 0xFF808080, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };

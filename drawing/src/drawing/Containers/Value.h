@@ -44,6 +44,7 @@
 #include <string>
 
 #include "../../../../../common/rtl/guid.h"
+#include "../../../../../common/iface/UIIface.h"
 
 typedef std::map<std::string, std::string> LocalizationMap;
 
@@ -105,6 +106,7 @@ struct Data
     bool visible = false;
     bool empty = true;
 	bool calculated = false;
+	scgms::NSignal_Visualization visualization_style = scgms::NSignal_Visualization::smooth;
 	GUID signal_id = Invalid_GUID;
 	std::string identifier;
 	std::string refSignalIdentifier;
