@@ -89,8 +89,8 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 		Emit_Info(scgms::NDevice_Event_Code::Information, dsProcessing_File + log_filename.wstring(), filename_segment_id);
 
 	//unused keeps static analysis happy about creating an unnamed object
-	auto unused = log.imbue(std::locale(std::cout.getloc(), new CDecimal_Separator<char>{ '.'})); //locale takes owner ship of dec_sep
-	
+	auto unused = log.imbue(std::locale(std::cout.getloc(), new CDecimal_Separator<char>{ '.' })); //locale takes owner ship of dec_sep
+
 	std::wstring line;
 	std::wstring column;
 	size_t line_counter = 0;
@@ -100,7 +100,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 	if (!std::getline(log, line) || trim(line) != std::wstring(dsLog_Header)) {
 		std::wstring msg{ dsFile_Has_Not_Expected_Header };
 		msg += log_filename.wstring();
-		Emit_Info(scgms::NDevice_Event_Code::Warning, msg, filename_segment_id);	
+		Emit_Info(scgms::NDevice_Event_Code::Warning, msg, filename_segment_id);
 		log.seekg(0);	//so that the following getline extracts the very same string
 	}
 	else
@@ -109,24 +109,24 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 	// cuts a single column from input line
 	auto cut_column = [&line]() -> std::wstring {
 		std::wstring retstr{ L"" };
-		
+
 		auto pos = line.find(L';');
 		if (pos != std::string::npos) {
 			retstr = line.substr(0, pos);
 			line.erase(0, pos + 1/*len of ';'*/);
 		}
 		else retstr = line;
-		
+
 		return trim(retstr);
 	};
 
-	auto emit_parsing_exception_w = [this, &log_filename, line_counter](const std::wstring &what) {	
+	auto emit_parsing_exception_w = [this, &log_filename, line_counter](const std::wstring& what) {
 
 		std::wstring msg{ dsUnexpected_Error_While_Parsing };
 		msg += log_filename.wstring();
 		msg.append(dsLine_No);
 		msg.append(std::to_wstring(line_counter));
-		
+
 		Emit_Info(scgms::NDevice_Event_Code::Error, msg);
 		if (!what.empty()) Emit_Info(scgms::NDevice_Event_Code::Error, what);
 	};
@@ -156,7 +156,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 	std::map<uint64_t, uint64_t> segment_id_map;
 
 	// read all lines from log file
-	while (std::getline(log, line) && !mShutdown_Received)  {
+	while (std::getline(log, line) && !mShutdown_Received) {
 		line_counter++;
 
 		trim(line);
@@ -168,17 +168,12 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			auto specificval = cut_column();
 			// device time is parsed as-is using the same format as used when saving
 			specificval = cut_column();
-
-			// skip lines without date - this is valid as log filter allows storing an empty string in device_time field
-			if (specificval.length() == 0)
-				continue;
-
 			const double device_time = Local_Time_WStr_To_Rat_Time(specificval, rsLog_Date_Time_Format);
 			if (std::isnan(device_time)) {
 				std::wstring msg{ dsUnknown_Date_Time_Format };
 				msg.append(specificval);
 				emit_parsing_exception_w(msg);
-				continue; // do not consider invalid date in a single row a fatal error
+				return;
 			}
 
 			// skip; event type name
@@ -194,7 +189,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 
 			log_lines.push_back(TLog_Entry{ device_time, line_counter, info_str, original_segment_id, line });
 		}
-		catch (const std::exception & ex) {				
+		catch (const std::exception& ex) {
 			emit_parsing_exception(ex.what());
 			return;
 		}
@@ -204,7 +199,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			emit_parsing_exception(nullptr);
 			return;
 		}
-	}	
+	}
 
 	//As we have read the times and end of lines, no event has been created yet => no event logical clock advanced by us
 	//=> by creating the events inside the following for, log-events and by-them-triggered events will have monotonically increasing logical clocks.
@@ -212,11 +207,11 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 		if (std::get<idxLog_Entry_Time>(a) != std::get<idxLog_Entry_Time>(b))
 			return std::get<idxLog_Entry_Time>(a) < std::get<idxLog_Entry_Time>(b);
 
-			//if there were multiple events emitted with the same device time,
-			//let us emit them in their order in the log file
+		//if there were multiple events emitted with the same device time,
+		//let us emit them in their order in the log file
 		else  return std::get<idxLog_Entry_Counter>(a) < std::get<idxLog_Entry_Counter>(b);
-	});
-		
+		});
+
 	//Adjust segment ids if there were multiple segments
 	if (mInterpret_Filename_As_Segment_Id) {
 		if (segment_id_map.size() > 1) {
@@ -227,10 +222,10 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 
 
 			for (auto& segment_id : segment_id_map) {
-				
-					segment_id.second = segment_id_base + last_segment_id;
-					last_segment_id++;
-				
+
+				segment_id.second = segment_id_base + last_segment_id;
+				last_segment_id++;
+
 			}
 		}
 		else if (segment_id_map.size() == 1) {
@@ -239,7 +234,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 	}
 	//add the special cases
 	segment_id_map[scgms::Invalid_Segment_Id] = scgms::Invalid_Segment_Id;
-	segment_id_map[scgms::All_Segments_Id] = scgms::All_Segments_Id;	
+	segment_id_map[scgms::All_Segments_Id] = scgms::All_Segments_Id;
 
 	for (size_t i = 0; i < log_lines.size(); i++) {
 		if (mShutdown_Received) break;
@@ -247,13 +242,13 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 		try {
 			line_counter = std::get<idxLog_Entry_Counter>(log_lines[i]);	//for the error reporting
 
-			const double device_time = std::get<idxLog_Entry_Time>(log_lines[i]);			
+			const double device_time = std::get<idxLog_Entry_Time>(log_lines[i]);
 
 			// specific column (titled "info", but contains parameters or level)
 			const auto info_str = std::move(std::get<idxLog_Info_Line>(log_lines[i]));
-			const uint64_t segment_id = segment_id_map[std::get<idxLog_Segment_Id>(log_lines[i])];					
+			const uint64_t segment_id = segment_id_map[std::get<idxLog_Segment_Id>(log_lines[i])];
 			line = std::move(std::get<idxLog_Entry_Line>(log_lines[i]));
-								
+
 
 			scgms::UDevice_Event evt{ static_cast<scgms::NDevice_Event_Code>(std::stoull(cut_column())) };
 
@@ -264,7 +259,8 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 				const double level = wstr_2_dbl(info_str.c_str(), ok);
 				if (ok) {
 					evt.level() = level;
-				} else {
+				}
+				else {
 					std::wstring msg{ dsError_In_Number_Format };
 					msg.append(info_str);
 					emit_parsing_exception_w(msg);
@@ -295,7 +291,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			if (Send(evt) != S_OK)
 				return;
 		}
-		catch (const std::exception & ex) {
+		catch (const std::exception& ex) {
 			emit_parsing_exception(ex.what());
 			return;
 		}
@@ -310,42 +306,43 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 }
 
 
-bool Match_Wildcard(const std::wstring fname, const std::wstring wcard, const bool case_sensitive) {	
+bool Match_Wildcard(const std::wstring fname, const std::wstring wcard, const bool case_sensitive) {
 	size_t f = 0;
 	for (size_t w = 0; w < wcard.size(); w++) {
 		switch (wcard[w]) {
-			case L'?':	
-				if (f >= fname.size()) return false;
-				//there is one char to eat, let's continue
+		case L'?':
+			if (f >= fname.size()) return false;
+			//there is one char to eat, let's continue
+			f++;
+			break;
+
+
+		case L'*':
+			//skip everything in the filename until extension or dir separator
+			while (f < fname.size()) {
+				if ((fname[f] == L'.') || (fname[f] == filesystem::path::preferred_separator))
+					break;
+
 				f++;
-				break;
+			}
+			break;
 
 
-			case L'*': 
-				//skip everything in the filename until extension or dir separator
-				while (f < fname.size()) {
-					if ((fname[f] == L'.') || (fname[f] == filesystem::path::preferred_separator)) 
-						break;
-					
-					f++;
-				}
-				break;
-
-
-			default:
-				if (f >= fname.size()) return false;
-				if (case_sensitive) {
-					if (wcard[w] != fname[f]) return false;						
-				} else {
-					if (std::towupper(wcard[w]) != std::towupper(fname[f])) return false;					
-				}
-				//wild card and name still matches, continue
-				f++;
-				break;
+		default:
+			if (f >= fname.size()) return false;
+			if (case_sensitive) {
+				if (wcard[w] != fname[f]) return false;
+			}
+			else {
+				if (std::towupper(wcard[w]) != std::towupper(fname[f])) return false;
+			}
+			//wild card and name still matches, continue
+			f++;
+			break;
 
 		}
 
-		
+
 	}
 
 	return f < fname.size() ? false : true;	//return false if some chars in the fname were not eaten
@@ -357,13 +354,13 @@ std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_L
 	std::vector<TLog_Segment_id> logs_to_replay;
 
 	const auto effective_path = mLog_Filename_Or_Dirpath.parent_path();
-	const std::wstring wildcard =  mLog_Filename_Or_Dirpath.wstring();
+	const std::wstring wildcard = mLog_Filename_Or_Dirpath.wstring();
 	constexpr bool case_sensitive =
-		#ifdef  _WIN32
-			false
-		#else
-			true
-		#endif   
+#ifdef  _WIN32
+		false
+#else
+		true
+#endif   
 		;
 
 
@@ -373,18 +370,19 @@ std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_L
 
 
 	//1. gather a list of all segments we will try to replay
-	if (Is_Directory(effective_path)) {		
+	if (Is_Directory(effective_path)) {
 		for (auto& path : filesystem::directory_iterator(effective_path)) {
 			const bool matches_wildcard = Match_Wildcard(path.path().wstring(), wildcard, case_sensitive);
 
-			if (matches_wildcard) {			
+			if (matches_wildcard) {
 				if (Is_Regular_File_Or_Symlink(path))
 					logs_to_replay.push_back({ path, scgms::Invalid_Segment_Id });
 			}
 		}
-	} else 
+	}
+	else
 		logs_to_replay.push_back({ mLog_Filename_Or_Dirpath, scgms::Invalid_Segment_Id });
-	
+
 
 	if (!logs_to_replay.empty()) {
 		//2. determine segment_ids if asked to do so
@@ -416,9 +414,10 @@ std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_L
 
 					if (used_ids.find(log.segment_id + near_id) == used_ids.end()) {
 						log.segment_id += ++near_id;
-					} else {
+					}
+					else {
 						log.segment_id = ++recent_id;
-					}					
+					}
 				}
 
 				used_ids.insert(log.segment_id);
@@ -426,7 +425,7 @@ std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_L
 
 			std::sort(logs_to_replay.begin(), logs_to_replay.end(), [](auto& a, auto& b) {return a.segment_id < b.segment_id; });
 		}
-		
+
 	}
 
 	return logs_to_replay;
