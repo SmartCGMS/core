@@ -45,7 +45,6 @@
 #include "../../../common/utils/string_utils.h"
 
 #include <cmath>
-#include <fstream>
 #include <numeric>
 #include <type_traits>
 
@@ -55,7 +54,7 @@ constexpr unsigned char bool_2_uc(const bool b) {
 }
 
 
-CSignal_Error::CSignal_Error(scgms::IFilter *output) : CBase_Filter(output) {
+CSignal_Error::CSignal_Error(scgms::IFilter *output) : CTwo_Signals(output), CBase_Filter(output) {
 	//
 }
 
@@ -74,103 +73,58 @@ HRESULT IfaceCalling CSignal_Error::QueryInterface(const GUID*  riid, void ** pp
 }
 
 
+void CSignal_Error::On_Level_Added(const uint64_t segment_id, const double device_time) {
+	if (mEmit_Metric_As_Signal && !mEmit_Last_Value_Only) {
+		if (device_time != mLast_Emmitted_Time) {
+			//emit the signal only if the last time has changed to avoid emmiting duplicate values
+			if (!std::isnan(mLast_Emmitted_Time)) {
+				Emit_Metric_Signal(segment_id, mLast_Emmitted_Time);
+			}
+
+			mLast_Emmitted_Time = device_time;
+		}
+	}
+}
+
 HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
-	scgms::TDevice_Event *raw_event;
-	
+	const auto device_time = event.device_time();
+	const auto segment_id = event.segment_id();
+	const auto event_code = event.event_code();
+	scgms::IDevice_Event *raw = event.get();
+	event.release();
+	const HRESULT rc = CTwo_Signals::Do_Execute(scgms::UDevice_Event{ raw });	//why just cannot we pass std::move(event)?
 
-	auto add_level = [&raw_event, this](TSegment_Signals &signals, const bool is_reference_signal) {
-		auto signal = is_reference_signal ? signals.reference_signal : signals.error_signal;
-
-		if (signal) {
-			if (signal->Update_Levels(&raw_event->device_time, &raw_event->level, 1) == S_OK) {
-				mNew_Data_Logical_Clock++;
-			}
-
-
-			if (mEmit_Metric_As_Signal && !mEmit_Last_Value_Only) {
-				if (raw_event->device_time != mLast_Emmitted_Time) {
-					//emit the signal only if the last time has changed to avoid emmiting duplicate values
-					if (!std::isnan(mLast_Emmitted_Time)) {
-						Emit_Metric_Signal(raw_event->segment_id, mLast_Emmitted_Time);
-					}
-
-					mLast_Emmitted_Time = raw_event->device_time;
-				}
-			}
-
-		}
-	};
-
-	auto add_segment = [&raw_event, this, add_level](const bool is_reference_signal) {		
-		auto signals = mSignal_Series.find(raw_event->segment_id);
-		if (signals == mSignal_Series.end()) {
-			TSegment_Signals signals;
-			add_level(signals, is_reference_signal);
-			mSignal_Series[raw_event->segment_id] = std::move(signals);
-		}
-		else {
-			add_level(signals->second, is_reference_signal);
-		}
-
-		
-	};
-
-	if (event->Raw(&raw_event) == S_OK) {
-		switch (raw_event->event_code) {
-			case scgms::NDevice_Event_Code::Level:
-			{
-				const bool is_reference_signal = raw_event->signal_id == mReference_Signal_ID;				
-				if (is_reference_signal || (raw_event->signal_id == mError_Signal_ID)) {
-
-					if (!(std::isnan(event.level()) || std::isnan(event.device_time()))) {
-						std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
-						add_segment(is_reference_signal);
-					}
-				}
-
-				break;
-			}
-
-			case scgms::NDevice_Event_Code::Warm_Reset:
-			{
-				std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
-				mSignal_Series.clear();
-				mShutdown_Received = false;
-				mNew_Data_Logical_Clock++;
-				break;
-			}
-
-
-
+	if (Succeeded(rc)) {
+		switch (event_code) {
+			
 			case scgms::NDevice_Event_Code::Time_Segment_Stop:
 				if (mEmit_Metric_As_Signal && mEmit_Last_Value_Only && !mShutdown_Received) {
 					std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
 
-					auto signals = mSignal_Series.find(raw_event->segment_id);
+					auto signals = mSignal_Series.find(segment_id);
 					if (signals != mSignal_Series.end()) {
-						Emit_Metric_Signal(raw_event->segment_id, raw_event->device_time);
+						Emit_Metric_Signal(segment_id, device_time);
 						signals->second.last_value_emitted = true;
 					}
 				}
 				break;
 
-			/*
-				There could be an intriguing situation, which may look like an error.
-				If async filtr produces events, it can emit events in a separate thread
-				after the shutdown signal - for performance reasons.
-				In such a case, it may emit segment stop after shutdown. This will produce
-				two metric values, event if it is set to emit single metric value only.
-				We can prevent this by moving the shutdown handler to dtor. But, this would break
-				the logic that shutdown is the last event processed.
-				Hence, we emit nothing after the shutdown.
-				
-				Anyone truly interested in the cumulative final value, should used the promised metric
-				that's called from dtor. This value will include all levels received, regadless
-				segment stop and shutdown.
-			*/
+				/*
+					There could be an intriguing situation, which may look like an error.
+					If async filtr produces events, it can emit events in a separate thread
+					after the shutdown signal - for performance reasons.
+					In such a case, it may emit segment stop after shutdown. This will produce
+					two metric values, event if it is set to emit single metric value only.
+					We can prevent this by moving the shutdown handler to dtor. But, this would break
+					the logic that shutdown is the last event processed.
+					Hence, we emit nothing after the shutdown.
 
-			case scgms::NDevice_Event_Code::Shut_Down:
-				mShutdown_Received = true;
+					Anyone truly interested in the cumulative final value, should used the promised metric
+					that's called from dtor. This value will include all levels received, regadless
+					segment stop and shutdown.
+				*/
+
+			case scgms::NDevice_Event_Code::Shut_Down:				
 				if (mEmit_Metric_As_Signal && mEmit_Last_Value_Only) {
 					std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
 
@@ -178,34 +132,33 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 					for (auto& signals: mSignal_Series) {
 
 						if (!signals.second.last_value_emitted) {
-							Emit_Metric_Signal(signals.first, raw_event->device_time);
+							Emit_Metric_Signal(signals.first, device_time);
 							signals.second.last_value_emitted = true;
 						}
 					}
 
-					Emit_Metric_Signal(scgms::All_Segments_Id, raw_event->device_time);					
+					Emit_Metric_Signal(scgms::All_Segments_Id, device_time);
 				}
-				Flush_Errors();
+				
 				break;
 
 			default:
 				break;
-		}
+		}		
 	}
 
-	return Send(event);
+	return rc;
 }
 
 HRESULT CSignal_Error::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
-	mReference_Signal_ID = configuration.Read_GUID(rsReference_Signal, Invalid_GUID);
-	mError_Signal_ID = configuration.Read_GUID(rsError_Signal, Invalid_GUID);
-	
+	const HRESULT rc = CTwo_Signals::Do_Configure(configuration, error_description);
+	if (!Succeeded(rc)) return rc;
+
 	const GUID metric_id = configuration.Read_GUID(rsSelected_Metric);
 	const double metric_threshold = configuration.Read_Double(rsMetric_Threshold);
 	
-	if (Is_Invalid_GUID(mReference_Signal_ID, mError_Signal_ID, metric_id) || std::isnan(metric_threshold)) return E_INVALIDARG;
-
-	mCSV_Path = configuration.Read_File_Path(rsOutput_CSV_File);
+	if (Is_Invalid_GUID(metric_id) || std::isnan(metric_threshold)) return E_INVALIDARG;
+	
 
 	mEmit_Metric_As_Signal = configuration.Read_Bool(rsEmit_metric_as_signal, mEmit_Metric_As_Signal);
 	mEmit_Last_Value_Only = configuration.Read_Bool(rsEmit_last_value_only, mEmit_Last_Value_Only);
@@ -226,55 +179,6 @@ HRESULT CSignal_Error::Do_Configure(scgms::SFilter_Configuration configuration, 
 }
 
 	
-bool CSignal_Error::Prepare_Levels(const uint64_t segment_id, std::vector<double> &times, std::vector<double> &reference, std::vector<double> &error) {	
-
-	auto prepare_levels_per_single_segment = [](TSegment_Signals &signals, std::vector<double>& times, std::vector<double>& reference, std::vector<double>& error)->bool {
-		size_t reference_count = 0;
-
-		if (Succeeded(signals.reference_signal->Get_Discrete_Bounds(nullptr, nullptr, &reference_count))) {
-			if (reference_count > 0) {
-
-				const size_t offset = times.size();
-
-				times.resize(offset+reference_count);
-				reference.resize(offset+reference_count);
-
-				size_t filled;
-				if (signals.reference_signal->Get_Discrete_Levels(times.data()+ offset, reference.data()+offset, reference_count, &filled) == S_OK) {
-					error.resize(offset+reference_count);
-
-					if (signals.error_signal->Get_Continuous_Levels(nullptr, times.data()+offset, error.data()+offset, filled, scgms::apxNo_Derivation) == S_OK)
-						return true;
-				}
-
-			}
-			else
-				return true;	//no error, but simply no data yet
-		}
-		return false;
-	};
-
-	
-	bool result = false;	//assume failure
-	switch (segment_id) {
-		case scgms::Invalid_Segment_Id:  break;	//result is already false
-		case scgms::All_Segments_Id: {
-
-			for (auto &signals : mSignal_Series)
-				result |= prepare_levels_per_single_segment(signals.second, times, reference, error);	//we want at least one OK segment
-
-			break;
-		}
-
-		default: {
-			auto signals = mSignal_Series.find(segment_id);
-			if (signals != mSignal_Series.end())
-				result = prepare_levels_per_single_segment(signals->second, times, reference, error);
-		}
-	}
-
-	return result;
-}
 
 double CSignal_Error::Calculate_Metric(const uint64_t segment_id) {
 	double result = std::numeric_limits<double>::quiet_NaN();
@@ -314,14 +218,6 @@ HRESULT IfaceCalling CSignal_Error::Promise_Metric(const uint64_t segment_id, do
 	}
 }
 
-HRESULT IfaceCalling CSignal_Error::Logical_Clock(ULONG *clock) {
-	if (!clock) return E_INVALIDARG;
-
-	const ULONG old_clock = *clock;
-	*clock = mNew_Data_Logical_Clock;
-
-	return old_clock < *clock ? S_OK : S_FALSE;
-}
 
 HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(const uint64_t segment_id, scgms::TSignal_Stats *absolute_error, scgms::TSignal_Stats *relative_error) {
 	if (!absolute_error || !relative_error) return E_INVALIDARG;
@@ -365,11 +261,6 @@ HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(const uint64_t segmen
 	else return E_FAIL;
 }
 
-HRESULT IfaceCalling CSignal_Error::Get_Description(wchar_t** const desc) {
-	*desc = const_cast<wchar_t*>(mDescription.c_str());
-	return S_OK;
-}
-
 void CSignal_Error::Emit_Metric_Signal(const uint64_t segment_id, const double device_time) {
 	scgms::UDevice_Event event{scgms::NDevice_Event_Code::Level};
 
@@ -381,34 +272,41 @@ void CSignal_Error::Emit_Metric_Signal(const uint64_t segment_id, const double d
 	Send(event);
 }
 
-void CSignal_Error::Flush_Errors() {
-	if (mCSV_Path.empty()) return;
+void CSignal_Error::Do_Flush_Stats(std::wofstream stats_file) {
+	using et = std::underlying_type < scgms::NECDF>::type;
 
-	std::wofstream stats_file{ mCSV_Path };
+	stats_file << rsSignal_Stats_Header;
 
-	if (!stats_file.is_open()) {
-		Emit_Info(scgms::NDevice_Event_Code::Error, std::wstring{ dsCannot_Open_File } + mCSV_Path.wstring());
-		return;
-	}
+	//append rest of the header for ECDF
+	const wchar_t *tc_d = L";; ";
+	stats_file << tc_d << static_cast<et>(scgms::NECDF::min_value) ;
+	for (et i = static_cast<et>(scgms::NECDF::min_value) + 1; i <= static_cast<et>(scgms::NECDF::max_value); i++)
+		stats_file << "; " << i;
+	stats_file << std::endl;
 
-	stats_file << rsSignal_Stats_Header << std::endl;
 
-
-	auto flush_stats = [this, &stats_file](const scgms::TSignal_Stats& signal_stats, const wchar_t *marker_string, const uint64_t segment_id) {
-		using et = std::underlying_type < scgms::NECDF>::type;
+	auto flush_stats = [this, &stats_file, &tc_d](const scgms::TSignal_Stats& signal_stats, const wchar_t *marker_string, const uint64_t segment_id) {
+		
 
 		if (segment_id == scgms::All_Segments_Id)  stats_file << dsSelect_All_Segments;
 			else stats_file << std::to_wstring(segment_id);
 
-		stats_file << "; " << marker_string << ";; "
-			<< signal_stats.avg << "; " << signal_stats.stddev << "; " << signal_stats.count << ";; "
+		stats_file << "; " << marker_string << tc_d
+			<< signal_stats.avg << "; " << signal_stats.stddev << "; " << signal_stats.count << tc_d
 			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::min_value)] << "; "
 			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::p25)] << "; "
 			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::median)] << "; "
 			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::p75)] << "; "
 			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::p95)] << "; "
 			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::p99)] << "; "
-			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::max_value)] << std::endl;
+			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::max_value)];
+		
+		//write ECDF
+		stats_file << tc_d << signal_stats.ecdf[static_cast<et>(scgms::NECDF::min_value)];
+		for (et i = static_cast<et>(scgms::NECDF::min_value) + 1; i <= static_cast<et>(scgms::NECDF::max_value); i++)
+			stats_file << "; " << signal_stats.ecdf[i];
+
+		stats_file<< std::endl;
 	};
 
 	auto flush_segment = [this, &stats_file, &flush_stats](const uint64_t segment_id) {

@@ -38,45 +38,58 @@
 
 #pragma once
 
-#include "two_signals.h"
+#include "../../../common/rtl/DeviceLib.h"
+#include "../../../common/rtl/FilterLib.h"
+#include "../../../common/rtl/SolverLib.h"
+#include "../../../common/rtl/referencedImpl.h"
+
+#include <map>
+#include <mutex>
+#include <fstream>
+
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 /*
- * Filter class for calculating error metrics
+ * base class for comparig two signals
  */
-
-class CSignal_Error : public virtual CTwo_Signals, public virtual scgms::ISignal_Error_Inspection {
+class CTwo_Signals : public virtual scgms::CBase_Filter, public virtual scgms::ILogical_Clock {
 protected:
-	scgms::SMetric mMetric;
+	GUID mReference_Signal_ID = Invalid_GUID;
+	GUID mError_Signal_ID = Invalid_GUID;
+	filesystem::path mCSV_Path;
 
-	double *mPromised_Metric = nullptr;
-	uint64_t mPromised_Segment_id = scgms::All_Segments_Id;	
+	std::wstring mDescription;
 
-	bool mEmit_Metric_As_Signal = false;
-	bool mEmit_Last_Value_Only = false;
+	std::mutex mSeries_Gaurd;
 
-	double mLast_Emmitted_Time = std::numeric_limits<double>::quiet_NaN();
-	
-	virtual void On_Level_Added(const uint64_t segment_id, const double device_time) override final;
-	void Emit_Metric_Signal(const uint64_t segment_id, const double device_time);
-	
-	double Calculate_Metric(const uint64_t segment_id);	//returns metric or NaN if could not calculate
+	struct TSegment_Signals {
+		scgms::SSignal reference_signal{ scgms::STime_Segment{}, scgms::signal_BG };
+		scgms::SSignal error_signal{ scgms::STime_Segment{}, scgms::signal_BG };
+		bool last_value_emitted = false;        //fixing for logs, which do not contain proper segment start stop marks
+	};
+	std::map<uint64_t, TSegment_Signals> mSignal_Series;
 
-	virtual void Do_Flush_Stats(std::wofstream stats_file) override final;
+	std::atomic<ULONG> mNew_Data_Logical_Clock{0};
+
+	bool mShutdown_Received = false;
+
+
+	bool Prepare_Levels(const uint64_t segment_id, std::vector<double> &times, std::vector<double> &reference, std::vector<double> &error);
+	virtual void On_Level_Added(const uint64_t segment_id, const double device_time) {};
+	void Flush_Stats();
 protected:
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+	virtual void Do_Flush_Stats(std::wofstream stats_file) = 0;
+protected:
+	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override;
+	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override ;
 public:
-	CSignal_Error(scgms::IFilter *output);
-	virtual ~CSignal_Error();
-
-	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;	
-	virtual HRESULT IfaceCalling Promise_Metric(const uint64_t segment_id, double* const metric_value, BOOL defer_to_dtor) override final;
-	virtual HRESULT IfaceCalling Calculate_Signal_Error(const uint64_t segment_id, scgms::TSignal_Stats *absolute_error, scgms::TSignal_Stats *relative_error) override final;	
-	//using CTwo_Signals::Get_Description;
-	virtual HRESULT IfaceCalling Get_Description(wchar_t** const desc) override final { return CTwo_Signals::Get_Description(desc); };
+	CTwo_Signals(scgms::IFilter *output);
+	virtual ~CTwo_Signals();
+	
+	virtual HRESULT IfaceCalling Logical_Clock(ULONG *clock) override final;
+	virtual HRESULT IfaceCalling Get_Description(wchar_t** const desc);
 };
 
 
