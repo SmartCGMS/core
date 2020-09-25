@@ -62,8 +62,9 @@ CV8_Guard::CV8_Guard(bool init)
 	{
 		if (sInit_Ctr == 0)
 		{
-			v8::V8::InitializeICUDefaultLocation(Narrow_WString(Get_Application_Dir()).c_str());
-			v8::V8::InitializeExternalStartupData(Narrow_WString(Get_Application_Dir()).c_str());
+                        const auto app_dir = Narrow_WString(Get_Application_Dir());
+                        v8::V8::InitializeICUDefaultLocation(app_dir.c_str());
+                        v8::V8::InitializeExternalStartupData(app_dir.c_str());
 			sPlatform = v8::platform::NewDefaultPlatform();
 			v8::V8::InitializePlatform(sPlatform.get());
 			v8::V8::Initialize();

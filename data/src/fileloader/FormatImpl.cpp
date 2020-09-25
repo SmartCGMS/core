@@ -274,7 +274,8 @@ void CXls_File::Init(filesystem::path &path)
 	mSelectedSheetIndex = 0;
 	mOriginalPath = path;
 	mFile = std::make_unique<ExcelFormat::BasicExcel>();
-	mFile->Load(path.wstring().c_str());
+        const auto converted_path = path.wstring();
+        mFile->Load(converted_path.c_str());
 }
 
 void CXls_File::Select_Worksheet(int sheetIndex)

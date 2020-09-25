@@ -70,8 +70,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 
 	std::error_code ec;
 	filesystem::path working_file_path = filesystem::absolute(std::wstring{ file_path }, ec);
-	if (ec) {
-		shared_error_description.push(Widen_Char(ec.message().c_str()));
+	if (ec) {                
+                shared_error_description.push(Widen_String(ec.message()));
 		return E_INVALIDARG;
 	}	
 	
@@ -301,7 +301,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 		working_file_path = filesystem::absolute(std::wstring{ file_path }, ec);
 		if (ec) {
 			refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
-			shared_error_description.push(Widen_Char(ec.message().c_str()));
+                        shared_error_description.push(Widen_String(ec.message()));
 			return E_INVALIDARG;
 		}		
 	}
@@ -311,6 +311,15 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 	CSimpleIniW ini;
 	uint32_t section_counter = 1;
 	scgms::CSignal_Description signal_descriptors;	//make the GUID in the ini human-readable by attaching comments
+
+	auto ini_SetValue = [&ini](const std::wstring &a_pSection,
+		const wchar_t* a_pKey,
+		const std::wstring& a_pValue,
+		const std::wstring &a_pComment = nullptr,
+		bool            a_bForceReplace = false) {
+
+			ini.SetValue(a_pSection.c_str(), a_pKey, a_pValue.empty() ? nullptr : a_pValue.c_str(), a_pComment.empty() ? nullptr : a_pComment.c_str(), a_bForceReplace);
+	};
 
 	try {
 		scgms::IFilter_Configuration_Link** filter_begin, ** filter_end;
@@ -327,8 +336,9 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 			if (!section) {
 				//if the section does not exist yet, create it by writing a comment there - the filter description
 				scgms::TFilter_Descriptor filter_desc = scgms::Null_Filter_Descriptor;
-				if (scgms::get_filter_descriptor_by_id(filter_id, filter_desc))
-					ini.SetValue(id_str.c_str(), nullptr, nullptr, std::wstring{ rsIni_Comment_Prefix }.append(filter_desc.description).c_str());
+                                if (scgms::get_filter_descriptor_by_id(filter_id, filter_desc)) {                                    
+                                    ini_SetValue(id_str, nullptr, nullptr, std::wstring{ rsIni_Comment_Prefix }.append(filter_desc.description));
+                                }
 			}
 
 			scgms::IFilter_Parameter** parameter_begin, ** parameter_end;
@@ -341,7 +351,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 				rc = parameter->Get_Type(&param_type);
 				if (rc != S_OK) return rc;
 
-				wchar_t* config_name;
+				wchar_t* config_name = nullptr;
 				rc = parameter->Get_Config_Name(&config_name);
 				if (rc != S_OK) return rc;
 
@@ -353,8 +363,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 						rc = parameter->Get_WChar_Container(&wstr, false);
 						if (rc != S_OK) return rc;
 
-						ini.SetValue(id_str.c_str(), config_name, WChar_Container_To_WString(wstr).c_str());
-						wstr->Release();
+						ini_SetValue(id_str, config_name, WChar_Container_To_WString(wstr));
+						wstr->Release();                        
 						break;
 
 					case scgms::NParameter_Type::ptInt64_Array:
@@ -362,8 +372,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 						rc = parameter->Get_Time_Segment_Id_Container(&ids);
 						if (rc != S_OK) return rc;
 
-						ini.SetValue(id_str.c_str(), config_name, Select_Time_Segments_Id_To_WString(ids).c_str());
-						ids->Release();
+                        ini_SetValue(id_str, config_name, Select_Time_Segments_Id_To_WString(ids));
+						ids->Release();                        
 						break;
 
 					case scgms::NParameter_Type::ptRatTime:
@@ -380,8 +390,10 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 							if (!time_str.empty()) time_str = L"; " + time_str;
 						}
 
-						ini.SetValue(id_str.c_str(), config_name, dbl_2_wstr(val).c_str(),  //dbl_2_wstr is more precise than ini's SetDoubleValue
-										time_str.empty() ? nullptr : time_str.c_str());	
+                                                
+                        ini_SetValue(id_str, config_name, dbl_2_wstr(val),  //dbl_2_wstr is more precise than ini's SetDoubleValue
+                                                        time_str.empty() ? nullptr : time_str);
+                                                
 					}
 					break;
 
@@ -422,7 +434,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 							id_desc_ptr = const_cast<wchar_t*>(commented_comment.c_str());
 						}
 						
-						ini.SetValue(id_str.c_str(), config_name, GUID_To_WString(val).c_str(), id_desc_ptr);
+						ini_SetValue(id_str, config_name, GUID_To_WString(val), id_desc_ptr);
 					}
 					break;
 
@@ -431,7 +443,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 						rc = parameter->Get_Model_Parameters(&model_parameters);
 						if (rc != S_OK) return rc;
 
-						ini.SetValue(id_str.c_str(), config_name, Model_Parameters_To_WString(model_parameters).c_str());
+						ini_SetValue(id_str, config_name, Model_Parameters_To_WString(model_parameters));
 						model_parameters->Release();
 						break;
 

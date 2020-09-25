@@ -152,10 +152,11 @@ void CDb_Writer::Flush_Levels()
 {
 	// TODO: transactions
 
-	for (const auto& val : mPrepared_Values)
+	for (const auto& val : mPrepared_Values)            
 	{
+                const auto time_str = to_iso8601(Rat_Time_To_Unix_Time(val.measuredAt));
 		auto qr = mDb_Connection.Query(rsInsert_New_Measured_Value,
-			to_iso8601(Rat_Time_To_Unix_Time(val.measuredAt)).c_str());
+                        time_str.c_str());
 
 		if (!qr)
 			break;

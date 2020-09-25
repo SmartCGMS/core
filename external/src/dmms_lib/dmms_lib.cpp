@@ -167,9 +167,11 @@ HRESULT CDMMS_Lib_Discrete_Model::Do_Configure(scgms::SFilter_Configuration conf
 	return S_OK;
 }
 
-void CDMMS_Lib_Discrete_Model::DMMS_Simulation_Thread_Fnc()
-{
-	mDmmsEngine->runSim(Narrow_WString(mDMMS_Scenario_File).c_str(), Narrow_WString(mDMMS_Out_File).c_str(), Narrow_WString(mDMMS_Results_Dir).c_str(), this);
+void CDMMS_Lib_Discrete_Model::DMMS_Simulation_Thread_Fnc() {
+    const auto scenario_path = Narrow_WString(mDMMS_Scenario_File);
+    const auto output_path = Narrow_WString(mDMMS_Out_File);
+    const auto results_path = Narrow_WString(mDMMS_Results_Dir);
+    mDmmsEngine->runSim(scenario_path.c_str(), output_path.c_str(), results_path.c_str(), this);
 
 	mDmmsEngine->close();
 	mDmmsEngine.reset(nullptr);
