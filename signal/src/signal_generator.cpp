@@ -116,8 +116,10 @@ HRESULT signal_generator_internal::CSynchronized_Generator::Execute_Sync(scgms::
 	HRESULT rc = E_UNEXPECTED;
 
 	if (!mCatching_Up) {
-		if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start)
-			mLast_Device_Time = std::numeric_limits<double>::quiet_NaN();
+		if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start) {
+			mLast_Device_Time = event.device_time();
+			mSync_Model->Initialize(event.device_time(), mSegment_Id);	//for which we need to set the current time
+		}
 
 		bool step_the_model = event.is_level_event() && ((event.signal_id() == mSync_Signal) || (mSync_Signal == scgms::signal_All));
 		double dynamic_stepping = 0.0;			//means "emit current state"
@@ -289,26 +291,28 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 		if (!Succeeded(rc))
 			return rc;
 
-		mThread = std::make_unique<std::thread>([this, segment_id]() {
+		mThread = std::make_unique<std::thread>([this, segment_id]() {		
 			double total_time = 0.0;
 			
 			scgms::SDiscrete_Model model = mAsync_Model; // hold local instance to avoid race conditions with Execute shutdown code
 			if (Succeeded(model->Initialize(Unix_Time_To_Rat_Time(time(nullptr)), segment_id))) {
+				Emit_Info(scgms::NDevice_Event_Code::Time_Segment_Start, nullptr, segment_id);
+
 				model->Step(0.0);	//emit the initial state as this is the current state now
 				while (!mQuitting) {
 					if (!Succeeded(model->Step(mFixed_Stepping))) break;
 
 					total_time += mFixed_Stepping;
 					if (mMax_Time > 0.0) {
-						if (total_time >= mMax_Time) break;
+						if (total_time >= mMax_Time) {
+							Emit_Info(scgms::NDevice_Event_Code::Time_Segment_Stop, nullptr, segment_id);
+							break;
+						}
 					}
 				}
 
 				if ((total_time >= mMax_Time) && mEmit_Shutdown) {
-					auto evt = scgms::UDevice_Event{ scgms::NDevice_Event_Code::Shut_Down };
-					scgms::IDevice_Event *raw_event = evt.get();
-					evt.release();
-					model->Execute(raw_event);
+					Emit_Info(scgms::NDevice_Event_Code::Shut_Down, nullptr, scgms::All_Segments_Id);					
 				}
 			}
 			else
