@@ -128,7 +128,7 @@ void CLoaded_Filters::load_libraries() {
 	const auto filters_dir = Get_Dll_Dir() / std::wstring{rsSolversDir};
 #else
 	const auto filters_dir = Get_Dll_Dir();
-#endif
+#endif		
 	for (const auto& dir_entry : filesystem::directory_iterator(filters_dir)) {
 		const auto filepath = dir_entry.path();
 

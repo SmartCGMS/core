@@ -370,11 +370,16 @@ void CPattern_Prediction_Filter::Write_Parameters_File() {
 				const std::wstring section_name = isPattern+std::to_wstring(pattern_idx) + isBand + std::to_wstring(band_idx);
 				const wchar_t* section_name_ptr = section_name.c_str();
 
-				ini.SetValue(section_name_ptr, iiCount, dbl_2_wstr(pattern_state.count).c_str());
-				ini.SetValue(section_name_ptr, iiAvg, dbl_2_wstr(pattern_state.running_avg).c_str());
-				ini.SetValue(section_name_ptr, iiMedian, dbl_2_wstr(pattern_state.running_median).c_str());
-				ini.SetValue(section_name_ptr, iiVariance_Accumulator, dbl_2_wstr(pattern_state.running_variance_accumulator).c_str());
-				ini.SetValue(section_name_ptr, iiStdDev, dbl_2_wstr(pattern_state.running_stddev).c_str());
+				auto set_val = [section_name_ptr, &ini](const wchar_t* ii, const double& val) {
+					const auto str = dbl_2_wstr(val);
+					ini.SetValue(section_name_ptr, ii, str.c_str());
+				};
+                
+				set_val(iiCount, pattern_state.count);
+				set_val(iiAvg, pattern_state.running_avg);
+				set_val(iiMedian, pattern_state.running_median);
+				set_val(iiVariance_Accumulator, pattern_state.running_variance_accumulator);
+				set_val(iiStdDev, pattern_state.running_stddev);
 
 				//diagnostic
 				//ini.SetLongValue(section_name_ptr, L"Predicted_Band", Level_2_Band_Index(pattern_state.running_median));

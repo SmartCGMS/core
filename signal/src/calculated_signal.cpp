@@ -179,6 +179,10 @@ HRESULT CCalculate_Filter::Do_Execute(scgms::UDevice_Event event)  {
 
 						auto test_and_apply_parameters = [&event, this](const std::unique_ptr<CTime_Segment> &segment) {
 							//do these parameters improve?
+							if (Is_Invalid_GUID(mMetric_Id)) 
+								return;	//if there's no metric set, we believe the parameters as we got them
+
+
 							scgms::SMetric metric{ scgms::TMetric_Parameters{ mMetric_Id, bool_2_uc(mUse_Relative_Error),  bool_2_uc(mUse_Squared_Differences), bool_2_uc(mPrefer_More_Levels),  mMetric_Threshold } };
 							scgms::ITime_Segment *segment_raw = segment.get();
 							const double current_fitness = Calculate_Fitness(&segment_raw, 1, metric, segment->Get_Parameters().get());

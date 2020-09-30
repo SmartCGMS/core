@@ -10,8 +10,8 @@
  * Faculty of Applied Sciences, University of West Bohemia
  * Univerzitni 8, 301 00 Pilsen
  * Czech Republic
- *
- *
+ * 
+ * 
  * Purpose of this software:
  * This software is intended to demonstrate work of the diabetes.zcu.cz research
  * group to other scientists, to complement our published papers. It is strictly
@@ -38,57 +38,59 @@
 
 #pragma once
 
+#include "../../../common/rtl/DeviceLib.h"
 #include "../../../common/rtl/FilterLib.h"
+#include "../../../common/rtl/SolverLib.h"
 #include "../../../common/rtl/referencedImpl.h"
-#include "../../../common/rtl/FilesystemLib.h"
 
-#include <memory>
-#include <thread>
+#include <map>
+#include <mutex>
 #include <fstream>
-#include <vector>
-#include <atomic>
+
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
- /*
-  * Filter class for loading previously stored log file and "replay" it through pipe
-  */
-class CLog_Replay_Filter : public virtual scgms::CBase_Filter {
+/*
+ * base class for comparig two signals
+ */
+class CTwo_Signals : public virtual scgms::CBase_Filter, public virtual scgms::ILogical_Clock {
 protected:
-	static const size_t idxLog_Entry_Time = 0;
-	static const size_t idxLog_Entry_Counter = 1;
-	static const size_t idxLog_Info_Line = 2;
-	static const size_t idxLog_Segment_Id = 3;
-	static const size_t idxLog_Entry_Line = 4;
-	using TLog_Entry = std::tuple<double, size_t, std::wstring, uint64_t, std::wstring>;
-protected:
-	struct TLog_Segment_id {
-		filesystem::path file_name;
-		uint64_t segment_id;
+	GUID mReference_Signal_ID = Invalid_GUID;
+	GUID mError_Signal_ID = Invalid_GUID;
+	filesystem::path mCSV_Path;
+
+	std::wstring mDescription;
+
+	std::mutex mSeries_Gaurd;
+
+	struct TSegment_Signals {
+		scgms::SSignal reference_signal{ scgms::STime_Segment{}, scgms::signal_BG };
+		scgms::SSignal error_signal{ scgms::STime_Segment{}, scgms::signal_BG };
+		bool last_value_emitted = false;        //fixing for logs, which do not contain proper segment start stop marks
 	};
-	std::vector<TLog_Segment_id> Enumerate_Log_Segments();
-protected:
-	bool mEmit_Shutdown = false;
-	bool mInterpret_Filename_As_Segment_Id = false;
-	filesystem::path mLog_Filename_Or_Dirpath;  //would prefere wildcard, but this is not covered by C++ standard and do not need that so much to implement it using regex
-	std::unique_ptr<std::thread> mLog_Replay_Thread;
-protected:
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-protected:
-	// thread method
-	std::atomic<bool> mShutdown_Received { false};
-	void Replay_Log(const filesystem::path& log_filename, uint64_t filename_segment_id);
+	std::map<uint64_t, TSegment_Signals> mSignal_Series;
 
-	// opens log for reading, returns true if success, false if failed
-	void Open_Logs(std::vector<CLog_Replay_Filter::TLog_Segment_id> logs_to_replay);
-	// converts string to parameters vector; note that this method have no knowledge of models at all (does not validate parameter count, ..)
-	void WStr_To_Parameters(const std::wstring& src, scgms::SModel_Parameter_Vector& target);
+	std::atomic<ULONG> mNew_Data_Logical_Clock{0};
 
+	bool mShutdown_Received = false;
+
+
+	bool Prepare_Levels(const uint64_t segment_id, std::vector<double> &times, std::vector<double> &reference, std::vector<double> &error);
+	virtual void On_Level_Added(const uint64_t segment_id, const double device_time) {};
+	void Flush_Stats();
+protected:
+	virtual void Do_Flush_Stats(std::wofstream stats_file) = 0;
+protected:
+	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override;
+	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override ;
 public:
-	CLog_Replay_Filter(scgms::IFilter* output);
-	virtual ~CLog_Replay_Filter();
+	CTwo_Signals(scgms::IFilter *output);
+	virtual ~CTwo_Signals();
+	
+	virtual HRESULT IfaceCalling Logical_Clock(ULONG *clock) override final;
+	virtual HRESULT IfaceCalling Get_Description(wchar_t** const desc);
 };
+
 
 #pragma warning( pop )

@@ -10,8 +10,8 @@
  * Faculty of Applied Sciences, University of West Bohemia
  * Univerzitni 8, 301 00 Pilsen
  * Czech Republic
- * 
- * 
+ *
+ *
  * Purpose of this software:
  * This software is intended to demonstrate work of the diabetes.zcu.cz research
  * group to other scientists, to complement our published papers. It is strictly
@@ -36,37 +36,35 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "mapping.h"
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/lang/dstrings.h"
+#pragma once
 
-CMapping_Filter::CMapping_Filter(scgms::IFilter *output) : CBase_Filter(output) {
-	//
-}
+#include "diabetes_grid.h"
+
+/// <summary>
+/// Clarke Error Grid
+/// </summary>
+/// <remarks>
+/// The Clarke error grid approach is used to assess the clinical
+/// significance of differences between the glucose measurement technique
+/// under test and the venous blood glucose reference measurements.The
+/// method uses a Cartesian diagram, in which the values predicted by the
+/// technique under test are displayed on the y - axis, whereas the values
+/// received from the reference method are displayed on the x - axis.The
+/// diagonal represents the perfect agreement between the two, whereas the
+/// points below and above the line indicate, respectively, overestimation
+/// and underestimation of the actual values.Zone A(acceptable) represents
+/// the glucose values that deviate from the reference values by 20 % or are
+/// in the hypoglycemic range(<70 mg / dl), when the reference is also within
+/// the hypoglycemic range.The values within this range are clinically exact
+/// and are thus characterized by correct clinical treatment.Zone B(benign
+/// errors) is located above and below zone A; this zone represents those
+/// values that deviate from the reference values, which are incremented by
+/// 20 % .The values that fall within zones A and B are clinically acceptable,
+/// See also:
+/// A. Maran et al. "Continuous Subcutaneous Glucose Monitoring in Diabetic 
+/// Patients" Diabetes Care, Volume 25, Number 2, February 2002
+/// </remarks>
 
 
-HRESULT IfaceCalling CMapping_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {	
-	mSource_Id = configuration.Read_GUID(rsSignal_Source_Id);
-	mDestination_Id = configuration.Read_GUID(rsSignal_Destination_Id);
-    if (Is_Invalid_GUID(mDestination_Id)) {     //mSource_Id can be Invalid_GUID due to external reasons, such as malformed CSV log events
-        error_description.push(dsDestination_Signal_Cannot_Be_Invalid);
-        return E_INVALIDARG;  
-    }
-    mDestination_Null = mDestination_Id == scgms::signal_Null;
-
-	return S_OK;
-}
-
-HRESULT IfaceCalling CMapping_Filter::Do_Execute(scgms::UDevice_Event event) {
-    if (event.signal_id() == mSource_Id) {
-        if (mDestination_Null && !event.is_control_event() && !event.is_info_event()) {
-            event.reset(nullptr);
-            return S_OK;
-        }
-        else
-            event.signal_id() = mDestination_Id;    //just changes the signal id
-    }
-
-	return Send(event);		
-}
+extern const TError_Grid Clarke_Error_Grid;

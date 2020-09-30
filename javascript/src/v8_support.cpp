@@ -215,8 +215,8 @@ namespace v8_support
 		{
 			std::wstring exception;
 
-			v8::Local<v8::Message> message = try_catch.Message();
-			exception += Widen_Char((V8ToString(mIsolate, message->Get()) + "\n" + V8ToString(mIsolate, GetSourceLine(mIsolate, message))).c_str());
+			v8::Local<v8::Message> message = try_catch.Message();                        
+                        exception += Widen_String(V8ToString(mIsolate, message->Get()) + "\n" + V8ToString(mIsolate, GetSourceLine(mIsolate, message))));
 
 			v8::Local<v8::StackTrace> trace = message->GetStackTrace();
 			if (!trace.IsEmpty())
@@ -224,9 +224,9 @@ namespace v8_support
 				int len = trace->GetFrameCount();
 				for (int i = 0; i < len; ++i) {
 					v8::Local<v8::StackFrame> frame = trace->GetFrame(mIsolate, i);
-					exception += Widen_Char(V8ToString(mIsolate, frame->GetScriptName()).c_str()) + L":"
+                                        exception += Widen_String(V8ToString(mIsolate, frame->GetScriptName())) + L":"
 						+ std::to_wstring(frame->GetLineNumber()) + L":" + std::to_wstring(frame->GetColumn()) + L": "
-						+ Widen_Char(V8ToString(mIsolate, frame->GetFunctionName()).c_str()) + L"\n";
+                                                + Widen_String(V8ToString(mIsolate, frame->GetFunctionName())) + L"\n";
 				}
 			}
 

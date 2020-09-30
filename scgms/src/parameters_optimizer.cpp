@@ -99,7 +99,8 @@ protected:
 
 		refcnt::wstr_container* parent_path = nullptr;
 		if (Succeeded(mConfiguration->Get_Parent_Path(&parent_path))) {
-			if (!Succeeded(result->Set_Parent_Path(refcnt::WChar_Container_To_WString(parent_path).c_str())))
+                        const auto converted_path = refcnt::WChar_Container_To_WString(parent_path);
+                        if (!Succeeded(result->Set_Parent_Path(converted_path.c_str())))
 				result.reset();
 			parent_path->Release();
 		}
@@ -122,7 +123,8 @@ protected:
 			refcnt::wstr_container* parent_path = nullptr;
 			success = mConfiguration->Get_Parent_Path(&parent_path) == S_OK;
 			if (success) {
-				success = reduced_filter_configuration->Set_Parent_Path(refcnt::WChar_Container_To_WString(parent_path).c_str()) == S_OK;
+                                const auto converted_path = refcnt::WChar_Container_To_WString(parent_path);
+                                success = reduced_filter_configuration->Set_Parent_Path(converted_path.c_str()) == S_OK;
 				parent_path->Release();
 			}
 
@@ -266,8 +268,10 @@ protected:
 						{
 							refcnt::wstr_container* parent_path = nullptr;
 							result.failed = mConfiguration->Get_Parent_Path(&parent_path) != S_OK;
-							if (!result.failed)
-								result.failed = raw_link_to_add->Set_Parent_Path(refcnt::WChar_Container_To_WString(parent_path).c_str()) != S_OK;
+                                                        if (!result.failed) {
+                                                                const auto converted_path = refcnt::WChar_Container_To_WString(parent_path);
+                                                                result.failed = raw_link_to_add->Set_Parent_Path(converted_path.c_str()) != S_OK;
+                                                        }
 							parent_path->Release();
 						}
 

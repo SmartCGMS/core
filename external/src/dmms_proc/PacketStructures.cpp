@@ -55,10 +55,14 @@ TDMMS_IPC Establish_DMMS_IPC(const DWORD process_id) {
 
     TDMMS_IPC result;
        
-    result.file_DataToSmartCGMS = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 256, make_id(memMapFileName_DataToSmartCGMS).c_str());
-    result.file_DataFromSmartCGMS = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 256, make_id(memMapFileName_DataFromSmartCGMS).c_str());
-    result.event_DataToSmartCGMS = CreateEventW(NULL, TRUE, FALSE, make_id(eventName_DataToSmartCGMS).c_str());
-    result.event_DataFromSmartCGMS = CreateEventW(NULL, TRUE, FALSE, make_id(eventName_DataFromSmartCGMS).c_str());
+    auto id_str = make_id(memMapFileName_DataToSmartCGMS);
+    result.file_DataToSmartCGMS = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 256, id_str.c_str());
+    id_str = make_id(memMapFileName_DataFromSmartCGMS);
+    result.file_DataFromSmartCGMS = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 256, id_str.c_str());
+    id_str = make_id(eventName_DataToSmartCGMS);
+    result.event_DataToSmartCGMS = CreateEventW(NULL, TRUE, FALSE, id_str.c_str());
+    id_str = make_id(eventName_DataFromSmartCGMS);
+    result.event_DataFromSmartCGMS = CreateEventW(NULL, TRUE, FALSE, id_str.c_str());
 
     result.filebuf_DataToSmartCGMS = reinterpret_cast<LPTSTR>(MapViewOfFile(result.file_DataToSmartCGMS, FILE_MAP_ALL_ACCESS, 0, 0, 256));
     result.filebuf_DataFromSmartCGMS = reinterpret_cast<LPTSTR>(MapViewOfFile(result.file_DataFromSmartCGMS, FILE_MAP_ALL_ACCESS, 0, 0, 256));

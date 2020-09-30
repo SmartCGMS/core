@@ -254,8 +254,10 @@ void CFile_Reader::Run_Reader() {
 						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Sleep_Quality, cur->mSleepQuality.value());
 						nextSleepEnd = cur->mSleepEnd.value();
 					}
-					if (cur->mStringNote.has_value())
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Information, valDate, currentSegmentId, Invalid_GUID, std::numeric_limits<double>::infinity(), Widen_Char(cur->mStringNote.value().c_str()));
+                                        if (cur->mStringNote.has_value()) {
+                                                const auto note_val = cur->mStringNote.value();
+                                                errorRes |= !Send_Event(scgms::NDevice_Event_Code::Information, valDate, currentSegmentId, Invalid_GUID, std::numeric_limits<double>::infinity(), Widen_String(note_val));
+                                        }
 
 					if (errorRes)
 					{

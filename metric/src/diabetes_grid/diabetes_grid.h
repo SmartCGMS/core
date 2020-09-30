@@ -10,8 +10,8 @@
  * Faculty of Applied Sciences, University of West Bohemia
  * Univerzitni 8, 301 00 Pilsen
  * Czech Republic
- * 
- * 
+ *
+ *
  * Purpose of this software:
  * This software is intended to demonstrate work of the diabetes.zcu.cz research
  * group to other scientists, to complement our published papers. It is strictly
@@ -36,37 +36,52 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "mapping.h"
+#pragma once
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/lang/dstrings.h"
+#include "../two_signals.h"
 
-CMapping_Filter::CMapping_Filter(scgms::IFilter *output) : CBase_Filter(output) {
-	//
-}
+#include <vector>
+#include <array>
+
+struct TError_Grid_Point {		//everything is in mmol/L
+	double expected;		//expected value aka reference value
+	double calculated;	//calculated value aka error value
+};
+
+enum class NError_Grid_Zone : size_t {
+	A = 0,
+	B = 1,
+	C = 2,
+	D = 3,
+	E = 4,
+	count,
+
+	Undefined = -1,
+};
+
+struct TError_Grid_Region {
+	const NError_Grid_Zone zone;				//zone into which this region belongs
+	const std::vector<TError_Grid_Point> &vertices;	//an array of vertices		
+};
+
+using TError_Grid = std::vector<TError_Grid_Region>;
+using TError_Grid_Stats = std::array<double, static_cast<size_t>(NError_Grid_Zone::count)>;
 
 
-HRESULT IfaceCalling CMapping_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {	
-	mSource_Id = configuration.Read_GUID(rsSignal_Source_Id);
-	mDestination_Id = configuration.Read_GUID(rsSignal_Destination_Id);
-    if (Is_Invalid_GUID(mDestination_Id)) {     //mSource_Id can be Invalid_GUID due to external reasons, such as malformed CSV log events
-        error_description.push(dsDestination_Signal_Cannot_Be_Invalid);
-        return E_INVALIDARG;  
-    }
-    mDestination_Null = mDestination_Id == scgms::signal_Null;
+#pragma warning( push )
+#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-	return S_OK;
-}
 
-HRESULT IfaceCalling CMapping_Filter::Do_Execute(scgms::UDevice_Event event) {
-    if (event.signal_id() == mSource_Id) {
-        if (mDestination_Null && !event.is_control_event() && !event.is_info_event()) {
-            event.reset(nullptr);
-            return S_OK;
-        }
-        else
-            event.signal_id() = mDestination_Id;    //just changes the signal id
-    }
+class CDiabetes_Grid : public virtual CTwo_Signals {
+protected:
+	static NError_Grid_Zone Classify_Point(const TError_Grid& grid, double reference, double error);
+	static bool Point_In_Polygon(const std::vector<TError_Grid_Point>& vertices, const double expected, const double calculated);
+	static TError_Grid_Stats Calculate_Statistics(const TError_Grid& grid, std::vector<double>& reference, std::vector<double>& error, bool useRelativeCounts = true);
+protected:
+	virtual void Do_Flush_Stats(std::wofstream stats_file) override final;
+public:
+	CDiabetes_Grid(scgms::IFilter* output);
+	virtual ~CDiabetes_Grid() {};
+};
 
-	return Send(event);		
-}
+#pragma warning( pop )

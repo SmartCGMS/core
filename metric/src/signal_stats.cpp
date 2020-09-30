@@ -152,6 +152,8 @@ void CSignal_Stats::Flush_Stats() {
                 << signal_stats.ecdf[static_cast<et>(scgms::NECDF::p25)] << "; "
                 << signal_stats.ecdf[static_cast<et>(scgms::NECDF::median)] << "; "
                 << signal_stats.ecdf[static_cast<et>(scgms::NECDF::p75)] << "; "
+                << signal_stats.ecdf[static_cast<et>(scgms::NECDF::p95)] << "; "
+                << signal_stats.ecdf[static_cast<et>(scgms::NECDF::p99)] << "; "
                 << signal_stats.ecdf[static_cast<et>(scgms::NECDF::max_value)] << std::endl;
 
         }
