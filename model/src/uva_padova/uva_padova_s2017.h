@@ -163,7 +163,6 @@ class CUVA_Padova_S2017_Discrete_Model : public scgms::CBase_Filter, public scgm
 		Uptake_Accumulator mIntradermal_Basal_Ext;
 		// current state of Bergman model (all quantities)
 		CUVa_Padova_S2017_State mState;
-		bool mInitialized = false;
 		// bound equations in a single vector - quantity and equation bound together
 		const std::vector<uva_padova_S2017::CEquation_Binding> mEquation_Binding;
 		// bound equations in a single vector - but instead of binding a single quantity, a diffusion compartment vector is bound instead
