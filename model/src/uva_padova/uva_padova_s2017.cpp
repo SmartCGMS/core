@@ -234,7 +234,7 @@ double CUVA_Padova_S2017_Discrete_Model::eq_dX(const double _T, const double _X)
 double CUVA_Padova_S2017_Discrete_Model::eq_dIsc1(const double _T, const double _X) const
 {
 	const double bolusDisturbance = mBolus_Insulin_Ext.Get_Disturbance(mState.lastTime, _T * scgms::One_Minute);	// U/min
-	const double basalSubcutaneousDisturbance = 0;// mSubcutaneous_Basal_Ext.Get_Recent(_T * scgms::One_Minute);			// U/min
+	const double basalSubcutaneousDisturbance = mSubcutaneous_Basal_Ext.Get_Recent(_T * scgms::One_Minute);			// U/min
 	const double insulinSubcutaneousDisturbance = (bolusDisturbance + basalSubcutaneousDisturbance) / (scgms::pmol_2_U * mParameters.BW); // U/min -> pmol/kg/min
 
 	return mState.Isc1 > 0 ? insulinSubcutaneousDisturbance - (mParameters.ka1 + mParameters.kd) * _X : 0;
