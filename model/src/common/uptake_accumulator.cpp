@@ -73,19 +73,18 @@ double Uptake_Accumulator::Get_Disturbance(double t_start, double t_end) const
 }
 
 double Uptake_Accumulator::Get_Recent(double t) const {
-	double result = 0.0;
+	if (empty())
+		return 0.0;
 
-	if (!empty()) {
-		for (auto iter = rbegin(); iter != rend(); iter++) {
-			if ((t >= iter->t_min) && (t <= iter->t_max)) {
-				result = iter->amount;
-				break;
-			}
-		}
-
+	const Uptake_Event* cur = &(*begin());
+	for (auto itr = begin(); itr != end(); ++itr)
+	{
+		auto &evt = *itr;
+		if (t >= evt.t_min && t <= evt.t_max && cur->t_min < evt.t_min)
+			cur = &evt;
 	}
 
-	return result;
+	return cur->amount;
 }
 
 void Uptake_Accumulator::Cleanup(double t)
