@@ -104,9 +104,9 @@ void Uptake_Accumulator::Cleanup_Not_Recent(double t)
 	if (empty())
 		return;
 
-	const Uptake_Event* cur = &(*begin());
+	const Uptake_Event* cur = &(*rbegin());
 
-	for (auto itr = begin(); itr != end(); ++itr)
+	for (auto itr = rbegin(); itr != rend(); ++itr)
 	{
 		auto& evt = *itr;
 		if (t >= evt.t_min && t <= evt.t_max && cur->t_min < evt.t_min)

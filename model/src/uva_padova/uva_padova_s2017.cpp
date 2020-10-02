@@ -125,8 +125,8 @@ CUVA_Padova_S2017_Discrete_Model::CUVA_Padova_S2017_Discrete_Model(scgms::IModel
 	const size_t a2 = static_cast<size_t>(mParameters.a2);
 	mState.idt2.setCompartmentCount(a2 >= 2 ? a2 : 2);
 
-	mSubcutaneous_Basal_Ext.Add_Uptake(0, std::numeric_limits<double>::infinity(), 0.0); // TODO: ScBasalRate0 as a parameter
-	mIntradermal_Basal_Ext.Add_Uptake(0, std::numeric_limits<double>::infinity(), 0.0); // TODO: IdBasalRate0 as a parameter
+	mSubcutaneous_Basal_Ext.Add_Uptake(0, std::numeric_limits<double>::max(), 0.0); // TODO: ScBasalRate0 as a parameter
+	mIntradermal_Basal_Ext.Add_Uptake(0, std::numeric_limits<double>::max(), 0.0); // TODO: IdBasalRate0 as a parameter
 }
 
 double CUVA_Padova_S2017_Discrete_Model::eq_dGp(const double _T, const double _X) const
