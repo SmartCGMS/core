@@ -76,15 +76,15 @@ double Uptake_Accumulator::Get_Recent(double t) const {
 	if (empty())
 		return 0.0;
 
-	const Uptake_Event* cur = &(*begin());
-	for (auto itr = begin(); itr != end(); ++itr)
+	const Uptake_Event* cur = &(*rbegin());
+	for (auto itr = rbegin(); itr != rend(); ++itr)
 	{
 		auto &evt = *itr;
 		if (t >= evt.t_min && t <= evt.t_max && cur->t_min < evt.t_min)
 			cur = &evt;
 	}
 
-	return cur->amount;
+	return cur->amount;	
 }
 
 void Uptake_Accumulator::Cleanup(double t)
