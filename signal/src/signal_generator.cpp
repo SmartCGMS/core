@@ -119,6 +119,7 @@ HRESULT signal_generator_internal::CSynchronized_Generator::Execute_Sync(scgms::
 		if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start) {
 			mLast_Device_Time = event.device_time();
 			mSync_Model->Initialize(event.device_time(), mSegment_Id);	//for which we need to set the current time
+			mSync_Model->Step(0.0);	//flush the initial state
 		}
 
 		bool step_the_model = event.is_level_event() && ((event.signal_id() == mSync_Signal) || (mSync_Signal == scgms::signal_All));
@@ -133,7 +134,7 @@ HRESULT signal_generator_internal::CSynchronized_Generator::Execute_Sync(scgms::
 			else {
 				//cannot advance the model because this is the very first event, thus we do not have the delta
 				mSync_Model->Initialize(event.device_time(), mSegment_Id);	//for which we need to set the current time
-
+				mSync_Model->Step(0.0);	//flush the initial state
 				//do not move the initialize from here - if we would replay a historical log, combined
 				//with events produced in the present, it could produce wrong dynamic stepping
 				//because we nee to lock our time hearbeat on the historical sync_signal, not any signal
@@ -295,7 +296,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 			double total_time = 0.0;
 			
 			scgms::SDiscrete_Model model = mAsync_Model; // hold local instance to avoid race conditions with Execute shutdown code
-			if (Succeeded(model->Initialize(Unix_Time_To_Rat_Time(time(nullptr)), segment_id))) {
+			if (Succeeded(model->Initialize(Unix_Time_To_Rat_Time(time(nullptr)), segment_id))) {				
 				Emit_Info(scgms::NDevice_Event_Code::Time_Segment_Start, nullptr, segment_id);
 
 				model->Step(0.0);	//emit the initial state as this is the current state now
