@@ -263,7 +263,7 @@ size_t CPattern_Prediction_Filter::Level_2_Band_Index(const double level) {
 	const double tmp = level - Low_Threshold;
 	if (tmp < 0.0) return 0;
 
-	return static_cast<size_t>(floor(tmp * Inv_Band_Size));
+	return static_cast<size_t>(round(tmp * Inv_Band_Size));
 }
 
 HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list error_description) {
