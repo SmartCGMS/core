@@ -36,92 +36,41 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "uptake_accumulator.h"
+#pragma once
 
-#include <algorithm>
-#undef max
-#undef min
+#include "../../../common/rtl/FilterLib.h"
+#include "../../../common/rtl/referencedImpl.h"
 
-#include <iostream>
+#pragma warning( push )
+#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-void Uptake_Accumulator::Add_Uptake(double t, double t_delta_end, double amount)
+/*
+ * Filter maintaining (in)finite impulse response
+ */
+class CImpulse_Response_Filter : public virtual scgms::CBase_Filter
 {
-	push_back({ t, t + t_delta_end, amount });
-}
+	using TimeValuePair = std::pair<double, double>;
 
-double Uptake_Accumulator::Get_Disturbance(double t_start, double t_end) const
-{
-	if (t_end - t_start < std::numeric_limits<double>::epsilon())
-		return 0.0;
+	protected:
+		// source signal ID (what signal will be mapped)
+		GUID mSignal_Id = Invalid_GUID;
+		// impulse response time window; 0 = infinite
+		double mTime_Window = 0;
+		// time-value vector of values (segment-aware)
+		std::map<uint64_t, std::list<TimeValuePair>> mValues;
 
-	double sum = 0;
-	for (auto itr = begin(); itr != end(); ++itr)
-	{
-		auto& evt = *itr;
+		// last time an event has come - to ensure proper impulse response (segment-aware)
+		std::map<uint64_t, double> mLast_Time;
 
-		// overlaps?
-		if (t_start < evt.t_max && evt.t_min < t_end)
-		{
-			auto a = std::max(evt.t_min, t_start);
-			auto b = std::min(evt.t_max, t_end);
+	protected:
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 
-			sum += evt.amount * ((b - a) / (t_end - t_start));
-		}
-	}
+		double Impulse_Response(const uint64_t time_segment, const double time, const double value);
 
-	return sum;
-}
+	public:
+		CImpulse_Response_Filter(scgms::IFilter *output);
+		virtual ~CImpulse_Response_Filter() {};
+};
 
-double Uptake_Accumulator::Get_Recent(double t) const {
-	if (empty())
-		return 0.0;
-
-	const Uptake_Event* cur = &(*rbegin());
-	for (auto itr = rbegin(); itr != rend(); ++itr)
-	{
-		auto &evt = *itr;
-		if (t >= evt.t_min && t <= evt.t_max && cur->t_min < evt.t_min)
-			cur = &evt;
-	}
-
-	return cur->amount;	
-}
-
-void Uptake_Accumulator::Cleanup(double t)
-{
-	for (auto itr = begin(); itr != end(); )
-	{
-		auto& evt = *itr;
-		if (t > evt.t_max)
-			itr = erase(itr);
-		else
-			itr++;
-	}
-}
-
-void Uptake_Accumulator::Cleanup_Not_Recent(double t)
-{
-	if (empty())
-		return;
-
-	const Uptake_Event* cur = &(*rbegin());
-
-	for (auto itr = rbegin(); itr != rend(); ++itr)
-	{
-		auto& evt = *itr;
-		if (t >= evt.t_min && t <= evt.t_max && cur->t_min < evt.t_min)
-			cur = &evt;
-	}
-
-	std::vector<Uptake_Event> remains;
-
-	for (auto itr = begin(); itr != end(); itr++)
-	{
-		auto& evt = *itr;
-		if (&evt == cur || evt.t_min >= t)
-			remains.push_back(evt);
-	}
-
-	clear();
-	assign(remains.begin(), remains.end());
-}
+#pragma warning( pop )

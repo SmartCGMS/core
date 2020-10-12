@@ -44,6 +44,7 @@
 #include "Measured_Signal.h"
 #include "signal_generator.h"
 #include "signal_feedback.h"
+#include "impulse_response_filter.h"
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
@@ -494,6 +495,7 @@ namespace feedback_sender {
 	const wchar_t* ui_param_tooltips[param_count] = {
 		nullptr,
 		nullptr,
+		nullptr,
 	};
 
 	const scgms::TFilter_Descriptor desc = {
@@ -506,9 +508,47 @@ namespace feedback_sender {
 		config_param_name,
 		ui_param_tooltips
 	};
-} 
+}
 
-const std::array<scgms::TFilter_Descriptor, 7> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, decoupling::desc, masking::Masking_Descriptor, signal_generator::desc, network_signal_generator::desc, feedback_sender::desc } };
+namespace impulse_response {
+
+	constexpr const GUID id = { 0x24ee7711, 0xb2b2, 0x45f4, { 0x94, 0xf, 0xad, 0x77, 0x53, 0x96, 0xb9, 0xb5 } }; // {24EE7711-B2B2-45F4-940F-AD775396B9B5}
+
+	constexpr size_t param_count = 2;
+
+	constexpr scgms::NParameter_Type param_type[param_count] = {
+		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptRatTime,
+	};
+
+	const wchar_t* ui_param_name[param_count] = {
+		dsSignal_Id,
+		dsResponse_Window,
+	};
+
+	const wchar_t* config_param_name[param_count] = {
+		rsSignal_Id,
+		rsResponse_Window,
+	};
+
+	const wchar_t* ui_param_tooltips[param_count] = {
+		nullptr,
+		nullptr,
+	};
+
+	const scgms::TFilter_Descriptor desc = {
+		id,
+		scgms::NFilter_Flags::None,
+		dsImpulse_Response_Filter,
+		param_count,
+		param_type,
+		ui_param_name,
+		config_param_name,
+		ui_param_tooltips
+	};
+}
+
+const std::array<scgms::TFilter_Descriptor, 8> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, decoupling::desc, masking::Masking_Descriptor, signal_generator::desc, network_signal_generator::desc, feedback_sender::desc, impulse_response::desc } };
 
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
@@ -537,6 +577,8 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 		return Manufacture_Object<CSignal_Generator>(filter, output);
 	else if (*id == feedback_sender::desc.id)
 		return Manufacture_Object<CSignal_Feedback>(filter, output);
+	else if (*id == impulse_response::desc.id)
+		return Manufacture_Object<CImpulse_Response_Filter>(filter, output);
 
 	return E_NOTIMPL;
 }
