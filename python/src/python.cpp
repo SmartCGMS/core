@@ -39,16 +39,28 @@
 #include "python.h"
 
 
-CPython_Initializer::CPython_Initializer() {
+CPython_Environement::CPython_Environement() {
+	//Py_Initialize(); - do lazy initialization
+}
+
+CPython_Environement::~CPython_Environement() {
+	if (mInitialized)
+		Py_Finalize();
+}
+
+bool CPython_Environement::Ensure_Initialization() {
+	if (mInitialized)
+		return true;
+
 	Py_Initialize();
-}
+	mInitialized = Py_IsInitialized() != 0;
 
-CPython_Initializer::~CPython_Initializer() {
-	Py_Finalize();
+	return mInitialized;
 }
-
 
 CPython::CPython(const filesystem::path python_dll_path) {
+	if (!python_environemnt.Ensure_Initialization())
+		throw "Cannot load Python!";
 }
 
 

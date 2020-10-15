@@ -97,16 +97,17 @@ bool CDb_Reader::Emit_Shut_Down() {
 	return Send(evt) == S_OK;
 }
 
-bool CDb_Reader::Emit_Segment_Marker(scgms::NDevice_Event_Code code, int64_t segment_id) {
+bool CDb_Reader::Emit_Segment_Marker(const scgms::NDevice_Event_Code code, const double device_time, const int64_t segment_id) {
 	scgms::UDevice_Event evt{ code };
 
+	evt.device_time() = device_time;
 	evt.device_id() = Db_Reader_Device_GUID;
 	evt.segment_id() = segment_id;
 
 	return Succeeded(Send(evt));
 }
 
-bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
+bool CDb_Reader::Emit_Segment_Parameters(const double device_time, const int64_t segment_id) {
 	for (const auto &descriptor : scgms::get_model_descriptors()) {
 
 		// skip models without database schema tables
@@ -137,6 +138,7 @@ bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
 					for (size_t i = 0; i < descriptor.number_of_calculated_signals; i++)
 					{
 						scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Parameters };
+						evt.device_time() = device_time;
 						evt.device_id() = Db_Reader_Device_GUID;
 						evt.signal_id() = descriptor.calculated_signal_ids[i];
 						evt.segment_id() = segment_id;
@@ -157,9 +159,10 @@ bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
 
 
 
-bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
+bool CDb_Reader::Emit_Segment_Levels(const int64_t segment_id) {
 	wchar_t* measured_at_str;
 
+	double recent_device_time = std::numeric_limits<double>::quiet_NaN();	//to sync segment's start and stop markers to the historical times
 
 	std::vector<double> levels(static_cast<size_t>(NColumn_Pos::_Count));
 
@@ -174,6 +177,12 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 		// assuming that subsequent datetime formats are identical, try to recognize the used date time format from the first line
 		const double measured_at = Unix_Time_To_Rat_Time(from_iso8601(measured_at_str));
 		if (measured_at == 0.0) continue;	// conversion did not succeed
+
+		if (std::isnan(recent_device_time)) {	
+			if (!Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Start, measured_at, segment_id)) break;
+			if (!Emit_Segment_Parameters(measured_at, segment_id)) break;
+		}
+		recent_device_time = measured_at;
 
 		// go through all value columns
 		for (NColumn_Pos i = NColumn_Pos::_Begin; i < NColumn_Pos::_End; ++i) {
@@ -196,7 +205,7 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 			if (Send(evt) != S_OK) return false;
 		}
 	}
-	return true;
+	return Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Stop, recent_device_time, segment_id);
 }
 
 bool CDb_Reader::Emit_Info_Event(const std::wstring& info)
@@ -231,12 +240,9 @@ void CDb_Reader::Db_Reader() {
 
 	
 
-	for (const auto segment_index : mDbTimeSegmentIds) {
-		if (!Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Start, segment_index)) break;
-		if (!Emit_Segment_Parameters(segment_index)) break;
+	for (const auto segment_index : mDbTimeSegmentIds) {		
 		Emit_Segment_Levels(segment_index);
-		if (!Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Stop, segment_index)) break;
-	}
+}
 
 	if (mShutdownAfterLast)
 		Emit_Shut_Down();

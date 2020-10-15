@@ -116,14 +116,16 @@ HRESULT signal_generator_internal::CSynchronized_Generator::Execute_Sync(scgms::
 	HRESULT rc = E_UNEXPECTED;
 
 	if (!mCatching_Up) {
-		if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start) {
+		double dynamic_stepping = 0.0;			//means "emit current state"
+		bool flush_current_state = event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start;
+		
+		if (flush_current_state) {
 			mLast_Device_Time = event.device_time();
-			mSync_Model->Initialize(event.device_time(), mSegment_Id);	//for which we need to set the current time
-			mSync_Model->Step(0.0);	//flush the initial state
+			mSync_Model->Initialize(event.device_time(), mSegment_Id);	//for which we need to set the current time			
 		}
 
 		bool step_the_model = event.is_level_event() && ((event.signal_id() == mSync_Signal) || (mSync_Signal == scgms::signal_All));
-		double dynamic_stepping = 0.0;			//means "emit current state"
+		
 		if (step_the_model) {
 			if (!std::isnan(mLast_Device_Time)) {
 				dynamic_stepping = event.device_time() - mLast_Device_Time;
@@ -134,7 +136,7 @@ HRESULT signal_generator_internal::CSynchronized_Generator::Execute_Sync(scgms::
 			else {
 				//cannot advance the model because this is the very first event, thus we do not have the delta
 				mSync_Model->Initialize(event.device_time(), mSegment_Id);	//for which we need to set the current time
-				mSync_Model->Step(0.0);	//flush the initial state
+				flush_current_state = true;
 				//do not move the initialize from here - if we would replay a historical log, combined
 				//with events produced in the present, it could produce wrong dynamic stepping
 				//because we nee to lock our time hearbeat on the historical sync_signal, not any signal
@@ -169,7 +171,7 @@ HRESULT signal_generator_internal::CSynchronized_Generator::Execute_Sync(scgms::
 		if (!Succeeded(rc))
 			return rc;
 
-		if (step_the_model) rc = mSync_Model->Step(dynamic_stepping);
+		if (step_the_model || flush_current_state) rc = mSync_Model->Step(dynamic_stepping);
 	}
 	else {
 		//process events we might have triggerd while catching up

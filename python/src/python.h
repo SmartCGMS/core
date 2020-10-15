@@ -50,18 +50,23 @@
 
 
 //Python environment, which we will share for possibly many CPython modules
-class CPython_Initializer {
+class CPython_Environement {
 protected:
-	static std::mutex mGuard;
+	std::mutex mGuard;
+	bool mInitialized = false;
 public:
-	CPython_Initializer();
-	~CPython_Initializer();
+	CPython_Environement();
+	~CPython_Environement();
+
+	bool Ensure_Initialization();
 };
+
+CPython_Environement python_environemnt;
 
 //Actuall Python module that we'll execute
 class CPython {
 protected:
-	static std::shared_ptr<CPython_Initializer> python_environemnt;
+	
 public:
 	CPython(const filesystem::path python_dll_path);
 	~CPython();
