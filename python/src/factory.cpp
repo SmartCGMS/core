@@ -38,12 +38,13 @@
 
 #include "factory.h"
 #include "descriptor.h"
-
+#include "solver.h"
 
 HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, solver::TSolver_Setup *setup, solver::TSolver_Progress *progress) {
 	if (*solver_id == solver::id) {
 		try {
-			return E_NOTIMPL;
+			CSolver solver(*setup);
+			return solver.Solve(*progress);
 		}
 		catch (...) {
 			return E_FAIL;

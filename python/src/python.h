@@ -43,31 +43,15 @@
 
 #include <Python.h>
 
-#include <mutex>
-
 //https://www.codeproject.com/Articles/820116/Embedding-Python-program-in-a-C-Cplusplus-code
 //https://docs.python.org/2/extending/embedding.html
 
 
-//Python environment, which we will share for possibly many CPython modules
-class CPython_Environement {
-protected:
-	std::mutex mGuard;
-	bool mInitialized = false;
-public:
-	CPython_Environement();
-	~CPython_Environement();
-
-	bool Ensure_Initialization();
-};
-
-CPython_Environement python_environemnt;
-
 //Actuall Python module that we'll execute
 class CPython {
-protected:
-	
+protected:	
+	PyThreadState* mInterpet = nullptr;
 public:
-	CPython(const filesystem::path python_dll_path);
+	CPython();
 	~CPython();
 };

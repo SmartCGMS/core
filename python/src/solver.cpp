@@ -36,32 +36,16 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "python.h"
+#include "solver.h"
 
-class CPython_GIL {
-protected:
-	PyGILState_STATE mGIL = PyGILState_UNLOCKED;	
-public:
-	CPython_GIL() {
-		if (PyGILState_Check() == 0)
-			mGIL = PyGILState_Ensure();		
-	};
-	~CPython_GIL() {
-		if (mGIL == PyGILState_LOCKED)
-			PyGILState_Release(mGIL);
-	};
-};
+CSolver::CSolver(const solver::TSolver_Setup setup) : mSetup(setup) {
 
-CPython::CPython() {
-	if (!Py_IsInitialized())
-		throw "Cannot load Python!";
-
-	CPython_GIL gil;
-	mInterpet = Py_NewInterpreter();
 }
 
+CSolver::~CSolver() {
 
-CPython::~CPython() {
-	CPython_GIL gil;
-	Py_EndInterpreter(mInterpet);
+}
+
+HRESULT CSolver::Solve(solver::TSolver_Progress& progress) {
+	return E_NOTIMPL;
 }

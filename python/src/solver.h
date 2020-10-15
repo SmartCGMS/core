@@ -36,32 +36,22 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
+#pragma once
+
+#include "../../../common/iface/SolverIface.h"
+#include "../../../common/rtl/FilesystemLib.h"
+
+
 #include "python.h"
 
-class CPython_GIL {
+class CSolver {
 protected:
-	PyGILState_STATE mGIL = PyGILState_UNLOCKED;	
+	const solver::TSolver_Setup mSetup;	
+protected:
+	CPython mInterpret;
 public:
-	CPython_GIL() {
-		if (PyGILState_Check() == 0)
-			mGIL = PyGILState_Ensure();		
-	};
-	~CPython_GIL() {
-		if (mGIL == PyGILState_LOCKED)
-			PyGILState_Release(mGIL);
-	};
+	CSolver(const solver::TSolver_Setup setup);
+	~CSolver();
+
+	HRESULT Solve(solver::TSolver_Progress& progress);
 };
-
-CPython::CPython() {
-	if (!Py_IsInitialized())
-		throw "Cannot load Python!";
-
-	CPython_GIL gil;
-	mInterpet = Py_NewInterpreter();
-}
-
-
-CPython::~CPython() {
-	CPython_GIL gil;
-	Py_EndInterpreter(mInterpet);
-}
