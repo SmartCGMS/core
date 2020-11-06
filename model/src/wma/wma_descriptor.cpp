@@ -52,10 +52,7 @@ namespace wma {
 
 		return sig_desc;
 	}
-
-
-
-	const size_t model_param_count = 13;
+	
 	const scgms::NModel_Parameter_Value filter_param_types[model_param_count] = { scgms::NModel_Parameter_Value::mptTime,
 		scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble,
@@ -74,7 +71,7 @@ namespace wma {
 																nullptr, nullptr, nullptr, nullptr };
 
 	const double lower_bound[model_param_count] = {0.0, -10.0, -10.0, -10.0, -10.0, -10.0, -10.0, -10.0, -10.0, -10.0, -10.0, -10.0, -10.0, };
-	const double default_values[model_param_count] = { 20.0*scgms::One_Minute, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, };
+	const double default_parameters[model_param_count] = { 20.0*scgms::One_Minute, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, };
 	const double upper_bound[model_param_count] = { 60.0 * scgms::One_Minute, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0 };
 
 
@@ -91,7 +88,7 @@ namespace wma {
 				filter_param_config_names,
 
 				lower_bound,
-				default_values,
+				default_parameters,
 				upper_bound,
 
 				1,

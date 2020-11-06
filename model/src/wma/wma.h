@@ -38,37 +38,25 @@
 
 #pragma once
 
-#include "../../../../common/iface/UIIface.h"
-#include "../../../../common/rtl/hresult.h"
-#include "../../../../common/rtl/ModelsLib.h"
-#include "../../../../common/rtl/guid.h"
+#include "../../../../common/rtl/Common_Calculated_Signal.h"
+#include "../../../../common/rtl/Eigen_Buffer.h"
 
+#pragma warning( push )
+#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
+class CWMA : public virtual CCommon_Calculated_Signal {
+protected:
+	scgms::SSignal mIst;	
+protected:
+	static thread_local TVector1D mPresent_Ist, mOffsets;	
+public:
+	CWMA(scgms::WTime_Segment segment);
+	virtual ~CWMA() {};
 
-namespace wma {        
+	//scgms::ISignal iface
+	virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
+		const double* times, double* const levels, const size_t count, const size_t derivation_order) const final;
+	virtual HRESULT IfaceCalling Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const final;
+};
 
-	constexpr GUID model_id = { 0x2b516dd9, 0xe1ba, 0x4df6, { 0xb8, 0xe6, 0x9c, 0xec, 0xd4, 0x2e, 0xf8, 0xda } };  // {2B516DD9-E1BA-4DF6-B8E6-9CECD42EF8DA}
-    constexpr const GUID signal_id = { 0x4798e566, 0xa225, 0x4253, { 0xa6, 0x86, 0x70, 0xb3, 0xd1, 0xaf, 0x66, 0x7a } };  // {4798E566-A225-4253-A686-70B3D1AF667A}
-
-	constexpr size_t coeff_count = 12;
-	constexpr size_t model_param_count = coeff_count + 1;
-	
-	struct TParameters {
-		union {
-			struct {
-				double dt;
-				double coeff[coeff_count];
-					//from -12*5 minutes up to current time
-			};
-			double vector[model_param_count];
-		};
-	};
-
-	extern const double default_parameters[model_param_count];
-
-   
-
-    scgms::TSignal_Descriptor get_sig_desc();
-
-    scgms::TModel_Descriptor get_model_desc();    //func to avoid static init fiasco as this is another unit than descriptor.cpp
-}
+#pragma warning( pop )
