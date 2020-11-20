@@ -44,8 +44,9 @@
 #include <rtl/FilterLib.h>
 
 #include <array>
+#include <map>
 
-using TSend_Event = HRESULT(IfaceCalling*)(const GUID* sig_id, const double device_time, const double level, const wchar_t* msg);
+using TSend_Event = HRESULT(IfaceCalling*)(const GUID* sig_id, const double device_time, const double level, const char* msg);
 
 struct TEnvironment {
 	TSend_Event send;								//function to inject new events
@@ -69,9 +70,20 @@ using TNative_Entry_Point = HRESULT(IfaceCalling*)(
 
 class CNative_Segment {
 protected:
+	TEnvironment mEnvironment;
+	std::array<double, native::required_signal_count> mPrevious_Device_Time, mLast_Device_Time;
+	std::array<double, native::required_signal_count> mPrevious_Level, mLast_Level;
+		//Although the mLast_* arrays duplicate the respective environment arrays, we keep the duplicities
+		//to recover from possibly faulty script, which could rewrite the environment
+protected:
+	double mRecent_Time = std::numeric_limits<double>::quiet_NaN();	//time for Send_Event
 	uint64_t mSegment_Id;
-	scgms::CBase_Filter *mBase_Filter;
-	TNative_Entry_Point mEntry_Point;
+	scgms::CBase_Filter &mOutput;	//aka the next_filter
+	TNative_Entry_Point mEntry_Point;	
+
+	HRESULT Send_Event(const GUID* sig_id, const double device_time, const double level, const char* msg);
 public:
-	CNative_Segment(const scgms::CBase_Filter* base_filter, const uint64_t segment_id, TNative_Entry_Point entry_point);
+	CNative_Segment(scgms::CBase_Filter &output, const uint64_t segment_id, TNative_Entry_Point entry_point,
+		const std::array<GUID, native::required_signal_count>& signal_ids);
+	HRESULT Execute(const size_t signal_idx, GUID &signal_id, double &device_time, double &level);
 };
