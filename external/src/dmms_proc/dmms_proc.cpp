@@ -272,7 +272,7 @@ HRESULT CDMMS_Proc_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 	}
 
 	if (rc == S_FALSE)
-		rc = Send(event);
+		rc = mOutput.Send(event);
 
 	return rc;
 }
@@ -311,7 +311,7 @@ void CDMMS_Proc_Discrete_Model::Emit_Signal_Level(const GUID& id, double device_
 	evt.signal_id() = id;
 	evt.segment_id() = mSegment_Id;
 
-	Send(evt);
+	mOutput.Send(evt);
 }
 
 void CDMMS_Proc_Discrete_Model::Emit_Shut_Down(double device_time)
@@ -323,7 +323,7 @@ void CDMMS_Proc_Discrete_Model::Emit_Shut_Down(double device_time)
 	evt.signal_id() = Invalid_GUID;
 	evt.segment_id() = mSegment_Id;
 
-	Send(evt);
+	mOutput.Send(evt);
 }
 
 HRESULT IfaceCalling CDMMS_Proc_Discrete_Model::Initialize(const double current_time, const uint64_t segment_id)

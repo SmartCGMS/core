@@ -267,7 +267,7 @@ void CSignal_Error::Emit_Metric_Signal(const uint64_t segment_id, const double d
 	event.segment_id() = segment_id;
 	event.device_time() = device_time;
 
-	Send(event);
+	mOutput.Send(event);
 }
 
 void CSignal_Error::Do_Flush_Stats(std::wofstream stats_file) {

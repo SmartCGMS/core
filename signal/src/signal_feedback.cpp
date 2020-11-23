@@ -71,7 +71,7 @@ HRESULT CSignal_Feedback::Do_Execute(scgms::UDevice_Event event) {
 				scgms::UDevice_Event clone = event.Clone();
 				if (clone) {
 					HRESULT rc = send_to_receiver(event);
-					if (Succeeded(rc)) rc = Send(clone);
+					if (Succeeded(rc)) rc = mOutput.Send(clone);
 					return rc;
 				}
 			}
@@ -83,7 +83,7 @@ HRESULT CSignal_Feedback::Do_Execute(scgms::UDevice_Event event) {
 		mReceiver.reset();
 	}
 
-	return Send(event);
+	return mOutput.Send(event);
 }
 
 HRESULT CSignal_Feedback::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {

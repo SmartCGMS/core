@@ -288,7 +288,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			}
 
 
-			if (Send(evt) != S_OK)
+			if (mOutput.Send(evt) != S_OK)
 				return;
 		}
 		catch (const std::exception& ex) {
@@ -439,7 +439,7 @@ void CLog_Replay_Filter::Open_Logs(std::vector<CLog_Replay_Filter::TLog_Segment_
 	//issue shutdown after the last log, if we were not asked to ignore it
 	if (mEmit_Shutdown) {
 		scgms::UDevice_Event shutdown_evt{ scgms::NDevice_Event_Code::Shut_Down };
-		Send(shutdown_evt);
+		mOutput.Send(shutdown_evt);
 	}
 }
 
@@ -463,7 +463,7 @@ HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(scgms::SFilter_Configurati
 HRESULT CLog_Replay_Filter::Do_Execute(scgms::UDevice_Event event) {
 	if (event.event_code() == scgms::NDevice_Event_Code::Shut_Down)
 		mShutdown_Received = true;
-	return Send(event);
+	return mOutput.Send(event);
 }
 
 void CLog_Replay_Filter::WStr_To_Parameters(const std::wstring& src, scgms::SModel_Parameter_Vector& target) {

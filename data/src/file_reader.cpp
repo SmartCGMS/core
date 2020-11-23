@@ -91,7 +91,7 @@ bool CFile_Reader::Send_Event(scgms::NDevice_Event_Code code, double device_time
 	if (evt.is_info_event())
 		evt.info.set(winfo.c_str());
 
-	const HRESULT rc = Send(evt);
+	const HRESULT rc = mOutput.Send(evt);
 	if (rc != S_OK) {		
 		std::wstring desc{ dsFile_Reader };
 		desc += dsFailed_To_Send_Event;
@@ -284,7 +284,7 @@ void CFile_Reader::Run_Reader() {
 		scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Shut_Down };
 
 		evt.device_id() = file_reader::File_Reader_Device_GUID;
-		Send(evt);
+		mOutput.Send(evt);
 	}
 }
 
@@ -387,5 +387,5 @@ HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration con
 }
 
 HRESULT IfaceCalling CFile_Reader::Do_Execute(scgms::UDevice_Event event) {	
-	return Send(event);
+	return mOutput.Send(event);
 }

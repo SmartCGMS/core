@@ -68,5 +68,5 @@ HRESULT IfaceCalling CMapping_Filter::Do_Execute(scgms::UDevice_Event event) {
             event.signal_id() = mDestination_Id;    //just changes the signal id
     }
 
-	return Send(event);		
+	return mOutput.Send(event);
 }

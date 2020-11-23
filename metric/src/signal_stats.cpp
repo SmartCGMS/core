@@ -116,7 +116,7 @@ HRESULT CSignal_Stats::Do_Execute(scgms::UDevice_Event event) {
         }    
     }     
     
-    return Send(event);
+    return mOutput.Send(event);
 }
 
 

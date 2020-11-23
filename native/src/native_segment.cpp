@@ -41,7 +41,7 @@
 #include <utils/math_utils.h>
 #include <utils/string_utils.h>
 
-CNative_Segment::CNative_Segment(scgms::CBase_Filter& output, const uint64_t segment_id, TNative_Entry_Point entry_point,
+CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Entry_Point entry_point,
 									const std::array<GUID, native::required_signal_count>& signal_ids) :
 	mSegment_Id(segment_id), mOutput(output), mEntry_Point(entry_point) {
 
@@ -58,6 +58,15 @@ CNative_Segment::CNative_Segment(scgms::CBase_Filter& output, const uint64_t seg
 
 	mEnvironment.parameter_count = 0;
 	mEnvironment.parameters = nullptr;
+}
+
+void CNative_Segment::Emit_Info(const bool is_error, const std::wstring& msg) {
+	scgms::UDevice_Event event{ is_error ? scgms::NDevice_Event_Code::Error : scgms::NDevice_Event_Code::Information };
+	event.device_id() = native::native_filter_id;
+	event.info.set(msg.c_str());
+	event.segment_id() = mSegment_Id;
+	event.device_time() = mRecent_Time;
+	mOutput.Send(event);
 }
 
 HRESULT CNative_Segment::Execute(const size_t signal_idx, GUID& signal_id, double& device_time, double& level) {
@@ -89,10 +98,11 @@ HRESULT CNative_Segment::Execute(const size_t signal_idx, GUID& signal_id, doubl
 		// specific handling for all exceptions extending std::exception, except
 		// std::runtime_error which is handled explicitly		
 		std::wstring error_desc = Widen_Char(ex.what());		
-		mOutput.Emit_Info(scgms::NDevice_Event_Code::Error, error_desc, mSegment_Id);
+		Emit_Info(true, error_desc);
 		rc = E_FAIL;
 	}
-	catch (...) {
+	catch (...) {		
+		Emit_Info(true, L"Unknown error!");
 		rc = E_FAIL;
 	}
 
@@ -100,9 +110,7 @@ HRESULT CNative_Segment::Execute(const size_t signal_idx, GUID& signal_id, doubl
 }
 
 HRESULT CNative_Segment::Send_Event(const GUID* sig_id, const double device_time, const double level, const char* msg) {
-	HRESULT rc = S_OK;
-
-	must rewrite, as cannot send from current but needs the next filter in the chain
+	HRESULT rc = E_UNEXPECTED;
 
 	if (msg == nullptr) {
 		//we are emitting a level event
@@ -112,13 +120,12 @@ HRESULT CNative_Segment::Send_Event(const GUID* sig_id, const double device_time
 		evt.level() = level;
 		evt.segment_id() = mSegment_Id;
 
-		mOutput.
+		rc = mOutput.Send(evt);
 	}
 	else {
 		//we are emitting an info event
-		std::wstring wmsg{Widen_String(msg)};
-		const auto ev_code = std::isnan(level) ? scgms::NDevice_Event_Code::Error : scgms::NDevice_Event_Code::Information;
-		mOutput.Emit_Info(ev_code, wmsg, mSegment_Id);
+		std::wstring wmsg{Widen_String(msg)};		
+		Emit_Info(std::isnan(level), wmsg);
 	}
 	
 	return rc;

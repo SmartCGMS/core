@@ -211,7 +211,7 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 				rc = mLast_Sync_Generator->Execute_Sync(event);
 					//the sync'ed generators will subsequenly forward this event among them
 			else
-				rc = Send(event);
+				rc = mOutput.Send(event);
 		} else {
 			//this event is intended for a single segment only
 			auto sync_model_iter = mSync_Models.find(event.segment_id());

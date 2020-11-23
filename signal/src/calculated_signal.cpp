@@ -156,7 +156,7 @@ HRESULT CCalculate_Filter::Do_Execute(scgms::UDevice_Event event)  {
 				Schedule_Solving(signal_id);
 
 				//send the original event before other events are emitted
-				result = Send(event);
+				result = mOutput.Send(event);
 				if (Succeeded(result)) {
 					//now, evt is gone!
 					event_already_sent = true;
@@ -224,7 +224,7 @@ HRESULT CCalculate_Filter::Do_Execute(scgms::UDevice_Event event)  {
 				if (event.signal_id() == scgms::signal_All || event.signal_id() == mCalculated_Signal_Id) {
 					// note that the Run_Solver method can handle Any_Segment_Id case properly, so we don't need to disambiguate here
 					const auto segment_id = event.segment_id();
-					result = Send(event);
+					result = mOutput.Send(event);
 					event_already_sent = result == S_OK;	//preserve the original order of the events
 					mTriggered_Solver_Time = event.device_time();
 					Run_Solver(segment_id);
@@ -243,7 +243,7 @@ HRESULT CCalculate_Filter::Do_Execute(scgms::UDevice_Event event)  {
 
 
 	if (!event_already_sent)
-		result = Send(event);
+		result = mOutput.Send(event);
 	
 	return result;
 }
@@ -429,7 +429,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 				solved_evt.signal_id() = mCalculated_Signal_Id;
 				solved_evt.segment_id() = segment_id;
 				solved_evt.parameters.set(solved_parameters);
-				Send(solved_evt);
+				mOutput.Send(solved_evt);
 			}
 			else {
 				mSolver_Status = scgms::TSolver_Status::Completed_Not_Improved;
@@ -439,7 +439,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 				not_improved_evt.signal_id() = mCalculated_Signal_Id;
 				not_improved_evt.segment_id() = segment_id;
 				not_improved_evt.info.set(rsInfo_Solver_Completed_But_No_Improvement);
-				Send(not_improved_evt);
+				mOutput.Send(not_improved_evt);
 			}
 
 		} else {
@@ -452,7 +452,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 			failed_evt.signal_id() = mCalculated_Signal_Id;
 			failed_evt.segment_id() = segment_id;
 			failed_evt.info.set(rsInfo_Solver_Failed);
-			Send(failed_evt);
+			mOutput.Send(failed_evt);
 		}
 
 	};

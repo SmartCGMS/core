@@ -94,7 +94,7 @@ CDb_Reader::~CDb_Reader() {
 bool CDb_Reader::Emit_Shut_Down() {
 	scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Shut_Down };
 	evt.device_id() = Db_Reader_Device_GUID;
-	return Send(evt) == S_OK;
+	return mOutput.Send(evt) == S_OK;
 }
 
 bool CDb_Reader::Emit_Segment_Marker(const scgms::NDevice_Event_Code code, const double device_time, const int64_t segment_id) {
@@ -104,7 +104,7 @@ bool CDb_Reader::Emit_Segment_Marker(const scgms::NDevice_Event_Code code, const
 	evt.device_id() = Db_Reader_Device_GUID;
 	evt.segment_id() = segment_id;
 
-	return Succeeded(Send(evt));
+	return Succeeded(mOutput.Send(evt));
 }
 
 bool CDb_Reader::Emit_Segment_Parameters(const double device_time, const int64_t segment_id) {
@@ -143,7 +143,7 @@ bool CDb_Reader::Emit_Segment_Parameters(const double device_time, const int64_t
 						evt.signal_id() = descriptor.calculated_signal_ids[i];
 						evt.segment_id() = segment_id;
 						if (evt.parameters.set(sql_result))
-							if (!Succeeded(Send(evt))) return false;
+							if (!Succeeded(mOutput.Send(evt))) return false;
 					}
 				}
 			}
@@ -202,7 +202,7 @@ bool CDb_Reader::Emit_Segment_Levels(const int64_t segment_id) {
 			evt.segment_id() = segment_id;
 
 			// this may block if the pipe is full (i.e. due to artificial slowdown filter, simulation stepping, etc.)
-			if (Send(evt) != S_OK) return false;
+			if (mOutput.Send(evt) != S_OK) return false;
 		}
 	}
 	return Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Stop, recent_device_time, segment_id);
@@ -217,7 +217,7 @@ bool CDb_Reader::Emit_Info_Event(const std::wstring& info)
 	evt.device_time() = Unix_Time_To_Rat_Time(time(nullptr));
 	evt.info.set(info.c_str());
 
-	return (Send(evt) == S_OK);
+	return (mOutput.Send(evt) == S_OK);
 }
 
 void CDb_Reader::Db_Reader() {
@@ -284,7 +284,7 @@ HRESULT IfaceCalling CDb_Reader::Do_Execute(scgms::UDevice_Event event) {
 			break;
 	}
 
-	return Send(event);
+	return mOutput.Send(event);
 }
 
 void CDb_Reader::End_Db_Reader() {

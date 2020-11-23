@@ -159,7 +159,7 @@ HRESULT IfaceCalling CLog_Filter::Do_Configure(scgms::SFilter_Configuration conf
 
 HRESULT IfaceCalling CLog_Filter::Do_Execute(scgms::UDevice_Event event) {
 	Log_Event(event);
-	return Send(event);
+	return mOutput.Send(event);
 };
 
 

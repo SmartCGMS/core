@@ -65,7 +65,7 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 		const uint64_t seg_id = event.segment_id();
 		const double level = event.level();
 
-		HRESULT rc = Send(event);
+		HRESULT rc = mOutput.Send(event);
 		sent = Succeeded(rc);
 		if (sent) {
 			const double predicted_level = Update_And_Predict(seg_id, dev_time, level);
@@ -77,7 +77,7 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 				prediction_event.device_time() = dev_time + mDt;
 				prediction_event.signal_id() = pattern_prediction::signal_Pattern_Prediction;
 				prediction_event.segment_id() = seg_id;
-				rc = Send(prediction_event);
+				rc = mOutput.Send(prediction_event);
 			}
 		}
 
@@ -114,7 +114,7 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 		default: break;
 	}
 
-	if (!sent) rc = Send(event);
+	if (!sent) rc = mOutput.Send(event);
 
 	return rc;
 

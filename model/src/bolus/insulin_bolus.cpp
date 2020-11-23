@@ -50,21 +50,21 @@ HRESULT CDiscrete_Insulin_Bolus_Calculator::Do_Execute(scgms::UDevice_Event even
 			const double bolus_level = event.level() * mParameters.csr; //compute while we still own the event
 			const double bolus_time = event.device_time();
 			const uint64_t bolus_segment = event.segment_id();
-			HRESULT rc = Send(event);
+			HRESULT rc = mOutput.Send(event);
 			if (Succeeded(rc)) {
 				scgms::UDevice_Event bolus{ scgms::NDevice_Event_Code::Level };
 				bolus.level() = bolus_level;
 				bolus.device_time() = bolus_time;
 				bolus.segment_id() = bolus_segment;
 				bolus.signal_id() = scgms::signal_Requested_Insulin_Bolus;
-				rc = Send(bolus);
+				rc = mOutput.Send(bolus);
 			}
 
 			return rc;
 		}
 	}
 
-	return Send(event);
+	return mOutput.Send(event);
 }
 
 HRESULT CDiscrete_Insulin_Bolus_Calculator::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {

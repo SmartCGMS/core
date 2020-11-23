@@ -331,7 +331,7 @@ HRESULT IfaceCalling CDb_Writer::Do_Execute(scgms::UDevice_Event event) {
 		default:	break;
 	}
 
-	return Send(event);
+	return mOutput.Send(event);
 }
 
 HRESULT IfaceCalling CDb_Writer::Set_Connector(db::IDb_Connector *connector)
