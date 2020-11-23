@@ -79,6 +79,8 @@ HRESULT CNative_Segment::Execute(const size_t signal_idx, GUID& signal_id, doubl
 	mEnvironment.device_time[signal_idx] = mLast_Device_Time[signal_idx] = device_time;
 	mEnvironment.level[signal_idx] = mLast_Level[signal_idx] = level;
 
+	mEnvironment.current_signal_index = signal_idx;
+
 	if (!Is_Any_NaN(mPrevious_Device_Time[signal_idx], mLast_Device_Time[signal_idx], mPrevious_Level[signal_idx], mLast_Level[signal_idx])) {
 		const double dx = mLast_Device_Time[signal_idx] - mPrevious_Device_Time[signal_idx];
 		if (dx>0.0)

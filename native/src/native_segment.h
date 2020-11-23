@@ -52,6 +52,7 @@ struct TEnvironment {
 	TSend_Event send;								//function to inject new events
 	void* custom_data;								//custom data pointer to implement a stateful processing
 
+	size_t current_signal_index;
 	size_t level_count;									//number of levels to sanitize memory space - should be generated
 	GUID signal_id[native::required_signal_count];		//signal ids as configured
 	double device_time[native::required_signal_count];  //recent device times
