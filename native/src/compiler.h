@@ -38,31 +38,7 @@
 
 #pragma once
 
-#include "native_segment.h"
+#include <rtl/FilesystemLib.h>
 
-#include <rtl/Dynamic_Library.h>
-
-#include <map>
-
-#pragma warning( push )
-#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
-
-class CNative_Script : public virtual scgms::CBase_Filter {
-protected:
-    std::map<uint64_t, CNative_Segment> mSegments;    
-    std::array<GUID, native::required_signal_count> mSignal_Ids{0};
-    std::map<GUID, size_t> mSignal_To_Ordinal;
-    bool mSync_To_Any = false;
-protected:
-    CDynamic_Library mDll;
-    TNative_Execute_Wrapper mEntry_Point = nullptr;
-protected:
-    // scgms::CBase_Filter iface implementation
-    virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-    virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-    CNative_Script(scgms::IFilter* output);
-    virtual ~CNative_Script() {}
-};
-
-#pragma warning( pop )
+bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
+			 const filesystem::path& source, const filesystem::path& dll);

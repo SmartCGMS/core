@@ -38,6 +38,9 @@
 
 #include "native_script.h"
 
+#include <rtl/FilesystemLib.h>
+
+
 CNative_Script::CNative_Script(scgms::IFilter* output) : CBase_Filter(output) {
 
 }
@@ -60,14 +63,34 @@ HRESULT CNative_Script::Do_Execute(scgms::UDevice_Event event) {
 
 	if (desired_event) {
 		//do we already have this segment?
-		uint64_t segment_id = event.segment_id();
+		const uint64_t segment_id = event.segment_id();
 		auto seg_iter = mSegments.find(segment_id);
 		if (seg_iter == mSegments.end()) {
 			//not yet, we have to insert it
+			auto inserted_iter = mSegments.emplace(segment_id, CNative_Segment{mOutput, segment_id, mEntry_Point, mSignal_Ids});
+			seg_iter = inserted_iter.first;
+			desired_event = inserted_iter.second;			
+		}
+
+		if (desired_event) {
+			double device_time = event.device_time();
+			double level = event.level();
+			rc = seg_iter->second.Execute(sig_index, signal_id, device_time, level);
+
+			if ((rc == S_OK) && (signal_id != scgms::signal_Null)) {	//signal_Null is /dev/null
+				//the script could have modified the event
+				event.device_time() = device_time;
+				event.level() = level;
+				event.signal_id() = signal_id;
+				rc = mOutput.Send(event);
+			}	//otherwise, we discard the event and return the code
 		}
 
 	} else {
 		//on segment stop, remove the segment from memory
+		if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Stop) 
+			mSegments.erase(event.segment_id());
+
 
 		rc = mOutput.Send(event);
 	}
@@ -77,6 +100,7 @@ HRESULT CNative_Script::Do_Execute(scgms::UDevice_Event event) {
 }
 
 HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
+	//Set up the signals and all the common values
 	mSignal_Ids[0] = configuration.Read_GUID(rsSynchronization_Signal);
 	if ((mSignal_Ids[0] == Invalid_GUID) || (mSignal_Ids[0] == scgms::signal_Null)) {
 		error_description.push(L"Synchronization signal cannot be invalid or null id.");
@@ -92,6 +116,63 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 		mSignal_Ids[i] = sig_id;
 		mSignal_To_Ordinal[sig_id] = i;
 	}
+
+	//Now, we need to check timestamps of the source file and the produced dll
+	filesystem::path script_path = configuration.Read_File_Path(native::rsSource_Filepath);
+	//the following two paths must be Read_String to enforce absolute paths
+	filesystem::path init_path = configuration.Read_String(native::rsEnvironment_Init);
+	if (init_path.has_relative_path()) 
+		init_path = configuration.Read_File_Path(native::rsEnvironment_Init);	//resolve if that's what they truly wanted
+
+	filesystem::path compiler_path = configuration.Read_String(native::rsCompiler_Name);
+	if (compiler_path.has_relative_path())
+		compiler_path = configuration.Read_File_Path(native::rsCompiler_Name);	//resolve if that's what they truly wanted
+
+	
+	if (script_path.empty()) {
+		error_description.push(L"Script cannot be empty.");	//because we may still attempt to derive and load dll by its path
+		return E_INVALIDARG;
+	}
+
+	filesystem::path dll_path = script_path.replace_extension(CDynamic_Library::Default_Extension());
+
+	
+	//if there would be no script given, we will try to execute the dll
+	bool rebuild = Is_Regular_File_Or_Symlink(script_path) && filesystem::exists(script_path);
+
+	if (rebuild) {
+		const auto script_last_write_time = filesystem::last_write_time(script_path);
+
+		rebuild = script_last_write_time > filesystem::last_write_time(dll_path);
+		//once builded, we set the last write time for the compiled dll
+
+		//for building, we need the compiler
+		if (compiler_path.empty()) {
+			error_description.push(L"Compiler cannot be empty.");	
+			return E_INVALIDARG;
+		}
+
+
+		//OK, let's build the dll from the script
+
+		//and set its time stamp
+		filesystem::last_write_time(dll_path, script_last_write_time);
+	}
+
+	//we should have the dll builded, let's load it
+	if (!mDll.Load(dll_path)) {
+		std::wstring msg = L"Cannot load the compiled script.\nExpected dll path: ";
+		msg += dll_path;
+		error_description.push(msg);
+		return CO_E_ERRORINDLL;
+	}
+	
+	mEntry_Point = static_cast<TNative_Execute_Wrapper>(mDll.Resolve("execute_wrapper"));
+	if (mEntry_Point == nullptr) {
+		error_description.push(L"Cannot resolve the entry point of the compiled script!");
+		return CO_E_ERRORINDLL;
+	}
+
 
 	return S_OK;
 }

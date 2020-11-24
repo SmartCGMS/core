@@ -41,7 +41,7 @@
 #include <utils/math_utils.h>
 #include <utils/string_utils.h>
 
-CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Entry_Point entry_point,
+CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Execute_Wrapper entry_point,
 									const std::array<GUID, native::required_signal_count>& signal_ids) :
 	mSegment_Id(segment_id), mOutput(output), mEntry_Point(entry_point) {
 
@@ -94,16 +94,16 @@ HRESULT CNative_Segment::Execute(const size_t signal_idx, GUID& signal_id, doubl
 
 	HRESULT rc = S_OK;
 	try {
-		mEntry_Point(&signal_id, &device_time, &level, &rc, &mEnvironment);	
+		mEntry_Point(&signal_id, &device_time, &level, &rc, &mEnvironment, this);
 	}
 	catch (const std::exception& ex) {
 		// specific handling for all exceptions extending std::exception, except
-		// std::runtime_error which is handled explicitly		
-		std::wstring error_desc = Widen_Char(ex.what());		
+		// std::runtime_error which is handled explicitly
+		std::wstring error_desc = Widen_Char(ex.what());
 		Emit_Info(true, error_desc);
 		rc = E_FAIL;
 	}
-	catch (...) {		
+	catch (...) {
 		Emit_Info(true, L"Unknown error!");
 		rc = E_FAIL;
 	}

@@ -64,9 +64,10 @@ struct TEnvironment {
 };
 
 
-using TNative_Entry_Point = HRESULT(IfaceCalling*)(
+using TNative_Execute_Wrapper = HRESULT(IfaceCalling*)(
 		GUID* sig_id, double *device_time, double *level,
-		HRESULT *rc, const TEnvironment *environment
+		HRESULT *rc, const TEnvironment *environment,	
+		const void* context
 	);
 
 class CNative_Segment {
@@ -80,12 +81,12 @@ protected:
 	double mRecent_Time = std::numeric_limits<double>::quiet_NaN();	//time for Send_Event
 	uint64_t mSegment_Id;
 	scgms::SFilter mOutput;	//aka the next_filter
-	TNative_Entry_Point mEntry_Point;	
+	TNative_Execute_Wrapper mEntry_Point;	
 
 	HRESULT Send_Event(const GUID* sig_id, const double device_time, const double level, const char* msg);
 	void Emit_Info(const bool is_error, const std::wstring& msg);
 public:
-	CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Entry_Point entry_point,
+	CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Execute_Wrapper entry_point,
 		const std::array<GUID, native::required_signal_count>& signal_ids);
 	HRESULT Execute(const size_t signal_idx, GUID &signal_id, double &device_time, double &level);
 };

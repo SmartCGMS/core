@@ -37,6 +37,7 @@
  */
 
 #include "descriptor.h"
+#include "native_script.h"
 
 #include <lang/dstrings.h>
 
@@ -136,10 +137,8 @@ HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin
 }
 
 HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
-
-
-	//if (*id == pattern_prediction::filter_id)
-//		return Manufacture_Object<CPattern_Prediction_Filter>(filter, output);
+	if (*id == native::native_filter_id)
+		return Manufacture_Object<CNative_Script>(filter, output);
 
 	return E_NOTIMPL;
 }
