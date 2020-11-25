@@ -55,13 +55,14 @@ namespace native {
 	const wchar_t* rsRequired_Signal_10 = L"Required_Signal_10";
 
 	const wchar_t* rsEnvironment_Init = L"Environment_Init";
-	const wchar_t* rsCompiler_Name = L"Compiler_Name";
 	const wchar_t* rsSource_Filepath = L"Source_File";
+	const wchar_t* rsCompiler_Name = L"Compiler_Name";	
+	const wchar_t* rsCustom_Compile_Options = L"Custom_Compile_Options";
 
 
 	constexpr size_t param_count = required_signal_count+	//five required signals, of which the first one is sync signal
 								  +1	//separator
-								  +3;	//env init, compiler, src file path
+								  +4;	//env init, compiler, src file path and possibly custom compiler options
 
 	constexpr scgms::NParameter_Type param_type[param_count] = {
 		scgms::NParameter_Type::ptSignal_Id,
@@ -79,7 +80,8 @@ namespace native {
 
 		scgms::NParameter_Type::ptWChar_Array,
 		scgms::NParameter_Type::ptWChar_Array,
-		scgms::NParameter_Type::ptWChar_Array		
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
@@ -97,6 +99,7 @@ namespace native {
 		L"Environment init batch",
 		L"Compiler",
 		L"Source file"
+		L"Custom compilation"
 	};
 
 	const wchar_t* config_param_name[param_count] = {
@@ -108,7 +111,8 @@ namespace native {
 		nullptr,
 		rsEnvironment_Init,
 		rsCompiler_Name,
-		rsSource_Filepath
+		rsSource_Filepath,
+		rsCustom_Compile_Options
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {

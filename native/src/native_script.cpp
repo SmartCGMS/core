@@ -37,6 +37,7 @@
  */
 
 #include "native_script.h"
+#include "compiler.h"
 
 #include <rtl/FilesystemLib.h>
 
@@ -154,9 +155,16 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 
 
 		//OK, let's build the dll from the script
+		const std::wstring custom_compile_options = configuration.Read_String(native::rsCustom_Compile_Options);
+		if (Compile(compiler_path, init_path, script_path, dll_path, custom_compile_options)) {
+			//compilation seems to complete OK
 
-		//and set its time stamp
-		filesystem::last_write_time(dll_path, script_last_write_time);
+			//and set dll's time stamp so that we don't recompile it until next change in the script
+			filesystem::last_write_time(dll_path, script_last_write_time);
+		} else {
+			error_description.push(L"Failed to compile. Please, review the error log file.");
+			return E_INVALIDARG;
+		}
 	}
 
 	//we should have the dll builded, let's load it

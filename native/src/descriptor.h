@@ -51,8 +51,9 @@ namespace native {
 	extern const wchar_t* rsRequired_Signal_Prefix;	
 
 	extern const wchar_t* rsEnvironment_Init;
-	extern const wchar_t* rsCompiler_Name;
 	extern const wchar_t* rsSource_Filepath;
+	extern const wchar_t* rsCompiler_Name;	
+	extern const wchar_t* rsCustom_Compile_Options;
 }
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end);

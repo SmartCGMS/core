@@ -38,7 +38,47 @@
 
 #include "native_segment.h"
 
+#include <array>
+
+#if defined(__AVX512BW__) || defined(__AVX512CD__) || defined(__AVX512DQ__) || defined(__AVX512F__) || defined(__AVX512VL__) || defined(__AVX512ER__) || defined(__AVX512PF__)
+	#define AVX512
+	#ifndef __AVX2__
+		#define __AVX2__
+	#endif
+#endif
+
+struct TCompiler_Invokation {
+	const wchar_t* file_name_prefix;
+	const wchar_t* invokation;
+};
+
+const wchar_t* out_file_var = L"$(output)";
+const wchar_t* source_files_var = L"$(source)";
+const wchar_t* def_file_var = L"$(export)";
+
+const std::array<TCompiler_Invokation, 1> compilers = {
+#ifdef AVX512
+	{L"cl",  L"/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX512 /EHsc /D \"UNICODE\" /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL}"}
+#elif __AVX2__
+	{L"cl",  L"/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX2 /EHsc /D \"UNICODE\" /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL}"}
+#elif __AVX__
+	{L"cl",  L"/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX /EHsc /D \"UNICODE\" /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL}"}
+#else
+	{L"cl",  L"/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /EHsc /D \"UNICODE\" /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL}"}
+#endif
+};
+
 bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
-			 const filesystem::path& source, const filesystem::path& dll) {
+			 const filesystem::path& source, const filesystem::path& dll,
+			 const std::wstring& custom_options) {
+
+	std::wstring effective_compiler_options;
+
+	//1. extract compiler's filename
+	if (custom_options.empty()) {
+		const std::wstring compiler_file_name = compiler.filename();
+	}
+	else
+		effective_compiler_options = custom_options;
 
 }

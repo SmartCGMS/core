@@ -41,4 +41,5 @@
 #include <rtl/FilesystemLib.h>
 
 bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
-			 const filesystem::path& source, const filesystem::path& dll);
+			 const filesystem::path& source, const filesystem::path& dll,
+			 const std::wstring &custom_options);
