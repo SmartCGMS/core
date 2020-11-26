@@ -39,6 +39,7 @@
 #include "native_segment.h"
 
 #include <array>
+#include <regex>
 
 #if defined(__AVX512BW__) || defined(__AVX512CD__) || defined(__AVX512DQ__) || defined(__AVX512F__) || defined(__AVX512VL__) || defined(__AVX512ER__) || defined(__AVX512PF__)
 	#define AVX512
@@ -49,12 +50,12 @@
 
 struct TCompiler_Invokation {
 	const wchar_t* file_name_prefix;
-	const wchar_t* invokation;
+	const wchar_t* options;
 };
 
-const wchar_t* out_file_var = L"$(output)";
-const wchar_t* source_files_var = L"$(source)";
-const wchar_t* def_file_var = L"$(export)";
+const std::wregex out_file_var{ L"$(output)" } ;
+const std::wregex source_files_var{ L"$(source)" };
+const std::wregex def_file_var { L"$(export)" };
 
 const std::array<TCompiler_Invokation, 1> compilers = {
 #ifdef AVX512
@@ -77,8 +78,34 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	//1. extract compiler's filename
 	if (custom_options.empty()) {
 		const std::wstring compiler_file_name = compiler.filename();
+
+		for (size_t i = 0; i < compilers.size(); i++) {
+			if (compiler_file_name.rfind(compilers[i].file_name_prefix, 0) != std::wstring::npos) {
+				effective_compiler_options = compilers[i].options;
+				break;
+			}
+		}
 	}
 	else
 		effective_compiler_options = custom_options;
+
+	//at this moment, custom options may be empty - but it may a that user supplied e.g.; own custom build batch file
+	
+	//2. insert the correct filenames
+	const filesystem::path dst_path = dll.parent_path();
+	const std::wstring name_prefix = source.filename().wstring();
+	
+	const filesystem::path def_path = dst_path / (name_prefix + L".def");
+	const filesystem::path dllmain_path = dst_path / (name_prefix + L"_native.cpp");
+	const filesystem::path header_path = dst_path / (name_prefix + L"_native.h");
+
+	effective_compiler_options = std::regex_replace(effective_compiler_options, out_file_var, dll.wstring());
+	effective_compiler_options = std::regex_replace(effective_compiler_options, def_file_var, def_path.wstring());
+	effective_compiler_options = std::regex_replace(effective_compiler_options, source_files_var, dllmain_path.wstring() + L" " + source.wstring());
+
+	//3. create the native.cpp, native.h a source.def files
+
+
+	//4. eventually, compile the script to dll
 
 }
