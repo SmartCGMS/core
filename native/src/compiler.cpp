@@ -37,9 +37,11 @@
  */
 
 #include "native_segment.h"
+#include "descriptor.h"
 
 #include <array>
 #include <regex>
+#include <fstream>
 
 #if defined(__AVX512BW__) || defined(__AVX512CD__) || defined(__AVX512DQ__) || defined(__AVX512F__) || defined(__AVX512VL__) || defined(__AVX512ER__) || defined(__AVX512PF__)
 	#define AVX512
@@ -103,9 +105,32 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	effective_compiler_options = std::regex_replace(effective_compiler_options, def_file_var, def_path.wstring());
 	effective_compiler_options = std::regex_replace(effective_compiler_options, source_files_var, dllmain_path.wstring() + L" " + source.wstring());
 
-	//3. create the native.cpp, native.h a source.def files
+	//3. delete the generated files first
+	{
+		std::error_code ec;
+		if (!filesystem::remove(dll, ec) && filesystem::remove(def_path, ec) &&
+			filesystem::remove(dllmain_path, ec) && filesystem::remove(header_path, ec))
+			return false;
+	}
 
+	//4. create the native.cpp, native.h a source.def files
+	{
+		{
+			std::ofstream def_file{ def_path };
+			def_file << "LIBRARY " << dll.filename() << std::endl << std::endl <<
+						"EXPORTS" << std::endl << "\t" << native::rsScript_Entry_Symbol << std::endl;
+		}
+		
 
-	//4. eventually, compile the script to dll
+		{
+			std::ofstream dllmain_file{ dllmain_path };
+		}
+
+		{
+			std::ofstream header_file{ header_path };
+		}
+	}
+
+	//5. eventually, compile the script to dll
 
 }

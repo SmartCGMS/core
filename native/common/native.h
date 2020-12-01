@@ -38,25 +38,29 @@
 
 #pragma once
 
-#include <iface/UIIface.h>
-#include <rtl/hresult.h>
-#include <rtl/ModelsLib.h>
+#include <iface/DeviceIface.h>
 
 
-namespace native {
-	constexpr GUID native_filter_id = { 0x2abad468, 0x1708, 0x48cc, { 0xa1, 0x7a, 0x64, 0xab, 0xbe, 0xc8, 0x73, 0x27 } };	// {2ABAD468-1708-48CC-A17A-64ABBEC87327}		
+using TSend_Event = HRESULT(IfaceCalling*)(const GUID* sig_id, const double device_time, const double level, const char* msg);
 
-	constexpr size_t required_signal_count = 10;
+struct TEnvironment {
+	TSend_Event send;								//function to inject new events
+	void* custom_data;								//custom data pointer to implement a stateful processing
 
-	extern const wchar_t* rsRequired_Signal_Prefix;	
+	size_t current_signal_index;
+	size_t level_count;									//number of levels to sanitize memory space - should be generated
+	GUID signal_id[native::required_signal_count];		//signal ids as configured
+	double device_time[native::required_signal_count];  //recent device times
+	double level[native::required_signal_count];		//recent levels
+	double slope[native::required_signal_count]; 		//recent slopes from the recent level to the preceding level, a linear line slope!
+	
+	size_t* parameter_count;							//number of configurable parameters
+	double* parameters;									//configurable parameters
+};
 
-	extern const wchar_t* rsEnvironment_Init;
-	extern const wchar_t* rsSource_Filepath;
-	extern const wchar_t* rsCompiler_Name;	
-	extern const wchar_t* rsCustom_Compile_Options;
 
-	extern const char* rsScript_Entry_Symbol;
-}
-
-extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end);
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter);
+using TNative_Execute_Wrapper = HRESULT(IfaceCalling*)(
+		GUID* sig_id, double *device_time, double *level,
+		HRESULT *rc, const TEnvironment *environment,	
+		const void* context
+	);

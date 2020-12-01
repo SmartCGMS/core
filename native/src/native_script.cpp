@@ -175,7 +175,7 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 		return CO_E_ERRORINDLL;
 	}
 	
-	mEntry_Point = static_cast<TNative_Execute_Wrapper>(mDll.Resolve("execute_wrapper"));
+	mEntry_Point = static_cast<TNative_Execute_Wrapper>(mDll.Resolve(native::rsScript_Entry_Symbol));
 	if (mEntry_Point == nullptr) {
 		error_description.push(L"Cannot resolve the entry point of the compiled script!");
 		return CO_E_ERRORINDLL;

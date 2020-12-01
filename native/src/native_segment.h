@@ -39,36 +39,13 @@
 #pragma once
 
 #include "descriptor.h"
+#include "../common/native.h"
 
 #include <iface/DeviceIface.h>
 #include <rtl/FilterLib.h>
 
 #include <array>
 #include <map>
-
-using TSend_Event = HRESULT(IfaceCalling*)(const GUID* sig_id, const double device_time, const double level, const char* msg);
-
-struct TEnvironment {
-	TSend_Event send;								//function to inject new events
-	void* custom_data;								//custom data pointer to implement a stateful processing
-
-	size_t current_signal_index;
-	size_t level_count;									//number of levels to sanitize memory space - should be generated
-	GUID signal_id[native::required_signal_count];		//signal ids as configured
-	double device_time[native::required_signal_count];  //recent device times
-	double level[native::required_signal_count];		//recent levels
-	double slope[native::required_signal_count]; 		//recent slopes from the recent level to the preceding level, a linear line slope!
-	
-	size_t* parameter_count;							//number of configurable parameters
-	double* parameters;									//configurable parameters
-};
-
-
-using TNative_Execute_Wrapper = HRESULT(IfaceCalling*)(
-		GUID* sig_id, double *device_time, double *level,
-		HRESULT *rc, const TEnvironment *environment,	
-		const void* context
-	);
 
 class CNative_Segment {
 protected:

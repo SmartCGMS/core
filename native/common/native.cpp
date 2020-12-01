@@ -36,27 +36,24 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
+// dllmain.cpp : Defines the entry point for the DLL application.
 
-#include <iface/UIIface.h>
-#include <rtl/hresult.h>
-#include <rtl/ModelsLib.h>
+#ifdef _WIN32
+	#include <Windows.h>
 
-
-namespace native {
-	constexpr GUID native_filter_id = { 0x2abad468, 0x1708, 0x48cc, { 0xa1, 0x7a, 0x64, 0xab, 0xbe, 0xc8, 0x73, 0x27 } };	// {2ABAD468-1708-48CC-A17A-64ABBEC87327}		
-
-	constexpr size_t required_signal_count = 10;
-
-	extern const wchar_t* rsRequired_Signal_Prefix;	
-
-	extern const wchar_t* rsEnvironment_Init;
-	extern const wchar_t* rsSource_Filepath;
-	extern const wchar_t* rsCompiler_Name;	
-	extern const wchar_t* rsCustom_Compile_Options;
-
-	extern const char* rsScript_Entry_Symbol;
+	BOOL APIENTRY DllMain( HMODULE hModule,
+						   DWORD  ul_reason_for_call,
+						   LPVOID lpReserved
+						 )
+	{
+		switch (ul_reason_for_call)	{
+			case DLL_PROCESS_ATTACH:		
+			case DLL_THREAD_ATTACH:
+			case DLL_THREAD_DETACH:	
+			case DLL_PROCESS_DETACH: 
+				break;
+		}
+		return TRUE;
 }
 
-extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end);
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter);
+#endif

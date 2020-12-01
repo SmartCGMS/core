@@ -59,6 +59,8 @@ namespace native {
 	const wchar_t* rsCompiler_Name = L"Compiler_Name";	
 	const wchar_t* rsCustom_Compile_Options = L"Custom_Compile_Options";
 
+	const char* rsScript_Entry_Symbol = "execute";
+
 
 	constexpr size_t param_count = required_signal_count+	//five required signals, of which the first one is sync signal
 								  +1	//separator
