@@ -120,14 +120,10 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 
 	//Now, we need to check timestamps of the source file and the produced dll
 	filesystem::path script_path = configuration.Read_File_Path(native::rsSource_Filepath);
-	//the following two paths must be Read_String to enforce absolute paths
+	//the following two paths must be Read_String to enforce absolute paths, or whatever they desire
 	filesystem::path init_path = configuration.Read_String(native::rsEnvironment_Init);
-	if (init_path.has_relative_path()) 
-		init_path = configuration.Read_File_Path(native::rsEnvironment_Init);	//resolve if that's what they truly wanted
-
 	filesystem::path compiler_path = configuration.Read_String(native::rsCompiler_Name);
-	if (compiler_path.has_relative_path())
-		compiler_path = configuration.Read_File_Path(native::rsCompiler_Name);	//resolve if that's what they truly wanted
+
 
 	
 	if (script_path.empty()) {
@@ -135,7 +131,7 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 		return E_INVALIDARG;
 	}
 
-	filesystem::path dll_path = script_path.replace_extension(CDynamic_Library::Default_Extension());
+	filesystem::path dll_path = filesystem::path{ script_path }.replace_extension(CDynamic_Library::Default_Extension());
 
 	
 	//if there would be no script given, we will try to execute the dll
@@ -143,6 +139,8 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 
 	if (rebuild) {
 		const auto script_last_write_time = filesystem::last_write_time(script_path);
+		
+we have to check dll existence else it throws		
 
 		rebuild = script_last_write_time > filesystem::last_write_time(dll_path);
 		//once builded, we set the last write time for the compiled dll
@@ -176,7 +174,7 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 		return CO_E_ERRORINDLL;
 	}
 	
-	mEntry_Point = static_cast<TNative_Execute_Wrapper>(mDll.Resolve(native::rsScript_Entry_Symbol));
+	mEntry_Point = static_cast<TNative_Execute>(mDll.Resolve(native::rsScript_Entry_Symbol));
 	if (mEntry_Point == nullptr) {
 		error_description.push(L"Cannot resolve the entry point of the compiled script!");
 		return CO_E_ERRORINDLL;

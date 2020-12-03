@@ -54,6 +54,7 @@
 	#endif
 #endif
 
+
 struct TCompiler_Invokation {
 	const wchar_t* file_name_prefix;
 	const wchar_t* options;
@@ -64,8 +65,10 @@ const std::wregex source_files_var{ L"$(source)" };
 const std::wregex def_file_var { L"$(export)" };
 const std::wregex sdk_include_var{ L"$(include)" };
 
+
 extern "C" const char* native_cpp;
 extern "C" const char* native_h;
+
 
 
 const std::array<TCompiler_Invokation, 1> compilers = {

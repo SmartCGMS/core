@@ -55,7 +55,7 @@ protected:
     bool mSync_To_Any = false;
 protected:
     CDynamic_Library mDll;
-    TNative_Execute_Wrapper mEntry_Point = nullptr;
+    TNative_Execute mEntry_Point = nullptr;
 protected:
     // scgms::CBase_Filter iface implementation
     virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;

@@ -41,7 +41,7 @@
 #include <utils/math_utils.h>
 #include <utils/string_utils.h>
 
-CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Execute_Wrapper entry_point,
+CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Execute entry_point,
 									const std::array<GUID, native::required_signal_count>& signal_ids) :
 	mSegment_Id(segment_id), mOutput(output), mEntry_Point(entry_point) {
 

@@ -59,7 +59,7 @@ struct TEnvironment {
 };
 
 
-using TNative_Execute_Wrapper = HRESULT(IfaceCalling*)(
+using TNative_Execute = void(IfaceCalling*)(
 		GUID* sig_id, double *device_time, double *level,
 		HRESULT *rc, const TEnvironment *environment,	
 		const void* context

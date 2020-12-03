@@ -102,17 +102,22 @@ namespace native {
 		nullptr,
 		L"Environment init batch",
 		L"Compiler",
-		L"Source file"
+		L"Source file",
 		L"Custom compilation",
 		L"SmartCGMS SDK include dir"
 	};
 
 	const wchar_t* config_param_name[param_count] = {
-		rsSynchronize_to_Signal,
+		rsSynchronization_Signal,
 		rsRequired_Signal_2,
 		rsRequired_Signal_3,
 		rsRequired_Signal_4,
 		rsRequired_Signal_5,
+		rsRequired_Signal_6,
+		rsRequired_Signal_7,
+		rsRequired_Signal_8,
+		rsRequired_Signal_9,
+		rsRequired_Signal_10,
 		nullptr,
 		rsEnvironment_Init,
 		rsCompiler_Name,
