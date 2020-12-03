@@ -58,13 +58,14 @@ namespace native {
 	const wchar_t* rsSource_Filepath = L"Source_File";
 	const wchar_t* rsCompiler_Name = L"Compiler_Name";	
 	const wchar_t* rsCustom_Compile_Options = L"Custom_Compile_Options";
+	const wchar_t* rsSmartCGMS_Include_Dir = L"SCMGS_Include_Dir";
 
 	const char* rsScript_Entry_Symbol = "execute";
 
 
 	constexpr size_t param_count = required_signal_count+	//five required signals, of which the first one is sync signal
 								  +1	//separator
-								  +4;	//env init, compiler, src file path and possibly custom compiler options
+								  +5;	//env init, compiler, src file path and possibly custom compiler options and SKD include
 
 	constexpr scgms::NParameter_Type param_type[param_count] = {
 		scgms::NParameter_Type::ptSignal_Id,
@@ -80,6 +81,7 @@ namespace native {
 
 		scgms::NParameter_Type::ptNull,
 
+		scgms::NParameter_Type::ptWChar_Array,
 		scgms::NParameter_Type::ptWChar_Array,
 		scgms::NParameter_Type::ptWChar_Array,
 		scgms::NParameter_Type::ptWChar_Array,
@@ -101,7 +103,8 @@ namespace native {
 		L"Environment init batch",
 		L"Compiler",
 		L"Source file"
-		L"Custom compilation"
+		L"Custom compilation",
+		L"SmartCGMS SDK include dir"
 	};
 
 	const wchar_t* config_param_name[param_count] = {
@@ -114,7 +117,8 @@ namespace native {
 		rsEnvironment_Init,
 		rsCompiler_Name,
 		rsSource_Filepath,
-		rsCustom_Compile_Options
+		rsCustom_Compile_Options,
+		rsSmartCGMS_Include_Dir
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {

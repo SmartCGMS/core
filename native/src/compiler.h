@@ -42,4 +42,4 @@
 
 bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 			 const filesystem::path& source, const filesystem::path& dll,
-			 const std::wstring &custom_options);
+			 const filesystem::path& configured_sdk_include, const std::wstring &custom_options);

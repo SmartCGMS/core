@@ -156,7 +156,8 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 
 		//OK, let's build the dll from the script
 		const std::wstring custom_compile_options = configuration.Read_String(native::rsCustom_Compile_Options);
-		if (Compile(compiler_path, init_path, script_path, dll_path, custom_compile_options)) {
+		const std::wstring sdk_include = configuration.Read_String(native::rsSmartCGMS_Include_Dir);
+		if (Compile(compiler_path, init_path, script_path, dll_path, sdk_include, custom_compile_options)) {
 			//compilation seems to complete OK
 
 			//and set dll's time stamp so that we don't recompile it until next change in the script

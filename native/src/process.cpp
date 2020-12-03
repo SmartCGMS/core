@@ -248,7 +248,5 @@ public:
 
 bool Execute_Commands(const std::wstring& shell, const std::wstring &working_dir, const std::vector<std::string>& commands, std::vector<char>& output) {
 	CProcess proceses{ output };
-	const bool result = proceses.run(shell, working_dir, commands);
-		
-	return false;
+	return proceses.run(shell, working_dir, commands);
 }

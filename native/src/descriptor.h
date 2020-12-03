@@ -54,6 +54,7 @@ namespace native {
 	extern const wchar_t* rsSource_Filepath;
 	extern const wchar_t* rsCompiler_Name;	
 	extern const wchar_t* rsCustom_Compile_Options;
+	extern const wchar_t* rsSmartCGMS_Include_Dir;
 
 	extern const char* rsScript_Entry_Symbol;
 }
