@@ -58,8 +58,7 @@ struct TPipe {
 };
 
 struct TRedirected_IO {
-	TPipe input, error;
-	TPipe_Handle output;	//we'll discard the stdout because we care just for the error detection
+	TPipe input, out_err;	
 };
 
 class CProcess {
@@ -79,22 +78,15 @@ protected:
 		saAttr.lpSecurityDescriptor = NULL;
 		
 		bool result = CreatePipe(&mIO.input.output, &mIO.input.input, &saAttr, 0) == TRUE;
-		result &= CreatePipe(&mIO.error.output, &mIO.error.input, &saAttr, 0) == TRUE;
-
-		//we are not interested in the standard output, we care only for the errors
-		if (result)
-			mIO.output = CreateFileW(L"nul:", GENERIC_READ | GENERIC_WRITE,
-			                                 FILE_SHARE_READ | FILE_SHARE_WRITE,
-											 NULL, OPEN_EXISTING, 0, NULL);
-		result &= mIO.output != INVALID_HANDLE_VALUE;
+		result &= CreatePipe(&mIO.out_err.output, &mIO.out_err.input, &saAttr, 0) == TRUE;		
 		
 		if (result) {
 			//And ensure that those ends of pipes, which we use to read and write in our process, are inherited
 			result &= SetHandleInformation(mIO.input.input, HANDLE_FLAG_INHERIT, 0) == TRUE;
 			result &= SetHandleInformation(mIO.input.output, HANDLE_FLAG_INHERIT, 0) == TRUE;
-			result &= SetHandleInformation(mIO.error.input, HANDLE_FLAG_INHERIT, 0) == TRUE;
-			result &= SetHandleInformation(mIO.error.output, HANDLE_FLAG_INHERIT, 0) == TRUE;
-			result &= SetHandleInformation(mIO.output, HANDLE_FLAG_INHERIT, 0) == TRUE;
+
+			result &= SetHandleInformation(mIO.out_err.input, HANDLE_FLAG_INHERIT, 0) == TRUE;
+			result &= SetHandleInformation(mIO.out_err.output, HANDLE_FLAG_INHERIT, 0) == TRUE;
 		}
 #else
 		result = false;
@@ -117,9 +109,9 @@ protected:
 
 		memset(&siStartInfo, 0, sizeof(STARTUPINFO));
 		siStartInfo.cb = sizeof(STARTUPINFO);
-		siStartInfo.hStdError = mIO.error.output;
-		siStartInfo.hStdOutput = mIO.output;
-		siStartInfo.hStdInput = mIO.input.input;
+		siStartInfo.hStdError = mIO.out_err.input;
+		siStartInfo.hStdOutput = mIO.out_err.input;
+		siStartInfo.hStdInput = mIO.input.output;
 		siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
 				
 		const LPWSTR working_dir_raw = working_dir.empty() ? NULL : (LPWSTR)working_dir.c_str();
@@ -151,7 +143,8 @@ protected:
 		for (size_t i = 0; i < input.size(); i++) {
 			// Stop if there are no more data. 
 
-			if (!WriteFile(mIO.input.input, input[i].data(), static_cast<DWORD>(input[i].size()), &dwWritten, NULL)) return false;
+			if (!WriteFile(mIO.input.input, input[i].data(), static_cast<DWORD>(input[i].size()), &dwWritten, NULL)) 
+				return false;
 
 			const char endl[2] = { 0xd, 0xa };
 			WriteFile(mIO.input.input, endl, sizeof(endl), &dwWritten, NULL);
@@ -168,7 +161,7 @@ protected:
 
 	bool Read_Ouput() {
 #ifdef _WIN32
-		const HANDLE &read = mIO.error.output;
+		const HANDLE &read = mIO.out_err.output;
 		HANDLE objects[2] = { mProcess.hProcess, read };
 
 		const size_t buffer_size = 4096;
@@ -177,7 +170,6 @@ protected:
 		char chBuf[buffer_size];
 
 		for (;;) {
-
 			//Check if we can read data and if we can, let's read them
 			if (PeekNamedPipe(read, NULL, 0, NULL, &dwRead, NULL)) {
 				if (dwRead>0)
@@ -226,10 +218,13 @@ public:
 		try {
 			if (Setup_IO()) {
 				if (Create_Shell(shell, working_dir)) {
-					auto read_result = std::async(&CProcess::Read_Ouput, this);
+					std::thread output_reader{ &CProcess::Read_Ouput, this };					
 					
-					if (Write_Input(input) && read_result.get())
-						result = Succeeded_by_Return_Code();					
+					if (Write_Input(input)) {
+						if (output_reader.joinable())
+							output_reader.join();
+						result = Succeeded_by_Return_Code();
+					}
 				}
 			}
 		}

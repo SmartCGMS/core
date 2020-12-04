@@ -140,10 +140,12 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 	if (rebuild) {
 		const auto script_last_write_time = filesystem::last_write_time(script_path);
 		
-we have to check dll existence else it throws		
+		std::error_code ec;
+		const auto dll_last_write_time = filesystem::last_write_time(dll_path, ec);
 
-		rebuild = script_last_write_time > filesystem::last_write_time(dll_path);
+		rebuild = ec || (script_last_write_time > dll_last_write_time);
 		//once builded, we set the last write time for the compiled dll
+		//if the dll does not exists, it would throw => ec
 
 		//for building, we need the compiler
 		if (compiler_path.empty()) {

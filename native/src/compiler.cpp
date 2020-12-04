@@ -66,10 +66,8 @@ const std::wregex def_file_var { L"$(export)" };
 const std::wregex sdk_include_var{ L"$(include)" };
 
 
-extern "C" const char* native_cpp;
-extern "C" const char* native_h;
-
-
+extern "C" unsigned char native_cpp[];
+extern "C" unsigned char native_h[];
 
 const std::array<TCompiler_Invokation, 1> compilers = {
 #ifdef AVX512
@@ -107,9 +105,9 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	
 	//2. insert the correct filenames
 	const filesystem::path dst_path = dll.parent_path();
-	const std::wstring name_prefix = source.filename().wstring();
+	const std::wstring name_prefix = source.stem().wstring();
 	
-	const filesystem::path def_path = dst_path / (name_prefix + L".def");
+	const filesystem::path def_path = dst_path / (name_prefix + L"_native.def");
 	const filesystem::path dllmain_path = dst_path / (name_prefix + L"_native.cpp");
 	const filesystem::path header_path = dst_path / (name_prefix + L"_native.h");
 	const filesystem::path error_log_path = dst_path / (name_prefix + L"_error.log");
@@ -145,19 +143,19 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	{
 		{
 			std::ofstream def_file{ def_path };
-			def_file << "LIBRARY " << dll.filename() << std::endl << std::endl <<
+			def_file << "LIBRARY " << dll.filename().string() << std::endl << std::endl << //.string to remove quotes
 						"EXPORTS" << std::endl << "\t" << native::rsScript_Entry_Symbol << std::endl;
 		}
 		
 
 		{
-			std::ofstream dllmain_file{ dllmain_path, std::ios::binary };
-			dllmain_file << native_cpp;
+			std::ofstream dllmain_file{ dllmain_path, std::ios::binary };			
+			dllmain_file << reinterpret_cast<const char*>(native_cpp);
 		}
 
 		{
-			std::ofstream header_file{ header_path, std::ios::binary };
-			header_file << native_h;
+			std::ofstream header_file{ header_path, std::ios::binary };			
+			header_file << reinterpret_cast<const char*>(native_h);
 		}
 	}
 
@@ -169,7 +167,13 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	commands.push_back(compiler.string() + " " + Narrow_WString(effective_compiler_options));
 
 	std::vector<char> error_output;
-	const bool result = Execute_Commands(compiler.wstring(), dll.parent_path(), commands, error_output);
+
+#ifdef _WIN32
+	const wchar_t* rsShell = L"cmd.exe";
+#else
+	const wchar_t* rsShell = Widen_Char(std::getenv("$SHELL"));
+#endif
+	const bool result = Execute_Commands(rsShell, dll.parent_path(), commands, error_output);
 	//write the log
 	{
 		std::ofstream error_log{ error_log_path, std::ios::binary };
