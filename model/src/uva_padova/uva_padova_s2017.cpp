@@ -236,12 +236,12 @@ double CUVA_Padova_S2017_Discrete_Model::eq_dIsc1(const double _T, const double 
 	const double basalSubcutaneousDisturbance = mSubcutaneous_Basal_Ext.Get_Recent(_T * scgms::One_Minute);			// U/min
 	const double insulinSubcutaneousDisturbance = (bolusDisturbance + basalSubcutaneousDisturbance) / (scgms::pmol_2_U * mParameters.BW); // U/min -> pmol/kg/min
 
-	return mState.Isc1 > 0 ? insulinSubcutaneousDisturbance - (mParameters.ka1 + mParameters.kd) * _X : 0;
+	return /*mState.Isc1 > 0 ? */insulinSubcutaneousDisturbance - (mParameters.ka1 + mParameters.kd) * _X /*: 0*/;
 }
 
 double CUVA_Padova_S2017_Discrete_Model::eq_dIsc2(const double _T, const double _X) const
 {
-	return mState.Isc2 > 0 ? mParameters.kd * mState.Isc1 - mParameters.ka2 * _X : 0;
+	return /*mState.Isc2 > 0 ? */mParameters.kd * mState.Isc1 - mParameters.ka2 * _X /*: 0*/;
 }
 
 double CUVA_Padova_S2017_Discrete_Model::eq_dIid1(const double _T, const double _X) const
