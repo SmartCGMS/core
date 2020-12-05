@@ -152,11 +152,11 @@ void CDb_Writer::Flush_Levels()
 {
 	// TODO: transactions
 
-	for (const auto& val : mPrepared_Values)            
+	for (const auto& val : mPrepared_Values)
 	{
-                const auto time_str = to_iso8601(Rat_Time_To_Unix_Time(val.measuredAt));
+		const auto time_str = to_iso8601(Rat_Time_To_Unix_Time(val.measuredAt));
 		auto qr = mDb_Connection.Query(rsInsert_New_Measured_Value,
-                        time_str.c_str());
+		time_str.c_str());
 
 		if (!qr)
 			break;
@@ -175,6 +175,9 @@ void CDb_Writer::Flush_Levels()
 		sigCondBind(scgms::signal_Requested_Insulin_Basal_Rate);
 		sigCondBind(scgms::signal_Carb_Intake);
 		sigCondBind(scgms::signal_Calibration);
+		sigCondBind(scgms::signal_Heartbeat);
+		sigCondBind(scgms::signal_Steps);
+		sigCondBind(scgms::signal_Movement_Speed);
 
 		qr.Bind_Parameters(val.segmentId);
 
@@ -275,24 +278,9 @@ HRESULT IfaceCalling CDb_Writer::Do_Configure(scgms::SFilter_Configuration confi
 	for (const auto& id : scgms::signal_Virtual)
 		mIgnored_Signals.insert(id);
 
-	if (mDb_Connector)
-		mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
-	if (!mDb_Connection)
-		return E_FAIL;
-
-	switch (mSubject_Id)
-	{
-	case db::Anonymous_Subject_Identifier:
-		// TODO: select this from DB
-		mSubject_Id = db_writer::Anonymous_Subject_Id;
-		break;
-	case db::New_Subject_Identifier:
-		mSubject_Id = Create_Subject(db_writer::Subject_Base_Name);
-		break;
-	default:
-		// TODO: just verify, that the subject exists
-		break;
-	}
+	// bolus is an exception for now - model produces directly requested insulin bolus
+	// TODO: modify model to produce model-specific signal, that needs to be remapped to requested insulin bolus signal
+	mIgnored_Signals.erase(scgms::signal_Requested_Insulin_Bolus);
 
 	return S_OK;
 }
@@ -302,7 +290,8 @@ HRESULT IfaceCalling CDb_Writer::Do_Execute(scgms::UDevice_Event event) {
 
 	switch (event.event_code()) {
 		case scgms::NDevice_Event_Code::Level:
-		case scgms::NDevice_Event_Code::Masked_Level:		if (mStore_Data && (mIgnored_Signals.find(event.signal_id()) == mIgnored_Signals.end())) {
+		case scgms::NDevice_Event_Code::Masked_Level:
+			if (mStore_Data && (mIgnored_Signals.find(event.signal_id()) == mIgnored_Signals.end())) {
 																if (!Store_Level(event)) {
 																	dprintf(__FILE__);
 																	dprintf(", ");
@@ -337,5 +326,26 @@ HRESULT IfaceCalling CDb_Writer::Do_Execute(scgms::UDevice_Event event) {
 HRESULT IfaceCalling CDb_Writer::Set_Connector(db::IDb_Connector *connector)
 {
 	mDb_Connector = refcnt::make_shared_reference_ext<db::SDb_Connector, db::IDb_Connector>(connector, true);
+
+	if (mDb_Connector)
+		mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
+
+	if (!mDb_Connection)
+		return E_FAIL;
+
+	switch (mSubject_Id)
+	{
+	case db::Anonymous_Subject_Identifier:
+		// TODO: select this from DB
+		mSubject_Id = db_writer::Anonymous_Subject_Id;
+		break;
+	case db::New_Subject_Identifier:
+		mSubject_Id = Create_Subject(db_writer::Subject_Base_Name);
+		break;
+	default:
+		// TODO: just verify, that the subject exists
+		break;
+	}
+
 	return connector != nullptr ? S_OK : S_FALSE;
 }

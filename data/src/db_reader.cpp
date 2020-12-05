@@ -65,6 +65,9 @@ enum class NColumn_Pos : size_t
 	Insulin_Basal_Rate,
 	Carbohydrates,
 	Calibration,
+	Heart_Rate,
+	Steps,
+	Movement_Speed,
 	_End,
 
 	_Begin = Blood,
@@ -80,7 +83,7 @@ NColumn_Pos& operator++(NColumn_Pos& ref)
 
 // array of DB columns - signal GUIDs used
 std::array<GUID, static_cast<size_t>(NColumn_Pos::_Count)> ColumnSignalMap = { {
-	scgms::signal_BG, scgms::signal_IG, scgms::signal_ISIG, scgms::signal_Requested_Insulin_Bolus, scgms::signal_Requested_Insulin_Basal_Rate, scgms::signal_Carb_Intake, scgms::signal_Calibration
+	scgms::signal_BG, scgms::signal_IG, scgms::signal_ISIG, scgms::signal_Requested_Insulin_Bolus, scgms::signal_Requested_Insulin_Basal_Rate, scgms::signal_Carb_Intake, scgms::signal_Calibration, scgms::signal_Heartbeat, scgms::signal_Steps, scgms::signal_Movement_Speed
 } };
 
 CDb_Reader::CDb_Reader(scgms::IFilter *output) : CBase_Filter(output) {
@@ -155,8 +158,6 @@ bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
 	return true;
 }
 
-
-
 bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 	wchar_t* measured_at_str;
 
@@ -168,8 +169,8 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 
 	while (query.Get_Next() && !mQuit_Flag) {
 
-		// "select measuredat, blood, ist, isig, insulin_bolus, insulin_basal_rate, carbohydrates, calibration from measuredvalue where segmentid = ? order by measuredat asc"
-		//         0           1      2    3     4              5                   6              7
+		// "select measuredat, blood, ist, isig, insulin_bolus, insulin_basal_rate, carbohydrates, calibration, heartrate, steps, movement_speed from measuredvalue where segmentid = ? order by measuredat asc"
+		//         0           1      2    3     4              5                   6              7            8          9      10
 
 		// assuming that subsequent datetime formats are identical, try to recognize the used date time format from the first line
 		const double measured_at = Unix_Time_To_Rat_Time(from_iso8601(measured_at_str));
