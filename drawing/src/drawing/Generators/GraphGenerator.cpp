@@ -41,6 +41,8 @@
 
 #include "../SVGBuilder.h"
 #include "../Misc/Utility.h"
+#include "../../../../../common/utils/string_utils.h"
+#include "../../../../../common/utils/DebugHelper.h"
 
 #include <algorithm>
 #include <set>
@@ -127,7 +129,7 @@ void CGraph_Generator::Write_QuadraticBezierCurve(const ValueVector& values)
 	}
 }
 
-void CGraph_Generator::Write_LinearCurve(const ValueVector& values, const double y_scale)
+void CGraph_Generator::Write_LinearCurve(const ValueVector& values, const Data& dataMeta)
 {
 	if (values.empty())
 		return;
@@ -158,7 +160,7 @@ void CGraph_Generator::Write_LinearCurve(const ValueVector& values, const double
 		if (pos == Invalid_Position)
 			continue;
 
-		mSvg << "<path d =\"M " << Normalize_Time_X(values[previous].date) << " " << Normalize_Y(values[previous].value*y_scale);
+		mSvg << "<path d =\"M " << Normalize_Time_X(values[previous].date) << " " << Normalize_Y(values[previous].value * dataMeta.valuesScale);
 
 		while (pos != Invalid_Position)
 		{
@@ -166,15 +168,23 @@ void CGraph_Generator::Write_LinearCurve(const ValueVector& values, const double
 			if (next == Invalid_Position)
 				break;
 
-			mSvg << " L " << Normalize_Time_X(values[next].date) << " " << Normalize_Y(values[next].value*y_scale);
+			// disallow visual linear approximation of more than 15min gaps; split the line if the gap is bigger
+			if (values[next].date - values[previous].date > 15 * 60)
+			{
+				mSvg << "\"/>" << std::endl;
+				mSvg << "<path d =\"M " << Normalize_Time_X(values[next].date) << " " << Normalize_Y(values[next].value * dataMeta.valuesScale);
+			}
+
+			mSvg << " L " << Normalize_Time_X(values[next].date) << " " << Normalize_Y(values[next].value * dataMeta.valuesScale);
 			pos = next;
+			previous = next;
 		}
 
 		mSvg << "\"/>" << std::endl;
 	}
 }
 
-void CGraph_Generator::Write_StepCurve(const ValueVector& values)
+void CGraph_Generator::Write_StepCurve(const ValueVector& values, const Data& dataMeta)
 {
 	if (values.empty())
 		return;
@@ -207,7 +217,7 @@ void CGraph_Generator::Write_StepCurve(const ValueVector& values)
 
 		mSvg << "<path d =\"M " << Normalize_Time_X(values[previous].date) << " " << Normalize_Y(0);
 
-		mSvg << " L " << Normalize_Time_X(values[previous].date) << " " << Normalize_Y(values[previous].value);
+		mSvg << " L " << Normalize_Time_X(values[previous].date) << " " << Normalize_Y(values[previous].value * dataMeta.valuesScale);
 
 		while (pos != Invalid_Position)
 		{
@@ -215,8 +225,8 @@ void CGraph_Generator::Write_StepCurve(const ValueVector& values)
 			if (next == Invalid_Position)
 				break;
 
-			mSvg << " L " << Normalize_Time_X(values[next].date) << " " << Normalize_Y(values[previous].value);
-			mSvg << " L " << Normalize_Time_X(values[next].date) << " " << Normalize_Y(values[next].value);
+			mSvg << " L " << Normalize_Time_X(values[next].date) << " " << Normalize_Y(values[previous].value * dataMeta.valuesScale);
+			mSvg << " L " << Normalize_Time_X(values[next].date) << " " << Normalize_Y(values[next].value * dataMeta.valuesScale);
 			pos = next;
 			previous = next;
 		}
@@ -232,7 +242,7 @@ void CGraph_Generator::Write_Normalized_Lines(ValueVector istVector, ValueVector
     // IST curve group scope
     {
         SVG::GroupGuard grp(mSvg, "istCurve", true);
-		Write_LinearCurve(istVector);
+		Write_LinearCurve(istVector, mInputData["ist"]);
     }
 
 	// IoB curve group scope
@@ -242,7 +252,7 @@ void CGraph_Generator::Write_Normalized_Lines(ValueVector istVector, ValueVector
 
 		mSvg.Set_Stroke(1, "#5555DD", "none");
 		SVG::GroupGuard grp(mSvg, "iobCurve", true);
-		Write_LinearCurve(iobs);
+		Write_LinearCurve(iobs, mInputData["iob"]);
 	}
 	catch (...)
 	{
@@ -255,9 +265,13 @@ void CGraph_Generator::Write_Normalized_Lines(ValueVector istVector, ValueVector
 		ValueVector& cobs = Utility::Get_Value_Vector_Ref(mInputData, "cob");
 
 		if (!cobs.empty()) {
+
+			auto& cobData = mInputData["cob"];
+			cobData.valuesScale = 0.1; // force
+
 			mSvg.Set_Stroke(1, "#55DD55", "none");
 			SVG::GroupGuard grp(mSvg, "cobCurve", true);
-			Write_LinearCurve(cobs, 0.1);
+			Write_LinearCurve(cobs, cobData);
 		}
 	}
 	catch (...)
@@ -273,7 +287,7 @@ void CGraph_Generator::Write_Normalized_Lines(ValueVector istVector, ValueVector
 		if (!rates.empty()) {
 			mSvg.Set_Stroke(1, "#55DDDD", "none");
 			SVG::GroupGuard grp(mSvg, "basal_insulin_rateCurve", true);
-			Write_StepCurve(rates);
+			Write_StepCurve(rates, mInputData["basal_insulin_rate"]);
 		}
 	}
 	catch (...)
@@ -288,7 +302,7 @@ void CGraph_Generator::Write_Normalized_Lines(ValueVector istVector, ValueVector
 
 		mSvg.Set_Stroke(1, "#DD5500", "none");
 		SVG::GroupGuard grp(mSvg, "insulin_activity", true);
-		Write_LinearCurve(insact);
+		Write_LinearCurve(insact, mInputData["insulin_activity"]);
 	}
 	catch (...)
 	{
@@ -299,7 +313,7 @@ void CGraph_Generator::Write_Normalized_Lines(ValueVector istVector, ValueVector
 
 	for (auto& dataVector : mInputData)
 	{
-		if (dataVector.second.calculated)
+		if ((dataVector.second.calculated || dataVector.second.forceDraw) && !dataVector.second.empty)
 		{
 			mSvg.Set_Stroke(1, Utility::Curve_Colors[curColorIdx], "none");
 
@@ -307,9 +321,9 @@ void CGraph_Generator::Write_Normalized_Lines(ValueVector istVector, ValueVector
 			{
 				SVG::GroupGuard grp(mSvg, dataVector.second.identifier + "Curve", true);
 				if (dataVector.second.visualization_style == scgms::NSignal_Visualization::step)
-					Write_StepCurve(Utility::Get_Value_Vector(mInputData, dataVector.first));
+					Write_StepCurve(Utility::Get_Value_Vector(mInputData, dataVector.first), dataVector.second);
 				else
-					Write_LinearCurve(Utility::Get_Value_Vector(mInputData, dataVector.first));
+					Write_LinearCurve(Utility::Get_Value_Vector(mInputData, dataVector.first), dataVector.second);
 			}
 
 			std::string paramVecName = "param_" + dataVector.second.identifier;
@@ -540,12 +554,14 @@ void CGraph_Generator::Write_Body()
 
 	for (auto& dataVector : mInputData)
 	{
-		if (dataVector.second.calculated && !dataVector.second.empty)
+		if ((dataVector.second.calculated || dataVector.second.forceDraw) && !dataVector.second.empty)
 		{
 			mSvg.Set_Stroke(1, Utility::Curve_Colors[curColorIdx], Utility::Curve_Colors[curColorIdx]);
 
+			const std::string& name = dataVector.second.nameAlias.empty() ? tr(dataVector.second.identifier) : Narrow_WString(dataVector.second.nameAlias);
+			dprintf("Nejm: %s - %s\r\n", dataVector.second.identifier.c_str(), name.c_str());
 			SVG::GroupGuard diffGrp(mSvg, dataVector.second.identifier, false);
-			mSvg.Link_Text_color(startX + 10, y, tr(dataVector.second.identifier), "", 12); // TODO: add visibility change function
+			mSvg.Link_Text_color(startX + 10, y, name, "", 12); // TODO: add visibility change function
 
 			curColorIdx = (curColorIdx + 1) % Utility::Curve_Colors.size();
 

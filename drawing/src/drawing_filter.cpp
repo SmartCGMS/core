@@ -79,8 +79,67 @@ const std::map<GUID, const char*, std::less<GUID>> Signal_Mapping = {
 	{ scgms::signal_Insulin_Activity, "insulin_activity" },
 	{ scgms::signal_Carb_Intake, "carbs" },
 	{ scgms::signal_IOB, "iob" },
-	{ scgms::signal_COB, "cob" },	
+	{ scgms::signal_COB, "cob" },
+	{ scgms::signal_Movement_Speed, "movspeed" },
+	{ scgms::signal_Steps, "steps" },
+	{ scgms::signal_Heartbeat, "heartbeat" },
 };
+
+class CSignal_Visualization_Config final
+{
+	private:
+		template<typename T>
+		using GUIDMap = std::map<GUID, T, std::less<GUID>>;
+
+		// these signals, although they are measured, will be drawn as if they were "calculated"
+		const GUIDMap<std::wstring> Force_Draw_Signals = {
+			{ scgms::signal_Movement_Speed, dsSignal_GUI_Name_Movement_Speed },
+			//{ scgms::signal_Steps, dsSignal_GUI_Name_Steps },
+			{ scgms::signal_Heartbeat, dsSignal_GUI_Name_Heartbeat },
+		};
+
+		const GUIDMap<double> Signal_Scales = {
+			{ scgms::signal_COB, 0.1 },
+			{ scgms::signal_Heartbeat, 0.1 },
+			{ scgms::signal_Movement_Speed, 0.1 },
+			//{ scgms::signal_Steps, 0.01 },
+		};
+
+		template<typename T, typename _MapType = GUIDMap<T>>
+		const std::pair<const T&, bool> Get_Map_Element(const GUID& id, const _MapType& map, const T& default) const
+		{
+			auto itr = map.find(id);
+			if (itr != map.end())
+				return std::make_pair( itr->second, true );
+
+			return { default, false };
+		}
+
+	public:
+		CSignal_Visualization_Config()
+		{
+			//
+		}
+
+		bool Get_Signal_Force_Draw_Name(const GUID& id, std::wstring& target) const
+		{
+			auto& [name, found] = Get_Map_Element<std::wstring>(id, Force_Draw_Signals, L"");
+
+			if (found)
+				target = name;
+
+			return found;
+		}
+
+		double Get_Signal_Values_Scale(const GUID& id) const
+		{
+			auto& [scale, found] = Get_Map_Element(id, Signal_Scales, 1.0);
+
+			return scale;
+		}
+};
+
+const CSignal_Visualization_Config Signal_Visualization_Config;
 
 CDrawing_Filter::CDrawing_Filter(scgms::IFilter *output) : CBase_Filter(output), mGraphMaxValue(-1) {
 	//
@@ -114,8 +173,6 @@ HRESULT CDrawing_Filter::Do_Execute(scgms::UDevice_Event event) {
 			}
 		} else
 			data.push_back(Value(event.level(), Rat_Time_To_Unix_Time(insert_time), event.segment_id()));
-		
-			 
 	}
 	// incoming new parameters
 	else if (event.event_code() == scgms::NDevice_Event_Code::Parameters)
@@ -292,13 +349,22 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 
 		vectorsMap[mapping.second] = Data({}, true, mInputData[mapping.first].empty(), false);
 
+		auto& vec = vectorsMap[mapping.second];
+
+		vec.identifier = mapping.second;
+
+		if (Signal_Visualization_Config.Get_Signal_Force_Draw_Name(mapping.first, vec.nameAlias))
+			vec.forceDraw = true;
+
+		vec.valuesScale = Signal_Visualization_Config.Get_Signal_Values_Scale(mapping.first);
+
 		for (auto& dataPair : mInputData[mapping.first])
 		{
 			if (allSegments || segmentIds.find(dataPair.first) != segmentIds.end())
 			{
 				const auto& data = dataPair.second;
-				vectorsMap[mapping.second].values.reserve(vectorsMap[mapping.second].values.size() + data.size());
-				std::copy(data.begin(), data.end(), std::back_inserter(vectorsMap[mapping.second].values));
+				vec.values.reserve(vec.values.size() + data.size());
+				std::copy(data.begin(), data.end(), std::back_inserter(vec.values));
 			}
 		}
 	}
@@ -410,7 +476,7 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 		});
 	}
 
-	mDataMap = vectorsMap;
+	mDataMap = std::move(vectorsMap);
 }
 
 HRESULT CDrawing_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
