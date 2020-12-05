@@ -41,6 +41,7 @@
 #include "db_writer.h"
 #include "file_reader.h"
 #include "sincos_generator.h"
+#include "healthkit_dump_reader.h"
 #include "../../../common/utils/descriptor_utils.h"
 
 #include "../../../common/lang/dstrings.h"
@@ -297,7 +298,41 @@ namespace sincos_generator {
 
 }
 
-static const std::array<scgms::TFilter_Descriptor, 4> filter_descriptions = { db_reader::Db_Reader_Descriptor, db_writer::Db_Writer_Descriptor, file_reader::File_Reader_Descriptor, sincos_generator::SinCos_Generator_Descriptor };
+namespace healthkit_dump_reader_filter {
+
+	constexpr size_t param_count = 1;
+
+	const scgms::NParameter_Type param_type[param_count] = {
+		scgms::NParameter_Type::ptWChar_Array
+	};
+
+	const wchar_t* ui_param_name[param_count] = {
+		dsInput_Values_File,
+	};
+
+	const wchar_t* config_param_name[param_count] = {
+		rsFile_Path
+	};
+
+	const wchar_t* ui_param_tooltips[param_count] = {
+		nullptr,
+	};
+
+	const wchar_t* filter_name = dsHealthKit_Dump_Reader_Filter;
+
+	const scgms::TFilter_Descriptor descriptor = {
+		id,
+		scgms::NFilter_Flags::None,
+		filter_name,
+		param_count,
+		param_type,
+		ui_param_name,
+		config_param_name,
+		ui_param_tooltips
+	};
+}
+
+static const std::array<scgms::TFilter_Descriptor, 5> filter_descriptions = { db_reader::Db_Reader_Descriptor, db_writer::Db_Writer_Descriptor, file_reader::File_Reader_Descriptor, sincos_generator::SinCos_Generator_Descriptor, healthkit_dump_reader_filter::descriptor };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 	return do_get_descriptors(filter_descriptions, begin, end);
@@ -313,6 +348,8 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 		return Manufacture_Object<CFile_Reader>(filter, next_filter);
 	else if (*id == sincos_generator::SinCos_Generator_Descriptor.id)
 		return Manufacture_Object<CSinCos_Generator>(filter, next_filter);
+	else if (*id == healthkit_dump_reader_filter::descriptor.id)
+		return Manufacture_Object<CHealthKit_Dump_Reader>(filter, next_filter);
 
 	return E_NOTIMPL;
 }
