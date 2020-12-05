@@ -36,7 +36,7 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "impulse_response_filter.h"
+#include "median_response_filter.h"
 
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/lang/dstrings.h"
@@ -44,12 +44,12 @@
 #include <algorithm>
 #include <numeric>
 
-CImpulse_Response_Filter::CImpulse_Response_Filter(scgms::IFilter *output) : CBase_Filter(output) {
+CMedian_Response_Filter::CMedian_Response_Filter(scgms::IFilter *output) : CBase_Filter(output) {
 	//
 }
 
 
-HRESULT IfaceCalling CImpulse_Response_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
+HRESULT IfaceCalling CMedian_Response_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mSignal_Id = configuration.Read_GUID(rsSignal_Id);
 	mTime_Window = configuration.Read_Double(rsResponse_Window);
 
@@ -59,7 +59,7 @@ HRESULT IfaceCalling CImpulse_Response_Filter::Do_Configure(scgms::SFilter_Confi
 	return S_OK;
 }
 
-HRESULT IfaceCalling CImpulse_Response_Filter::Do_Execute(scgms::UDevice_Event event)
+HRESULT IfaceCalling CMedian_Response_Filter::Do_Execute(scgms::UDevice_Event event)
 {
 	if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start)
 		mLast_Time.emplace(event.segment_id(), std::numeric_limits<double>::lowest());
@@ -71,13 +71,13 @@ HRESULT IfaceCalling CImpulse_Response_Filter::Do_Execute(scgms::UDevice_Event e
 		if (event.device_time() < mLast_Time[event.segment_id()])
 			return E_FAIL;
 
-		event.level() = Impulse_Response(event.segment_id(), event.device_time(), event.level());
+		event.level() = Median_Response(event.segment_id(), event.device_time(), event.level());
 	}
 
 	return Send(event);
 }
 
-double CImpulse_Response_Filter::Impulse_Response(const uint64_t time_segment, const double time, const double value)
+double CMedian_Response_Filter::Median_Response(const uint64_t time_segment, const double time, const double value)
 {
 	auto& values = mValues[time_segment];
 	const auto lastTime = std::max(mLast_Time[time_segment], time);
@@ -94,12 +94,26 @@ double CImpulse_Response_Filter::Impulse_Response(const uint64_t time_segment, c
 
 	mLast_Time[time_segment] = lastTime;
 
-	// TODO: impulse response parameters (weights)
-
-	double accumulator = 0.0;
-
+	std::vector<double> signal_values;
 	for (auto& val : values)
-		accumulator += val.second;
+		signal_values.push_back(val.second);
 
-	return accumulator / static_cast<double>(values.size());
+	std::sort(signal_values.begin(), signal_values.end());
+
+	auto first = signal_values.begin();
+	auto last = signal_values.end();
+	double median = std::numeric_limits<double>::quiet_NaN();
+	if ((signal_values.size() % 2) == 1)
+	{
+		auto middle = first + (last - first) / 2;
+		median = *middle;
+	}
+	else if (signal_values.size() != 0)
+	{
+		auto middle_upper = first + (last - first) / 2;
+		auto middle_lower = first + (last - first) / 2 - 1;
+		median = (*middle_upper + *middle_lower) / 2.0;
+	}
+
+	return median;
 }

@@ -45,6 +45,7 @@
 #include "signal_generator.h"
 #include "signal_feedback.h"
 #include "impulse_response_filter.h"
+#include "median_response_filter.h"
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
@@ -463,12 +464,13 @@ namespace signal_descriptor {
 	const scgms::TSignal_Descriptor steps_desc{ scgms::signal_Steps, dsSignal_GUI_Name_Steps, L"", scgms::NSignal_Unit::Percent, 0xFF808080, 0xFF808080, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor sleep_quality_desc{ scgms::signal_Sleep_Quality, dsSignal_GUI_Name_Sleep_Quality, L"", scgms::NSignal_Unit::Percent, 0xFF808080, 0xFF808080, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor accel_desc{ scgms::signal_Acceleration, dsSignal_GUI_Name_Acceleration, L"", scgms::NSignal_Unit::Percent, 0xFF808080, 0xFF808080, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor movspeed_desc{ scgms::signal_Movement_Speed, dsSignal_GUI_Name_Movement_Speed, L"", scgms::NSignal_Unit::m_per_s, 0xFF0080FF, 0xFF0080FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 
 	const scgms::TSignal_Descriptor ins_sens_desc{ scgms::signal_Insulin_Sensitivity, dsSignal_GUI_Name_Insulin_Sensitivity, L"", scgms::NSignal_Unit::Other, 0xFF0088DD, 0xFF0088DD, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 	const scgms::TSignal_Descriptor carb_ratio_desc{ scgms::signal_Carb_Ratio, dsSignal_GUI_Name_Carb_Ratio, L"", scgms::NSignal_Unit::Other, 0xFF00DD88, 0xFF00DD88, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 
-	const std::array<scgms::TSignal_Descriptor, 27> signals = { {bg_desc, bg_cal_desc, ig_desc, isig_desc, req_bolus_desc, req_ibr_desc, del_bolus_desc, del_ins_total_desc, del_ibr_desc, ins_act_desc, iob_desc, cob_desc, cho_in_desc, cho_resc_desc, phys_act_desc,
-																 skin_temp_desc, air_temp_desc, heartbeat_desc, eda_desc, steps_desc, accel_desc, sleep_quality_desc, ins_sens_desc, carb_ratio_desc, req_iidr_desc, del_iidr_desc, del_ihins_desc} };
+	const std::array<scgms::TSignal_Descriptor, 28> signals = { {bg_desc, bg_cal_desc, ig_desc, isig_desc, req_bolus_desc, req_ibr_desc, del_bolus_desc, del_ins_total_desc, del_ibr_desc, ins_act_desc, iob_desc, cob_desc, cho_in_desc, cho_resc_desc, phys_act_desc,
+																 skin_temp_desc, air_temp_desc, heartbeat_desc, eda_desc, steps_desc, accel_desc, sleep_quality_desc, ins_sens_desc, carb_ratio_desc, req_iidr_desc, del_iidr_desc, del_ihins_desc, movspeed_desc} };
 }
 
 namespace feedback_sender {
@@ -548,7 +550,45 @@ namespace impulse_response {
 	};
 }
 
-const std::array<scgms::TFilter_Descriptor, 8> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, decoupling::desc, masking::Masking_Descriptor, signal_generator::desc, network_signal_generator::desc, feedback_sender::desc, impulse_response::desc } };
+namespace median_response {
+
+	constexpr const GUID id = { 0xf93ff8da, 0x5e9e, 0x4601, { 0x86, 0x4b, 0x55, 0x59, 0x4e, 0x4d, 0x4d, 0x3e } }; // {F93FF8DA-5E9E-4601-864B-55594E4D4D3E}
+
+	constexpr size_t param_count = 2;
+
+	constexpr scgms::NParameter_Type param_type[param_count] = {
+		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptRatTime,
+	};
+
+	const wchar_t* ui_param_name[param_count] = {
+		dsSignal_Id,
+		dsResponse_Window,
+	};
+
+	const wchar_t* config_param_name[param_count] = {
+		rsSignal_Id,
+		rsResponse_Window,
+	};
+
+	const wchar_t* ui_param_tooltips[param_count] = {
+		nullptr,
+		nullptr,
+	};
+
+	const scgms::TFilter_Descriptor desc = {
+		id,
+		scgms::NFilter_Flags::None,
+		dsMedian_Response_Filter,
+		param_count,
+		param_type,
+		ui_param_name,
+		config_param_name,
+		ui_param_tooltips
+	};
+}
+
+const std::array<scgms::TFilter_Descriptor, 9> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, decoupling::desc, masking::Masking_Descriptor, signal_generator::desc, network_signal_generator::desc, feedback_sender::desc, impulse_response::desc, median_response::desc } };
 
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
@@ -579,6 +619,8 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 		return Manufacture_Object<CSignal_Feedback>(filter, output);
 	else if (*id == impulse_response::desc.id)
 		return Manufacture_Object<CImpulse_Response_Filter>(filter, output);
+	else if (*id == median_response::desc.id)
+		return Manufacture_Object<CMedian_Response_Filter>(filter, output);
 
 	return E_NOTIMPL;
 }
