@@ -107,7 +107,7 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 		error_description.push(L"Synchronization signal cannot be invalid or null id.");
 		return E_INVALIDARG;
 	}
-
+	
 	mSignal_To_Ordinal[mSignal_Ids[0]] = 0;
 	mSync_To_Any = mSignal_Ids[0] == scgms::signal_All;
 
@@ -163,7 +163,7 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 			//and set dll's time stamp so that we don't recompile it until next change in the script
 			filesystem::last_write_time(dll_path, script_last_write_time);
 		} else {
-			error_description.push(L"Failed to compile. Please, review the error log file.");
+			error_description.push(L"Failed to compile. Please, review the build log file.");
 			return E_INVALIDARG;
 		}
 	}
@@ -176,7 +176,7 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 		return CO_E_ERRORINDLL;
 	}
 	
-	mEntry_Point = static_cast<TNative_Execute>(mDll.Resolve(native::rsScript_Entry_Symbol));
+	mEntry_Point = static_cast<TNative_Execute_Wrapper>(mDll.Resolve(native::rsScript_Entry_Symbol));
 	if (mEntry_Point == nullptr) {
 		error_description.push(L"Cannot resolve the entry point of the compiled script!");
 		return CO_E_ERRORINDLL;

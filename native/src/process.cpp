@@ -54,7 +54,7 @@
 #endif
 
 struct TPipe {
-	TPipe_Handle input, output;
+	TPipe_Handle write, read;
 };
 
 struct TRedirected_IO {
@@ -77,17 +77,13 @@ protected:
 		saAttr.bInheritHandle = TRUE;
 		saAttr.lpSecurityDescriptor = NULL;
 		
-		bool result = CreatePipe(&mIO.input.output, &mIO.input.input, &saAttr, 0) == TRUE;
-		result &= CreatePipe(&mIO.out_err.output, &mIO.out_err.input, &saAttr, 0) == TRUE;		
+		bool result = CreatePipe(&mIO.input.read, &mIO.input.write, &saAttr, 0) == TRUE;
+		result &= CreatePipe(&mIO.out_err.read, &mIO.out_err.write, &saAttr, 0) == TRUE;		
 		
-		if (result) {
-			//And ensure that those ends of pipes, which we use to read and write in our process, are inherited
-			result &= SetHandleInformation(mIO.input.input, HANDLE_FLAG_INHERIT, 0) == TRUE;
-			result &= SetHandleInformation(mIO.input.output, HANDLE_FLAG_INHERIT, 0) == TRUE;
-
-			result &= SetHandleInformation(mIO.out_err.input, HANDLE_FLAG_INHERIT, 0) == TRUE;
-			result &= SetHandleInformation(mIO.out_err.output, HANDLE_FLAG_INHERIT, 0) == TRUE;
-		}
+		//And ensure that those ends of pipes, which we use to read and write in our process, are not inherited
+		result &= SetHandleInformation(mIO.input.write, HANDLE_FLAG_INHERIT, 0) == TRUE;
+		result &= SetHandleInformation(mIO.out_err.read, HANDLE_FLAG_INHERIT, 0) == TRUE;		
+			//do not make sure of the same for the other pipe ends
 #else
 		result = false;
 #endif
@@ -109,9 +105,9 @@ protected:
 
 		memset(&siStartInfo, 0, sizeof(STARTUPINFO));
 		siStartInfo.cb = sizeof(STARTUPINFO);
-		siStartInfo.hStdError = mIO.out_err.input;
-		siStartInfo.hStdOutput = mIO.out_err.input;
-		siStartInfo.hStdInput = mIO.input.output;
+		siStartInfo.hStdError = mIO.out_err.write;
+		siStartInfo.hStdOutput = mIO.out_err.write;
+		siStartInfo.hStdInput = mIO.input.read;
 		siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
 				
 		const LPWSTR working_dir_raw = working_dir.empty() ? NULL : (LPWSTR)working_dir.c_str();
@@ -143,16 +139,16 @@ protected:
 		for (size_t i = 0; i < input.size(); i++) {
 			// Stop if there are no more data. 
 
-			if (!WriteFile(mIO.input.input, input[i].data(), static_cast<DWORD>(input[i].size()), &dwWritten, NULL)) 
+			if (!WriteFile(mIO.input.write, input[i].data(), static_cast<DWORD>(input[i].size()), &dwWritten, NULL)) 
 				return false;
 
 			const char endl[2] = { 0xd, 0xa };
-			WriteFile(mIO.input.input, endl, sizeof(endl), &dwWritten, NULL);
+			WriteFile(mIO.input.write, endl, sizeof(endl), &dwWritten, NULL);
 
 		}
 
 		// Close the pipe handle so the child process stops reading. 
-		return CloseHandle(mIO.input.input);
+		return CloseHandle(mIO.input.write);
 #else
 		return false;
 #endif
@@ -161,7 +157,7 @@ protected:
 
 	bool Read_Ouput() {
 #ifdef _WIN32
-		const HANDLE &read = mIO.out_err.output;
+		const HANDLE &read = mIO.out_err.read;
 		HANDLE objects[2] = { mProcess.hProcess, read };
 
 		const size_t buffer_size = 4096;

@@ -57,13 +57,13 @@
 
 struct TCompiler_Invokation {
 	const wchar_t* file_name_prefix;
-	const wchar_t* options;
+	const char* options;
 };
 
-const std::wregex out_file_var{ L"$(output)" } ;
-const std::wregex source_files_var{ L"$(source)" };
-const std::wregex def_file_var { L"$(export)" };
-const std::wregex sdk_include_var{ L"$(include)" };
+const char* out_file_var = "$(output)";
+const char* source_files_var = "$(source)";
+const char* def_file_var = "$(export)";
+const char* sdk_include_var = "$(include)";
 
 
 extern "C" unsigned char native_cpp[];
@@ -71,21 +71,30 @@ extern "C" unsigned char native_h[];
 
 const std::array<TCompiler_Invokation, 1> compilers = {
 #ifdef AVX512
-	{L"cl",  L"/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX512 /EHsc /D \"UNICODE\" /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL}"}
+	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX512 /EHsc /D \"UNICODE\" /D \"SCGMS_NATIVE\" /I $(include) /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
 #elif __AVX2__
-	{L"cl",  L"/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX2 /EHsc /D \"UNICODE\" /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL}"}
+	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX2 /EHsc /D \"UNICODE\" /D \"SCGMS_NATIVE\" /I $(include) /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
 #elif __AVX__
-	{L"cl",  L"/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX /EHsc /D \"UNICODE\" /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL}"}
+	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX /EHsc /D \"UNICODE\" /D \"SCGMS_NATIVE\" /I $(include) /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
 #else
-	{L"cl",  L"/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /EHsc /D \"UNICODE\" /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL}"}
+	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /EHsc /D \"UNICODE\" /D \"SCGMS_NATIVE\" /I $(include) /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
 #endif
 };
+
+void replace_in_place(std::string& str, const std::string& search, const std::string& replace) {
+	size_t pos = 0;
+
+	while ((pos = str.find(search, pos)) != std::string::npos) {
+		str.replace(pos, search.length(), replace);
+		pos += replace.length();
+	}
+}
 
 bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 			 const filesystem::path& source, const filesystem::path& dll,
 			 const filesystem::path& configured_sdk_include, const std::wstring& custom_options) {
 
-	std::wstring effective_compiler_options;
+	std::string effective_compiler_options;
 
 	//1. extract compiler's filename
 	if (custom_options.empty()) {
@@ -99,7 +108,7 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 		}
 	}
 	else
-		effective_compiler_options = custom_options;
+		effective_compiler_options = Narrow_WString(custom_options);
 
 	//at this moment, custom options may be empty - but it may a that user supplied e.g.; own custom build batch file
 	
@@ -107,17 +116,15 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	const filesystem::path dst_path = dll.parent_path();
 	const std::wstring name_prefix = source.stem().wstring();
 	
-	const filesystem::path def_path = dst_path / (name_prefix + L"_native.def");
-	const filesystem::path dllmain_path = dst_path / (name_prefix + L"_native.cpp");
-	const filesystem::path header_path = dst_path / (name_prefix + L"_native.h");
-	const filesystem::path error_log_path = dst_path / (name_prefix + L"_error.log");
+	const filesystem::path def_path = dst_path / (name_prefix + L"_export.def");
+	const filesystem::path build_log_path = dst_path / (name_prefix + L"_build.log");
 
 
 	//let's try to locate the SmartCGMS include dir
 	filesystem::path sdk_include = configured_sdk_include;
 	if (sdk_include.empty()) {
 		//let's try to locate it
-		sdk_include = Get_Dll_Dir().parent_path().parent_path() / "common";
+		sdk_include = Get_Dll_Dir().parent_path().parent_path().parent_path() / "common";
 
 		std::error_code ec;
 		if (!Is_Regular_File_Or_Symlink(sdk_include / "iface" / "DeviceIface.cpp")) {
@@ -125,17 +132,16 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 		}
 	}
 
-	effective_compiler_options = std::regex_replace(effective_compiler_options, out_file_var, dll.wstring());
-	effective_compiler_options = std::regex_replace(effective_compiler_options, def_file_var, def_path.wstring());
-	effective_compiler_options = std::regex_replace(effective_compiler_options, source_files_var, dllmain_path.wstring() + L" " + source.wstring());
-	effective_compiler_options = std::regex_replace(effective_compiler_options, sdk_include_var, sdk_include.wstring());
+	replace_in_place(effective_compiler_options, out_file_var, dll.string());
+	replace_in_place(effective_compiler_options, def_file_var, def_path.string());
+	replace_in_place(effective_compiler_options, source_files_var, source.string());
+	replace_in_place(effective_compiler_options, sdk_include_var, sdk_include.string());
 
 	//3. delete the generated files first
 	{
 		std::error_code ec;
 		if (!filesystem::remove(dll, ec) && filesystem::remove(def_path, ec) &&
-			filesystem::remove(dllmain_path, ec) && filesystem::remove(header_path, ec) &&
-			filesystem::remove(error_log_path, ec))
+			filesystem::remove(build_log_path, ec))
 			return false;
 	}
 
@@ -145,18 +151,7 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 			std::ofstream def_file{ def_path };
 			def_file << "LIBRARY " << dll.filename().string() << std::endl << std::endl << //.string to remove quotes
 						"EXPORTS" << std::endl << "\t" << native::rsScript_Entry_Symbol << std::endl;
-		}
-		
-
-		{
-			std::ofstream dllmain_file{ dllmain_path, std::ios::binary };			
-			dllmain_file << reinterpret_cast<const char*>(native_cpp);
-		}
-
-		{
-			std::ofstream header_file{ header_path, std::ios::binary };			
-			header_file << reinterpret_cast<const char*>(native_h);
-		}
+		}		
 	}
 
 	//5. eventually, compile the script to dll
@@ -164,7 +159,7 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	std::vector<std::string> commands;
 	if (!env_init.empty())
 		commands.push_back(env_init.string());
-	commands.push_back(compiler.string() + " " + Narrow_WString(effective_compiler_options));
+	commands.push_back(compiler.string() + " " + effective_compiler_options);
 
 	std::vector<char> error_output;
 
@@ -176,7 +171,7 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	const bool result = Execute_Commands(rsShell, dll.parent_path(), commands, error_output);
 	//write the log
 	{
-		std::ofstream error_log{ error_log_path, std::ios::binary };
+		std::ofstream error_log{ build_log_path, std::ios::binary };
 		error_log.write(error_output.data(), error_output.size());
 	}
 

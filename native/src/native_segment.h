@@ -39,9 +39,8 @@
 #pragma once
 
 #include "descriptor.h"
-#include "../common/native.h"
 
-#include <iface/DeviceIface.h>
+#include <iface/NativeIface.h>
 #include <rtl/FilterLib.h>
 
 #include <array>
@@ -49,7 +48,7 @@
 
 class CNative_Segment {
 protected:
-	TEnvironment mEnvironment;
+	TNative_Environment mEnvironment;
 	std::array<double, native::required_signal_count> mPrevious_Device_Time, mLast_Device_Time;
 	std::array<double, native::required_signal_count> mPrevious_Level, mLast_Level;
 		//Although the mLast_* arrays duplicate the respective environment arrays, we keep the duplicities
@@ -58,12 +57,12 @@ protected:
 	double mRecent_Time = std::numeric_limits<double>::quiet_NaN();	//time for Send_Event
 	uint64_t mSegment_Id;
 	scgms::SFilter mOutput;	//aka the next_filter
-	TNative_Execute mEntry_Point;	
+	TNative_Execute_Wrapper mEntry_Point;	
 
 	HRESULT Send_Event(const GUID* sig_id, const double device_time, const double level, const char* msg);
 	void Emit_Info(const bool is_error, const std::wstring& msg);
 public:
-	CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Execute entry_point,
+	CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Execute_Wrapper entry_point,
 		const std::array<GUID, native::required_signal_count>& signal_ids);
 	HRESULT Execute(const size_t signal_idx, GUID &signal_id, double &device_time, double &level);
 };
