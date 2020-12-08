@@ -288,7 +288,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			}
 
 
-			if (mOutput.Send(evt) != S_OK)
+			if (!Succeeded(mOutput.Send(evt)))
 				return;
 		}
 		catch (const std::exception& ex) {

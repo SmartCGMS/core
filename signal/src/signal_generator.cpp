@@ -101,7 +101,7 @@ HRESULT IfaceCalling signal_generator_internal::CSynchronized_Generator::Execute
 	scgms::TDevice_Event *raw_event;
 	HRESULT rc = event->Raw(&raw_event);
 	
-	if (rc == S_OK) {
+	if (Succeeded(rc)) {
 		const bool chained_send = mChained_Output &&
 									((raw_event->event_code == scgms::NDevice_Event_Code::Shut_Down) ||
 									(raw_event->segment_id == scgms::All_Segments_Id));
@@ -327,8 +327,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 	return S_OK;
 }
 
-HRESULT IfaceCalling CSignal_Generator::QueryInterface(const GUID* riid, void** ppvObj)
-{
+HRESULT IfaceCalling CSignal_Generator::QueryInterface(const GUID* riid, void** ppvObj) {
 	if (Internal_Query_Interface<scgms::IFilter_Feedback_Receiver>(scgms::IID_Filter_Feedback_Receiver, *riid, ppvObj)) return S_OK;
 	return E_NOINTERFACE;
 }

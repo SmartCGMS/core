@@ -94,7 +94,7 @@ CDb_Reader::~CDb_Reader() {
 bool CDb_Reader::Emit_Shut_Down() {
 	scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Shut_Down };
 	evt.device_id() = Db_Reader_Device_GUID;
-	return mOutput.Send(evt) == S_OK;
+	return Succeeded(mOutput.Send(evt));
 }
 
 bool CDb_Reader::Emit_Segment_Marker(const scgms::NDevice_Event_Code code, const double device_time, const int64_t segment_id) {
@@ -202,7 +202,7 @@ bool CDb_Reader::Emit_Segment_Levels(const int64_t segment_id) {
 			evt.segment_id() = segment_id;
 
 			// this may block if the pipe is full (i.e. due to artificial slowdown filter, simulation stepping, etc.)
-			if (mOutput.Send(evt) != S_OK) return false;
+			if (!Succeeded(mOutput.Send(evt))) return false;
 		}
 	}
 	return Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Stop, recent_device_time, segment_id);
@@ -217,7 +217,7 @@ bool CDb_Reader::Emit_Info_Event(const std::wstring& info)
 	evt.device_time() = Unix_Time_To_Rat_Time(time(nullptr));
 	evt.info.set(info.c_str());
 
-	return (mOutput.Send(evt) == S_OK);
+	return (Succeeded(mOutput.Send(evt)));
 }
 
 void CDb_Reader::Db_Reader() {
