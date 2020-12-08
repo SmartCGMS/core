@@ -92,14 +92,16 @@ bool CFile_Reader::Send_Event(scgms::NDevice_Event_Code code, double device_time
 		evt.info.set(winfo.c_str());
 
 	const HRESULT rc = mOutput.Send(evt);
-	if (rc != S_OK) {		
+	const bool succcess = Succeeded(rc);
+
+	if (!succcess) {
 		std::wstring desc{ dsFile_Reader };
 		desc += dsFailed_To_Send_Event;
 		desc += Describe_Error(rc);
 		Emit_Info(scgms::NDevice_Event_Code::Error, desc);
 	}
 
-	return rc == S_OK;
+	return succcess;
 }
 
 void CFile_Reader::Resolve_Segments(TValue_Vector const& src, std::list<TSegment_Limits>& targetList) const

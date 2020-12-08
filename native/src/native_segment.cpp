@@ -42,15 +42,15 @@
 #include <utils/string_utils.h>
 
 CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Execute_Wrapper entry_point,
-									const std::array<GUID, native::required_signal_count>& signal_ids) :
+									const std::array<GUID, native::max_signal_count>& signal_ids) :
 	mSegment_Id(segment_id), mOutput(output), mEntry_Point(entry_point) {
 
 
 	mEnvironment.send = nullptr;
 	mEnvironment.custom_data = nullptr;
 
-	mEnvironment.level_count = native::required_signal_count;
-	for (size_t i = 0; i < native::required_signal_count; i++) {
+	mEnvironment.level_count = native::max_signal_count;
+	for (size_t i = 0; i < native::max_signal_count; i++) {
 		mEnvironment.signal_id[i] = signal_ids[i];
 		mEnvironment.device_time[i] = mEnvironment.level[i] = mEnvironment.slope[i] = std::numeric_limits<double>::quiet_NaN();
 		mPrevious_Device_Time[i] = mLast_Device_Time[i] = mPrevious_Level[i] = mLast_Level[i] = std::numeric_limits<double>::quiet_NaN();
@@ -58,6 +58,8 @@ CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_i
 
 	mEnvironment.parameter_count = 0;
 	mEnvironment.parameters = nullptr;
+
+	mSync_To_Any = signal_ids[0] == scgms::signal_All;
 }
 
 void CNative_Segment::Emit_Info(const bool is_error, const std::wstring& msg) {
@@ -72,40 +74,46 @@ void CNative_Segment::Emit_Info(const bool is_error, const std::wstring& msg) {
 HRESULT CNative_Segment::Execute(const size_t signal_idx, GUID& signal_id, double& device_time, double& level) {
 	mRecent_Time = device_time;
 
-	mPrevious_Device_Time[signal_idx] = mLast_Device_Time[signal_idx];
-	mPrevious_Level[signal_idx] = mLast_Level[signal_idx];
-	
-	mEnvironment.signal_id[signal_idx] = signal_id;	
-	mEnvironment.device_time[signal_idx] = mLast_Device_Time[signal_idx] = device_time;
-	mEnvironment.level[signal_idx] = mLast_Level[signal_idx] = level;
-
 	mEnvironment.current_signal_index = signal_idx;
 
-	if (!Is_Any_NaN(mPrevious_Device_Time[signal_idx], mLast_Device_Time[signal_idx], mPrevious_Level[signal_idx], mLast_Level[signal_idx])) {
-		const double dx = mLast_Device_Time[signal_idx] - mPrevious_Device_Time[signal_idx];
-		if (dx>0.0)
-			mEnvironment.slope[signal_idx] = (mLast_Level[signal_idx] - mPrevious_Level[signal_idx]) / dx;
-		else
-			//time must advance forward only
+	if (signal_idx < native::max_signal_count) {
+		mPrevious_Device_Time[signal_idx] = mLast_Device_Time[signal_idx];
+		mPrevious_Level[signal_idx] = mLast_Level[signal_idx];
+
+		mEnvironment.signal_id[signal_idx] = signal_id;
+		mEnvironment.device_time[signal_idx] = mLast_Device_Time[signal_idx] = device_time;
+		mEnvironment.level[signal_idx] = mLast_Level[signal_idx] = level;
+
+		if (!Is_Any_NaN(mPrevious_Device_Time[signal_idx], mLast_Device_Time[signal_idx], mPrevious_Level[signal_idx], mLast_Level[signal_idx])) {
+			const double dx = mLast_Device_Time[signal_idx] - mPrevious_Device_Time[signal_idx];
+			if (dx > 0.0)
+				mEnvironment.slope[signal_idx] = (mLast_Level[signal_idx] - mPrevious_Level[signal_idx]) / dx;
+			else
+				//time must advance forward only
+				mEnvironment.slope[signal_idx] = std::numeric_limits<double>::quiet_NaN();
+		}
+		else {
 			mEnvironment.slope[signal_idx] = std::numeric_limits<double>::quiet_NaN();
-	} else {
-		mEnvironment.slope[signal_idx] = std::numeric_limits<double>::quiet_NaN();
+		}
 	}
 
 	HRESULT rc = S_OK;
-	try {
-		rc = mEntry_Point(&signal_id, &device_time, &level, &mEnvironment, this);
-	}
-	catch (const std::exception& ex) {
-		// specific handling for all exceptions extending std::exception, except
-		// std::runtime_error which is handled explicitly
-		std::wstring error_desc = Widen_Char(ex.what());
-		Emit_Info(true, error_desc);
-		rc = E_FAIL;
-	}
-	catch (...) {
-		Emit_Info(true, L"Unknown error!");
-		rc = E_FAIL;
+
+	if (mSync_To_Any || (signal_idx == 0)) {	//execute only on syncing level
+		try {
+			rc = mEntry_Point(&signal_id, &device_time, &level, &mEnvironment, this);
+		}
+		catch (const std::exception& ex) {
+			// specific handling for all exceptions extending std::exception, except
+			// std::runtime_error which is handled explicitly
+			std::wstring error_desc = Widen_Char(ex.what());
+			Emit_Info(true, error_desc);
+			rc = E_FAIL;
+		}
+		catch (...) {
+			Emit_Info(true, L"Unknown error!");
+			rc = E_FAIL;
+		}
 	}
 
 	return rc;

@@ -60,10 +60,10 @@ namespace native {
 	const wchar_t* rsCustom_Compile_Options = L"Custom_Compile_Options";
 	const wchar_t* rsSmartCGMS_Include_Dir = L"SCMGS_Include_Dir";
 
-	const char* rsScript_Entry_Symbol = "execute";
+	const char* rsScript_Entry_Symbol = "execute_wrapper";
 
 
-	constexpr size_t param_count = required_signal_count+	//five required signals, of which the first one is sync signal
+	constexpr size_t param_count = max_signal_count+	//five required signals, of which the first one is sync signal
 								  +1	//separator
 								  +5;	//env init, compiler, src file path and possibly custom compiler options and SKD include
 

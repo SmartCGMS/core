@@ -53,15 +53,7 @@ HRESULT CNative_Script::Do_Execute(scgms::UDevice_Event event) {
 	GUID signal_id = event.signal_id();
 
 	bool desired_event = event.is_level_event();
-	size_t sig_index = std::numeric_limits<size_t>::max();
-	if (!mSync_To_Any) {
-		const auto sig_iter = mSignal_To_Ordinal.find(signal_id);
-		desired_event = sig_iter != mSignal_To_Ordinal.end();
-		if (desired_event)
-			sig_index = std::distance(mSignal_To_Ordinal.begin(), sig_iter);
-	}
-
-
+	
 	if (desired_event) {
 		//do we already have this segment?
 		const uint64_t segment_id = event.segment_id();
@@ -74,6 +66,13 @@ HRESULT CNative_Script::Do_Execute(scgms::UDevice_Event event) {
 		}
 
 		if (desired_event) {
+			size_t sig_index = std::numeric_limits<size_t>::max();
+			const auto sig_iter = mSignal_To_Ordinal.find(signal_id);
+			if (sig_iter != mSignal_To_Ordinal.end()) {
+				sig_index = sig_iter->second;					
+			}
+
+
 			double device_time = event.device_time();
 			double level = event.level();
 			rc = seg_iter->second.Execute(sig_index, signal_id, device_time, level);
@@ -108,8 +107,7 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 		return E_INVALIDARG;
 	}
 	
-	mSignal_To_Ordinal[mSignal_Ids[0]] = 0;
-	mSync_To_Any = mSignal_Ids[0] == scgms::signal_All;
+	mSignal_To_Ordinal[mSignal_Ids[0]] = 0;	
 
 	for (size_t i = 1; i < mSignal_Ids.size(); i++) {
 		const std::wstring res_name = native::rsRequired_Signal_Prefix + std::to_wstring(i + 1);
@@ -147,24 +145,27 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 		//once builded, we set the last write time for the compiled dll
 		//if the dll does not exists, it would throw => ec
 
-		//for building, we need the compiler
-		if (compiler_path.empty()) {
-			error_description.push(L"Compiler cannot be empty.");	
-			return E_INVALIDARG;
-		}
+		if (rebuild) {
+			//for building, we need the compiler
+			if (compiler_path.empty()) {
+				error_description.push(L"Compiler cannot be empty.");
+				return E_INVALIDARG;
+			}
 
 
-		//OK, let's build the dll from the script
-		const std::wstring custom_compile_options = configuration.Read_String(native::rsCustom_Compile_Options);
-		const std::wstring sdk_include = configuration.Read_String(native::rsSmartCGMS_Include_Dir);
-		if (Compile(compiler_path, init_path, script_path, dll_path, sdk_include, custom_compile_options)) {
-			//compilation seems to complete OK
+			//OK, let's build the dll from the script
+			const std::wstring custom_compile_options = configuration.Read_String(native::rsCustom_Compile_Options);
+			const std::wstring sdk_include = configuration.Read_String(native::rsSmartCGMS_Include_Dir);
+			if (Compile(compiler_path, init_path, script_path, dll_path, sdk_include, custom_compile_options)) {
+				//compilation seems to complete OK
 
-			//and set dll's time stamp so that we don't recompile it until next change in the script
-			filesystem::last_write_time(dll_path, script_last_write_time);
-		} else {
-			error_description.push(L"Failed to compile. Please, review the build log file.");
-			return E_INVALIDARG;
+				//and set dll's time stamp so that we don't recompile it until next change in the script
+				filesystem::last_write_time(dll_path, script_last_write_time);
+			}
+			else {
+				error_description.push(L"Failed to compile. Please, review the build log file.");
+				return E_INVALIDARG;
+			}
 		}
 	}
 
