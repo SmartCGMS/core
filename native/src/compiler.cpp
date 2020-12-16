@@ -132,9 +132,12 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 		}
 	}
 
+	const filesystem::path device_iface_cpp = sdk_include / "iface" / "DeviceIface.cpp";
+	const std::string complete_sources = source.string() + " " + device_iface_cpp.string();
+
 	replace_in_place(effective_compiler_options, out_file_var, dll.string());
 	replace_in_place(effective_compiler_options, def_file_var, def_path.string());
-	replace_in_place(effective_compiler_options, source_files_var, source.string());
+	replace_in_place(effective_compiler_options, source_files_var, complete_sources);
 	replace_in_place(effective_compiler_options, sdk_include_var, sdk_include.string());
 
 	//3. delete the generated files first

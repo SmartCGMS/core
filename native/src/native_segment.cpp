@@ -56,8 +56,8 @@ CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_i
 		mPrevious_Device_Time[i] = mLast_Device_Time[i] = mPrevious_Level[i] = mLast_Level[i] = std::numeric_limits<double>::quiet_NaN();
 	}
 
-	mEnvironment.parameter_count = 0;
-	mEnvironment.parameters = nullptr;
+	for (size_t i = 0; i < native::max_parameter_count; i++) 
+		mEnvironment.parameters[0] = std::numeric_limits<double>::quiet_NaN();
 
 	mSync_To_Any = signal_ids[0] == scgms::signal_All;
 }

@@ -160,7 +160,7 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 				//compilation seems to complete OK
 
 				//and set dll's time stamp so that we don't recompile it until next change in the script
-				filesystem::last_write_time(dll_path, script_last_write_time);
+			//why?	filesystem::last_write_time(dll_path, script_last_write_time);
 			}
 			else {
 				error_description.push(L"Failed to compile. Please, review the build log file.");
