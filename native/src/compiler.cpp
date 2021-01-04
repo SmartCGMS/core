@@ -71,13 +71,13 @@ extern "C" unsigned char native_h[];
 
 const std::array<TCompiler_Invokation, 1> compilers = {
 #ifdef AVX512
-	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX512 /EHsc /D \"UNICODE\" /D \"SCGMS_NATIVE\" /I $(include) /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
+	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX512 /EHsc /D \"UNICODE\" /D \"SCGMS_SCRIPT\" /I $(include) /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
 #elif __AVX2__
-	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX2 /EHsc /D \"UNICODE\" /D \"SCGMS_NATIVE\" /I $(include) /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
+	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX2 /EHsc /D \"UNICODE\" /D \"SCGMS_SCRIPT\" /I $(include) /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
 #elif __AVX__
-	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX /EHsc /D \"UNICODE\" /D \"SCGMS_NATIVE\" /I $(include) /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
+	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX /EHsc /D \"UNICODE\" /D \"SCGMS_SCRIPT\" /I $(include) /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
 #else
-	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /EHsc /D \"UNICODE\" /D \"SCGMS_NATIVE\" /I $(include) /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
+	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /EHsc /D \"UNICODE\" /D \"SCGMS_SCRIPT\" /I $(include) /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
 #endif
 };
 
@@ -133,12 +133,13 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	}
 
 	const filesystem::path device_iface_cpp = sdk_include / "iface" / "DeviceIface.cpp";
-	const std::string complete_sources = source.string() + " " + device_iface_cpp.string();
+		//do not forget quotes as the path may contain a space
+	const std::string complete_sources = quote(source.string()) + " " + quote(device_iface_cpp.string());
 
-	replace_in_place(effective_compiler_options, out_file_var, dll.string());
-	replace_in_place(effective_compiler_options, def_file_var, def_path.string());
+	replace_in_place(effective_compiler_options, out_file_var, quote(dll.string()));
+	replace_in_place(effective_compiler_options, def_file_var, quote(def_path.string()));
 	replace_in_place(effective_compiler_options, source_files_var, complete_sources);
-	replace_in_place(effective_compiler_options, sdk_include_var, sdk_include.string());
+	replace_in_place(effective_compiler_options, sdk_include_var, quote(sdk_include.string()));
 
 	//3. delete the generated files first
 	{

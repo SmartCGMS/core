@@ -62,8 +62,12 @@ protected:
 
 	HRESULT Send_Event(const GUID* sig_id, const double device_time, const double level, const char* msg);
 	void Emit_Info(const bool is_error, const std::wstring& msg);
+protected:
+	friend HRESULT IfaceCalling Send_Handler(const GUID* sig_id, const double device_time, const double level, const char* msg, const void* context);
 public:
 	CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Execute_Wrapper entry_point,
 		const std::array<GUID, native::max_signal_count>& signal_ids);
 	HRESULT Execute(const size_t signal_idx, GUID &signal_id, double &device_time, double &level);
 };
+
+HRESULT IfaceCalling Send_Handler(const GUID* sig_id, const double device_time, const double level, const char* msg, const void* context);

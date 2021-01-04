@@ -41,12 +41,18 @@
 #include <utils/math_utils.h>
 #include <utils/string_utils.h>
 
+HRESULT IfaceCalling Send_Handler(const GUID* sig_id, const double device_time, const double level, const char* msg, const void* context) {
+	CNative_Segment* segment = reinterpret_cast<CNative_Segment*>(const_cast<void*>(context));
+
+	return segment->Send_Event(sig_id, device_time, level, msg);
+}
+
 CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Execute_Wrapper entry_point,
 									const std::array<GUID, native::max_signal_count>& signal_ids) :
 	mSegment_Id(segment_id), mOutput(output), mEntry_Point(entry_point) {
 
 
-	mEnvironment.send = nullptr;
+	mEnvironment.send = &Send_Handler;
 	mEnvironment.custom_data = nullptr;
 
 	mEnvironment.level_count = native::max_signal_count;
@@ -57,7 +63,7 @@ CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_i
 	}
 
 	for (size_t i = 0; i < native::max_parameter_count; i++) 
-		mEnvironment.parameters[0] = std::numeric_limits<double>::quiet_NaN();
+		mEnvironment.parameters[i] = std::numeric_limits<double>::quiet_NaN();
 
 	mSync_To_Any = signal_ids[0] == scgms::signal_All;
 }
@@ -126,9 +132,10 @@ HRESULT CNative_Segment::Send_Event(const GUID* sig_id, const double device_time
 		//we are emitting a level event
 		scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
 		evt.device_id() = native::native_filter_id;
-		evt.device_time() = mRecent_Time;
+		evt.device_time() = device_time;
 		evt.level() = level;
 		evt.segment_id() = mSegment_Id;
+		evt.signal_id() = *sig_id;
 
 		rc = mOutput.Send(evt);
 	}

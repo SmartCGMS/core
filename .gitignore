@@ -22,3 +22,4 @@
 /out/build/x64-Debug (default)
 /python/msvc
 /native/msvc
+/native/msvc_script
