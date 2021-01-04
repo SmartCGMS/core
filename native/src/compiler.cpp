@@ -40,6 +40,7 @@
 #include "native_segment.h"
 #include "descriptor.h"
 #include "process.h"
+#include "auto_env.h"
 
 #include <utils/string_utils.h>
 
@@ -91,10 +92,11 @@ void replace_in_place(std::string& str, const std::string& search, const std::st
 }
 
 bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
-			 const filesystem::path& source, const filesystem::path& dll,
-			 const filesystem::path& configured_sdk_include, const std::wstring& custom_options) {
+	const filesystem::path& source, const filesystem::path& dll,
+	const filesystem::path& configured_sdk_include, const std::wstring& custom_options) {
 
 	std::string effective_compiler_options;
+	size_t effective_compiler_index = std::numeric_limits<size_t>::max();
 
 	//1. extract compiler's filename
 	if (custom_options.empty()) {
@@ -103,6 +105,7 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 		for (size_t i = 0; i < compilers.size(); i++) {
 			if (compiler_file_name.rfind(compilers[i].file_name_prefix, 0) != std::wstring::npos) {
 				effective_compiler_options = compilers[i].options;
+				effective_compiler_index = i;
 				break;
 			}
 		}
@@ -111,11 +114,11 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 		effective_compiler_options = Narrow_WString(custom_options);
 
 	//at this moment, custom options may be empty - but it may a that user supplied e.g.; own custom build batch file
-	
+
 	//2. insert the correct filenames
 	const filesystem::path dst_path = dll.parent_path();
 	const std::wstring name_prefix = source.stem().wstring();
-	
+
 	const filesystem::path def_path = dst_path / (name_prefix + L"_export.def");
 	const filesystem::path build_log_path = dst_path / (name_prefix + L"_build.log");
 
@@ -133,7 +136,7 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	}
 
 	const filesystem::path device_iface_cpp = sdk_include / "iface" / "DeviceIface.cpp";
-		//do not forget quotes as the path may contain a space
+	//do not forget quotes as the path may contain a space
 	const std::string complete_sources = quote(source.string()) + " " + quote(device_iface_cpp.string());
 
 	replace_in_place(effective_compiler_options, out_file_var, quote(dll.string()));
@@ -154,15 +157,19 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 		{
 			std::ofstream def_file{ def_path };
 			def_file << "LIBRARY " << dll.filename().string() << std::endl << std::endl << //.string to remove quotes
-						"EXPORTS" << std::endl << "\t" << native::rsScript_Entry_Symbol << std::endl;
-		}		
+				"EXPORTS" << std::endl << "\t" << native::rsScript_Entry_Symbol << std::endl;
+		}
 	}
 
 	//5. eventually, compile the script to dll
 
 	std::vector<std::string> commands;
-	if (!env_init.empty())
+	if (!env_init.empty()) {
 		commands.push_back(env_init.string());
+		}else {
+			if (effective_compiler_index != std::numeric_limits<size_t>::max())
+				commands.push_back(Get_Env_Init(compilers[effective_compiler_index].file_name_prefix));
+	}
 	commands.push_back(compiler.string() + " " + effective_compiler_options);
 
 	std::vector<char> error_output;
