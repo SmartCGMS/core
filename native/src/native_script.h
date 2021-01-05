@@ -51,7 +51,7 @@ class CNative_Script : public virtual scgms::CBase_Filter {
 protected:
     std::map<uint64_t, CNative_Segment> mSegments;    
     std::array<GUID, native::max_signal_count> mSignal_Ids{0};
-    std::map<GUID, size_t> mSignal_To_Ordinal;
+    std::map<GUID, size_t> mSignal_To_Ordinal;    
 protected:
     CDynamic_Library mDll;
     TNative_Execute_Wrapper mEntry_Point = nullptr;

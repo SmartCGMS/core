@@ -47,6 +47,23 @@ CNative_Script::CNative_Script(scgms::IFilter* output) : CBase_Filter(output) {
 }
 
 HRESULT CNative_Script::Do_Execute(scgms::UDevice_Event event) {
+	auto check_and_insert_segment = [this, &event](bool& success)->decltype(mSegments)::iterator{
+		//do we already have this segment?
+		const uint64_t segment_id = event.segment_id();
+		auto seg_iter = mSegments.find(segment_id);
+		if (seg_iter == mSegments.end()) {
+			//not yet, we have to insert it
+			auto inserted_iter = mSegments.emplace(segment_id, CNative_Segment{ mOutput, segment_id, mEntry_Point, mSignal_Ids });
+			seg_iter = inserted_iter.first;
+			success = inserted_iter.second;
+
+			seg_iter->second.Execute_Marker(scgms::NDevice_Event_Code::Time_Segment_Start, event.device_time());
+			//pretend segment start so that the script can establish its state if needed
+		}
+
+		return seg_iter;
+	};
+
 	HRESULT rc = E_UNEXPECTED;
 	
 	//Are we interested in this event?
@@ -55,15 +72,7 @@ HRESULT CNative_Script::Do_Execute(scgms::UDevice_Event event) {
 	bool desired_event = event.is_level_event();
 	
 	if (desired_event) {
-		//do we already have this segment?
-		const uint64_t segment_id = event.segment_id();
-		auto seg_iter = mSegments.find(segment_id);
-		if (seg_iter == mSegments.end()) {
-			//not yet, we have to insert it
-			auto inserted_iter = mSegments.emplace(segment_id, CNative_Segment{mOutput, segment_id, mEntry_Point, mSignal_Ids});
-			seg_iter = inserted_iter.first;
-			desired_event = inserted_iter.second;			
-		}
+		auto seg_iter = check_and_insert_segment(desired_event);
 
 		if (desired_event) {
 			size_t sig_index = std::numeric_limits<size_t>::max();
@@ -75,7 +84,7 @@ HRESULT CNative_Script::Do_Execute(scgms::UDevice_Event event) {
 
 			double device_time = event.device_time();
 			double level = event.level();
-			rc = seg_iter->second.Execute(sig_index, signal_id, device_time, level);
+			rc = seg_iter->second.Execute_Level(sig_index, signal_id, device_time, level);
 
 			if ((rc == S_OK) && (signal_id != scgms::signal_Null)) {	//signal_Null is /dev/null
 				//the script could have modified the event
@@ -86,13 +95,28 @@ HRESULT CNative_Script::Do_Execute(scgms::UDevice_Event event) {
 			}	//otherwise, we discard the event and return the code
 		}
 
-	} else {
+	} else {	
+		rc = S_OK;
+
+		if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start) {
+			bool success;
+			check_and_insert_segment(success);
+			if (!success)
+				rc = E_FAIL;
+		}
+
 		//on segment stop, remove the segment from memory
-		if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Stop) 
-			mSegments.erase(event.segment_id());
+		if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Stop) {
+			auto seg_iter = mSegments.find(event.segment_id());
+			if (seg_iter != mSegments.end()) {
+				seg_iter->second.Execute_Marker(scgms::NDevice_Event_Code::Time_Segment_Stop, event.device_time());
+				mSegments.erase(event.segment_id());
+			}			
+		}
 
 
-		rc = mOutput.Send(event);
+		if (rc == S_OK)
+			rc = mOutput.Send(event);
 	}
 
 
