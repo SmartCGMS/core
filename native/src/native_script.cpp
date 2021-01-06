@@ -10,8 +10,8 @@
  * Faculty of Applied Sciences, University of West Bohemia
  * Univerzitni 8, 301 00 Pilsen
  * Czech Republic
- * 
- * 
+ *
+ *
  * Purpose of this software:
  * This software is intended to demonstrate work of the diabetes.zcu.cz research
  * group to other scientists, to complement our published papers. It is strictly
@@ -47,7 +47,14 @@ CNative_Script::CNative_Script(scgms::IFilter* output) : CBase_Filter(output) {
 }
 
 HRESULT CNative_Script::Do_Execute(scgms::UDevice_Event event) {
-	auto check_and_insert_segment = [this, &event](bool& success)->decltype(mSegments)::iterator{
+	HRESULT rc = E_UNEXPECTED;
+
+	//Are we interested in this event?
+	GUID signal_id = event.signal_id();
+
+	bool desired_event = event.is_level_event();
+
+	if (desired_event) {
 		//do we already have this segment?
 		const uint64_t segment_id = event.segment_id();
 		auto seg_iter = mSegments.find(segment_id);
@@ -55,36 +62,20 @@ HRESULT CNative_Script::Do_Execute(scgms::UDevice_Event event) {
 			//not yet, we have to insert it
 			auto inserted_iter = mSegments.emplace(segment_id, CNative_Segment{ mOutput, segment_id, mEntry_Point, mSignal_Ids });
 			seg_iter = inserted_iter.first;
-			success = inserted_iter.second;
-
-			seg_iter->second.Execute_Marker(scgms::NDevice_Event_Code::Time_Segment_Start, event.device_time());
-			//pretend segment start so that the script can establish its state if needed
+			desired_event = inserted_iter.second;
 		}
-
-		return seg_iter;
-	};
-
-	HRESULT rc = E_UNEXPECTED;
-	
-	//Are we interested in this event?
-	GUID signal_id = event.signal_id();
-
-	bool desired_event = event.is_level_event();
-	
-	if (desired_event) {
-		auto seg_iter = check_and_insert_segment(desired_event);
 
 		if (desired_event) {
 			size_t sig_index = std::numeric_limits<size_t>::max();
 			const auto sig_iter = mSignal_To_Ordinal.find(signal_id);
 			if (sig_iter != mSignal_To_Ordinal.end()) {
-				sig_index = sig_iter->second;					
+				sig_index = sig_iter->second;
 			}
 
 
 			double device_time = event.device_time();
 			double level = event.level();
-			rc = seg_iter->second.Execute_Level(sig_index, signal_id, device_time, level);
+			rc = seg_iter->second.Execute(sig_index, signal_id, device_time, level);
 
 			if ((rc == S_OK) && (signal_id != scgms::signal_Null)) {	//signal_Null is /dev/null
 				//the script could have modified the event
@@ -95,28 +86,14 @@ HRESULT CNative_Script::Do_Execute(scgms::UDevice_Event event) {
 			}	//otherwise, we discard the event and return the code
 		}
 
-	} else {	
-		rc = S_OK;
-
-		if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start) {
-			bool success;
-			check_and_insert_segment(success);
-			if (!success)
-				rc = E_FAIL;
-		}
-
+	}
+	else {
 		//on segment stop, remove the segment from memory
-		if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Stop) {
-			auto seg_iter = mSegments.find(event.segment_id());
-			if (seg_iter != mSegments.end()) {
-				seg_iter->second.Execute_Marker(scgms::NDevice_Event_Code::Time_Segment_Stop, event.device_time());
-				mSegments.erase(event.segment_id());
-			}			
-		}
+		if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Stop)
+			mSegments.erase(event.segment_id());
 
 
-		if (rc == S_OK)
-			rc = mOutput.Send(event);
+		rc = mOutput.Send(event);
 	}
 
 
@@ -130,8 +107,8 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 		error_description.push(L"Synchronization signal cannot be invalid or null id.");
 		return E_INVALIDARG;
 	}
-	
-	mSignal_To_Ordinal[mSignal_Ids[0]] = 0;	
+
+	mSignal_To_Ordinal[mSignal_Ids[0]] = 0;
 
 	for (size_t i = 1; i < mSignal_Ids.size(); i++) {
 		const std::wstring res_name = native::rsRequired_Signal_Prefix + std::to_wstring(i + 1);
@@ -147,7 +124,7 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 	filesystem::path compiler_path = configuration.Read_String(native::rsCompiler_Name);
 
 
-	
+
 	if (script_path.empty()) {
 		error_description.push(L"Script cannot be empty.");	//because we may still attempt to derive and load dll by its path
 		return E_INVALIDARG;
@@ -155,13 +132,13 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 
 	filesystem::path dll_path = filesystem::path{ script_path }.replace_extension(CDynamic_Library::Default_Extension());
 
-	
+
 	//if there would be no script given, we will try to execute the dll
 	bool rebuild = Is_Regular_File_Or_Symlink(script_path) && filesystem::exists(script_path);
 
 	if (rebuild) {
 		const auto script_last_write_time = filesystem::last_write_time(script_path);
-		
+
 		std::error_code ec;
 		const auto dll_last_write_time = filesystem::last_write_time(dll_path, ec);
 
@@ -200,7 +177,7 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 		error_description.push(msg);
 		return CO_E_ERRORINDLL;
 	}
-	
+
 	mEntry_Point = static_cast<TNative_Execute_Wrapper>(mDll.Resolve(native::rsScript_Entry_Symbol));
 	if (mEntry_Point == nullptr) {
 		error_description.push(L"Cannot resolve the entry point of the compiled script!");

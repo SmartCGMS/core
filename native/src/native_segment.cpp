@@ -10,8 +10,8 @@
  * Faculty of Applied Sciences, University of West Bohemia
  * Univerzitni 8, 301 00 Pilsen
  * Czech Republic
- * 
- * 
+ *
+ *
  * Purpose of this software:
  * This software is intended to demonstrate work of the diabetes.zcu.cz research
  * group to other scientists, to complement our published papers. It is strictly
@@ -48,7 +48,7 @@ HRESULT IfaceCalling Send_Handler(const GUID* sig_id, const double device_time, 
 }
 
 CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Execute_Wrapper entry_point,
-									const std::array<GUID, native::max_signal_count>& signal_ids) :
+	const std::array<GUID, native::max_signal_count>& signal_ids) :
 	mSegment_Id(segment_id), mOutput(output), mEntry_Point(entry_point) {
 
 
@@ -62,7 +62,7 @@ CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_i
 		mPrevious_Device_Time[i] = mLast_Device_Time[i] = mPrevious_Level[i] = mLast_Level[i] = std::numeric_limits<double>::quiet_NaN();
 	}
 
-	for (size_t i = 0; i < native::max_parameter_count; i++) 
+	for (size_t i = 0; i < native::max_parameter_count; i++)
 		mEnvironment.parameters[i] = std::numeric_limits<double>::quiet_NaN();
 
 	mSync_To_Any = signal_ids[0] == scgms::signal_All;
@@ -77,7 +77,7 @@ void CNative_Segment::Emit_Info(const bool is_error, const std::wstring& msg) {
 	mOutput.Send(event);
 }
 
-HRESULT CNative_Segment::Execute_Level(const size_t signal_idx, GUID& signal_id, double& device_time, double& level) {
+HRESULT CNative_Segment::Execute(const size_t signal_idx, GUID& signal_id, double& device_time, double& level) {
 	mRecent_Time = device_time;
 
 	mEnvironment.current_signal_index = signal_idx;
@@ -107,9 +107,7 @@ HRESULT CNative_Segment::Execute_Level(const size_t signal_idx, GUID& signal_id,
 
 	if (mSync_To_Any || (signal_idx == 0)) {	//execute only on syncing level
 		try {
-			rc = mEntry_Point(
-				static_cast<std::underlying_type_t< scgms::NDevice_Event_Code>>(scgms::NDevice_Event_Code::Level), 
-				&signal_id, &device_time, &level, &mEnvironment, this);
+			rc = mEntry_Point(&signal_id, &device_time, &level, &mEnvironment, this);
 		}
 		catch (const std::exception& ex) {
 			// specific handling for all exceptions extending std::exception, except
@@ -122,32 +120,6 @@ HRESULT CNative_Segment::Execute_Level(const size_t signal_idx, GUID& signal_id,
 			Emit_Info(true, L"Unknown error!");
 			rc = E_FAIL;
 		}
-	}
-
-	return rc;
-}
-
-HRESULT CNative_Segment::Execute_Marker(const scgms::NDevice_Event_Code code, const double device_time) {
-	HRESULT rc = S_OK;
-	try {
-		double dt = device_time;
-		double level = std::numeric_limits<double>::quiet_NaN();
-		GUID id = scgms::signal_Null;
-
-		rc = mEntry_Point(
-			static_cast<std::underlying_type_t< scgms::NDevice_Event_Code>>(code),
-			&id, &dt, &level, &mEnvironment, this);
-	}
-	catch (const std::exception& ex) {
-		// specific handling for all exceptions extending std::exception, except
-		// std::runtime_error which is handled explicitly
-		std::wstring error_desc = Widen_Char(ex.what());
-		Emit_Info(true, error_desc);
-		rc = E_FAIL;
-	}
-	catch (...) {
-		Emit_Info(true, L"Unknown error!");
-		rc = E_FAIL;
 	}
 
 	return rc;
@@ -169,10 +141,10 @@ HRESULT CNative_Segment::Send_Event(const GUID* sig_id, const double device_time
 	}
 	else {
 		//we are emitting an info event
-		std::wstring wmsg{Widen_String(msg)};		
+		std::wstring wmsg{ Widen_String(msg) };
 		Emit_Info(std::isnan(level), wmsg);
 	}
-	
+
 	return rc;
 
 }
