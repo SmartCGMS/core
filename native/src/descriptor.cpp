@@ -64,6 +64,7 @@ namespace native {
 
 
 	constexpr size_t param_count = max_signal_count+	//five required signals, of which the first one is sync signal
+								  +1	//script parameters/double array
 								  +1	//separator
 								  +5;	//env init, compiler, src file path and possibly custom compiler options and SKD include
 
@@ -78,6 +79,8 @@ namespace native {
 		scgms::NParameter_Type::ptSignal_Id,
 		scgms::NParameter_Type::ptSignal_Id,
 		scgms::NParameter_Type::ptSignal_Id,
+
+		scgms::NParameter_Type::ptDouble_Array,
 
 		scgms::NParameter_Type::ptNull,
 
@@ -99,6 +102,7 @@ namespace native {
 		L"Required signal 8",
 		L"Required signal 9",
 		L"Required signal 10",
+		L"Parameters",
 		nullptr,
 		L"Environment init batch",
 		L"Compiler",
@@ -118,6 +122,7 @@ namespace native {
 		rsRequired_Signal_8,
 		rsRequired_Signal_9,
 		rsRequired_Signal_10,
+		rsParameters,
 		nullptr,
 		rsEnvironment_Init,
 		rsCompiler_Name,
@@ -141,6 +146,55 @@ namespace native {
 		ui_param_tooltips
 	};
 	
+}
+
+
+namespace native_model {
+	//This is a facade model to allow 10 generic parameters
+	constexpr size_t model_param_count = 10;
+
+	const scgms::NModel_Parameter_Value filter_param_types[model_param_count] = { scgms::NModel_Parameter_Value::mptTime,
+		scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble  };
+
+	const wchar_t* filter_param_ui_names[model_param_count] = {
+		L"Parameter 1", L"Parameter 2", L"Parameter 3", L"Parameter 4", L"Parameter 5",
+		L"Parameter 6", L"Parameter 7", L"Parameter 8", L"Parameter 9", L"Parameter 10" };
+
+	const wchar_t* filter_param_config_names[model_param_count] = { 
+		L"Parameter_1", L"Parameter_2", L"Parameter_3", L"Parameter_4", L"Parameter_5",
+		L"Parameter_6", L"Parameter_7", L"Parameter_8", L"Parameter_9", L"Parameter_10" };
+
+
+	const wchar_t* filter_param_tooltips[model_param_count] = { nullptr, nullptr, nullptr, nullptr, nullptr,
+																nullptr, nullptr, nullptr, nullptr,
+																nullptr};
+
+	const double lower_bound[model_param_count] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+	const double default_parameters[model_param_count] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+	const double upper_bound[model_param_count] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+	
+	const scgms::TModel_Descriptor model_desc = {
+			native::native_filter_id,
+			scgms::NModel_Flags::None,
+			L"Native Script Parameters",
+			L"Native_Script_Parameters",
+
+			model_param_count,
+			filter_param_types,
+			filter_param_ui_names,
+			filter_param_config_names,
+
+			lower_bound,
+			default_parameters,
+			upper_bound,
+
+			0,
+			& scgms::signal_Null,
+			&scgms::signal_Null
+	};	
+
 }
 
 const std::array<const scgms::TFilter_Descriptor, 1> filter_descriptions = { { native::desc} };
