@@ -103,7 +103,7 @@ namespace native {
 		L"Required signal 8",
 		L"Required signal 9",
 		L"Required signal 10",
-		L"Parameters",
+		dsParameters,
 		nullptr,
 		L"Environment init batch",
 		L"Compiler",
@@ -192,7 +192,7 @@ namespace native_model {
 			upper_bound,
 
 			0,
-			& scgms::signal_Null,
+			&scgms::signal_Null,
 			&scgms::signal_Null
 	};	
 

@@ -48,7 +48,7 @@ HRESULT IfaceCalling Send_Handler(const GUID* sig_id, const double device_time, 
 }
 
 CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Execute_Wrapper entry_point,
-	const std::array<GUID, native::max_signal_count>& signal_ids) :
+	const std::array<GUID, native::max_signal_count>& signal_ids, const std::array<double, native::max_parameter_count>& parameters) :
 	mSegment_Id(segment_id), mOutput(output), mEntry_Point(entry_point) {
 
 
@@ -62,8 +62,7 @@ CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_i
 		mPrevious_Device_Time[i] = mLast_Device_Time[i] = mPrevious_Level[i] = mLast_Level[i] = std::numeric_limits<double>::quiet_NaN();
 	}
 
-	for (size_t i = 0; i < native::max_parameter_count; i++)
-		mEnvironment.parameters[i] = std::numeric_limits<double>::quiet_NaN();
+	std::copy(parameters.begin(), parameters.end(), mEnvironment.parameters);
 
 	mSync_To_Any = signal_ids[0] == scgms::signal_All;
 }

@@ -60,7 +60,7 @@ HRESULT CNative_Script::Do_Execute(scgms::UDevice_Event event) {
 		auto seg_iter = mSegments.find(segment_id);
 		if (seg_iter == mSegments.end()) {
 			//not yet, we have to insert it
-			auto inserted_iter = mSegments.emplace(segment_id, CNative_Segment{ mOutput, segment_id, mEntry_Point, mSignal_Ids });
+			auto inserted_iter = mSegments.emplace(segment_id, CNative_Segment{ mOutput, segment_id, mEntry_Point, mSignal_Ids, mParameters });
 			seg_iter = inserted_iter.first;
 			desired_event = inserted_iter.second;
 		}
@@ -116,6 +116,23 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 		mSignal_Ids[i] = sig_id;
 		mSignal_To_Ordinal[sig_id] = i;
 	}
+
+	{
+		std::vector<double> lb, def, ub;
+		configuration.Read_Parameters(rsParameters, lb, def, ub);
+		if (def.size() > native::max_parameter_count) {
+			def.resize(native::max_parameter_count);
+			error_description.push(L"There is an excessive number of parameters.");
+		}
+		else if (def.size() < native::max_parameter_count) {
+			while (def.size() < native::max_parameter_count)
+				def.push_back(std::numeric_limits<double>::quiet_NaN());
+			error_description.push(L"Not all parameters are present.");
+		} //else the parameters have just the correct size
+
+		std::copy(def.begin(), def.end(), mParameters.begin());
+	}
+
 
 	//Now, we need to check timestamps of the source file and the produced dll
 	filesystem::path script_path = configuration.Read_File_Path(native::rsSource_Filepath);
