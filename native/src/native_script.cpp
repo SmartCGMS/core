@@ -60,7 +60,7 @@ HRESULT CNative_Script::Do_Execute(scgms::UDevice_Event event) {
 		auto seg_iter = mSegments.find(segment_id);
 		if (seg_iter == mSegments.end()) {
 			//not yet, we have to insert it
-			auto inserted_iter = mSegments.emplace(segment_id, CNative_Segment{ mOutput, segment_id, mEntry_Point, mSignal_Ids, mParameters });
+			auto inserted_iter = mSegments.emplace(segment_id, CNative_Segment{ mOutput, segment_id, mEntry_Point, mSignal_Ids, mParameters, mCustom_Data_Size });
 			seg_iter = inserted_iter.first;
 			desired_event = inserted_iter.second;
 		}
@@ -166,8 +166,17 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 		if (rebuild) {
 			//for building, we need the compiler
 			if (compiler_path.empty()) {
+#if defined(_WIN32)
+				compiler_path = "cl";
+#elif defined(__APPLE__)
+				compiler_path = "clang++";
+#elif defined(__linux__) || defined(__svr4__)
+				compiler_path = "g++";
+#else
+				//e.g. emscripten or whathever else
 				error_description.push(L"Compiler cannot be empty.");
 				return E_INVALIDARG;
+#endif
 			}
 
 
@@ -176,9 +185,7 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 			const std::wstring sdk_include = configuration.Read_String(native::rsSmartCGMS_Include_Dir);
 			if (Compile(compiler_path, init_path, script_path, dll_path, sdk_include, custom_compile_options)) {
 				//compilation seems to complete OK
-
-				//and set dll's time stamp so that we don't recompile it until next change in the script
-			//why?	filesystem::last_write_time(dll_path, script_last_write_time);
+			
 			}
 			else {
 				error_description.push(L"Failed to compile. Please, review the build log file.");
@@ -201,6 +208,13 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 		return CO_E_ERRORINDLL;
 	}
 
+
+	//if the script supports a state, then we must know its size
+	{
+		native::TCustom_Data_Size custom_data_size = static_cast<native::TCustom_Data_Size>(mDll.Resolve(native::rsCustom_Data_Size));
+		if (custom_data_size != nullptr)
+			mCustom_Data_Size = custom_data_size();
+	}
 
 	return S_OK;
 }

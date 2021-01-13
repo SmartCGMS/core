@@ -48,12 +48,15 @@ HRESULT IfaceCalling Send_Handler(const GUID* sig_id, const double device_time, 
 }
 
 CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Execute_Wrapper entry_point,
-	const std::array<GUID, native::max_signal_count>& signal_ids, const std::array<double, native::max_parameter_count>& parameters) :
+	const std::array<GUID, native::max_signal_count>& signal_ids, const std::array<double, native::max_parameter_count>& parameters,
+	const size_t custom_data_size) :
 	mSegment_Id(segment_id), mOutput(output), mEntry_Point(entry_point) {
 
 
 	mEnvironment.send = &Send_Handler;
-	mEnvironment.custom_data = nullptr;
+
+	mState_Container.resize(custom_data_size);
+	mEnvironment.custom_data = mState_Container.data();
 
 	mEnvironment.level_count = native::max_signal_count;
 	for (size_t i = 0; i < native::max_signal_count; i++) {

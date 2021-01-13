@@ -56,6 +56,7 @@ protected:
 protected:
     CDynamic_Library mDll;
     TNative_Execute_Wrapper mEntry_Point = nullptr;
+    size_t mCustom_Data_Size = 0;
 protected:
     // scgms::CBase_Filter iface implementation
     virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;

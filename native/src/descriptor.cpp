@@ -62,6 +62,7 @@ namespace native {
 	const wchar_t* rsSmartCGMS_Include_Dir = L"SCMGS_Include_Dir";
 
 	const char* rsScript_Entry_Symbol = "execute_wrapper";
+	const char* rsCustom_Data_Size = "custom_data_size";
 
 
 	constexpr size_t param_count = max_signal_count+	//five required signals, of which the first one is sync signal
