@@ -183,9 +183,18 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 								break;
 
 							case scgms::NParameter_Type::ptRatTime:
+							{
+								double val = Default_Str_To_Rat_Time(str_value, valid);
+								if (valid) {
+									valid = filter_parameter->Set_Double(val) == S_OK;
+									break;
+								}
+								//if not valid, let's fall through and try to interpret it as double
+								[[fallthrough]];
+							}
 							case scgms::NParameter_Type::ptDouble:
 							{
-								double val = wstr_2_dbl(str_value, valid);
+								double val = str_2_dbl(str_value, valid);
 								if (valid)
 									valid = filter_parameter->Set_Double(val) == S_OK;
 							}

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../common/iface/FilterIface.h"
+#include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
 #include "../../../common/rtl/FilesystemLib.h"
 
@@ -40,10 +40,37 @@ protected:
 			return E_NOT_SET;
 		}
 	}
+
+	template <typename T, typename getter=T(*)(), typename convertor=T(*)(const std::wstring&, bool&)>
+	HRESULT Get_Value(T* value, getter get_val, convertor conv, const T&sanity_val) {
+		HRESULT rc = S_OK;
+		if (mVariable_Name.empty()) {
+			*value = get_val();
+		}
+		else {			
+			auto [var_set, var_val] = Evaluate_Variable(mVariable_Name);
+
+			if (!var_set) {
+				rc = E_NOT_SET;
+				*value = sanity_val;
+			}
+			else {
+				bool ok;
+				*value = conv(var_val, ok);
+
+				if (!ok) {
+					rc = E_INVALIDARG;
+					*value = sanity_val;
+				}
+			}
+		}
+
+		return rc;
+	}	
 protected:
-	std::string mSystem_Variable_Name;
+	std::wstring mVariable_Name;
 	std::map<std::wstring, std::wstring> mNon_OS_Variables;
-	std::optional<std::wstring> Read_Variable(const wchar_t* name);
+	std::tuple<bool, std::wstring> Evaluate_Variable(const std::wstring &var_name);
 public:
 	CFilter_Parameter(const scgms::NParameter_Type type, const wchar_t *config_name);
 	virtual ~CFilter_Parameter() {};

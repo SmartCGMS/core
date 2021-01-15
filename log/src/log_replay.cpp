@@ -256,7 +256,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 				evt.info.set(info_str.c_str());
 			else if (evt.is_level_event()) {
 				bool ok;
-				const double level = wstr_2_dbl(info_str.c_str(), ok);
+				const double level = str_2_dbl(info_str.c_str(), ok);
 				if (ok) {
 					evt.level() = level;
 				}

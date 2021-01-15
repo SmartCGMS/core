@@ -286,7 +286,7 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list erro
 
 					auto read_dbl = [&ini, &section_name, &all_valid](const wchar_t* identifier)->double {
 						bool valid = false;
-						double val = wstr_2_dbl(ini.GetValue(section_name.pItem, identifier), valid);
+						double val = str_2_dbl(ini.GetValue(section_name.pItem, identifier), valid);
 					
 						if (!valid || std::isnan(val))
 							all_valid = false;
