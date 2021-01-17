@@ -156,113 +156,53 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 					refcnt::SReferenced<scgms::IFilter_Configuration_Link> filter_config{ new CFilter_Configuration_Link{id} };
 
 					//so.. now, try to load the filter parameters - aka filter_config
+					if (filter_config) {
+						for (size_t i = 0; i < desc.parameters_count; i++) {
 
-					for (size_t i = 0; i < desc.parameters_count; i++) {
+							//does the value exists?
+							const wchar_t* str_value = mIni.GetValue(section_name.pItem, desc.config_parameter_name[i]);
+							if (str_value) {
 
-						//does the value exists?
-						const wchar_t* str_value = mIni.GetValue(section_name.pItem, desc.config_parameter_name[i]);
-						if (str_value) {
-							scgms::SFilter_Parameter filter_parameter;
-							{
 								std::unique_ptr<CFilter_Parameter> raw_filter_parameter = std::make_unique<CFilter_Parameter>(desc.parameter_type[i], desc.config_parameter_name[i]);
-								filter_parameter = refcnt::make_shared_reference_ext<scgms::SFilter_Parameter, scgms::IFilter_Parameter>(raw_filter_parameter.get(), true);
-								raw_filter_parameter.release();
-							}
+								const bool valid = raw_filter_parameter->from_string(desc.parameter_type[i], str_value);
 
-							bool valid = false;
-
-							//yes, there is something stored under this key
-							switch (desc.parameter_type[i]) {
-
-							case scgms::NParameter_Type::ptWChar_Array:
-								valid = filter_parameter.set_wstring(str_value) == S_OK;
-								break;
-
-							case scgms::NParameter_Type::ptInt64_Array:
-								valid = filter_parameter.int_array_from_wstring(str_value) == S_OK;
-								break;
-
-							case scgms::NParameter_Type::ptRatTime:
-							{
-								double val = Default_Str_To_Rat_Time(str_value, valid);
 								if (valid) {
-									valid = filter_parameter->Set_Double(val) == S_OK;
-									break;
+									scgms::IFilter_Parameter* raw_param = static_cast<scgms::IFilter_Parameter*>(raw_filter_parameter.get());
+									if (Succeeded(filter_config->add(&raw_param, &raw_param + 1)))
+										raw_filter_parameter.release();
 								}
-								//if not valid, let's fall through and try to interpret it as double
-								[[fallthrough]];
+								else {
+									std::wstring error_desc = dsMalformed_Filter_Parameter_Value;
+									error_desc.append(desc.description);
+									error_desc.append(L" (2)");
+									error_desc.append(desc.ui_parameter_name[i]);
+									error_desc.append(L" (3)");
+									error_desc.append(str_value);
+									shared_error_description.push(error_desc.c_str());
+								}
+
 							}
-							case scgms::NParameter_Type::ptDouble:
-							{
-								double val = str_2_dbl(str_value, valid);
-								if (valid)
-									valid = filter_parameter->Set_Double(val) == S_OK;
-							}
-							break;
-
-							case scgms::NParameter_Type::ptInt64:
-							case scgms::NParameter_Type::ptSubject_Id:
-							{
-								int64_t val = wstr_2_int(str_value, valid);
-								if (valid)
-									valid = filter_parameter->Set_Int64(val) == S_OK;
-							}
-							break;
-
-							case scgms::NParameter_Type::ptBool:
-								valid = filter_parameter.set_bool(mIni.GetBoolValue(section_name.pItem, desc.config_parameter_name[i])) == S_OK;
-								break;
-
-							case scgms::NParameter_Type::ptSignal_Model_Id:
-							case scgms::NParameter_Type::ptDiscrete_Model_Id:
-							case scgms::NParameter_Type::ptMetric_Id:
-							case scgms::NParameter_Type::ptModel_Produced_Signal_Id:
-							case scgms::NParameter_Type::ptSignal_Id:
-							case scgms::NParameter_Type::ptSolver_Id:
-							{								
-								const GUID tmp_guid = WString_To_GUID(str_value, valid);								
-								if (valid)
-									valid = filter_parameter.set_GUID(tmp_guid) == S_OK;
-							}
-							break;
-
-							case scgms::NParameter_Type::ptDouble_Array:
-								valid = filter_parameter.double_array_from_wstring(str_value) == S_OK;
-								break;
-
-							default:
-								valid = false;
-							} //switch (desc.parameter_type[i])	{
-
-							if (valid) {
-								auto raw_param = filter_parameter.get();
-								filter_config->add(&raw_param, &raw_param + 1);
-							}
-							else {
-								std::wstring error_desc = dsMalformed_Filter_Parameter_Value;
+							else if (desc.parameter_type[i] != scgms::NParameter_Type::ptNull) {
+								//this parameter is not configured, warn about it
+								std::wstring error_desc = dsFilter_Parameter_Not_Configured;
 								error_desc.append(desc.description);
 								error_desc.append(L" (2)");
 								error_desc.append(desc.ui_parameter_name[i]);
-								error_desc.append(L" (3)");
-								error_desc.append(str_value);
 								shared_error_description.push(error_desc.c_str());
 							}
-
 						}
-						else if (desc.parameter_type[i] != scgms::NParameter_Type::ptNull) {
-							//this parameter is not configured, warn about it
-							std::wstring error_desc = dsFilter_Parameter_Not_Configured;
-							error_desc.append(desc.description);
-							error_desc.append(L" (2)");
-							error_desc.append(desc.ui_parameter_name[i]);
-							shared_error_description.push(error_desc.c_str());
+
+
+						//and finally, add the new link into the filter chain
+						{
+							auto raw_filter_config = filter_config.get();
+							add(&raw_filter_config, &raw_filter_config + 1);
 						}
 					}
-
-					//and finally, add the new link into the filter chain
-					{
-						auto raw_filter_config = filter_config.get();
-						add(&raw_filter_config, &raw_filter_config + 1);
+					else {
+						//memory failure
+						shared_error_description.push(rsFailed_to_allocate_memory);
+						return E_FAIL;
 					}
 				}
 				else {					
