@@ -138,7 +138,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 	auto read_segment_id = [&cut_column, &emit_parsing_exception_w]()->uint64_t {
 		bool ok;
 		const auto str = cut_column();
-		uint64_t result = wstr_2_uint(str.c_str(), ok);
+		uint64_t result = str_2_uint(str.c_str(), ok);
 		if (!ok) {
 			std::wstring msg{ dsError_In_Number_Format };
 			msg.append(str);

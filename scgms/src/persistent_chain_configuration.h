@@ -40,8 +40,9 @@
 
 #include "../../../common/iface/FilterIface.h"
 #include "../../../common/rtl/referencedImpl.h"
-#include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/FilesystemLib.h"
+#include "../../../common/rtl/UILib.h"
+
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 

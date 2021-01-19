@@ -164,7 +164,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 							if (str_value) {
 
 								std::unique_ptr<CFilter_Parameter> raw_filter_parameter = std::make_unique<CFilter_Parameter>(desc.parameter_type[i], desc.config_parameter_name[i]);
-								const bool valid = raw_filter_parameter->from_string(desc.parameter_type[i], str_value);
+								const bool valid = raw_filter_parameter->from_string(desc.parameter_type[i], str_value) == S_OK;
 
 								if (valid) {
 									scgms::IFilter_Parameter* raw_param = static_cast<scgms::IFilter_Parameter*>(raw_filter_parameter.get());
@@ -294,77 +294,26 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 			rc = filter->get(&parameter_begin, &parameter_end);
 			if (!Succeeded(rc)) return rc;	//rc may be also S_FALSE if no parameter has been set yet
 
+
 			for (; parameter_begin != parameter_end; parameter_begin++) {
-				auto parameter = *parameter_begin;
-				scgms::NParameter_Type param_type;
-				rc = parameter->Get_Type(&param_type);
-				if (rc != S_OK) return rc;
+				scgms::SFilter_Parameter param_shared = refcnt::make_shared_reference_ext<scgms::SFilter_Parameter, scgms::IFilter_Parameter>(*parameter_begin, true);
 
-				wchar_t* config_name = nullptr;
-				rc = parameter->Get_Config_Name(&config_name);
-				if (rc != S_OK) return rc;
+				const wchar_t* config_name = param_shared.configuration_name();
+				if (!config_name) return E_UNEXPECTED;
 
+
+				//let the filter parameter to convert its value to the string				
+				std::wstring converted = param_shared.as_wstring(rc, false);
+				if (rc != S_OK) return rc;
+				
+				std::wstring comment = L"";
+
+				//resolve any possible comment
+				const auto param_type = param_shared.type();
+				if (param_type == scgms::NParameter_Type::ptInvalid)
+					return E_UNEXPECTED;
 
 				switch (param_type) {
-					case scgms::NParameter_Type::ptWChar_Array:
-
-						refcnt::wstr_container* wstr;
-						rc = parameter->Get_WChar_Container(&wstr, false);
-						if (rc != S_OK) return rc;
-
-						ini_SetValue(id_str, config_name, WChar_Container_To_WString(wstr));
-						wstr->Release();                        
-						break;
-
-					case scgms::NParameter_Type::ptInt64_Array:
-						scgms::time_segment_id_container* ids;
-						rc = parameter->Get_Time_Segment_Id_Container(&ids);
-						if (rc != S_OK) return rc;
-
-                        ini_SetValue(id_str, config_name, Select_Time_Segments_Id_To_WString(ids));
-						ids->Release();                        
-						break;
-
-					case scgms::NParameter_Type::ptRatTime:
-					case scgms::NParameter_Type::ptDouble:
-					{
-						double val;
-						rc = parameter->Get_Double(&val);
-						if (rc != S_OK) return rc;
-
-						std::wstring time_str;
-						
-						if (param_type == scgms::NParameter_Type::ptRatTime) {
-							time_str = Rat_Time_To_Default_WStr(val);
-							if (!time_str.empty()) time_str = L"; " + time_str;
-						}
-
-                                                
-                        ini_SetValue(id_str, config_name, dbl_2_wstr(val),  //dbl_2_wstr is more precise than ini's SetDoubleValue
-                                                        time_str);
-                                                
-					}
-					break;
-
-					case scgms::NParameter_Type::ptInt64:
-					case scgms::NParameter_Type::ptSubject_Id:
-					{
-						int64_t val;
-						rc = parameter->Get_Int64(&val);
-						if (rc != S_OK) return rc;
-						ini.SetLongValue(id_str.c_str(), config_name, static_cast<long>(val));
-					}
-					break;
-
-					case scgms::NParameter_Type::ptBool:
-					{
-						BOOL val;
-						rc = parameter->Get_Bool(&val);
-						if (rc != S_OK) return rc;
-						ini.SetBoolValue(id_str.c_str(), config_name, val != FALSE);
-					}
-					break;
-
 					case scgms::NParameter_Type::ptSignal_Model_Id:
 					case scgms::NParameter_Type::ptDiscrete_Model_Id:
 					case scgms::NParameter_Type::ptMetric_Id:
@@ -372,32 +321,24 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 					case scgms::NParameter_Type::ptSignal_Id:
 					case scgms::NParameter_Type::ptSolver_Id:
 					{
-						GUID val;
-						rc = parameter->Get_GUID(&val);
+						const GUID val = param_shared.as_guid(rc);
 						if (rc != S_OK) return rc;
 
-						wchar_t* id_desc_ptr = Describe_GUID(val, param_type, signal_descriptors);
-						std::wstring commented_comment = L"; ";
+						wchar_t* id_desc_ptr = Describe_GUID(val, param_shared.type(), signal_descriptors);
 						if (id_desc_ptr) {
-							commented_comment += id_desc_ptr;
-							id_desc_ptr = const_cast<wchar_t*>(commented_comment.c_str());
+							comment = L"; ";
+							comment += id_desc_ptr;							
 						}
-						
-						ini_SetValue(id_str, config_name, GUID_To_WString(val), id_desc_ptr == nullptr ? std::wstring{} : id_desc_ptr);
+											
 					}
 					break;
 
-					case scgms::NParameter_Type::ptDouble_Array:
-						scgms::IModel_Parameter_Vector* model_parameters;
-						rc = parameter->Get_Model_Parameters(&model_parameters);
-						if (rc != S_OK) return rc;
-
-						ini_SetValue(id_str, config_name, Model_Parameters_To_WString(model_parameters));
-						model_parameters->Release();
-						break;
-
 					default: break;
-				} //switch (param_type) {
+				} //switch param_type
+
+
+				//and, write the value
+				ini_SetValue(id_str, config_name, converted, comment);
 			}
 		}
 
@@ -460,52 +401,6 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Parent_Path(const wcha
 }
 
 
-wchar_t* CPersistent_Chain_Configuration::Describe_GUID(const GUID& val, const scgms::NParameter_Type param_type, const scgms::CSignal_Description & signal_descriptors) const {
-	wchar_t* result = nullptr;
-
-	switch (param_type) {
-
-		case scgms::NParameter_Type::ptModel_Produced_Signal_Id:
-		case scgms::NParameter_Type::ptSignal_Id:
-			{
-				scgms::TSignal_Descriptor sig_desc = scgms::Null_Signal_Descriptor;
-				if (signal_descriptors.Get_Descriptor(val, sig_desc))
-					result = const_cast<wchar_t*>(sig_desc.signal_description);
-			}
-			break;
-
-		case scgms::NParameter_Type::ptSignal_Model_Id:
-		case scgms::NParameter_Type::ptDiscrete_Model_Id: {
-			{
-				scgms::TModel_Descriptor model_desc = scgms::Null_Model_Descriptor;
-				if (scgms::get_model_descriptor_by_id(val, model_desc))
-					result = const_cast<wchar_t*>(model_desc.description);
-			}
-			break;
-		}
-
-		case scgms::NParameter_Type::ptMetric_Id:
-			{
-				scgms::TMetric_Descriptor metric_desc = scgms::Null_Metric_Descriptor;
-				if (scgms::get_metric_descriptor_by_id(val, metric_desc))
-					result = const_cast<wchar_t*>(metric_desc.description);
-			}
-			break;
-
-		case scgms::NParameter_Type::ptSolver_Id:
-			{
-				scgms::TSolver_Descriptor solver_desc = scgms::Null_Solver_Descriptor;
-				if (scgms::get_solver_descriptor_by_id(val, solver_desc))
-					result = const_cast<wchar_t*>(solver_desc.description);
-			}
-			break;
-
-
-		default: result = nullptr; break;
-	}
-
-	return result;
-}
 
 HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Variable(const wchar_t* name, const wchar_t* value) {
 	if (!name || (*name == 0)) return E_INVALIDARG;
@@ -517,4 +412,52 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Variable(const wchar_t
 	}
 
 	return rc;
+}
+
+
+wchar_t* CPersistent_Chain_Configuration::Describe_GUID(const GUID& val, const scgms::NParameter_Type param_type, const scgms::CSignal_Description& signal_descriptors) const {
+	wchar_t* result = nullptr;
+
+	switch (param_type) {
+
+	case scgms::NParameter_Type::ptModel_Produced_Signal_Id:
+	case scgms::NParameter_Type::ptSignal_Id:
+	{
+		scgms::TSignal_Descriptor sig_desc = scgms::Null_Signal_Descriptor;
+		if (signal_descriptors.Get_Descriptor(val, sig_desc))
+			result = const_cast<wchar_t*>(sig_desc.signal_description);
+	}
+	break;
+
+	case scgms::NParameter_Type::ptSignal_Model_Id:
+	case scgms::NParameter_Type::ptDiscrete_Model_Id: {
+		{
+			scgms::TModel_Descriptor model_desc = scgms::Null_Model_Descriptor;
+			if (scgms::get_model_descriptor_by_id(val, model_desc))
+				result = const_cast<wchar_t*>(model_desc.description);
+		}
+		break;
+	}
+
+	case scgms::NParameter_Type::ptMetric_Id:
+	{
+		scgms::TMetric_Descriptor metric_desc = scgms::Null_Metric_Descriptor;
+		if (scgms::get_metric_descriptor_by_id(val, metric_desc))
+			result = const_cast<wchar_t*>(metric_desc.description);
+	}
+	break;
+
+	case scgms::NParameter_Type::ptSolver_Id:
+	{
+		scgms::TSolver_Descriptor solver_desc = scgms::Null_Solver_Descriptor;
+		if (scgms::get_solver_descriptor_by_id(val, solver_desc))
+			result = const_cast<wchar_t*>(solver_desc.description);
+	}
+	break;
+
+
+	default: result = nullptr; break;
+	}
+
+	return result;
 }

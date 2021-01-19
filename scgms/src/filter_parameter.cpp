@@ -31,16 +31,19 @@ HRESULT IfaceCalling CFilter_Parameter::Get_Config_Name(wchar_t **config_name) {
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Get_WChar_Container(refcnt::wstr_container **wstr, BOOL read_interpreted) {
-	if ((read_interpreted == TRUE) && !mVariable_Name.empty()) {
+	HRESULT rc = E_UNEXPECTED;
+	std::wstring converted;
 
-		auto [var_set, var_val] = Evaluate_Variable(mVariable_Name);
-		if (!var_set)
-			var_val = L"";		
 
-		*wstr = refcnt::WString_To_WChar_Container(var_val.c_str());
-		return *wstr ? (var_set ? S_OK : S_FALSE) : E_FAIL;
+	if (read_interpreted == TRUE) {
+		std::tie(rc, converted) = to_string_interpreted();
+	} else {
+		std::tie(rc, converted) = to_string_not_interpreted();		
 	}
-		else return Get_Container(mWChar_Container, wstr);	
+
+	if (rc == S_OK)
+		*wstr = refcnt::WString_To_WChar_Container(converted.c_str());	
+	return S_OK;	
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_WChar_Container(refcnt::wstr_container *wstr) {
@@ -102,12 +105,14 @@ HRESULT IfaceCalling CFilter_Parameter::Set_Parent_Path(const wchar_t* parent_pa
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Get_Time_Segment_Id_Container(scgms::time_segment_id_container **ids) {
-	return Get_Container(mTime_Segment_ID, ids);
+	HRESULT rc = Update_Container_By_Vars<int64_t>(mTime_Segment_ID, str_2_int);	
+	return Succeeded(rc) ? Get_Container(mTime_Segment_ID, ids) : rc;
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Time_Segment_Id_Container(scgms::time_segment_id_container *ids) {
 	//by setting this to max, we effectively discard any nested variable and do not need to perform any additinal action
 	mFirst_Array_Var_idx = std::numeric_limits<size_t>::max();
+	mVariable_Name.clear();
 
 	mTime_Segment_ID = ids;
 	return S_OK;
@@ -121,6 +126,7 @@ HRESULT IfaceCalling CFilter_Parameter::Get_Double(double *value) {
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Double(const double value) {
+	mVariable_Name.clear();
 	mData.dbl = value;
 	return S_OK;
 }
@@ -132,6 +138,7 @@ HRESULT IfaceCalling CFilter_Parameter::Get_Int64(int64_t *value) {
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Int64(const int64_t value) {
+	mVariable_Name.clear();
 	mData.int64 = value;
 	return S_OK;
 }
@@ -144,6 +151,7 @@ HRESULT IfaceCalling CFilter_Parameter::Get_Bool(BOOL *boolean) {
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Bool(const BOOL boolean) {
+	mVariable_Name.clear();
 	mData.boolean = boolean != FALSE;
 	return S_OK;
 }
@@ -155,16 +163,21 @@ HRESULT IfaceCalling CFilter_Parameter::Get_GUID(GUID *id) {
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_GUID(const GUID *id) {	
+	mVariable_Name.clear();
 	mData.guid = *id;
 	return S_OK;
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Get_Model_Parameters(scgms::IModel_Parameter_Vector **parameters) {
-	return Get_Container(mModel_Parameters, parameters);
+	HRESULT rc = Update_Container_By_Vars<double>(mModel_Parameters, str_2_rat_dbl);
+	return Succeeded(rc) ? Get_Container(mModel_Parameters, parameters) : rc;
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Model_Parameters(scgms::IModel_Parameter_Vector *parameters) {
 	//by setting this to max, we effectively discard any nested variable and do not need to perform any additinal action
+	mFirst_Array_Var_idx = std::numeric_limits<size_t>::max();
+	mVariable_Name.clear();
+
 	mModel_Parameters = parameters;
 	return S_OK;
 }
@@ -217,13 +230,18 @@ std::tuple<bool, std::wstring> CFilter_Parameter::Evaluate_Variable(const std::w
 
 
 bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, const wchar_t* str) {
-	auto [is_var, var_name] = scgms::Is_Variable_Name(str);
-	if (is_var) {
-		mVariable_Name = var_name;
-		return true;
-	}
-	else
-		mVariable_Name.clear();
+	//when converting an array, each variable reference represents just one value
+	if ((desired_type != scgms::NParameter_Type::ptDouble_Array) && (desired_type != scgms::NParameter_Type::ptInt64_Array)) {
+
+		auto [is_var, var_name] = scgms::Is_Variable_Name(str);
+		if (is_var) {
+			mVariable_Name = var_name;
+			return S_OK;
+		}
+		else
+			mVariable_Name.clear();
+	} else
+		mVariable_Name.clear();	//just for sanity, as array uses mArray_Vars
 
 	bool valid = false;
 
@@ -292,4 +310,109 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 	} //switch (desc.parameter_type[i])	{
 
 	return valid;
+}
+
+std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string_not_interpreted() {
+
+	std::wstring converted;
+	HRESULT rc = S_OK;
+	
+	auto convert_scalar = [&]() {
+		if (mVariable_Name.empty()) {
+
+			switch (mType) {
+				case scgms::NParameter_Type::ptWChar_Array:
+					converted = refcnt::WChar_Container_To_WString(mWChar_Container.get());							
+					break;
+
+				case scgms::NParameter_Type::ptRatTime:
+					converted = Rat_Time_To_Default_WStr(mData.dbl);
+					break;
+
+				case scgms::NParameter_Type::ptDouble:
+					converted = dbl_2_wstr(mData.dbl);
+					break;
+
+				case scgms::NParameter_Type::ptInt64:
+				case scgms::NParameter_Type::ptSubject_Id:
+					converted = std::to_wstring(mData.int64);
+					break;
+
+				case scgms::NParameter_Type::ptBool:
+					converted = mData.boolean ? L"true" : L"false";
+					break;
+
+				case scgms::NParameter_Type::ptSignal_Model_Id:
+				case scgms::NParameter_Type::ptDiscrete_Model_Id:
+				case scgms::NParameter_Type::ptMetric_Id:
+				case scgms::NParameter_Type::ptModel_Produced_Signal_Id:
+				case scgms::NParameter_Type::ptSignal_Id:
+				case scgms::NParameter_Type::ptSolver_Id:
+					converted = GUID_To_WString(mData.guid);
+				break;
+
+				default: break;
+			} //switch (source_type) {
+
+		}
+		else {
+			converted = L"$(" + mVariable_Name + L")";			
+			//and that's all
+		}
+		
+	};
+
+	switch (mType) {
+
+		case scgms::NParameter_Type::ptDouble_Array: 
+			std::tie(rc, converted) = Array_To_String<double>(mModel_Parameters.get(), false);
+			break;
+
+		case scgms::NParameter_Type::ptInt64_Array:
+			std::tie(rc, converted) = Array_To_String<int64_t>(mTime_Segment_ID.get(), false);
+			break;
+
+		default: convert_scalar();
+			break;
+	}
+
+	if (rc != S_OK)
+		converted.clear();
+
+	return std::tuple<HRESULT, std::wstring>{rc, converted};
+}
+
+std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string_interpreted() {
+	std::tuple<HRESULT, std::wstring> result{ E_UNEXPECTED, L"" };
+
+	auto convert_scalar = [&]() {
+		if (!mVariable_Name.empty()) {
+			auto [var_set, var_val] = Evaluate_Variable(mVariable_Name);
+			if (var_set) {
+				std::get<0>(result) = S_OK;
+				std::get<1>(result) = var_val;
+			}
+			else
+				std::get<0>(result) = E_NOT_SET;
+		}
+		else
+			std::get<0>(result) = E_INVALIDARG;
+	};
+
+	switch (mType) {
+
+		case scgms::NParameter_Type::ptDouble_Array:			
+			result = Array_To_String<double>(mModel_Parameters.get(), true);
+			break;
+
+		case scgms::NParameter_Type::ptInt64_Array:
+			result = Array_To_String<int64_t>(mTime_Segment_ID.get(), true);
+			break;
+
+		default: convert_scalar();
+			break;
+	}
+
+
+	return result;
 }
