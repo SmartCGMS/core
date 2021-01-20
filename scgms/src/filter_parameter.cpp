@@ -48,14 +48,12 @@ HRESULT IfaceCalling CFilter_Parameter::Get_WChar_Container(refcnt::wstr_contain
 
 HRESULT IfaceCalling CFilter_Parameter::Set_WChar_Container(refcnt::wstr_container *wstr) {
 	std::wstring tmp = WChar_Container_To_WString(wstr);
-	mVariable_Name.clear();
-
-	auto [is_var, var_name] = scgms::Is_Variable_Name(tmp);
-	if (is_var)
-		mVariable_Name = var_name;
-
-	mWChar_Container = wstr;
-	return S_OK;
+	if (from_string(mType, tmp.c_str())) {
+		mWChar_Container = wstr;
+		return S_OK;
+	}
+	else
+		return E_INVALIDARG;
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** wstr) {
