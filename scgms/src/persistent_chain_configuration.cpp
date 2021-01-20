@@ -164,7 +164,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 							if (str_value) {
 
 								std::unique_ptr<CFilter_Parameter> raw_filter_parameter = std::make_unique<CFilter_Parameter>(desc.parameter_type[i], desc.config_parameter_name[i]);
-								const bool valid = raw_filter_parameter->from_string(desc.parameter_type[i], str_value) == S_OK;
+								const bool valid = raw_filter_parameter->from_string(desc.parameter_type[i], str_value);
 
 								if (valid) {
 									scgms::IFilter_Parameter* raw_param = static_cast<scgms::IFilter_Parameter*>(raw_filter_parameter.get());

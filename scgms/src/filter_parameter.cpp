@@ -103,8 +103,12 @@ HRESULT IfaceCalling CFilter_Parameter::Set_Parent_Path(const wchar_t* parent_pa
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Get_Time_Segment_Id_Container(scgms::time_segment_id_container **ids) {
-	HRESULT rc = Update_Container_By_Vars<int64_t>(mTime_Segment_ID, str_2_int);	
-	return Succeeded(rc) ? Get_Container(mTime_Segment_ID, ids) : rc;
+	if (mTime_Segment_ID) {
+		HRESULT rc = Update_Container_By_Vars<int64_t>(mTime_Segment_ID, str_2_int);
+		return Succeeded(rc) ? Get_Container(mTime_Segment_ID, ids) : rc;
+	}
+	else
+		return S_FALSE;
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Time_Segment_Id_Container(scgms::time_segment_id_container *ids) {
@@ -167,8 +171,12 @@ HRESULT IfaceCalling CFilter_Parameter::Set_GUID(const GUID *id) {
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Get_Model_Parameters(scgms::IModel_Parameter_Vector **parameters) {
-	HRESULT rc = Update_Container_By_Vars<double>(mModel_Parameters, str_2_rat_dbl);
-	return Succeeded(rc) ? Get_Container(mModel_Parameters, parameters) : rc;
+	if (mModel_Parameters) {
+		HRESULT rc = Update_Container_By_Vars<double>(mModel_Parameters, str_2_rat_dbl);
+		return Succeeded(rc) ? Get_Container(mModel_Parameters, parameters) : rc;
+	}
+	else
+		return S_FALSE;
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Model_Parameters(scgms::IModel_Parameter_Vector *parameters) {

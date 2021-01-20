@@ -189,9 +189,7 @@ protected:
 				else
 					not_empty = true;
 
-				if (mArray_Vars[var_idx].empty() && (var_idx < mArray_Vars.size()))
-					converted << *iter;
-				else {
+				if ((var_idx < mArray_Vars.size()) && !mArray_Vars[var_idx].empty()) {
 					if (read_interpreted) {
 						auto [valid, str_val] = Evaluate_Variable(mArray_Vars[var_idx]);
 						if (valid) converted << str_val;
@@ -200,8 +198,12 @@ protected:
 							std::get<1>(result) = mArray_Vars[var_idx];
 							return result;
 						}
-					} else
+					}
+					else
 						converted << L"$(" << mArray_Vars[var_idx] << L")";
+				}					
+				else {
+					converted << *iter;
 				}
 			}
 		}

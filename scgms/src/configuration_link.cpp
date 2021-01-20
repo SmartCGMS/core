@@ -12,7 +12,10 @@ HRESULT IfaceCalling CFilter_Configuration_Link::Get_Filter_Id(GUID *id) {
 }
 
 HRESULT IfaceCalling CFilter_Configuration_Link::Set_Parent_Path(const wchar_t* path) {
-	if ((!path) || (*path == 0)) return E_INVALIDARG;
+	if ((!path) || (*path == 0)) {
+		mParent_Path.clear();
+		return S_OK;
+	};
 	
 	mParent_Path = path;
 
