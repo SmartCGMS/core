@@ -66,9 +66,9 @@ protected:
 	double mError_Metric = std::numeric_limits<double>::quiet_NaN();
 	bool mError_Metric_Available = false;
 public:
-	CError_Metric_Future(scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) : mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data) {};
+	CError_Metric_Future(scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) noexcept : mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data) {};
 
-	HRESULT On_Filter_Created(scgms::IFilter *filter) {
+	HRESULT On_Filter_Created(scgms::IFilter *filter) noexcept {
 
 		scgms::SSignal_Error_Inspection insp = scgms::SSignal_Error_Inspection{ scgms::SFilter{filter} };
 		if (insp) {
@@ -79,7 +79,7 @@ public:
 		return mOn_Filter_Created ? mOn_Filter_Created(filter, mOn_Filter_Created_Data) : S_OK;
 	}
 
-	double Get_Error_Metric() {
+	double Get_Error_Metric() noexcept {
 		return mError_Metric_Available ? mError_Metric : std::numeric_limits<double>::quiet_NaN();
 	}
 };
@@ -94,7 +94,7 @@ protected:
 	size_t mProblem_Size = 0;
 	std::vector<double> mLower_Bound, mUpper_Bound, mFound_Parameters;
 protected:
-	scgms::SFilter_Chain_Configuration Empty_Chain() {
+	scgms::SFilter_Chain_Configuration Empty_Chain() noexcept {
 		auto result = refcnt::Manufacture_Object_Shared<CPersistent_Chain_Configuration, scgms::IFilter_Chain_Configuration, scgms::SFilter_Chain_Configuration>();
 
 		refcnt::wstr_container* parent_path = nullptr;
@@ -112,7 +112,7 @@ protected:
 protected:
 	std::vector<scgms::IDevice_Event*> mEvents_To_Replay;
 
-	scgms::SFilter_Chain_Configuration Copy_Reduced_Configuration(const size_t end_index) {
+	scgms::SFilter_Chain_Configuration Copy_Reduced_Configuration(const size_t end_index) noexcept {
 					
 		scgms::SFilter_Chain_Configuration reduced_filter_configuration = Empty_Chain();
 		bool success = reduced_filter_configuration.operator bool();
@@ -146,7 +146,7 @@ protected:
 		return success ? reduced_filter_configuration : Empty_Chain();
 	}
 
-	size_t Find_Minimal_Receiver_Index_End() {
+	size_t Find_Minimal_Receiver_Index_End() noexcept {
 		size_t minimal_index_end = 0;
 		bool found = false;
 		CTerminal_Filter terminal{ nullptr };
@@ -174,7 +174,7 @@ protected:
 	}
 
 
-	bool Fetch_Events_To_Replay(refcnt::Swstr_list &error_description) {
+	bool Fetch_Events_To_Replay(refcnt::Swstr_list &error_description) noexcept {
 		mEvents_To_Replay.clear();
 
 		const size_t minimal_receiver_end = Find_Minimal_Receiver_Index_End();
@@ -216,7 +216,7 @@ protected:
 
 	std::mutex mClone_Guard;
 
-	TFast_Configuration Clone_Configuration(const size_t first_effective_filter, refcnt::Swstr_list error_description) {
+	TFast_Configuration Clone_Configuration(const size_t first_effective_filter, refcnt::Swstr_list error_description) noexcept {
 		std::lock_guard<std::mutex> lg{ mClone_Guard };
 
 		TFast_Configuration result;
@@ -263,7 +263,7 @@ protected:
 							return;
 						}
 
-						raw_link_to_add = static_cast<scgms::IFilter_Configuration_Link*>(new CFilter_Configuration_Link(filter_id)); //so far, zero RC which is correct right now because we do not call dtor here
+						raw_link_to_add = static_cast<scgms::IFilter_Configuration_Link*>(Create_Raw_Object<CFilter_Configuration_Link>(filter_id)); //so far, zero RC which is correct right now because we do not call dtor here
 
 						{
 							refcnt::wstr_container* parent_path = nullptr;
@@ -286,7 +286,7 @@ protected:
 							if (!found_parameters && (mParameters_Config_Names[index] == src_parameter.configuration_name())) {
 								//parameters - we need to create a new copy
 
-								raw_parameter = static_cast<scgms::IFilter_Parameter*>(new CFilter_Parameter{ scgms::NParameter_Type::ptDouble_Array, mParameters_Config_Names[index].c_str() });
+								raw_parameter = static_cast<scgms::IFilter_Parameter*>(Create_Raw_Object<CFilter_Parameter>(scgms::NParameter_Type::ptDouble_Array, mParameters_Config_Names[index].c_str()));
 								scgms::IModel_Parameter_Vector *src_parameters, *dst_parameters;
 								if (src_parameter->Get_Model_Parameters(&src_parameters) == S_OK) {
 									dst_parameters = refcnt::Copy_Container<double>(src_parameters);
@@ -338,7 +338,7 @@ protected:
 public:
 	static inline refcnt::Swstr_list mEmpty_Error_Description;	//no thread local as we need to reset it!
 public:
-	CParameters_Optimizer(scgms::IFilter_Chain_Configuration *configuration, const size_t *filter_indices, const wchar_t **parameters_config_names, const size_t filter_count, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data)
+	CParameters_Optimizer(scgms::IFilter_Chain_Configuration *configuration, const size_t *filter_indices, const wchar_t **parameters_config_names, const size_t filter_count, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) noexcept
 		: mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data),
 		mConfiguration(refcnt::make_shared_reference_ext<scgms::SFilter_Chain_Configuration, scgms::IFilter_Chain_Configuration>(configuration, true)),
 		mFilter_Indices{ filter_indices, filter_indices + filter_count }, mParameters_Config_Names{ parameters_config_names, parameters_config_names + filter_count } {
@@ -351,12 +351,12 @@ public:
 	}
 
 
-	~CParameters_Optimizer() {
+	~CParameters_Optimizer() noexcept {
 		for (auto &event : mEvents_To_Replay)
 			event->Release();
 	}
 
-	HRESULT Optimize(const GUID solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress &progress, refcnt::Swstr_list error_description) {
+	HRESULT Optimize(const GUID solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress &progress, refcnt::Swstr_list error_description) noexcept {
 
 		std::vector<double> lbound, params, ubound;
 
@@ -435,13 +435,13 @@ public:
 		return rc;
 	}
 
-	void Get_Parameter_Subset(const size_t optimized_filter_idx, const std::vector<double>& parameterSet, std::vector<double>& target)
+	void Get_Parameter_Subset(const size_t optimized_filter_idx, const std::vector<double>& parameterSet, std::vector<double>& target) noexcept
 	{
 		target.resize(mFilter_Parameter_Counts[optimized_filter_idx]);
 		std::copy(parameterSet.begin() + mFilter_Parameter_Offsets[optimized_filter_idx], parameterSet.begin() + mFilter_Parameter_Offsets[optimized_filter_idx] + mFilter_Parameter_Counts[optimized_filter_idx], target.begin());
 	}
 
-	double Calculate_Fitness(const void* solution, refcnt::Swstr_list empty_error_description) {
+	double Calculate_Fitness(const void* solution, refcnt::Swstr_list empty_error_description) noexcept {
 		bool failure_detected = false;
 
 		TFast_Configuration configuration = Clone_Configuration(mFirst_Effective_Filter_Index, empty_error_description);	//later on, we will replace this with a pool
@@ -470,11 +470,11 @@ public:
 			//wait for the result
 			if (!mEvents_To_Replay.empty()) {
 				for (size_t i = 0; i < mEvents_To_Replay.size(); i++) {		//we can replay the pre-calculated events
-					scgms::IDevice_Event* event_to_replay = static_cast<scgms::IDevice_Event*> (new CDevice_Event{ mEvents_To_Replay[i] });
+					scgms::IDevice_Event* event_to_replay = static_cast<scgms::IDevice_Event*> (Create_Raw_Object<CDevice_Event>( mEvents_To_Replay[i] ));
 					failure_detected = !Succeeded(composite_filter.Execute(event_to_replay));
 					if (failure_detected) {
 						//something has not gone well => break, but be that nice to issue the shutdown event first
-						scgms::IDevice_Event* shutdown_event = static_cast<scgms::IDevice_Event*> (new CDevice_Event{ scgms::NDevice_Event_Code::Shut_Down });
+						scgms::IDevice_Event* shutdown_event = static_cast<scgms::IDevice_Event*> (Create_Raw_Object<CDevice_Event>(scgms::NDevice_Event_Code::Shut_Down ));
 						if (Succeeded(composite_filter.Execute(shutdown_event)))
 							terminal_filter.Wait_For_Shutdown();	//wait only if the shutdown did go through succesfully
 						break;
@@ -493,7 +493,7 @@ public:
 	}
 };
 
-double IfaceCalling internal::Parameters_Fitness_Wrapper(const void *data, const double *solution) {
+double IfaceCalling internal::Parameters_Fitness_Wrapper(const void *data, const double *solution) noexcept {
 	CParameters_Optimizer *fitness = reinterpret_cast<CParameters_Optimizer*>(const_cast<void*>(data));
 	return fitness->Calculate_Fitness(solution, CParameters_Optimizer::mEmpty_Error_Description);
 }
@@ -502,7 +502,7 @@ double IfaceCalling internal::Parameters_Fitness_Wrapper(const void *data, const
 HRESULT IfaceCalling optimize_parameters(scgms::IFilter_Chain_Configuration *configuration, const size_t filter_index, const wchar_t *parameters_configuration_name, 
 										 scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data,
 									     const GUID *solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress *progress,
-										 refcnt::wstr_list *error_description) {
+										 refcnt::wstr_list *error_description) noexcept {
 
 	CParameters_Optimizer optimizer{ configuration, &filter_index, &parameters_configuration_name, 1, on_filter_created, on_filter_created_data };
 	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
@@ -512,7 +512,7 @@ HRESULT IfaceCalling optimize_parameters(scgms::IFilter_Chain_Configuration *con
 HRESULT IfaceCalling optimize_multiple_parameters(scgms::IFilter_Chain_Configuration *configuration, const size_t *filter_indices, const wchar_t **parameters_configuration_names, size_t filter_count,
 												  scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data,
 												  const GUID *solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress *progress,
-												  refcnt::wstr_list *error_description) {
+												  refcnt::wstr_list *error_description) noexcept {
 
 	CParameters_Optimizer optimizer{ configuration, filter_indices, parameters_configuration_names, filter_count, on_filter_created, on_filter_created_data };
 	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);

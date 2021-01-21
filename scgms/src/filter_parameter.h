@@ -18,8 +18,8 @@ protected:
 	template <typename T>
 	using TConvertor = T(*)(const std::wstring&, bool&);
 protected:
-	const scgms::NParameter_Type mType;
-	const std::wstring mConfig_Name;
+	scgms::NParameter_Type mType;
+	std::wstring mConfig_Name;
 	filesystem::path mParent_Path;
 
 	//the following SReferenced variables are not part of the union to prevent memory corruption
@@ -157,7 +157,7 @@ protected:
 		//values converted and nested variable names noted
 		//=> create and return its container
 		R* obj = nullptr;
-		if (Manufacture_Object<refcnt::internal::CVector_Container<D>, R>(&obj) == S_OK) {
+		if (Manufacture_Object<refcnt::internal::CVector_Container<D>, R>(&obj).code == S_OK) {
 			if (obj->set(values.data(), values.data() + values.size()) != S_OK) {
 				obj->Release();
 				obj = nullptr;
@@ -222,7 +222,9 @@ protected:
 	std::map<std::wstring, std::wstring> mNon_OS_Variables;
 	std::tuple<bool, std::wstring> Evaluate_Variable(const std::wstring &var_name);
 public:
-	CFilter_Parameter(const scgms::NParameter_Type type, const wchar_t *config_name);
+	CFilter_Parameter() noexcept = default;
+	TEmbedded_Error Initialize(const scgms::NParameter_Type type, const std::wstring &config_name) noexcept;
+		
 	virtual ~CFilter_Parameter() {};	
 
 	//conversion

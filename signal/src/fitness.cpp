@@ -144,3 +144,62 @@ double IfaceCalling Fitness_Wrapper(const void *data, const double *solution) {
 	CFitness *fitness = reinterpret_cast<CFitness*>(const_cast<void*>(data));
 	return fitness->Calculate_Fitness(solution);
 }
+
+HRESULT CLoaded_Filters::solve_model_parameters(const scgms::TSolver_Setup *setup) {
+	auto call_solve_model_parameters = [](const imported::TLibraryInfo &info) { return info.solve_model_parameters; }; 
+	HRESULT rc = Call_Func(call_solve_model_parameters, setup);
+
+	if (rc != S_OK) {
+		//let's try to apply the generic filters as well
+		scgms::TModel_Descriptor *model = nullptr;
+		for (size_t desc_idx = 0; desc_idx < mModel_Descriptors.size(); desc_idx++)
+			for (size_t signal_idx = 0; signal_idx < mModel_Descriptors[desc_idx].number_of_calculated_signals; signal_idx++) {
+				if (mModel_Descriptors[desc_idx].calculated_signal_ids[signal_idx] == setup->calculated_signal_id) {
+					model = &mModel_Descriptors[desc_idx];
+					break;
+				}
+			}
+
+
+		if (model != nullptr) {
+			double *lower_bound, *upper_bound, *begin, *end;
+
+			if ((setup->lower_bound->get(&lower_bound, &end) != S_OK) || (setup->upper_bound->get(&upper_bound, &end) != S_OK)) return E_FAIL;
+
+			std::vector<double*> hints;
+			for (size_t i = 0; i < setup->hint_count; i++) {
+				if (setup->solution_hints[i]->get(&begin, &end) == S_OK)
+					hints.push_back(begin);
+			}	
+			
+			std::vector<double> solution(model->number_of_parameters);
+						
+			CFitness fitness{ *setup, model->number_of_parameters};
+
+			solver::TSolver_Setup generic_setup{
+				model->number_of_parameters,
+				lower_bound, upper_bound,
+				const_cast<const double**> (hints.data()), hints.size(),
+				solution.data(),
+
+
+				&fitness,
+				Fitness_Wrapper,
+
+				solver::Default_Solver_Setup.max_generations,
+				solver::Default_Solver_Setup.population_size,
+				solver::Default_Solver_Setup.tolerance,
+			};
+			
+			rc = solve_generic(&setup->solver_id, &generic_setup, setup->progress);
+			if (rc == S_OK) {
+				rc = setup->solved_parameters->set(solution.data(), solution.data()+solution.size());
+			}
+
+			return rc;
+		}
+
+	}
+
+	return rc;
+}

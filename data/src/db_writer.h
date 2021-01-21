@@ -117,8 +117,10 @@ class CDb_Writer : public scgms::CBase_Filter, public db::IDb_Sink {
 		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 		HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 	public:
-		CDb_Writer(scgms::IFilter *output);
+		CDb_Writer() noexcept = default;
 		virtual ~CDb_Writer();
+
+		TEmbedded_Error Initialize(scgms::IFilter* output) noexcept;		//if HRESULT != S_OK, wchar_t* describes the error
 
 		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;		
 		virtual HRESULT IfaceCalling Set_Connector(db::IDb_Connector *connector) override;

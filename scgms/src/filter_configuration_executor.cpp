@@ -45,26 +45,26 @@
 #include "composite_filter.h"
 #include "device_event.h"
 
-CFilter_Configuration_Executor::CFilter_Configuration_Executor(scgms::IFilter *custom_output) : mTerminal_Filter(CTerminal_Filter{custom_output}) {
+CFilter_Configuration_Executor::CFilter_Configuration_Executor(scgms::IFilter *custom_output) noexcept : mTerminal_Filter(CTerminal_Filter{custom_output}) {
 
 }
 
-HRESULT CFilter_Configuration_Executor::Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, refcnt::Swstr_list& error_description) {
+HRESULT CFilter_Configuration_Executor::Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, refcnt::Swstr_list& error_description) noexcept {
 
 	return mComposite_Filter.Build_Filter_Chain(configuration, &mTerminal_Filter, on_filter_created, on_filter_created_data, error_description);
 }
 
 
-CFilter_Configuration_Executor::~CFilter_Configuration_Executor() {
+CFilter_Configuration_Executor::~CFilter_Configuration_Executor() noexcept {
 	Terminate(FALSE);
 }
 
-HRESULT IfaceCalling CFilter_Configuration_Executor::Execute(scgms::IDevice_Event *event) {	
+HRESULT IfaceCalling CFilter_Configuration_Executor::Execute(scgms::IDevice_Event *event) noexcept {
 	if (!event) return E_INVALIDARG;
 	return mComposite_Filter.Execute(event);    //also frees the event	
 }
 
-HRESULT IfaceCalling CFilter_Configuration_Executor::Terminate(const BOOL wait_for_shutdown) {
+HRESULT IfaceCalling CFilter_Configuration_Executor::Terminate(const BOOL wait_for_shutdown)noexcept {
 	if (mComposite_Filter.Empty()) return S_FALSE;
 	if (wait_for_shutdown == TRUE) 
 		mTerminal_Filter.Wait_For_Shutdown();
@@ -72,7 +72,7 @@ HRESULT IfaceCalling CFilter_Configuration_Executor::Terminate(const BOOL wait_f
 	return mComposite_Filter.Clear();
 }
 
-HRESULT IfaceCalling execute_filter_configuration(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, scgms::IFilter *custom_output, scgms::IFilter_Executor **executor, refcnt::wstr_list *error_description) {
+HRESULT IfaceCalling execute_filter_configuration(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, scgms::IFilter *custom_output, scgms::IFilter_Executor **executor, refcnt::wstr_list *error_description) noexcept {
 	std::unique_ptr<CFilter_Configuration_Executor> raw_executor = std::make_unique<CFilter_Configuration_Executor>(custom_output);
 	//increase the reference just in a case that we would be released prematurely in the Build_Filter_Chain call
 	*executor = static_cast<scgms::IFilter_Executor*>(raw_executor.get());

@@ -39,18 +39,23 @@
 #pragma once
 
 #include "../../../common/iface/DeviceIface.h"
+#include "../../../common/iface/EmbeddedIface.h"
 
 
 class CDevice_Event : public virtual scgms::IDevice_Event {
 protected:
-	scgms::TDevice_Event mRaw;	
+	scgms::TDevice_Event mRaw;
 public:
-	CDevice_Event(scgms::NDevice_Event_Code code);
-	CDevice_Event(scgms::IDevice_Event *event);
+	CDevice_Event() noexcept = default;
+	TEmbedded_Error Initialize(scgms::NDevice_Event_Code code) noexcept;
+	TEmbedded_Error Initialize(scgms::IDevice_Event *event) noexcept;
+
 	virtual ~CDevice_Event();
-	virtual ULONG IfaceCalling Release() override;
-	virtual HRESULT IfaceCalling Raw(scgms::TDevice_Event **dst) override;
-	virtual HRESULT IfaceCalling Clone(IDevice_Event** event) override;
+	virtual ULONG IfaceCalling Release() noexcept override;
+	virtual HRESULT IfaceCalling Raw(scgms::TDevice_Event **dst) noexcept override;
+	virtual HRESULT IfaceCalling Clone(IDevice_Event** event) noexcept override;
 };
 
-extern "C" HRESULT IfaceCalling create_device_event(scgms::NDevice_Event_Code code, scgms::IDevice_Event **event);
+
+
+extern "C" HRESULT IfaceCalling create_device_event(scgms::NDevice_Event_Code code, scgms::IDevice_Event **event) noexcept;

@@ -12,12 +12,14 @@ double str_2_rat_dbl(const std::wstring& str, bool& converted_ok) {
 }
 
 HRESULT IfaceCalling create_filter_parameter(const scgms::NParameter_Type type, const wchar_t* config_name, scgms::IFilter_Parameter** parameter) {
-	return Manufacture_Object<CFilter_Parameter, scgms::IFilter_Parameter>(parameter, type, config_name);
+	return Manufacture_Object<CFilter_Parameter, scgms::IFilter_Parameter>(parameter, type, config_name).code;
 }
 
 
-CFilter_Parameter::CFilter_Parameter(const scgms::NParameter_Type type, const wchar_t *config_name) : mType(type), mConfig_Name(config_name) {
-	//
+TEmbedded_Error CFilter_Parameter::Initialize(const scgms::NParameter_Type type, const std::wstring &config_name) noexcept {
+	mType = type;
+	mConfig_Name = config_name;
+	return { S_OK, nullptr };
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Get_Type(scgms::NParameter_Type *type) {
@@ -190,22 +192,32 @@ HRESULT IfaceCalling CFilter_Parameter::Set_Model_Parameters(scgms::IModel_Param
 
 
 HRESULT IfaceCalling CFilter_Parameter::Clone(scgms::IFilter_Parameter **deep_copy) {
-	std::unique_ptr<CFilter_Parameter> clone = std::make_unique<CFilter_Parameter>(mType, mConfig_Name.c_str());	
-	clone->mVariable_Name = mVariable_Name;
-	clone->mWChar_Container = refcnt::Copy_Container<wchar_t>(mWChar_Container.get());
-	clone->mArray_Vars = mArray_Vars;
-	clone->mFirst_Array_Var_idx = mFirst_Array_Var_idx;
-	clone->mTime_Segment_ID = refcnt::Copy_Container<int64_t>(mTime_Segment_ID.get());
-	clone->mModel_Parameters = refcnt::Copy_Container<double>(mModel_Parameters.get());
-	clone->mData = mData;
+	std::unique_ptr<CFilter_Parameter> clone = std::make_unique<CFilter_Parameter>();
+	HRESULT rc = E_UNEXPECTED;
 
-	clone->mParent_Path = mParent_Path;
+	if (clone) {
+		const auto err = clone->Initialize(mType, mConfig_Name);
+		rc = err.code;
+		if (Succeeded(rc)) {
+			clone->mVariable_Name = mVariable_Name;
+			clone->mWChar_Container = refcnt::Copy_Container<wchar_t>(mWChar_Container.get());
+			clone->mArray_Vars = mArray_Vars;
+			clone->mFirst_Array_Var_idx = mFirst_Array_Var_idx;
+			clone->mTime_Segment_ID = refcnt::Copy_Container<int64_t>(mTime_Segment_ID.get());
+			clone->mModel_Parameters = refcnt::Copy_Container<double>(mModel_Parameters.get());
+			clone->mData = mData;
 
-	(*deep_copy) = static_cast<scgms::IFilter_Parameter*>(clone.get());
-	(*deep_copy)->AddRef();
-	clone.release();
+			clone->mParent_Path = mParent_Path;
 
-	return S_OK;
+			(*deep_copy) = static_cast<scgms::IFilter_Parameter*>(clone.get());
+			(*deep_copy)->AddRef();			
+			clone.release();
+		}
+		
+	} else
+		rc = E_OUTOFMEMORY;	
+
+	return rc;
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Variable(const wchar_t* name, const wchar_t* value) {
@@ -242,7 +254,7 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 		auto [is_var, var_name] = scgms::Is_Variable_Name(str);
 		if (is_var) {
 			mVariable_Name = var_name;
-			return S_OK;
+			return true;
 		}
 		else
 			mVariable_Name.clear();

@@ -42,6 +42,7 @@
 #include "file_reader.h"
 #include "sincos_generator.h"
 #include "../../../common/utils/descriptor_utils.h"
+#include "../../../common/iface/EmbeddedIface.h"
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
@@ -304,15 +305,17 @@ extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descrip
 }
 
 extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *next_filter, scgms::IFilter **filter) {
+	TEmbedded_Error err{ E_NOTIMPL, nullptr };
+
 
 	if (*id == db_reader::Db_Reader_Descriptor.id)
-		return Manufacture_Object<CDb_Reader>(filter, next_filter);
+		err = Manufacture_Object<CDb_Reader>(filter, next_filter);
 	if (*id == db_writer::Db_Writer_Descriptor.id)
-		return Manufacture_Object<CDb_Writer>(filter, next_filter);
+		err = Manufacture_Object<CDb_Writer>(filter, next_filter);
 	else if (*id == file_reader::File_Reader_Descriptor.id)
-		return Manufacture_Object<CFile_Reader>(filter, next_filter);
+		err = Manufacture_Object<CFile_Reader>(filter, next_filter);
 	else if (*id == sincos_generator::SinCos_Generator_Descriptor.id)
-		return Manufacture_Object<CSinCos_Generator>(filter, next_filter);
+		err = Manufacture_Object<CSinCos_Generator>(filter, next_filter);
 
-	return E_NOTIMPL;
+	return err.code;
 }

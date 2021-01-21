@@ -53,15 +53,15 @@ protected:
 	scgms::TOn_Filter_Created mOn_Filter_Created;
 	const void* mOn_Filter_Created_Data;
 public:
-	CFilter_Executor(const GUID filter_id, std::recursive_mutex &communication_guard, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
-	virtual ~CFilter_Executor() = default;
+	CFilter_Executor(const GUID filter_id, std::recursive_mutex &communication_guard, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) noexcept;
+	virtual ~CFilter_Executor() noexcept = default;
 
-	void Release_Filter();
+	void Release_Filter() noexcept;
 
-	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
+	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) noexcept override;
 
-	virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list *error_description) override final;
-	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
+	virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list *error_description) noexcept override final;
+	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) noexcept override final;
 };
 
 class CTerminal_Filter : public virtual scgms::IFilter, public virtual refcnt::CNotReferenced {
@@ -72,21 +72,21 @@ protected:
 	bool mShutdown_Received = false;
 	scgms::IFilter *mCustom_Output = nullptr;
 public:
-	CTerminal_Filter(scgms::IFilter *custom_output);
-	virtual ~CTerminal_Filter() = default;
+	CTerminal_Filter(scgms::IFilter *custom_output) noexcept;
+	virtual ~CTerminal_Filter() noexcept = default;
 
-	void Wait_For_Shutdown();	//blocking wait, until it receives the shutdown event
+	void Wait_For_Shutdown() noexcept;	//blocking wait, until it receives the shutdown event
 
-	virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list* error_description) override final;
-	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override;
+	virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list* error_description) noexcept override final;
+	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) noexcept override;
 };
 
 class CCopying_Terminal_Filter : public virtual CTerminal_Filter {
 protected:
 	std::vector<scgms::IDevice_Event*> &mEvents;
 public:
-	CCopying_Terminal_Filter(std::vector<scgms::IDevice_Event*> &events);
-	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
+	CCopying_Terminal_Filter(std::vector<scgms::IDevice_Event*> &events) noexcept;
+	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) noexcept override final;
 };
 
 #pragma warning( pop )
