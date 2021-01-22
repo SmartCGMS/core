@@ -99,10 +99,8 @@ class CDb_Reader : public scgms::CBase_Filter, public db::IDb_Sink{
 		db::SDb_Connection mDb_Connection;
 
 	public:
-		CDb_Reader() noexcept = default;
+		CDb_Reader(scgms::IFilter *output);
 		virtual ~CDb_Reader();
-
-		TEmbedded_Error Initialize(scgms::IFilter* output) noexcept;		//if HRESULT != S_OK, wchar_t* describes the error
 
 		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
 

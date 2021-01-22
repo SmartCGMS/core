@@ -50,23 +50,23 @@
 class CPersistent_Chain_Configuration : public virtual scgms::IPersistent_Filter_Chain_Configuration, public virtual refcnt::internal::CVector_Container<scgms::IFilter_Configuration_Link*> {
 protected:
 	filesystem::path mFile_Path;
-	void Advertise_Parent_Path() noexcept;
+	void Advertise_Parent_Path();
 protected:
-	wchar_t* Describe_GUID(const GUID& val, const scgms::NParameter_Type param_type, const scgms::CSignal_Description& signal_descriptors) const noexcept;
+	wchar_t* Describe_GUID(const GUID& val, const scgms::NParameter_Type param_type, const scgms::CSignal_Description& signal_descriptors) const;	
 public:
-	virtual ~CPersistent_Chain_Configuration() noexcept {};
+	virtual ~CPersistent_Chain_Configuration() {};
 
-	virtual HRESULT IfaceCalling add(scgms::IFilter_Configuration_Link** begin, scgms::IFilter_Configuration_Link** end) noexcept override;
+	virtual HRESULT IfaceCalling add(scgms::IFilter_Configuration_Link** begin, scgms::IFilter_Configuration_Link** end) override;
 
-	virtual HRESULT IfaceCalling Get_Parent_Path(refcnt::wstr_container** path) noexcept override final;
-	virtual HRESULT IfaceCalling Set_Parent_Path(const wchar_t* parent_path) noexcept override final;
-	virtual HRESULT IfaceCalling Set_Variable(const wchar_t* name, const wchar_t* value) noexcept override final;
+	virtual HRESULT IfaceCalling Get_Parent_Path(refcnt::wstr_container** path) override final;
+	virtual HRESULT IfaceCalling Set_Parent_Path(const wchar_t* parent_path) override final;
+	virtual HRESULT IfaceCalling Set_Variable(const wchar_t* name, const wchar_t* value) override final;
 
-	virtual HRESULT IfaceCalling Load_From_File(const wchar_t *file_path, refcnt::wstr_list *error_description) noexcept override final;
-	virtual HRESULT IfaceCalling Load_From_Memory(const char *memory, const size_t len, refcnt::wstr_list *error_description) noexcept override final;
-	virtual HRESULT IfaceCalling Save_To_File(const wchar_t *file_path, refcnt::wstr_list* error_description) noexcept override final;	
+	virtual HRESULT IfaceCalling Load_From_File(const wchar_t *file_path, refcnt::wstr_list *error_description) override final;
+	virtual HRESULT IfaceCalling Load_From_Memory(const char *memory, const size_t len, refcnt::wstr_list *error_description) override final;
+	virtual HRESULT IfaceCalling Save_To_File(const wchar_t *file_path, refcnt::wstr_list* error_description) override final;	
 };
 
 #pragma warning( pop )
 
-extern "C" HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersistent_Filter_Chain_Configuration **configuration) noexcept;
+extern "C" HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersistent_Filter_Chain_Configuration **configuration);

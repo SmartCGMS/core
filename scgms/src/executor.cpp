@@ -40,19 +40,18 @@
 #include "filters.h"
 #include "device_event.h"
 
-CFilter_Executor::CFilter_Executor(const GUID filter_id, std::recursive_mutex &communication_guard, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) noexcept :
+CFilter_Executor::CFilter_Executor(const GUID filter_id, std::recursive_mutex &communication_guard, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) :
 	mCommunication_Guard(communication_guard),  mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data) {
 	
 	mFilter = create_filter(filter_id, next_filter);			
 }
 
-void CFilter_Executor::Release_Filter() noexcept {
-	if (mFilter) 
-		mFilter.reset();
+void CFilter_Executor::Release_Filter() {
+	if (mFilter) mFilter.reset();
 }
 
 
-HRESULT IfaceCalling CFilter_Executor::Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list* error_description) noexcept {
+HRESULT IfaceCalling CFilter_Executor::Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list* error_description) {
 	if (!mFilter) return E_FAIL;	
 	HRESULT rc = mFilter->Configure(configuration, error_description);
 	if ((rc == S_OK) && mOn_Filter_Created)
@@ -62,7 +61,7 @@ HRESULT IfaceCalling CFilter_Executor::Configure(scgms::IFilter_Configuration* c
 	return rc;
 }
 
-HRESULT IfaceCalling CFilter_Executor::Execute(scgms::IDevice_Event *event) noexcept {
+HRESULT IfaceCalling CFilter_Executor::Execute(scgms::IDevice_Event *event) {
 	//Simply acquire the lock and then call execute method of the filter
 	std::lock_guard<std::recursive_mutex> guard{ mCommunication_Guard };
 	
@@ -70,25 +69,25 @@ HRESULT IfaceCalling CFilter_Executor::Execute(scgms::IDevice_Event *event) noex
 }
 
 
-HRESULT IfaceCalling CFilter_Executor::QueryInterface(const GUID*  riid, void ** ppvObj) noexcept {
+HRESULT IfaceCalling CFilter_Executor::QueryInterface(const GUID*  riid, void ** ppvObj) {
 	return mFilter ? mFilter->QueryInterface(riid, ppvObj) : E_FAIL;
 }
 
-CTerminal_Filter::CTerminal_Filter(scgms::IFilter *custom_output) noexcept : mCustom_Output(custom_output) {
+CTerminal_Filter::CTerminal_Filter(scgms::IFilter *custom_output) : mCustom_Output(custom_output) {
 
 }
 
-void CTerminal_Filter::Wait_For_Shutdown() noexcept {
+void CTerminal_Filter::Wait_For_Shutdown() {	
 	std::unique_lock<std::mutex> guard{ mShutdown_Guard };
 	mShutdown_Condition.wait(guard, [this]() {return mShutdown_Received; });
 }
 
 
-HRESULT IfaceCalling CTerminal_Filter::Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list* error_description) noexcept {
+HRESULT IfaceCalling CTerminal_Filter::Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list* error_description) {
 	return S_OK;
 }
 
-HRESULT IfaceCalling CTerminal_Filter::Execute(scgms::IDevice_Event *event) noexcept {
+HRESULT IfaceCalling CTerminal_Filter::Execute(scgms::IDevice_Event *event) {
 	
 	if (!event) return E_INVALIDARG;
 
@@ -113,18 +112,11 @@ HRESULT IfaceCalling CTerminal_Filter::Execute(scgms::IDevice_Event *event) noex
 };
 
 
-CCopying_Terminal_Filter::CCopying_Terminal_Filter(std::vector<scgms::IDevice_Event*> &events) noexcept : CTerminal_Filter(nullptr), mEvents(events) {
+CCopying_Terminal_Filter::CCopying_Terminal_Filter(std::vector<scgms::IDevice_Event*> &events) : CTerminal_Filter(nullptr), mEvents(events) {
 
 }
 
-HRESULT IfaceCalling CCopying_Terminal_Filter::Execute(scgms::IDevice_Event *event) noexcept {
-	scgms::IDevice_Event* clone = nullptr;
-	HRESULT rc = event->Clone(&clone);
-
-	if (Succeeded(rc)) {
-		mEvents.push_back(clone);
-		rc = CTerminal_Filter::Execute(event);
-	}
-	
-	return rc;
+HRESULT IfaceCalling CCopying_Terminal_Filter::Execute(scgms::IDevice_Event *event) {
+	mEvents.push_back(static_cast<scgms::IDevice_Event*> (new CDevice_Event{ event }));
+	return CTerminal_Filter::Execute(event);
 }

@@ -73,8 +73,8 @@ namespace db_writer
 	const wchar_t* Subject_Base_Name = L"Subject";
 }
 
-TEmbedded_Error CDb_Writer::Initialize(scgms::IFilter* output) noexcept {
-	return CBase_Filter::Initialize(output, db_writer::filter_id);
+CDb_Writer::CDb_Writer(scgms::IFilter *output) : CBase_Filter(output) {
+	//
 }
 
 CDb_Writer::~CDb_Writer() {

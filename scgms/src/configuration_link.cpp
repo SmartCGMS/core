@@ -2,17 +2,16 @@
 
 #include "../../../common/rtl/manufactory.h"
 
-TEmbedded_Error CFilter_Configuration_Link::Initialize(const GUID& id) noexcept { 
-	mID = id;
-	return { S_OK, nullptr }; 
+CFilter_Configuration_Link::CFilter_Configuration_Link(const GUID &id) : mID(id) {
+	//
 }
 
-HRESULT IfaceCalling CFilter_Configuration_Link::Get_Filter_Id(GUID *id) noexcept {
+HRESULT IfaceCalling CFilter_Configuration_Link::Get_Filter_Id(GUID *id) {
 	*id = mID;
 	return S_OK;
 }
 
-HRESULT IfaceCalling CFilter_Configuration_Link::Set_Parent_Path(const wchar_t* path) noexcept {
+HRESULT IfaceCalling CFilter_Configuration_Link::Set_Parent_Path(const wchar_t* path) {
 	if ((!path) || (*path == 0)) {
 		mParent_Path.clear();
 		return S_OK;
@@ -29,7 +28,7 @@ HRESULT IfaceCalling CFilter_Configuration_Link::Set_Parent_Path(const wchar_t* 
 	return rc;
 }
 
-HRESULT IfaceCalling CFilter_Configuration_Link::Set_Variable(const wchar_t* name, const wchar_t* value) noexcept {
+HRESULT IfaceCalling CFilter_Configuration_Link::Set_Variable(const wchar_t* name, const wchar_t* value) {
 	if ((!name) || (*name == 0)) return E_INVALIDARG;
 
 	HRESULT rc = S_OK;
@@ -42,7 +41,7 @@ HRESULT IfaceCalling CFilter_Configuration_Link::Set_Variable(const wchar_t* nam
 
 }
 
-HRESULT IfaceCalling CFilter_Configuration_Link::add(scgms::IFilter_Parameter** begin, scgms::IFilter_Parameter** end) noexcept {
+HRESULT IfaceCalling CFilter_Configuration_Link::add(scgms::IFilter_Parameter** begin, scgms::IFilter_Parameter** end) {
 	HRESULT rc = refcnt::internal::CVector_Container<scgms::IFilter_Parameter*>::add(begin, end);
 	if (rc == S_OK)
 		rc = Set_Parent_Path(mParent_Path.c_str());
@@ -50,6 +49,6 @@ HRESULT IfaceCalling CFilter_Configuration_Link::add(scgms::IFilter_Parameter** 
 	return rc;
 }
 
-HRESULT IfaceCalling create_filter_configuration_link(const GUID* id, scgms::IFilter_Configuration_Link** link) noexcept {
-	return Manufacture_Object<CFilter_Configuration_Link>(link, *id).code;
+HRESULT IfaceCalling create_filter_configuration_link(const GUID* id, scgms::IFilter_Configuration_Link** link) {
+	return Manufacture_Object<CFilter_Configuration_Link>(link, *id);
 }

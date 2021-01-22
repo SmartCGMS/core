@@ -83,13 +83,12 @@ std::array<GUID, static_cast<size_t>(NColumn_Pos::_Count)> ColumnSignalMap = { {
 	scgms::signal_BG, scgms::signal_IG, scgms::signal_ISIG, scgms::signal_Requested_Insulin_Bolus, scgms::signal_Requested_Insulin_Basal_Rate, scgms::signal_Carb_Intake, scgms::signal_Calibration
 } };
 
+CDb_Reader::CDb_Reader(scgms::IFilter *output) : CBase_Filter(output) {
+	//
+}
 
 CDb_Reader::~CDb_Reader() {
 	End_Db_Reader();
-}
-
-TEmbedded_Error CDb_Reader::Initialize(scgms::IFilter * output) noexcept {
-	return CBase_Filter::Initialize(output, Db_Reader_Device_GUID);
 }
 
 bool CDb_Reader::Emit_Shut_Down() {

@@ -53,12 +53,12 @@ protected:
 	std::recursive_mutex &mCommunication_Guard;		
 	std::vector<std::unique_ptr<CFilter_Executor>> mExecutors;
 public:
-	CComposite_Filter(std::recursive_mutex &communication_guard) noexcept;
+	CComposite_Filter(std::recursive_mutex &communication_guard);	
 
-	HRESULT Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, refcnt::Swstr_list &error_description) noexcept;
-	HRESULT Execute(scgms::IDevice_Event *event) noexcept;
-	HRESULT Clear() noexcept;
-	bool Empty() const noexcept;
+	HRESULT Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, refcnt::Swstr_list &error_description);
+	HRESULT Execute(scgms::IDevice_Event *event);
+	HRESULT Clear();
+	bool Empty();	
 	
 };
 
