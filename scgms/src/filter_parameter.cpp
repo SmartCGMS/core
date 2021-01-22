@@ -242,7 +242,7 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 		auto [is_var, var_name] = scgms::Is_Variable_Name(str);
 		if (is_var) {
 			mVariable_Name = var_name;
-			return S_OK;
+			return true;
 		}
 		else
 			mVariable_Name.clear();

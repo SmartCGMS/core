@@ -39,6 +39,7 @@
 #include "calculated_signal.h"
 
 #include "descriptor.h"
+#include "fitness.h"
 
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/rattime.h"
@@ -391,7 +392,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 		
 		scgms::SModel_Parameter_Vector solved_parameters{ mDefault_Parameters };
 
-		scgms::TSolver_Setup setup{
+		TSegment_Solver_Setup setup{
 			mSolver_Id, mCalculated_Signal_Id, mReference_Signal_Id,
 			segments, segment_count,
 			metric.get(), real_levels_required, bool_2_uc(mUse_Measured_Levels),
@@ -401,7 +402,7 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 			&mSolver_Progress
 		};
 
-		if (scgms::Solve_Model_Parameters(setup) == S_OK) {
+		if (Solve_Model_Parameters(setup) == S_OK) {
 			//calculate and compare the present parameters with the new one
 			
 

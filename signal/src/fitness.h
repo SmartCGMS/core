@@ -50,6 +50,15 @@
 using aligned_double_vector = std::vector<double, AlignmentAllocator<double>>;	//Needed for Eigen and SIMD optimizations
 
 
+struct TSegment_Solver_Setup {
+	const GUID solver_id; const GUID calculated_signal_id; const GUID reference_signal_id;
+	scgms::ITime_Segment** segments; const size_t segment_count;
+	scgms::IMetric* metric; const size_t levels_required; const unsigned char use_measured_levels;
+	scgms::IModel_Parameter_Vector* lower_bound, * upper_bound;
+	scgms::IModel_Parameter_Vector** solution_hints; const size_t hint_count;
+	scgms::IModel_Parameter_Vector* solved_parameters;		//obtained result
+	solver::TSolver_Progress* progress;
+};
 
 struct TSegment_Info {
 	std::shared_ptr<scgms::ITime_Segment> segment;
@@ -71,10 +80,10 @@ protected:
 	static thread_local aligned_double_vector mTemporal_Levels;
 	double* Reserve_Temporal_Levels_Data();
 public:
-	CFitness(const scgms::TSolver_Setup &setup, const size_t solution_size);
+	CFitness(const TSegment_Solver_Setup &setup, const size_t solution_size);
 	double Calculate_Fitness(const double *solution);
-
 };
 
 
 double IfaceCalling Fitness_Wrapper(const void *data, const double *solution);
+HRESULT Solve_Model_Parameters(const TSegment_Solver_Setup &setup);
