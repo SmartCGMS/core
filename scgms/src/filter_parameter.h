@@ -60,17 +60,17 @@ protected:
 			const size_t cnt = std::distance(current , end);
 			for (size_t var_idx = mFirst_Array_Var_idx; var_idx < cnt; var_idx++) {
 				if (!mArray_Vars[var_idx].empty()) {
-					auto [valid, str_val] = Evaluate_Variable(mArray_Vars[var_idx]);
-					if (valid) {
+					std::wstring str_val;
+					std::tie(rc, str_val) = Evaluate_Variable(mArray_Vars[var_idx]);
+					if (rc == S_OK) {
+						bool valid;
 						*current = conv(str_val, valid);
+						
 						if (!valid) {
 							rc = E_INVALIDARG;
 							break;
 						}
-					} else {
-						rc = E_NOT_SET;
-						break;
-					}
+					}					
 				}
 
 				current++;
@@ -214,13 +214,11 @@ protected:
 	}
 
 protected:
-	std::tuple<HRESULT, std::wstring> to_string_not_interpreted();	//variables are not resolved to their values
-	std::tuple<HRESULT, std::wstring> to_string_interpreted();		//variables are resolved to their values
-																//HRESULT indicates success
+	std::tuple<HRESULT, std::wstring> to_string(bool read_interpreted);
 protected:
 	std::wstring mVariable_Name;
 	std::map<std::wstring, std::wstring> mNon_OS_Variables;
-	std::tuple<bool, std::wstring> Evaluate_Variable(const std::wstring &var_name);
+	std::tuple<HRESULT, std::wstring> Evaluate_Variable(const std::wstring &var_name);
 public:
 	CFilter_Parameter(const scgms::NParameter_Type type, const wchar_t *config_name);
 	virtual ~CFilter_Parameter() {};	

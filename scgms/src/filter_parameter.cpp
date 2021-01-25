@@ -31,19 +31,11 @@ HRESULT IfaceCalling CFilter_Parameter::Get_Config_Name(wchar_t **config_name) {
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Get_WChar_Container(refcnt::wstr_container **wstr, BOOL read_interpreted) {
-	HRESULT rc = E_UNEXPECTED;
-	std::wstring converted;
-
-
-	if (read_interpreted == TRUE) {
-		std::tie(rc, converted) = to_string_interpreted();
-	} else {
-		std::tie(rc, converted) = to_string_not_interpreted();		
-	}
+	auto [rc, converted] = to_string(read_interpreted == TRUE);
 
 	if (rc == S_OK)
 		*wstr = refcnt::WString_To_WChar_Container(converted.c_str());	
-	return S_OK;	
+	return rc;	
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_WChar_Container(refcnt::wstr_container *wstr) {
@@ -67,11 +59,11 @@ HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** w
 
 		result_path = refcnt::WChar_Container_To_WString(mWChar_Container.get());
 	} else {
-		auto [var_set, var_val] = Evaluate_Variable(mVariable_Name);
+		auto [rc, var_val] = Evaluate_Variable(mVariable_Name);
 
-		if (!var_set) {
+		if (!Succeeded(rc)) {
 			*wstr = nullptr;
-			return E_NOT_SET;
+			return rc;
 		}
 
 		result_path = var_val;
@@ -213,13 +205,13 @@ HRESULT IfaceCalling CFilter_Parameter::Set_Variable(const wchar_t* name, const 
 	return S_OK;
 }
 
-std::tuple<bool, std::wstring> CFilter_Parameter::Evaluate_Variable(const std::wstring& var_name) {
+std::tuple<HRESULT, std::wstring> CFilter_Parameter::Evaluate_Variable(const std::wstring& var_name) {
 
 	//try our variables as they may hide the OS ones to actually customize them
 	{
 		auto iter = mNon_OS_Variables.find(var_name);
 		if (iter != mNon_OS_Variables.end())
-			return std::tuple<bool, std::wstring>{true, iter->second};
+			return std::tuple<bool, std::wstring>{S_OK, iter->second};
 	}
 
 	//try OS variables
@@ -227,11 +219,11 @@ std::tuple<bool, std::wstring> CFilter_Parameter::Evaluate_Variable(const std::w
 		std::string ansi = Narrow_WString(var_name);
 		const char* sys = std::getenv(ansi.c_str());
 		if (sys)
-			return std::tuple<bool, std::wstring>{true, Widen_Char(sys)};
+			return std::tuple<bool, std::wstring>{S_OK, Widen_Char(sys)};
 	}
 		
 
-	return { false, std::wstring{} };	//not found at all
+	return { E_NOT_SET, std::wstring{} };	//not found at all
 }
 
 
@@ -318,13 +310,14 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 	return valid;
 }
 
-std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string_not_interpreted() {
+std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string(bool read_interpreted) {
 
 	std::wstring converted;
 	HRESULT rc = S_OK;
 	
 	auto convert_scalar = [&]() {
 		if (mVariable_Name.empty()) {
+			//always behave as read_interpereted = true
 
 			switch (mType) {
 				case scgms::NParameter_Type::ptWChar_Array:
@@ -362,7 +355,10 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string_not_interpreted()
 
 		}
 		else {
-			converted = L"$(" + mVariable_Name + L")";			
+			if (read_interpreted) 
+				std::tie(rc, converted) = Evaluate_Variable(mVariable_Name);
+			 else 
+				converted = L"$(" + mVariable_Name + L")";			
 			//and that's all
 		}
 		
@@ -371,11 +367,11 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string_not_interpreted()
 	switch (mType) {
 
 		case scgms::NParameter_Type::ptDouble_Array: 
-			std::tie(rc, converted) = Array_To_String<double>(mModel_Parameters.get(), false);
+			std::tie(rc, converted) = Array_To_String<double>(mModel_Parameters.get(), read_interpreted);
 			break;
 
 		case scgms::NParameter_Type::ptInt64_Array:
-			std::tie(rc, converted) = Array_To_String<int64_t>(mTime_Segment_ID.get(), false);
+			std::tie(rc, converted) = Array_To_String<int64_t>(mTime_Segment_ID.get(), read_interpreted);
 			break;
 
 		default: convert_scalar();
@@ -386,39 +382,4 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string_not_interpreted()
 		converted.clear();
 
 	return std::tuple<HRESULT, std::wstring>{rc, converted};
-}
-
-std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string_interpreted() {
-	std::tuple<HRESULT, std::wstring> result{ E_UNEXPECTED, L"" };
-
-	auto convert_scalar = [&]() {
-		if (!mVariable_Name.empty()) {
-			auto [var_set, var_val] = Evaluate_Variable(mVariable_Name);
-			if (var_set) {
-				std::get<0>(result) = S_OK;
-				std::get<1>(result) = var_val;
-			}
-			else
-				std::get<0>(result) = E_NOT_SET;
-		}
-		else
-			std::get<0>(result) = E_INVALIDARG;
-	};
-
-	switch (mType) {
-
-		case scgms::NParameter_Type::ptDouble_Array:			
-			result = Array_To_String<double>(mModel_Parameters.get(), true);
-			break;
-
-		case scgms::NParameter_Type::ptInt64_Array:
-			result = Array_To_String<int64_t>(mTime_Segment_ID.get(), true);
-			break;
-
-		default: convert_scalar();
-			break;
-	}
-
-
-	return result;
 }
