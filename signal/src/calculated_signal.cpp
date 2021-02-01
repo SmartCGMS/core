@@ -190,6 +190,8 @@ HRESULT CCalculate_Filter::Do_Execute(scgms::UDevice_Event event)  {
 
 							if (new_fitness < current_fitness)
 								segment->Set_Parameters(event.parameters);
+
+							return true; // does this lambda really need to return anything?
 						};
 
 						if (event.segment_id() != scgms::All_Segments_Id) {
