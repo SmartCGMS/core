@@ -56,7 +56,7 @@ enum class NError_Grid_Zone : size_t {
 	E = 4,
 	count,
 
-	Undefined = -1,
+	Undefined = static_cast<size_t>(-1), // valid, as unsigned overflow is defined
 };
 
 struct TError_Grid_Region {

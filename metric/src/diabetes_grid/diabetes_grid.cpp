@@ -40,7 +40,13 @@
 #include "clarke_error_grid.h"
 #include "parkes_error_grid.h"
 
-CDiabetes_Grid::CDiabetes_Grid(scgms::IFilter* output) : CTwo_Signals(output), CBase_Filter(output) {
+namespace {
+	constexpr size_t idx_ceg = 0;
+	constexpr size_t idx_peg1 = 1;
+	constexpr size_t idx_peg2 = 2;
+}
+
+CDiabetes_Grid::CDiabetes_Grid(scgms::IFilter* output) : CBase_Filter(output), CTwo_Signals(output) {
 
 }
 
@@ -123,10 +129,6 @@ TError_Grid_Stats CDiabetes_Grid::Calculate_Statistics(const TError_Grid& grid, 
 }
 
 void CDiabetes_Grid::Do_Flush_Stats(std::wofstream stats_file) {
-
-	constexpr size_t idx_ceg = 0;
-	constexpr size_t idx_peg1 = 1;
-	constexpr size_t idx_peg2 = 2;
 	struct TAll_Grids {
 		uint64_t segment_id;
 		std::array<TError_Grid_Stats, 3> grids;
@@ -136,7 +138,7 @@ void CDiabetes_Grid::Do_Flush_Stats(std::wofstream stats_file) {
 
 	{ //use a block to avoid re-allocations
 		std::vector<double> reference_times, reference_levels, error_levels;
-		auto get_segment = [this, &grids, &reference_times, &reference_levels, &error_levels, idx_ceg, idx_peg1, idx_peg2](const uint64_t segment_id) {
+		auto get_segment = [this, &grids, &reference_times, &reference_levels, &error_levels](const uint64_t segment_id) {
 
 
 			if (Prepare_Levels(segment_id, reference_times, reference_levels, error_levels)) {
@@ -162,9 +164,7 @@ void CDiabetes_Grid::Do_Flush_Stats(std::wofstream stats_file) {
 	//2. write the error grids
 	const std::array<const wchar_t*, 3> markers = { dsClarke_Error_Grid, dsParkes_Error_Grid_Type_1, dsParkes_Error_Grid_Type_2 };
 
-	auto flush_stats = [this, &stats_file](const TError_Grid_Stats& stats, const uint64_t segment_id) {
-		using et = std::underlying_type < scgms::NECDF>::type;
-
+	auto flush_stats = [&stats_file](const TError_Grid_Stats& stats, const uint64_t segment_id) {
 		if (segment_id == scgms::All_Segments_Id)  stats_file << dsSelect_All_Segments;
 		else stats_file << std::to_wstring(segment_id);
 

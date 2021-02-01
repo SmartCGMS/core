@@ -181,7 +181,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			// skip; signal name
 			specificval = cut_column();
 
-			const auto info_str = std::move(cut_column());
+			const auto info_str = cut_column();
 			const uint64_t original_segment_id = read_segment_id();
 
 			if ((original_segment_id != scgms::Invalid_Segment_Id) && (original_segment_id != scgms::All_Segments_Id))
