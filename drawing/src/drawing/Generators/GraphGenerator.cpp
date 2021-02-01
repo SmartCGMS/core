@@ -559,7 +559,6 @@ void CGraph_Generator::Write_Body()
 			mSvg.Set_Stroke(1, Utility::Curve_Colors[curColorIdx], Utility::Curve_Colors[curColorIdx]);
 
 			const std::string& name = dataVector.second.nameAlias.empty() ? tr(dataVector.second.identifier) : Narrow_WString(dataVector.second.nameAlias);
-			dprintf("Nejm: %s - %s\r\n", dataVector.second.identifier.c_str(), name.c_str());
 			SVG::GroupGuard diffGrp(mSvg, dataVector.second.identifier, false);
 			mSvg.Link_Text_color(startX + 10, y, name, "", 12); // TODO: add visibility change function
 
