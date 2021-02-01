@@ -169,6 +169,12 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 
 	while (query.Get_Next() && !mQuit_Flag) {
 
+		// it is somehow possible for date being null (although the database constraint doesn't allow it)
+		// TODO: revisit this after database restructuralisation
+		if (!measured_at_str) {
+			continue;
+		}
+
 		// "select measuredat, blood, ist, isig, insulin_bolus, insulin_basal_rate, carbohydrates, calibration, heartrate, steps, movement_speed from measuredvalue where segmentid = ? order by measuredat asc"
 		//         0           1      2    3     4              5                   6              7            8          9      10
 
