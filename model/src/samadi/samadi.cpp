@@ -49,6 +49,10 @@
 
 #undef max
 
+/** model-wide constants **/
+
+constexpr const double GlucoseMolWeight = 180.156; // [g/mol]
+
 /*************************************************
  * Samadi model implementation                   *
  *************************************************/
@@ -107,11 +111,10 @@ double CSamadi_Discrete_Model::eq_dQ1(const double _T, const double _X) const
 	constexpr double Gthresh_F01 = 4.5;
 	constexpr double Gthresh_FR = 9.0;
 
-	const double F01C = Gt >= Gthresh_F01 ? mParameters.F01 * mParameters.BW : (mParameters.F01*mParameters.BW*Gt / Gthresh_F01);
+	const double F01S = mParameters.F01 * mParameters.BW;
+	const double F01C = Gt >= Gthresh_F01 ? F01S : (F01S * Gt / Gthresh_F01);
 	const double FR = Gt >= Gthresh_FR ? 0.003 * (Gt - 9.0) * VgBW : 0;
-	const double UG = mState.D2 / mParameters.tmaxG + mState.DH2 / (mParameters.tmaxG / 2.0);
-
-	// this acts like crazy, probably some units don't match real ones; TODO: verify
+	const double UG = mState.D2 / mParameters.tmaxG +mState.DH2 / (mParameters.tmaxG / 2.0);
 
 	const double ret = -(1 + mParameters.alpha * mState.E2 * mState.E2) * mState.x1 * _X + mParameters.k12 * mState.Q2 - F01C - FR + UG + EGP0BW * (1 - mState.x3);
 
@@ -120,7 +123,7 @@ double CSamadi_Discrete_Model::eq_dQ1(const double _T, const double _X) const
 
 double CSamadi_Discrete_Model::eq_dQ2(const double _T, const double _X) const
 {
-	return -(1 + mParameters.alpha * mState.E2 * mState.E2) * mState.x1 * mState.Q1 - mParameters.k12 * _X - mState.x2 * _X * (1 + mParameters.alpha * mState.E2 * mState.E2 - mParameters.beta * mState.E1 / mParameters.HRbase);
+	return -(-1 + mParameters.alpha * mState.E2 * mState.E2) * mState.x1 * mState.Q1 - mParameters.k12 * _X - mState.x2 * _X * (1 + mParameters.alpha * mState.E2 * mState.E2 - mParameters.beta * mState.E1 / mParameters.HRbase);
 }
 
 double CSamadi_Discrete_Model::eq_dGsub(const double _T, const double _X) const
@@ -134,7 +137,7 @@ double CSamadi_Discrete_Model::eq_dS1(const double _T, const double _X) const
 {
 	const double bolusDisturbance = mBolus_Insulin_Ext.Get_Disturbance(mState.lastTime, _T * scgms::One_Minute);	// U/min
 	const double basalSubcutaneousDisturbance = mSubcutaneous_Basal_Ext.Get_Recent(_T * scgms::One_Minute);			// U/min
-	const double insulinSubcutaneousDisturbance = (bolusDisturbance + basalSubcutaneousDisturbance) * 0.001; // U/min -> mU/min
+	const double insulinSubcutaneousDisturbance = (bolusDisturbance + basalSubcutaneousDisturbance) * 1000;			// U/min -> mU/min
 
 	return insulinSubcutaneousDisturbance - _X / mParameters.tmaxi;
 }
@@ -148,7 +151,7 @@ double CSamadi_Discrete_Model::eq_dI(const double _T, const double _X) const
 {
 	const double ViBW = mParameters.Vi * mParameters.BW;
 
-	return mState.S2 / (ViBW * mParameters.tmaxi) - mParameters.ke * _X;
+	return mState.S2 / (ViBW * mParameters.tmaxi) -mParameters.ke * _X;
 }
 
 double CSamadi_Discrete_Model::eq_dx1(const double _T, const double _X) const
@@ -168,9 +171,9 @@ double CSamadi_Discrete_Model::eq_dx3(const double _T, const double _X) const
 
 double CSamadi_Discrete_Model::eq_dD1(const double _T, const double _X) const
 {
-	const double mealDisturbance = mMeal_Ext.Get_Disturbance(mState.lastTime, _T * scgms::One_Minute);
+	const double mealDisturbance = mMeal_Ext.Get_Disturbance(mState.lastTime, _T * scgms::One_Minute) / GlucoseMolWeight;
 
-	return mParameters.Ag* mealDisturbance - _X / mParameters.tmaxG;
+	return mParameters.Ag * mealDisturbance - _X / mParameters.tmaxG;
 }
 
 double CSamadi_Discrete_Model::eq_dD2(const double _T, const double _X) const
@@ -257,11 +260,13 @@ void CSamadi_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 	 * Physiological signals (IOB, COB, excercise)
 	 */
 
-	const double iob = (mState.S1 + mState.S2) / 1000.0; // sum of S1 and S2 should be equal to IOB [mU]; then, convert to U; TODO: verify
+	// sum of S1 and S2 should be equal to IOB [mU]; then, convert to U
+	const double iob = (mState.S1 + mState.S2) / 1000.0;
 	Emit_Signal_Level(samadi_model::signal_IOB, _T, iob);
 
-	//const double cob = 0;
-	// TODO: emit COB as a sum of all (non-absorbed) carbohydrates - D1, D2, DH1, DH2
+	// a sum of all (non-absorbed) carbohydrates - D1, D2, DH1, DH2 [mmol]; then, convert it to grams of glucose
+	const double cob = (mState.D1 + mState.D2 + mState.DH1 + mState.DH2) /*[mmol]*/ * GlucoseMolWeight /*[g/mol]*/ / 1000.0;
+	Emit_Signal_Level(samadi_model::signal_COB, _T, cob);
 
 	//const double excerciseFactor = 0;
 	// TODO: emit excercise factor (?) from E1/E2 compartments, maybe as a ratio of steady and current BPM?
@@ -272,11 +277,11 @@ void CSamadi_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 
 	// BG - glucometer
 	const double VgBW = mParameters.Vg * mParameters.BW;
-	const double bglevel = mState.Q1 / VgBW;	// verified
+	const double bglevel = mState.Q1 / VgBW;
 	Emit_Signal_Level(samadi_model::signal_BG, _T, bglevel);
 
 	// IG - CGM
-	const double iglevel = mState.Gsub;			// verified
+	const double iglevel = mState.Gsub;
 	Emit_Signal_Level(samadi_model::signal_IG, _T, iglevel);
 }
 

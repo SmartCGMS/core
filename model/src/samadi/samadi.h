@@ -128,8 +128,10 @@ class CSamadi_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscre
 		TRequested_Amount mRequested_Intradermal_Insulin_Rate;
 		std::vector<TRequested_Amount> mRequested_Insulin_Boluses;
 
-		// TODO: change it back to some higher-order error RK solver after debugging phase; Euler solver helps with debugging, as it calls the solving methods just once per step
-		ode::euler::CSolver ODE_Solver;// { ODE_epsilon0, ODE_Max_Steps };
+		// RK-based solvers are very precise, however much more computationally intensive
+		//ode::default_solver ODE_Solver{ ODE_epsilon0, ODE_Max_Steps };
+		// Let us use euler solver to speed things up during debug phase
+		ode::euler::CSolver ODE_Solver;
 
 	private:
 		// particular differential equations; they are bound to a specific CSamadi_Model_State (mState) field in mEquation_Binding upon model construction

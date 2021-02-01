@@ -636,7 +636,7 @@ namespace samadi_model { // DOI: 10.1016/j.compchemeng.2019.106565
 	const scgms::TSignal_Descriptor iob_desc{ samadi_model::signal_IOB, iobs_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF456898, 0xFF456898, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 
 	const std::wstring cobs_desc = std::wstring{ L"Samadi model - COB" };
-	const scgms::TSignal_Descriptor cob_desc{ samadi_model::signal_COB, iobs_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor cob_desc{ samadi_model::signal_COB, cobs_desc.c_str(), dsU, scgms::NSignal_Unit::g, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 }
 
 namespace insulin_bolus {
