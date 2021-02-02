@@ -130,7 +130,7 @@ class CMatlab_Factory
 		virtual ~CMatlab_Factory();
 
 		virtual HRESULT Create_Signal(const GUID *calc_id, scgms::ITime_Segment *segment, scgms::ISignal** signal);
-		virtual HRESULT Solve(const scgms::TSolver_Setup *setup);
+		virtual HRESULT Solve(const GUID* solver_id, solver::TSolver_Setup* setup, solver::TSolver_Progress* progress);
 };
 
 // global instance; note this is initialized when this library gets loaded

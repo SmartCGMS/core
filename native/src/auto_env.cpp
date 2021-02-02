@@ -39,7 +39,7 @@
 #include "auto_env.h"
 
 #include "process.h"
-#include <utils/string_utils.h>
+#include "../../../common/utils/string_utils.h"
 
 #include <array>
 

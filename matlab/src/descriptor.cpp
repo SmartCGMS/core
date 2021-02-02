@@ -122,7 +122,7 @@ extern "C" HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descrip
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_solve_model_parameters(const scgms::TSolver_Setup *setup)
+extern "C" HRESULT IfaceCalling do_solve_generic(const GUID * solver_id, solver::TSolver_Setup * setup, solver::TSolver_Progress * progress)
 {
-	return gMatlab_Factory.Solve(setup);
+	return gMatlab_Factory.Solve(solver_id, setup, progress);
 }

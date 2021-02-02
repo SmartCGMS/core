@@ -40,8 +40,8 @@
 
 #include "descriptor.h"
 
-#include <iface/NativeIface.h>
-#include <rtl/FilterLib.h>
+#include "../../../common/iface/NativeIface.h"
+#include "../../../common/rtl/FilterLib.h"
 
 #include <array>
 #include <map>

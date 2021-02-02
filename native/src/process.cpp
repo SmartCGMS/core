@@ -38,10 +38,10 @@
 
 #include "process.h"
 
-#include <rtl/FilesystemLib.h>
-#include <utils/string_utils.h>
+#include "../../../common/rtl/FilesystemLib.h"
+#include "../../../common/utils/string_utils.h"
 
-#include <stdio.h> 
+#include <cstdio> 
 #include <strsafe.h>
 #include <string>
 #include <iostream>
@@ -109,7 +109,7 @@ protected:
 	bool Create_Shell(const std::wstring &shell, const std::wstring &working_dir) { // Create a child process that uses the previously created pipes for STDIN and STDOUT.	
 																										   //command must be string to keep it allocated
 #ifdef _WIN32		
-		STARTUPINFO siStartInfo;		
+		STARTUPINFOW siStartInfo;		
 
 		// Set up members of the PROCESS_INFORMATION structure. 
 
@@ -118,8 +118,8 @@ protected:
 		// Set up members of the STARTUPINFO structure. 
 		// This structure specifies the STDIN and STDOUT handles for redirection.
 
-		memset(&siStartInfo, 0, sizeof(STARTUPINFO));
-		siStartInfo.cb = sizeof(STARTUPINFO);
+		memset(&siStartInfo, 0, sizeof(STARTUPINFOW));
+		siStartInfo.cb = sizeof(STARTUPINFOW);
 		siStartInfo.hStdError = mIO.out_err.write;
 		siStartInfo.hStdOutput = mIO.out_err.write;
 		siStartInfo.hStdInput = mIO.input.read;

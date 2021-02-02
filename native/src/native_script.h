@@ -40,7 +40,7 @@
 
 #include "native_segment.h"
 
-#include <rtl/Dynamic_Library.h>
+#include "../../../common/rtl/Dynamic_Library.h"
 
 #include <map>
 

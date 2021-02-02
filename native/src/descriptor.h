@@ -38,9 +38,9 @@
 
 #pragma once
 
-#include <iface/UIIface.h>
-#include <rtl/hresult.h>
-#include <rtl/ModelsLib.h>
+#include "../../../common/iface/UIIface.h"
+#include "../../../common/rtl/hresult.h"
+#include "../../../common/rtl/ModelsLib.h"
 
 
 namespace native {
