@@ -70,7 +70,9 @@ const char* sdk_include_var = "$(include)";
 extern "C" unsigned char native_cpp[];
 extern "C" unsigned char native_h[];
 
-const std::array<TCompiler_Invokation, 1> compilers = {
+const std::vector<TCompiler_Invokation> compilers = {
+	{L"g++",  "/O2 -fanalyzer -march=native -Weverything, -Wl,-rpath,. -fPIC -shared -o $(output) -DSCGMS_SCRIPT -std=c++17 -lstdc++fs -lm -I $(include)  $(source)"},
+	{L"clang++",  "/O2 -analyze -march=native -Weverything, -Wl,-rpath,. -fPIC -shared -o $(output) -DSCGMS_SCRIPT -std=c++17 -lstdc++fs -lm -I $(include)  $(source)"},
 #ifdef AVX512
 	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX512 /EHsc /D \"UNICODE\" /D \"SCGMS_SCRIPT\" /I $(include) /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
 #elif __AVX2__
@@ -95,12 +97,24 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	const filesystem::path& source, const filesystem::path& dll,
 	const filesystem::path& configured_sdk_include, const std::wstring& custom_options) {
 
+	//determine default compiler if none is provided
+	filesystem::path effective_compiler = compiler;
+	if (compiler.empty()) {
+#if defined(_WIN32)
+		effective_compiler = "cl";
+#elif defined(__APPLE__)
+		effective_compiler = "clang++";
+#else
+		effective_compiler = "g++";
+#endif
+	}
+
 	std::string effective_compiler_options;
 	size_t effective_compiler_index = std::numeric_limits<size_t>::max();
 
 	//1. extract compiler's filename
 	if (custom_options.empty()) {
-		const std::wstring compiler_file_name = compiler.filename();
+		const std::wstring compiler_file_name = effective_compiler.filename();
 
 		for (size_t i = 0; i < compilers.size(); i++) {
 			if (compiler_file_name.rfind(compilers[i].file_name_prefix, 0) != std::wstring::npos) {
@@ -171,14 +185,14 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 			if (effective_compiler_index != std::numeric_limits<size_t>::max())
 				commands.push_back(Get_Env_Init(compilers[effective_compiler_index].file_name_prefix));
 	}
-	commands.push_back(compiler.string() + " " + effective_compiler_options);
+	commands.push_back(effective_compiler.string() + " " + effective_compiler_options);
 
 	std::vector<char> error_output;
 
 #ifdef _WIN32
 	const wchar_t* rsShell = L"cmd.exe";
 #else
-	const wchar_t* rsShell = Widen_Char(std::getenv("$SHELL"));
+	const wchar_t* rsShell = L"/bin/sh");
 #endif
 	const bool result = Execute_Commands(rsShell, dll.parent_path(), commands, error_output);
 	//write the log

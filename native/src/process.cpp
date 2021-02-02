@@ -39,23 +39,36 @@
 #include "process.h"
 
 #include <rtl/FilesystemLib.h>
+#include <utils/string_utils.h>
 
 #include <stdio.h> 
 #include <strsafe.h>
 #include <string>
-#include <codecvt>
 #include <iostream>
-#include <future>
+#include <thread>
 
 #ifdef _WIN32
 	#include <windows.h> 
 	
 	using TPipe_Handle = HANDLE;
+#else
+	using TPipe_Handle = int;
 #endif
 
+
 struct TPipe {
-	TPipe_Handle write, read;
-};
+	union {		
+		struct {
+			TPipe_Handle read, write;
+		};
+		
+		TPipe_Handle fd[2] = { 0, 0 };				
+	};
+
+	static constexpr size_t read_idx = 0;
+	static constexpr size_t write_idx = 1;
+};	
+
 
 struct TRedirected_IO {
 	TPipe input, out_err;	
@@ -67,6 +80,8 @@ protected:
 	TRedirected_IO mIO;
 #ifdef _WIN32
 	PROCESS_INFORMATION mProcess;
+#else
+	pid_t pid;
 #endif
 protected:
 	bool Setup_IO() {	
@@ -85,7 +100,7 @@ protected:
 		result &= SetHandleInformation(mIO.out_err.read, HANDLE_FLAG_INHERIT, 0) == TRUE;		
 			//do not make sure of the same for the other pipe ends
 #else
-		result = false;
+		result = (pipe(mIO.input.fd) && (pipe(mIO.out_err.fd) == 0);
 #endif
 
 		return result;
@@ -125,11 +140,46 @@ protected:
 			&mProcess) == TRUE;  // receives PROCESS_INFORMATION 
 
 		if (!result) mProcess.hThread = mProcess.hProcess = (HANDLE)INVALID_HANDLE_VALUE;
-		//assign to both not to potenatially leak important information
-#else
-		result = false;
-#endif
+		//assign to both not to potentially leak important information
+
 		return result;
+#else
+
+		mProcess.pid = fork();
+		if (mProcess.pid > 0) {
+			//parent branch
+			//parent reads no input nor writes any output
+			close(mIO.input.fd[TPipe::read_idx]);
+			close(mIO.out_err.fd[TPipe::write_idx]);
+			return true;
+		}
+		else if (mProcess.pid == 0) {
+			dup2(mIO.input.fd[TPipe::read_idx], STDIN_FILENO);
+			dup2(mIO.out_err.fd[TPipe::write_idx], STDOUT_FILENO);
+			dup2(mIO.out_err.fd[TPipe::write_idx], STDERR_FILENO);
+
+			close(mIO.input.fd[TPipe::write_idx]);   // Child does not write to stdin
+			close(mIO.out_err.fd[TPipe::read_idx]);   // Child does not read from stdout not stderr
+
+			//change the working dir
+			if (!working_dir.empty()) {
+				const std::string narrow_dir = Narrow_WString(working_dir);
+				const auto rc = chdir(narrow_dir.c_str());
+				if (rc != 0)
+					exit(rc);
+			}
+
+
+			const filesystem::path shell_path{ shell };
+			const std::string narrow_shell_path = Narrow_WString(shell);
+			const std::string narrow_shell_cmd = shell_path.filename().string();
+
+			execl(narrow_shell_path.c_str(), narrow_shell_cmd.());
+			exit(EXIT_FAILURE);	//execl returns only if it failed
+		} else {
+			//failed to fork a new process
+			result = false;
+#endif		
 	}
 
 		
@@ -148,22 +198,43 @@ protected:
 		}
 
 		// Close the pipe handle so the child process stops reading. 
-		return CloseHandle(mIO.input.write);
+		return CloseHandle(mIO.input.write) == TRUE;
 #else
-		return false;
+
+		bool succeeded = true;
+
+		for (size_t i = 0; i < input.size(); i++) {
+			// Stop if there are no more data. 
+
+			if (write(mIO.input.fd[TPipe::write_idx], input[i].data(), input[i].size()) < 0) {
+				succeeded = false;
+				break;
+			}
+
+			const char endl =
+#ifdef __APPLE__
+				'\r';
+#else
+				'\n';
+#endif
+			write(mIO.input.fd[TPipe::write_idx], endl, 1);
+		}
+
+		return (close(mIO.input.fd[TPipe::write_idx]) == 0) && succeeded;
 #endif
 	}
 
 
 	bool Read_Ouput() {
+		const size_t buffer_size = 4096;
+		char chBuf[buffer_size];
+
+
 #ifdef _WIN32
 		const HANDLE &read = mIO.out_err.read;
 		HANDLE objects[2] = { mProcess.hProcess, read };
 
-		const size_t buffer_size = 4096;
-
 		DWORD dwRead;
-		char chBuf[buffer_size];
 
 		for (;;) {
 			//Check if we can read data and if we can, let's read them
@@ -180,8 +251,17 @@ protected:
 		}
 
 		return true;
-#else
-		return false;
+#else		
+		for (;;) {
+			const auto bytes = read(mIO.out_err[TPipe::read_idx], chBuf, buffer_size);
+			if (bytes > 0) {
+				mOutput.insert(mOutput.end(), chBuf, chBuf + bytes);
+			}
+			else
+				break;
+		}		
+
+		return true;
 #endif
 	}
 
@@ -189,6 +269,12 @@ protected:
 #ifdef _WIN32
 		CloseHandle(mProcess.hThread);
 		CloseHandle(mProcess.hProcess);		
+#else
+		close(mIO.input.fd[TPipe::read_idx]);
+		close(mIO.input.fd[TPipe::write_idx]);
+
+		close(mIO.out_err.fd[TPipe::read_idx]);
+		close(mIO.out_err.fd[TPipe::write_idx]);
 #endif
 	}
 
@@ -199,6 +285,14 @@ protected:
 		if (!GetExitCodeProcess(mProcess.hProcess, &ec)) ec = DWORD(-1);
 		return ec == 0;		
 #else
+		int status = 0;
+		waitpid(mProcess.pid, &status, 0);
+		
+		if (WIFEXITED(status)) {
+			return WEXITSTATUS(status) == EXIT_SUCCESS;
+		}
+			
+
 		return false;
 #endif
 	}
