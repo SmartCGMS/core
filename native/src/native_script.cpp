@@ -197,12 +197,12 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 	//we should have the dll builded, let's load it
 	if (!mDll.Load(dll_path)) {
 		std::wstring msg = L"Cannot load the compiled script.\nExpected dll path: ";
-		msg += dll_path;
+		msg += dll_path.wstring();
 		error_description.push(msg);
 		return CO_E_ERRORINDLL;
 	}
 
-	mEntry_Point = static_cast<TNative_Execute_Wrapper>(mDll.Resolve(native::rsScript_Entry_Symbol));
+	mEntry_Point = reinterpret_cast<TNative_Execute_Wrapper>(mDll.Resolve(native::rsScript_Entry_Symbol));
 	if (mEntry_Point == nullptr) {
 		error_description.push(L"Cannot resolve the entry point of the compiled script!");
 		return CO_E_ERRORINDLL;
@@ -211,7 +211,7 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 
 	//if the script supports a state, then we must know its size
 	{
-		native::TCustom_Data_Size custom_data_size = static_cast<native::TCustom_Data_Size>(mDll.Resolve(native::rsCustom_Data_Size));
+		native::TCustom_Data_Size custom_data_size = reinterpret_cast<native::TCustom_Data_Size>(mDll.Resolve(native::rsCustom_Data_Size));
 		if (custom_data_size != nullptr)
 			mCustom_Data_Size = custom_data_size();
 	}
