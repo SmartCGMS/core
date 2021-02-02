@@ -134,14 +134,11 @@ int64_t CDb_Writer::Get_Db_Segment_Id(int64_t segment_id) {
 
 bool CDb_Writer::Store_Level(const scgms::UDevice_Event& evt) {
 
-	int64_t id = Get_Db_Segment_Id(evt.segment_id());
-	if (id == db_writer::Error_Id) return false;
-
 	mPrepared_Values.push_back({
 		evt.device_time(),
 		evt.signal_id(),
 		evt.level(),
-		id
+		evt.segment_id()
 	});
 
 	return true;
@@ -152,42 +149,51 @@ void CDb_Writer::Flush_Levels()
 {
 	// TODO: transactions
 
-	for (const auto& val : mPrepared_Values)
+	if (Succeeded(Connect_To_Db_If_Needed()))
 	{
-		const auto time_str = to_iso8601(Rat_Time_To_Unix_Time(val.measuredAt));
-		auto qr = mDb_Connection.Query(rsInsert_New_Measured_Value,
-		time_str.c_str());
+		for (const auto& val : mPrepared_Values)
+		{
+			const auto time_str = to_iso8601(Rat_Time_To_Unix_Time(val.measuredAt));
+			auto qr = mDb_Connection.Query(rsInsert_New_Measured_Value, time_str.c_str());
 
-		if (!qr)
-			break;
+			if (!qr)
+				break;
 
-		const auto sigCondBind = [&qr, &val](const GUID& cond) {
-			if (cond == val.signalId)
-				qr.Bind_Parameters(val.value);
-			else
-				qr.Bind_Parameters(nullptr);
-		};
+			const auto sigCondBind = [&qr, &val](const GUID& cond) {
+				if (cond == val.signalId)
+					qr.Bind_Parameters(val.value);
+				else
+					qr.Bind_Parameters(nullptr);
+			};
 
-		sigCondBind(scgms::signal_BG);
-		sigCondBind(scgms::signal_IG);
-		sigCondBind(scgms::signal_ISIG);
-		sigCondBind(scgms::signal_Requested_Insulin_Bolus);
-		sigCondBind(scgms::signal_Requested_Insulin_Basal_Rate);
-		sigCondBind(scgms::signal_Carb_Intake);
-		sigCondBind(scgms::signal_Calibration);
-		sigCondBind(scgms::signal_Heartbeat);
-		sigCondBind(scgms::signal_Steps);
-		sigCondBind(scgms::signal_Movement_Speed);
+			sigCondBind(scgms::signal_BG);
+			sigCondBind(scgms::signal_IG);
+			sigCondBind(scgms::signal_ISIG);
+			sigCondBind(scgms::signal_Requested_Insulin_Bolus);
+			sigCondBind(scgms::signal_Requested_Insulin_Basal_Rate);
+			sigCondBind(scgms::signal_Carb_Intake);
+			sigCondBind(scgms::signal_Calibration);
+			sigCondBind(scgms::signal_Heartbeat);
+			sigCondBind(scgms::signal_Steps);
+			sigCondBind(scgms::signal_Movement_Speed);
 
-		qr.Bind_Parameters(val.segmentId);
+			int64_t id = Get_Db_Segment_Id(val.segmentId);
+			if (id == db_writer::Error_Id)
+				break;
 
-		qr.Execute();
+			qr.Bind_Parameters(id);
+
+			qr.Execute();
+		}
 	}
 
 	mPrepared_Values.clear();
 }
 
 bool CDb_Writer::Store_Parameters(const scgms::UDevice_Event& evt) {
+
+	if (!Succeeded(Connect_To_Db_If_Needed()))
+		return false;
 
 	int64_t id = Get_Db_Segment_Id(evt.segment_id());
 	if (id == db_writer::Error_Id) return false;
@@ -325,7 +331,18 @@ HRESULT IfaceCalling CDb_Writer::Do_Execute(scgms::UDevice_Event event) {
 
 HRESULT IfaceCalling CDb_Writer::Set_Connector(db::IDb_Connector *connector)
 {
+	if (!connector)
+		return E_INVALIDARG;
+
 	mDb_Connector = refcnt::make_shared_reference_ext<db::SDb_Connector, db::IDb_Connector>(connector, true);
+
+	return S_OK;
+}
+
+HRESULT CDb_Writer::Connect_To_Db_If_Needed()
+{
+	if (mConnected)
+		return S_FALSE;
 
 	if (mDb_Connector)
 		mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
@@ -335,17 +352,17 @@ HRESULT IfaceCalling CDb_Writer::Set_Connector(db::IDb_Connector *connector)
 
 	switch (mSubject_Id)
 	{
-	case db::Anonymous_Subject_Identifier:
-		// TODO: select this from DB
-		mSubject_Id = db_writer::Anonymous_Subject_Id;
-		break;
-	case db::New_Subject_Identifier:
-		mSubject_Id = Create_Subject(db_writer::Subject_Base_Name);
-		break;
-	default:
-		// TODO: just verify, that the subject exists
-		break;
+		case db::Anonymous_Subject_Identifier:
+			// TODO: select this from DB
+			mSubject_Id = db_writer::Anonymous_Subject_Id;
+			break;
+		case db::New_Subject_Identifier:
+			mSubject_Id = Create_Subject(db_writer::Subject_Base_Name);
+			break;
+		default:
+			// TODO: just verify, that the subject exists
+			break;
 	}
 
-	return connector != nullptr ? S_OK : S_FALSE;
+	return S_OK;
 }

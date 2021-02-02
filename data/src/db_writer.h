@@ -56,7 +56,7 @@ struct CPrepared_Value
 	double measuredAt;
 	GUID signalId;
 	double value;
-	int64_t segmentId;
+	uint64_t segmentId;
 };
 
 /*
@@ -94,6 +94,10 @@ class CDb_Writer : public scgms::CBase_Filter, public db::IDb_Sink {
 		std::list<CPrepared_Value> mPrepared_Values;
 
 		int64_t mLast_Generated_Idx = 0;
+
+		bool mConnected = false;
+
+		HRESULT Connect_To_Db_If_Needed();
 
 	protected:
 		db::SDb_Connector mDb_Connector;
