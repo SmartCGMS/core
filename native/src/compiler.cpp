@@ -42,7 +42,7 @@
 #include "process.h"
 #include "auto_env.h"
 
-#include <utils/string_utils.h>
+#include "../../../common/utils/string_utils.h"
 
 #include <array>
 #include <regex>
@@ -114,7 +114,7 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 
 	//1. extract compiler's filename
 	if (custom_options.empty()) {
-		const std::wstring compiler_file_name = effective_compiler.filename();
+		const std::wstring compiler_file_name = effective_compiler.filename().wstring();
 
 		for (size_t i = 0; i < compilers.size(); i++) {
 			if (compiler_file_name.rfind(compilers[i].file_name_prefix, 0) != std::wstring::npos) {
@@ -192,9 +192,9 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 #ifdef _WIN32
 	const wchar_t* rsShell = L"cmd.exe";
 #else
-	const wchar_t* rsShell = L"/bin/sh");
+	const wchar_t* rsShell = L"/bin/sh";
 #endif
-	const bool result = Execute_Commands(rsShell, dll.parent_path(), commands, error_output);
+	const bool result = Execute_Commands(rsShell, dll.parent_path().wstring(), commands, error_output);
 	//write the log
 	{
 		std::ofstream error_log{ build_log_path, std::ios::binary };

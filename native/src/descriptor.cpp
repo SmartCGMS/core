@@ -39,8 +39,8 @@
 #include "descriptor.h"
 #include "native_script.h"
 
-#include <lang/dstrings.h>
-#include <utils/descriptor_utils.h>
+#include "../../../common/lang/dstrings.h"
+#include "../../../common/utils/descriptor_utils.h"
 
 namespace native {
 	const wchar_t* rsRequired_Signal_Prefix = L"Required_Signal_";

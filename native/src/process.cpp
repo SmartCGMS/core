@@ -38,20 +38,23 @@
 
 #include "process.h"
 
-#include <rtl/FilesystemLib.h>
-#include <utils/string_utils.h>
+#include "../../../common/rtl/FilesystemLib.h"
+#include "../../../common/utils/string_utils.h"
 
-#include <stdio.h> 
-#include <strsafe.h>
+#include <cstdio> 
 #include <string>
 #include <iostream>
 #include <thread>
 
 #ifdef _WIN32
-	#include <windows.h> 
+	#include <strsafe.h>
+	#include <windows.h>
 	
 	using TPipe_Handle = HANDLE;
 #else
+	#include <sys/types.h>
+	#include <sys/wait.h>
+
 	using TPipe_Handle = int;
 #endif
 
@@ -84,7 +87,8 @@ protected:
 	pid_t pid;
 #endif
 protected:
-	bool Setup_IO() {	
+	bool Setup_IO() {
+		bool result = false;
 #ifdef _WIN32
 		SECURITY_ATTRIBUTES saAttr;
 		// Set the bInheritHandle flag so pipe handles are inherited. 
@@ -92,7 +96,7 @@ protected:
 		saAttr.bInheritHandle = TRUE;
 		saAttr.lpSecurityDescriptor = NULL;
 		
-		bool result = CreatePipe(&mIO.input.read, &mIO.input.write, &saAttr, 0) == TRUE;
+		result = CreatePipe(&mIO.input.read, &mIO.input.write, &saAttr, 0) == TRUE;
 		result &= CreatePipe(&mIO.out_err.read, &mIO.out_err.write, &saAttr, 0) == TRUE;		
 		
 		//And ensure that those ends of pipes, which we use to read and write in our process, are not inherited
@@ -100,7 +104,7 @@ protected:
 		result &= SetHandleInformation(mIO.out_err.read, HANDLE_FLAG_INHERIT, 0) == TRUE;		
 			//do not make sure of the same for the other pipe ends
 #else
-		result = (pipe(mIO.input.fd) && (pipe(mIO.out_err.fd) == 0);
+		result = (pipe(mIO.input.fd) == 0) && (pipe(mIO.out_err.fd) == 0);
 #endif
 
 		return result;
@@ -109,7 +113,7 @@ protected:
 	bool Create_Shell(const std::wstring &shell, const std::wstring &working_dir) { // Create a child process that uses the previously created pipes for STDIN and STDOUT.	
 																										   //command must be string to keep it allocated
 #ifdef _WIN32		
-		STARTUPINFO siStartInfo;		
+		STARTUPINFOW siStartInfo;		
 
 		// Set up members of the PROCESS_INFORMATION structure. 
 
@@ -118,8 +122,8 @@ protected:
 		// Set up members of the STARTUPINFO structure. 
 		// This structure specifies the STDIN and STDOUT handles for redirection.
 
-		memset(&siStartInfo, 0, sizeof(STARTUPINFO));
-		siStartInfo.cb = sizeof(STARTUPINFO);
+		memset(&siStartInfo, 0, sizeof(STARTUPINFOW));
+		siStartInfo.cb = sizeof(STARTUPINFOW);
 		siStartInfo.hStdError = mIO.out_err.write;
 		siStartInfo.hStdOutput = mIO.out_err.write;
 		siStartInfo.hStdInput = mIO.input.read;
@@ -145,15 +149,15 @@ protected:
 		return result;
 #else
 
-		mProcess.pid = fork();
-		if (mProcess.pid > 0) {
+		pid = fork();
+		if (pid > 0) {
 			//parent branch
 			//parent reads no input nor writes any output
 			close(mIO.input.fd[TPipe::read_idx]);
 			close(mIO.out_err.fd[TPipe::write_idx]);
 			return true;
 		}
-		else if (mProcess.pid == 0) {
+		else if (pid == 0) {
 			dup2(mIO.input.fd[TPipe::read_idx], STDIN_FILENO);
 			dup2(mIO.out_err.fd[TPipe::write_idx], STDOUT_FILENO);
 			dup2(mIO.out_err.fd[TPipe::write_idx], STDERR_FILENO);
@@ -174,15 +178,16 @@ protected:
 			const std::string narrow_shell_path = Narrow_WString(shell);
 			const std::string narrow_shell_cmd = shell_path.filename().string();
 
-			execl(narrow_shell_path.c_str(), narrow_shell_cmd.());
+			execl(narrow_shell_path.c_str(), narrow_shell_cmd.c_str());
 			exit(EXIT_FAILURE);	//execl returns only if it failed
 		} else {
 			//failed to fork a new process
-			result = false;
-#endif		
+			return false;
+		}
+#endif
 	}
 
-		
+
 	bool Write_Input(const std::vector<std::string> &input) {
 #ifdef _WIN32
 		DWORD dwWritten;
@@ -217,7 +222,7 @@ protected:
 #else
 				'\n';
 #endif
-			write(mIO.input.fd[TPipe::write_idx], endl, 1);
+			write(mIO.input.fd[TPipe::write_idx], &endl, 1);
 		}
 
 		return (close(mIO.input.fd[TPipe::write_idx]) == 0) && succeeded;
@@ -253,7 +258,7 @@ protected:
 		return true;
 #else		
 		for (;;) {
-			const auto bytes = read(mIO.out_err[TPipe::read_idx], chBuf, buffer_size);
+			const auto bytes = read(mIO.out_err.fd[TPipe::read_idx], chBuf, buffer_size);
 			if (bytes > 0) {
 				mOutput.insert(mOutput.end(), chBuf, chBuf + bytes);
 			}
@@ -286,7 +291,7 @@ protected:
 		return ec == 0;		
 #else
 		int status = 0;
-		waitpid(mProcess.pid, &status, 0);
+		waitpid(pid, &status, 0);
 		
 		if (WIFEXITED(status)) {
 			return WEXITSTATUS(status) == EXIT_SUCCESS;

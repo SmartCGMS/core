@@ -39,12 +39,13 @@
 #include "auto_env.h"
 
 #include "process.h"
-#include <utils/string_utils.h>
+#include "../../../common/utils/string_utils.h"
 
 #include <array>
 
 #include <stdlib.h>
 
+#ifdef _WIN32
 std::string Visual_Studio() {
 	std::string result;
 
@@ -87,6 +88,7 @@ std::string Visual_Studio() {
 
 	return result;
 }
+#endif
 
 std::string Get_Env_Init(const std::wstring& compiler_prefix) {
 	std::string result;

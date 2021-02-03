@@ -3,6 +3,7 @@
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/referencedImpl.h"
 #include "../../../common/rtl/FilesystemLib.h"
+#include "../../../common/utils/string_utils.h"
 
 #include <map>
 #include <iostream>

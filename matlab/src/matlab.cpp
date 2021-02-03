@@ -99,127 +99,57 @@ HRESULT CMatlab_Factory::Create_Signal(const GUID *calc_id, scgms::ITime_Segment
 	return E_NOTIMPL;
 }
 
-HRESULT CMatlab_Factory::Solve(const scgms::TSolver_Setup *setup) {
-	if (setup->segment_count == 0) return E_INVALIDARG;
-	if (mSolvers.find(setup->solver_id) == mSolvers.end()) return E_NOTIMPL;
+HRESULT CMatlab_Factory::Solve(const GUID* solver_id, solver::TSolver_Setup* setup, solver::TSolver_Progress* progress) {
+	if (mSolvers.find(*solver_id) == mSolvers.end()) return E_NOTIMPL;
 
-	const auto& solverRecord = mSolvers[setup->solver_id];
+	const auto& solverRecord = mSolvers[*solver_id];
 
 	try
 	{
-		auto shared_segments = refcnt::Referenced_To_Vector<scgms::STime_Segment, scgms::ITime_Segment>(setup->segments, setup->segment_count);
-		const auto shared_lower = refcnt::make_shared_reference_ext<scgms::SModel_Parameter_Vector, scgms::IModel_Parameter_Vector>(setup->lower_bound, true);
-		const auto shared_upper = refcnt::make_shared_reference_ext<scgms::SModel_Parameter_Vector, scgms::IModel_Parameter_Vector>(setup->upper_bound, true);
-		auto shared_solved = refcnt::make_shared_reference_ext<scgms::SModel_Parameter_Vector, scgms::IModel_Parameter_Vector>(setup->solved_parameters, true);
-		auto shared_hints = refcnt::Referenced_To_Vector<scgms::SModel_Parameter_Vector, scgms::IModel_Parameter_Vector>(setup->solution_hints, setup->hint_count);
-
-		scgms::SModel_Parameter_Vector default_parameters;
-		if (shared_hints.empty()) {
-			auto signal = shared_segments[0].Get_Signal(setup->calculated_signal_id);
-			if (signal) {
-				default_parameters = refcnt::Create_Container_shared<double, scgms::SModel_Parameter_Vector>(nullptr, nullptr);
-				if (signal->Get_Default_Parameters(default_parameters.get()) == S_OK)
-					shared_hints.push_back(default_parameters);
-			}
-		}
-
 		matlab::data::ArrayFactory factory;
 
 		// 1) convert hints and bounds to matlab vectors/matrix
 		std::vector<double> paramsMerged;
 
-		size_t paramCnt = 0;
-		double *pbegin, *pend;
-
-		const auto appendParamContents = [&paramCnt](const scgms::SModel_Parameter_Vector& vec, std::vector<double>& target) {
-			double *pbegin, *pend;
-			if (vec->get(&pbegin, &pend) != S_OK)
-				return;
-
-			// we use maximum due to the possibility of dynamic parameters
-			paramCnt = std::max(paramCnt, static_cast<size_t>(std::distance(pbegin, pend)));
-
-			for (; pbegin != pend; pbegin++)
-				target.push_back(*pbegin);
-		};
-
-		for (const auto& hint : shared_hints)
-			appendParamContents(hint, paramsMerged);
-		if (paramCnt == 0) return E_FAIL;
-
-		auto hintsArray = factory.createArray({ paramCnt, shared_hints.size() }, paramsMerged.begin(), paramsMerged.end());
-
-		if (shared_lower->get(&pbegin, &pend) != S_OK) return E_FAIL;
-		auto lowBoundArray = factory.createArray({ 1, (size_t)std::distance(pbegin, pend) }, pbegin, pend);
-
-		if (shared_upper->get(&pbegin, &pend) != S_OK) return E_FAIL;
-		auto upBoundArray = factory.createArray({ 1, (size_t)std::distance(pbegin, pend) }, pbegin, pend);
-
-		// 2) get discrete times and values of reference signal from all segments
-
-		std::vector<double> times, values;
-
-		GUID referenceId = Invalid_GUID;
-		for (const auto& model : mModels) {
-			for (size_t i = 0; i < model.second.referenceGUIDs.size(); i++) {
-				if (model.second.signalGUIDs[i] == setup->calculated_signal_id) {
-					referenceId = model.second.referenceGUIDs[i];
-					break;
-				}
-			}
+		for (size_t i = 0; i < setup->hint_count; i++)
+		{
+			for (size_t j = 0; j < setup->problem_size; j++)
+				paramsMerged.push_back(setup->hints[i][j]);
 		}
 
-		if (referenceId == Invalid_GUID) return E_FAIL;
+		auto hintsArray = factory.createArray({ setup->problem_size, setup->hint_count }, paramsMerged.begin(), paramsMerged.end());
 
-		for (auto& segment : shared_segments) {
-			auto sig = segment.Get_Signal(referenceId);
-			size_t cnt, filled;
-			if (!sig || sig->Get_Discrete_Bounds(nullptr, nullptr, &cnt) != S_OK) return E_FAIL;
-			if (cnt == 0) continue;
+		auto lowBoundArray = factory.createArray({ 1, setup->problem_size }, setup->lower_bound, setup->lower_bound + setup->problem_size);
 
-			times.resize(times.size() + cnt);
-			values.resize(values.size() + cnt);
+		auto upBoundArray = factory.createArray({ 1, setup->problem_size }, setup->upper_bound, setup->upper_bound + setup->problem_size);
 
-			if (sig->Get_Discrete_Levels(times.data() + times.size() - cnt, values.data() + values.size() - cnt, cnt, &filled) != S_OK)
-				return E_FAIL;
-
-			if (filled < cnt) {
-				times.resize(times.size() - (cnt - filled));
-				values.resize(values.size() - (cnt - filled));
-			}
-		}
-
-		auto timesArray = factory.createArray({ 1, times.size() }, times.begin(), times.end());
-		auto valuesArray = factory.createArray({ 1, values.size() }, values.begin(), values.end());
-
-		// 3) call matlab solver
+		// 2) call matlab solver
 
 		auto& engine = Matlab();
 
-		engine->setVariable(rsMatlab_Variable_Solver_Times, timesArray);
-		engine->setVariable(rsMatlab_Variable_Solver_Values, valuesArray);
+		// TODO: export objective function!
+		//engine->setVariable(rsMatlab_Variable_Solver_Times, timesArray);
+		//engine->setVariable(rsMatlab_Variable_Solver_Values, valuesArray);
+
 		engine->setVariable(rsMatlab_Variable_Solver_Hints, hintsArray);
 		engine->setVariable(rsMatlab_Variable_Solver_Lowbounds, lowBoundArray);
 		engine->setVariable(rsMatlab_Variable_Solver_Upbounds, upBoundArray);
 
 		Eval(solverRecord.solveParametersScript);
 
-		// 4) convert solved parameters to array and fill "solved" field of setup
+		// 3) convert solved parameters to array and fill "solved" field of setup
 
 		matlab::data::TypedArray<double> output = engine->getVariable(rsMatlab_Variable_Solver_Output);
-
-		// resulting parameter count does not always remain the same - since there are models, which could yield additional parameters
-		// depending on current state (basically the model changes over time)
-		//if (paramCnt != output.getNumberOfElements())
 
 		// TODO: after implementation of fixed/dynamic parameters, there should be code which assigns parameter vectors to their matching targets
 
 		// instead, consider 1 or 0 parameters as error (may be the result of error on Matlab side or degrading to scalar, which may also be a result of error
-		if (paramCnt <= 1)
+		if (setup->problem_size <= 1)
 			return E_FAIL;
 
 		const std::vector<double> out{ output.begin(), output.end() };
-		shared_solved.set(out);
+		for (size_t i = 0; i < setup->problem_size; i++)
+			setup->solution[i] = out[i];
 	}
 	catch (...)
 	{
