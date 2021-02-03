@@ -178,7 +178,7 @@ protected:
 			const std::string narrow_shell_path = Narrow_WString(shell);
 			const std::string narrow_shell_cmd = shell_path.filename().string();
 
-			execl(narrow_shell_path.c_str(), narrow_shell_cmd.c_str());
+			execl(narrow_shell_path.c_str(), narrow_shell_cmd.c_str(), nullptr);
 			exit(EXIT_FAILURE);	//execl returns only if it failed
 		} else {
 			//failed to fork a new process
