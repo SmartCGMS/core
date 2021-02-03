@@ -56,7 +56,7 @@ enum class NError_Grid_Zone : size_t {
 	E = 4,
 	count,
 
-	Undefined = -1,
+	Undefined = std::numeric_limits<size_t>::max(),
 };
 
 struct TError_Grid_Region {
