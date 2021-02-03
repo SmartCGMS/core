@@ -66,8 +66,6 @@ namespace db_writer
 
 	// base for segment name
 	const wchar_t* Segment_Base_Name = L"Segment";
-	// inserted time segment comment
-	const wchar_t* Segment_Comment = L"";
 
 	// base for segment name
 	const wchar_t* Subject_Base_Name = L"Subject";
@@ -88,8 +86,8 @@ HRESULT IfaceCalling CDb_Writer::QueryInterface(const GUID*  riid, void ** ppvOb
 	return E_NOINTERFACE;
 }
 
-int64_t CDb_Writer::Create_Segment(std::wstring name, std::wstring comment) {
-	auto qr = mDb_Connection.Query(rsFound_New_Segment, rsReserved_Segment_Name, L"", false);
+int64_t CDb_Writer::Create_Segment(std::wstring name) {
+	auto qr = mDb_Connection.Query(rsFound_New_Segment, rsReserved_Segment_Name);
 	qr.Get_Next();	//no need to test the return value - shall it fail, we'll try to reuse previously founded new segment
 
 	int64_t segment_id;
@@ -97,7 +95,7 @@ int64_t CDb_Writer::Create_Segment(std::wstring name, std::wstring comment) {
 	if (!qr || !qr.Get_Next(segment_id))
 		return db_writer::Error_Id;
 
-	qr = mDb_Connection.Query(rsUpdate_Founded_Segment, name.c_str(), comment.c_str(), false, mSubject_Id, nullptr, segment_id);
+	qr = mDb_Connection.Query(rsUpdate_Founded_Segment, name.c_str(), mSubject_Id, segment_id);
 	if (!qr || !qr.Get_Next())
 		return db_writer::Error_Id;
 
@@ -105,7 +103,7 @@ int64_t CDb_Writer::Create_Segment(std::wstring name, std::wstring comment) {
 }
 
 int64_t CDb_Writer::Create_Subject(std::wstring name) {
-	auto qr = mDb_Connection.Query(rsFound_New_Subject, rsReserved_Subject_Name, L"", -1, 0);
+	auto qr = mDb_Connection.Query(rsFound_New_Subject, rsReserved_Subject_Name, L"");
 	qr.Get_Next();
 
 	int64_t subject_id;
@@ -113,7 +111,7 @@ int64_t CDb_Writer::Create_Subject(std::wstring name) {
 	if (!qr || !qr.Get_Next(subject_id))
 		return db_writer::Error_Id;
 
-	qr = mDb_Connection.Query(rsUpdate_Founded_Subject, name.c_str(), L"", 0, 0, subject_id);
+	qr = mDb_Connection.Query(rsUpdate_Founded_Subject, name.c_str(), L"", subject_id);
 	if (!qr || !qr.Get_Next())
 		return db_writer::Error_Id;
 
@@ -124,7 +122,7 @@ int64_t CDb_Writer::Get_Db_Segment_Id(int64_t segment_id) {
 
 	if (mSegment_Db_Id_Map.find(segment_id) == mSegment_Db_Id_Map.end()) {
 		if (mGenerate_Primary_Keys)
-			mSegment_Db_Id_Map[segment_id] = Create_Segment(db_writer::Segment_Base_Name + std::wstring(L" ") + std::to_wstring(++mLast_Generated_Idx), db_writer::Segment_Comment);
+			mSegment_Db_Id_Map[segment_id] = Create_Segment(db_writer::Segment_Base_Name + std::wstring(L" ") + std::to_wstring(++mLast_Generated_Idx));
 		else
 			mSegment_Db_Id_Map[segment_id] = segment_id;
 	}
@@ -159,29 +157,11 @@ void CDb_Writer::Flush_Levels()
 			if (!qr)
 				break;
 
-			const auto sigCondBind = [&qr, &val](const GUID& cond) {
-				if (cond == val.signalId)
-					qr.Bind_Parameters(val.value);
-				else
-					qr.Bind_Parameters(nullptr);
-			};
-
-			sigCondBind(scgms::signal_BG);
-			sigCondBind(scgms::signal_IG);
-			sigCondBind(scgms::signal_ISIG);
-			sigCondBind(scgms::signal_Requested_Insulin_Bolus);
-			sigCondBind(scgms::signal_Requested_Insulin_Basal_Rate);
-			sigCondBind(scgms::signal_Carb_Intake);
-			sigCondBind(scgms::signal_Calibration);
-			sigCondBind(scgms::signal_Heartbeat);
-			sigCondBind(scgms::signal_Steps);
-			sigCondBind(scgms::signal_Movement_Speed);
-
 			int64_t id = Get_Db_Segment_Id(val.segmentId);
 			if (id == db_writer::Error_Id)
 				break;
 
-			qr.Bind_Parameters(id);
+			qr.Bind_Parameters(id, val.signalId, val.value);
 
 			qr.Execute();
 		}
@@ -196,65 +176,29 @@ bool CDb_Writer::Store_Parameters(const scgms::UDevice_Event& evt) {
 		return false;
 
 	int64_t id = Get_Db_Segment_Id(evt.segment_id());
-	if (id == db_writer::Error_Id) return false;
+	if (id == db_writer::Error_Id)
+		return false;
 
-	double *begin, *end;	
+	double* begin, * end;
 	bool result = evt.parameters->get(&begin, &end) == S_OK;
 
-	if (result) {
-		const size_t paramCnt = std::distance(begin, end);
+	db::TBinary_Object paramblob{ static_cast<size_t>(std::distance(begin, end)), reinterpret_cast<uint8_t*>(begin) };
 
-		auto models = scgms::get_model_descriptors();
-		for (const auto& model : models) {
-			for (size_t i = 0; i < model.number_of_calculated_signals; i++) {
-				if (evt.signal_id() == model.calculated_signal_ids[i] && model.number_of_parameters == paramCnt) {
+	const auto time_str = to_iso8601(Rat_Time_To_Unix_Time(evt.device_time()));
+	auto insert_query = mDb_Connection.Query(rsInsert_Params, id);
 
-					// delete old parameters
-					std::wstring query_text;
-					query_text = rsDelete_Parameters_Of_Segment_Base;
-					query_text += model.db_table_name;
-					query_text += rsDelete_Parameters_Of_Segment_Stmt;
+	insert_query.Bind_Parameters(evt.device_id());
+	insert_query.Bind_Parameters(evt.signal_id());
+	insert_query.Bind_Parameters(time_str.c_str());
+	insert_query.Bind_Parameters(paramblob);
 
-					auto delete_query = mDb_Connection.Query(query_text, id);
-					if (delete_query)
-						delete_query.Execute(); // TODO: error checking
+	if (!insert_query)
+		return false;
 
-					// INSERT INTO model_db_table (segmentid, param_1, param_2, ..., param_N) VALUES (?, ?, ..., ?)
+	if (!insert_query.Execute())
+		return false;
 
-					// INSERT INTO model_db_table
-					query_text = rsInsert_Params_Base;
-					query_text += std::wstring(model.db_table_name, model.db_table_name + wcslen(model.db_table_name));;
-
-					// (segmentid, param_1, param_2, ..., param_N)
-					query_text += L" (";
-					query_text += rsInsert_Params_Segmentid_Column;
-					for (size_t i = 0; i < model.number_of_parameters; i++)
-						query_text += L", " + std::wstring(model.parameter_db_column_names[i], model.parameter_db_column_names[i] + wcslen(model.parameter_db_column_names[i]));
-					query_text += L")";
-
-					// VALUES (?, ?, ..., ?)
-					query_text += L" ";
-					query_text += rsInsert_Params_Values_Stmt;
-					query_text += L" (?";
-					for (size_t i = 0; i < model.number_of_parameters; i++)
-						query_text += L", ?";
-					query_text += L")";
-
-					// create query and bind our parameters
-					auto insert_query = mDb_Connection.Query(query_text);
-					if (insert_query) {
-						insert_query.Bind_Parameters(id);
-						for (size_t i = 0; i < model.number_of_parameters; i++)
-							insert_query.Bind_Parameters(*(begin + i));
-
-						result = insert_query.Execute();
-					}
-				}
-			}
-		}
-	}
-
-	return result;
+	return true;
 }
 
 HRESULT IfaceCalling CDb_Writer::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {

@@ -106,7 +106,7 @@ class CDb_Writer : public scgms::CBase_Filter, public db::IDb_Sink {
 		int64_t Get_Db_Segment_Id(int64_t segment_id);
 
 		// generates a new timesegment, assigns a new id (primary key) and stores into database
-		int64_t Create_Segment(std::wstring name, std::wstring comment);
+		int64_t Create_Segment(std::wstring name);
 		// generated a new subject
 		int64_t Create_Subject(std::wstring name);
 
