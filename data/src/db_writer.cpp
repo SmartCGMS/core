@@ -179,10 +179,10 @@ bool CDb_Writer::Store_Parameters(const scgms::UDevice_Event& evt) {
 	if (id == db_writer::Error_Id)
 		return false;
 
-	double* begin, * end;
+	double *begin, *end;
 	bool result = evt.parameters->get(&begin, &end) == S_OK;
 
-	db::TBinary_Object paramblob{ static_cast<size_t>(std::distance(begin, end)), reinterpret_cast<uint8_t*>(begin) };
+	db::TBinary_Object paramblob{ static_cast<size_t>(std::distance(begin, end)) * sizeof(double), reinterpret_cast<uint8_t*>(begin) };
 
 	const auto time_str = to_iso8601(Rat_Time_To_Unix_Time(evt.device_time()));
 	auto insert_query = mDb_Connection.Query(rsInsert_Params, id);
