@@ -106,7 +106,7 @@ std::wstring CLog_Filter::Parameters_To_WStr(const scgms::UDevice_Event& evt) {
 	else {
 		for (auto iter = begin; iter != end; iter++) {
 			if (iter != begin) stream << L", ";
-			stream << *begin;
+			stream << *iter;
 		}
 	}
 
