@@ -56,7 +56,7 @@ namespace rnd_metade {		//std::random_device, should be cryprographicallly secur
 }
 
 
-namespace mt_onionmetade {
+namespace mt_unconstrainedmetade {
 	constexpr GUID id = { 0x7dbf68f2, 0x8fe2, 0x47b1, { 0xb1, 0xc1, 0x97, 0x45, 0xea, 0x8a, 0x85, 0xd3 } }; // {7DBF68F2-8FE2-47B1-B1C1-9745EA8A85D3}
 }
 

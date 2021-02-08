@@ -42,7 +42,7 @@
 
 #include "HaltonDevice.h"
 #include "MetaDE.h"
-#include "OnionMetaDE.h"
+#include "UnconstrainedMetaDE.h"
 #include "fast_pathfinder.h"
 #include "landscape_pathfinder.h"
 #include "Sequential_Brute_Force_Scan.h"
@@ -140,8 +140,8 @@ public:
 		using TRandom_MetaDE = CMetaDE<TUsed_Solution, std::random_device>;
 		mSolver_Id_Map[rnd_metade::id] = std::bind(&Solve_By_Class<TRandom_MetaDE, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 
-		using TMT_OnionMetaDE = COnionMetaDE<TUsed_Solution, std::mt19937>;
-		mSolver_Id_Map[mt_onionmetade::id] = std::bind(&Solve_By_Class<TMT_OnionMetaDE, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+		using TMT_UnconstrainedMetaDE = CUnconstrainedMetaDE<TUsed_Solution, std::mt19937>;
+		mSolver_Id_Map[mt_unconstrainedmetade::id] = std::bind(&Solve_By_Class<TMT_UnconstrainedMetaDE, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 
 		//mSolver_Id_Map[pathfinder::id] = std::bind(&Eval_Pathfinder_Angle<TUsed_Solution>, std::placeholders::_1, std::placeholders::_2); -- diagnostic
 		mSolver_Id_Map[pathfinder::id_fast] = std::bind(&Solve_By_Class<CFast_Pathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);

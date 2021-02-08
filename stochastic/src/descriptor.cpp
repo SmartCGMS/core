@@ -58,8 +58,8 @@ namespace rnd_metade {
 
 
 
-namespace mt_onionmetade {
-	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, L"MT OnionMetaDE");
+namespace mt_unconstrainedmetade {
+	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, L"MT Unconstrained MetaDE");
 }
 
 
@@ -77,7 +77,7 @@ namespace sequential_brute_force_scan {
 
 const std::array<scgms::TSolver_Descriptor, 8> solver_descriptions = 
 	{ mt_metade::desc, halton_metade::desc, rnd_metade::desc,
-	  mt_onionmetade::desc,
+	  mt_unconstrainedmetade::desc,
 	  pathfinder::desc_fast, pathfinder::desc_spiral, pathfinder::desc_landscape,
 	  sequential_brute_force_scan::desc};
 
