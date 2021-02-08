@@ -232,7 +232,7 @@ namespace db_reader_legacy {
 	const scgms::TFilter_Descriptor Db_Reader_Descriptor = {
 		filter_id,
 		scgms::NFilter_Flags::None,
-		dsDb_Reader,
+		dsDb_Reader_Legacy,
 		param_count,
 		param_type,
 		ui_param_name,
@@ -301,7 +301,7 @@ namespace db_writer_legacy {
 	const scgms::TFilter_Descriptor Db_Writer_Descriptor = {
 		filter_id,
 		scgms::NFilter_Flags::None,
-		dsDb_Writer,
+		dsDb_Writer_Legacy,
 		param_count,
 		param_type,
 		ui_param_name,

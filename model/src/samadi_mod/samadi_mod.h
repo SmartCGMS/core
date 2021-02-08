@@ -133,7 +133,6 @@ class CSamadi_Modified_Discrete_Model : public scgms::CBase_Filter, public scgms
 
 		// RK-based solvers are very precise, however much more computationally intensive
 		//ode::default_solver ODE_Solver{ ODE_epsilon0, ODE_Max_Steps };
-		// Let us use euler solver to speed things up during debug phase
 		ode::euler::CSolver ODE_Solver;
 
 	private:

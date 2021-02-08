@@ -63,7 +63,7 @@ using TSegment_Limits = std::pair<size_t, size_t>;
 class CFile_Reader : public scgms::CBase_Filter {
 	protected:
 		// original filename from configuration
-		filesystem::path mFileName;
+		filesystem::path mFileName{};
 		// segment spacing as julian date
 		double mSegmentSpacing = 0.0;
 		// merged extracted values from given file
@@ -71,9 +71,9 @@ class CFile_Reader : public scgms::CBase_Filter {
 		// do we need to send shutdown after last value?
 		bool mShutdownAfterLast = false;
 		// minimum values in segment
-		size_t mMinValueCount;
+		size_t mMinValueCount = 1;
 		// require both IG and BG values in a segment
-		bool mRequireBG_IG;
+		bool mRequireBG_IG = false;
 
 		// reader thread
 		std::unique_ptr<std::thread> mReaderThread;
