@@ -54,6 +54,7 @@
 #else
 	#include <sys/types.h>
 	#include <sys/wait.h>
+	#include <unistd.h>
 
 	using TPipe_Handle = int;
 #endif
