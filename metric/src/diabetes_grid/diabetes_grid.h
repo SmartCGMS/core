@@ -48,7 +48,7 @@ struct TError_Grid_Point {		//everything is in mmol/L
 	double calculated;	//calculated value aka error value
 };
 
-enum class NError_Grid_Zone : long long {
+enum class NError_Grid_Zone : size_t {
 	A = 0,
 	B = 1,
 	C = 2,
@@ -65,7 +65,7 @@ struct TError_Grid_Region {
 };
 
 using TError_Grid = std::vector<TError_Grid_Region>;
-using TError_Grid_Stats = std::array<double, static_cast<long long>(NError_Grid_Zone::count)>;
+using TError_Grid_Stats = std::array<double, static_cast<size_t>(NError_Grid_Zone::count)>;
 
 
 #pragma warning( push )
