@@ -54,7 +54,7 @@ constexpr unsigned char bool_2_uc(const bool b) {
 }
 
 
-CSignal_Error::CSignal_Error(scgms::IFilter *output) : CTwo_Signals(output), CBase_Filter(output) {
+CSignal_Error::CSignal_Error(scgms::IFilter *output) : CBase_Filter(output), CTwo_Signals(output) {
 	//
 }
 

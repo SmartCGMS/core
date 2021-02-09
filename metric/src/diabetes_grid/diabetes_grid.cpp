@@ -40,7 +40,7 @@
 #include "clarke_error_grid.h"
 #include "parkes_error_grid.h"
 
-CDiabetes_Grid::CDiabetes_Grid(scgms::IFilter* output) : CTwo_Signals(output), CBase_Filter(output) {
+CDiabetes_Grid::CDiabetes_Grid(scgms::IFilter* output) : CBase_Filter(output), CTwo_Signals(output) {
 
 }
 
@@ -163,7 +163,6 @@ void CDiabetes_Grid::Do_Flush_Stats(std::wofstream stats_file) {
 	const std::array<const wchar_t*, 3> markers = { dsClarke_Error_Grid, dsParkes_Error_Grid_Type_1, dsParkes_Error_Grid_Type_2 };
 
 	auto flush_stats = [this, &stats_file](const TError_Grid_Stats& stats, const uint64_t segment_id) {
-		using et = std::underlying_type < scgms::NECDF>::type;
 
 		if (segment_id == scgms::All_Segments_Id)  stats_file << dsSelect_All_Segments;
 		else stats_file << std::to_wstring(segment_id);
