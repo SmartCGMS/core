@@ -171,7 +171,7 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 		{
 			std::ofstream def_file{ def_path };
 			def_file << "LIBRARY " << dll.filename().string() << std::endl << std::endl << //.string to remove quotes
-				"EXPORTS" << std::endl << "\t" << native::rsScript_Entry_Symbol 
+				"EXPORTS" << std::endl << "\t" << native::rsScript_Entry_Symbol << std::endl 
 				<< "\t" << native::rsCustom_Data_Size << std::endl;
 		}
 	}
