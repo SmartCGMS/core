@@ -81,7 +81,8 @@ HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** w
 	}
 
 	result_path = result_path.make_preferred();	//we know that make_preferred fails sometimes
-    const auto converted_path = Ensure_Uniform_Dir_Separator(result_path.wstring());
+    std::wstring converted_path = result_path.wstring();
+	converted_path = Ensure_Uniform_Dir_Separator(converted_path);
 	*wstr = refcnt::WString_To_WChar_Container(converted_path.c_str());
 
 	return S_OK;
