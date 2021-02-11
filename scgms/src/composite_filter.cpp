@@ -85,8 +85,19 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 
 			std::unique_ptr<CFilter_Executor> new_executor = std::make_unique<CFilter_Executor>(filter_id, mCommunication_Guard, last_filter, on_filter_created, on_filter_created_data);
 			//try to configure the filter 
+			if (!new_executor) {
+				mExecutors.clear();
+				return E_OUTOFMEMORY;
+			}
+
+
 			rc = new_executor->Configure(link, error_description.get());
 			if (!Succeeded(rc)) {
+				//if failed, we need to delete this, newly constructed filter first,
+				//i.e., before clearing mExecutors because it is tied to resources,
+				//which must be released AFTER destroying this filter
+				new_executor.reset(nullptr);
+
 				//describe such an event anyway just in the case the filter would not do so - hence we would at least know the configuration-failing filter
 				std::wstring err_str{dsFailed_to_configure_filter};
 				err_str += GUID_To_WString(filter_id);
