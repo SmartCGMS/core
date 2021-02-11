@@ -34,7 +34,7 @@ HRESULT IfaceCalling CFilter_Parameter::Get_WChar_Container(refcnt::wstr_contain
 	auto [rc, converted] = to_string(read_interpreted == TRUE);
 
 	if (rc == S_OK)
-		*wstr = refcnt::WString_To_WChar_Container(converted.c_str());	
+		*wstr = refcnt::WString_To_WChar_Container(converted.c_str());
 	return rc;	
 }
 
@@ -69,7 +69,7 @@ HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** w
 		result_path = var_val;
 	}
 
-	if (result_path.is_relative()) {		
+	if (result_path.is_relative()) {
 		std::error_code ec;
 		filesystem::path relative_part = result_path;
 		result_path = filesystem::canonical(mParent_Path / relative_part, ec);
@@ -80,9 +80,9 @@ HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** w
 		}
 	}
 
-	result_path = result_path.make_preferred();
-        const auto converted_path = result_path.wstring();
-        *wstr = refcnt::WString_To_WChar_Container(converted_path.c_str());
+	result_path = result_path.make_preferred();	//we know that make_preferred fails sometimes
+    const auto converted_path = Ensure_Uniform_Dir_Separator(result_path.wstring());
+	*wstr = refcnt::WString_To_WChar_Container(converted_path.c_str());
 
 	return S_OK;
 }
@@ -156,7 +156,7 @@ HRESULT IfaceCalling CFilter_Parameter::Get_GUID(GUID *id) {
 	}, Invalid_GUID);
 }
 
-HRESULT IfaceCalling CFilter_Parameter::Set_GUID(const GUID *id) {	
+HRESULT IfaceCalling CFilter_Parameter::Set_GUID(const GUID *id) {
 	mVariable_Name.clear();
 	mData.guid = *id;
 	return S_OK;
@@ -182,7 +182,7 @@ HRESULT IfaceCalling CFilter_Parameter::Set_Model_Parameters(scgms::IModel_Param
 
 
 HRESULT IfaceCalling CFilter_Parameter::Clone(scgms::IFilter_Parameter **deep_copy) {
-	std::unique_ptr<CFilter_Parameter> clone = std::make_unique<CFilter_Parameter>(mType, mConfig_Name.c_str());	
+	std::unique_ptr<CFilter_Parameter> clone = std::make_unique<CFilter_Parameter>(mType, mConfig_Name.c_str());
 	clone->mVariable_Name = mVariable_Name;
 	clone->mWChar_Container = refcnt::Copy_Container<wchar_t>(mWChar_Container.get());
 	clone->mArray_Vars = mArray_Vars;
@@ -271,7 +271,7 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 		{
 			int64_t val = str_2_int(str, valid);
 			if (valid)
-				mData.int64 = val;			
+				mData.int64 = val;
 		}
 		break;
 
@@ -321,7 +321,7 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string(bool read_interpr
 
 			switch (mType) {
 				case scgms::NParameter_Type::ptWChar_Array:
-					converted = refcnt::WChar_Container_To_WString(mWChar_Container.get());							
+					converted = refcnt::WChar_Container_To_WString(mWChar_Container.get());
 					break;
 
 				case scgms::NParameter_Type::ptRatTime:
@@ -358,7 +358,7 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string(bool read_interpr
 			if (read_interpreted) 
 				std::tie(rc, converted) = Evaluate_Variable(mVariable_Name);
 			 else 
-				converted = L"$(" + mVariable_Name + L")";			
+				converted = L"$(" + mVariable_Name + L")";
 			//and that's all
 		}
 		

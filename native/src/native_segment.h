@@ -70,7 +70,7 @@ public:
 	CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Execute_Wrapper entry_point,
 		const std::array<GUID, native::max_signal_count>& signal_ids, const std::array<double, native::max_parameter_count> &parameters,
 		const size_t custom_data_size);
-	HRESULT Execute(const size_t signal_idx, GUID& signal_id, double& device_time, double& level);
+	HRESULT Execute(const size_t signal_idx, GUID& signal_id, double& device_time, double& level) noexcept;
 };
 
 HRESULT IfaceCalling Send_Handler(const GUID* sig_id, const double device_time, const double level, const char* msg, const void* context);

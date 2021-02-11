@@ -79,7 +79,7 @@ void CNative_Segment::Emit_Info(const bool is_error, const std::wstring& msg) {
 	mOutput.Send(event);
 }
 
-HRESULT CNative_Segment::Execute(const size_t signal_idx, GUID& signal_id, double& device_time, double& level) {
+HRESULT CNative_Segment::Execute(const size_t signal_idx, GUID& signal_id, double& device_time, double& level) noexcept {
 	mRecent_Time = device_time;
 
 	mEnvironment.current_signal_index = signal_idx;
@@ -108,20 +108,7 @@ HRESULT CNative_Segment::Execute(const size_t signal_idx, GUID& signal_id, doubl
 	HRESULT rc = S_OK;
 
 	if (mSync_To_Any || (signal_idx == 0)) {	//execute only on syncing level
-		try {
 			rc = mEntry_Point(&signal_id, &device_time, &level, &mEnvironment, this);
-		}
-		catch (const std::exception& ex) {
-			// specific handling for all exceptions extending std::exception, except
-			// std::runtime_error which is handled explicitly
-			std::wstring error_desc = Widen_Char(ex.what());
-			Emit_Info(true, error_desc);
-			rc = E_FAIL;
-		}
-		catch (...) {
-			Emit_Info(true, L"Unknown error!");
-			rc = E_FAIL;
-		}
 	}
 
 	return rc;

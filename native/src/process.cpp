@@ -307,27 +307,22 @@ protected:
 public:
 	CProcess(std::vector<char>& output) : mOutput(output) {}
 
-	bool run(const std::wstring& shell, const std::wstring& working_dir, std::vector<std::string> input) {
-		bool result = false;	//assume false
+	bool run(const std::wstring& shell, const std::wstring& working_dir, std::vector<std::string> input) noexcept {
+		bool result = false;	//assume false		
 		
-
-		try {
-			if (Setup_IO()) {
-				if (Create_Shell(shell, working_dir)) {
-					std::thread output_reader{ &CProcess::Read_Ouput, this };					
+		if (Setup_IO()) {
+			if (Create_Shell(shell, working_dir)) {
+				std::thread output_reader{ &CProcess::Read_Ouput, this };					
 					
-					if (Write_Input(input)) {
-						if (output_reader.joinable())
-							output_reader.join();
-						result = Succeeded_by_Return_Code();
-					}
+				if (Write_Input(input)) {
+					if (output_reader.joinable())
+						output_reader.join();
+					result = Succeeded_by_Return_Code();
 				}
 			}
 		}
-		catch (...) {
-			result = false;
-		}		
-
+	
+		
 		//and clean-up
 		Clean_Up();
 
