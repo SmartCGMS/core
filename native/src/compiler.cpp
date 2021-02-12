@@ -10,8 +10,8 @@
  * Faculty of Applied Sciences, University of West Bohemia
  * Univerzitni 8, 301 00 Pilsen
  * Czech Republic
- * 
- * 
+ *
+ *
  * Purpose of this software:
  * This software is intended to demonstrate work of the diabetes.zcu.cz research
  * group to other scientists, to complement our published papers. It is strictly
@@ -49,10 +49,10 @@
 #include <fstream>
 
 #if defined(__AVX512BW__) || defined(__AVX512CD__) || defined(__AVX512DQ__) || defined(__AVX512F__) || defined(__AVX512VL__) || defined(__AVX512ER__) || defined(__AVX512PF__)
-	#define AVX512
-	#ifndef __AVX2__
-		#define __AVX2__
-	#endif
+#define AVX512
+#ifndef __AVX2__
+#define __AVX2__
+#endif
 #endif
 
 
@@ -171,7 +171,7 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 		{
 			std::ofstream def_file{ def_path };
 			def_file << "LIBRARY " << dll.filename().string() << std::endl << std::endl << //.string to remove quotes
-				"EXPORTS" << std::endl << "\t" << native::rsScript_Entry_Symbol << std::endl 
+				"EXPORTS" << std::endl << "\t" << native::rsScript_Entry_Symbol << std::endl
 				<< "\t" << native::rsCustom_Data_Size << std::endl;
 		}
 	}
@@ -181,9 +181,10 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	std::vector<std::string> commands;
 	if (!env_init.empty()) {
 		commands.push_back(env_init.string());
-		}else {
-			if (effective_compiler_index != std::numeric_limits<size_t>::max())
-				commands.push_back(Get_Env_Init(compilers[effective_compiler_index].file_name_prefix));
+	}
+	else {
+		if (effective_compiler_index != std::numeric_limits<size_t>::max())
+			commands.push_back(Get_Env_Init(compilers[effective_compiler_index].file_name_prefix));
 	}
 	commands.push_back(effective_compiler.string() + " " + effective_compiler_options);
 

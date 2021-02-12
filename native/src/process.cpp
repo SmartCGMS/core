@@ -217,12 +217,7 @@ protected:
 				break;
 			}
 
-			const char endl =
-#ifdef __APPLE__
-				0xd;
-#else
-				0xa;
-#endif
+			const char endl = 0xa;	//well, it its \n even for a Mac in way we opened this file descriptor
 			write(mIO.input.fd[TPipe::write_idx], &endl, 1);
 		}
 
