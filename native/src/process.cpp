@@ -219,9 +219,9 @@ protected:
 
 			const char endl =
 #ifdef __APPLE__
-				'\r';
+				0xd;
 #else
-				'\n';
+				0xa;
 #endif
 			write(mIO.input.fd[TPipe::write_idx], &endl, 1);
 		}

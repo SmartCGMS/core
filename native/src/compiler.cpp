@@ -71,8 +71,8 @@ extern "C" unsigned char native_cpp[];
 extern "C" unsigned char native_h[];
 
 const std::vector<TCompiler_Invokation> compilers = {
-	{L"g++",  "/O2 -fanalyzer -march=native -Weverything, -Wl,-rpath,. -fPIC -shared -o $(output) -DSCGMS_SCRIPT -std=c++17 -lstdc++fs -lm -I $(include)  $(source)"},
-	{L"clang++",  "/O2 -analyze -march=native -Weverything, -Wl,-rpath,. -fPIC -shared -o $(output) -DSCGMS_SCRIPT -std=c++17 -lstdc++fs -lm -I $(include)  $(source)"},
+	{L"g++",  "-O2 -fanalyzer -march=native -Weverything, -Wl,-rpath,. -fPIC -shared -o $(output) -DSCGMS_SCRIPT -std=c++17 -lstdc++fs -lm -I $(include)  $(source)"},
+	{L"clang++",  "-O2 -march=native -Wall -Wextra -Wl,-rpath,. -fPIC -shared -o $(output) -DSCGMS_SCRIPT -std=c++17 -lstdc++fs -lm -I $(include)  $(source)"},
 #ifdef AVX512
 	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX512 /EHsc /D \"UNICODE\" /D \"SCGMS_SCRIPT\" /I $(include) /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
 #elif __AVX2__
