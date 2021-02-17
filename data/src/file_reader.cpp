@@ -140,10 +140,17 @@ void CFile_Reader::Resolve_Segments(TValue_Vector const& src, std::list<TSegment
 
 			for (size_t i = itr->first; i < itr->second && (!igFound || !bgFound); i++)
 			{
-				if (src[i]->mBlood.has_value() || src[i]->mCalibration.has_value())
+				if (src[i]->mBlood.has_value() || src[i]->mCalibration.has_value()) {
 					bgFound = true;
-				if (src[i]->mIst.has_value())
+					if (igFound)
+						break;	//no need to search further
+				}
+
+				if (src[i]->mIst.has_value()) {
 					igFound = true;
+					if (bgFound)
+						break;
+				}
 			}
 
 			if (!igFound || !bgFound)

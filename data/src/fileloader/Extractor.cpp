@@ -111,31 +111,21 @@ NKnownDateFormat Recognize_Date_Format(const wchar_t *str) {
 };
 
 // Recognizes date format from supplied string representation
-NKnownDateFormat Recognize_Date_Format(std::string& str)
+NKnownDateFormat Recognize_Date_Format(const std::string& str)
 {
 	size_t i;
-	std::tm temp;
+	/*std::tm temp;
 	memset(&temp, 0, sizeof(std::tm));
+	*/
 
 	// TODO: slightly rework this method to safely check for parse failure even in debug mode
 
-	for (i = 0; i < (size_t)NKnownDateFormat::UNKNOWN_DATEFORMAT; i++)
-	{
-		std::istringstream ss(str);
-		try
-		{
-			ss >> std::get_time(&temp, KnownDateFormatFmtStrings[i]);
-		}
-		catch (...)
-		{
-			continue;
-		}
-
-		// conversion result is not valid - try next format
-		if (!Is_Valid_Tm(temp))
-			continue;
-
-		break;
+	for (i = 0; i < (size_t)NKnownDateFormat::UNKNOWN_DATEFORMAT; i++) {
+		time_t temp;
+		std::string dst;
+		// is conversion result valid? if not, try next line
+		if (Str_Time_To_Unix_Time(str, static_cast<NKnownDateFormat>(i), dst, nullptr, temp))
+			break;
 	}
 
 	return static_cast<NKnownDateFormat>(i);
