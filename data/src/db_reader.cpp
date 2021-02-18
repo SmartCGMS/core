@@ -167,7 +167,10 @@ bool CDb_Reader::Emit_Segment_Levels(const int64_t segment_id) {
 	std::vector<double> levels(static_cast<size_t>(NColumn_Pos::_Count));
 
 	db::SDb_Query query = mDb_Connection.Query(rsSelect_Timesegment_Values_Filter, segment_id);
-	if (!query.Bind_Result(measured_at_str, levels)) return false;
+	if (!query.Bind_Result(measured_at_str, levels)) {
+		Emit_Info(scgms::NDevice_Event_Code::Error, L"Cannot query the database, perhaps its structure is different.");
+		return false;
+	}
 
 	while (query.Get_Next() && !mQuit_Flag) {
 
