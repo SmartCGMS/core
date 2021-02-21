@@ -54,6 +54,8 @@ protected:
 	double *mPromised_Metric = nullptr;
 	uint64_t mPromised_Segment_id = scgms::All_Segments_Id;	
 
+	size_t mLevels_Required = 0;
+
 	bool mEmit_Metric_As_Signal = false;
 	bool mEmit_Last_Value_Only = false;
 

@@ -161,6 +161,8 @@ HRESULT CSignal_Error::Do_Configure(scgms::SFilter_Configuration configuration, 
 	mEmit_Metric_As_Signal = configuration.Read_Bool(rsEmit_metric_as_signal, mEmit_Metric_As_Signal);
 	mEmit_Last_Value_Only = configuration.Read_Bool(rsEmit_last_value_only, mEmit_Last_Value_Only);
 
+	mLevels_Required = configuration.Read_Int(rsMetric_Levels_Required, mLevels_Required);
+
 	mDescription = configuration.Read_String(rsDescription, true, GUID_To_WString(mReference_Signal_ID).append(L" - ").append(GUID_To_WString(mError_Signal_ID)));
 
 	
@@ -191,7 +193,7 @@ double CSignal_Error::Calculate_Metric(const uint64_t segment_id) {
 			if (mMetric->Accumulate(reference_times.data(), reference_levels.data(), error_levels.data(), reference_times.size()) == S_OK) {
 				size_t levels_acquired = 0;
 
-				if (mMetric->Calculate(&result, &levels_acquired, 0) == S_OK)
+				if (mMetric->Calculate(&result, &levels_acquired, mLevels_Required) == S_OK)
 					if (levels_acquired == 0)
 						result = std::numeric_limits<double>::quiet_NaN();
 			}
