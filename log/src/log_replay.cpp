@@ -173,7 +173,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 				std::wstring msg{ dsUnknown_Date_Time_Format };
 				msg.append(specificval);
 				emit_parsing_exception_w(msg);
-				return;
+				continue; // skip log lines with invalid datetime
 			}
 
 			// skip; event type name
