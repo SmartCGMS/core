@@ -270,7 +270,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			else if (evt.is_parameters_event())
 				WStr_To_Parameters(info_str, evt.parameters);
 
-			evt.device_time() = device_time;
+			mLast_Event_Time = evt.device_time() = device_time;			
 			evt.segment_id() = segment_id;
 
 
@@ -432,6 +432,7 @@ std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_L
 }
 
 void CLog_Replay_Filter::Open_Logs(std::vector<CLog_Replay_Filter::TLog_Segment_id> logs_to_replay) {
+	mLast_Event_Time = std::numeric_limits<double>::quiet_NaN();
 	for (auto& log : logs_to_replay)
 		if (!mShutdown_Received)
 			Replay_Log(log.file_name, log.segment_id);
@@ -439,6 +440,12 @@ void CLog_Replay_Filter::Open_Logs(std::vector<CLog_Replay_Filter::TLog_Segment_
 	//issue shutdown after the last log, if we were not asked to ignore it
 	if (mEmit_Shutdown) {
 		scgms::UDevice_Event shutdown_evt{ scgms::NDevice_Event_Code::Shut_Down };
+		if (!std::isnan(mLast_Event_Time))
+			shutdown_evt.device_time() = mLast_Event_Time + std::numeric_limits<double>::epsilon();
+				//emit the shutdown as the very last event
+				//that's not far far away back in history as with old experiments
+				//nor in future as with e.g.; BGLP
+
 		mOutput.Send(shutdown_evt);
 	}
 }

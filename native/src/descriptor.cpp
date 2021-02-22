@@ -44,7 +44,8 @@
 
 namespace native {
 	const wchar_t* rsRequired_Signal_Prefix = L"Required_Signal_";
-
+	
+	const wchar_t* rsRequired_Signal_1 = L"Required_Signal_1";
 	const wchar_t* rsRequired_Signal_2 = L"Required_Signal_2";
 	const wchar_t* rsRequired_Signal_3 = L"Required_Signal_3";
 	const wchar_t* rsRequired_Signal_4 = L"Required_Signal_4";
@@ -81,7 +82,7 @@ namespace native {
 		scgms::NParameter_Type::ptSignal_Id,
 		scgms::NParameter_Type::ptSignal_Id,
 		scgms::NParameter_Type::ptSignal_Id,
-
+		
 		scgms::NParameter_Type::ptDouble_Array,
 
 		scgms::NParameter_Type::ptNull,
@@ -94,7 +95,7 @@ namespace native {
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
-		dsSynchronization_Signal,
+		L"Required signal 1",
 		L"Required signal 2",
 		L"Required signal 3",
 		L"Required signal 4",
@@ -103,7 +104,7 @@ namespace native {
 		L"Required signal 7",
 		L"Required signal 8",
 		L"Required signal 9",
-		L"Required signal 10",
+		L"Required signal 10",		
 		dsParameters,
 		nullptr,
 		L"Environment init batch",
@@ -114,7 +115,7 @@ namespace native {
 	};
 
 	const wchar_t* config_param_name[param_count] = {
-		rsSynchronization_Signal,
+		rsRequired_Signal_1,
 		rsRequired_Signal_2,
 		rsRequired_Signal_3,
 		rsRequired_Signal_4,
@@ -123,7 +124,7 @@ namespace native {
 		rsRequired_Signal_7,
 		rsRequired_Signal_8,
 		rsRequired_Signal_9,
-		rsRequired_Signal_10,
+		rsRequired_Signal_10,		
 		rsParameters,
 		nullptr,
 		rsEnvironment_Init,

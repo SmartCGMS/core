@@ -60,7 +60,7 @@ HRESULT CNative_Script::Do_Execute(scgms::UDevice_Event event) {
 		auto seg_iter = mSegments.find(segment_id);
 		if (seg_iter == mSegments.end()) {
 			//not yet, we have to insert it
-			auto inserted_iter = mSegments.emplace(segment_id, CNative_Segment{ mOutput, segment_id, mEntry_Point, mSignal_Ids, mParameters, mCustom_Data_Size });
+			auto inserted_iter = mSegments.emplace(segment_id, CNative_Segment{ mOutput, segment_id, mEntry_Point, mSignal_Ids, mParameters, mCustom_Data_Size, mInvoke_On_Any_Signal });
 			seg_iter = inserted_iter.first;
 			desired_event = inserted_iter.second;
 		}
@@ -102,19 +102,20 @@ HRESULT CNative_Script::Do_Execute(scgms::UDevice_Event event) {
 
 HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	//Set up the signals and all the common values
-	mSignal_Ids[0] = configuration.Read_GUID(rsSynchronization_Signal);
-	if ((mSignal_Ids[0] == Invalid_GUID) || (mSignal_Ids[0] == scgms::signal_Null)) {
-		error_description.push(L"Synchronization signal cannot be invalid or null id.");
-		return E_INVALIDARG;
-	}
-
-	mSignal_To_Ordinal[mSignal_Ids[0]] = 0;
-
-	for (size_t i = 1; i < mSignal_Ids.size(); i++) {
+	mInvoke_On_Any_Signal = false;
+	for (size_t i = 0; i < mSignal_Ids.size(); i++) {
 		const std::wstring res_name = native::rsRequired_Signal_Prefix + std::to_wstring(i + 1);
 		const GUID sig_id = configuration.Read_GUID(res_name.c_str());
 		mSignal_Ids[i] = sig_id;
-		mSignal_To_Ordinal[sig_id] = i;
+	
+		const bool is_any_signal = sig_id == scgms::signal_All;
+
+		//add only the meaningful, particular signals for which we get a particular level
+		if ((sig_id != scgms::signal_Null) && (sig_id != Invalid_GUID) && (!is_any_signal))	
+			mSignal_To_Ordinal[sig_id] = i;
+
+		if (is_any_signal) //yet allow the possibility to invoke on any signal
+			mInvoke_On_Any_Signal = true;
 	}
 
 	{

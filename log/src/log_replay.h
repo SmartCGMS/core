@@ -47,6 +47,7 @@
 #include <fstream>
 #include <vector>
 #include <atomic>
+#include <limits.h>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
@@ -70,6 +71,7 @@ protected:
 	std::vector<TLog_Segment_id> Enumerate_Log_Segments();
 protected:
 	bool mEmit_Shutdown = false;
+	double mLast_Event_Time = std::numeric_limits<double>::quiet_NaN();
 	bool mInterpret_Filename_As_Segment_Id = false;
 	filesystem::path mLog_Filename_Or_Dirpath;  //would prefere wildcard, but this is not covered by C++ standard and do not need that so much to implement it using regex
 	std::unique_ptr<std::thread> mLog_Replay_Thread;
