@@ -79,7 +79,7 @@ bool CDb_Reader::Emit_Segment_Marker(const scgms::NDevice_Event_Code code, const
 	return Succeeded(mOutput.Send(evt));
 }
 
-bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
+bool CDb_Reader::Emit_Segment_Parameters(const double deviceTime, int64_t segment_id) {
 
 	// "select recorded_at, model_id, signal_id, parameters from model_parameters where time_segment_id = ?"
 
@@ -115,7 +115,7 @@ bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
 		evt.device_time() = recorded_at;
 		evt.segment_id() = segment_id;
 
-		if (Send(evt) != S_OK)
+		if (mOutput.Send(evt) != S_OK)
 			return false;
 	}
 
@@ -130,6 +130,8 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 	db::SDb_Query query = mDb_Connection.Query(rsSelect_Timesegment_Values_Filter, segment_id);
 	if (!query.Bind_Result(measured_at_str, signal_id, level)) return false;
 
+	double lastTime = std::numeric_limits<double>::quiet_NaN();
+
 	while (query.Get_Next() && !mQuit_Flag) {
 
 		// it is somehow possible for date being null (although the database constraint doesn't allow it)
@@ -141,13 +143,26 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 		//         0            1          2
 
 		const double measured_at = Unix_Time_To_Rat_Time(from_iso8601(measured_at_str));
-		if (measured_at == 0.0)
-			continue;	// conversion did not succeed
+		auto fpcl = fpclassify(measured_at);
+		if (fpcl == FP_ZERO || fpcl == FP_NAN)
+			continue;	// conversion did not succeed or yielded an invalid result
 
 		// validate the level
-		const auto fpcl = std::fpclassify(level);
+		fpcl = std::fpclassify(level);
 		if (fpcl == FP_NAN || fpcl == FP_INFINITE)
 			continue;
+
+		if (std::isnan(lastTime)) {
+			if (!Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Start, measured_at, segment_id)) {
+				return false;
+			}
+
+			if (!Emit_Segment_Parameters(measured_at, segment_id)) {
+				break;
+			}
+		}
+
+		lastTime = measured_at;
 
 		scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
 
@@ -157,11 +172,11 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 		evt.device_time() = measured_at;
 		evt.segment_id() = segment_id;
 
-		if (Send(evt) != S_OK)
+		if (mOutput.Send(evt) != S_OK)
 			return false;
 	}
 
-	return true;
+	return Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Stop, lastTime, segment_id);
 }
 
 bool CDb_Reader::Emit_Info_Event(const std::wstring& info)
@@ -196,16 +211,7 @@ void CDb_Reader::Db_Reader() {
 
 	for (const auto segment_index : mDbTimeSegmentIds)
 	{
-		if (!Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Start, segment_index))
-			break;
-
-		if (!Emit_Segment_Parameters(segment_index))
-			break;
-
 		Emit_Segment_Levels(segment_index);
-
-		if (!Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Stop, segment_index))
-			break;
 	}
 
 	if (mShutdownAfterLast)

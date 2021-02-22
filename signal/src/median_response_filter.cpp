@@ -74,7 +74,7 @@ HRESULT IfaceCalling CMedian_Response_Filter::Do_Execute(scgms::UDevice_Event ev
 		event.level() = Median_Response(event.segment_id(), event.device_time(), event.level());
 	}
 
-	return Send(event);
+	return mOutput.Send(event);
 }
 
 double CMedian_Response_Filter::Median_Response(const uint64_t time_segment, const double time, const double value)

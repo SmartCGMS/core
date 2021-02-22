@@ -38,9 +38,9 @@
 
 #include "custom_signals.h"
 
-#include <utils/descriptor_utils.h>
-#include <utils/string_utils.h>
-#include <rtl/FilesystemLib.h>
+#include "../../../common/utils/descriptor_utils.h"
+#include "../../../common/utils/string_utils.h"
+#include "../../../common/rtl/FilesystemLib.h"
 
 #include <vector>
 #include <mutex>

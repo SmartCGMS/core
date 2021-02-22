@@ -200,7 +200,7 @@ HRESULT IfaceCalling CHealthKit_Dump_Reader::Do_Configure(scgms::SFilter_Configu
 		evt.signal_id() = Invalid_GUID;
 		evt.segment_id() = segmentId;
 		evt.device_id() = Invalid_GUID;
-		Send(evt);
+		mOutput.Send(evt);
 	};
 
 	auto startNewSegment = [&](double time) {
@@ -213,7 +213,7 @@ HRESULT IfaceCalling CHealthKit_Dump_Reader::Do_Configure(scgms::SFilter_Configu
 		evt.signal_id() = Invalid_GUID;
 		evt.segment_id() = ++segId;
 		evt.device_id() = Invalid_GUID;
-		Send(evt);
+		mOutput.Send(evt);
 	};
 
 	std::sort(mSignals.begin(), mSignals.end(), [](const SignalEntry& a, const SignalEntry& b) { return a.time < b.time; });
@@ -255,7 +255,7 @@ HRESULT IfaceCalling CHealthKit_Dump_Reader::Do_Configure(scgms::SFilter_Configu
 			evt.level() = sg.value;
 			evt.segment_id() = segId;
 			evt.device_id() = Invalid_GUID;
-			Send(evt);
+			mOutput.Send(evt);
 		}
 	}
 
@@ -266,5 +266,5 @@ HRESULT IfaceCalling CHealthKit_Dump_Reader::Do_Configure(scgms::SFilter_Configu
 
 HRESULT IfaceCalling CHealthKit_Dump_Reader::Do_Execute(scgms::UDevice_Event event) {
 		
-	return Send(event);
+	return mOutput.Send(event);
 }

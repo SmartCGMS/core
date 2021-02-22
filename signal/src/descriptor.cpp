@@ -550,45 +550,7 @@ namespace impulse_response {
 	};
 }
 
-namespace median_response {
-
-	constexpr const GUID id = { 0xf93ff8da, 0x5e9e, 0x4601, { 0x86, 0x4b, 0x55, 0x59, 0x4e, 0x4d, 0x4d, 0x3e } }; // {F93FF8DA-5E9E-4601-864B-55594E4D4D3E}
-
-	constexpr size_t param_count = 2;
-
-	constexpr scgms::NParameter_Type param_type[param_count] = {
-		scgms::NParameter_Type::ptSignal_Id,
-		scgms::NParameter_Type::ptRatTime,
-	};
-
-	const wchar_t* ui_param_name[param_count] = {
-		dsSignal_Id,
-		dsResponse_Window,
-	};
-
-	const wchar_t* config_param_name[param_count] = {
-		rsSignal_Id,
-		rsResponse_Window,
-	};
-
-	const wchar_t* ui_param_tooltips[param_count] = {
-		nullptr,
-		nullptr,
-	};
-
-	const scgms::TFilter_Descriptor desc = {
-		id,
-		scgms::NFilter_Flags::None,
-		dsMedian_Response_Filter,
-		param_count,
-		param_type,
-		ui_param_name,
-		config_param_name,
-		ui_param_tooltips
-	};
-}
-
-const std::array<scgms::TFilter_Descriptor, 9> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, decoupling::desc, masking::Masking_Descriptor, signal_generator::desc, network_signal_generator::desc, feedback_sender::desc, impulse_response::desc, median_response::desc } };
+const std::array<scgms::TFilter_Descriptor, 8> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, decoupling::desc, masking::Masking_Descriptor, signal_generator::desc, network_signal_generator::desc, feedback_sender::desc, impulse_response::desc } };
 
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
@@ -619,8 +581,6 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 		return Manufacture_Object<CSignal_Feedback>(filter, output);
 	else if (*id == impulse_response::desc.id)
 		return Manufacture_Object<CImpulse_Response_Filter>(filter, output);
-	else if (*id == median_response::desc.id)
-		return Manufacture_Object<CMedian_Response_Filter>(filter, output);
 
 	return E_NOTIMPL;
 }

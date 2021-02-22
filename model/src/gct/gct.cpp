@@ -258,7 +258,7 @@ HRESULT CGCT_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 	}
 
 	if (res == S_FALSE)
-		res = Send(event);
+		res = mOutput.Send(event);
 
 	return res;
 }
@@ -325,7 +325,7 @@ HRESULT CGCT_Discrete_Model::Emit_Signal_Level(const GUID& signal_id, double dev
 	evt.signal_id() = signal_id;
 	evt.segment_id() = mSegment_Id;
 
-	return Send(evt);
+	return mOutput.Send(evt);
 }
 
 HRESULT IfaceCalling CGCT_Discrete_Model::Initialize(const double current_time, const uint64_t segment_id) {

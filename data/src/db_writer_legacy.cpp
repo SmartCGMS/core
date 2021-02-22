@@ -326,7 +326,7 @@ HRESULT IfaceCalling CDb_Writer_Legacy::Do_Execute(scgms::UDevice_Event event) {
 		default:	break;
 	}
 
-	return Send(event);
+	return mOutput.Send(event);
 }
 
 HRESULT IfaceCalling CDb_Writer_Legacy::Set_Connector(db::IDb_Connector *connector)
