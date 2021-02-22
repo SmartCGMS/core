@@ -85,9 +85,9 @@ class CDb_Reader : public scgms::CBase_Filter, public db::IDb_Sink{
 		void Db_Reader();
 		void End_Db_Reader();		
 	
-		bool Emit_Segment_Marker(scgms::NDevice_Event_Code code, int64_t segment_id);
-		bool Emit_Segment_Parameters(int64_t segment_id);
-		bool Emit_Segment_Levels(int64_t segment_id);
+		bool Emit_Segment_Marker(const scgms::NDevice_Event_Code code, const double device_time, const int64_t segment_id);
+		bool Emit_Segment_Parameters(const double device_time, const int64_t segment_id);
+		bool Emit_Segment_Levels(const int64_t segment_id);
 		bool Emit_Shut_Down();
 
 		bool Emit_Info_Event(const std::wstring& info);

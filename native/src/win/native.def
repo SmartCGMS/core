@@ -1,0 +1,8 @@
+LIBRARY native.dll
+
+
+EXPORTS
+	do_get_filter_descriptors
+	do_create_filter
+	do_get_model_descriptors
+	do_get_signal_descriptors

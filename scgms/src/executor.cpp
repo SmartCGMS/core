@@ -117,6 +117,12 @@ CCopying_Terminal_Filter::CCopying_Terminal_Filter(std::vector<scgms::IDevice_Ev
 }
 
 HRESULT IfaceCalling CCopying_Terminal_Filter::Execute(scgms::IDevice_Event *event) {
-	mEvents.push_back(static_cast<scgms::IDevice_Event*> (new CDevice_Event{ event }));
-	return CTerminal_Filter::Execute(event);
+	scgms::IDevice_Event* clone = nullptr;
+	const HRESULT rc = event->Clone(&clone);
+	if (Succeeded(rc)) {
+		mEvents.push_back(clone);
+		return CTerminal_Filter::Execute(event);
+	}
+	else
+		return rc;
 }

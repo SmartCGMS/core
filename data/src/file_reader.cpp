@@ -91,15 +91,17 @@ bool CFile_Reader::Send_Event(scgms::NDevice_Event_Code code, double device_time
 	if (evt.is_info_event())
 		evt.info.set(winfo.c_str());
 
-	const HRESULT rc = Send(evt);
-	if (rc != S_OK) {		
+	const HRESULT rc = mOutput.Send(evt);
+	const bool succcess = Succeeded(rc);
+
+	if (!succcess) {
 		std::wstring desc{ dsFile_Reader };
 		desc += dsFailed_To_Send_Event;
 		desc += Describe_Error(rc);
 		Emit_Info(scgms::NDevice_Event_Code::Error, desc);
 	}
 
-	return rc == S_OK;
+	return succcess;
 }
 
 void CFile_Reader::Resolve_Segments(TValue_Vector const& src, std::list<TSegment_Limits>& targetList) const
@@ -138,10 +140,17 @@ void CFile_Reader::Resolve_Segments(TValue_Vector const& src, std::list<TSegment
 
 			for (size_t i = itr->first; i < itr->second && (!igFound || !bgFound); i++)
 			{
-				if (src[i]->mBlood.has_value() || src[i]->mCalibration.has_value())
+				if (src[i]->mBlood.has_value() || src[i]->mCalibration.has_value()) {
 					bgFound = true;
-				if (src[i]->mIst.has_value())
+					if (igFound)
+						break;	//no need to search further
+				}
+
+				if (src[i]->mIst.has_value()) {
 					igFound = true;
+					if (bgFound)
+						break;
+				}
 			}
 
 			if (!igFound || !bgFound)
@@ -284,7 +293,7 @@ void CFile_Reader::Run_Reader() {
 		scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Shut_Down };
 
 		evt.device_id() = file_reader::File_Reader_Device_GUID;
-		Send(evt);
+		mOutput.Send(evt);
 	}
 }
 
@@ -387,5 +396,5 @@ HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration con
 }
 
 HRESULT IfaceCalling CFile_Reader::Do_Execute(scgms::UDevice_Event event) {	
-	return Send(event);
+	return mOutput.Send(event);
 }

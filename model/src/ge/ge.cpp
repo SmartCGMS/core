@@ -61,7 +61,7 @@ void CGE_Discrete_Model::Emit_Current_State() {
 	evt.signal_id() = ge_model::ge_signal_id;
 	evt.segment_id() = mSegment_Id;
 
-	Send(evt);
+	mOutput.Send(evt);
 }
 
 
@@ -74,7 +74,7 @@ HRESULT CGE_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 		}
 	}
 	
-	return Send(event);
+	return mOutput.Send(event);
 }
 
 HRESULT CGE_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {

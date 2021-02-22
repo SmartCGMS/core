@@ -66,16 +66,17 @@ CDb_Reader::~CDb_Reader() {
 bool CDb_Reader::Emit_Shut_Down() {
 	scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Shut_Down };
 	evt.device_id() = Db_Reader_Device_GUID;
-	return Send(evt) == S_OK;
+	return Succeeded(mOutput.Send(evt));
 }
 
-bool CDb_Reader::Emit_Segment_Marker(scgms::NDevice_Event_Code code, int64_t segment_id) {
+bool CDb_Reader::Emit_Segment_Marker(const scgms::NDevice_Event_Code code, const double device_time, const int64_t segment_id) {
 	scgms::UDevice_Event evt{ code };
 
+	evt.device_time() = device_time;
 	evt.device_id() = Db_Reader_Device_GUID;
 	evt.segment_id() = segment_id;
 
-	return Succeeded(Send(evt));
+	return Succeeded(mOutput.Send(evt));
 }
 
 bool CDb_Reader::Emit_Segment_Parameters(int64_t segment_id) {
@@ -172,7 +173,7 @@ bool CDb_Reader::Emit_Info_Event(const std::wstring& info)
 	evt.device_time() = Unix_Time_To_Rat_Time(time(nullptr));
 	evt.info.set(info.c_str());
 
-	return (Send(evt) == S_OK);
+	return (Succeeded(mOutput.Send(evt)));
 }
 
 void CDb_Reader::Db_Reader() {
@@ -246,7 +247,7 @@ HRESULT IfaceCalling CDb_Reader::Do_Execute(scgms::UDevice_Event event) {
 			break;
 	}
 
-	return Send(event);
+	return mOutput.Send(event);
 }
 
 void CDb_Reader::End_Db_Reader() {

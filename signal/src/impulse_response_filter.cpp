@@ -74,7 +74,7 @@ HRESULT IfaceCalling CImpulse_Response_Filter::Do_Execute(scgms::UDevice_Event e
 		event.level() = Impulse_Response(event.segment_id(), event.device_time(), event.level());
 	}
 
-	return Send(event);
+	return mOutput.Send(event);
 }
 
 double CImpulse_Response_Filter::Impulse_Response(const uint64_t time_segment, const double time, const double value)

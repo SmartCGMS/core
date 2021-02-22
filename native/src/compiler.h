@@ -38,43 +38,8 @@
 
 #pragma once
 
+#include "../../../common/rtl/FilesystemLib.h"
 
-#include "../../../common/rtl/SolverLib.h"
-#include "../../../common/rtl/AlignmentAllocator.h"
-
-#include <vector>
-
-
-#undef max
-
-using aligned_double_vector = std::vector<double, AlignmentAllocator<double>>;	//Needed for Eigen and SIMD optimizations
-
-
-
-struct TSegment_Info {
-	std::shared_ptr<scgms::ITime_Segment> segment;
-	std::shared_ptr<scgms::ISignal> calculated_signal;
-	std::shared_ptr<scgms::ISignal> reference_signal;
-	aligned_double_vector reference_time;
-	aligned_double_vector reference_level;
-};
-
-class CFitness {
-protected:
-	const size_t mSolution_Size;
-	scgms::TMetric_Parameters mMetric_Params = scgms::Null_Metric_Parameters;		
-	static thread_local scgms::SMetric mMetric_Per_Thread;
-protected:
-	std::vector<TSegment_Info> mSegment_Info;	
-	size_t mLevels_Required;
-	size_t mMax_Levels_Per_Segment;	//to avoid multiple resize of memory block when calculating the error
-	static thread_local aligned_double_vector mTemporal_Levels;
-	double* Reserve_Temporal_Levels_Data();
-public:
-	CFitness(const scgms::TSolver_Setup &setup, const size_t solution_size);
-	double Calculate_Fitness(const double *solution);
-
-};
-
-
-double IfaceCalling Fitness_Wrapper(const void *data, const double *solution);
+bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
+			 const filesystem::path& source, const filesystem::path& dll,
+			 const filesystem::path& configured_sdk_include, const std::wstring &custom_options);

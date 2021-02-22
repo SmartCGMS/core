@@ -65,7 +65,7 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 		const uint64_t seg_id = event.segment_id();
 		const double level = event.level();
 
-		HRESULT rc = Send(event);
+		HRESULT rc = mOutput.Send(event);
 		sent = Succeeded(rc);
 		if (sent) {
 			const double predicted_level = Update_And_Predict(seg_id, dev_time, level);
@@ -77,7 +77,7 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 				prediction_event.device_time() = dev_time + mDt;
 				prediction_event.signal_id() = pattern_prediction::signal_Pattern_Prediction;
 				prediction_event.segment_id() = seg_id;
-				rc = Send(prediction_event);
+				rc = mOutput.Send(prediction_event);
 			}
 		}
 
@@ -114,7 +114,7 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 		default: break;
 	}
 
-	if (!sent) rc = Send(event);
+	if (!sent) rc = mOutput.Send(event);
 
 	return rc;
 
@@ -263,7 +263,7 @@ size_t CPattern_Prediction_Filter::Level_2_Band_Index(const double level) {
 	const double tmp = level - Low_Threshold;
 	if (tmp < 0.0) return 0;
 
-	return static_cast<size_t>(floor(tmp * Inv_Band_Size));
+	return static_cast<size_t>(round(tmp * Inv_Band_Size));
 }
 
 HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list error_description) {
@@ -286,7 +286,7 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list erro
 
 					auto read_dbl = [&ini, &section_name, &all_valid](const wchar_t* identifier)->double {
 						bool valid = false;
-						double val = wstr_2_dbl(ini.GetValue(section_name.pItem, identifier), valid);
+						double val = str_2_dbl(ini.GetValue(section_name.pItem, identifier), valid);
 					
 						if (!valid || std::isnan(val))
 							all_valid = false;

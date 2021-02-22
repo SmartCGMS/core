@@ -106,7 +106,7 @@ bool CSinCos_Generator::Emit_Segment_Marker(uint64_t segment_id, bool start) {
 	scgms::UDevice_Event evt{ start ? scgms::NDevice_Event_Code::Time_Segment_Start : scgms::NDevice_Event_Code::Time_Segment_Stop };
 	evt.device_id() = sincos_generator::filter_id;
 	evt.segment_id() = segment_id;
-	return Send(evt) == S_OK;
+	return mOutput.Send(evt) == S_OK;
 }
 
 bool CSinCos_Generator::Emit_Signal_Level(GUID signal_id, double time, double level, uint64_t segment_id) {
@@ -116,13 +116,13 @@ bool CSinCos_Generator::Emit_Signal_Level(GUID signal_id, double time, double le
 	evt.segment_id() = segment_id;
 	evt.level() = level;
 	evt.device_id() = sincos_generator::filter_id;
-	return Send(evt) == S_OK;
+	return mOutput.Send(evt) == S_OK;
 }
 
 bool CSinCos_Generator::Emit_Shut_Down() {
 	scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Shut_Down };
 	evt.device_id() = sincos_generator::filter_id;
-	return Send(evt) == S_OK;
+	return mOutput.Send(evt) == S_OK;
 }
 
 HRESULT IfaceCalling CSinCos_Generator::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
@@ -154,7 +154,7 @@ HRESULT IfaceCalling CSinCos_Generator::Do_Execute(scgms::UDevice_Event event) {
 		Start_Generator();
 	}
 
-	return Send(event);
+	return mOutput.Send(event);
 }
 
 void CSinCos_Generator::Start_Generator()

@@ -54,7 +54,7 @@ constexpr unsigned char bool_2_uc(const bool b) {
 }
 
 
-CSignal_Error::CSignal_Error(scgms::IFilter *output) : CTwo_Signals(output), CBase_Filter(output) {
+CSignal_Error::CSignal_Error(scgms::IFilter *output) : CBase_Filter(output), CTwo_Signals(output) {
 	//
 }
 
@@ -90,64 +90,62 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 	const auto device_time = event.device_time();
 	const auto segment_id = event.segment_id();
 	const auto event_code = event.event_code();
-	scgms::IDevice_Event *raw = event.get();
-	event.release();
-	const HRESULT rc = CTwo_Signals::Do_Execute(scgms::UDevice_Event{ raw });	//why just cannot we pass std::move(event)?
-
-	if (Succeeded(rc)) {
-		switch (event_code) {
+	
+	switch (event_code) {
 			
-			case scgms::NDevice_Event_Code::Time_Segment_Stop:
-				if (mEmit_Metric_As_Signal && mEmit_Last_Value_Only && !mShutdown_Received) {
-					std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
+		case scgms::NDevice_Event_Code::Time_Segment_Stop:
+			if (mEmit_Metric_As_Signal && mEmit_Last_Value_Only && !mShutdown_Received) {
+				std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
 
-					auto signals = mSignal_Series.find(segment_id);
-					if (signals != mSignal_Series.end()) {
-						Emit_Metric_Signal(segment_id, device_time);
-						signals->second.last_value_emitted = true;
+				auto signals = mSignal_Series.find(segment_id);
+				if (signals != mSignal_Series.end()) {
+					Emit_Metric_Signal(segment_id, device_time);
+					signals->second.last_value_emitted = true;
+				}
+			}
+			break;
+
+			/*
+				There could be an intriguing situation, which may look like an error.
+				If async filtr produces events, it can emit events in a separate thread
+				after the shutdown signal - for performance reasons.
+				In such a case, it may emit segment stop after shutdown. This will produce
+				two metric values, event if it is set to emit single metric value only.
+				We can prevent this by moving the shutdown handler to dtor. But, this would break
+				the logic that shutdown is the last event processed.
+				Hence, we emit nothing after the shutdown.
+
+				Anyone truly interested in the cumulative final value, should used the promised metric
+				that's called from dtor. This value will include all levels received, regadless
+				segment stop and shutdown.
+			*/
+
+		case scgms::NDevice_Event_Code::Shut_Down:				
+			if (mEmit_Metric_As_Signal && mEmit_Last_Value_Only) {
+				std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
+
+				//emit any last value, which we have not emitted due to missing segment stop marker
+				for (auto& signals: mSignal_Series) {
+
+					if (!signals.second.last_value_emitted) {
+						Emit_Metric_Signal(signals.first, device_time);
+						signals.second.last_value_emitted = true;
 					}
 				}
-				break;
 
-				/*
-					There could be an intriguing situation, which may look like an error.
-					If async filtr produces events, it can emit events in a separate thread
-					after the shutdown signal - for performance reasons.
-					In such a case, it may emit segment stop after shutdown. This will produce
-					two metric values, event if it is set to emit single metric value only.
-					We can prevent this by moving the shutdown handler to dtor. But, this would break
-					the logic that shutdown is the last event processed.
-					Hence, we emit nothing after the shutdown.
-
-					Anyone truly interested in the cumulative final value, should used the promised metric
-					that's called from dtor. This value will include all levels received, regadless
-					segment stop and shutdown.
-				*/
-
-			case scgms::NDevice_Event_Code::Shut_Down:				
-				if (mEmit_Metric_As_Signal && mEmit_Last_Value_Only) {
-					std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
-
-					//emit any last value, which we have not emitted due to missing segment stop marker
-					for (auto& signals: mSignal_Series) {
-
-						if (!signals.second.last_value_emitted) {
-							Emit_Metric_Signal(signals.first, device_time);
-							signals.second.last_value_emitted = true;
-						}
-					}
-
-					Emit_Metric_Signal(scgms::All_Segments_Id, device_time);
-				}
+				Emit_Metric_Signal(scgms::All_Segments_Id, device_time);
+			}
 				
-				break;
+			break;
 
-			default:
-				break;
-		}		
-	}
-
-	return rc;
+		default:
+			break;
+	}		
+	
+	//eventually, execute the terminal events
+	scgms::IDevice_Event* raw = event.get();
+	event.release();
+	return CTwo_Signals::Do_Execute(scgms::UDevice_Event{ raw });	//why just cannot we pass std::move(event)?
 }
 
 HRESULT CSignal_Error::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
@@ -162,6 +160,8 @@ HRESULT CSignal_Error::Do_Configure(scgms::SFilter_Configuration configuration, 
 
 	mEmit_Metric_As_Signal = configuration.Read_Bool(rsEmit_metric_as_signal, mEmit_Metric_As_Signal);
 	mEmit_Last_Value_Only = configuration.Read_Bool(rsEmit_last_value_only, mEmit_Last_Value_Only);
+
+	mLevels_Required = configuration.Read_Int(rsMetric_Levels_Required, mLevels_Required);
 
 	mDescription = configuration.Read_String(rsDescription, true, GUID_To_WString(mReference_Signal_ID).append(L" - ").append(GUID_To_WString(mError_Signal_ID)));
 
@@ -193,7 +193,7 @@ double CSignal_Error::Calculate_Metric(const uint64_t segment_id) {
 			if (mMetric->Accumulate(reference_times.data(), reference_levels.data(), error_levels.data(), reference_times.size()) == S_OK) {
 				size_t levels_acquired = 0;
 
-				if (mMetric->Calculate(&result, &levels_acquired, 0) == S_OK)
+				if (mMetric->Calculate(&result, &levels_acquired, mLevels_Required) == S_OK)
 					if (levels_acquired == 0)
 						result = std::numeric_limits<double>::quiet_NaN();
 			}
@@ -269,7 +269,7 @@ void CSignal_Error::Emit_Metric_Signal(const uint64_t segment_id, const double d
 	event.segment_id() = segment_id;
 	event.device_time() = device_time;
 
-	Send(event);
+	mOutput.Send(event);
 }
 
 void CSignal_Error::Do_Flush_Stats(std::wofstream stats_file) {

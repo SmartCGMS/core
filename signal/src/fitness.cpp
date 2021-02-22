@@ -36,14 +36,16 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "filters.h"
 #include "fitness.h"
+
+#include "../../../common/rtl/SolverLib.h"
+#include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/referencedImpl.h"
 
 thread_local scgms::SMetric CFitness::mMetric_Per_Thread;
 thread_local aligned_double_vector CFitness::mTemporal_Levels;
 
-CFitness::CFitness(const scgms::TSolver_Setup &setup, const size_t solution_size)
+CFitness::CFitness(const TSegment_Solver_Setup &setup, const size_t solution_size)
 	: mSolution_Size(solution_size), mLevels_Required(setup.levels_required) {
 
 	setup.metric->Get_Parameters(&mMetric_Params);	//shall it fail, it will fail down there
@@ -143,4 +145,63 @@ double CFitness::Calculate_Fitness(const double *solution) {
 double IfaceCalling Fitness_Wrapper(const void *data, const double *solution) {	
 	CFitness *fitness = reinterpret_cast<CFitness*>(const_cast<void*>(data));
 	return fitness->Calculate_Fitness(solution);
+}
+
+HRESULT Solve_Model_Parameters(const TSegment_Solver_Setup &setup) {	
+	HRESULT rc = E_UNEXPECTED;
+	const auto model_descriptors = scgms::get_model_descriptors();
+
+	/*if (rc != S_OK) */{
+		//let's try to apply the generic filters as well
+		scgms::TModel_Descriptor *model = nullptr;
+		for (size_t desc_idx = 0; desc_idx < model_descriptors.size(); desc_idx++)
+			for (size_t signal_idx = 0; signal_idx < model_descriptors[desc_idx].number_of_calculated_signals; signal_idx++) {
+				if (model_descriptors[desc_idx].calculated_signal_ids[signal_idx] == setup.calculated_signal_id) {
+					model = const_cast<scgms::TModel_Descriptor*>(&model_descriptors[desc_idx]);
+					break;
+				}
+			}
+
+
+		if (model != nullptr) {
+			double *lower_bound, *upper_bound, *begin, *end;
+
+			if ((setup.lower_bound->get(&lower_bound, &end) != S_OK) || (setup.upper_bound->get(&upper_bound, &end) != S_OK)) return E_FAIL;
+
+			std::vector<double*> hints;
+			for (size_t i = 0; i < setup.hint_count; i++) {
+				if (setup.solution_hints[i]->get(&begin, &end) == S_OK)
+					hints.push_back(begin);
+			}	
+			
+			std::vector<double> solution(model->number_of_parameters);
+						
+			CFitness fitness{ setup, model->number_of_parameters};
+
+			solver::TSolver_Setup generic_setup{
+				model->number_of_parameters,
+				lower_bound, upper_bound,
+				const_cast<const double**> (hints.data()), hints.size(),
+				solution.data(),
+
+
+				&fitness,
+				Fitness_Wrapper,
+
+				solver::Default_Solver_Setup.max_generations,
+				solver::Default_Solver_Setup.population_size,
+				solver::Default_Solver_Setup.tolerance,
+			};
+			
+			rc = solver::Solve_Generic(setup.solver_id, generic_setup, *setup.progress);
+			if (rc == S_OK) {
+				rc = setup.solved_parameters->set(solution.data(), solution.data()+solution.size());
+			}
+
+			return rc;
+		}
+
+	}
+
+	return rc;
 }

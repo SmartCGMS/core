@@ -54,7 +54,7 @@ CDiffusion_v2_blood::CDiffusion_v2_blood(scgms::WTime_Segment segment) : CCommon
 HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 																const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 	if (count == 0) return S_FALSE;
-	if ((times == nullptr) || (levels == nullptr)) return E_INVALIDARG;
+	if ((times == nullptr) || (levels == nullptr) || (derivation_order != scgms::apxNo_Derivation)) return E_INVALIDARG;
 
 	const diffusion_v2_model::TParameters &parameters = scgms::Convert_Parameters<diffusion_v2_model::TParameters>(params, diffusion_v2_model::default_parameters);
 	

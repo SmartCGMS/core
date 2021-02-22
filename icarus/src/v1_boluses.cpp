@@ -63,7 +63,7 @@ void CV1_Boluses::Check_Bolus_Delivery(const double current_time) {
 		evt.device_time() = mStepped_Current_Time;
 		evt.segment_id() = mSegment_id;
 		evt.level() = mParameters.basal_rate;		
-		mBasal_Rate_Issued = Succeeded(Send(evt));
+		mBasal_Rate_Issued = Succeeded(mOutput.Send(evt));
 	}
 
 
@@ -79,14 +79,14 @@ void CV1_Boluses::Check_Bolus_Delivery(const double current_time) {
 			evt.segment_id() = mSegment_id;
 			evt.level() = mParameters.bolus[mBolus_Index].bolus;
 
-			if (Succeeded(Send(evt)))
+			if (Succeeded(mOutput.Send(evt)))
 				mBolus_Index++;
 		}
 	}
 }
 
 HRESULT CV1_Boluses::Do_Execute(scgms::UDevice_Event event) {	
-	return Send(event);	
+	return mOutput.Send(event);
 }
 
 HRESULT CV1_Boluses::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {

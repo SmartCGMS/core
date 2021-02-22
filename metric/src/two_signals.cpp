@@ -138,7 +138,7 @@ HRESULT CTwo_Signals::Do_Execute(scgms::UDevice_Event event) {
 		}
 	}
 
-	return Send(event);
+	return mOutput.Send(event);
 }
 
 HRESULT CTwo_Signals::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {

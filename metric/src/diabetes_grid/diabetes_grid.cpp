@@ -165,6 +165,7 @@ void CDiabetes_Grid::Do_Flush_Stats(std::wofstream stats_file) {
 	const std::array<const wchar_t*, 3> markers = { dsClarke_Error_Grid, dsParkes_Error_Grid_Type_1, dsParkes_Error_Grid_Type_2 };
 
 	auto flush_stats = [&stats_file](const TError_Grid_Stats& stats, const uint64_t segment_id) {
+
 		if (segment_id == scgms::All_Segments_Id)  stats_file << dsSelect_All_Segments;
 		else stats_file << std::to_wstring(segment_id);
 

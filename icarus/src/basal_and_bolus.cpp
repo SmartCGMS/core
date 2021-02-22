@@ -59,7 +59,7 @@ HRESULT CBasal_And_Bolus::Do_Execute(scgms::UDevice_Event event) {
 		evt.device_time() = event.device_time();
 		evt.segment_id() = mSegment_id;
 		evt.level() = mParameters.basal_rate;
-		mBasal_Rate_Issued = Succeeded(Send(evt));
+		mBasal_Rate_Issued = Succeeded(mOutput.Send(evt));
 	}
 
 	if ((event.signal_id() == scgms::signal_Carb_Intake) &&
@@ -70,13 +70,13 @@ HRESULT CBasal_And_Bolus::Do_Execute(scgms::UDevice_Event event) {
 		evt.device_time() = event.device_time();
 		evt.segment_id() = mSegment_id;
 		evt.level() = mParameters.carb_to_insulin * event.level();
-		HRESULT rc = Send(evt);
+		HRESULT rc = mOutput.Send(evt);
 
 		if (!Succeeded(rc))
 			return rc;
 	}
 
-	return Send(event);	
+	return mOutput.Send(event);
 }
 
 HRESULT CBasal_And_Bolus::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {

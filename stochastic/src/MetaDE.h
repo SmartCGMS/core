@@ -293,7 +293,16 @@ public:
 			//1. determine the best p-count parameters, without actually re-ordering the population
 			//we want to avoid of getting all params close together and likely loosing the population diversity
 			std::partial_sort(mPopulation_Best.begin(), mPopulation_Best.begin() + mPBest_Count, mPopulation_Best.end(),
-				[&](const size_t &a, const size_t &b) {return mPopulation[a].current_fitness < mPopulation[b].current_fitness; });
+				[&](const size_t &a, const size_t &b) {
+			
+				//comparison to NaN would yield false, if std::numeric_limits::is_iec559
+				//otherwise, it is implementation specific
+				if (std::isnan(mPopulation[a].current_fitness)) return false;
+				if (std::isnan(mPopulation[b].current_fitness)) return true;
+
+				return mPopulation[a].current_fitness < mPopulation[b].current_fitness; 
+			
+			});
 
 			//update the progress
 			progress.best_metric = mPopulation[mPopulation_Best[0]].current_fitness;
@@ -403,7 +412,9 @@ public:
 			//3. Let us preserve the better vectors - too fast to amortize parallelization => serial code
 			for (auto &solution : mPopulation) {
 				//used strategy produced a better offspring => leave meta params as they are
-				if (solution.current_fitness > solution.next_fitness) {
+				if (std::isnan(solution.current_fitness) ||
+					((solution.current_fitness > solution.next_fitness) && (!std::isnan(solution.next_fitness)))
+					) { 
 					solution.current = solution.next;
 					solution.current_fitness = solution.next_fitness;
 				}

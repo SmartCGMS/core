@@ -287,7 +287,7 @@ HRESULT CDrawing_Filter::Do_Execute(scgms::UDevice_Event event) {
 		mParameterChanges.clear();
 	}
 
-	return Send(event);
+	return mOutput.Send(event);
 }
 
 bool CDrawing_Filter::Force_Redraw(const std::unordered_set<uint64_t> &segmentIds, const std::set<GUID> &signalIds)

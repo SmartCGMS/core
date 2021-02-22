@@ -101,7 +101,7 @@ HRESULT IfaceCalling signal_generator_internal::CSynchronized_Generator::Execute
 	scgms::TDevice_Event *raw_event;
 	HRESULT rc = event->Raw(&raw_event);
 	
-	if (rc == S_OK) {
+	if (Succeeded(rc)) {
 		const bool chained_send = mChained_Output &&
 									((raw_event->event_code == scgms::NDevice_Event_Code::Shut_Down) ||
 									(raw_event->segment_id == scgms::All_Segments_Id));
@@ -116,11 +116,16 @@ HRESULT signal_generator_internal::CSynchronized_Generator::Execute_Sync(scgms::
 	HRESULT rc = E_UNEXPECTED;
 
 	if (!mCatching_Up) {
-		if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start)
-			mLast_Device_Time = std::numeric_limits<double>::quiet_NaN();
+		double dynamic_stepping = 0.0;			//means "emit current state"
+		bool flush_current_state = event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start;
+		
+		if (flush_current_state) {
+			mLast_Device_Time = event.device_time();
+			mSync_Model->Initialize(event.device_time(), mSegment_Id);	//for which we need to set the current time			
+		}
 
 		bool step_the_model = event.is_level_event() && ((event.signal_id() == mSync_Signal) || (mSync_Signal == scgms::signal_All));
-		double dynamic_stepping = 0.0;			//means "emit current state"
+		
 		if (step_the_model) {
 			if (!std::isnan(mLast_Device_Time)) {
 				dynamic_stepping = event.device_time() - mLast_Device_Time;
@@ -131,7 +136,7 @@ HRESULT signal_generator_internal::CSynchronized_Generator::Execute_Sync(scgms::
 			else {
 				//cannot advance the model because this is the very first event, thus we do not have the delta
 				mSync_Model->Initialize(event.device_time(), mSegment_Id);	//for which we need to set the current time
-
+				flush_current_state = true;
 				//do not move the initialize from here - if we would replay a historical log, combined
 				//with events produced in the present, it could produce wrong dynamic stepping
 				//because we nee to lock our time hearbeat on the historical sync_signal, not any signal
@@ -166,7 +171,7 @@ HRESULT signal_generator_internal::CSynchronized_Generator::Execute_Sync(scgms::
 		if (!Succeeded(rc))
 			return rc;
 
-		if (step_the_model) rc = mSync_Model->Step(dynamic_stepping);
+		if (step_the_model || flush_current_state) rc = mSync_Model->Step(dynamic_stepping);
 	}
 	else {
 		//process events we might have triggerd while catching up
@@ -206,7 +211,7 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 				rc = mLast_Sync_Generator->Execute_Sync(event);
 					//the sync'ed generators will subsequenly forward this event among them
 			else
-				rc = Send(event);
+				rc = mOutput.Send(event);
 		} else {
 			//this event is intended for a single segment only
 			auto sync_model_iter = mSync_Models.find(event.segment_id());
@@ -293,7 +298,9 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 			double total_time = 0.0;
 			
 			scgms::SDiscrete_Model model = mAsync_Model; // hold local instance to avoid race conditions with Execute shutdown code
-			if (Succeeded(model->Initialize(Unix_Time_To_Rat_Time(time(nullptr)), segment_id))) {
+			if (Succeeded(model->Initialize(Unix_Time_To_Rat_Time(time(nullptr)), segment_id))) {				
+				Emit_Info(scgms::NDevice_Event_Code::Time_Segment_Start, nullptr, segment_id);
+
 				model->Step(0.0);	//emit the initial state as this is the current state now
 				while (!mQuitting) {
 					if (!Succeeded(model->Step(mFixed_Stepping))) break;
@@ -320,8 +327,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 	return S_OK;
 }
 
-HRESULT IfaceCalling CSignal_Generator::QueryInterface(const GUID* riid, void** ppvObj)
-{
+HRESULT IfaceCalling CSignal_Generator::QueryInterface(const GUID* riid, void** ppvObj) {
 	if (Internal_Query_Interface<scgms::IFilter_Feedback_Receiver>(scgms::IID_Filter_Feedback_Receiver, *riid, ppvObj)) return S_OK;
 	return E_NOINTERFACE;
 }

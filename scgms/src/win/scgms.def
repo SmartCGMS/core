@@ -4,7 +4,6 @@ EXPORTS
 	create_filter
 	create_metric
 	create_signal
-	solve_model_parameters
 	solve_generic
 	create_approximator
 	get_filter_descriptors

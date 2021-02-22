@@ -47,12 +47,12 @@
 #include <map>
 #include <stdexcept>
 
-CComposite_Filter::CComposite_Filter(std::recursive_mutex &communication_guard) : mCommunication_Guard(communication_guard) {
+CComposite_Filter::CComposite_Filter(std::recursive_mutex &communication_guard) noexcept : mCommunication_Guard(communication_guard) {
 	//
 }
 
 
-HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, refcnt::Swstr_list& error_description) {
+HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, refcnt::Swstr_list& error_description) noexcept {
 	mRefuse_Execute = true;
 	if (!mExecutors.empty())
 		return E_ILLEGAL_METHOD_CALL;	//so far, we are able to configure the chain just once
@@ -70,7 +70,7 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 	}
 
 	//we have to create the filter executors from the last one
-	try {
+	{
 		//1st round - create the filters
 		do {
 			scgms::IFilter_Configuration_Link* &link = *(link_end-1);
@@ -85,8 +85,19 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 
 			std::unique_ptr<CFilter_Executor> new_executor = std::make_unique<CFilter_Executor>(filter_id, mCommunication_Guard, last_filter, on_filter_created, on_filter_created_data);
 			//try to configure the filter 
+			if (!new_executor) {
+				mExecutors.clear();
+				return E_OUTOFMEMORY;
+			}
+
+
 			rc = new_executor->Configure(link, error_description.get());
 			if (!Succeeded(rc)) {
+				//if failed, we need to delete this, newly constructed filter first,
+				//i.e., before clearing mExecutors because it is tied to resources,
+				//which must be released AFTER destroying this filter
+				new_executor.reset(nullptr);
+
 				//describe such an event anyway just in the case the filter would not do so - hence we would at least know the configuration-failing filter
 				std::wstring err_str{dsFailed_to_configure_filter};
 				err_str += GUID_To_WString(filter_id);
@@ -107,8 +118,12 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 				if (failed_to_resolve_descriptor)
 					describe_loaded_filters(error_description);
 
-				if (!mExecutors.empty())
-					mExecutors[0]->Execute(static_cast<scgms::IDevice_Event*> (new CDevice_Event{ scgms::NDevice_Event_Code::Shut_Down }));
+				if (!mExecutors.empty()) {
+					scgms::IDevice_Event* shutdown_event = static_cast<scgms::IDevice_Event*> (new CDevice_Event{ scgms::NDevice_Event_Code::Shut_Down });
+					if (shutdown_event) 
+						mExecutors[0]->Execute(shutdown_event);
+							
+				}
 
 				mExecutors.clear();
 				return rc;
@@ -151,31 +166,20 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 						else {
 							std::wstring err_str{ dsFeedback_sender_not_connected };
 							err_str += name;
-							//error_description.push(err_str.c_str()); - see the catch block
-							throw std::runtime_error{ Narrow_WString(err_str ) };	//this is very likely severe error in the configuration, hence we stop it
+							error_description.push(err_str.c_str()); 
+							mExecutors.clear();
+							return E_FAIL;	//this is very likely severe error in the configuration, hence we stop it
 						}
 					}
 				}
 			}
-	}
-	catch (const std::exception & ex) {
-		// specific handling for all exceptions extending std::exception, except
-		// std::runtime_error which is handled explicitly
-		mExecutors.clear();
-		std::wstring error_desc = Widen_Char(ex.what());
-		error_description.push(error_desc.c_str());
-		return E_FAIL;
-	}
-	catch (...) {
-		mExecutors.clear();
-		return E_FAIL;
 	}
 
 	mRefuse_Execute = false;
 	return S_OK;
 }
 
-HRESULT CComposite_Filter::Execute(scgms::IDevice_Event *event) {
+HRESULT CComposite_Filter::Execute(scgms::IDevice_Event *event) noexcept {
 	if (!event) return E_INVALIDARG;
 	if (mExecutors.empty()) {
 		event->Release();
@@ -191,28 +195,25 @@ HRESULT CComposite_Filter::Execute(scgms::IDevice_Event *event) {
 	return mExecutors[0]->Execute(event);	//and by this, we delegate event's release to the filters
 }
 
-HRESULT CComposite_Filter::Clear() {
-		//obtain the communication guard/lock to ensure that no new communication will be accepted
-		//via the execute method
-	try {
-		{
-			std::lock_guard<std::recursive_mutex> guard{ mCommunication_Guard };
-			mRefuse_Execute = true;
-		}
+HRESULT CComposite_Filter::Clear() noexcept {
+	//obtain the communication guard/lock to ensure that no new communication will be accepted
+	//via the execute method
+	
+	{
+		std::lock_guard<std::recursive_mutex> guard{ mCommunication_Guard };
+		mRefuse_Execute = true;
+	}
 
-		//once we refuse any communication from the Execute method, we can safely release the filters
-		//assuming that they terminate any threads they have spawned
-		for (size_t i = 0; i < mExecutors.size(); i++)
-			mExecutors[i]->Release_Filter();
-		mExecutors.clear();	//calls reset on all contained unique ptr's
-	}
-	catch (...) {
-		return E_FAIL;
-	}
+	//once we refuse any communication from the Execute method, we can safely release the filters
+	//assuming that they terminate any threads they have spawned
+	for (size_t i = 0; i < mExecutors.size(); i++)
+		mExecutors[i]->Release_Filter();
+	mExecutors.clear();	//calls reset on all contained unique ptr's	
+	
 
 	return S_OK;
 }
 
-bool CComposite_Filter::Empty() {
+bool CComposite_Filter::Empty() const noexcept {
 	return mExecutors.empty();
 }

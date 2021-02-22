@@ -138,7 +138,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 	auto read_segment_id = [&cut_column, &emit_parsing_exception_w]()->uint64_t {
 		bool ok;
 		const auto str = cut_column();
-		uint64_t result = wstr_2_uint(str.c_str(), ok);
+		uint64_t result = str_2_uint(str.c_str(), ok);
 		if (!ok) {
 			std::wstring msg{ dsError_In_Number_Format };
 			msg.append(str);
@@ -256,7 +256,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 				evt.info.set(info_str.c_str());
 			else if (evt.is_level_event()) {
 				bool ok;
-				const double level = wstr_2_dbl(info_str.c_str(), ok);
+				const double level = str_2_dbl(info_str.c_str(), ok);
 				if (ok) {
 					evt.level() = level;
 				}
@@ -288,7 +288,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			}
 
 
-			if (Send(evt) != S_OK)
+			if (!Succeeded(mOutput.Send(evt)))
 				return;
 		}
 		catch (const std::exception& ex) {
@@ -439,7 +439,7 @@ void CLog_Replay_Filter::Open_Logs(std::vector<CLog_Replay_Filter::TLog_Segment_
 	//issue shutdown after the last log, if we were not asked to ignore it
 	if (mEmit_Shutdown) {
 		scgms::UDevice_Event shutdown_evt{ scgms::NDevice_Event_Code::Shut_Down };
-		Send(shutdown_evt);
+		mOutput.Send(shutdown_evt);
 	}
 }
 
@@ -463,7 +463,7 @@ HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(scgms::SFilter_Configurati
 HRESULT CLog_Replay_Filter::Do_Execute(scgms::UDevice_Event event) {
 	if (event.event_code() == scgms::NDevice_Event_Code::Shut_Down)
 		mShutdown_Received = true;
-	return Send(event);
+	return mOutput.Send(event);
 }
 
 void CLog_Replay_Filter::WStr_To_Parameters(const std::wstring& src, scgms::SModel_Parameter_Vector& target) {

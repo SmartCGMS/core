@@ -117,7 +117,7 @@ enum class NKnownDateFormat
 // recognized datetime format formatter strings
 extern const std::array<const char*, static_cast<size_t>(NKnownDateFormat::UNKNOWN_DATEFORMAT)> KnownDateFormatFmtStrings;
 
-NKnownDateFormat Recognize_Date_Format(std::string& str);
+NKnownDateFormat Recognize_Date_Format(const std::string& str);
 NKnownDateFormat Recognize_Date_Format(const wchar_t *str);
 bool Str_Time_To_Unix_Time(const wchar_t *src, NKnownDateFormat fmtIdx, std::string outFormatStr, const char* outFormat, time_t& target);
 bool Str_Time_To_Unix_Time(const std::string& src, NKnownDateFormat fmtIdx, std::string outFormatStr, const char* outFormat, time_t& target);

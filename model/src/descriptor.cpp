@@ -546,7 +546,7 @@ namespace uva_padova_S2017 { //DOI: 10.1177/1932296818757747
 	const scgms::TSignal_Descriptor iob_desc{ uva_padova_S2017::signal_IOB, iobs_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF456898, 0xFF456898, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 
 	const std::wstring cobs_desc = std::wstring{ dsUVa_Padova_S2017_COB };
-	const scgms::TSignal_Descriptor cob_desc{ uva_padova_S2017::signal_COB, iobs_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor cob_desc{ uva_padova_S2017::signal_COB, cobs_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 }
 
 namespace samadi_model { // DOI: 10.1016/j.compchemeng.2019.106565

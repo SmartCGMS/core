@@ -501,7 +501,7 @@ HRESULT CNetwork_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 			mNetThread->join();
 	}
 
-	return Send(event);
+	return mOutput.Send(event);
 }
 
 HRESULT CNetwork_Discrete_Model::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list &error_description)
@@ -573,7 +573,7 @@ void CNetwork_Discrete_Model::Send_Deferred_Events()
 	std::unique_lock<std::mutex> lck(mEmit_Mtx);
 
 	for (auto& evt : mDeferred_Events_To_Send)
-		Send(evt);
+		mOutput.Send(evt);
 
 	mDeferred_Events_To_Send.clear();
 }
@@ -638,7 +638,7 @@ bool CNetwork_Discrete_Model::Emit_Signal_Level(const GUID& id, double device_ti
 	evt.level() = level;
 	evt.segment_id() = mSegment_Id;
 
-	return Succeeded(Send(evt));
+	return Succeeded(mOutput.Send(evt));
 }
 
 bool CNetwork_Discrete_Model::Emit_Error(const std::wstring& error, bool deferred)
@@ -656,7 +656,7 @@ bool CNetwork_Discrete_Model::Emit_Error(const std::wstring& error, bool deferre
 	if (deferred)
 		mDeferred_Events_To_Send.push_back(std::move(evt));
 	else
-		rc = Send(evt);
+		rc = mOutput.Send(evt);
 
 	return Succeeded(rc);
 }
