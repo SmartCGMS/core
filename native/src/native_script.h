@@ -51,6 +51,7 @@ class CNative_Script : public virtual scgms::CBase_Filter {
 protected:
     std::map<uint64_t, CNative_Segment> mSegments;    
     std::array<GUID, native::max_signal_count> mSignal_Ids{ { Invalid_GUID } };
+    bool mInvoke_On_Any_Signal = false;
     std::array<double, native::max_parameter_count> mParameters{ 0.0 };
     std::map<GUID, size_t> mSignal_To_Ordinal;    
 protected:

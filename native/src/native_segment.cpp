@@ -49,7 +49,7 @@ HRESULT IfaceCalling Send_Handler(const GUID* sig_id, const double device_time, 
 
 CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Execute_Wrapper entry_point,
 	const std::array<GUID, native::max_signal_count>& signal_ids, const std::array<double, native::max_parameter_count>& parameters,
-	const size_t custom_data_size) :
+	const size_t custom_data_size, const bool sync_to_any_signal) :
 	mSegment_Id(segment_id), mOutput(output), mEntry_Point(entry_point) {
 
 
@@ -67,7 +67,7 @@ CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_i
 
 	std::copy(parameters.begin(), parameters.end(), mEnvironment.parameters);
 
-	mSync_To_Any = signal_ids[0] == scgms::signal_All;
+	mSync_To_Any = sync_to_any_signal;
 }
 
 void CNative_Segment::Emit_Info(const bool is_error, const std::wstring& msg) {
@@ -84,7 +84,9 @@ HRESULT CNative_Segment::Execute(const size_t signal_idx, GUID& signal_id, doubl
 
 	mEnvironment.current_signal_index = signal_idx;
 
-	if (signal_idx < native::max_signal_count) {
+	const bool user_set_signal = signal_idx < native::max_signal_count;
+
+	if (user_set_signal) {
 		mPrevious_Device_Time[signal_idx] = mLast_Device_Time[signal_idx];
 		mPrevious_Level[signal_idx] = mLast_Level[signal_idx];
 
@@ -107,7 +109,7 @@ HRESULT CNative_Segment::Execute(const size_t signal_idx, GUID& signal_id, doubl
 
 	HRESULT rc = S_OK;
 
-	if (mSync_To_Any || (signal_idx == 0)) {	//execute only on syncing level
+	if (mSync_To_Any || user_set_signal) {	
 			rc = mEntry_Point(&signal_id, &device_time, &level, &mEnvironment, this);
 	}
 
