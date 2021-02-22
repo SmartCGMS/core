@@ -550,6 +550,107 @@ namespace samadi_model {
 	}} };
 }
 
+namespace gct_model {
+
+	constexpr GUID model_id = { 0xc91e7deb, 0x285, 0x4fa0, { 0x83, 0x1e, 0x94, 0xf0, 0xf1, 0xa0, 0x96, 0x2e } };					// {C91E7DEB-0285-4FA0-831E-94F0F1A0962E}
+
+	constexpr GUID signal_IG = { 0xc4d0fa39, 0x120a, 0x49b1, { 0x86, 0x77, 0xd4, 0xe9, 0xcd, 0x5d, 0x59, 0xf9 } };					// {C4D0FA39-120A-49B1-8677-D4E9CD5D59F9}
+	constexpr GUID signal_BG = { 0xb45606de, 0x3f1b, 0x4ec4, { 0xbb, 0x83, 0x2e, 0xe9, 0x9e, 0xc8, 0x31, 0x39 } };					// {B45606DE-3F1B-4EC4-BB83-2EE99EC83139}
+	constexpr GUID signal_Delivered_Insulin = { 0xe279db89, 0x71c5, 0x4b89, { 0x97, 0xa1, 0x38, 0x17, 0x8, 0xb8, 0x1c, 0x2d } };	// {E279DB89-71C5-4B89-97A1-381708B81C2D}
+	constexpr GUID signal_IOB = { 0xfe49fe8e, 0xf819, 0x4323, { 0xb8, 0x4d, 0x7f, 0x9, 0x1, 0xe4, 0xa2, 0x71 } };					// {FE49FE8E-F819-4323-B84D-7F0901E4A271}
+	constexpr GUID signal_COB = { 0xb23e1df5, 0xd291, 0x4015, { 0xa0, 0x3d, 0xa9, 0x2e, 0xc3, 0xf1, 0x3c, 0x16 } };					// {B23E1DF5-D291-4015-A03D-A92EC3F13C16}
+
+	constexpr size_t model_param_count = 26;
+
+	/*
+	Q1_0 - D2_0 - initial values/quantities
+	Vq - distribution volume of glucose molecules in plasma ("volume of plasma")
+	Vqsc - distribution volume of glucose molecules in subcutaneous tissue / interstitial fluid
+	Vi - insulin distribution volume
+	Q1b - basal glucose amount in primary distribution volume
+	Gthr - glycosuria threshold [mmol/L]
+	q12 - transfer rate Q1 <-> Q2, diffusion
+	q1sc - transfer rate Q1 <-> Qsc, diffusion
+	ix - transfer rate I -> X
+	xq1 - moderation rate Q1 -(X)-> sink
+	d12 - transfer rate D1 -> D2 ("digestion" rate)
+	d2q1 - transfer rate D2 -> Q1 (glucose absorption rate)
+	q1e - base elimination of Q1 glucose
+	q1e_thr - glycosuria elimination of Q1 glucose (over threshold)
+	xe - elimination rate of X by glucose utilization moderation (coupled with xq1)
+	q1p - glucose appearance rate from glycogen and miscellanous sources
+	Aq - CHO bioavailability (how many % of glucose from meal is absorbed); TODO: this should be a parameter of CHO intake
+	t_d - meal absorption time; TODO: this should be a parameter of CHO intake
+	t_i - subcutaneous insulin absorption time; TODO: this should be a parameter of insulin dosage
+	*/
+
+	struct TParameters {
+		union {
+			struct {
+				// initial quantities
+				double Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0;
+				// patient quantity and base parameters
+				double Vq, Vqsc, Vi, Q1b, Gthr;
+				// transfer parameters
+				double q12, q1sc, ix, xq1, d12, d2q1;
+				// elimination parameters
+				double q1e, q1e_thr, xe;
+				// production parameters
+				double q1p;
+				// misc parameters
+				double Ag, t_d, t_i;
+			};
+			double vector[model_param_count];
+		};
+	};
+
+	constexpr double DayToMin = 24.0 * 60.0; // convert "per day" parameters to "per minute"
+
+	const gct_model::TParameters lower_bounds = { {{
+		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0
+			0,    0,    0,     0,   0,     0,   0,    0,
+		//	Vq,  Vqsc, Vi, Q1b, Gthr
+			30,  25,   30, 50,  8.0,
+		//	q12,  q1sc,             ix,               xq1,   d12,             d2q1
+			0.01, 0.001 * DayToMin, 0.001 * DayToMin, 0.001, 0.01 * DayToMin, 0.01 * DayToMin,
+		//	q1e,               q1e_thr, xe,
+			0.0001 * DayToMin, 0.001,   0.01,
+		//	q1p
+			0.00001,
+		//	Ag,  t_d,                    t_i
+			0.5, scgms::One_Minute * 10, scgms::One_Minute * 5
+	}} };
+	const gct_model::TParameters default_parameters = { { {
+		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0
+			250,  250,  200,   0,   0,     0,   0,    0,
+		//	Vq,  Vqsc, Vi, Q1b, Gthr
+			45,  35,   50, 550, 11.0,
+		//	q12, q1sc,             ix,               xq1, d12,             d2q1
+			0.5, 0.005 * DayToMin, 0.05 * DayToMin, 1.0, 0.05 * DayToMin, 0.05 * DayToMin,
+		//	q1e,             q1e_thr, xe,
+			0.1,             0.2,     0.1,
+		//	q1p
+			0.005,
+		//	Ag,  t_d,                    t_i
+			0.8, scgms::One_Minute * 20, scgms::One_Minute * 15
+	}} };
+
+	const gct_model::TParameters upper_bounds = { { {
+		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0
+			500,  500,  500,   500, 500,   500, 200,  200,
+		//	Vq,  Vqsc, Vi, Q1b,  Gthr,
+			60,  60,   80, 1000, 14.0,
+		//	q12, q1sc,           ix,             xq1, d12,            d2q1
+			0.9, 0.1 * DayToMin, 0.1 * DayToMin, 3.0, 0.1 * DayToMin, 0.1 * DayToMin,
+		//	q1e,             q1e_thr, xe,
+			0.01 * DayToMin, 0.8,     2.0,
+		//	q1p
+			0.01,
+		//	Ag,   t_d,                    t_i
+			0.98, scgms::One_Minute * 50, scgms::One_Minute * 120
+	}} };
+}
+
 namespace ge_model {
 	//grammatical evolution model
 	constexpr GUID model_id = { 0x39932e74, 0x7fc3, 0x4965, { 0x9e, 0x55, 0xee, 0x33, 0xf6, 0x3, 0x5a, 0xcb } };
