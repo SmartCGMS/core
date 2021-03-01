@@ -128,6 +128,26 @@ namespace lgs_basal_insulin
 	};
 }
 
+namespace physical_activity_detection
+{
+	constexpr const GUID signal_id = { 0x5596068a, 0x4acf, 0x4e3f, { 0x9a, 0x98, 0xda, 0x6b, 0x9f, 0xe5, 0xe1, 0x9f } };	// {5596068A-4ACF-4E3F-9A98-DA6B9FE5E19F}
+
+	const size_t param_count = 1;
+
+	const double lower_bound[param_count] = { 30.0 };
+	const double default_parameters[param_count] = { 65.0 };
+	const double upper_bound[param_count] = { 100.0 };
+
+	struct TParameters {
+		union {
+			struct {
+				double heartrate_resting;
+			};
+			double vector[param_count];
+		};
+	};
+}
+
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end);
 extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end);
 extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal);

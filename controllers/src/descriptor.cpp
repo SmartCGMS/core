@@ -49,6 +49,7 @@
 #include "absorption/cob.h"
 #include "betapid/betapid.h"
 #include "lgs/lgs.h"
+#include "activity_detection/physical_activity.h"
 
 #include <vector>
 
@@ -250,12 +251,47 @@ namespace lgs_basal_insulin {
 	const scgms::TSignal_Descriptor lgs_desc{ lgs_basal_insulin_signal_id, dsInsulin_LGS_Rate, dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0xFF008000, 0xFF008000, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
 }
 
-const std::array<scgms::TModel_Descriptor, 5> model_descriptions = { { iob::desc, cob::desc, betapid_insulin_regulation::desc, betapid3_insulin_regulation::desc, lgs_basal_insulin::desc } };
+namespace physical_activity_detection {
+	const GUID id = { 0x346d97df, 0x9bb4, 0x42e1, { 0x93, 0xac, 0x73, 0x57, 0xeb, 0xbb, 0x32, 0xe2 } };	// {346D97DF-9BB4-42E1-93AC-7357EBBB32E2}
+
+	const scgms::NModel_Parameter_Value param_types[param_count] = { scgms::NModel_Parameter_Value::mptDouble };
+
+	const wchar_t* param_names[param_count] = { dsHeart_Rate_Resting };
+	const wchar_t* param_columns[param_count] = { rsHeart_Rate_Resting };
+
+	const size_t signal_count = 1;
+
+	const GUID signal_ids[signal_count] = { signal_id };
+	const wchar_t* signal_names[signal_count] = { dsPhysical_Activity_Detected_Signal };
+	const GUID reference_signal_ids[signal_count] = { scgms::signal_Null };
+
+	const scgms::TModel_Descriptor desc = {
+		id,
+		scgms::NModel_Flags::Signal_Model,
+		dsPhysical_Activity_Detection_Model,
+		rsPhysical_Activity_Detection_Model,
+		param_count,
+		param_types,
+		param_names,
+		param_columns,
+		lower_bound,
+		default_parameters,
+		upper_bound,
+		signal_count,
+		signal_ids,
+		reference_signal_ids
+	};
+
+	const std::wstring sgdesc = dsPhysical_Activity_Detection_Model + std::wstring(L" - ") + dsPhysical_Activity_Detected_Signal;
+	const scgms::TSignal_Descriptor signal_desc{ signal_id, sgdesc.c_str(), L"", scgms::NSignal_Unit::Percent, 0xFF008000, 0xFF008000, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
+}
+
+const std::array<scgms::TModel_Descriptor, 6> model_descriptions = { { iob::desc, cob::desc, betapid_insulin_regulation::desc, betapid3_insulin_regulation::desc, lgs_basal_insulin::desc, physical_activity_detection::desc } };
 
 
-const std::array<scgms::TSignal_Descriptor, 9> signals_descriptors = { {iob::act_bi_desc, iob::act_exp_desc, iob::iob_bi_desc, iob::iob_exp_desc, cob::bi_desc,
+const std::array<scgms::TSignal_Descriptor, 10> signals_descriptors = { {iob::act_bi_desc, iob::act_exp_desc, iob::iob_bi_desc, iob::iob_exp_desc, cob::bi_desc,
 																		betapid_insulin_regulation::pid_desc, betapid_insulin_regulation::pid2_desc, betapid3_insulin_regulation::pid3_desc,
-																		lgs_basal_insulin::lgs_desc } };
+																		lgs_basal_insulin::lgs_desc, physical_activity_detection::signal_desc } };
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
 	*begin = const_cast<scgms::TModel_Descriptor*>(model_descriptions.data());
@@ -292,6 +328,8 @@ extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITi
 		return Manufacture_Object<CBetaPID3_Insulin_Regulation, scgms::ISignal>(signal, weak_segment);
 	else if (*calc_id == lgs_basal_insulin::lgs_basal_insulin_signal_id)
 		return Manufacture_Object<CConstant_Basal_LGS_Insulin_Rate_Model, scgms::ISignal>(signal, weak_segment);
+	else if (*calc_id == physical_activity_detection::signal_id)
+		return Manufacture_Object<CPhysical_Activity_Detection_Model, scgms::ISignal>(signal, weak_segment);
 
 	return E_NOTIMPL;
 }
