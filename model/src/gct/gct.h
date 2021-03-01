@@ -42,9 +42,11 @@
 #include "../../../../common/rtl/FilterLib.h"
 
 #include "transfer_functions.h"
+#include "moderation_functions.h"
 #include "depot.h"
 
 enum class NGCT_Compartment : size_t {
+	// physical compartments
 	Glucose_1,
 	Glucose_2,
 	Glucose_Subcutaneous,
@@ -54,10 +56,13 @@ enum class NGCT_Compartment : size_t {
 	Carbs_1,
 	Carbs_2,
 
-	// virtual compartments
-	Glucose_Source,				// source for basal glucose (constant glucose production)
-	Glucose_Sink,				// sink for glucose (basal metabolism consumption)
-	Insulin_Sink,				// sink for insulin (remote pool consumption)
+	// coupled compartments - i.e.; we don't identify exact causes of elimination/production, we just recognize them as coupled compartment that "gives" and "takes"
+	Glucose_Peripheral,			// source for basal glucose (constant glucose production) and sink for glucose (basal metabolism consumption)
+	Insulin_Peripheral,			// source for insulin (residual or own production) and sink for insulin (remote pool consumption)
+
+	// virtual compartments - i.e.; we have to consider impact of external stimuli, and for systematic integration they should be put into a "compartment"
+	Physical_Activity,						// source for physical activity intensity (fixed external source) and sink compartment
+	Physical_Activity_Glucose_Moderation,	// virtual compartment for holding the increased glucose utilization and production moderator
 
 	count
 };
@@ -99,10 +104,10 @@ struct TDosage {
 class CInfusion_Device {
 
 	protected:
-		double mLast_Time;
+		double mLast_Time = 0.0;
 		double mInfusion_Rate = 0.0;
-		double mInfusion_Period;
-		double mAbsorption_Time;
+		double mInfusion_Period = 0.0;
+		double mAbsorption_Time = 0.0;
 
 	public:
 		// initializes device with current time and primary infusion rate with infusion period
@@ -113,7 +118,7 @@ class CInfusion_Device {
 
 		// retrieves dosage at given time; returns true if 'dosage' was filled with valid values to be infused,
 		// false otherwise; this function should be called repeatedly until it returns false
-		virtual bool Get_Dosage(double currentTime, TDosage& dosage);
+		bool Get_Dosage(double currentTime, TDosage& dosage);
 };
 
 /**
@@ -139,10 +144,14 @@ class CGCT_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscrete_
 		// all compartments present in system
 		CGCT_Compartments mCompartments;
 
-		// pump device (doses insulin at set basal rate)
-		CInfusion_Device mInsulin_Pump;
 		// signals transformed to output signals, not yet emitted
 		std::list<TPending_Signal> mPending_Signals;
+
+		// pump device (doses insulin at set basal rate)
+		CInfusion_Device mInsulin_Pump;
+
+		// physical activity external depot reference
+		CExternal_State_Depot& mPhysical_Activity;
 
 	protected:
 		uint64_t mSegment_Id = scgms::Invalid_Segment_Id;

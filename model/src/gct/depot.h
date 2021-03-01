@@ -39,6 +39,7 @@
 #pragma once
 
 #include "transfer_functions.h"
+#include "moderation_functions.h"
 
 #include <vector>
 #include <memory>
@@ -60,15 +61,10 @@ class CDepot_Link {
 		 * Moderator record
 		 */
 		struct TModerator {
-
 			// moderator depot
 			std::reference_wrapper<CDepot> depot;
-			// "how much" moderator quantity influences transfer; TODO: this will be reworked to a moderation function
-			double moderation_factor;
-			// "how much" of moderation eliminates the moderator amount; TODO: this will be reworked to a moderation function
-			double moderator_elimination_factor;
-
-			// TODO: moderation function (linear, exponential, thresholding, ...)
+			// moderation function
+			std::unique_ptr<CModeration_Function> function;
 		};
 
 	private:
@@ -118,12 +114,21 @@ class CDepot_Link {
 			return *this;
 		}
 
-		void Add_Moderator(CDepot& moderator, double modFactor, double modEliminationFactor) {
-			mModerators.push_back(TModerator{ moderator, modFactor, modEliminationFactor });
+		// adds moderator to this link
+		template<typename TModFunc, typename... Args>
+		void Add_Moderator(CDepot& moderator, Args... args) {
+			mModerators.push_back(TModerator{ moderator, std::make_unique<TModFunc>(std::forward<Args>(args)...) });
 		}
 
+		// steps link to given time
 		void Step(const double currentTime);
 
+		// commits last requested step
+		void Commit(const double currentTime) {
+			mLast_Time = currentTime;
+		}
+
+		// is this link expired? i.e.; has the transfer function reached its end?
 		bool Is_Expired(double time) const {
 			return mTransfer_Function->Is_Expired(time);
 		}
@@ -136,6 +141,10 @@ class CDepot_Link {
  * - every depot has 0..N links to another depots
  */
 class CDepot : public IQuantizable {
+
+	public:
+		// callback for adding a moderator to link
+		using TModerator_Add_Fnc = std::function<void(CDepot_Link& link)>;
 
 	private:
 		// current depot quantity
@@ -155,6 +164,11 @@ class CDepot : public IQuantizable {
 
 		// current depot volume (to be able to calculate concentration); we assume unit volume until changed
 		double mSolution_Volume = 1.0;
+
+	protected:
+		void Internal_Set_Quantity(double quantity) {
+			mQuantity = quantity;
+		}
 
 	public:
 		/**
@@ -212,18 +226,22 @@ class CDepot : public IQuantizable {
 			return *this;
 		}
 
+		// marks depot as (non-)persistent; this means it does (not) get deleted after transfer ends
 		void Set_Persistent(bool state) {
 			mPersistent = state;
 		}
 
+		// is this depot marked as persistent?
 		bool Is_Persistent() const {
 			return mPersistent;
 		}
 
+		// sets volume of this solution (distribution volume of this depot)
 		void Set_Solution_Volume(double volume) {
 			mSolution_Volume = volume;
 		}
 
+		// get volume of this solution
 		double Get_Solution_Volume() const {
 			return mSolution_Volume;
 		}
@@ -236,6 +254,7 @@ class CDepot : public IQuantizable {
 			return mQuantity / mSolution_Volume;
 		}
 
+		// steps depot to current time
 		void Step(const double currentTime) {
 			// step every link
 			for (auto& link : mLinks) {
@@ -243,8 +262,12 @@ class CDepot : public IQuantizable {
 			}
 		}
 
+		// commits quantity from last requested step (two-phase stepping to avoid loss)
 		void Commit(const double currentTime) {
 			mQuantity = mNext_Quantity;
+
+			for (auto& lnk : mLinks)
+				lnk.Commit(currentTime);
 
 			// erase expired links
 			mLinks.erase(std::remove_if(mLinks.begin(), mLinks.end(),
@@ -255,6 +278,7 @@ class CDepot : public IQuantizable {
 			);
 		}
 
+		// add link from this depot to another; first type argument represents type of transfer function, variable arguments are passed to its constructor
 		template<typename TTransferFnc, typename... Args>
 		bool Link_To(CDepot& target, Args... args) {
 
@@ -263,8 +287,7 @@ class CDepot : public IQuantizable {
 			return true;
 		}
 
-		using TModerator_Add_Fnc = std::function<void(CDepot_Link& link)>;
-
+		// adds moderated link from this depot to another; first type argument represents type of transfer function, variable arguments are passed to its constructor
 		template<typename TTransferFnc, typename... Args>
 		bool Moderated_Link_To(CDepot& target, TModerator_Add_Fnc addCallback, Args... args) {
 
@@ -276,6 +299,7 @@ class CDepot : public IQuantizable {
 			return true;
 		}
 
+		// should this depot be deleted?
 		bool Is_Finished() const {
 			return !mPersistent && mLinks.empty();
 		}
@@ -310,6 +334,24 @@ class CSource_Depot : public CDepot {
 		}
 
 	public:
+		using CDepot::CDepot;
+};
+
+/**
+ * Externally driven source depot - always gives and takes requested amount, quantity can be set externally
+ */
+class CExternal_State_Depot : public CDepot {
+
+	protected:
+		virtual void Mod_Quantity(double& total) override {
+			total = -total;
+		}
+
+	public:
+		void Set_Quantity(double quantity) {
+			Internal_Set_Quantity(quantity);
+		}
+
 		using CDepot::CDepot;
 };
 
@@ -359,12 +401,14 @@ class CCompartment : public IQuantizable {
 			return Get_Quantity() / Get_Solution_Volume();
 		}
 
+		// steps all depots in compartment to given time
 		void Step(const double currentTime) {
 			for (auto& depot : mDepots) {
 				depot->Step(currentTime);
 			}
 		}
 
+		// commits changes in all depots and erases depots at the end of their lifetime
 		void Commit(const double currentTime) {
 			for (auto& depot : mDepots) {
 				depot->Commit(currentTime);
@@ -379,6 +423,7 @@ class CCompartment : public IQuantizable {
 			);
 		}
 
+		// has this compartment a persistent depot
 		bool Has_Persistent_Depot() const {
 			for (auto& depot : mDepots) {
 				if (depot->Is_Persistent()) {
@@ -387,6 +432,7 @@ class CCompartment : public IQuantizable {
 			}
 		}
 
+		// retrieves persistent depot in this compartment; throws an exception if no persistent depot found
 		CDepot& Get_Persistent_Depot() {
 			for (auto& depot : mDepots) {
 				if (depot->Is_Persistent()) {
@@ -397,8 +443,9 @@ class CCompartment : public IQuantizable {
 			throw std::runtime_error{ "No persistent depot found" };
 		}
 
+		// creates a depot in this compartment, returns a reference to it; first type argument represents depot type, variable args are passed as depot constructor params
 		template<typename TDepot = CDepot, typename... Args>
-		CDepot& Create_Depot(Args... args) {
+		TDepot& Create_Depot(Args... args) {
 			
 			auto ptr = std::make_unique<TDepot>(std::forward<Args>(args)...);
 			TDepot& res = *ptr; // pointer/reference will remain valid

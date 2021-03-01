@@ -71,13 +71,11 @@ void CDepot_Link::Step(const double currentTime) {
 
 	double amount = - (y_diff / 6.0) * (x0 + 4 * x1 + x2) * baseAmount;
 
-	for (auto& mods : mModerators) {
-		// TODO: moderation implies change in both directions, this models just some kind of allowance
-		// this is not wrong for many cases, but it is in fact a special case of moderation with
-		// moderator base == 0
-		// => rework this to reflect full moderation after implementation of moderation functions
-		amount *= mods.depot.get().Get_Quantity() * mods.moderation_factor;
-		double eliminateAmount = - mods.depot.get().Get_Quantity() * mods.moderator_elimination_factor;
+	// transfer moderation
+	for (const auto& mods : mModerators) {
+
+		amount *= mods.function.get()->Get_Moderation_Input(mods.depot.get().Get_Quantity());
+		double eliminateAmount = -mods.function.get()->Get_Elimination_Input(mods.depot.get().Get_Quantity());
 		mods.depot.get().Mod_Quantity(eliminateAmount);
 	}
 

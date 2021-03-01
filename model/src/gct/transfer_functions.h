@@ -41,26 +41,9 @@
 #include <cmath>
 #include <limits>
 
-#include "../../../../common/utils/DebugHelper.h"
-
-#undef max
-#undef min
+#include "common.h"
 
 class CTransfer_Function;
-
-/**
- * Interface for all objects having quantity and concentration
- */
-class IQuantizable {
-
-	public:
-		virtual ~IQuantizable() = default;
-
-		// retrieves concentration of substance within depot volume
-		virtual double Get_Concentration() const = 0;
-		// retrieves substance quantity
-		virtual double Get_Quantity() const = 0;
-};
 
 /**
  * Base for all transfer functions between two depots

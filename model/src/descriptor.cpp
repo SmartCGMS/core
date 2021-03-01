@@ -644,14 +644,17 @@ namespace gct_model {
 	const wchar_t* model_param_ui_names[model_param_count] = {
 		// TODO: move to dstrings
 		L"Q1_0", L"Q2_0", L"Qsc_0", L"I_0", L"Isc_0", L"X_0", L"D1_0", L"D2_0",
-		L"Vq", L"Vqsc", L"Vi", L"Q1b", L"Gthr",
+		L"Vq", L"Vqsc", L"Vi", L"Q1b", L"Gthr", L"GIthr",
 		L"q12", L"q1sc", L"ix", L"xi", L"d12", L"d2q1",
-		L"q1e", L"q1e_thr", L"xe",
-		L"q1p",
+		L"q1e", L"q1ee", L"q1e_thr", L"xe",
+		L"q1p", L"q1pe", L"ip",
+		L"e_pa", L"e_ua", L"e_pe", L"e_ue", L"q_ep", L"q_eu",
 		L"Ag", L"t_d", L"t_i"
 	};
 
 	const scgms::NModel_Parameter_Value model_param_types[model_param_count] = {
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
@@ -671,11 +674,11 @@ namespace gct_model {
 	};
 
 	const wchar_t* calculated_signal_names[number_of_calculated_signals] = {
-		L"GCT model - IG",
-		L"GCT model - BG",
-		L"GCT model - Delivered insulin",
-		L"GCT model - IOB",
-		L"GCT model - COB",
+		dsGCT_Model_v1_IG,
+		dsGCT_Model_v1_BG,
+		dsGCT_Model_v1_Delivered_Insulin,
+		dsGCT_Model_v1_IOB,
+		dsGCT_Model_v1_COB,
 	};
 
 	const GUID reference_signal_ids[number_of_calculated_signals] = {
@@ -689,7 +692,7 @@ namespace gct_model {
 	scgms::TModel_Descriptor desc = {
 		model_id,
 		scgms::NModel_Flags::Discrete_Model,
-		L"GCT model",
+		dsGCT_Model_v1,
 		nullptr,
 		model_param_count,
 		model_param_types,
@@ -704,20 +707,11 @@ namespace gct_model {
 		reference_signal_ids,
 	};
 
-	const std::wstring ist_desc = std::wstring{ L"GCT model - IG" };
-	const scgms::TSignal_Descriptor ig_desc{ gct_model::signal_IG, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
-
-	const std::wstring bgs_desc = std::wstring{ L"GCT model - BG" };
-	const scgms::TSignal_Descriptor bg_desc{ gct_model::signal_BG, bgs_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
-
-	const std::wstring inss_desc = std::wstring{ L"GCT model - Delivered insulin" };
-	const scgms::TSignal_Descriptor ins_desc{ gct_model::signal_Delivered_Insulin, inss_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
-
-	const std::wstring iobs_desc = std::wstring{ L"GCT model - IOB" };
-	const scgms::TSignal_Descriptor iob_desc{ gct_model::signal_IOB, iobs_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF456898, 0xFF456898, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
-
-	const std::wstring cobs_desc = std::wstring{ L"GCT model - COB" };
-	const scgms::TSignal_Descriptor cob_desc{ gct_model::signal_COB, cobs_desc.c_str(), dsU, scgms::NSignal_Unit::g, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor ig_desc{ gct_model::signal_IG, dsGCT_Model_v1_IG, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor bg_desc{ gct_model::signal_BG, dsGCT_Model_v1_BG, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor ins_desc{ gct_model::signal_Delivered_Insulin, dsGCT_Model_v1_Delivered_Insulin, dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor iob_desc{ gct_model::signal_IOB, dsGCT_Model_v1_IOB, dsU, scgms::NSignal_Unit::U_insulin, 0xFF456898, 0xFF456898, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor cob_desc{ gct_model::signal_COB, dsGCT_Model_v1_COB, dsU, scgms::NSignal_Unit::g, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 }
 
 namespace insulin_bolus {

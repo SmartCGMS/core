@@ -40,7 +40,7 @@
 
 /** model-wide constants **/
 
-constexpr const double GlucoseMolWeight = 180.156; // [g/mol]
+constexpr const double Glucose_Molar_Weight = 180.156; // [g/mol]
 
 /**
  * GCT model implementation
@@ -48,19 +48,29 @@ constexpr const double GlucoseMolWeight = 180.156; // [g/mol]
 
 CGCT_Discrete_Model::CGCT_Discrete_Model(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output) :
 	CBase_Filter(output),
-	mParameters(scgms::Convert_Parameters<gct_model::TParameters>(parameters, gct_model::default_parameters.vector)) {
+	mParameters(scgms::Convert_Parameters<gct_model::TParameters>(parameters, gct_model::default_parameters.vector)),
 
+	mPhysical_Activity(mCompartments[NGCT_Compartment::Physical_Activity].Create_Depot<CExternal_State_Depot>(0.0, false))
+{
+	// base depots
 	auto& q1 =  mCompartments[NGCT_Compartment::Glucose_1].Create_Depot(mParameters.Q1_0, false);
 	auto& q2 =  mCompartments[NGCT_Compartment::Glucose_2].Create_Depot(mParameters.Q2_0, false);
 	auto& qsc = mCompartments[NGCT_Compartment::Glucose_Subcutaneous].Create_Depot(mParameters.Qsc_0, false);
 	auto& i =  mCompartments[NGCT_Compartment::Insulin_Base].Create_Depot(mParameters.I_0, false);
 	auto& x =  mCompartments[NGCT_Compartment::Insulin_Remote].Create_Depot(mParameters.X_0, false);
 
-	auto& q_src  = mCompartments[NGCT_Compartment::Glucose_Source].Create_Depot<CSource_Depot>(mParameters.Q1b, false);
-	auto& q_sink = mCompartments[NGCT_Compartment::Glucose_Sink].Create_Depot<CSink_Depot>(mParameters.Q1b, false);
-	auto& q_moderated_sink = mCompartments[NGCT_Compartment::Glucose_Sink].Create_Depot<CSink_Depot>(0.0, false);
+	// glucose peripheral depots
+	auto& q_src  = mCompartments[NGCT_Compartment::Glucose_Peripheral].Create_Depot<CSource_Depot>(mParameters.Q1b, false);
+	auto& q_sink = mCompartments[NGCT_Compartment::Glucose_Peripheral].Create_Depot<CSink_Depot>(mParameters.Q1b, false);
+	auto& q_moderated_sink = mCompartments[NGCT_Compartment::Glucose_Peripheral].Create_Depot<CSink_Depot>(0.0, false);
 
-	auto& i_sink = mCompartments[NGCT_Compartment::Insulin_Sink].Create_Depot<CSink_Depot>(0.0, false);
+	// insulin peripheral depots
+	auto& i_sink = mCompartments[NGCT_Compartment::Insulin_Peripheral].Create_Depot<CSink_Depot>(0.0, false);
+	auto& i_src = mCompartments[NGCT_Compartment::Insulin_Peripheral].Create_Depot<CSource_Depot>(1.0, false); // use 1.0 as "unit amount" (is further multiplied by parameter)
+
+	// physical activity depots
+	auto& emp = mCompartments[NGCT_Compartment::Physical_Activity_Glucose_Moderation].Create_Depot(0.0, false);
+	auto& emu = mCompartments[NGCT_Compartment::Physical_Activity_Glucose_Moderation].Create_Depot(0.0, false);
 
 	q1.Set_Persistent(true);
 	q1.Set_Solution_Volume(mParameters.Vq);
@@ -87,9 +97,13 @@ CGCT_Discrete_Model::CGCT_Discrete_Model(scgms::IModel_Parameter_Vector* paramet
 	i_sink.Set_Persistent(true);
 	i_sink.Set_Solution_Volume(mParameters.Vi);
 
+	mPhysical_Activity.Set_Persistent(true);
+	emp.Set_Persistent(true);
+	emu.Set_Persistent(true);
+
 	//// Glucose subsystem links
 
-	// Bergman(?)-proposed two glucose compartments glucose diffusion flux
+	// two glucose compartments diffusion flux
 	q1.Link_To<CTwo_Way_Diffusion_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(q2,
 		CTransfer_Function::Start,
 		CTransfer_Function::Unlimited,
@@ -110,15 +124,33 @@ CGCT_Discrete_Model::CGCT_Discrete_Model(scgms::IModel_Parameter_Vector* paramet
 		q_src, q1,
 		mParameters.q1p);
 
+	// glucose appearance due to exercise
+	q_src.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(q1,
+		[&emp, this](CDepot_Link& link) {
+			link.Add_Moderator<CPA_Production_Moderation_Function>(emp, mParameters.q_ep);
+		},
+		CTransfer_Function::Start,
+		CTransfer_Function::Unlimited,
+		mParameters.q1pe);
+
 	// glucose disappearance due to basal needs
 	q1.Moderated_Link_To<CDifference_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(q_moderated_sink,
 		[&x, this](CDepot_Link& link) {
-			link.Add_Moderator(x, mParameters.xq1, mParameters.xe);
+			link.Add_Moderator<CLinear_Moderation_Linear_Elimination_Function>(x, mParameters.xq1, mParameters.xe);
 		},
 		CTransfer_Function::Start,
 		CTransfer_Function::Unlimited,
 		q1, q_moderated_sink,
 		mParameters.q1e);
+
+	// glucose disappearance due to exercise
+	q1.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(q_moderated_sink,
+		[&emu, this](CDepot_Link& link) {
+			link.Add_Moderator<CLinear_Moderation_No_Elimination_Function>(emu, mParameters.q_eu);
+		},
+		CTransfer_Function::Start,
+		CTransfer_Function::Unlimited,
+		mParameters.q1ee);
 
 	// glucose disappearance over certain threshold (glycosuria)
 	q1.Link_To<CConcentration_Threshold_Disappearance_Unbounded_Transfer_Function, double, double, IQuantizable&, double, double>(q_sink,
@@ -135,6 +167,55 @@ CGCT_Discrete_Model::CGCT_Discrete_Model(scgms::IModel_Parameter_Vector* paramet
 		CTransfer_Function::Start,
 		CTransfer_Function::Unlimited,
 		mParameters.ix);
+
+	i_src.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(i,
+		[&q1, this](CDepot_Link& link) {
+			link.Add_Moderator<CThreshold_Linear_Moderation_No_Elimination_Function>(q1, mParameters.ip, mParameters.GIthr);
+		},
+		CTransfer_Function::Start,
+		CTransfer_Function::Unlimited,
+		mParameters.ip);
+
+	//// Physical activity subsystem links
+
+	// appearance of virtual "production modulator"
+	mPhysical_Activity.Link_To<CDifference_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(emp,
+		CTransfer_Function::Start,
+		CTransfer_Function::Unlimited,
+		mPhysical_Activity, emp,
+		mParameters.e_pa);
+
+	// appearance of virtual "utilization modulator"
+	mPhysical_Activity.Link_To<CDifference_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(emu,
+		CTransfer_Function::Start,
+		CTransfer_Function::Unlimited,
+		mPhysical_Activity, emu,
+		mParameters.e_ua);
+
+	// elimination rate of virtual "production modulator"
+	emp.Link_To<CDifference_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(mPhysical_Activity,
+		CTransfer_Function::Start,
+		CTransfer_Function::Unlimited,
+		emp, mPhysical_Activity,
+		mParameters.e_pe);
+
+	// elimination rate of virtual "utilization modulator"
+	emu.Link_To<CDifference_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(mPhysical_Activity,
+		CTransfer_Function::Start,
+		CTransfer_Function::Unlimited,
+		emu, mPhysical_Activity,
+		mParameters.e_ue);
+
+	/*
+
+	GCT model in this version does not contain:
+
+		- inhibitors
+			* glucose utilization (insulin effect inhibition)
+			* glucose production (glycogen breakdown inhibition)
+		- sleep effects
+	
+	*/
 }
 
 CDepot& CGCT_Discrete_Model::Add_To_D1(double amount, double start, double duration) {
@@ -183,7 +264,7 @@ void CGCT_Discrete_Model::Emit_All_Signals(double time_advance_delta) {
 	 */
 
 	const double cob = mCompartments[NGCT_Compartment::Carbs_1].Get_Quantity() + mCompartments[NGCT_Compartment::Carbs_2].Get_Quantity(); // mmols of glucose
-	Emit_Signal_Level(gct_model::signal_COB, _T, cob * GlucoseMolWeight / 1000.0); // should we count with bioavailability (Ag) ?
+	Emit_Signal_Level(gct_model::signal_COB, _T, cob * Glucose_Molar_Weight / (mParameters.Ag * 1000.0));
 
 	const double iob = mCompartments[NGCT_Compartment::Insulin_Remote].Get_Quantity();
 	Emit_Signal_Level(gct_model::signal_IOB, _T, iob);
@@ -208,6 +289,7 @@ HRESULT CGCT_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 
 		if (event.event_code() == scgms::NDevice_Event_Code::Level) {
 
+			// insulin pump control
 			if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate) {
 
 				if (event.device_time() < mLast_Time)
@@ -218,13 +300,15 @@ HRESULT CGCT_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 
 				res = S_OK;
 			}
-			else if (event.signal_id() == scgms::signal_Heartbeat) {
+			// physical activity
+			else if (event.signal_id() == scgms::signal_Physical_Activity) {
 
 				if (event.device_time() < mLast_Time)
 					return E_ILLEGAL_STATE_CHANGE;
 
-				// TODO: add this to compartment
+				mPhysical_Activity.Set_Quantity(event.level());
 			}
+			// bolus insulin
 			else if (event.signal_id() == scgms::signal_Requested_Insulin_Bolus) {
 
 				if (event.device_time() < mLast_Time)
@@ -242,12 +326,14 @@ HRESULT CGCT_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 
 				res = S_OK;
 			}
+			// carbs intake; NOTE: this should be further enhanced once architecture supports meal parametrization (e.g.; glycemic index, ...)
 			else if ((event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue)) {
 
+				// 10 minutes of eating - 10 portions with 1 minute spacing
 				constexpr size_t Portions = 10;
 				const double PortionTimeSpacing = scgms::One_Minute;
 
-				const double PortionSize = (1000.0 * event.level() * mParameters.Ag / GlucoseMolWeight) / static_cast<double>(Portions);
+				const double PortionSize = (1000.0 * event.level() * mParameters.Ag / Glucose_Molar_Weight) / static_cast<double>(Portions);
 
 				for (size_t i = 0; i < Portions; i++)
 					Add_To_D1(PortionSize, mLast_Time + static_cast<double>(i) * PortionTimeSpacing, mParameters.t_d);
@@ -273,7 +359,7 @@ HRESULT IfaceCalling CGCT_Discrete_Model::Step(const double time_advance_delta) 
 	HRESULT rc = E_FAIL;
 	if (time_advance_delta > 0.0) {
 
-		constexpr size_t microStepCount = 5;
+		constexpr size_t microStepCount = 20;
 		const double microStepSize = time_advance_delta / static_cast<double>(microStepCount);
 		const double oldTime = mLast_Time;
 		const double futureTime = mLast_Time + time_advance_delta;
@@ -284,16 +370,19 @@ HRESULT IfaceCalling CGCT_Discrete_Model::Step(const double time_advance_delta) 
 
 			for (size_t i = 0; i < microStepCount; i++) {
 
+				// for each step, retrieve insulin pump subcutaneous injection if any
 				while (mInsulin_Pump.Get_Dosage(mLast_Time, dosage))
 					Add_To_Isc(dosage.amount, dosage.start, dosage.duration);
 
+				// step all compartments
 				for (auto& comp : mCompartments)
 					comp.Step(mLast_Time);
 
+				// commit all compartments
 				for (auto& comp : mCompartments)
 					comp.Commit(mLast_Time);
 
-				mLast_Time += static_cast<double>(i) * microStepSize;
+				mLast_Time = oldTime + static_cast<double>(i) * microStepSize;
 			}
 		}
 
@@ -334,6 +423,8 @@ HRESULT IfaceCalling CGCT_Discrete_Model::Initialize(const double current_time, 
 
 		mLast_Time = current_time;
 		mSegment_Id = segment_id;
+
+		// this is a subject of future re-evaluation - how to consider initial conditions for food-related patient state
 
 		if (mParameters.D1_0 > 0)
 			Add_To_D1(mParameters.D1_0, mLast_Time, scgms::One_Minute * 15);
