@@ -65,11 +65,6 @@ HRESULT IfaceCalling CPhysical_Activity_Detection_Model::Get_Continuous_Levels(s
 
 	std::vector<double> htimes(historyTimeCnt);
 
-	res = mHeartRate->Get_Continuous_Levels(nullptr, times, heartbeat_measured.data(), count, scgms::apxNo_Derivation);
-	if (!Succeeded(res)) {
-		res;
-	}
-
 	for (size_t i = 0; i < count; i++)
 	{
 		// generate history times

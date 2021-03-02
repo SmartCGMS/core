@@ -209,7 +209,7 @@ class CConcentration_Threshold_Disappearance_Unbounded_Transfer_Function final :
 
 	public:
 		CConcentration_Threshold_Disappearance_Unbounded_Transfer_Function(double timeStart, double duration, IQuantizable& source, double threshold, double transferFactor = 1.0)
-			: CTransfer_Function(timeStart, duration), mTransfer_Factor(transferFactor), mSource(source), mThreshold(threshold) {
+			: CTransfer_Function(timeStart, duration), mTransfer_Factor(transferFactor), mThreshold(threshold), mSource(source) {
 			//
 		}
 

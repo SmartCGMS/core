@@ -359,7 +359,7 @@ HRESULT IfaceCalling CGCT_Discrete_Model::Step(const double time_advance_delta) 
 	HRESULT rc = E_FAIL;
 	if (time_advance_delta > 0.0) {
 
-		constexpr size_t microStepCount = 20;
+		constexpr size_t microStepCount = 10;
 		const double microStepSize = time_advance_delta / static_cast<double>(microStepCount);
 		const double oldTime = mLast_Time;
 		const double futureTime = mLast_Time + time_advance_delta;

@@ -42,6 +42,7 @@
 #include "moderation_functions.h"
 
 #include <vector>
+#include <list>
 #include <memory>
 #include <algorithm>
 #include <cassert>
@@ -377,6 +378,7 @@ class CCompartment : public IQuantizable {
 		}
 		CCompartment& operator=(CCompartment& other) noexcept {
 			mDepots = std::move(other.mDepots);
+			return *this;
 		}
 
 		double Get_Quantity() const override {
@@ -430,6 +432,8 @@ class CCompartment : public IQuantizable {
 					return true;
 				}
 			}
+
+			return false;
 		}
 
 		// retrieves persistent depot in this compartment; throws an exception if no persistent depot found
