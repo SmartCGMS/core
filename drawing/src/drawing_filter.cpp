@@ -287,6 +287,8 @@ HRESULT CDrawing_Filter::Do_Execute(scgms::UDevice_Event event) {
 		mParameterChanges.clear();
 	}
 
+	lck.unlock();
+
 	return mOutput.Send(event);
 }
 
