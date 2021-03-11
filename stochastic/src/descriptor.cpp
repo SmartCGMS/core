@@ -56,13 +56,15 @@ namespace rnd_metade {
 	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsRnd_MetaDE);
 }
 
-
-
 namespace mt_unconstrainedmetade {
 	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, L"MT Unconstrained MetaDE");
 }
 
-
+namespace pso {
+	const scgms::TSolver_Descriptor desc_1 = Describe_Non_Specialized_Solver(id_mt_randinit_dcv, L"PSO (MT, RandInit, DCV)");
+	const scgms::TSolver_Descriptor desc_2 = Describe_Non_Specialized_Solver(id_mt_diaginit_scv, L"PSO (MT, DiagInit, SCV)");
+	const scgms::TSolver_Descriptor desc_3 = Describe_Non_Specialized_Solver(id_rnd_crossinit_dcv, L"PSO (RND, CrossInit, DCV)");
+}
 
 namespace pathfinder {
 	const scgms::TSolver_Descriptor desc_fast = Describe_Non_Specialized_Solver(id_fast, dsPathfinder_Fast);
@@ -75,11 +77,13 @@ namespace sequential_brute_force_scan {
 }
 
 
-const std::array<scgms::TSolver_Descriptor, 8> solver_descriptions = 
-	{ mt_metade::desc, halton_metade::desc, rnd_metade::desc,
-	  mt_unconstrainedmetade::desc,
-	  pathfinder::desc_fast, pathfinder::desc_spiral, pathfinder::desc_landscape,
-	  sequential_brute_force_scan::desc};
+const std::array<scgms::TSolver_Descriptor, 11> solver_descriptions = {
+	mt_metade::desc, halton_metade::desc, rnd_metade::desc,
+	mt_unconstrainedmetade::desc,
+	pathfinder::desc_fast, pathfinder::desc_spiral, pathfinder::desc_landscape,
+	sequential_brute_force_scan::desc,
+	pso::desc_1, pso::desc_2, pso::desc_3,
+};
 
 
 HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end) {
