@@ -42,6 +42,10 @@
 
 constexpr const double Glucose_Molar_Weight = 180.156; // [g/mol]
 
+static inline void Ensure_Min_Value(double& target, double value) {
+	target = std::max(target, value);
+}
+
 /**
  * GCT model implementation
  */
@@ -52,6 +56,19 @@ CGCT_Discrete_Model::CGCT_Discrete_Model(scgms::IModel_Parameter_Vector* paramet
 
 	mPhysical_Activity(mCompartments[NGCT_Compartment::Physical_Activity].Create_Depot<CExternal_State_Depot>(0.0, false))
 {
+	// ensure basic parametric bounds - in case some unconstrained optimization algorithm takes place
+	// parameters with such values would cause trouble, as signals may yield invalid values
+	Ensure_Min_Value(mParameters.t_d, scgms::One_Minute);
+	Ensure_Min_Value(mParameters.t_i, scgms::One_Minute);
+	Ensure_Min_Value(mParameters.Q1_0, 0.0);
+	Ensure_Min_Value(mParameters.Q2_0, 0.0);
+	Ensure_Min_Value(mParameters.Qsc_0, 0.0);
+	Ensure_Min_Value(mParameters.X_0, 0.0);
+	Ensure_Min_Value(mParameters.I_0, 0.0);
+	Ensure_Min_Value(mParameters.Vq, 0.0);
+	Ensure_Min_Value(mParameters.Vqsc, 0.0);
+	Ensure_Min_Value(mParameters.Vi, 0.0);
+
 	// base depots
 	auto& q1 =  mCompartments[NGCT_Compartment::Glucose_1].Create_Depot(mParameters.Q1_0, false);
 	auto& q2 =  mCompartments[NGCT_Compartment::Glucose_2].Create_Depot(mParameters.Q2_0, false);
