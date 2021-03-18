@@ -89,13 +89,10 @@ protected:
 			*value = get_val();
 		}
 		else {			
-			auto [var_set, var_val] = Evaluate_Variable(mVariable_Name);
+			std::wstring var_val;
+			std::tie(rc, var_val) = Evaluate_Variable(mVariable_Name);
 
-			if (!var_set) {
-				rc = E_NOT_SET;
-				*value = sanity_val;
-			}
-			else {
+			if (rc == S_OK) {
 				bool ok;
 				*value = conv(var_val, ok);
 
@@ -103,6 +100,9 @@ protected:
 					rc = E_INVALIDARG;
 					*value = sanity_val;
 				}
+			}
+			else {
+				*value = sanity_val; 				
 			}
 		}
 
