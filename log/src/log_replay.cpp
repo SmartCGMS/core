@@ -156,7 +156,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 	std::map<uint64_t, uint64_t> segment_id_map;
 
 	// read all lines from log file
-	while (std::getline(log, line) && !mShutdown_Received) {
+	while (std::getline(log, line) && (!mShutdown_Received || mEmit_All_Events_Before_Shutdown)) {
 		line_counter++;
 
 		trim(line);
@@ -237,7 +237,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 	segment_id_map[scgms::All_Segments_Id] = scgms::All_Segments_Id;
 
 	for (size_t i = 0; i < log_lines.size(); i++) {
-		if (mShutdown_Received) break;
+		if (mShutdown_Received && !mEmit_All_Events_Before_Shutdown) break;
 
 		try {
 			line_counter = std::get<idxLog_Entry_Counter>(log_lines[i]);	//for the error reporting
@@ -434,7 +434,7 @@ std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_L
 void CLog_Replay_Filter::Open_Logs(std::vector<CLog_Replay_Filter::TLog_Segment_id> logs_to_replay) {
 	mLast_Event_Time = std::numeric_limits<double>::quiet_NaN();
 	for (auto& log : logs_to_replay)
-		if (!mShutdown_Received)
+		if (!mShutdown_Received || mEmit_All_Events_Before_Shutdown)
 			Replay_Log(log.file_name, log.segment_id);
 
 	//issue shutdown after the last log, if we were not asked to ignore it
@@ -452,6 +452,7 @@ void CLog_Replay_Filter::Open_Logs(std::vector<CLog_Replay_Filter::TLog_Segment_
 
 HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mEmit_Shutdown = configuration.Read_Bool(rsEmit_Shutdown_Msg, mEmit_Shutdown);
+	mEmit_All_Events_Before_Shutdown = configuration.Read_Bool(rsEmit_All_Events_Before_Shutdown, mEmit_All_Events_Before_Shutdown);
 	mInterpret_Filename_As_Segment_Id = configuration.Read_Bool(rsInterpret_Filename_As_Segment_Id, mInterpret_Filename_As_Segment_Id);
 	mLog_Filename_Or_Dirpath = configuration.Read_File_Path(rsLog_Output_File);
 

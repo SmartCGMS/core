@@ -71,6 +71,7 @@ protected:
 	std::vector<TLog_Segment_id> Enumerate_Log_Segments();
 protected:
 	bool mEmit_Shutdown = false;
+	bool mEmit_All_Events_Before_Shutdown = false;
 	double mLast_Event_Time = std::numeric_limits<double>::quiet_NaN();
 	bool mInterpret_Filename_As_Segment_Id = false;
 	filesystem::path mLog_Filename_Or_Dirpath;  //would prefere wildcard, but this is not covered by C++ standard and do not need that so much to implement it using regex

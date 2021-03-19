@@ -92,7 +92,7 @@ protected:
 			std::wstring var_val;
 			std::tie(rc, var_val) = Evaluate_Variable(mVariable_Name);
 
-			if (rc == S_OK) {
+			if (Succeeded(rc)) {
 				bool ok;
 				*value = conv(var_val, ok);
 
