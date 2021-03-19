@@ -187,7 +187,9 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			if ((original_segment_id != scgms::Invalid_Segment_Id) && (original_segment_id != scgms::All_Segments_Id))
 				segment_id_map[original_segment_id] = original_segment_id;
 
-			log_lines.push_back(TLog_Entry{ device_time, line_counter, info_str, original_segment_id, line });
+			const scgms::NDevice_Event_Code code = static_cast<scgms::NDevice_Event_Code>(std::stoull(cut_column()));
+
+			log_lines.push_back(TLog_Entry{ device_time, line_counter, info_str, original_segment_id, code, line });
 		}
 		catch (const std::exception& ex) {
 			emit_parsing_exception(ex.what());
@@ -204,13 +206,56 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 	//As we have read the times and end of lines, no event has been created yet => no event logical clock advanced by us
 	//=> by creating the events inside the following for, log-events and by-them-triggered events will have monotonically increasing logical clocks.
 	std::sort(log_lines.begin(), log_lines.end(), [](const TLog_Entry& a, const TLog_Entry& b) {
-		if (std::get<idxLog_Entry_Time>(a) != std::get<idxLog_Entry_Time>(b))
-			return std::get<idxLog_Entry_Time>(a) < std::get<idxLog_Entry_Time>(b);
+		if (a.device_time != b.device_time)
+			return a.device_time < b.device_time;
 
 		//if there were multiple events emitted with the same device time,
 		//let us emit them in their order in the log file
-		else  return std::get<idxLog_Entry_Counter>(a) < std::get<idxLog_Entry_Counter>(b);
+		else  return a.line_counter < b.line_counter;
 		});
+
+
+	//Now, we are sorted, but that's not all. Also, we may need to correct segment start/stop markers.
+	{
+		std::vector<size_t> lines_to_remove;
+		
+		
+		//remove any subsequent time segment START markers
+		std::set<uint64_t> seg_ids;
+		for (size_t i = 0; i < log_lines.size(); i++) {
+			//right now, we care about the segment starts only
+			if (log_lines[i].code == scgms::NDevice_Event_Code::Time_Segment_Start) {
+				if (seg_ids.find(log_lines[i].segment_id) != seg_ids.end())
+					//mark for deletion any segment-start for an already known segment
+					lines_to_remove.push_back(i);
+				else
+					seg_ids.insert(log_lines[i].segment_id);
+			}
+		}
+
+		//remove any preceding time segment STOP markers
+		seg_ids.clear();
+		for (size_t i = log_lines.size(); i >0; i--) {
+			const size_t j = i - 1;
+
+			//right now, we care about the segment stops only
+			if (log_lines[j].code == scgms::NDevice_Event_Code::Time_Segment_Stop) {
+				if (seg_ids.find(log_lines[j].segment_id) != seg_ids.end())
+
+					//mark for deletion any segment-stops for an already known segment
+					lines_to_remove.push_back(j);
+				else
+					seg_ids.insert(log_lines[j].segment_id);
+			}
+		}
+
+		std::sort(lines_to_remove.rbegin(), lines_to_remove.rend());
+
+		for (size_t i = 0; i< lines_to_remove.size(); i++) {
+			log_lines.erase(log_lines.begin() + lines_to_remove[i]);
+		}
+	} //end of start-stop corrections
+
 
 	//Adjust segment ids if there were multiple segments
 	if (mInterpret_Filename_As_Segment_Id) {
@@ -240,17 +285,17 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 		if (mShutdown_Received && !mEmit_All_Events_Before_Shutdown) break;
 
 		try {
-			line_counter = std::get<idxLog_Entry_Counter>(log_lines[i]);	//for the error reporting
+			line_counter = log_lines[i].line_counter;	//for the error reporting
 
-			const double device_time = std::get<idxLog_Entry_Time>(log_lines[i]);
+			const double device_time = log_lines[i].device_time;
 
 			// specific column (titled "info", but contains parameters or level)
-			const auto info_str = std::move(std::get<idxLog_Info_Line>(log_lines[i]));
-			const uint64_t segment_id = segment_id_map[std::get<idxLog_Segment_Id>(log_lines[i])];
-			line = std::move(std::get<idxLog_Entry_Line>(log_lines[i]));
+			const auto info_str = log_lines[i].info;
+			const uint64_t segment_id = segment_id_map[log_lines[i].segment_id];
+			line = std::move(log_lines[i].the_rest);
 
 
-			scgms::UDevice_Event evt{ static_cast<scgms::NDevice_Event_Code>(std::stoull(cut_column())) };
+			scgms::UDevice_Event evt{ log_lines[i].code };
 
 			if (evt.is_info_event())
 				evt.info.set(info_str.c_str());

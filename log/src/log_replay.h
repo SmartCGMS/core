@@ -57,12 +57,14 @@
   */
 class CLog_Replay_Filter : public virtual scgms::CBase_Filter {
 protected:
-	static const size_t idxLog_Entry_Time = 0;
-	static const size_t idxLog_Entry_Counter = 1;
-	static const size_t idxLog_Info_Line = 2;
-	static const size_t idxLog_Segment_Id = 3;
-	static const size_t idxLog_Entry_Line = 4;
-	using TLog_Entry = std::tuple<double, size_t, std::wstring, uint64_t, std::wstring>;
+	struct TLog_Entry {
+		double device_time;
+		size_t line_counter;		//this really is not the logical clock
+		std::wstring info;
+		uint64_t segment_id;
+		scgms::NDevice_Event_Code code;
+		std::wstring the_rest;
+	}; 
 protected:
 	struct TLog_Segment_id {
 		filesystem::path file_name;
