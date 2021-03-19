@@ -102,7 +102,7 @@ class CUnconstrainedMetaDE
 			solution.strategy = new_strategy;
 		}
 
-		inline const auto Select_Best_Candidate() const {
+		inline auto Select_Best_Candidate() const {
 			return std::min_element(
 				mPopulation.begin(),
 				mPopulation.end(),

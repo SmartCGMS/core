@@ -91,6 +91,7 @@ namespace pso
 	template<typename TUsed_Solution, typename TRandom_Device>
 	class CRandom_Swarm_Generator final : public ISwarm_Generator<TUsed_Solution, TRandom_Device, CRandom_Swarm_Generator<TUsed_Solution, TRandom_Device>>
 	{
+		using TBase = ISwarm_Generator<TUsed_Solution, TRandom_Device, CRandom_Swarm_Generator<TUsed_Solution, TRandom_Device>>;
 		protected:
 			inline void Generate_Random_Candidate(TSwarm_Vector<TUsed_Solution>& target, size_t idx, const size_t problem_size, const TUsed_Solution& lower_bound, const TUsed_Solution& upper_bound) {
 				TUsed_Solution tmp;
@@ -100,7 +101,7 @@ namespace pso
 				tmp.resize(Eigen::NoChange, problem_size);
 
 				for (size_t j = 0; j < problem_size; j++)
-					tmp[j] = mUniform_Distribution_dbl(mRandom_Generator);
+					tmp[j] = TBase::mUniform_Distribution_dbl(TBase::mRandom_Generator);
 
 				target[idx].current = lower_bound + tmp.cwiseProduct(upper_bound - lower_bound);
 			}
@@ -168,10 +169,11 @@ namespace pso
 	template<typename TUsed_Solution, typename TRandom_Device>
 	class CSingle_Coefficient_Velocity_Modifier final : public IVelocity_Modifier<TUsed_Solution, TRandom_Device, CSingle_Coefficient_Velocity_Modifier<TUsed_Solution, TRandom_Device>>
 	{
+		using TBase = IVelocity_Modifier<TUsed_Solution, TRandom_Device, CSingle_Coefficient_Velocity_Modifier<TUsed_Solution, TRandom_Device>>;
 		public:
 			auto Generate_Velocity_Change_Impl(const size_t problem_size)
 			{
-				double val = mUniform_Distribution_dbl(mRandom_Generator);
+				double val = TBase::mUniform_Distribution_dbl(TBase::mRandom_Generator);
 
 				return std::pair<double, double>(val, val);
 			}
@@ -181,11 +183,12 @@ namespace pso
 	template<typename TUsed_Solution, typename TRandom_Device>
 	class CDual_Coefficient_Velocity_Modifier final : public IVelocity_Modifier<TUsed_Solution, TRandom_Device, CDual_Coefficient_Velocity_Modifier<TUsed_Solution, TRandom_Device>>
 	{
+		using TBase = IVelocity_Modifier<TUsed_Solution, TRandom_Device, CDual_Coefficient_Velocity_Modifier<TUsed_Solution, TRandom_Device>>;
 		public:
 			auto Generate_Velocity_Change_Impl(const size_t problem_size)
 			{
-				double val1 = mUniform_Distribution_dbl(mRandom_Generator);
-				double val2 = mUniform_Distribution_dbl(mRandom_Generator);
+				double val1 = TBase::mUniform_Distribution_dbl(TBase::mRandom_Generator);
+				double val2 = TBase::mUniform_Distribution_dbl(TBase::mRandom_Generator);
 
 				return std::pair<double, double>(val1, val2);
 			}
@@ -195,6 +198,7 @@ namespace pso
 	template<typename TUsed_Solution, typename TRandom_Device>
 	class CSingle_Coefficient_Vector_Velocity_Modifier final : public IVelocity_Modifier<TUsed_Solution, TRandom_Device, CSingle_Coefficient_Vector_Velocity_Modifier<TUsed_Solution, TRandom_Device>>
 	{
+		using TBase = IVelocity_Modifier<TUsed_Solution, TRandom_Device, CSingle_Coefficient_Vector_Velocity_Modifier<TUsed_Solution, TRandom_Device>>;
 		public:
 			auto Generate_Velocity_Change_Impl(const size_t problem_size)
 			{
@@ -202,7 +206,7 @@ namespace pso
 				rndvec.resize(Eigen::NoChange, problem_size);
 
 				for (size_t i = 0; i < problem_size; i++) {
-					rndvec[i] = mUniform_Distribution_dbl(mRandom_Generator);
+					rndvec[i] = TBase::mUniform_Distribution_dbl(TBase::mRandom_Generator);
 				}
 
 				rndvec2 = rndvec;
@@ -215,6 +219,7 @@ namespace pso
 	template<typename TUsed_Solution, typename TRandom_Device>
 	class CDual_Coefficient_Vector_Velocity_Modifier final : public IVelocity_Modifier<TUsed_Solution, TRandom_Device, CDual_Coefficient_Vector_Velocity_Modifier<TUsed_Solution, TRandom_Device>>
 	{
+		using TBase = IVelocity_Modifier<TUsed_Solution, TRandom_Device, CDual_Coefficient_Vector_Velocity_Modifier<TUsed_Solution, TRandom_Device>>;
 		public:
 			auto Generate_Velocity_Change_Impl(const size_t problem_size)
 			{
@@ -223,8 +228,8 @@ namespace pso
 				rndvec2.resize(Eigen::NoChange, problem_size);
 
 				for (size_t i = 0; i < problem_size; i++) {
-					rndvec1[i] = mUniform_Distribution_dbl(mRandom_Generator);
-					rndvec2[i] = mUniform_Distribution_dbl(mRandom_Generator);
+					rndvec1[i] = TBase::mUniform_Distribution_dbl(TBase::mRandom_Generator);
+					rndvec2[i] = TBase::mUniform_Distribution_dbl(TBase::mRandom_Generator);
 				}
 
 				return std::make_pair<TUsed_Solution, TUsed_Solution>(std::move(rndvec1), std::move(rndvec2));
@@ -279,7 +284,7 @@ class CPSO
 			mVelocity_Lower_Bound(- max_velocity * (mUpper_Bound - mLower_Bound)),
 			mVelocity_Upper_Bound(  max_velocity * (mUpper_Bound - mLower_Bound))
 		{
-			mSwarm.resize(std::max(mSetup.population_size, 5ULL));
+			mSwarm.resize(std::max(mSetup.population_size, static_cast<decltype(mSetup.population_size)>(5)));
 
 			// create the initial swarm using supplied hints; fill up to a half of a swarm with hints
 			const size_t initialized_count = std::min(mSwarm.size() / 2, mSetup.hint_count);

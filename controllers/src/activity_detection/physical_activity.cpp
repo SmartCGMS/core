@@ -58,7 +58,6 @@ HRESULT IfaceCalling CPhysical_Activity_Detection_Model::Get_Continuous_Levels(s
 	const physical_activity_detection::TParameters &parameters = scgms::Convert_Parameters<physical_activity_detection::TParameters>(params, physical_activity_detection::default_parameters);
 
 	std::vector<double> heartbeat_measured(count);
-	HRESULT res;
 
 	const double historyTimeStep = scgms::One_Minute * 5.0;	// 5 minute step
 	const size_t historyTimeCnt = 6;

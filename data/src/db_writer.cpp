@@ -180,7 +180,10 @@ bool CDb_Writer::Store_Parameters(const scgms::UDevice_Event& evt) {
 		return false;
 
 	double *begin, *end;
-	bool result = evt.parameters->get(&begin, &end) == S_OK;
+	bool result = (evt.parameters->get(&begin, &end) == S_OK);
+
+	if (!result)
+		return false;
 
 	db::TBinary_Object paramblob{ static_cast<size_t>(std::distance(begin, end)) * sizeof(double), reinterpret_cast<uint8_t*>(begin) };
 

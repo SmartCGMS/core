@@ -285,7 +285,7 @@ void CSignal_Error::Do_Flush_Stats(std::wofstream stats_file) {
 	stats_file << std::endl;
 
 
-	auto flush_stats = [this, &stats_file, &tc_d](const scgms::TSignal_Stats& signal_stats, const wchar_t *marker_string, const uint64_t segment_id) {
+	auto flush_stats = [&stats_file, &tc_d](const scgms::TSignal_Stats& signal_stats, const wchar_t *marker_string, const uint64_t segment_id) {
 		
 
 		if (segment_id == scgms::All_Segments_Id)  stats_file << dsSelect_All_Segments;
@@ -309,7 +309,7 @@ void CSignal_Error::Do_Flush_Stats(std::wofstream stats_file) {
 		stats_file<< std::endl;
 	};
 
-	auto flush_segment = [this, &stats_file, &flush_stats](const uint64_t segment_id) {
+	auto flush_segment = [this, &flush_stats](const uint64_t segment_id) {
 		scgms::TSignal_Stats absolute_error;
 		scgms::TSignal_Stats relative_error;
 		if (Calculate_Signal_Error(segment_id, &absolute_error, &relative_error) == S_OK) {
