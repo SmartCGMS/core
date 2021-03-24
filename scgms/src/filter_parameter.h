@@ -58,6 +58,7 @@ protected:
 		D *current, *end;
 		HRESULT rc = container->get(&current, &end);
 		if (rc == S_OK) {
+			current += mFirst_Array_Var_idx;
 			const size_t cnt = std::distance(current , end);
 			for (size_t var_idx = mFirst_Array_Var_idx; var_idx < cnt; var_idx++) {
 				if (!mArray_Vars[var_idx].empty()) {
@@ -193,7 +194,7 @@ protected:
 				if ((var_idx < mArray_Vars.size()) && !mArray_Vars[var_idx].empty()) {
 					if (read_interpreted) {
 						auto [valid, str_val] = Evaluate_Variable(mArray_Vars[var_idx]);
-						if (valid) converted << str_val;
+						if (Succeeded(valid)) converted << str_val;
 						else {
 							std::get<0>(result) = E_NOT_SET;
 							std::get<1>(result) = mArray_Vars[var_idx];

@@ -43,6 +43,7 @@
 #include "auto_env.h"
 
 #include "../../../common/utils/string_utils.h"
+#include "../../../common/rtl/Dynamic_Library.h"
 
 #include <array>
 #include <regex>
@@ -65,22 +66,21 @@ const char* out_file_var = "$(output)";
 const char* source_files_var = "$(source)";
 const char* def_file_var = "$(export)";
 const char* sdk_include_var = "$(include)";
+const char* intermediate_var = "$(intermediate)";
 
-
-extern "C" unsigned char native_cpp[];
-extern "C" unsigned char native_h[];
+const wchar_t* out_dir = L"out";	//subdirectory where to place all the intermediate, object files
 
 const std::vector<TCompiler_Invokation> compilers = {
 	{L"g++",  "-O2 -fanalyzer -march=native -Weverything, -Wl,-rpath,. -fPIC -shared -o $(output) -DSCGMS_SCRIPT -std=c++17 -lstdc++fs -lm -I $(include)  $(source)"},
 	{L"clang++",  "-O2 -march=native -Wall -Wextra -Wl,-rpath,. -fPIC -shared -o $(output) -DSCGMS_SCRIPT -std=c++17 -lstdc++fs -lm -I $(include)  $(source)"},
 #ifdef AVX512
-	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX512 /EHsc /D \"UNICODE\" /D \"SCGMS_SCRIPT\" /I $(include) /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
+	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX512 /EHsc /D \"UNICODE\" /D \"SCGMS_SCRIPT\" /I $(include) /LD /Fe: $(output) /MD $(source) /Fo:$(intermediate) /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
 #elif __AVX2__
-	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX2 /EHsc /D \"UNICODE\" /D \"SCGMS_SCRIPT\" /I $(include) /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
+	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX2 /EHsc /D \"UNICODE\" /D \"SCGMS_SCRIPT\" /I $(include) /LD /Fe: $(output) /MD $(source) /Fo:$(intermediate) /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
 #elif __AVX__
-	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX /EHsc /D \"UNICODE\" /D \"SCGMS_SCRIPT\" /I $(include) /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
+	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX /EHsc /D \"UNICODE\" /D \"SCGMS_SCRIPT\" /I $(include) /LD /Fe: $(output) /MD $(source) /Fo:$(intermediate) /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
 #else
-	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /EHsc /D \"UNICODE\" /D \"SCGMS_SCRIPT\" /I $(include) /LD /Fe: $(output) /MD $(source)  /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
+	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /EHsc /D \"UNICODE\" /D \"SCGMS_SCRIPT\" /I $(include) /LD /Fe: $(output) /MD $(source) /Fo:$(intermediate) /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
 #endif
 };
 
@@ -94,7 +94,7 @@ void replace_in_place(std::string& str, const std::string& search, const std::st
 }
 
 bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
-	const filesystem::path& source, const filesystem::path& dll,
+	const filesystem::path& source, const filesystem::path& target_dll,
 	const filesystem::path& configured_sdk_include, const std::wstring& custom_options) {
 
 	//determine default compiler if none is provided
@@ -130,12 +130,20 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	//at this moment, custom options may be empty - but it may a that user supplied e.g.; own custom build batch file
 
 	//2. insert the correct filenames
-	const filesystem::path dst_path = dll.parent_path();
+	const filesystem::path dst_path = target_dll.parent_path();
 	const std::wstring name_prefix = source.stem().wstring();
 
-	const filesystem::path def_path = dst_path / (name_prefix + L"_export.def");
-	const filesystem::path build_log_path = dst_path / (name_prefix + L"_build.log");
+	const filesystem::path intermediate_path = dst_path / out_dir / "";
+	std::error_code ec;
+	filesystem::create_directories(intermediate_path, ec);
+	if (ec)
+		return false;
 
+	const filesystem::path intermediate_dll_path = intermediate_path / target_dll.stem();
+
+	const filesystem::path def_path = intermediate_path / (name_prefix + L"_export.def");
+	const filesystem::path build_log_path = intermediate_path / (name_prefix + L"_build.log");
+	
 
 	//let's try to locate the SmartCGMS include dir
 	filesystem::path sdk_include = configured_sdk_include;
@@ -153,16 +161,28 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	//do not forget quotes as the path may contain a space
 	const std::string complete_sources = quote(source.string()) + " " + quote(device_iface_cpp.string());
 
-	replace_in_place(effective_compiler_options, out_file_var, quote(dll.string()));
+	std::string intermediate_patched_path{ intermediate_path.string() };
+	//there's MSVC bug, which requires that this particular dir needs at least one forward slash
+	if (effective_compiler == "cl") {
+		for (auto& ch : intermediate_patched_path)
+			if (ch == '\\') ch = '/';
+	}
+
+	//replace_in_place(effective_compiler_options, out_file_var, quote(dll.string()));
+	replace_in_place(effective_compiler_options, out_file_var, quote(intermediate_patched_path));
 	replace_in_place(effective_compiler_options, def_file_var, quote(def_path.string()));
 	replace_in_place(effective_compiler_options, source_files_var, complete_sources);
 	replace_in_place(effective_compiler_options, sdk_include_var, quote(sdk_include.string()));
+	replace_in_place(effective_compiler_options, intermediate_var, quote(intermediate_patched_path));
 
 	//3. delete the generated files first
 	{
 		std::error_code ec;
-		if (!filesystem::remove(dll, ec) && filesystem::remove(def_path, ec) &&
-			filesystem::remove(build_log_path, ec))
+		filesystem::remove(target_dll, ec);		//returns true if deleted, false not exist => need to check ec
+		if (!ec) filesystem::remove(def_path, ec);
+		if (!ec) filesystem::remove(build_log_path, ec);
+		if (!ec) filesystem::remove(intermediate_dll_path, ec);
+		if (ec)
 			return false;
 	}
 
@@ -170,7 +190,7 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	{
 		{
 			std::ofstream def_file{ def_path };
-			def_file << "LIBRARY " << dll.filename().string() << std::endl << std::endl << //.string to remove quotes
+			def_file << "LIBRARY " << target_dll.filename().string() << std::endl << std::endl << //.string to remove quotes
 				"EXPORTS" << std::endl << "\t" << native::rsScript_Entry_Symbol << std::endl
 				<< "\t" << native::rsCustom_Data_Size << std::endl;
 		}
@@ -195,13 +215,20 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 #else
 	const wchar_t* rsShell = L"/bin/sh";
 #endif
-	const bool result = Execute_Commands(rsShell, dll.parent_path().wstring(), commands, error_output);
+	bool result = Execute_Commands(rsShell, target_dll.parent_path().wstring(), commands, error_output);
 	//write the log
 	{
 		std::ofstream error_log{ build_log_path, std::ios::binary };
 		error_log.write(error_output.data(), error_output.size());
 	}
 
+	//do not forget to move the dll file!
+	if (result) {
+		filesystem::path effective_intermediate_dll_path{ intermediate_dll_path };
+		effective_intermediate_dll_path.replace_extension(CDynamic_Library::Default_Extension());
+		filesystem::rename(effective_intermediate_dll_path, target_dll, ec);
+		result = !ec.operator bool();
+	}
 
 	return result;
 }

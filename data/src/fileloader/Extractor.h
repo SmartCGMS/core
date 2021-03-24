@@ -103,14 +103,16 @@ enum class ExtractionIterationType
 };
 
 // enumerator of known datetime formats
-enum class NKnownDateFormat
-{
-	DATEFORMAT_DDMMYYYY = 0,
+//do we really need this enum? It makes us to sync it with KnownDateFormatFmtStrings, which should be enough.
+//also, the format should be configurable in the .ini file
+enum class NKnownDateFormat {
+	DATEFORMAT_DB_YYYYMMDD_T = 0,
+	DATEFORMAT_DB_YYYYMMDD,
+	DATEFORMAT_BGLP20_YYYYMMDD,
+	DATEFORMAT_DDMMYYYY,
 	DATEFORMAT_DM_DDMMYYYY,
 	DATEFORMAT_YYYYMMDD,
 	DATEFORMAT_CZ,
-	DATEFORMAT_DB_YYYYMMDD_T,
-	DATEFORMAT_DB_YYYYMMDD,
 	UNKNOWN_DATEFORMAT
 };
 

@@ -45,6 +45,9 @@
 #include <algorithm>
 #include <set>
 
+#undef min
+#undef max
+
 constexpr size_t Invalid_Position = std::numeric_limits<size_t>::max();
 
 int CGraph_Generator::startX = 50;
@@ -463,7 +466,9 @@ void CGraph_Generator::Write_Body()
     ValueVector istVector = Utility::Get_Value_Vector(mInputData, "ist");
     ValueVector bloodVector = Utility::Get_Value_Vector(mInputData, "blood");
 	ValueVector bloodCalibrationVector = Utility::Get_Value_Vector(mInputData, "bloodCalibration");
-    Utility::Get_Boundary_Dates(istVector, bloodVector, mMinD, mMaxD);
+
+	mMaxD = std::numeric_limits<decltype(mMaxD)>::min();
+	mMinD = std::numeric_limits<decltype(mMinD)>::max();
 
 	for (const auto &iter : mInputData) {
 		const auto &series = iter.second.values;
