@@ -240,7 +240,7 @@ CDepot& CGCT_Discrete_Model::Add_To_D1(double amount, double start, double durat
 	CDepot& depot = mCompartments[NGCT_Compartment::Carbs_1].Create_Depot(amount, false);
 	CDepot& target = Add_To_D2(0, start, duration);
 
-	depot.Link_To<CTriangular_Bounded_Transfer_Function>(target, start, duration, amount);
+	depot.Link_To<CConstant_Bounded_Transfer_Function>(target, start, duration, amount);
 	return depot;
 }
 
@@ -248,16 +248,26 @@ CDepot& CGCT_Discrete_Model::Add_To_D2(double amount, double start, double durat
 
 	CDepot& depot = mCompartments[NGCT_Compartment::Carbs_2].Create_Depot(amount, false);
 
-	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Glucose_1].Get_Persistent_Depot(), start, duration*2.0, mParameters.d2q1);
+	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Glucose_1].Get_Persistent_Depot(), start, duration*10.0, mParameters.d2q1);
 
 	return depot;
 }
 
-CDepot& CGCT_Discrete_Model::Add_To_Isc(double amount, double start, double duration) {
+CDepot& CGCT_Discrete_Model::Add_To_Isc1(double amount, double start, double duration) {
 
-	CDepot& depot = mCompartments[NGCT_Compartment::Insulin_Subcutaneous].Create_Depot(amount, false);
+	CDepot& depot = mCompartments[NGCT_Compartment::Insulin_Subcutaneous_1].Create_Depot(amount, false);
+	CDepot& target = Add_To_Isc2(0, start, duration);
 
-	depot.Link_To<CTriangular_Bounded_Transfer_Function>(mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot(), start, duration, amount);
+	depot.Link_To<CConstant_Bounded_Transfer_Function>(target, start, duration, amount);
+
+	return depot;
+}
+
+CDepot& CGCT_Discrete_Model::Add_To_Isc2(double amount, double start, double duration) {
+
+	CDepot& depot = mCompartments[NGCT_Compartment::Insulin_Subcutaneous_2].Create_Depot(amount, false);
+
+	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot(), start, duration*10.0, mParameters.ix);
 
 	return depot;
 }
@@ -312,7 +322,7 @@ HRESULT CGCT_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 				if (event.device_time() < mLast_Time)
 					return E_ILLEGAL_STATE_CHANGE;
 
-				mInsulin_Pump.Set_Infusion_Parameter(event.level() / 60.0, scgms::One_Minute, scgms::One_Minute * 15.0);
+				mInsulin_Pump.Set_Infusion_Parameter(event.level() / 60.0, scgms::One_Minute, mParameters.t_i);
 				mPending_Signals.push_back(TPending_Signal{ scgms::signal_Delivered_Insulin_Basal_Rate, event.device_time(), event.level() });
 
 				res = S_OK;
@@ -331,13 +341,13 @@ HRESULT CGCT_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 				if (event.device_time() < mLast_Time)
 					return E_ILLEGAL_STATE_CHANGE;	// got no time-machine to deliver insulin in the past
 
-				constexpr size_t Portions = 5;
-				const double PortionTimeSpacing = scgms::One_Second * 15;
+				constexpr size_t Portions = 2;
+				const double PortionTimeSpacing = scgms::One_Second * 30;
 
 				const double PortionSize = event.level() / static_cast<double>(Portions);
 
 				for (size_t i = 0; i < Portions; i++)
-					Add_To_Isc(PortionSize, mLast_Time + static_cast<double>(i) * PortionTimeSpacing, mParameters.t_i);
+					Add_To_Isc1(PortionSize, event.device_time() + static_cast<double>(i) * PortionTimeSpacing, mParameters.t_i);
 
 				mPending_Signals.push_back(TPending_Signal{ scgms::signal_Delivered_Insulin_Bolus, event.device_time(), event.level() });
 
@@ -353,7 +363,7 @@ HRESULT CGCT_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 				const double PortionSize = (1000.0 * event.level() * mParameters.Ag / Glucose_Molar_Weight) / static_cast<double>(Portions);
 
 				for (size_t i = 0; i < Portions; i++)
-					Add_To_D1(PortionSize, mLast_Time + static_cast<double>(i) * PortionTimeSpacing, mParameters.t_d);
+					Add_To_D1(PortionSize, event.device_time() + static_cast<double>(i) * PortionTimeSpacing, mParameters.t_d);
 
 				// res = S_OK; - do not unless we have another signal called consumed CHO
 			}
@@ -389,7 +399,7 @@ HRESULT IfaceCalling CGCT_Discrete_Model::Step(const double time_advance_delta) 
 
 				// for each step, retrieve insulin pump subcutaneous injection if any
 				while (mInsulin_Pump.Get_Dosage(mLast_Time, dosage))
-					Add_To_Isc(dosage.amount, dosage.start, dosage.duration);
+					Add_To_Isc1(dosage.amount, dosage.start, dosage.duration);
 
 				// step all compartments
 				for (auto& comp : mCompartments)
@@ -448,7 +458,7 @@ HRESULT IfaceCalling CGCT_Discrete_Model::Initialize(const double current_time, 
 		if (mParameters.D2_0 > 0)
 			Add_To_D2(mParameters.D2_0, mLast_Time, scgms::One_Minute * 15);
 		if (mParameters.Isc_0 > 0)
-			Add_To_Isc(mParameters.Isc_0, mLast_Time, scgms::One_Minute * 15);
+			Add_To_Isc1(mParameters.Isc_0, mLast_Time, scgms::One_Minute * 15);
 
 		mInsulin_Pump.Initialize(mLast_Time, 0.0, 0.0, 0.0);
 

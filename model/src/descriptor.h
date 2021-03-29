@@ -563,7 +563,7 @@ namespace gct_model {
 	constexpr GUID signal_IOB = { 0xfe49fe8e, 0xf819, 0x4323, { 0xb8, 0x4d, 0x7f, 0x9, 0x1, 0xe4, 0xa2, 0x71 } };					// {FE49FE8E-F819-4323-B84D-7F0901E4A271}
 	constexpr GUID signal_COB = { 0xb23e1df5, 0xd291, 0x4015, { 0xa0, 0x3d, 0xa9, 0x2e, 0xc3, 0xf1, 0x3c, 0x16 } };					// {B23E1DF5-D291-4015-A03D-A92EC3F13C16}
 
-	constexpr size_t model_param_count = 36;
+	constexpr size_t model_param_count = 37;
 
 	/*
 	Q1_0 - D2_0 - initial values/quantities
@@ -581,6 +581,7 @@ namespace gct_model {
 	xq1 - moderation rate Q1 -(X)-> sink
 	d12 - transfer rate D1 -> D2 ("digestion" rate)
 	d2q1 - transfer rate D2 -> Q1 (glucose absorption rate)
+	isc2i - transfer rate Isc2 -> I
 
 	q1e - base elimination of Q1 glucose
 	q1ee - glucose elimination moderated by exercise
@@ -611,7 +612,7 @@ namespace gct_model {
 				// patient quantity and base parameters
 				double Vq, Vqsc, Vi, Q1b, Gthr, GIthr;
 				// transfer parameters
-				double q12, q1sc, ix, xq1, d12, d2q1;
+				double q12, q1sc, ix, xq1, d12, d2q1, isc2i;
 				// elimination parameters
 				double q1e, q1ee, q1e_thr, xe;
 				// production parameters
@@ -629,9 +630,9 @@ namespace gct_model {
 		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0
 			0,    0,    0,     0,   0,     0,   0,    0,
 		//	Vq,  Vqsc, Vi, Q1b, Gthr, GIthr,
-			30,  25,   30, 50,  8.0,  4.0,
-		//	q12,  q1sc, ix,  xq1,   d12,  d2q1
-			0.01, 1.4,  1.4, 0.001, 14.0, 14.0,
+			3,   1,    3,  50,  8.0,  4.0,
+		//	q12,  q1sc, ix,  xq1,   d12,  d2q1, isc2i
+			0.01, 1.4,  1.4, 0.001, 14.0, 14.0, 0.05,
 		//	q1e,   q1ee,  q1e_thr, xe,
 			0.144, 0.144, 0.001,   0.01,
 		//	q1p,     q1pe,   ip,
@@ -647,8 +648,8 @@ namespace gct_model {
 			135,  65,   450,   4e-12, 16.2,  2.6, 0,    54.8,
 		//	Vq,  Vqsc, Vi, Q1b, Gthr, GIthr,
 			30,  25,   80, 240, 8.0, 5.0,
-		//	q12,  q1sc, ix,  xq1,     d12,   d2q1
-			0.01, 8,    3.4, 0.07697, 144.0, 144.0,
+		//	q12,  q1sc, ix,  xq1,     d12,   d2q1,  isc2i
+			0.01, 8,    3.4, 0.07697, 144.0, 144.0, 0.1,
 		//	q1e,     q1ee,    q1e_thr, xe,
 			0.38519, 0.38519, 0.8,     0.01,
 		//	q1p,  q1pe, ip,
@@ -664,8 +665,8 @@ namespace gct_model {
 			500,  500,  500,   500, 500,   500, 200,  200,
 		//	Vq,  Vqsc, Vi, Q1b,  Gthr, GIthr,
 			60,  60,   80, 1000, 14.0, 8.0,
-		//	q12, q1sc, ix,    xq1, d12,   d2q1
-			0.9, 24.0, 144.0, 3.0, 144.0, 144.0,
+		//	q12, q1sc, ix,    xq1, d12,   d2q1,  isc2i
+			0.9, 24.0, 144.0, 3.0, 144.0, 144.0, 0.5,
 		//	q1e,  q1ee, q1e_thr, xe,
 			14.4, 14.4, 0.8,     2.0,
 		//	q1p,  q1pe, ip

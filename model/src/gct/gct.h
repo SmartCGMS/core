@@ -51,7 +51,8 @@ enum class NGCT_Compartment : size_t {
 	Glucose_2,
 	Glucose_Subcutaneous,
 	Insulin_Base,
-	Insulin_Subcutaneous,
+	Insulin_Subcutaneous_1,
+	Insulin_Subcutaneous_2,
 	Insulin_Remote,
 	Carbs_1,
 	Carbs_2,
@@ -162,8 +163,10 @@ class CGCT_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscrete_
 		CDepot& Add_To_D1(double amount, double start, double duration);
 		// adds depot to D2 compartment and links to a persistent depot in Q1
 		CDepot& Add_To_D2(double amount, double start, double duration);
-		// adds depot to Isc compartment and links to a persistent depot in I
-		CDepot& Add_To_Isc(double amount, double start, double duration);
+		// adds depot to Isc_1 compartment and links to a new compartment in Isc_2
+		CDepot& Add_To_Isc1(double amount, double start, double duration);
+		// adds depot to Isc_2 compartment and links to a persistent depot in I
+		CDepot& Add_To_Isc2(double amount, double start, double duration);
 
 	protected:
 		// scgms::CBase_Filter iface implementation

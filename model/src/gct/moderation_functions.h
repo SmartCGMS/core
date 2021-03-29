@@ -95,6 +95,31 @@ class CLinear_Moderation_No_Elimination_Function : public CModeration_Function {
 };
 
 /**
+ * Transfer is moderated in proportionally to moderator with base of 1.0
+ * Moderator does not get eliminated
+ * e.g.; moderation of transfers, that would happen even without the presence of the moderator
+ */
+class CLinear_Base_Moderation_No_Elimination_Function : public CModeration_Function {
+
+	protected:
+		double mModeration_Factor = 1.0;
+
+	public:
+		CLinear_Base_Moderation_No_Elimination_Function(double modFactor)
+			: mModeration_Factor(modFactor) {
+			//
+		}
+
+		virtual double Get_Moderation_Input(double moderatorAmount) const override {
+			return 1.0 + moderatorAmount * mModeration_Factor;
+		}
+
+		virtual double Get_Elimination_Input(double moderatorAmount) const override {
+			return 0.0;
+		}
+};
+
+/**
  * Transfer is moderated proportionally to moderator, starting from certain threshold
  * Moderator does not get eliminated
  * e.g.; moderation of insulin production by glucose appearance

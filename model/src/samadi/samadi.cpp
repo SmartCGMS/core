@@ -391,15 +391,21 @@ HRESULT IfaceCalling CSamadi_Discrete_Model::Step(const double time_advance_delt
 		{
 			std::unique_lock<std::mutex> lck(mStep_Mtx);
 
+			std::vector<double> next_step_values(mEquation_Binding.size());
+
 			for (size_t i = 0; i < microStepCount; i++)
 			{
 				const double nowTime = mState.lastTime + static_cast<double>(i)*microStepSize;
 
 				// Note: times in ODE solver are represented in minutes (and its fractions), as original model parameters are tuned to one minute unit
 
-				// step particular differential equations
-				for (auto& binding : mEquation_Binding)
-					binding.x = ODE_Solver.Step(binding.fnc, nowTime / scgms::One_Minute, binding.x, microStepSize / scgms::One_Minute);
+				// calculate next step
+				for (size_t j = 0; j < mEquation_Binding.size(); j++)
+					next_step_values[j] = ODE_Solver.Step(mEquation_Binding[j].fnc, nowTime / scgms::One_Minute, mEquation_Binding[j].x, microStepSize / scgms::One_Minute);
+
+				// commit
+				for (size_t j = 0; j < mEquation_Binding.size(); j++)
+					mEquation_Binding[j].x = next_step_values[j];
 
 				mState.lastTime += static_cast<double>(i)*microStepSize;
 			}
