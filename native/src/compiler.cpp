@@ -68,11 +68,11 @@ const char* def_file_var = "$(export)";
 const char* sdk_include_var = "$(include)";
 const char* intermediate_var = "$(intermediate)";
 
-const wchar_t* out_dir = L"out";	//subdirectory where to place all the intermediate, object files
+const filesystem::path out_dir{ "out" };	//subdirectory where to place all the intermediate, object files
 
 const std::vector<TCompiler_Invokation> compilers = {
-	{L"g++",  "-O2 -fanalyzer -march=native -Weverything, -Wl,-rpath,. -fPIC -shared -o $(output) -DSCGMS_SCRIPT -std=c++17 -lstdc++fs -lm -I $(include)  $(source)"},
-	{L"clang++",  "-O2 -march=native -Wall -Wextra -Wl,-rpath,. -fPIC -shared -o $(output) -DSCGMS_SCRIPT -std=c++17 -lstdc++fs -lm -I $(include)  $(source)"},
+	{L"g++",  "-O2 -fanalyzer -march=native -Weverything, -Wl,-rpath,. -fPIC -shared -save-temps=$(intermediate) -o $(output) -DSCGMS_SCRIPT -std=c++17 -lstdc++fs -lm -I $(include)  $(source)"},
+	{L"clang++",  "-O2 -march=native -Wall -Wextra -Wl,-rpath,. -fPIC -shared -save-temps=$(intermediate) -o $(output) -DSCGMS_SCRIPT -std=c++17 -lstdc++fs -lm -I $(include)  $(source)"},
 #ifdef AVX512
 	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX512 /EHsc /D \"UNICODE\" /D \"SCGMS_SCRIPT\" /I $(include) /LD /Fe: $(output) /MD $(source) /Fo:$(intermediate) /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
 #elif __AVX2__
@@ -133,13 +133,16 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	const filesystem::path dst_path = target_dll.parent_path();
 	const std::wstring name_prefix = source.stem().wstring();
 
-	const filesystem::path intermediate_path = dst_path / out_dir / "";
+	const filesystem::path intermediate_path = dst_path / out_dir;// / "";
 	std::error_code ec;
 	filesystem::create_directories(intermediate_path, ec);
 	if (ec)
 		return false;
 
-	const filesystem::path intermediate_dll_path = intermediate_path / target_dll.stem();
+	//filesystem::path effective_intermediate_dll_path{ intermediate_dll_path };
+		//effective_intermediate_dll_path.replace_extension(CDynamic_Library::Default_Extension());
+
+	const filesystem::path intermediate_dll_path = filesystem::path{ intermediate_path / target_dll.stem() }.replace_extension(CDynamic_Library::Default_Extension());
 
 	const filesystem::path def_path = intermediate_path / (name_prefix + L"_export.def");
 	const filesystem::path build_log_path = intermediate_path / (name_prefix + L"_build.log");
@@ -166,10 +169,12 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	if (effective_compiler == "cl") {
 		for (auto& ch : intermediate_patched_path)
 			if (ch == '\\') ch = '/';
-	}
+		intermediate_patched_path += '/';	//must end as a directory
 
-	//replace_in_place(effective_compiler_options, out_file_var, quote(dll.string()));
-	replace_in_place(effective_compiler_options, out_file_var, quote(intermediate_patched_path));
+		replace_in_place(effective_compiler_options, out_file_var, quote(intermediate_patched_path));
+	} else
+			replace_in_place(effective_compiler_options, out_file_var, quote(intermediate_dll_path.string()));
+	
 	replace_in_place(effective_compiler_options, def_file_var, quote(def_path.string()));
 	replace_in_place(effective_compiler_options, source_files_var, complete_sources);
 	replace_in_place(effective_compiler_options, sdk_include_var, quote(sdk_include.string()));
@@ -203,8 +208,11 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 		commands.push_back(env_init.string());
 	}
 	else {
-		if (effective_compiler_index != std::numeric_limits<size_t>::max())
-			commands.push_back(Get_Env_Init(compilers[effective_compiler_index].file_name_prefix));
+		if (effective_compiler_index != std::numeric_limits<size_t>::max()) {
+			const auto default_env_init = Get_Env_Init(compilers[effective_compiler_index].file_name_prefix);
+			if (!default_env_init.empty())
+				commands.push_back(default_env_init);
+		}
 	}
 	commands.push_back(effective_compiler.string() + " " + effective_compiler_options);
 
@@ -215,18 +223,27 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 #else
 	const wchar_t* rsShell = L"/bin/sh";
 #endif
-	bool result = Execute_Commands(rsShell, target_dll.parent_path().wstring(), commands, error_output);
+	//bool result = Execute_Commands(rsShell, target_dll.parent_path().wstring(), commands, error_output);
+	bool result = Execute_Commands(rsShell, intermediate_path.wstring(), commands, error_output);
 	//write the log
 	{
 		std::ofstream error_log{ build_log_path, std::ios::binary };
+
+		error_log << "Shell: " << Narrow_WChar(rsShell)  << std::endl;
+		error_log << "Working dir: " << intermediate_path << std::endl;
+		error_log << "Commands:" << std::endl;
+		for (const auto &cmd : commands)
+			error_log << '\t' << cmd << std::endl;
+		error_log << std::endl << "Captured output:" << std::endl << std::endl;
+
 		error_log.write(error_output.data(), error_output.size());
 	}
 
 	//do not forget to move the dll file!
 	if (result) {
-		filesystem::path effective_intermediate_dll_path{ intermediate_dll_path };
-		effective_intermediate_dll_path.replace_extension(CDynamic_Library::Default_Extension());
-		filesystem::rename(effective_intermediate_dll_path, target_dll, ec);
+		//filesystem::path effective_intermediate_dll_path{ intermediate_dll_path };
+		//effective_intermediate_dll_path.replace_extension(CDynamic_Library::Default_Extension());
+		filesystem::rename(intermediate_dll_path, target_dll, ec);
 		result = !ec.operator bool();
 	}
 
