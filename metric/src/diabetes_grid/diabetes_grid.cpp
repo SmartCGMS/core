@@ -46,7 +46,7 @@ namespace {
 	constexpr size_t idx_peg2 = 2;
 }
 
-CDiabetes_Grid::CDiabetes_Grid(scgms::IFilter* output) : CBase_Filter(output), CTwo_Signals(output) {
+CDiabetes_Grid::CDiabetes_Grid(scgms::IFilter* output) : CTwo_Signals(output) {
 
 }
 

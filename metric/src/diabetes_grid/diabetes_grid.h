@@ -72,7 +72,7 @@ using TError_Grid_Stats = std::array<double, static_cast<size_t>(NError_Grid_Zon
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 
-class CDiabetes_Grid : public virtual CTwo_Signals {
+class CDiabetes_Grid : public CTwo_Signals {
 protected:
 	static NError_Grid_Zone Classify_Point(const TError_Grid& grid, double reference, double error);
 	static bool Point_In_Polygon(const std::vector<TError_Grid_Point>& vertices, const double expected, const double calculated);
