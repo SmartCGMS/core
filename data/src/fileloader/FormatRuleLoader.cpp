@@ -93,11 +93,11 @@ bool CFormat_Rule_Loader::Add_Config_Keys(CSimpleIniA & ini, std::function<void(
 	CSimpleIniA::TNamesDepend sections;
 	ini.GetAllSections(sections);
 
-	for (auto section : sections) {
+	for (const auto &section : sections) {
 		CSimpleIniA::TNamesDepend keys;
 		ini.GetAllKeys(section.pItem, keys);
 
-		for (auto key : keys) {
+		for (const auto &key : keys) {
 			const auto value = ini.GetValue(section.pItem, key.pItem);
 			func(section.pItem, key.pItem, value);
 		}		
@@ -131,7 +131,7 @@ bool CFormat_Rule_Loader::Load_Format_Rule_Templates(CSimpleIniA& ini) {
 	ini.GetAllSections(sections);
 	
 	const char* value;
-	for (auto section : sections) {
+	for (const auto &section : sections) {
 		value = ini.GetValue(section.pItem, "replace");
 		if (value)
 		{

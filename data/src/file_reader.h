@@ -71,9 +71,9 @@ class CFile_Reader : public scgms::CBase_Filter {
 		// do we need to send shutdown after last value?
 		bool mShutdownAfterLast = false;
 		// minimum values in segment
-		size_t mMinValueCount;
+		size_t mMinValueCount = 0;
 		// require both IG and BG values in a segment
-		bool mRequireBG_IG;
+		bool mRequireBG_IG = false;
 
 		// reader thread
 		std::unique_ptr<std::thread> mReaderThread;
