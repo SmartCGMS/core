@@ -72,12 +72,27 @@ protected:
     };
 
     enum class NPattern : size_t {
-        deccel = 0,                 //falls down, while the falling accelerate              - negative 2nd derivative
+        deccel = 0,             //a>b>c & acc;      acc = |c-b| > |b-a|
+        down,                   //a>b>c & !acc
+        convex_slow,            //a>b<c & a>c
+        convex_fast,            //a>b<c & a<c
+        steady,                 //everything else
+        concave_fast,           //a<b>c & a>c
+        concave_slow,           //a<b>c & a<c
+        up,                     //a<b<c & !acc
+        accel,                  //a<b<c & acc
+        count
+
+
+
+
+        /*deccel = 0,                 //falls down, while the falling accelerate              - negative 2nd derivative
         down,                       //falls down, but the falling does not accelerate       - negative 1st derivative, 2nd zero
         steady,                     //no change                                             - const function
         up,                         //increases, but does not accelerate                    - positive 1s derivative, 2nd zero
         accel,                      //increases and the increase accelerates                - positive 2nd derivative
         count
+        */
     };
     
 

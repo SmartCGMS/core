@@ -70,10 +70,13 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 		if (sent) {
 			const double predicted_level = Update_And_Predict(seg_id, dev_time, level);
 
-			if (std::isnormal(predicted_level)) {
+			
+				
+
+			/*if (std::isnormal(predicted_level)) */{
 				scgms::UDevice_Event prediction_event{ scgms::NDevice_Event_Code::Level };
 				prediction_event.device_id() = pattern_prediction::filter_id;
-				prediction_event.level() = predicted_level;
+				prediction_event.level() = std::isnormal(predicted_level) ? predicted_level : level;
 				prediction_event.device_time() = dev_time + mDt;
 				prediction_event.signal_id() = pattern_prediction::signal_Pattern_Prediction;
 				prediction_event.segment_id() = seg_id;
@@ -188,6 +191,30 @@ std::tuple<CPattern_Prediction_Filter::NPattern, size_t, bool> CPattern_Predicti
 			std::get<NClassify::success>(result) = true;	//classified ok
 			std::get<NClassify::band>(result) = Level_2_Band_Index(levels[2]);
 
+			const bool agb = levels[0] > levels[1];
+			const bool alb = !agb;
+
+			const bool bgc = levels[1] > levels[2];
+			const bool blc = !bgc;
+
+			const bool agc = levels[0] > levels[2];
+			const bool alc = !agc;
+
+			const bool acc = fabs(levels[2] - levels[1]) > fabs(levels[1] - levels[0]);
+			const bool decc = !acc;	
+
+			if (agb && bgc /*&&acc*/) std::get<NClassify::pattern>(result) = NPattern::deccel;
+			//else if (agb && bgc && decc) std::get<NClassify::pattern>(result) = NPattern::down;
+			else if (agb && blc && agc) std::get<NClassify::pattern>(result) = NPattern::convex_slow;
+			else if (agb && blc && alc) std::get<NClassify::pattern>(result) = NPattern::convex_fast;
+			else if (alb && bgc && agc) std::get<NClassify::pattern>(result) = NPattern::concave_fast;
+			else if (alb && bgc && alc) std::get<NClassify::pattern>(result) = NPattern::concave_slow;
+//			else if (alb && blc && decc) std::get<NClassify::pattern>(result) = NPattern::up;
+			else if (alb && blc /*&& acc*/) std::get<NClassify::pattern>(result) = NPattern::accel;
+			else std::get<NClassify::pattern>(result) = NPattern::steady;
+
+
+			/*
 			const double velocity = levels[2] - levels[0];
 
 			if (velocity != 0.0) {
@@ -205,8 +232,9 @@ std::tuple<CPattern_Prediction_Filter::NPattern, size_t, bool> CPattern_Predicti
 						NPattern::deccel : NPattern::down;
 				}
 
-			} //else already set to the steady pattern - see result declaration
 
+			} //else already set to the steady pattern - see result declaration
+				*/
 		}
 	}
 
@@ -219,7 +247,10 @@ double CPattern_Prediction_Filter::Predict(scgms::SSignal& ist, const double cur
 	if (classified_ok) {
 
 		const auto& patterns = mPatterns[static_cast<size_t>(pattern)];
-
+		const auto& pattern = patterns[pattern_band_index];
+		if (pattern.Valid())
+			predicted_level = pattern.Level();
+	/*
 		size_t band_counter = 0;
 		for (size_t band_idx = 0; band_idx < Band_Count; band_idx++) {
 			const auto& pattern = patterns[band_idx];
@@ -252,6 +283,7 @@ double CPattern_Prediction_Filter::Predict(scgms::SSignal& ist, const double cur
 				predicted_level = std::max(predicted_level, min_level);
 			}
 		}		
+		*/
 	}
 
 	return predicted_level;
