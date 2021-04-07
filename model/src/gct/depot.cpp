@@ -63,11 +63,7 @@ void CDepot_Link::Step(const double currentTime) {
 	const double x1 = mTransfer_Function->Calculate_Transfer_Input((mLast_Time + currentTime) / 2.0);
 	const double x2 = mTransfer_Function->Calculate_Transfer_Input(currentTime);
 
-	// TODO: this may have a little rework later, so we don't have to return NaN for "no change in logic"
-	double baseAmount = mTransfer_Function->Get_Transfer_Amount();
-	if (std::isnan(baseAmount)) {
-		baseAmount = mSource.get().Get_Quantity();
-	}
+	double baseAmount = mTransfer_Function->Get_Transfer_Amount(mSource.get().Get_Quantity());
 
 	double amount = - (y_diff / 6.0) * (x0 + 4 * x1 + x2) * baseAmount;
 

@@ -38,6 +38,8 @@
 
 #include "gct.h"
 
+#include <execution>
+
 /** model-wide constants **/
 
 constexpr const double Glucose_Molar_Weight = 180.156; // [g/mol]
@@ -402,12 +404,14 @@ HRESULT IfaceCalling CGCT_Discrete_Model::Step(const double time_advance_delta) 
 					Add_To_Isc1(dosage.amount, dosage.start, dosage.duration);
 
 				// step all compartments
-				for (auto& comp : mCompartments)
+				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
 					comp.Step(mLast_Time);
+				});
 
 				// commit all compartments
-				for (auto& comp : mCompartments)
+				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
 					comp.Commit(mLast_Time);
+				});
 
 				mLast_Time = oldTime + static_cast<double>(i) * microStepSize;
 			}

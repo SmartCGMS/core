@@ -62,23 +62,26 @@ class CTransfer_Function {
 		// how long should this transfer function last? For continuous transfer, use CTransfer_Function::Unlimited
 		const double mDuration = Unlimited;
 
+		// cached value of inverse duration
+		const double mInvDuration = 0.0;
+
 	protected:
 		/**
 		 * Retrieves scaled time from simulation-time to the interval <0;1>
 		 */
 		double Get_Scaled_Time(double currentTime) const {
-			return (currentTime - mTime_Start) / mDuration;
+			return (currentTime - mTime_Start) * mInvDuration;
 		}
 
 		/**
 		 * Get scaling factor for scaling the function value
 		 */
 		double Get_Amount_Scaling_Factor() const {
-			return 1.0 / mDuration;
+			return mInvDuration;
 		}
 
 	public:
-		CTransfer_Function(double timeStart = 0.0, double duration = std::numeric_limits<double>::max()) noexcept : mTime_Start(timeStart), mDuration(duration) {
+		CTransfer_Function(double timeStart = 0.0, double duration = std::numeric_limits<double>::max()) noexcept : mTime_Start(timeStart), mDuration(duration), mInvDuration(1.0/duration) {
 		}
 
 		// rule-of-zero - let outer container maintain this resource, as it's likely to be a 1:1 link
@@ -103,8 +106,8 @@ class CTransfer_Function {
 		/**
 		 * Transfer function may specify transfer amount; by default, outer code does that; indicate this by returning NaN
 		 */
-		virtual double Get_Transfer_Amount() const {
-			return std::numeric_limits<double>::quiet_NaN();
+		virtual double Get_Transfer_Amount(double defaultInput) const {
+			return defaultInput;
 		}
 
 		/**
@@ -138,7 +141,7 @@ class CBounded_Transfer_Function : public CTransfer_Function {
 			//
 		}
 
-		virtual double Get_Transfer_Amount() const override {
+		virtual double Get_Transfer_Amount(double defaultInput) const override {
 			return mInitial_Amount;
 		}
 };
@@ -181,7 +184,7 @@ class CTwo_Way_Diffusion_Unbounded_Transfer_Function final : public CTransfer_Fu
 			//
 		}
 
-		double Get_Transfer_Amount() const override {
+		double Get_Transfer_Amount(double defaultInput) const override {
 			// diffusion always transfers from depot with higher concentration
 			return (mSource.Get_Concentration() > mTarget.Get_Concentration()) ? mSource.Get_Quantity() : mTarget.Get_Quantity();
 		}
@@ -218,10 +221,7 @@ class CConcentration_Threshold_Disappearance_Unbounded_Transfer_Function final :
 			const double diff = (mSource.Get_Concentration() - mThreshold);
 
 			// do not transfer if concentration is under threshold
-			if (diff <= 0.0)
-				return 0.0;
-
-			return mTransfer_Factor * diff;
+			return mTransfer_Factor * std::max(0.0, diff);
 		}
 };
 
@@ -247,10 +247,7 @@ class CDifference_Unbounded_Transfer_Function final : public CTransfer_Function 
 			const double diff = (mSource.Get_Quantity() - mTarget.Get_Quantity());
 
 			// only appearance when the target level is lower
-			if (diff < 0)
-				return 0.0;
-
-			return mTransfer_Factor * diff;
+			return mTransfer_Factor * std::max(0.0, diff);
 		}
 };
 
