@@ -143,7 +143,7 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 		//         0            1          2
 
 		const double measured_at = Unix_Time_To_Rat_Time(from_iso8601(measured_at_str));
-		auto fpcl = fpclassify(measured_at);
+		auto fpcl = std::fpclassify(measured_at);
 		if (fpcl == FP_ZERO || fpcl == FP_NAN)
 			continue;	// conversion did not succeed or yielded an invalid result
 
