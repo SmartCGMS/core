@@ -44,8 +44,6 @@
 #include "pattern_prediction_descriptor.h"
 #include "pattern_prediction_data.h"
 
-#include <Eigen/Dense>
-
 #include <map>
 #include <array>
 
@@ -71,37 +69,23 @@ protected:
         success = 2
     };
 
-    enum class NPattern : size_t {
-        deccel = 0,             //a>b>c & acc;      acc = |c-b| > |b-a|
-        down,                   //a>b>c & !acc
+    enum class NPattern : size_t {        
+        down = 0,               //a>b>c 
         convex_slow,            //a>b<c & a>c
         convex_fast,            //a>b<c & a<c
         steady,                 //everything else
         concave_fast,           //a<b>c & a>c
         concave_slow,           //a<b>c & a<c
-        up,                     //a<b<c & !acc
-        accel,                  //a<b<c & acc
+        up,                     //a<b<c 
         count
 
-
-
-
-        /*deccel = 0,                 //falls down, while the falling accelerate              - negative 2nd derivative
-        down,                       //falls down, but the falling does not accelerate       - negative 1st derivative, 2nd zero
-        steady,                     //no change                                             - const function
-        up,                         //increases, but does not accelerate                    - positive 1s derivative, 2nd zero
-        accel,                      //increases and the increase accelerates                - positive 2nd derivative
-        count
-        */
+        //intentionally, we do not consider acceleration, because it actually worsens the results
     };
     
 
     std::tuple<NPattern, size_t, bool> Classify(scgms::SSignal& ist, const double current_time);
 protected:
     double mDt = 30.0 * scgms::One_Minute;
-
-    Eigen::Matrix<double, Band_Count, 3> mA;
-    Eigen::Matrix<double, Band_Count, 1> mb;
 
     std::map<uint64_t, scgms::SSignal> mIst;	//ist signals per segments
     std::array<std::array<CPattern_Prediction_Data, Band_Count>, static_cast<size_t>(NPattern::count)> mPatterns;
