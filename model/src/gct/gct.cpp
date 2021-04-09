@@ -38,7 +38,7 @@
 
 #include "gct.h"
 
-#include <execution>
+#include "../../../../common/rtl/SolverLib.h"
 
 /** model-wide constants **/
 
