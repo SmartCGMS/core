@@ -80,7 +80,7 @@ HRESULT IfaceCalling CWMA::Get_Continuous_Levels(scgms::IModel_Parameter_Vector 
 	};
 
 	
-	auto non_adaptive = [this, &parameters, &present_ist]() {
+	auto non_adaptive = [&parameters, &present_ist]() {
 		double result = 0.0;
 		for (size_t i = 0; i < wma::coeff_count; i++)
 			result += parameters.coeff[i] * present_ist[i];

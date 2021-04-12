@@ -78,7 +78,7 @@ void CDepot_Link::Step(const double currentTime) {
 	// NOTE: source and destination is selected dynamically - this is for e.g.; two-way links like diffusion
 	auto& src = (amount < 0.0) ? mSource.get() : mTarget.get();
 	auto& dst = (amount < 0.0) ? mTarget.get() : mSource.get();
-	amount = -abs(amount);
+	amount = -std::fabs(amount);
 
 	src.Mod_Quantity(amount);	// modifies amount in source compartment; 'amount' is modified
 	const double result_1 = amount;
