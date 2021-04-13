@@ -134,8 +134,8 @@ class CSignal_Visualization_Config final
 
 		double Get_Signal_Values_Scale(const GUID& id) const
 		{
-			double scale;
-			bool found = Get_Map_Element(id, Signal_Scales, 1.0, scale);
+			double scale = 1.0;
+			Get_Map_Element(id, Signal_Scales, scale, scale);
 
 			return scale;
 		}
