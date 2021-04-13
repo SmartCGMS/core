@@ -107,13 +107,16 @@ class CSignal_Visualization_Config final
 		};
 
 		template<typename T>
-		const std::pair<const T&, bool> Get_Map_Element(const GUID& id, const GUIDMap<T>& map, const T& default_value) const
+		bool Get_Map_Element(const GUID& id, const GUIDMap<T>& map, const T& default_value, T& target) const
 		{
 			auto itr = map.find(id);
-			if (itr != map.end())
-				return std::make_pair( itr->second, true );
+			if (itr != map.end()) {
+				target = itr->second;
+				return true;
+			}
 
-			return std::make_pair(default_value, false);
+			target = default_value;
+			return false;
 		}
 
 	public:
@@ -124,17 +127,15 @@ class CSignal_Visualization_Config final
 
 		bool Get_Signal_Force_Draw_Name(const GUID& id, std::wstring& target) const
 		{
-			auto& [name, found] = Get_Map_Element<std::wstring>(id, Force_Draw_Signals, L"");
-
-			if (found)
-				target = name;
+			bool found = Get_Map_Element<std::wstring>(id, Force_Draw_Signals, target, target);
 
 			return found;
 		}
 
 		double Get_Signal_Values_Scale(const GUID& id) const
 		{
-			auto& [scale, found] = Get_Map_Element(id, Signal_Scales, 1.0);
+			double scale;
+			bool found = Get_Map_Element(id, Signal_Scales, 1.0, scale);
 
 			return scale;
 		}
