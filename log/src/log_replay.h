@@ -91,6 +91,7 @@ protected:
 	// converts string to parameters vector; note that this method have no knowledge of models at all (does not validate parameter count, ..)
 	void WStr_To_Parameters(const std::wstring& src, scgms::SModel_Parameter_Vector& target);
 
+	void Correct_Timings(std::vector<TLog_Entry>& log_lines);
 public:
 	CLog_Replay_Filter(scgms::IFilter* output);
 	virtual ~CLog_Replay_Filter();

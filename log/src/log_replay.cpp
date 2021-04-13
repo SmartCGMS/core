@@ -61,6 +61,9 @@
 #include <set>
 #include <cwctype>
 
+#undef min
+#undef max
+
 CLog_Replay_Filter::CLog_Replay_Filter(scgms::IFilter* output) : CBase_Filter(output) {
 	//
 }
@@ -157,7 +160,8 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 		line_counter++;
 
 		trim(line);
-		if (line.empty()) continue;
+		if (line.empty()) continue;		
+		if (line.find(dsLog_Header) == 0) continue;	//likely to concatenated logs
 
 		try
 		{
@@ -200,58 +204,8 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 		}
 	}
 
-	//As we have read the times and end of lines, no event has been created yet => no event logical clock advanced by us
-	//=> by creating the events inside the following for, log-events and by-them-triggered events will have monotonically increasing logical clocks.
-	std::sort(log_lines.begin(), log_lines.end(), [](const TLog_Entry& a, const TLog_Entry& b) {
-		if (a.device_time != b.device_time)
-			return a.device_time < b.device_time;
-
-		//if there were multiple events emitted with the same device time,
-		//let us emit them in their order in the log file
-		else  return a.line_counter < b.line_counter;
-		});
-
-
 	//Now, we are sorted, but that's not all. Also, we may need to correct segment start/stop markers.
-	{
-		std::vector<size_t> lines_to_remove;
-		
-		
-		//remove any subsequent time segment START markers
-		std::set<uint64_t> seg_ids;
-		for (size_t i = 0; i < log_lines.size(); i++) {
-			//right now, we care about the segment starts only
-			if (log_lines[i].code == scgms::NDevice_Event_Code::Time_Segment_Start) {
-				if (seg_ids.find(log_lines[i].segment_id) != seg_ids.end())
-					//mark for deletion any segment-start for an already known segment
-					lines_to_remove.push_back(i);
-				else
-					seg_ids.insert(log_lines[i].segment_id);
-			}
-		}
-
-		//remove any preceding time segment STOP markers
-		seg_ids.clear();
-		for (size_t i = log_lines.size(); i >0; i--) {
-			const size_t j = i - 1;
-
-			//right now, we care about the segment stops only
-			if (log_lines[j].code == scgms::NDevice_Event_Code::Time_Segment_Stop) {
-				if (seg_ids.find(log_lines[j].segment_id) != seg_ids.end())
-
-					//mark for deletion any segment-stops for an already known segment
-					lines_to_remove.push_back(j);
-				else
-					seg_ids.insert(log_lines[j].segment_id);
-			}
-		}
-
-		std::sort(lines_to_remove.rbegin(), lines_to_remove.rend());
-
-		for (size_t i = 0; i< lines_to_remove.size(); i++) {
-			log_lines.erase(log_lines.begin() + lines_to_remove[i]);
-		}
-	} //end of start-stop corrections
+	Correct_Timings(log_lines);
 
 
 	//Adjust segment ids if there were multiple segments
@@ -371,12 +325,15 @@ bool Match_Wildcard(const std::wstring fname, const std::wstring wcard, const bo
 
 
 		default:
-			if (f >= fname.size()) return false;
+			if (f >= fname.size()) 
+				return false;
 			if (case_sensitive) {
-				if (wcard[w] != fname[f]) return false;
+				if (wcard[w] != fname[f]) 
+					return false;
 			}
 			else {
-				if (std::towupper(wcard[w]) != std::towupper(fname[f])) return false;
+				if (std::towupper(wcard[w]) != std::towupper(fname[f])) 
+					return false;
 			}
 			//wild card and name still matches, continue
 			f++;
@@ -389,8 +346,6 @@ bool Match_Wildcard(const std::wstring fname, const std::wstring wcard, const bo
 
 	return f < fname.size() ? false : true;	//return false if some chars in the fname were not eaten
 }
-
-
 
 std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_Log_Segments() {
 	std::vector<TLog_Segment_id> logs_to_replay;
@@ -530,4 +485,82 @@ void CLog_Replay_Filter::WStr_To_Parameters(const std::wstring& src, scgms::SMod
 	}
 
 	target.set(params);
+}
+
+void CLog_Replay_Filter::Correct_Timings(std::vector<TLog_Entry>& log_lines) {
+	struct TStamps {
+		double start, stop;
+	};
+
+	std::map<uint64_t, TStamps> segments;	//seg. id, and its time stamps
+
+	std::vector<size_t> lines_to_remove;
+
+	//1. mark any time segment start/stop markers for removal, 
+	//but also deduce their correct timing from all events with valid segment id
+	for (size_t i = 0; i < log_lines.size(); i++) {
+		auto& evt = log_lines[i];
+		if (evt.segment_id != scgms::Invalid_Segment_Id) {
+
+			auto iter = segments.find(evt.segment_id);
+			if (iter != segments.end()) {
+				//update the bounds only
+				iter->second.start = std::min(iter->second.start, evt.device_time);
+				iter->second.stop = std::max(iter->second.stop, evt.device_time);
+			} else
+				//insert new segment
+				segments.insert({ evt.segment_id, {evt.device_time, evt.device_time} });
+		
+			//do we remove this?
+			if ((evt.code == scgms::NDevice_Event_Code::Time_Segment_Start) ||
+				(evt.code == scgms::NDevice_Event_Code::Time_Segment_Stop))
+				lines_to_remove.push_back(i);
+		}
+	}
+
+	//2. remove the segment start/stop markers 
+	//don't worry, we'll reinsert them later on
+	std::sort(lines_to_remove.rbegin(), lines_to_remove.rend());
+
+	for (size_t i = 0; i < lines_to_remove.size(); i++) {
+		log_lines.erase(log_lines.begin() + lines_to_remove[i]);
+	}
+
+
+	//3. append the segment start/stop markers, now with correct timings
+	for (const auto& seg : segments) {
+		TLog_Entry entry;
+		entry.segment_id = seg.first;
+		entry.info = L"";
+		entry.the_rest = L"{172EA814-9DF1-657C-1289-C71893F1D085}; {00000000-0000-0000-0000-000000000000}";
+				//device id is log replay, the resit is invalid signal id
+
+		entry.line_counter = 0;
+		entry.code = scgms::NDevice_Event_Code::Time_Segment_Start;
+		entry.device_time = seg.second.start;
+		log_lines.push_back(entry);
+
+		//by assigning such line counters, we avoid complicated comparison seg_start<level, ..<seg_stop comparison when sorting in 4.
+		entry.line_counter = log_lines.size()+1;
+		entry.code = scgms::NDevice_Event_Code::Time_Segment_Stop;
+		entry.device_time = seg.second.stop;
+		log_lines.push_back(entry);
+	}
+
+	//4. eventually, sort the log lines so that the events are at proper positions
+
+	//As we have read the times and end of lines, no event has been created yet => no event logical clock advanced by us
+	//=> by creating the events inside the following for, log-events and by-them-triggered events will have monotonically increasing logical clocks.
+	std::sort(log_lines.begin(), log_lines.end(), [](const TLog_Entry& a, const TLog_Entry& b) {		
+		if (a.device_time != b.device_time)
+			return a.device_time < b.device_time;
+
+		if (a.segment_id != b.segment_id)	//this will make the seg markes be close to the levels of the same segment
+			return a.segment_id < b.segment_id;
+
+
+		//if there were multiple events emitted with the same device time,
+		//let us emit them in their order in the log file (or in the order which we assigned to them)
+		else  return a.line_counter < b.line_counter;
+		});
 }
