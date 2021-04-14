@@ -196,8 +196,6 @@ class CDepot : public IQuantizable {
 		 * this is needed to conserve mass
 		 */
 		virtual void Return_Quantity(const double amount) {
-			assert(amount >= 0.0 && "CDepot::Return_Quantity: attempt to add a negative amount");
-
 			mNext_Quantity += amount;
 		}
 
