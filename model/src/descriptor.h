@@ -678,6 +678,131 @@ namespace gct_model {
 	}} };
 }
 
+namespace gct2_model {
+
+	constexpr GUID model_id = { 0x68c39029, 0x4637, 0x4f9e, { 0x93, 0xa3, 0xcb, 0x2f, 0x5a, 0x34, 0x10, 0x12 } };					// {68C39029-4637-4F9E-93A3-CB2F5A341012}
+
+	constexpr GUID signal_IG = { 0x31b6c36f, 0x589b, 0x4c08, { 0xa3, 0x54, 0xc8, 0xa4, 0x61, 0xb7, 0x1e, 0xf6 } };					// {31B6C36F-589B-4C08-A354-C8A461B71EF6}
+	constexpr GUID signal_BG = { 0xf2e61657, 0x3b3c, 0x467a, { 0xad, 0x44, 0xc5, 0x6b, 0xae, 0x29, 0x27, 0x69 } };					// {F2E61657-3B3C-467A-AD44-C56BAE292769}
+	constexpr GUID signal_Delivered_Insulin = { 0x42b624fa, 0x5971, 0x433e, { 0x95, 0x35, 0xd2, 0x74, 0xce, 0x60, 0x9, 0x6a } };	// {42B624FA-5971-433E-9535-D274CE60096A}
+	constexpr GUID signal_IOB = { 0x1613dabc, 0x1aed, 0x46b0, { 0x98, 0x10, 0x7f, 0xd, 0xba, 0xc8, 0xb1, 0x80 } };					// {1613DABC-1AED-46B0-9810-7F0DBAC8B180}
+	constexpr GUID signal_COB = { 0x4a1d62fe, 0x9273, 0x4a73, { 0xa6, 0xfe, 0xb3, 0xcd, 0xe6, 0x4a, 0x2a, 0x9d } };					// {4A1D62FE-9273-4A73-A6FE-B3CDE64A2A9D}
+
+	constexpr size_t model_param_count = 37;
+
+	/*
+	Q1_0 - D2_0 - initial values/quantities
+
+	Vq - distribution volume of glucose molecules in plasma ("volume of plasma")
+	Vqsc - distribution volume of glucose molecules in subcutaneous tissue / interstitial fluid
+	Vi - insulin distribution volume
+	Q1b - basal glucose amount in primary distribution volume
+	Gthr - glycosuria threshold [mmol/L]
+	GIthr - insulin production glucose threshold (above this level, beta cells start to produce insulin) [mmol/L]
+
+	q12 - transfer rate Q1 <-> Q2, diffusion
+	q1sc - transfer rate Q1 <-> Qsc, diffusion
+	ix - transfer rate I -> X
+	xq1 - moderation rate Q1 -(X)-> sink
+	d12 - transfer rate D1 -> D2 ("digestion" rate)
+	d2q1 - transfer rate D2 -> Q1 (glucose absorption rate)
+	isc2i - transfer rate Isc2 -> I
+
+	q1e - base elimination of Q1 glucose
+	q1ee - glucose elimination moderated by exercise
+	q1e_thr - glycosuria elimination of Q1 glucose (over threshold)
+	xe - elimination rate of X by glucose utilization moderation (coupled with xq1)
+
+	q1p - glucose appearance rate from glycogen and miscellanous sources
+	q1pe - glucose appearance moderated 
+	ip - insulin production factor (how glucose stimulates insulin production)
+
+	e_pa - exercise-production virtual modulator appearance
+	e_ua - exercise-utilization virtual modulator appearance
+	e_pe - exercise-production virtual modulator elimination rate
+	e_ue - exercise-utilization virtual modulator elimination rate
+	q_ep - glucose production modulation rate by exercise
+	q_eu - glucose utilization modulation rate by exercise
+
+	Aq - CHO bioavailability (how many % of glucose from meal is absorbed); TODO: this should be a parameter of CHO intake
+	t_d - meal absorption time; TODO: this should be a parameter of CHO intake
+	t_i - subcutaneous insulin absorption time; TODO: this should be a parameter of insulin dosage
+	*/
+
+	struct TParameters {
+		union {
+			struct {
+				// initial quantities
+				double Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0;
+				// patient quantity and base parameters
+				double Vq, Vqsc, Vi, Q1b, Gthr, GIthr;
+				// transfer parameters
+				double q12, q1sc, ix, xq1, d12, d2q1, isc2i;
+				// elimination parameters
+				double q1e, q1ee, q1e_thr, xe;
+				// production parameters
+				double q1p, q1pe, ip;
+				// exercise-related parameters
+				double e_pa, e_ua, e_pe, e_ue, q_ep, q_eu;
+				// misc parameters
+				double Ag, t_d, t_i;
+			};
+			double vector[model_param_count];
+		};
+	};
+
+	const gct2_model::TParameters lower_bounds = { {{
+		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0
+			0,    0,    0,     0,   0,     0,   0,    0,
+		//	Vq,  Vqsc, Vi, Q1b, Gthr, GIthr,
+			3,   1,    3,  50,  8.0,  4.0,
+		//	q12,  q1sc, ix,  xq1,   d12,  d2q1, isc2i
+			0.01, 1.4,  1.4, 0.001, 14.0, 14.0, 0.05,
+		//	q1e,   q1ee,  q1e_thr, xe,
+			0.144, 0.144, 0.001,   0.01,
+		//	q1p,     q1pe,   ip,
+			0.00001, 0.0001, 0.0,
+		//	e_pa, e_ua, e_pe, e_ue, q_ep, q_eu
+			2000, 500,  2000,  500, 300,  100,
+		//	Ag,  t_d,    t_i
+			0.5, 10_min, 5_min
+	}} };
+
+	const gct2_model::TParameters default_parameters = { { {
+		//	Q1_0, Q2_0, Qsc_0, I_0,   Isc_0, X_0, D1_0, D2_0
+			135,  65,   450,   4e-12, 16.2,  2.6, 0,    54.8,
+		//	Vq,  Vqsc, Vi, Q1b, Gthr, GIthr,
+			30,  25,   80, 240, 8.0, 5.0,
+		//	q12,  q1sc, ix,  xq1,     d12,   d2q1,  isc2i
+			0.01, 8,    3.4, 0.07697, 144.0, 144.0, 0.1,
+		//	q1e,     q1ee,    q1e_thr, xe,
+			0.38519, 0.38519, 0.8,     0.01,
+		//	q1p,  q1pe, ip,
+			0.01, 0.1,  0.0,
+		//	e_pa, e_ua, e_pe, e_ue, q_ep, q_eu
+			9000, 2000, 7425, 2000, 1800, 300,
+		//	Ag,   t_d,    t_i
+			0.98, 44_min, 119_min
+	}} };
+
+	const gct2_model::TParameters upper_bounds = { { {
+		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0
+			500,  500,  500,   500, 500,   500, 200,  200,
+		//	Vq,  Vqsc, Vi, Q1b,  Gthr, GIthr,
+			60,  60,   80, 1000, 14.0, 8.0,
+		//	q12, q1sc, ix,    xq1, d12,   d2q1,  isc2i
+			0.9, 24.0, 144.0, 3.0, 144.0, 144.0, 0.5,
+		//	q1e,  q1ee, q1e_thr, xe,
+			14.4, 14.4, 0.8,     2.0,
+		//	q1p,  q1pe, ip
+			0.01, 0.1,  0.05,
+		//	e_pa,  e_ua,  e_pe, e_ue, q_ep, q_eu
+			12000, 12000, 9000, 9000, 2500, 1800,
+		//	Ag,   t_d,    t_i
+			0.98, 50_min, 120_min
+	}} };
+}
+
 namespace ge_model {
 	//grammatical evolution model
 	constexpr GUID model_id = { 0x39932e74, 0x7fc3, 0x4965, { 0x9e, 0x55, 0xee, 0x33, 0xf6, 0x3, 0x5a, 0xcb } };
