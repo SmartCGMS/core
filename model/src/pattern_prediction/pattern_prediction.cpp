@@ -179,14 +179,28 @@ void CPattern_Prediction_Filter::Update_Learn(scgms::SSignal& ist, const double 
 std::tuple<CPattern_Prediction_Filter::NPattern, size_t, bool> CPattern_Prediction_Filter::Classify(scgms::SSignal& ist, const double current_time) {
 	std::tuple<NPattern, size_t, bool> result{ NPattern::steady, Band_Count / 2, false };
 
-	std::array<double, 3> levels;
-	const std::array<double, 3> times = { current_time - 10.0 * scgms::One_Minute,
+	std::array<double, 4> levels;
+	const std::array<double, 4> times = { current_time - 15.0 * scgms::One_Minute,
+										  current_time - 10.0 * scgms::One_Minute,
 										  current_time - 5.0 * scgms::One_Minute,
 										  current_time };
 	if (ist->Get_Continuous_Levels(nullptr, times.data(), levels.data(), levels.size(), scgms::apxNo_Derivation) == S_OK) {
 		if (!Is_Any_NaN(levels)) {
+			
+			//acceleration and band-index are good on non-smoothed data
+			const bool acc = std::fabs(levels[3] - levels[2]) > std::fabs(levels[2] - levels[1]);
+
 			std::get<NClassify::success>(result) = true;	//classified ok
-			std::get<NClassify::band>(result) = Level_2_Band_Index(levels[2]);
+			std::get<NClassify::band>(result) = Level_2_Band_Index(levels[3]);
+
+			//pattern recognition works best on smoothed data
+			const double l10 = 0.25 * levels[0] + 0.5 * levels[1] + 0.25 * levels[2];
+			const double l05 = 0.25 * levels[1] + 0.5 * levels[2] + 0.25 * levels[3];			
+			const double l00 = 0.25 * levels[1] + 0.25 * levels[2] + 0.5 * levels[3];					
+
+			levels[0] = l10;
+			levels[1] = l05;
+			levels[2] = l00;
 
 			const bool agb = levels[0] > levels[1];
 			const bool alb = !agb;
@@ -196,16 +210,15 @@ std::tuple<CPattern_Prediction_Filter::NPattern, size_t, bool> CPattern_Predicti
 
 			const bool agc = levels[0] > levels[2];
 			const bool alc = !agc;
-
-			const bool acc = fabs(levels[2] - levels[1]) > fabs(levels[1] - levels[0]);
-			const bool decc = !acc;	
-
-			if (agb && bgc) std::get<NClassify::pattern>(result) = NPattern::down;			
+			
+			if (agb && bgc && acc) std::get<NClassify::pattern>(result) = NPattern::deccel;
+			else if (agb && bgc &&(!acc)) std::get<NClassify::pattern>(result) = NPattern::down;			
 			else if (agb && blc && agc) std::get<NClassify::pattern>(result) = NPattern::convex_slow;
 			else if (agb && blc && alc) std::get<NClassify::pattern>(result) = NPattern::convex_fast;
 			else if (alb && bgc && agc) std::get<NClassify::pattern>(result) = NPattern::concave_fast;
 			else if (alb && bgc && alc) std::get<NClassify::pattern>(result) = NPattern::concave_slow;
-			else if (alb && blc) std::get<NClassify::pattern>(result) = NPattern::up;
+			else if (alb && blc && (!acc)) std::get<NClassify::pattern>(result) = NPattern::up;
+			else if (alb && blc && acc) std::get<NClassify::pattern>(result) = NPattern::accel;
 			else std::get<NClassify::pattern>(result) = NPattern::steady;
 		}
 	}

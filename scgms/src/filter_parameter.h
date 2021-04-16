@@ -259,6 +259,8 @@ public:
 
 	//management
 	virtual HRESULT IfaceCalling Clone(scgms::IFilter_Parameter **deep_copy) override final;
+public:
+	static const std::wstring mUnused_Variable_Name;
 };
 
 #pragma warning( pop )

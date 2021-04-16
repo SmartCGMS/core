@@ -3,6 +3,9 @@
 #include "../../../common/rtl/manufactory.h"
 #include "../../../common/utils/string_utils.h"
 #include "../../../common/rtl/rattime.h"
+#include "../../../common/lang/dstrings.h"
+
+const std::wstring CFilter_Parameter::mUnused_Variable_Name = rsUnused_Variable_Name;
 
 double str_2_rat_dbl(const std::wstring& str, bool& converted_ok) {
 	double value = str_2_dbl(str.c_str(), converted_ok);
@@ -202,11 +205,16 @@ HRESULT IfaceCalling CFilter_Parameter::Clone(scgms::IFilter_Parameter **deep_co
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Variable(const wchar_t* name, const wchar_t* value) {
+	if (name == CFilter_Parameter::mUnused_Variable_Name) return TYPE_E_AMBIGUOUSNAME;
 	mNon_OS_Variables[name] = value;
 	return S_OK;
 }
 
 std::tuple<HRESULT, std::wstring> CFilter_Parameter::Evaluate_Variable(const std::wstring& var_name) {
+
+	if (var_name == CFilter_Parameter::mUnused_Variable_Name)
+		return { S_FALSE, std::wstring{} };	//valid text for an unused option
+
 
 	//try our variables as they may hide the OS ones to actually customize them
 	{

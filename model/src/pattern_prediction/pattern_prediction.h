@@ -70,13 +70,15 @@ protected:
     };
 
     enum class NPattern : size_t {        
-        down = 0,               //a>b>c 
+        deccel = 0,             //a>b>c && acc; acc = |c-b|>|b-a|
+        down,                   //a>b>c && !acc
         convex_slow,            //a>b<c & a>c
         convex_fast,            //a>b<c & a<c
         steady,                 //everything else
         concave_fast,           //a<b>c & a>c
         concave_slow,           //a<b>c & a<c
-        up,                     //a<b<c 
+        up,                     //a<b<c & !acc
+        accel,                  //a<b<c & acc        
         count
 
         //intentionally, we do not consider acceleration, because it actually worsens the results
