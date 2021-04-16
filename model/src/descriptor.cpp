@@ -725,7 +725,8 @@ namespace gct2_model {
 		L"q1e", L"q1ee", L"q1e_thr", L"xe",
 		L"q1p", L"q1pe", L"ip",
 		L"e_pa", L"e_ua", L"e_pe", L"e_ue", L"q_ep", L"q_eu",
-		L"Ag", L"t_d", L"t_i"
+		L"Ag", L"t_d", L"t_i",
+		L"t_id",
 	};
 
 	const scgms::NModel_Parameter_Value model_param_types[model_param_count] = {
@@ -736,7 +737,7 @@ namespace gct2_model {
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
-		scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptTime
+		scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptTime
 	};
 
 	constexpr size_t number_of_calculated_signals = 5;

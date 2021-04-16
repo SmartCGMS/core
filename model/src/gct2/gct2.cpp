@@ -87,7 +87,6 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 	auto& q_moderated_sink = mCompartments[NGCT_Compartment::Glucose_Peripheral].Create_Depot<CSink_Depot>(0.0, false);
 
 	// insulin peripheral depots
-	auto& i_sink = mCompartments[NGCT_Compartment::Insulin_Peripheral].Create_Depot<CSink_Depot>(0.0, false);
 	auto& i_src = mCompartments[NGCT_Compartment::Insulin_Peripheral].Create_Depot<CSource_Depot>(1.0, false); // use 1.0 as "unit amount" (is further multiplied by parameter)
 
 	// physical activity depots
@@ -115,9 +114,6 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 	q_sink.Set_Solution_Volume(mParameters.Vq);
 	q_moderated_sink.Set_Persistent(true);
 	q_moderated_sink.Set_Solution_Volume(mParameters.Vq);
-
-	i_sink.Set_Persistent(true);
-	i_sink.Set_Solution_Volume(mParameters.Vi);
 
 	mPhysical_Activity.Set_Persistent(true);
 	emp.Set_Persistent(true);
@@ -192,7 +188,7 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 
 	i_src.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(i,
 		[&q1, this](CDepot_Link& link) {
-			link.Add_Moderator<CThreshold_Linear_Moderation_No_Elimination_Function>(q1, mParameters.ip, mParameters.GIthr);
+			link.Add_Moderator<CThreshold_Linear_Moderation_No_Elimination_Function>(q1, 1.0, mParameters.GIthr);
 		},
 		CTransfer_Function::Start,
 		CTransfer_Function::Unlimited,
@@ -272,7 +268,7 @@ CDepot& CGCT2_Discrete_Model::Add_To_Isc2(double amount, double start, double du
 
 	CDepot& depot = mCompartments[NGCT_Compartment::Insulin_Subcutaneous_2].Create_Depot(amount, false);
 
-	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot(), start, duration*10.0, mParameters.ix);
+	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot(), start, duration*10.0, mParameters.isc2i);
 
 	return depot;
 }
@@ -327,7 +323,10 @@ HRESULT CGCT2_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 				if (event.device_time() < mLast_Time)
 					return E_ILLEGAL_STATE_CHANGE;
 
-				mInsulin_Pump.Set_Infusion_Parameter(event.level() / 60.0, scgms::One_Minute, mParameters.t_i);
+				constexpr double PortionTimeSpacing = 30_sec;
+				const double rate = event.level() / (60.0 * (60_sec / PortionTimeSpacing) );
+
+				mInsulin_Pump.Set_Infusion_Parameter(rate, PortionTimeSpacing, mParameters.t_i);
 				mPending_Signals.push_back(TPending_Signal{ scgms::signal_Delivered_Insulin_Basal_Rate, event.device_time(), event.level() });
 
 				res = S_OK;
@@ -346,8 +345,12 @@ HRESULT CGCT2_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 				if (event.device_time() < mLast_Time)
 					return E_ILLEGAL_STATE_CHANGE;	// got no time-machine to deliver insulin in the past
 
-				constexpr size_t Portions = 2;
-				const double PortionTimeSpacing = scgms::One_Second * 30;
+				/*
+				constexpr double PortionTimeSpacing = scgms::One_Minute;
+				const size_t Portions = static_cast<size_t>(mParameters.t_id / PortionTimeSpacing);
+				*/
+				constexpr size_t Portions = 10;
+				const double PortionTimeSpacing = mParameters.t_id / static_cast<double>(Portions);
 
 				const double PortionSize = event.level() / static_cast<double>(Portions);
 
@@ -361,9 +364,9 @@ HRESULT CGCT2_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 			// carbs intake; NOTE: this should be further enhanced once architecture supports meal parametrization (e.g.; glycemic index, ...)
 			else if ((event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue)) {
 
-				// 10 minutes of eating - 10 portions with 1 minute spacing
+				// 10 minutes of eating - 10 portions with 30sec spacing
 				constexpr size_t Portions = 10;
-				const double PortionTimeSpacing = scgms::One_Minute;
+				constexpr double PortionTimeSpacing = 30_sec;
 
 				const double PortionSize = (1000.0 * event.level() * mParameters.Ag / Glucose_Molar_Weight) / static_cast<double>(Portions);
 
@@ -391,7 +394,8 @@ HRESULT IfaceCalling CGCT2_Discrete_Model::Step(const double time_advance_delta)
 	HRESULT rc = E_FAIL;
 	if (time_advance_delta > 0.0) {
 
-		constexpr size_t microStepCount = 10;
+		constexpr size_t microStepCount = 5;
+
 		const double microStepSize = time_advance_delta / static_cast<double>(microStepCount);
 		const double oldTime = mLast_Time;
 		const double futureTime = mLast_Time + time_advance_delta;
@@ -407,12 +411,12 @@ HRESULT IfaceCalling CGCT2_Discrete_Model::Step(const double time_advance_delta)
 					Add_To_Isc1(dosage.amount, dosage.start, dosage.duration);
 
 				// step all compartments
-				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
+				std::for_each(std::execution::seq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
 					comp.Step(mLast_Time);
 				});
 
 				// commit all compartments
-				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
+				std::for_each(std::execution::seq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
 					comp.Commit(mLast_Time);
 				});
 
