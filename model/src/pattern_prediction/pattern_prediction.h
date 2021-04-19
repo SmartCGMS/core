@@ -72,6 +72,7 @@ protected:
 protected:
     bool mDo_Not_Learn = false;    
     bool mUpdate_Parameters_File = true;
+    bool mUse_Config_Parameters = false;
     filesystem::path mParameters_File_Path;
 
     bool mUpdated_Levels = false;   //flag to eliminate unnecessary writes to the parameters file

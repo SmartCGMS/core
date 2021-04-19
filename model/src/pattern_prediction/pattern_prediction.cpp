@@ -137,9 +137,9 @@ HRESULT CPattern_Prediction_Filter::Do_Configure(scgms::SFilter_Configuration co
 
 
 	//parameters loading must go as the last!
-	const bool load_parameters_file = !configuration.Read_Bool(rsUse_Config_parameters, false);
+	mUse_Config_Parameters = configuration.Read_Bool(rsUse_Config_parameters, false);
 
-	if (load_parameters_file) {
+	if (!mUse_Config_Parameters) {
 		//loading parameters from the external .ini file
 		if (!mParameters_File_Path.empty()) {
 			const HRESULT rc = Read_Parameters_File(error_description);
@@ -384,7 +384,7 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_From_Config(scgms::SFilter_C
 }
 
 void CPattern_Prediction_Filter::Write_Parameters_File() {
-	if (!mUpdated_Levels) return;
+	if (!mUpdated_Levels && !mUse_Config_Parameters) return;
 
 	CSimpleIniW ini;
 
