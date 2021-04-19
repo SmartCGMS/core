@@ -46,6 +46,32 @@
 
 
 namespace pattern_prediction {        
+    static constexpr double Low_Threshold = 3.0;			//mmol/L below which a medical attention is needed
+    static constexpr double High_Threshold = 13.0;			//dtto above
+    static constexpr size_t Internal_Bound_Count = 30;      //number of bounds inside the thresholds
+
+    static constexpr double Band_Size = (High_Threshold - Low_Threshold) / static_cast<double>(Internal_Bound_Count);						//must imply relative error <= 10% 
+    static constexpr double Inv_Band_Size = 1.0 / Band_Size;		//abs(Low_Threshold-Band_Size)/Low_Threshold 
+    static constexpr double Half_Band_Size = 0.5 / Inv_Band_Size;
+
+    static constexpr size_t Band_Count = Internal_Bound_Count + 2;
+
+    enum class NPattern : size_t {
+        deccel = 0,             //a>b>c && acc; acc = |c-b|>|b-a|
+        down,                   //a>b>c && !acc
+        convex_slow,            //a>b<c & a>c
+        convex_fast,            //a>b<c & a<c
+        steady,                 //everything else
+        concave_fast,           //a<b>c & a>c
+        concave_slow,           //a<b>c & a<c
+        up,                     //a<b<c & !acc
+        accel,                  //a<b<c & acc        
+        count
+
+        //intentionally, we do not consider acceleration, because it actually worsens the results
+    };
+
+    constexpr size_t model_param_count = Band_Count * static_cast<size_t>(NPattern::count);
 
 	const GUID filter_id = { 0xa730a576, 0xe84d, 0x4834, { 0x82, 0x6f, 0xfa, 0xee, 0x56, 0x4e, 0x6a, 0xbd } };  // {A730A576-E84D-4834-826F-FAEE564E6ABD}
     constexpr const GUID signal_Pattern_Prediction = { 0x4f9d0e51, 0x65e3, 0x4aaf, { 0xa3, 0x87, 0xd4, 0xd, 0xee, 0xe0, 0x72, 0x50 } }; 		// {4F9D0E51-65E3-4AAF-A387-D40DEEE07250}
@@ -54,4 +80,5 @@ namespace pattern_prediction {
     scgms::TSignal_Descriptor get_sig_desc();
 
     scgms::TFilter_Descriptor get_filter_desc();    //func to avoid static init fiasco as this is another unit than descriptor.cpp
+    scgms::TModel_Descriptor get_model_desc();
 }

@@ -664,15 +664,16 @@ namespace const_cr {
 
 const std::array<const scgms::TFilter_Descriptor, 1> filter_descriptions = { { pattern_prediction::get_filter_desc()} };
 
-const std::array<scgms::TModel_Descriptor, 11> model_descriptions = { { diffusion_v2_model::desc,
+const std::array<scgms::TModel_Descriptor, 12> model_descriptions = { { diffusion_v2_model::desc,
 																		 steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc, diffusion_prediction::desc,
 																		 constant_model::desc,
 																		 bergman_model::desc,
 																		 uva_padova_S2013::desc,
 																		 uva_padova_S2017::desc,
 																		 insulin_bolus::desc,
-																		 const_isf::desc, const_cr::desc
-																		} };
+																		 const_isf::desc, const_cr::desc,
+																		 pattern_prediction::get_model_desc()
+																		}};
 
 const std::array<scgms::TSignal_Descriptor, 21> signals_descriptors = { {diffusion_v2_model::bg_desc, diffusion_v2_model::ig_desc, steil_rebrin::bg_desc, 
 																		 steil_rebrin_diffusion_prediction::ig_desc, diffusion_prediction::ig_desc, 
