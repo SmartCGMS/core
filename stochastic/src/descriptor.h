@@ -62,7 +62,12 @@ namespace pathfinder {
 }
 
 namespace sequential_brute_force_scan {		
-	constexpr GUID id = { 0x33d92b0, 0xb49c, 0x45d1, { 0x95, 0x7f, 0x57, 0x68, 0x2d, 0x56, 0xab, 0xd2 } };  // {033D92B0-B49C-45D1-957F-57682D56ABD2}
+	constexpr GUID id = { 0x33d92b0, 0xb49c, 0x45d1, { 0x95, 0x7f, 0x57, 0x68, 0x2d, 0x56, 0xab, 0xd2 } };  //{033D92B0-B49C-45D1-957F-57682D56ABD2}
 }
+
+namespace sequential_convex_scan {
+	constexpr GUID id = { 0xfa42286b, 0x928c, 0x47bd, { 0xaa, 0xf3, 0x2f, 0xe4, 0x73, 0x77, 0x46, 0x6d } };	//{FA42286B-928C-47BD-AAF3-2FE47377466D}
+}
+
 
 extern "C" HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end);

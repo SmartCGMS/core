@@ -45,6 +45,7 @@
 #include "fast_pathfinder.h"
 #include "landscape_pathfinder.h"
 #include "Sequential_Brute_Force_Scan.h"
+#include "Sequential_Convex_Scan.h"
 
 template <typename TSolver, typename TUsed_Solution>
 HRESULT Solve_Pathfinder_Spiral(solver::TSolver_Setup& setup, solver::TSolver_Progress& progress) {
@@ -147,6 +148,7 @@ public:
 		mSolver_Id_Map[pathfinder::id_landscape] = std::bind(&Solve_By_Class<CLandscape_Pathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 		
 		mSolver_Id_Map[sequential_brute_force_scan::id] = std::bind(&Solve_By_Class<CSequential_Brute_Force_Scan<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+		mSolver_Id_Map[sequential_convex_scan::id] = std::bind(&Solve_By_Class<CSequential_Convex_Scan<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 	}
 
 	HRESULT Solve(const GUID &solver_id, solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
