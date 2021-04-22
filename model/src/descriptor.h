@@ -437,6 +437,120 @@ namespace uva_padova_S2017 {
 	}} };
 }
 
+namespace samadi_model {
+
+	constexpr GUID model_id = { 0xa7938698, 0x43cd, 0x4ec8, { 0xbb, 0x3a, 0x2a, 0x8d, 0xcb, 0x3d, 0x72, 0x52 } };						// {A7938698-43CD-4EC8-BB3A-2A8DCB3D7252}
+
+	constexpr GUID signal_IG = { 0xbf703a0, 0xec3a, 0x4040, { 0xa0, 0x5a, 0x6b, 0xee, 0x24, 0x79, 0x64, 0xba } };						// {0BF703A0-EC3A-4040-A05A-6BEE247964BA}
+	constexpr GUID signal_BG = { 0x6e25b35c, 0xb9af, 0x4282, { 0x98, 0xd8, 0xc6, 0xf, 0xd1, 0x4, 0x27, 0xb0 } };						// {6E25B35C-B9AF-4282-98D8-C60FD10427B0}
+	constexpr GUID signal_Delivered_Insulin = { 0x73cd5f5c, 0x263e, 0x47ce, { 0x8b, 0x94, 0x13, 0x10, 0x4d, 0xd5, 0x8a, 0x59 } };		// {73CD5F5C-263E-47CE-8B94-13104DD58A59}
+	constexpr GUID signal_IOB = { 0x5ac41cc7, 0x5b14, 0x424d, { 0xb1, 0xfc, 0xb5, 0x11, 0x2, 0xc3, 0x1c, 0xdb } };						// {5AC41CC7-5B14-424D-B1FC-B51102C31CDB}
+	constexpr GUID signal_COB = { 0x2d55a02c, 0x5768, 0x45f2, { 0x8c, 0x6d, 0xf9, 0x5e, 0x9e, 0xcb, 0xf1, 0x47 } };						// {2D55A02C-5768-45F2-8C6D-F95E9ECBF147}
+
+	constexpr size_t model_param_count = 43;
+
+	struct TParameters {
+		union {
+			struct {
+				double Q1_0, Q2_0, Gsub_0, S1_0, S2_0, I_0, x1_0, x2_0, x3_0;
+				double D1_0, D2_0, DH1_0, DH2_0, E1_0, E2_0, TE_0;
+				double k12, ka1, ka2, ka3;
+				double kb1, kb2, kb3;
+				double ke;
+				double Vi, Vg;
+				double EGP_0, F01;
+				double tmaxi, tau_g, a, t_HR, t_in, n, t_ex, c1, c2;
+				double Ag;
+				double tmaxG;
+				double alpha, beta;
+				double BW, HRbase;
+			};
+			double vector[model_param_count];
+		};
+	};
+
+	const samadi_model::TParameters lower_bounds = { {{
+		//	Q1_0, Q2_0, Gsub_0, S1_0, S2_0, I_0, x1_0, x2_0, x3_0
+			5,    5,    1,      0,    0,    0,   0,    0,    0,
+		//	D1_0, D2_0, DH1_0, DH2_0, E1_0, E2_0, TE_0
+			0,    0,    0,     0,     0,    0,    0,
+		//	k12,  ka1,   ka2,  ka3
+			0.05, 0.004, 0.05, 0.02,
+		//	kb1, kb2, kb3
+			0.000005, 0.00001, 0.0005,
+		//	ke
+			0.175,
+		//	Vi, Vg
+			0.1, 0.1,
+		//	EGP_0, F01
+			0.02, 0.005,
+		//	tmaxi, tau_g, a,   t_HR, t_in, n, t_ex, c1,  c2
+			60,    12,    0.7, 3,    0.5,  2, 150,  450, 80,
+		//	Ag
+			0.6,
+		//	tmaxG
+			36,
+		//	alpha, beta
+			1.3,   0.5,
+		//	BW, HRbase
+			20, 20
+	}} };
+	const samadi_model::TParameters default_parameters = { { {
+		//	Q1_0, Q2_0, Gsub_0, S1_0, S2_0, I_0, x1_0,   x2_0,   x3_0
+			55,   23,   4.7,    0,    0,    0,   0.0296, 0.0047, 0.2996,
+		//	D1_0, D2_0, DH1_0, DH2_0, E1_0, E2_0, TE_0
+			0,    0,    0,     0,     0,    0,    0,
+		//	k12,   ka1,   ka2,  ka3
+			0.066, 0.006, 0.06, 0.03,
+		//	kb1, kb2,  kb3
+			0.000031, 0.0000492, 0.00156,
+		//	ke
+			0.196,
+		//	Vi,   Vg
+			0.12, 0.16,
+		//	EGP_0,  F01
+			0.0161, 0.0097,
+		//	tmaxi, tau_g, a,    t_HR, t_in, n, t_ex, c1,  c2
+			69.5,  15,    0.77, 5,    1,    3, 200,  500, 100,
+		//	Ag
+			0.71,
+		//	tmaxG
+			40.4,
+		//	alpha, beta
+			1.79,  0.78,
+		//	BW, HRbase
+			85, 65
+	}} };
+
+	const samadi_model::TParameters upper_bounds = { { {
+		//	Q1_0, Q2_0, Gsub_0, S1_0, S2_0, I_0, x1_0, x2_0, x3_0
+			100,  100,  50,     600,  600,  20,  5,    5,    5,
+		//	D1_0, D2_0, DH1_0, DH2_0, E1_0, E2_0, TE_0
+			500,  500,  500,   500,   500,  500,  500,
+		//	k12,  ka1,   ka2,  ka3
+			0.07, 0.007, 0.07, 0.04,
+		//	kb1, kb2,   kb3
+			0.0001, 0.0001, 0.01,
+		//	ke
+			0.218,
+		//	Vi, Vg
+			0.2, 0.2,
+		//	EGP_0, F01
+			0.035, 0.03,
+		//	tmaxi, tau_g, a,    t_HR, t_in, n, t_ex, c1,  c2
+			78,    18,    0.85, 7,    1.5,  4, 250,  550, 120,
+		//	Ag
+			0.8,
+		//	tmaxG
+			45,
+		//	alpha, beta
+			2.3,   1.3,
+		//	BW,  HRbase
+			150, 90
+	}} };
+}
+ 
+
 namespace ge_model {
 	//grammatical evolution model
 	constexpr GUID model_id = { 0x39932e74, 0x7fc3, 0x4965, { 0x9e, 0x55, 0xee, 0x33, 0xf6, 0x3, 0x5a, 0xcb } };

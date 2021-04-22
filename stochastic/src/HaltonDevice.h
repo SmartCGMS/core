@@ -50,6 +50,7 @@ public:
 	using result_type = unsigned int;
 protected:	
 	size_t mBase;	
+	double mInv_Base;
 	std::atomic<size_t> mLast_Index;
 	size_t Get_Next_Prime(size_t last_number);
 	static constexpr result_type max_result = 0x7FFFffff;

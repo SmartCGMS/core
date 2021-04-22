@@ -39,7 +39,6 @@
 
 #include "HaltonDevice.h"
 
-
 std::atomic<size_t> last_prime;
 
 size_t CHalton_Device::Get_Next_Prime(size_t last_number) {	
@@ -67,25 +66,32 @@ CHalton_Device::CHalton_Device() {
 		current_prime = last_prime.load();
 		mBase = Get_Next_Prime(current_prime);		
 	} while (!last_prime.compare_exchange_weak(current_prime, mBase));
-
+	
+	mInv_Base = 1.0 / static_cast<double>(mBase);
 	mLast_Index = 409;
 }
 
 
 double CHalton_Device::advance() {
-	size_t working_index = mLast_Index.fetch_add(1);	//advance the current state
+
+	lldiv_t qr;	//qr.quot is the working index
+	qr.quot = mLast_Index.fetch_add(1);	//advance the current state	
 
 	double fraction = 1.0;	//current fraction		
 	double result = 0.0;	//halton sequence number to return
 
-	while (working_index) {
+	
+	while (qr.quot) {
 		//we need to divide the fraction by the base
-		fraction /= mBase;
+		fraction *= mInv_Base;
+
+		//divide to got both quotient and reminder at once
+		qr = std::lldiv(qr.quot, mBase);
+
 		//and add shift to the result
-		result += fraction * (working_index % mBase);
-		//and divide the index
-		working_index /= mBase;
+		result += fraction * static_cast<double>(qr.rem);
 	}
+
 
 	return result;
 }

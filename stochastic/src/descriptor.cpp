@@ -73,10 +73,15 @@ namespace sequential_convex_scan {
 }
 
 
-const std::array<scgms::TSolver_Descriptor, 8> solver_descriptions = 
+namespace pso {
+	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(pso::id, dsPSO_Halton);
+}
+
+const std::array<scgms::TSolver_Descriptor, 9> solver_descriptions = 
 	{ mt_metade::desc, halton_metade::desc, rnd_metade::desc, 
 	  pathfinder::desc_fast, pathfinder::desc_spiral, pathfinder::desc_landscape,
-	  sequential_brute_force_scan::desc, sequential_convex_scan::desc
+	  sequential_brute_force_scan::desc, sequential_convex_scan::desc,
+	  pso::desc
 };
 
 
