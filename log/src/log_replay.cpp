@@ -350,35 +350,44 @@ bool Match_Wildcard(const std::wstring fname, const std::wstring wcard, const bo
 std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_Log_Segments() {
 	std::vector<TLog_Segment_id> logs_to_replay;
 
-	const auto effective_path = mLog_Filename_Or_Dirpath.parent_path();
-	const std::wstring wildcard = mLog_Filename_Or_Dirpath.wstring();
-	constexpr bool case_sensitive =
-#ifdef  _WIN32
-		false
-#else
-		true
-#endif   
-		;
-
-
-	std::error_code ec;
-	if (effective_path.empty() || (!filesystem::exists(effective_path, ec) || ec))
-		return logs_to_replay;
-
 
 	//1. gather a list of all segments we will try to replay
-	if (Is_Directory(effective_path)) {
-		for (auto& path : filesystem::directory_iterator(effective_path)) {
-			const bool matches_wildcard = Match_Wildcard(path.path().wstring(), wildcard, case_sensitive);
+	//First, we need to ensure that we are not dealing with a uniquely identified file name
+	if (Is_Regular_File_Or_Symlink(mLog_Filename_Or_Dirpath))
+		logs_to_replay.push_back({ mLog_Filename_Or_Dirpath, scgms::Invalid_Segment_Id });
+	else {
+		//if not, then we are asked to enumerate entire directory, may be with a mask
 
-			if (matches_wildcard) {
-				if (Is_Regular_File_Or_Symlink(path))
-					logs_to_replay.push_back({ path, scgms::Invalid_Segment_Id });
+		const auto effective_path = mLog_Filename_Or_Dirpath.parent_path();
+
+		if (Is_Directory(effective_path)) {
+			
+			const std::wstring wildcard = mLog_Filename_Or_Dirpath.wstring();
+			constexpr bool case_sensitive =
+#ifdef  _WIN32
+				false
+#else
+				true
+#endif   
+				;
+
+
+			std::error_code ec;
+			if (effective_path.empty() || (!filesystem::exists(effective_path, ec) || ec))
+				return logs_to_replay;
+
+
+
+			for (auto& path : filesystem::directory_iterator(effective_path)) {
+				const bool matches_wildcard = Match_Wildcard(path.path().wstring(), wildcard, case_sensitive);
+
+				if (matches_wildcard) {
+					if (Is_Regular_File_Or_Symlink(path))
+						logs_to_replay.push_back({ path, scgms::Invalid_Segment_Id });
+				}
 			}
 		}
 	}
-	else
-		logs_to_replay.push_back({ mLog_Filename_Or_Dirpath, scgms::Invalid_Segment_Id });
 
 
 	if (!logs_to_replay.empty()) {
@@ -457,7 +466,8 @@ HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(scgms::SFilter_Configurati
 	if (!logs_to_replay.empty())
 		mLog_Replay_Thread = std::make_unique<std::thread>(&CLog_Replay_Filter::Open_Logs, this, std::move(logs_to_replay));
 	else {
-		error_description.push(dsCannot_Open_File + mLog_Filename_Or_Dirpath.wstring());
+		std::wstring err_msg = dsCannot_Open_File + mLog_Filename_Or_Dirpath.wstring();
+		error_description.push(err_msg);
 		return ERROR_FILE_NOT_FOUND;
 	}
 

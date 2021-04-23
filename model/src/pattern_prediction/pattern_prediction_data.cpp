@@ -72,7 +72,7 @@ double CPattern_Prediction_Data::Level() const {
 }
 
 bool CPattern_Prediction_Data::Valid() const {
-    return mState.count > 0.0;
+    return (mState.count > 0.0) && (mState.running_avg>0.0);
 }
 
 TPattern_Prediction_Pattern_State CPattern_Prediction_Data::Get_State() const {

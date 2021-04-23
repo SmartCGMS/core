@@ -43,6 +43,7 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/utils/string_utils.h" 
 #include "../../../common/rtl/UILib.h"
+#include "../../../common/rtl/hresult.h"
 
 #include <map>
 #include <stdexcept>
@@ -117,6 +118,9 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 
 				if (failed_to_resolve_descriptor)
 					describe_loaded_filters(error_description);
+
+				err_str = dsLast_RC + std::wstring{ Describe_Error(rc) };
+				error_description.push(err_str.c_str());
 
 				if (!mExecutors.empty()) {
 					scgms::IDevice_Event* shutdown_event = static_cast<scgms::IDevice_Event*> (new CDevice_Event{ scgms::NDevice_Event_Code::Shut_Down });
