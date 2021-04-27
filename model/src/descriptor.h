@@ -688,7 +688,7 @@ namespace gct2_model {
 	constexpr GUID signal_IOB = { 0x1613dabc, 0x1aed, 0x46b0, { 0x98, 0x10, 0x7f, 0xd, 0xba, 0xc8, 0xb1, 0x80 } };					// {1613DABC-1AED-46B0-9810-7F0DBAC8B180}
 	constexpr GUID signal_COB = { 0x4a1d62fe, 0x9273, 0x4a73, { 0xa6, 0xfe, 0xb3, 0xcd, 0xe6, 0x4a, 0x2a, 0x9d } };					// {4A1D62FE-9273-4A73-A6FE-B3CDE64A2A9D}
 
-	constexpr size_t model_param_count = 38;
+	constexpr size_t model_param_count = 42;
 
 	/*
 	Q1_0 - D2_0 - initial values/quantities
@@ -700,13 +700,14 @@ namespace gct2_model {
 	Gthr - glycosuria threshold [mmol/L]
 	GIthr - insulin production glucose threshold (above this level, beta cells start to produce insulin) [mmol/L]
 
-	q12 - transfer rate Q1 <-> Q2, diffusion
-	q1sc - transfer rate Q1 <-> Qsc, diffusion
+	q12 - transfer rate of diffusion between Q1 and Q2
+	q1sc - transfer rate of diffusion between Q1 and Qsc
 	ix - transfer rate I -> X
 	xq1 - moderation rate Q1 -(X)-> sink
 	d12 - transfer rate D1 -> D2 ("digestion" rate)
 	d2q1 - transfer rate D2 -> Q1 (glucose absorption rate)
 	isc2i - transfer rate Isc2 -> I
+	isc2e - elimination rate of Isc2 insulin (local degradation, proposed by Hovorka, http://doi.org/10.1109/TBME.2004.839639 )
 
 	q1e - base elimination of Q1 glucose
 	q1ee - glucose elimination moderated by exercise
@@ -724,6 +725,10 @@ namespace gct2_model {
 	q_ep - glucose production modulation rate by exercise
 	q_eu - glucose utilization modulation rate by exercise
 
+	e_lta - long-term excercise effect virtual modulator appearance
+	e_lte - long-term excercise effect virtual modulator elimination rate
+	e_Si - long-term exercise insulin sensitivity coefficient
+
 	Aq - CHO bioavailability (how many % of glucose from meal is absorbed); TODO: this should be a parameter of CHO intake
 	t_d - meal absorption time; TODO: this should be a parameter of CHO intake
 	t_i - subcutaneous insulin absorption time; TODO: this should be a parameter of insulin dosage
@@ -738,13 +743,15 @@ namespace gct2_model {
 				// patient quantity and base parameters
 				double Vq, Vqsc, Vi, Q1b, Gthr, GIthr;
 				// transfer parameters
-				double q12, q1sc, ix, xq1, d12, d2q1, isc2i;
+				double q12, q1sc, ix, xq1, d12, d2q1, isc2i, isc2e;
 				// elimination parameters
 				double q1e, q1ee, q1e_thr, xe;
 				// production parameters
 				double q1p, q1pe, ip;
 				// exercise-related parameters
 				double e_pa, e_ua, e_pe, e_ue, q_ep, q_eu;
+				// exercise-related long-term parameters
+				double e_lta, e_lte, e_Si;
 				// misc parameters
 				double Ag, t_d, t_i;
 
@@ -759,14 +766,16 @@ namespace gct2_model {
 			0,    0,    0,     0,   0,     0,   0,    0,
 		//	Vq,  Vqsc, Vi, Q1b, Gthr, GIthr,
 			3,   1,    3,  50,  8.0,  4.0,
-		//	q12,  q1sc, ix,  xq1,   d12,  d2q1, isc2i
-			0.01, 1.4,  1.4, 0.001, 14.0, 14.0, 0.05,
+		//	q12,  q1sc, ix,  xq1, d12,  d2q1, isc2i, isc2e
+			0.5, 1.4,  80,  3,   14.0, 14.0, 20,    1,
 		//	q1e,   q1ee,  q1e_thr, xe,
-			0.144, 0.144, 0.001,   0.01,
+			0.144, 0.144, 0.001,   0.1,
 		//	q1p,     q1pe,   ip,
 			0.00001, 0.0001, 0.0,
 		//	e_pa, e_ua, e_pe, e_ue, q_ep, q_eu
-			2000, 500,  2000,  500, 300,  100,
+			100,  100,  100,  100,  50,   50,
+		//	e_lta, e_lte, e_Si
+			0.05,  0.005, 0.02,
 		//	Ag,  t_d,    t_i
 			0.5, 10_min, 5_min,
 
@@ -775,18 +784,20 @@ namespace gct2_model {
 	}} };
 
 	const gct2_model::TParameters default_parameters = { { {
-		//	Q1_0, Q2_0, Qsc_0, I_0,   Isc_0, X_0, D1_0, D2_0
-			135,  65,   450,   4e-12, 16.2,  2.6, 0,    54.8,
+		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0
+			350,  65,   250,   0,   0,     0,   0,    0,
 		//	Vq,  Vqsc, Vi, Q1b, Gthr, GIthr,
 			30,  25,   10, 240, 8.0, 5.0,
-		//	q12,  q1sc, ix,  xq1,     d12,   d2q1,  isc2i
-			0.01, 8,    3.4, 0.07697, 144.0, 144.0, 0.1,
+		//	q12, q1sc, ix,  xq1, d12,   d2q1,  isc2i, isc2e
+			0.8, 8,    150, 10,  144.0, 144.0, 35,     2,
 		//	q1e,     q1ee,    q1e_thr, xe,
-			0.38519, 0.38519, 0.8,     0.01,
+			0.38519, 0.38519, 0.8,     0.3,
 		//	q1p,  q1pe, ip,
 			0.01, 0.1,  0.0,
 		//	e_pa, e_ua, e_pe, e_ue, q_ep, q_eu
-			9000, 2000, 7425, 2000, 1800, 300,
+			200, 200, 342, 200, 180, 100,
+		//	e_lta, e_lte, e_Si
+			0.08, 0.009, 0.03,
 		//	Ag,   t_d,    t_i
 			0.98, 44_min, 60_min,
 
@@ -799,14 +810,16 @@ namespace gct2_model {
 			500,  500,  500,   500, 500,   500, 200,  200,
 		//	Vq,  Vqsc, Vi, Q1b,  Gthr, GIthr,
 			60,  60,   20, 1000, 14.0, 8.0,
-		//	q12, q1sc, ix,    xq1, d12,   d2q1,  isc2i
-			0.9, 24.0, 144.0, 3.0, 144.0, 144.0, 0.5,
+		//	q12, q1sc, ix,  xq1,  d12,   d2q1,  isc2i, isc2e
+			1.5, 24.0, 200, 15.0, 144.0, 144.0, 50,    20,
 		//	q1e,  q1ee, q1e_thr, xe,
 			14.4, 14.4, 0.8,     2.0,
 		//	q1p,  q1pe, ip
 			0.01, 0.1,  0.05,
-		//	e_pa,  e_ua,  e_pe, e_ue, q_ep, q_eu
-			12000, 12000, 9000, 9000, 2500, 1800,
+		//	e_pa, e_ua, e_pe, e_ue, q_ep, q_eu
+			500,  500,  500,  500,  250,  250,
+		//	e_lta, e_lte, e_Si
+			0.1, 0.1, 0.1,
 		//	Ag,   t_d,  t_i
 			0.98, 2_hr, 5_hr,
 

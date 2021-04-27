@@ -38,7 +38,21 @@
 
 #include "gct2.h"
 
+// draw debug plots to a file? define to draw
+//#define GCT_DEBUG_DRAWING
+
+// redirect incoming depots to a single persistent intermediate depot? This may come in handy in preliminary optimalization to speed things up
+#define GCT_SINGLE_INTERMEDIATE_DEPOT
+
 #include "../../../../common/rtl/SolverLib.h"
+
+#ifdef GCT_DEBUG_DRAWING
+#include <fstream>
+#include "../../../../common/utils/string_utils.h"
+#include "../../../../common/utils/drawing/SVGRenderer.h"
+#include "../../../../common/utils/drawing/Drawing.cpp"			// I am sorry
+#include "../../../../common/utils/drawing/SVGRenderer.cpp"		// Don't judge me, please
+#endif
 
 // this selects GCTv2 support implementations
 using namespace gct2_model;
@@ -59,7 +73,8 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 	CBase_Filter(output),
 	mParameters(scgms::Convert_Parameters<gct2_model::TParameters>(parameters, gct2_model::default_parameters.vector)),
 
-	mPhysical_Activity(mCompartments[NGCT_Compartment::Physical_Activity].Create_Depot<CExternal_State_Depot>(0.0, false))
+	mPhysical_Activity(mCompartments[NGCT_Compartment::Physical_Activity].Create_Depot<CExternal_State_Depot>(0.0, false)),
+	mInsulin_Sink(mCompartments[NGCT_Compartment::Insulin_Peripheral].Create_Depot<CSink_Depot>(0.0, false))
 {
 	// ensure basic parametric bounds - in case some unconstrained optimization algorithm takes place
 	// parameters with such values would cause trouble, as signals may yield invalid values
@@ -83,41 +98,73 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 
 	// glucose peripheral depots
 	auto& q_src  = mCompartments[NGCT_Compartment::Glucose_Peripheral].Create_Depot<CSource_Depot>(mParameters.Q1b, false);
-	auto& q_sink = mCompartments[NGCT_Compartment::Glucose_Peripheral].Create_Depot<CSink_Depot>(mParameters.Q1b, false);
-	auto& q_moderated_sink = mCompartments[NGCT_Compartment::Glucose_Peripheral].Create_Depot<CSink_Depot>(0.0, false);
+	auto& q_sink = mCompartments[NGCT_Compartment::Glucose_Peripheral].Create_Depot<CSink_Depot>(0.0, false);
 
 	// insulin peripheral depots
-	auto& i_src = mCompartments[NGCT_Compartment::Insulin_Peripheral].Create_Depot<CSource_Depot>(1.0, false); // use 1.0 as "unit amount" (is further multiplied by parameter)
+	auto& i_src  = mCompartments[NGCT_Compartment::Insulin_Peripheral].Create_Depot<CSource_Depot>(1.0, false); // use 1.0 as "unit amount" (is further multiplied by parameter)
 
 	// physical activity depots
-	auto& emp = mCompartments[NGCT_Compartment::Physical_Activity_Glucose_Moderation].Create_Depot(0.0, false);
-	auto& emu = mCompartments[NGCT_Compartment::Physical_Activity_Glucose_Moderation].Create_Depot(0.0, false);
+	auto& emp = mCompartments[NGCT_Compartment::Physical_Activity_Glucose_Moderation_Short_Term].Create_Depot(0.0, false);
+	auto& emu = mCompartments[NGCT_Compartment::Physical_Activity_Glucose_Moderation_Short_Term].Create_Depot(0.0, false);
+	auto& elt = mCompartments[NGCT_Compartment::Physical_Activity_Glucose_Moderation_Long_Term].Create_Depot(0.0, false);
 
 	q1.Set_Persistent(true);
 	q1.Set_Solution_Volume(mParameters.Vq);
+	q1.Set_Name(L"Q1");
 
 	q2.Set_Persistent(true);
 	q2.Set_Solution_Volume(mParameters.Vq);
+	q2.Set_Name(L"Q2");
 	
 	qsc.Set_Persistent(true);
 	qsc.Set_Solution_Volume(mParameters.Vqsc);
+	qsc.Set_Name(L"Qsc");
 
 	i.Set_Persistent(true);
 	i.Set_Solution_Volume(mParameters.Vi);
+	i.Set_Name(L"I");
 
 	x.Set_Persistent(true);
 	x.Set_Solution_Volume(mParameters.Vi);
+	x.Set_Name(L"X");
 
 	q_src.Set_Persistent(true);
 	q_src.Set_Solution_Volume(mParameters.Vq);
+	q_src.Set_Name(L"Qsrc");
 	q_sink.Set_Persistent(true);
 	q_sink.Set_Solution_Volume(mParameters.Vq);
-	q_moderated_sink.Set_Persistent(true);
-	q_moderated_sink.Set_Solution_Volume(mParameters.Vq);
+	q_sink.Set_Name(L"Qsink");
+
+	i_src.Set_Persistent(true);
+	i_src.Set_Name(L"Isrc");
+	mInsulin_Sink.Set_Persistent(true);
+	mInsulin_Sink.Set_Name(L"Isink");
 
 	mPhysical_Activity.Set_Persistent(true);
+	mPhysical_Activity.Set_Name(L"PA");
 	emp.Set_Persistent(true);
+	emp.Set_Name(L"Emp");
 	emu.Set_Persistent(true);
+	emu.Set_Name(L"Emu");
+	elt.Set_Persistent(true);
+	elt.Set_Name(L"Elt");
+
+#ifdef GCT_SINGLE_INTERMEDIATE_DEPOT
+	// Isc2 intermediate compartment (link between Isc2 and I)
+	auto& isc2 = mCompartments[NGCT_Compartment::Insulin_Subcutaneous_2].Create_Depot(0.0, false);
+
+	isc2.Set_Persistent(true);
+	isc2.Set_Name(L"Isc2 (cpl)");
+	isc2.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot(), CTransfer_Function::Start, CTransfer_Function::Unlimited, mParameters.isc2i);
+	isc2.Link_To<CConstant_Unbounded_Transfer_Function>(mInsulin_Sink, CTransfer_Function::Start, CTransfer_Function::Unlimited, mParameters.isc2e);
+
+	// D2 intermediate compartment (link between D1 and Q1)
+	auto& d2 = mCompartments[NGCT_Compartment::Carbs_2].Create_Depot(0.0, false);
+
+	d2.Set_Persistent(true);
+	d2.Set_Name(L"D2 (cpl)");
+	d2.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Glucose_1].Get_Persistent_Depot(), CTransfer_Function::Start, CTransfer_Function::Unlimited, mParameters.d2q1);
+#endif
 
 	//// Glucose subsystem links
 
@@ -151,18 +198,21 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 		CTransfer_Function::Unlimited,
 		mParameters.q1pe);
 
-	// glucose disappearance due to basal needs
-	q1.Moderated_Link_To<CDifference_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(q_moderated_sink,
-		[&x, this](CDepot_Link& link) {
+	// glucose elimination due to basal and peripheral needs
+	q1.Moderated_Link_To<CDifference_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(q_sink,
+		[&x, &elt, this](CDepot_Link& link) {
+			// glucose elimination is moderated by insulin
 			link.Add_Moderator<CLinear_Moderation_Linear_Elimination_Function>(x, mParameters.xq1, mParameters.xe);
+			// insulin sensitivity change as a result of physical activity
+			link.Add_Moderator<CLinear_Base_Moderation_No_Elimination_Function>(elt, mParameters.e_Si);
 		},
 		CTransfer_Function::Start,
 		CTransfer_Function::Unlimited,
-		q1, q_moderated_sink,
+		q1, q_sink,
 		mParameters.q1e);
 
-	// glucose disappearance due to exercise
-	q1.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(q_moderated_sink,
+	// glucose elimination due to exercise
+	q1.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(q_sink,
 		[&emu, this](CDepot_Link& link) {
 			link.Add_Moderator<CLinear_Moderation_No_Elimination_Function>(emu, mParameters.q_eu);
 		},
@@ -170,7 +220,7 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 		CTransfer_Function::Unlimited,
 		mParameters.q1ee);
 
-	// glucose disappearance over certain threshold (glycosuria)
+	// glucose elimination over certain threshold (glycosuria)
 	q1.Link_To<CConcentration_Threshold_Disappearance_Unbounded_Transfer_Function, double, double, IQuantizable&, double, double>(q_sink,
 		CTransfer_Function::Start,
 		CTransfer_Function::Unlimited,
@@ -195,6 +245,7 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 		mParameters.ip);
 
 	//// Physical activity subsystem links
+	// mostly based on https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5872070/ and https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2769951/
 
 	// appearance of virtual "production modulator"
 	mPhysical_Activity.Link_To<CDifference_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(emp,
@@ -224,6 +275,19 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 		emu, mPhysical_Activity,
 		mParameters.e_ue);
 
+	// appearance of virtual "long-term modulator"
+	mPhysical_Activity.Link_To<CDifference_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(elt,
+		CTransfer_Function::Start,
+		CTransfer_Function::Unlimited,
+		mPhysical_Activity, elt,
+		mParameters.e_lta);
+
+	// elimination rate of virtual "long-term modulator"
+	elt.Link_To<CConstant_Unbounded_Transfer_Function>(mPhysical_Activity,
+		CTransfer_Function::Start,
+		CTransfer_Function::Unlimited,
+		mParameters.e_lte);
+
 	/*
 
 	GCT model in this version does not contain:
@@ -241,15 +305,25 @@ CDepot& CGCT2_Discrete_Model::Add_To_D1(double amount, double start, double dura
 	CDepot& depot = mCompartments[NGCT_Compartment::Carbs_1].Create_Depot(amount, false);
 	CDepot& target = Add_To_D2(0, start, duration);
 
-	depot.Link_To<CConstant_Bounded_Transfer_Function>(target, start, duration, amount);
+	depot.Set_Name(std::wstring(L"D1 (") + std::to_wstring(amount) + L")");
+
+	depot.Link_To<CTriangular_Bounded_Transfer_Function>(target, start, duration, amount);
 	return depot;
 }
 
 CDepot& CGCT2_Discrete_Model::Add_To_D2(double amount, double start, double duration) {
 
+#ifdef GCT_SINGLE_INTERMEDIATE_DEPOT
+	CDepot& depot = mCompartments[NGCT_Compartment::Carbs_2].Get_Persistent_Depot();
+#else
 	CDepot& depot = mCompartments[NGCT_Compartment::Carbs_2].Create_Depot(amount, false);
 
-	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Glucose_1].Get_Persistent_Depot(), start, duration*10.0, mParameters.d2q1);
+	depot.Set_Name(std::wstring(L"D2 (") + std::to_wstring(amount) + L")");
+
+	// TODO: attempt to estimate correct duration (with acceptable cut-off)
+
+	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Glucose_1].Get_Persistent_Depot(), start, duration*100.0, mParameters.d2q1);
+#endif
 
 	return depot;
 }
@@ -259,16 +333,27 @@ CDepot& CGCT2_Discrete_Model::Add_To_Isc1(double amount, double start, double du
 	CDepot& depot = mCompartments[NGCT_Compartment::Insulin_Subcutaneous_1].Create_Depot(amount, false);
 	CDepot& target = Add_To_Isc2(0, start, duration);
 
-	depot.Link_To<CConstant_Bounded_Transfer_Function>(target, start, duration, amount);
+	depot.Set_Name(std::wstring(L"Isc1 (") + std::to_wstring(amount) + L")");
+
+	depot.Link_To<CTriangular_Bounded_Transfer_Function>(target, start, duration, amount);
 
 	return depot;
 }
 
 CDepot& CGCT2_Discrete_Model::Add_To_Isc2(double amount, double start, double duration) {
 
+#ifdef GCT_SINGLE_INTERMEDIATE_DEPOT
+	CDepot& depot = mCompartments[NGCT_Compartment::Insulin_Subcutaneous_2].Get_Persistent_Depot();
+#else
 	CDepot& depot = mCompartments[NGCT_Compartment::Insulin_Subcutaneous_2].Create_Depot(amount, false);
 
-	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot(), start, duration*10.0, mParameters.isc2i);
+	depot.Set_Name(std::wstring(L"Isc2 (") + std::to_wstring(amount) + L")");
+
+	// TODO: attempt to estimate correct duration (with acceptable cut-off)
+
+	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot(), start, duration * 100.0, mParameters.isc2i);
+	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mInsulin_Sink, start, duration * 100.0, mParameters.isc2e);
+#endif
 
 	return depot;
 }
@@ -294,7 +379,7 @@ void CGCT2_Discrete_Model::Emit_All_Signals(double time_advance_delta) {
 	const double cob = mCompartments[NGCT_Compartment::Carbs_1].Get_Quantity() + mCompartments[NGCT_Compartment::Carbs_2].Get_Quantity(); // mmols of glucose
 	Emit_Signal_Level(gct2_model::signal_COB, _T, cob * Glucose_Molar_Weight / (mParameters.Ag * 1000.0));
 
-	const double iob = mCompartments[NGCT_Compartment::Insulin_Remote].Get_Quantity();
+	const double iob = mCompartments[NGCT_Compartment::Insulin_Remote].Get_Quantity() + mCompartments[NGCT_Compartment::Insulin_Subcutaneous_1].Get_Quantity() + mCompartments[NGCT_Compartment::Insulin_Subcutaneous_2].Get_Quantity();
 	Emit_Signal_Level(gct2_model::signal_IOB, _T, iob);
 
 	/*
@@ -345,12 +430,13 @@ HRESULT CGCT2_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 				if (event.device_time() < mLast_Time)
 					return E_ILLEGAL_STATE_CHANGE;	// got no time-machine to deliver insulin in the past
 
-				/*
 				constexpr double PortionTimeSpacing = scgms::One_Minute;
 				const size_t Portions = static_cast<size_t>(mParameters.t_id / PortionTimeSpacing);
-				*/
-				constexpr size_t Portions = 10;
+
+				/*
+				constexpr size_t Portions = 2;
 				const double PortionTimeSpacing = mParameters.t_id / static_cast<double>(Portions);
+				*/
 
 				const double PortionSize = event.level() / static_cast<double>(Portions);
 
@@ -364,7 +450,7 @@ HRESULT CGCT2_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 			// carbs intake; NOTE: this should be further enhanced once architecture supports meal parametrization (e.g.; glycemic index, ...)
 			else if ((event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue)) {
 
-				// 10 minutes of eating - 10 portions with 30sec spacing
+				// TODO: figure out optimal spacing and portion size to reflect real scenarios; for now, assume 2 "big bites" with 1 minute spacing (acceptable for debugging purposes)
 				constexpr size_t Portions = 10;
 				constexpr double PortionTimeSpacing = 30_sec;
 
@@ -376,6 +462,118 @@ HRESULT CGCT2_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 				// res = S_OK; - do not unless we have another signal called consumed CHO
 			}
 		}
+#ifdef GCT_DEBUG_DRAWING
+		else if (event.event_code() == scgms::NDevice_Event_Code::Shut_Down)
+		{
+			std::string svg_str;
+
+			drawing::Drawing draw;
+
+			double mintime = std::numeric_limits<double>::max(), maxtime = std::numeric_limits<double>::min();
+
+			size_t entryCnt = 0;
+
+			for (auto& dt : mDebug_Values) {
+				for (auto& dd : dt.second) {
+					entryCnt++;
+					for (auto& val : dd.second) {
+						if (val.first < mintime)
+							mintime = val.first;
+						if (val.first > maxtime)
+							maxtime = val.first;
+					}
+				}
+			}
+
+			auto draw_plot = [&draw, mintime, maxtime](const std::string& grpname, double startX, double startY, double endX, double endY, const std::vector<std::pair<double, double>>& vals) {
+
+				auto& grp = draw.Root().Add<drawing::Group>(grpname);
+
+				grp.Add<drawing::Text>(startX + 5, startY + 60, grpname)
+					.Set_Font_Size(16)
+					.Set_Fill_Color(RGBColor::From_HTML_Color("#12128D"));
+
+				grp.Add<drawing::Line>(startX, startY, startX, endY)
+					.Set_Stroke_Color(RGBColor::From_HTML_Color("#000000"))
+					.Set_Stroke_Width(2.0);
+
+				grp.Add<drawing::Line>(startX, endY, endX, endY)
+					.Set_Stroke_Color(RGBColor::From_HTML_Color("#000000"))
+					.Set_Stroke_Width(2.0);
+
+				double minval = std::numeric_limits<double>::max(), maxval = std::numeric_limits<double>::min();
+				for (const auto& v : vals) {
+					if (v.second < minval)
+						minval = v.second;
+					if (v.second > maxval)
+						maxval = v.second;
+				}
+
+				grp.Add<drawing::Text>(startX + 5, startY + 20, std::to_string(maxval))
+					.Set_Font_Size(12)
+					.Set_Fill_Color(RGBColor::From_HTML_Color("#12128D"));
+				grp.Add<drawing::Text>(startX + 5, endY - 8, std::to_string(minval))
+					.Set_Font_Size(12)
+					.Set_Fill_Color(RGBColor::From_HTML_Color("#12128D"));
+
+				auto scale_time = [mintime, maxtime, startX, endX](double time) {
+					return startX + (endX - startX) *( 1- ((maxtime - time) / (maxtime - mintime)));
+				};
+				auto scale_value = [minval, maxval, startY, endY](double value) {
+					return endY - (endY - startY) * (1 - ((maxval - value) / (maxval - minval)));
+				};
+
+				double tmptime = mintime + scgms::One_Hour;
+				while (tmptime < maxtime) {
+
+					double scaledTime = scale_time(tmptime);
+
+					grp.Add<drawing::Line>(scaledTime, endY-4, scaledTime, endY)
+						.Set_Stroke_Color(RGBColor::From_HTML_Color("#000000"))
+						.Set_Stroke_Width(1.0);
+
+					tmptime += scgms::One_Hour;
+				}
+
+				auto& polyline = grp.Add<drawing::PolyLine>(scale_time(vals[0].first), scale_value(vals[0].second));
+
+				polyline.Set_Stroke_Color(RGBColor::From_HTML_Color("#0000FF"))
+					.Set_Stroke_Width(1.0);
+
+				polyline.Set_Fill_Opacity(0);
+
+				for (auto& v : vals) {
+					polyline.Add_Point(scale_time(v.first), scale_value(v.second));
+				}
+
+			};
+
+			const size_t perRow = static_cast<size_t>(std::sqrt(entryCnt));
+			constexpr size_t graphWidth = 400;
+			constexpr size_t graphHeight = 300;
+			const size_t rowCnt = 1 + ( entryCnt / perRow );
+
+			size_t row = 0;
+			size_t col = 0;
+
+			for (auto& dt : mDebug_Values) {
+				for (auto& dd : dt.second) {
+					draw_plot(Narrow_WString(mDebug_Names[dd.first]), col* graphWidth, row* graphHeight, (col + 1)* graphWidth, (row + 1)* graphHeight, dd.second);
+					col = (col + 1) % perRow;
+					if (col == 0)
+						row++;
+				}
+			}
+
+			//
+			CSVG_Renderer renderer(perRow* graphWidth, rowCnt* graphHeight, svg_str);
+			draw.Render(renderer);
+
+			std::ofstream of("gct2_debug.svg");
+			of << svg_str;
+			of.close();
+		}
+#endif
 	}
 
 	if (res == S_FALSE)
@@ -423,6 +621,53 @@ HRESULT IfaceCalling CGCT2_Discrete_Model::Step(const double time_advance_delta)
 				mLast_Time = oldTime + static_cast<double>(i) * microStepSize;
 			}
 		}
+
+#ifdef GCT_DEBUG_DRAWING
+		auto comp_to_str = [](NGCT_Compartment comp) -> std::wstring {
+			switch (comp) {
+				case NGCT_Compartment::Glucose_1: return L"Q1";
+				case NGCT_Compartment::Glucose_2: return L"Q2";
+				case NGCT_Compartment::Glucose_Peripheral: return L"Qp";
+				case NGCT_Compartment::Glucose_Subcutaneous: return L"Qsc";
+				case NGCT_Compartment::Carbs_1: return L"CHO1";
+				case NGCT_Compartment::Carbs_2: return L"CHO2";
+				case NGCT_Compartment::Insulin_Base: return L"Ib";
+				case NGCT_Compartment::Insulin_Peripheral: return L"Ip";
+				case NGCT_Compartment::Insulin_Remote: return L"X";
+				case NGCT_Compartment::Insulin_Subcutaneous_1: return L"Isc1";
+				case NGCT_Compartment::Insulin_Subcutaneous_2: return L"Isc2";
+				case NGCT_Compartment::Physical_Activity: return L"PA";
+				case NGCT_Compartment::Physical_Activity_Glucose_Moderation_Short_Term: return L"PAmod_ST";
+				case NGCT_Compartment::Physical_Activity_Glucose_Moderation_Long_Term: return L"PAmod_LT";
+				default: return L"???";
+			}
+		};
+
+		// collect data from all depots and compartments
+		for (size_t ci = 0; ci < static_cast<size_t>(NGCT_Compartment::count); ci++) {
+
+			auto& comp = mCompartments[static_cast<NGCT_Compartment>(ci)];
+
+			
+			for (auto& depot : comp) {
+
+				if (static_cast<NGCT_Compartment>(ci) != NGCT_Compartment::Physical_Activity_Glucose_Moderation_Short_Term)
+					continue;
+
+				/*
+				if (static_cast<NGCT_Compartment>(ci) == NGCT_Compartment::Insulin_Subcutaneous_1 || static_cast<NGCT_Compartment>(ci) == NGCT_Compartment::Carbs_1)
+					continue;
+				*/
+
+				mDebug_Values[static_cast<NGCT_Compartment>(ci)][(uintptr_t)&depot].push_back({ mLast_Time, depot->Get_Quantity() });
+				mDebug_Names[(uintptr_t)&depot] = depot->Get_Name();
+			}
+			
+
+			mDebug_Values[static_cast<NGCT_Compartment>(ci)][(uintptr_t)static_cast<NGCT_Compartment>(ci)].push_back({ mLast_Time, comp.Get_Quantity() });
+			mDebug_Names[(uintptr_t)static_cast<NGCT_Compartment>(ci)] = comp_to_str(static_cast<NGCT_Compartment>(ci));
+		}
+#endif
 
 		mLast_Time = oldTime;
 

@@ -174,6 +174,27 @@ namespace gct2_model
 			}
 	};
 
+	class CLinear_Moderation_Quadratic_Elimination_Function : public CModeration_Function {
+
+		protected:
+			double mModeration_Factor = 1.0;
+			double mElimination_Factor = 1.0;
+
+		public:
+			CLinear_Moderation_Quadratic_Elimination_Function(double modFactor, double elimFactor)
+				: mModeration_Factor(modFactor), mElimination_Factor(elimFactor) {
+				//
+			}
+
+			virtual double Get_Moderation_Input(double moderatorAmount) const override {
+				return moderatorAmount * mModeration_Factor;
+			}
+
+			virtual double Get_Elimination_Input(double moderatorAmount) const override {
+				return moderatorAmount * moderatorAmount * mElimination_Factor;
+			}
+	};
+
 	/**
 	 * Experimental: physical activity-based moderation of glucose appearance
 	 */
@@ -190,7 +211,7 @@ namespace gct2_model
 
 			virtual double Get_Moderation_Input(double moderatorAmount) const override {
 				// TODO: fix the following to better reflect reality
-				return std::max(0.0, 1.5 * (moderatorAmount - 0.05) * mModeration_Factor);
+				return std::max(0.0, 2.5 * (moderatorAmount - 0.05) * mModeration_Factor);
 			}
 
 			virtual double Get_Elimination_Input(double moderatorAmount) const override {

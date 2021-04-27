@@ -169,9 +169,13 @@ namespace gct2_model
 			// current depot volume (to be able to calculate concentration); we assume unit volume until changed
 			double mSolution_Volume = 1.0;
 
+			// for debugging purposes - depot name
+			std::wstring mName;
+
 		protected:
 			void Internal_Set_Quantity(double quantity) {
 				mQuantity = quantity;
+				mNext_Quantity = quantity;
 			}
 
 		public:
@@ -254,6 +258,14 @@ namespace gct2_model
 
 			virtual double Get_Concentration() const override {
 				return mQuantity / mSolution_Volume;
+			}
+
+			void Set_Name(const std::wstring& name) {
+				mName = name;
+			}
+
+			const std::wstring& Get_Name() const {
+				return mName;
 			}
 
 			// steps depot to current time
@@ -458,6 +470,14 @@ namespace gct2_model
 				mDepots.push_back(std::move(ptr));
 
 				return res;
+			}
+
+			decltype(mDepots)::const_iterator begin() const {
+				return mDepots.begin();
+			}
+
+			decltype(mDepots)::const_iterator end() const {
+				return mDepots.end();
 			}
 	};
 

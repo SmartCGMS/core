@@ -65,7 +65,8 @@ namespace gct2_model
 
 		// virtual compartments - i.e.; we have to consider impact of external stimuli, and for systematic integration they should be put into a "compartment"
 		Physical_Activity,						// source for physical activity intensity (fixed external source) and sink compartment
-		Physical_Activity_Glucose_Moderation,	// virtual compartment for holding the increased glucose utilization and production moderator
+		Physical_Activity_Glucose_Moderation_Short_Term,	// virtual compartment for holding the increased glucose utilization and production moderator
+		Physical_Activity_Glucose_Moderation_Long_Term,		// virtual compartment for holding the increased glucose utilization and production moderator
 
 		count
 	};
@@ -157,6 +158,11 @@ class CGCT2_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscrete
 
 		// physical activity external depot reference
 		gct2_model::CExternal_State_Depot& mPhysical_Activity;
+		// insulin sink report to properly link bolus/basal injections to it to simulate local degradation
+		gct2_model::CDepot& mInsulin_Sink;
+
+		std::map<gct2_model::NGCT_Compartment, std::map<uintptr_t, std::vector<std::pair<double, double>>>> mDebug_Values;
+		std::map<uintptr_t, std::wstring> mDebug_Names;
 
 	protected:
 		uint64_t mSegment_Id = scgms::Invalid_Segment_Id;
