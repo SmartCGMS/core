@@ -91,7 +91,7 @@ protected:
 		else {			
 			auto [var_set, var_val] = Evaluate_Variable(mVariable_Name);
 
-			if (!var_set) {
+			if (!Succeeded(var_set)) {
 				rc = E_NOT_SET;
 				*value = sanity_val;
 			}
@@ -193,7 +193,7 @@ protected:
 				if ((var_idx < mArray_Vars.size()) && !mArray_Vars[var_idx].empty()) {
 					if (read_interpreted) {
 						auto [valid, str_val] = Evaluate_Variable(mArray_Vars[var_idx]);
-						if (valid) converted << str_val;
+						if (Succeeded(valid)) converted << str_val;
 						else {
 							std::get<0>(result) = E_NOT_SET;
 							std::get<1>(result) = mArray_Vars[var_idx];
