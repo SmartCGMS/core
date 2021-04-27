@@ -280,26 +280,8 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list erro
 					auto& pattern = mPatterns[pattern_idx][band_idx];
 					bool all_valid = true;
 
-					auto read_dbl = [&ini, &section_name, &all_valid](const wchar_t* identifier)->double {
-						bool valid = false;
-						double val = str_2_dbl(ini.GetValue(section_name.pItem, identifier), valid);
-					
-						if (!valid || std::isnan(val))
-							all_valid = false;
-							
-						return val;
-					};
-
-					TPattern_Prediction_Pattern_State pattern_state;
-					pattern_state.count = read_dbl(iiCount);
-					pattern_state.running_avg = read_dbl(iiAvg);
-					pattern_state.running_median = read_dbl(iiMedian);
-					pattern_state.running_variance_accumulator = read_dbl(iiVariance_Accumulator);
-					pattern_state.running_stddev = read_dbl(iiStdDev);
-
-					if (all_valid)
-						pattern.Set_State(pattern_state);
-
+					std::wstring state = ini.GetValue(section_name.pItem, iiState);
+					pattern.State_from_String(state);
 
 				} //else, invalid record - let's ignore it
 			}
@@ -360,18 +342,13 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_From_Config(scgms::SFilter_C
 		}
 
 
-		TPattern_Prediction_Pattern_State pattern_state;
-		pattern_state.count = 100.0;
-		pattern_state.running_variance_accumulator = pattern_state.running_stddev = 0.0;
 		size_t def_idx = 0;
 
 		for (size_t pattern_idx = 0; pattern_idx < static_cast<size_t>(pattern_prediction::NPattern::count); pattern_idx++) {
 			for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {
 				auto& pattern = mPatterns[pattern_idx][band_idx];
 
-				pattern_state.running_avg = pattern_state.running_median = def[def_idx];
-
-				pattern.Set_State(pattern_state);
+				pattern.Set_State(def[def_idx]);
 
 				def_idx++;
 			}
@@ -394,21 +371,11 @@ void CPattern_Prediction_Filter::Write_Parameters_File() {
 			const auto& pattern = mPatterns[pattern_idx][band_idx];
 
 			if (pattern.Valid()) {
-				const auto pattern_state = pattern.Get_State();
+				const auto pattern_state = pattern.State_To_String();
 
 				const std::wstring section_name = isPattern+std::to_wstring(pattern_idx) + isBand + std::to_wstring(band_idx);
 				const wchar_t* section_name_ptr = section_name.c_str();
-
-				auto set_val = [section_name_ptr, &ini](const wchar_t* ii, const double& val) {
-					const auto str = dbl_2_wstr(val);
-					ini.SetValue(section_name_ptr, ii, str.c_str());
-				};
-                
-				set_val(iiCount, pattern_state.count);
-				set_val(iiAvg, pattern_state.running_avg);
-				set_val(iiMedian, pattern_state.running_median);
-				set_val(iiVariance_Accumulator, pattern_state.running_variance_accumulator);
-				set_val(iiStdDev, pattern_state.running_stddev);
+				ini.SetValue(section_name_ptr, iiState, pattern_state.c_str());
 
 				//diagnostic
 				//ini.SetLongValue(section_name_ptr, L"Predicted_Band", Level_2_Band_Index(pattern_state.running_median));

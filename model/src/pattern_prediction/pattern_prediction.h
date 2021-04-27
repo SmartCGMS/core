@@ -79,12 +79,7 @@ protected:
 
     const wchar_t* isPattern = L"Pattern_";
     const wchar_t* isBand = L"_Band_";
-
-    const wchar_t* iiCount = L"Count";
-    const wchar_t* iiAvg = L"Avg";
-    const wchar_t* iiMedian = L"Median";
-    const wchar_t* iiVariance_Accumulator = L"Variance_Accumulator";
-    const wchar_t* iiStdDev = L"StdDev";
+    const wchar_t* iiState = L"State";
 
     HRESULT Read_Parameters_File(refcnt::Swstr_list error_description);
     HRESULT Read_Parameters_From_Config(scgms::SFilter_Configuration configuration, refcnt::Swstr_list error_description);
