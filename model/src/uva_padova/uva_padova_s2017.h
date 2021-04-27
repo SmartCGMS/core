@@ -76,7 +76,7 @@ namespace uva_padova_S2017
 struct CDiffusion_Compartments_State
 {
 	std::vector<double> quantity;
-	double transferCoefficient;
+	double transferCoefficient = 0.0;
 
 	double output() const {
 		assert(quantity.size() > 0);
@@ -107,7 +107,7 @@ struct CDiffusion_Compartments_State
 // state of UVa/Padova S2017 model equation system
 struct CUVa_Padova_S2017_State
 {
-	double lastTime;
+	double lastTime = 0.0;
 
 	double Gp;
 	double Gt;
