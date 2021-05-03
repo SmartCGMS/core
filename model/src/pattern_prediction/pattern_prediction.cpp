@@ -244,8 +244,8 @@ double CPattern_Prediction_Filter::Predict(scgms::SSignal& ist, const double cur
 	auto [pattern, pattern_band_index, classified_ok] = Classify(ist, current_time);
 	if (classified_ok) {
 
-		const auto& patterns = mPatterns[static_cast<size_t>(pattern)];
-		const auto& pattern = patterns[pattern_band_index];
+		auto& patterns = mPatterns[static_cast<size_t>(pattern)];
+		auto& pattern = patterns[pattern_band_index];
 		if (pattern)
 			predicted_level = pattern.predict();
 	}

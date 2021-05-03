@@ -51,6 +51,7 @@
 #undef max
 
 CPattern_Prediction_Data::CPattern_Prediction_Data() {
+    std::fill(mState.begin(), mState.end(), 0.0);
 }
 
 void CPattern_Prediction_Data::push(const double level) {
@@ -67,17 +68,8 @@ void CPattern_Prediction_Data::push(const double level) {
 }
 
 
-double CPattern_Prediction_Data::predict() const {       
-
-    //const double avg = mRunning_Sum * (mFull ? mInverse_Count : (1.0 / static_cast<double>(mHead + 1.0)));
-
-    
-
-  /*  std::vector<double> x{ mState.begin(), mState.end() };
-    std::sort(x.begin(), x.end());
-    return x[x.size() / 2];
-*/
-    //if (mInvalidated) {
+double CPattern_Prediction_Data::predict() {       
+    if (mInvalidated) {
 
         const size_t full_set_n = mFull ? mState.size() : mHead;
         
@@ -86,9 +78,7 @@ double CPattern_Prediction_Data::predict() const {
         for (size_t i = 0; i < full_set_n; i++) {
             full_set_avg += mState[i];
         }
-        full_set_avg /= static_cast<double>(full_set_n);
-
-
+        full_set_avg /= static_cast<double>(full_set_n);    
         
         double trusted_region_avg = 0.0;
         double trusted_region_n = 0.0;
@@ -101,9 +91,8 @@ double CPattern_Prediction_Data::predict() const {
             }
         }
 
-        return  trusted_region_avg / trusted_region_n;
-
-        /*mRecent_Prediction = trusted_region_n > 0.0 ?
+        
+        mRecent_Prediction = trusted_region_n > 0.0 ?
             trusted_region_avg / trusted_region_n :
             full_set_avg;
         
@@ -111,8 +100,6 @@ double CPattern_Prediction_Data::predict() const {
     }
 
     return mRecent_Prediction;
-    */
-    
 }
 
 CPattern_Prediction_Data::operator bool() const {
@@ -126,7 +113,8 @@ void CPattern_Prediction_Data::Set_State(const double& level) {
     
     mHead = 0;
     mFull = true;
-    mInvalidated = true;
+    mRecent_Prediction = level;
+    mInvalidated = false;
 }
 
 void CPattern_Prediction_Data::State_from_String(const std::wstring& state) {
@@ -155,7 +143,10 @@ std::wstring CPattern_Prediction_Data::State_To_String() const {
 
 
     bool not_empty = false;
-    for (size_t i = 0; i<mState.size(); i++) {
+
+    const size_t full_set_n = mFull ? mState.size() : mHead;
+
+    for (size_t i = 0; i< full_set_n; i++) {
         if (not_empty)
             converted << L" ";
         else

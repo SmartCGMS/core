@@ -61,7 +61,7 @@ public:
     CPattern_Prediction_Data();
 
     void push(const double level);
-    double predict() const;
+    double predict();
     explicit operator bool() const;
 
     void Set_State(const double& level);
