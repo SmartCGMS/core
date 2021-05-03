@@ -61,6 +61,9 @@
 #include <set>
 #include <cwctype>
 
+#undef min
+#undef max
+
 CLog_Replay_Filter::CLog_Replay_Filter(scgms::IFilter* output) : CBase_Filter(output) {
 	//
 }
@@ -84,9 +87,6 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 		Emit_Info(scgms::NDevice_Event_Code::Error, dsCannot_Open_File + log_filename.wstring());
 		return;
 	}
-
-	if (mInterpret_Filename_As_Segment_Id)
-		Emit_Info(scgms::NDevice_Event_Code::Information, dsProcessing_File + log_filename.wstring(), filename_segment_id);
 
 	//unused keeps static analysis happy about creating an unnamed object
 	auto unused = log.imbue(std::locale(std::cout.getloc(), new CDecimal_Separator<char>{ '.' })); //locale takes owner ship of dec_sep
@@ -156,11 +156,12 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 	std::map<uint64_t, uint64_t> segment_id_map;
 
 	// read all lines from log file
-	while (std::getline(log, line) && !mShutdown_Received) {
+	while (std::getline(log, line) && (!mShutdown_Received || mEmit_All_Events_Before_Shutdown)) {
 		line_counter++;
 
 		trim(line);
-		if (line.empty()) continue;
+		if (line.empty()) continue;		
+		if (line.find(dsLog_Header) == 0) continue;	//likely to concatenated logs
 
 		try
 		{
@@ -187,7 +188,9 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			if ((original_segment_id != scgms::Invalid_Segment_Id) && (original_segment_id != scgms::All_Segments_Id))
 				segment_id_map[original_segment_id] = original_segment_id;
 
-			log_lines.push_back(TLog_Entry{ device_time, line_counter, info_str, original_segment_id, line });
+			const scgms::NDevice_Event_Code code = static_cast<scgms::NDevice_Event_Code>(std::stoull(cut_column()));
+
+			log_lines.push_back(TLog_Entry{ device_time, line_counter, info_str, original_segment_id, code, line });
 		}
 		catch (const std::exception& ex) {
 			emit_parsing_exception(ex.what());
@@ -201,16 +204,9 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 		}
 	}
 
-	//As we have read the times and end of lines, no event has been created yet => no event logical clock advanced by us
-	//=> by creating the events inside the following for, log-events and by-them-triggered events will have monotonically increasing logical clocks.
-	std::sort(log_lines.begin(), log_lines.end(), [](const TLog_Entry& a, const TLog_Entry& b) {
-		if (std::get<idxLog_Entry_Time>(a) != std::get<idxLog_Entry_Time>(b))
-			return std::get<idxLog_Entry_Time>(a) < std::get<idxLog_Entry_Time>(b);
+	//Now, we are sorted, but that's not all. Also, we may need to correct segment start/stop markers.
+	Correct_Timings(log_lines);
 
-		//if there were multiple events emitted with the same device time,
-		//let us emit them in their order in the log file
-		else  return std::get<idxLog_Entry_Counter>(a) < std::get<idxLog_Entry_Counter>(b);
-		});
 
 	//Adjust segment ids if there were multiple segments
 	if (mInterpret_Filename_As_Segment_Id) {
@@ -237,20 +233,20 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 	segment_id_map[scgms::All_Segments_Id] = scgms::All_Segments_Id;
 
 	for (size_t i = 0; i < log_lines.size(); i++) {
-		if (mShutdown_Received) break;
+		if (mShutdown_Received && !mEmit_All_Events_Before_Shutdown) break;
 
 		try {
-			line_counter = std::get<idxLog_Entry_Counter>(log_lines[i]);	//for the error reporting
+			line_counter = log_lines[i].line_counter;	//for the error reporting
 
-			const double device_time = std::get<idxLog_Entry_Time>(log_lines[i]);
+			const double device_time = log_lines[i].device_time;
 
 			// specific column (titled "info", but contains parameters or level)
-			const auto info_str = std::move(std::get<idxLog_Info_Line>(log_lines[i]));
-			const uint64_t segment_id = segment_id_map[std::get<idxLog_Segment_Id>(log_lines[i])];
-			line = std::move(std::get<idxLog_Entry_Line>(log_lines[i]));
+			const auto info_str = log_lines[i].info;
+			const uint64_t segment_id = segment_id_map[log_lines[i].segment_id];
+			line = std::move(log_lines[i].the_rest);
 
 
-			scgms::UDevice_Event evt{ static_cast<scgms::NDevice_Event_Code>(std::stoull(cut_column())) };
+			scgms::UDevice_Event evt{ log_lines[i].code };
 
 			if (evt.is_info_event())
 				evt.info.set(info_str.c_str());
@@ -329,12 +325,15 @@ bool Match_Wildcard(const std::wstring fname, const std::wstring wcard, const bo
 
 
 		default:
-			if (f >= fname.size()) return false;
+			if (f >= fname.size()) 
+				return false;
 			if (case_sensitive) {
-				if (wcard[w] != fname[f]) return false;
+				if (wcard[w] != fname[f]) 
+					return false;
 			}
 			else {
-				if (std::towupper(wcard[w]) != std::towupper(fname[f])) return false;
+				if (std::towupper(wcard[w]) != std::towupper(fname[f])) 
+					return false;
 			}
 			//wild card and name still matches, continue
 			f++;
@@ -348,40 +347,47 @@ bool Match_Wildcard(const std::wstring fname, const std::wstring wcard, const bo
 	return f < fname.size() ? false : true;	//return false if some chars in the fname were not eaten
 }
 
-
-
 std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_Log_Segments() {
 	std::vector<TLog_Segment_id> logs_to_replay;
 
-	const auto effective_path = mLog_Filename_Or_Dirpath.parent_path();
-	const std::wstring wildcard = mLog_Filename_Or_Dirpath.wstring();
-	constexpr bool case_sensitive =
-#ifdef  _WIN32
-		false
-#else
-		true
-#endif   
-		;
-
-
-	std::error_code ec;
-	if (effective_path.empty() || (!filesystem::exists(effective_path, ec) || ec))
-		return logs_to_replay;
-
 
 	//1. gather a list of all segments we will try to replay
-	if (Is_Directory(effective_path)) {
-		for (auto& path : filesystem::directory_iterator(effective_path)) {
-			const bool matches_wildcard = Match_Wildcard(path.path().wstring(), wildcard, case_sensitive);
+	//First, we need to ensure that we are not dealing with a uniquely identified file name
+	if (Is_Regular_File_Or_Symlink(mLog_Filename_Or_Dirpath))
+		logs_to_replay.push_back({ mLog_Filename_Or_Dirpath, scgms::Invalid_Segment_Id });
+	else {
+		//if not, then we are asked to enumerate entire directory, may be with a mask
 
-			if (matches_wildcard) {
-				if (Is_Regular_File_Or_Symlink(path))
-					logs_to_replay.push_back({ path, scgms::Invalid_Segment_Id });
+		const auto effective_path = mLog_Filename_Or_Dirpath.parent_path();
+
+		if (Is_Directory(effective_path)) {
+			
+			const std::wstring wildcard = mLog_Filename_Or_Dirpath.wstring();
+			constexpr bool case_sensitive =
+#ifdef  _WIN32
+				false
+#else
+				true
+#endif   
+				;
+
+
+			std::error_code ec;
+			if (effective_path.empty() || (!filesystem::exists(effective_path, ec) || ec))
+				return logs_to_replay;
+
+
+
+			for (auto& path : filesystem::directory_iterator(effective_path)) {
+				const bool matches_wildcard = Match_Wildcard(path.path().wstring(), wildcard, case_sensitive);
+
+				if (matches_wildcard) {
+					if (Is_Regular_File_Or_Symlink(path))
+						logs_to_replay.push_back({ path, scgms::Invalid_Segment_Id });
+				}
 			}
 		}
 	}
-	else
-		logs_to_replay.push_back({ mLog_Filename_Or_Dirpath, scgms::Invalid_Segment_Id });
 
 
 	if (!logs_to_replay.empty()) {
@@ -434,7 +440,7 @@ std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_L
 void CLog_Replay_Filter::Open_Logs(std::vector<CLog_Replay_Filter::TLog_Segment_id> logs_to_replay) {
 	mLast_Event_Time = std::numeric_limits<double>::quiet_NaN();
 	for (auto& log : logs_to_replay)
-		if (!mShutdown_Received)
+		if (!mShutdown_Received || mEmit_All_Events_Before_Shutdown)
 			Replay_Log(log.file_name, log.segment_id);
 
 	//issue shutdown after the last log, if we were not asked to ignore it
@@ -452,6 +458,7 @@ void CLog_Replay_Filter::Open_Logs(std::vector<CLog_Replay_Filter::TLog_Segment_
 
 HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mEmit_Shutdown = configuration.Read_Bool(rsEmit_Shutdown_Msg, mEmit_Shutdown);
+	mEmit_All_Events_Before_Shutdown = configuration.Read_Bool(rsEmit_All_Events_Before_Shutdown, mEmit_All_Events_Before_Shutdown);
 	mInterpret_Filename_As_Segment_Id = configuration.Read_Bool(rsInterpret_Filename_As_Segment_Id, mInterpret_Filename_As_Segment_Id);
 	mLog_Filename_Or_Dirpath = configuration.Read_File_Path(rsLog_Output_File);
 
@@ -459,7 +466,8 @@ HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(scgms::SFilter_Configurati
 	if (!logs_to_replay.empty())
 		mLog_Replay_Thread = std::make_unique<std::thread>(&CLog_Replay_Filter::Open_Logs, this, std::move(logs_to_replay));
 	else {
-		error_description.push(dsCannot_Open_File + mLog_Filename_Or_Dirpath.wstring());
+		std::wstring err_msg = dsCannot_Open_File + mLog_Filename_Or_Dirpath.wstring();
+		error_description.push(err_msg);
 		return ERROR_FILE_NOT_FOUND;
 	}
 
@@ -487,4 +495,82 @@ void CLog_Replay_Filter::WStr_To_Parameters(const std::wstring& src, scgms::SMod
 	}
 
 	target.set(params);
+}
+
+void CLog_Replay_Filter::Correct_Timings(std::vector<TLog_Entry>& log_lines) {
+	struct TStamps {
+		double start, stop;
+	};
+
+	std::map<uint64_t, TStamps> segments;	//seg. id, and its time stamps
+
+	std::vector<size_t> lines_to_remove;
+
+	//1. mark any time segment start/stop markers for removal, 
+	//but also deduce their correct timing from all events with valid segment id
+	for (size_t i = 0; i < log_lines.size(); i++) {
+		auto& evt = log_lines[i];
+		if (evt.segment_id != scgms::Invalid_Segment_Id) {
+
+			auto iter = segments.find(evt.segment_id);
+			if (iter != segments.end()) {
+				//update the bounds only
+				iter->second.start = std::min(iter->second.start, evt.device_time);
+				iter->second.stop = std::max(iter->second.stop, evt.device_time);
+			} else
+				//insert new segment
+				segments.insert({ evt.segment_id, {evt.device_time, evt.device_time} });
+		
+			//do we remove this?
+			if ((evt.code == scgms::NDevice_Event_Code::Time_Segment_Start) ||
+				(evt.code == scgms::NDevice_Event_Code::Time_Segment_Stop))
+				lines_to_remove.push_back(i);
+		}
+	}
+
+	//2. remove the segment start/stop markers 
+	//don't worry, we'll reinsert them later on
+	std::sort(lines_to_remove.rbegin(), lines_to_remove.rend());
+
+	for (size_t i = 0; i < lines_to_remove.size(); i++) {
+		log_lines.erase(log_lines.begin() + lines_to_remove[i]);
+	}
+
+
+	//3. append the segment start/stop markers, now with correct timings
+	for (const auto& seg : segments) {
+		TLog_Entry entry;
+		entry.segment_id = seg.first;
+		entry.info = L"";
+		entry.the_rest = L"{172EA814-9DF1-657C-1289-C71893F1D085}; {00000000-0000-0000-0000-000000000000}";
+				//device id is log replay, the resit is invalid signal id
+
+		entry.line_counter = 0;
+		entry.code = scgms::NDevice_Event_Code::Time_Segment_Start;
+		entry.device_time = seg.second.start;
+		log_lines.push_back(entry);
+
+		//by assigning such line counters, we avoid complicated comparison seg_start<level, ..<seg_stop comparison when sorting in 4.
+		entry.line_counter = log_lines.size()+1;
+		entry.code = scgms::NDevice_Event_Code::Time_Segment_Stop;
+		entry.device_time = seg.second.stop;
+		log_lines.push_back(entry);
+	}
+
+	//4. eventually, sort the log lines so that the events are at proper positions
+
+	//As we have read the times and end of lines, no event has been created yet => no event logical clock advanced by us
+	//=> by creating the events inside the following for, log-events and by-them-triggered events will have monotonically increasing logical clocks.
+	std::sort(log_lines.begin(), log_lines.end(), [](const TLog_Entry& a, const TLog_Entry& b) {		
+		if (a.device_time != b.device_time)
+			return a.device_time < b.device_time;
+
+		if (a.segment_id != b.segment_id)	//this will make the seg markes be close to the levels of the same segment
+			return a.segment_id < b.segment_id;
+
+
+		//if there were multiple events emitted with the same device time,
+		//let us emit them in their order in the log file (or in the order which we assigned to them)
+		else  return a.line_counter < b.line_counter;
+		});
 }

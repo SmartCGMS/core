@@ -904,6 +904,96 @@ namespace const_cr {
 	//signal not described because not needed to show?
 }
 
+namespace samadi_model { // DOI: 10.1016/j.compchemeng.2019.106565
+
+	const wchar_t* model_param_ui_names[model_param_count] = {
+		// TODO: move to dstrings
+		L"Q1_0", L"Q2_0", L"Gsub_0", L"S1_0", L"S2_0", L"I_0", L"x1_0", L"x2_0", L"x3_0",
+		L"D1_0", L"D2_0", L"DH1_0", L"DH2_0", L"E1_0", L"E2_0", L"TE_0",
+		L"k12", L"ka1", L"ka2", L"ka3",
+		L"kb1", L"kb2", L"kb3",
+		L"ke",
+		L"Vi", L"Vg",
+		L"EGP_0", L"F01",
+		L"tmaxi", L"tau_g", L"a", L"t_HR", L"t_in", L"n", L"t_ex", L"c1", L"c2",
+		L"Ag",
+		L"tmaxG",
+		L"alpha", L"beta",
+		L"BW", L"HRbase",
+	};
+
+	const scgms::NModel_Parameter_Value model_param_types[model_param_count] = {
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble
+	};
+
+	constexpr size_t number_of_calculated_signals = 5;
+
+	const GUID calculated_signal_ids[number_of_calculated_signals] = {
+		samadi_model::signal_IG,
+		samadi_model::signal_BG,
+		samadi_model::signal_Delivered_Insulin,
+		samadi_model::signal_IOB,
+		samadi_model::signal_COB,
+	};
+
+	const wchar_t* calculated_signal_names[number_of_calculated_signals] = {
+		L"Samadi model - IG",
+		L"Samadi model - BG",
+		L"Samadi model - Delivered insulin",
+		L"Samadi model - IOB",
+		L"Samadi model - COB",
+	};
+
+	const GUID reference_signal_ids[number_of_calculated_signals] = {
+		scgms::signal_IG,
+		scgms::signal_BG,
+		scgms::signal_Delivered_Insulin_Total,
+		scgms::signal_IOB,
+		scgms::signal_COB,
+	};
+
+	scgms::TModel_Descriptor desc = {
+		model_id,
+		scgms::NModel_Flags::Discrete_Model,
+		L"Samadi model",
+		nullptr,
+		model_param_count,
+		model_param_types,
+		model_param_ui_names,
+		nullptr,
+		lower_bounds.vector,
+		default_parameters.vector,
+		upper_bounds.vector,
+
+		number_of_calculated_signals,
+		calculated_signal_ids,
+		reference_signal_ids,
+	};
+
+	const std::wstring ist_desc = std::wstring{ L"Samadi model - IG" };
+	const scgms::TSignal_Descriptor ig_desc{ samadi_model::signal_IG, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+
+	const std::wstring bgs_desc = std::wstring{ L"Samadi model - BG" };
+	const scgms::TSignal_Descriptor bg_desc{ samadi_model::signal_BG, bgs_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+
+	const std::wstring inss_desc = std::wstring{ L"Samadi model - Delivered insulin" };
+	const scgms::TSignal_Descriptor ins_desc{ samadi_model::signal_Delivered_Insulin, inss_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+
+	const std::wstring iobs_desc = std::wstring{ L"Samadi model - IOB" };
+	const scgms::TSignal_Descriptor iob_desc{ samadi_model::signal_IOB, iobs_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF456898, 0xFF456898, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+
+	const std::wstring cobs_desc = std::wstring{ L"Samadi model - COB" };
+	const scgms::TSignal_Descriptor cob_desc{ samadi_model::signal_COB, cobs_desc.c_str(), dsU, scgms::NSignal_Unit::g, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+}
+
 
 
 const std::array<const scgms::TFilter_Descriptor, 1> filter_descriptions = { { pattern_prediction::get_filter_desc()} };

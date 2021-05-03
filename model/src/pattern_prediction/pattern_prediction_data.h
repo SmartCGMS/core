@@ -43,17 +43,11 @@
 #include <vector>
 #include <tuple>
 
-struct TPattern_Prediction_Pattern_State {
-    double count = 0.0;
-    double running_avg = std::numeric_limits<double>::quiet_NaN();
-    double running_median = std::numeric_limits<double>::quiet_NaN();
-    double running_variance_accumulator = std::numeric_limits<double>::quiet_NaN();
-    double running_stddev = std::numeric_limits<double>::quiet_NaN();
-};
-
 class CPattern_Prediction_Data {
-protected:  
-    TPattern_Prediction_Pattern_State mState;
+protected:
+    const size_t mState_Size = 40;
+    const double mStepping = 0.05;
+    std::vector<double> mState;
 public:
     CPattern_Prediction_Data();
 
@@ -61,6 +55,7 @@ public:
     double Level() const;
     bool Valid() const;
 
-    TPattern_Prediction_Pattern_State Get_State() const;
-    void Set_State(const TPattern_Prediction_Pattern_State& state);
+    void Set_State(const double& level);
+    void State_from_String(const std::wstring& state);
+    std::wstring State_To_String() const;
 };

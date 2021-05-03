@@ -57,12 +57,14 @@
   */
 class CLog_Replay_Filter : public virtual scgms::CBase_Filter {
 protected:
-	static const size_t idxLog_Entry_Time = 0;
-	static const size_t idxLog_Entry_Counter = 1;
-	static const size_t idxLog_Info_Line = 2;
-	static const size_t idxLog_Segment_Id = 3;
-	static const size_t idxLog_Entry_Line = 4;
-	using TLog_Entry = std::tuple<double, size_t, std::wstring, uint64_t, std::wstring>;
+	struct TLog_Entry {
+		double device_time;
+		size_t line_counter;		//this really is not the logical clock
+		std::wstring info;
+		uint64_t segment_id;
+		scgms::NDevice_Event_Code code;
+		std::wstring the_rest;
+	}; 
 protected:
 	struct TLog_Segment_id {
 		filesystem::path file_name;
@@ -71,6 +73,7 @@ protected:
 	std::vector<TLog_Segment_id> Enumerate_Log_Segments();
 protected:
 	bool mEmit_Shutdown = false;
+	bool mEmit_All_Events_Before_Shutdown = false;
 	double mLast_Event_Time = std::numeric_limits<double>::quiet_NaN();
 	bool mInterpret_Filename_As_Segment_Id = false;
 	filesystem::path mLog_Filename_Or_Dirpath;  //would prefere wildcard, but this is not covered by C++ standard and do not need that so much to implement it using regex
@@ -88,6 +91,7 @@ protected:
 	// converts string to parameters vector; note that this method have no knowledge of models at all (does not validate parameter count, ..)
 	void WStr_To_Parameters(const std::wstring& src, scgms::SModel_Parameter_Vector& target);
 
+	void Correct_Timings(std::vector<TLog_Entry>& log_lines);
 public:
 	CLog_Replay_Filter(scgms::IFilter* output);
 	virtual ~CLog_Replay_Filter();

@@ -58,6 +58,7 @@ protected:
 		D *current, *end;
 		HRESULT rc = container->get(&current, &end);
 		if (rc == S_OK) {
+			current += mFirst_Array_Var_idx;
 			const size_t cnt = std::distance(current , end);
 			for (size_t var_idx = mFirst_Array_Var_idx; var_idx < cnt; var_idx++) {
 				if (!mArray_Vars[var_idx].empty()) {
@@ -89,13 +90,10 @@ protected:
 			*value = get_val();
 		}
 		else {			
-			auto [var_set, var_val] = Evaluate_Variable(mVariable_Name);
+			std::wstring var_val;
+			std::tie(rc, var_val) = Evaluate_Variable(mVariable_Name);
 
-			if (!Succeeded(var_set)) {
-				rc = E_NOT_SET;
-				*value = sanity_val;
-			}
-			else {
+			if (Succeeded(rc)) {
 				bool ok;
 				*value = conv(var_val, ok);
 
@@ -103,6 +101,9 @@ protected:
 					rc = E_INVALIDARG;
 					*value = sanity_val;
 				}
+			}
+			else {
+				*value = sanity_val; 				
 			}
 		}
 
@@ -258,6 +259,8 @@ public:
 
 	//management
 	virtual HRESULT IfaceCalling Clone(scgms::IFilter_Parameter **deep_copy) override final;
+public:
+	static const std::wstring mUnused_Variable_Name;
 };
 
 #pragma warning( pop )

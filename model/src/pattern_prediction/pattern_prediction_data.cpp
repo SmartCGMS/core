@@ -40,8 +40,12 @@
 
 #include "../../../../common/utils/DebugHelper.h"
 #include "../../../../common/utils/math_utils.h"
+#include "../../../../common/utils/string_utils.h"
 
 #include <cmath>
+#include <algorithm>
+#include <iomanip>
+#include <numeric>
 
 #undef min
 #undef max
@@ -53,42 +57,142 @@ void CPattern_Prediction_Data::Update(const double level) {
     if (Is_Any_NaN(level)) return;
        
 
-    mState.count += 1.0;
-    if (!Is_Any_NaN(mState.running_avg)) {
-        const double delta = level - mState.running_avg;
-        const double delta_n = delta / mState.count;
-        mState.running_avg += delta_n;
-        mState.running_median += std::copysign(mState.running_avg * 0.01, level - mState.running_median);
-        mState.running_variance_accumulator += delta * delta_n * (mState.count - 1.0);
-    }
-    else {
-        mState.running_median = mState.running_avg = level;
-        mState.running_variance_accumulator = 0.0;
-    }
+    mState.push_back(level);
+    if (mState.size() > mState_Size)
+        mState.erase(mState.begin());
 }
 
-double CPattern_Prediction_Data::Level() const {    
-    return mState.count > 100.0 ? mState.running_median : mState.running_avg;
+double CPattern_Prediction_Data::Level() const {   
+    if (mState.size() == 1) return mState[0];
+    if (mState.size() == 2) return 0.5*(mState[0]+mState[1]);
+
+    auto [min_level, max_level] = std::minmax_element(mState.begin(), mState.end());
+
+    double best_sum = std::numeric_limits<double>::max();
+    double best_p95 = std::numeric_limits<double>::max();
+    double best_level = *min_level;
+    double level = *min_level;
+    
+
+    size_t p95_cnt = std::max(static_cast<size_t>(static_cast<double>(mState.size())*0.95), static_cast<size_t>(1));
+    const double p95_th = 0.15;
+
+    while (level <= *max_level) {
+
+        std::vector<double> errors;
+        for (const auto& e : mState) {
+            const double re = fabs(e - level) / e;
+            errors.push_back(re);
+         
+        }
+
+        std::sort(errors.begin(), errors.end());
+        errors.resize(p95_cnt);
+
+
+        double invn = static_cast<double>(errors.size());
+        //first, try Unbiased estimation of standard deviation
+       // if (invn > 1.5) invn -= 1.5;
+      //  else if (invn > 1.0) invn -= 1.0;	//if not, try to fall back to Bessel's Correction at least
+        invn = 1.0 / (invn-1.5);
+
+
+
+
+        double sum = 0.0;
+        for (const auto& e : errors) {
+            sum += e;
+        }
+
+        double avg = sum * invn;
+        sum = 0.0;
+        for (const auto& e : errors) {
+            const double tmp = avg - e;
+            sum += tmp * tmp;
+        }
+
+        avg += sqrt(sum * invn);
+        if (avg < best_sum) {
+            best_sum = avg;
+            best_level = level;
+        }
+        
+
+
+        
+        /*std::sort(errors.begin(), errors.end());
+        errors.resize(p95_cnt);
+
+        if (best_p95 > p95_th) {
+            //we need to fit 95% of all errors below 30%
+            if (errors[p95_cnt - 1] < best_p95) {
+                best_p95 = errors[p95_cnt - 1];
+                best_sum = std::accumulate(errors.begin(), errors.end(), 0.0);
+                best_level = level;
+            }
+        }
+        else if ((best_p95 <= p95_th) && (errors[p95_cnt - 1] <= p95_th)) {
+            const auto local_sum = std::accumulate(errors.begin(), errors.end(), 0.0);
+            if (local_sum < best_sum) {
+                best_p95 = errors[p95_cnt - 1];
+                best_sum = local_sum;
+                best_level = level;
+            }
+        }
+        */
+        
+
+        level += mStepping;
+    }
+
+    return best_level;   
 }
 
 bool CPattern_Prediction_Data::Valid() const {
-    return mState.count > 0.0;
+    return mState.size() > 0;
 }
 
-TPattern_Prediction_Pattern_State CPattern_Prediction_Data::Get_State() const {
-    //first, update the running standard deviation
+
+void CPattern_Prediction_Data::Set_State(const double& level) {
+    mState.clear();
+    for (size_t i = 0; i < mState_Size; i++)
+        mState.push_back(level);
+}
+
+void CPattern_Prediction_Data::State_from_String(const std::wstring& state) {
+    std::wstring str_copy{ state };	//wcstok modifies the input string
+    const wchar_t* delimiters = L" ";	//string of chars, which designate individual delimiters
+    wchar_t* buffer = nullptr;
+    wchar_t* str_val = wcstok_s(const_cast<wchar_t*>(str_copy.data()), delimiters, &buffer);
     
-    TPattern_Prediction_Pattern_State result = mState;
+    while ((str_val != nullptr) && (mState.size()< mState_Size)) {
+         //and store the real value
+         bool ok;
+         const double value = str_2_dbl(str_val, ok);
+         if (ok) mState.push_back(value);
+         else break;
 
-
-    result.running_stddev = result.count > 1.0 ?
-                                std::sqrt(result.running_variance_accumulator / (result.count - 1.0)) :
-                                0.0;
-
-
-    return result;
+        str_val = wcstok_s(nullptr, delimiters, &buffer);
+    }
 }
 
-void CPattern_Prediction_Data::Set_State(const TPattern_Prediction_Pattern_State& state) {
-    mState = state;
+std::wstring CPattern_Prediction_Data::State_To_String() const {
+    std::wstringstream converted;
+
+    //unused keeps static analysis happy about creating an unnamed object
+    auto unused = converted.imbue(std::locale(std::wcout.getloc(), new CDecimal_Separator<wchar_t>{ L'.' })); //locale takes owner ship of dec_sep
+    converted << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+
+
+    bool not_empty = false;
+    for (size_t i = 0; i<mState.size(); i++) {
+        if (not_empty)
+            converted << L" ";
+        else
+            not_empty = true;
+
+        converted << mState[i];
+    }
+
+    return converted.str();
 }

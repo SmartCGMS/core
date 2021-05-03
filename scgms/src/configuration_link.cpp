@@ -30,6 +30,7 @@ HRESULT IfaceCalling CFilter_Configuration_Link::Set_Parent_Path(const wchar_t* 
 
 HRESULT IfaceCalling CFilter_Configuration_Link::Set_Variable(const wchar_t* name, const wchar_t* value) {
 	if ((!name) || (*name == 0)) return E_INVALIDARG;
+	if (name == CFilter_Parameter::mUnused_Variable_Name) return TYPE_E_AMBIGUOUSNAME;
 
 	HRESULT rc = S_OK;
 	for (auto param : *this) {

@@ -10,8 +10,8 @@
  * Faculty of Applied Sciences, University of West Bohemia
  * Univerzitni 8, 301 00 Pilsen
  * Czech Republic
- *
- *
+ * 
+ * 
  * Purpose of this software:
  * This software is intended to demonstrate work of the diabetes.zcu.cz research
  * group to other scientists, to complement our published papers. It is strictly
@@ -36,36 +36,16 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-
 #pragma once
 
-#include <string>
-#include <atomic>
+#include "pattern_prediction_descriptor.h"
 
 
-#undef min
-
-class CHalton_Device {
-public:
-	using result_type = unsigned int;
-protected:	
-	size_t mBase;	
-	double mInv_Base;
-	std::atomic<size_t> mLast_Index;
-	size_t Get_Next_Prime(size_t last_number);
-	static constexpr result_type max_result = 0x7FFFffff;
-public:
-	CHalton_Device();
-	explicit CHalton_Device(const std::string &token) : CHalton_Device() {};
-	CHalton_Device(const CHalton_Device&) = delete;
-
-	CHalton_Device operator= (const CHalton_Device &other) = delete;
-
-	result_type operator()();
-
-	double advance();
-
-	static constexpr result_type min() { return 0; }
-	static constexpr result_type max() { return max_result; }
-	double entropy() const noexcept;
-};
+namespace pattern_prediction {
+	extern "C" const scgms::NModel_Parameter_Value model_types[model_param_count];
+	extern "C" const wchar_t* model_param_ui_names[model_param_count];
+	extern "C" const wchar_t* model_param_config_names[model_param_count];
+	extern "C" const double lower_bound[model_param_count];
+	extern "C" const double default_values[model_param_count];
+	extern "C" const double upper_bound[model_param_count];
+}

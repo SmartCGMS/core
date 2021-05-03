@@ -598,7 +598,7 @@ protected:
 			//eventually, back-inject previously known best solutions
 			auto global_worst = std::max_element(mPopulation.begin(), mPopulation.end(), [&](const fast_pathfinder_internal::TCandidate<TUsed_Solution> &a, const fast_pathfinder_internal::TCandidate<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
 			while (!best_solutions.empty()) {
-				const auto tmp = best_solutions.back();
+				const auto &tmp = best_solutions.back();
 				const double t_f = mSetup.objective(mSetup.data, tmp.data());
 				if (t_f >= global_worst->current_fitness) break;
 

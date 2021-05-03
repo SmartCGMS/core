@@ -124,18 +124,31 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 HRESULT CPattern_Prediction_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mDt = configuration.Read_Double(rsDt_Column, mDt);
 	
-	if (Is_Any_NaN(mDt))
+	if (Is_Any_NaN(mDt)) {
+		error_description.push(L"Prediction horizon must be positive number.");
+
 		return E_INVALIDARG;
+	}
 	
 	mDo_Not_Learn = configuration.Read_Bool(rsDo_Not_Learn, mDo_Not_Learn);
 	mParameters_File_Path = configuration.Read_File_Path(rsParameters_File);
 	mUpdate_Parameters_File = !mParameters_File_Path.empty() &&
 		                      !configuration.Read_Bool(rsDo_Not_Update_Parameters_File, !mUpdate_Parameters_File);
 
-	if (!mParameters_File_Path.empty()) {
-		HRESULT rc = Read_Parameters_File(error_description);
-		if (Succeeded(rc))
-			return rc;
+
+	//parameters loading must go as the last!
+	mUse_Config_Parameters = configuration.Read_Bool(rsUse_Config_parameters, false);
+
+	if (!mUse_Config_Parameters) {
+		//loading parameters from the external .ini file
+		if (!mParameters_File_Path.empty()) {
+			const HRESULT rc = Read_Parameters_File(error_description);
+			if (Succeeded(rc))
+				return rc;
+		}
+	} else {
+		//using parameters supplied by scgms, e.g.; by a solver
+		return Read_Parameters_From_Config(configuration, error_description);
 	}
 
 	return S_OK;
@@ -176,37 +189,50 @@ void CPattern_Prediction_Filter::Update_Learn(scgms::SSignal& ist, const double 
 	}
 }
 
-std::tuple<CPattern_Prediction_Filter::NPattern, size_t, bool> CPattern_Prediction_Filter::Classify(scgms::SSignal& ist, const double current_time) {
-	std::tuple<NPattern, size_t, bool> result{ NPattern::steady, Band_Count / 2, false };
+std::tuple<pattern_prediction::NPattern, size_t, bool> CPattern_Prediction_Filter::Classify(scgms::SSignal& ist, const double current_time) {
+	std::tuple<pattern_prediction::NPattern, size_t, bool> result{ pattern_prediction::NPattern::steady, pattern_prediction::Band_Count / 2, false };
 
-	std::array<double, 3> levels;
-	const std::array<double, 3> times = { current_time - 10.0 * scgms::One_Minute,
+	std::array<double, 4> levels;
+	const std::array<double, 4> times = { current_time - 15.0 * scgms::One_Minute,
+										  current_time - 10.0 * scgms::One_Minute,
 										  current_time - 5.0 * scgms::One_Minute,
 										  current_time };
 	if (ist->Get_Continuous_Levels(nullptr, times.data(), levels.data(), levels.size(), scgms::apxNo_Derivation) == S_OK) {
 		if (!Is_Any_NaN(levels)) {
+			
+			//acceleration and band-index are good on non-smoothed data
+			const bool acc = std::fabs(levels[3] - levels[2]) > std::fabs(levels[2] - levels[1]);
+
 			std::get<NClassify::success>(result) = true;	//classified ok
-			std::get<NClassify::band>(result) = Level_2_Band_Index(levels[2]);
+			std::get<NClassify::band>(result) = Level_2_Band_Index(levels[3]);
 
-			const double velocity = levels[2] - levels[0];
+			//pattern recognition works best on smoothed data
+			const double l10 = 0.25 * levels[0] + 0.5 * levels[1] + 0.25 * levels[2];
+			const double l05 = 0.25 * levels[1] + 0.5 * levels[2] + 0.25 * levels[3];			
+			const double l00 = 0.25 * levels[1] + 0.25 * levels[2] + 0.5 * levels[3];					
 
-			if (velocity != 0.0) {
-				const double d1 = fabs(levels[1] - levels[0]);
-				const double d2 = fabs(levels[2] - levels[1]);
-				const bool accelerating = d2 > d1;
+			levels[0] = l10;
+			levels[1] = l05;
+			levels[2] = l00;
 
+			const bool agb = levels[0] > levels[1];
+			const bool alb = !agb;
 
-				if (velocity > 0.0) {
-					std::get<NClassify::pattern>(result) = accelerating && ((levels[1] > levels[0]) && (levels[2] > levels[1])) ?
-						NPattern::accel : NPattern::up;
-				}
-				else if (velocity < 0.0) {
-					std::get<NClassify::pattern>(result) = accelerating && ((levels[1] < levels[0]) && (levels[2] < levels[1])) ?
-						NPattern::deccel : NPattern::down;
-				}
+			const bool bgc = levels[1] > levels[2];
+			const bool blc = !bgc;
 
-			} //else already set to the steady pattern - see result declaration
-
+			const bool agc = levels[0] > levels[2];
+			const bool alc = !agc;
+			
+			if (agb && bgc && acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::deccel;
+			else if (agb && bgc &&(!acc)) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::down;
+			else if (agb && blc && agc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::convex_slow;
+			else if (agb && blc && alc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::convex_fast;
+			else if (alb && bgc && agc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::concave_fast;
+			else if (alb && bgc && alc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::concave_slow;
+			else if (alb && blc && (!acc)) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::up;
+			else if (alb && blc && acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::accel;
+			else std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::steady;
 		}
 	}
 
@@ -219,51 +245,21 @@ double CPattern_Prediction_Filter::Predict(scgms::SSignal& ist, const double cur
 	if (classified_ok) {
 
 		const auto& patterns = mPatterns[static_cast<size_t>(pattern)];
-
-		size_t band_counter = 0;
-		for (size_t band_idx = 0; band_idx < Band_Count; band_idx++) {
-			const auto& pattern = patterns[band_idx];
-
-			if (pattern.Valid()) {
-				const double dbl_band_idx = static_cast<double>(band_idx);
-				mA(band_counter, 0) = dbl_band_idx * dbl_band_idx;
-				mA(band_counter, 1) = dbl_band_idx;
-				mA(band_counter, 2) = 1.0;
-				mb(band_counter) = pattern.Level();
-
-				band_counter++;
-			}
-		}
-
-
-		if (band_counter > 3) {	//require an overfit, no >=			
-			const Eigen::Vector3d coeff = mA.topRows(band_counter).fullPivHouseholderQr().solve(mb.topRows(band_counter));
-
-			const double dlb_pattern_band_index = static_cast<double>(pattern_band_index);			
-			predicted_level = coeff[0] * dlb_pattern_band_index * dlb_pattern_band_index +
-				coeff[1] * dlb_pattern_band_index +
-				coeff[2];
-
-			if (!patterns[pattern_band_index].Valid()) {
-				constexpr double min_level = Low_Threshold - Half_Band_Size;
-				constexpr double max_level = High_Threshold + Half_Band_Size;
-
-				predicted_level = std::min(predicted_level, max_level);
-				predicted_level = std::max(predicted_level, min_level);
-			}
-		}		
+		const auto& pattern = patterns[pattern_band_index];
+		if (pattern.Valid())
+			predicted_level = pattern.Level();
 	}
 
 	return predicted_level;
 }
 
 size_t CPattern_Prediction_Filter::Level_2_Band_Index(const double level) {
-	if (level >= High_Threshold) return Band_Count - 1;
+	if (level >= pattern_prediction::High_Threshold) return pattern_prediction::Band_Count - 1;
 
-	const double tmp = level - Low_Threshold;
+	const double tmp = level - pattern_prediction::Low_Threshold;
 	if (tmp < 0.0) return 0;
 
-	return static_cast<size_t>(round(tmp * Inv_Band_Size));
+	return static_cast<size_t>(round(tmp * pattern_prediction::Inv_Band_Size));
 }
 
 HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list error_description) {
@@ -279,31 +275,13 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list erro
 
 			if (swscanf_s(section_name.pItem, format.c_str(), &pattern_idx, &band_idx) == 2) {
 
-				if ((pattern_idx < static_cast<int>(NPattern::count)) && (band_idx < static_cast<int>(Band_Count))) {
+				if ((pattern_idx < static_cast<int>(pattern_prediction::NPattern::count)) && (band_idx < static_cast<int>(pattern_prediction::Band_Count))) {
 
 					auto& pattern = mPatterns[pattern_idx][band_idx];
 					bool all_valid = true;
 
-					auto read_dbl = [&ini, &section_name, &all_valid](const wchar_t* identifier)->double {
-						bool valid = false;
-						double val = str_2_dbl(ini.GetValue(section_name.pItem, identifier), valid);
-					
-						if (!valid || std::isnan(val))
-							all_valid = false;
-							
-						return val;
-					};
-
-					TPattern_Prediction_Pattern_State pattern_state;
-					pattern_state.count = read_dbl(iiCount);
-					pattern_state.running_avg = read_dbl(iiAvg);
-					pattern_state.running_median = read_dbl(iiMedian);
-					pattern_state.running_variance_accumulator = read_dbl(iiVariance_Accumulator);
-					pattern_state.running_stddev = read_dbl(iiStdDev);
-
-					if (all_valid)
-						pattern.Set_State(pattern_state);
-
+					std::wstring state = ini.GetValue(section_name.pItem, iiState);
+					pattern.State_from_String(state);
 
 				} //else, invalid record - let's ignore it
 			}
@@ -354,32 +332,50 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list erro
 	return rc;	
 }
 
+HRESULT CPattern_Prediction_Filter::Read_Parameters_From_Config(scgms::SFilter_Configuration configuration, refcnt::Swstr_list error_description) {
+	std::vector<double> lower, def, upper;
+
+	if (configuration.Read_Parameters(rsParameters, lower, def, upper)) {
+		if (def.size() != pattern_prediction::model_param_count) {
+			error_description.push(L"Corrupted pattern-prediction configuration parameters!");
+			return E_INVALIDARG;
+		}
+
+
+		size_t def_idx = 0;
+
+		for (size_t pattern_idx = 0; pattern_idx < static_cast<size_t>(pattern_prediction::NPattern::count); pattern_idx++) {
+			for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {
+				auto& pattern = mPatterns[pattern_idx][band_idx];
+
+				pattern.Set_State(def[def_idx]);
+
+				def_idx++;
+			}
+		}
+	}
+	else
+		return S_FALSE;	//indicate empty parameters
+
+	return S_OK;
+}
+
 void CPattern_Prediction_Filter::Write_Parameters_File() {
-	if (!mUpdated_Levels) return;
+	if (!mUpdated_Levels && !mUse_Config_Parameters) return;
 
 	CSimpleIniW ini;
 
-	for (size_t pattern_idx = 0; pattern_idx < static_cast<size_t>(NPattern::count); pattern_idx++) {
-		for (size_t band_idx = 0; band_idx < Band_Count; band_idx++) {
+	for (size_t pattern_idx = 0; pattern_idx < static_cast<size_t>(pattern_prediction::NPattern::count); pattern_idx++) {
+		for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {
 
 			const auto& pattern = mPatterns[pattern_idx][band_idx];
 
 			if (pattern.Valid()) {
-				const auto pattern_state = pattern.Get_State();
+				const auto pattern_state = pattern.State_To_String();
 
 				const std::wstring section_name = isPattern+std::to_wstring(pattern_idx) + isBand + std::to_wstring(band_idx);
 				const wchar_t* section_name_ptr = section_name.c_str();
-
-				auto set_val = [section_name_ptr, &ini](const wchar_t* ii, const double& val) {
-					const auto str = dbl_2_wstr(val);
-					ini.SetValue(section_name_ptr, ii, str.c_str());
-				};
-                
-				set_val(iiCount, pattern_state.count);
-				set_val(iiAvg, pattern_state.running_avg);
-				set_val(iiMedian, pattern_state.running_median);
-				set_val(iiVariance_Accumulator, pattern_state.running_variance_accumulator);
-				set_val(iiStdDev, pattern_state.running_stddev);
+				ini.SetValue(section_name_ptr, iiState, pattern_state.c_str());
 
 				//diagnostic
 				//ini.SetLongValue(section_name_ptr, L"Predicted_Band", Level_2_Band_Index(pattern_state.running_median));

@@ -71,6 +71,7 @@ public:
 		while (improved && (improved_counter++ < mSetup.max_generations)) {
 			improved = false;
 			progress.current_progress = 0;
+			atomic_progress.store(0);	//running next generation
 
 			for (size_t param_idx = 0; param_idx < mSetup.problem_size; param_idx++) {
 				if (progress.cancelled != FALSE) break;
@@ -94,14 +95,17 @@ public:
 						if (local_solution_fitness < best_solution.fitness) {
 							std::unique_lock write_lock{ best_mutex };
 
-							best_solution.solution = local_solution;
-							best_solution.fitness = local_solution_fitness;
-							progress.best_metric = local_solution_fitness;
+							//do not be so rush! verify that this is still the better solution
+							if (local_solution_fitness < best_solution.fitness) {
+								best_solution.solution = local_solution;
+								best_solution.fitness = local_solution_fitness;
+								progress.best_metric = local_solution_fitness;
 
-							improved = true;
+								improved = true;
+							}
 						}
 					});
-				}				
+				}
 			}
 		}
 

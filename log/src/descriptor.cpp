@@ -78,12 +78,12 @@ namespace logger
 	};
 }
 
-namespace log_replay
-{
-	constexpr size_t param_count = 3;
+namespace log_replay {
+	constexpr size_t param_count = 4;
 
 	constexpr scgms::NParameter_Type param_type[param_count] = {
 		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptBool
 	};
@@ -91,23 +91,26 @@ namespace log_replay
 	const wchar_t* ui_param_name[param_count] = {
 		dsLog_Input_File_Or_Dir,
 		dsEmit_Shutdown_Msg,
-		dsInterpret_Filename_As_Segment_Id
+		dsInterpret_Filename_As_Segment_Id,
+		dsEmit_All_Events_Before_Shutdown,
 	};
 
 	const wchar_t* config_param_name[param_count] = {
 		rsLog_Output_File,
 		rsEmit_Shutdown_Msg,
-		rsInterpret_Filename_As_Segment_Id
+		rsInterpret_Filename_As_Segment_Id,
+		rsEmit_All_Events_Before_Shutdown
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
 		dsLog_File_Input_Tooltip,
 		nullptr,
+		nullptr,
 		nullptr
 	};
 
 	const scgms::TFilter_Descriptor Log_Replay_Descriptor = {
-		{ 0x172ea814, 0x9df1, 0x657c,{ 0x12, 0x89, 0xc7, 0x18, 0x93, 0xf1, 0xd0, 0x85 } }, //// {172EA814-9DF1-657C-1289-C71893F1D085}
+		{ 0x172ea814, 0x9df1, 0x657c,{ 0x12, 0x89, 0xc7, 0x18, 0x93, 0xf1, 0xd0, 0x85 } }, // {172EA814-9DF1-657C-1289-C71893F1D085}
 		scgms::NFilter_Flags::None,
 		dsLog_Filter_Replay,
 		param_count,

@@ -114,6 +114,7 @@ class CSamadi_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscre
 		Uptake_Accumulator mHeart_Rate;
 		// current state of Bergman model (all quantities)
 		CSamadi_Model_State mState;
+		bool mInitialized = false;
 		// bound equations in a single vector - quantity and equation bound together
 		const std::vector<samadi_model::CEquation_Binding> mEquation_Binding;
 

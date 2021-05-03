@@ -38,13 +38,15 @@
 
 
 #include "pattern_prediction_descriptor.h"
+#include "pattern_descriptor_model_parameters.h"
 
 #include "../../../../common/utils/descriptor_utils.h"
 #include "../../../../common/lang/dstrings.h"
 
 #undef min
 
-namespace pattern_prediction {
+namespace pattern_prediction {	
+
 	scgms::TSignal_Descriptor get_sig_desc() {
 		const scgms::TSignal_Descriptor sig_desc{ signal_Pattern_Prediction, dsPattern_Prediction_Signal, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFF5BD1F, 0xFFF5BD1F, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
 
@@ -52,11 +54,11 @@ namespace pattern_prediction {
 	}
 
 
-	const size_t filter_param_count = 4;
-	const scgms::NParameter_Type filter_param_types[filter_param_count] = { scgms::NParameter_Type::ptRatTime, scgms::NParameter_Type::ptWChar_Array, scgms::NParameter_Type::ptBool, scgms::NParameter_Type::ptBool };
-	const wchar_t* filter_param_ui_names[filter_param_count] = { dsDt, dsParameters_File, dsDo_Not_Update_Parameters_File, dsDo_Not_Learn };
-	const wchar_t* filter_param_config_names[filter_param_count] = { rsDt_Column, rsParameters_File, rsDo_Not_Update_Parameters_File, rsDo_Not_Learn };
-	const wchar_t* filter_param_tooltips[filter_param_count] = { nullptr, nullptr, nullptr, nullptr };
+	const size_t filter_param_count = 6;
+	const scgms::NParameter_Type filter_param_types[filter_param_count] = { scgms::NParameter_Type::ptRatTime, scgms::NParameter_Type::ptWChar_Array, scgms::NParameter_Type::ptBool, scgms::NParameter_Type::ptBool, scgms::NParameter_Type::ptBool, scgms::NParameter_Type::ptDouble_Array };
+	const wchar_t* filter_param_ui_names[filter_param_count] = { dsDt, dsParameters_File, dsDo_Not_Update_Parameters_File, dsDo_Not_Learn, dsUse_Config_parameters, dsParameters };
+	const wchar_t* filter_param_config_names[filter_param_count] = { rsDt_Column, rsParameters_File, rsDo_Not_Update_Parameters_File, rsDo_Not_Learn, rsUse_Config_parameters, rsParameters};
+	const wchar_t* filter_param_tooltips[filter_param_count] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 
 	scgms::TFilter_Descriptor get_filter_desc() {
 		const scgms::TFilter_Descriptor filter_desc = {
@@ -73,4 +75,27 @@ namespace pattern_prediction {
 		return filter_desc;
 	}
 
+	scgms::TModel_Descriptor get_model_desc() {
+		const scgms::TModel_Descriptor model_desc = {
+			pattern_prediction::filter_id,
+			scgms::NModel_Flags::None,
+			dsParameters,
+			rsParameters,
+
+			model_param_count,
+			model_types,
+			model_param_ui_names,
+			model_param_config_names,
+
+			lower_bound,
+			default_values,
+			upper_bound,
+
+			0,
+			& scgms::signal_Null,
+			& scgms::signal_Null
+		};
+
+		return model_desc;
+	}
 }

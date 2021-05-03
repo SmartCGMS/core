@@ -376,6 +376,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Parent_Path(const wcha
 
 HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Variable(const wchar_t* name, const wchar_t* value) noexcept {
 	if (!name || (*name == 0)) return E_INVALIDARG;
+	if (name == CFilter_Parameter::mUnused_Variable_Name) return TYPE_E_AMBIGUOUSNAME;
 
 	HRESULT rc = S_OK;
 	for (scgms::IFilter_Configuration_Link* link : *this) {

@@ -46,6 +46,7 @@
 #include "fast_pathfinder.h"
 #include "landscape_pathfinder.h"
 #include "Sequential_Brute_Force_Scan.h"
+#include "Sequential_Convex_Scan.h"
 #include "PSO.h"
 
 template <typename TSolver, typename TUsed_Solution>
@@ -141,18 +142,6 @@ public:
 		using TRandom_MetaDE = CMetaDE<TUsed_Solution, std::random_device>;
 		mSolver_Id_Map[rnd_metade::id] = std::bind(&Solve_By_Class<TRandom_MetaDE, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 
-		using TMT_UnconstrainedMetaDE = CUnconstrainedMetaDE<TUsed_Solution, std::mt19937>;
-		mSolver_Id_Map[mt_unconstrainedmetade::id] = std::bind(&Solve_By_Class<TMT_UnconstrainedMetaDE, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
-
-		using TPSO_MT_RandInit_DCV = CPSO<TUsed_Solution, std::mt19937, pso::CRandom_Swarm_Generator, pso::CDual_Coefficient_Vector_Velocity_Modifier>;
-		mSolver_Id_Map[pso::id_mt_randinit_dcv] = std::bind(&Solve_By_Class<TPSO_MT_RandInit_DCV, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
-
-		using TPSO_MT_DiagInit_SCV = CPSO<TUsed_Solution, std::mt19937, pso::CDiagonal_Swarm_Generator, pso::CSingle_Coefficient_Vector_Velocity_Modifier>;
-		mSolver_Id_Map[pso::id_mt_diaginit_scv] = std::bind(&Solve_By_Class<TPSO_MT_DiagInit_SCV, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
-
-		using TPSO_RND_CrossInit_DCV = CPSO<TUsed_Solution, std::random_device, pso::CCross_Diagonal_Swarm_Generator, pso::CDual_Coefficient_Vector_Velocity_Modifier>;
-		mSolver_Id_Map[pso::id_rnd_crossinit_dcv] = std::bind(&Solve_By_Class<TPSO_RND_CrossInit_DCV, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
-
 		//mSolver_Id_Map[pathfinder::id] = std::bind(&Eval_Pathfinder_Angle<TUsed_Solution>, std::placeholders::_1, std::placeholders::_2); -- diagnostic
 		mSolver_Id_Map[pathfinder::id_fast] = std::bind(&Solve_By_Class<CFast_Pathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 		//mSolver_Id_Map[pathfinder::id_fast] = std::bind(&Eval_Pathfinder_Angle<CFast_Pathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);  -- diagnostic
@@ -161,6 +150,12 @@ public:
 		mSolver_Id_Map[pathfinder::id_landscape] = std::bind(&Solve_By_Class<CLandscape_Pathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 		
 		mSolver_Id_Map[sequential_brute_force_scan::id] = std::bind(&Solve_By_Class<CSequential_Brute_Force_Scan<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+		mSolver_Id_Map[sequential_convex_scan::id] = std::bind(&Solve_By_Class<CSequential_Convex_Scan<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+
+		using TPSO_Halton = CPSO<TUsed_Solution, CHalton_Device, pso::CRandom_Swarm_Generator, pso::CDual_Coefficient_Vector_Velocity_Modifier>;									
+			//using TPSO_MT_DiagInit_SCV = CPSO<TUsed_Solution, std::mt19937, pso::CDiagonal_Swarm_Generator, pso::CSingle_Coefficient_Vector_Velocity_Modifier>;					
+			//using TPSO_RND_CrossInit_DCV = CPSO<TUsed_Solution, std::random_device, pso::CCross_Diagonal_Swarm_Generator, pso::CDual_Coefficient_Vector_Velocity_Modifier>;		
+		mSolver_Id_Map[pso::id] = std::bind(&Solve_By_Class<TPSO_Halton, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 	}
 
 	HRESULT Solve(const GUID &solver_id, solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {

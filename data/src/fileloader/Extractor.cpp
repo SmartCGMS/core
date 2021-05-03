@@ -95,12 +95,15 @@ const char* dsDatabaseTimestampFormatShort = "%FT%T";
 
 // recognized datetime format formatter strings
 const std::array<const char*, static_cast<size_t>(NKnownDateFormat::UNKNOWN_DATEFORMAT)> KnownDateFormatFmtStrings = { {
+	//As we are looking for the longest prefix match, the formats must go from longest to shortest.
+
+	"%Y-%m-%dT%H:%M:%S",     // DATEFORMAT_DB_YYYYMMDD_T
+	"%Y-%m-%d %H:%M:%S",     // DATEFORMAT_DB_YYYYMMDD
+	"%d-%m-%Y %H:%M:%S",     // DATEFORMAT_DB_YYYYMMDD
 	"%d/%m/%Y %H:%M",        // DATEFORMAT_DDMMYYYY
 	"%d-%m-%Y %H:%M",        // DATEFORMAT_DM_DDMMYYYY
 	"%Y/%m/%d %H:%M",        // DATEFORMAT_YYYYMMDD
 	"%d.%m.%Y %H:%M",        // DATEFORMAT_CZ
-	"%Y-%m-%dT%H:%M:%S",     // DATEFORMAT_DB_YYYYMMDD_T
-	"%Y-%m-%d %H:%M:%S",     // DATEFORMAT_DB_YYYYMMDD
 } };
 
 

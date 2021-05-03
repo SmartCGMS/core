@@ -76,13 +76,20 @@ namespace sequential_brute_force_scan {
 	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsSequential_Brute_Force_Scan);
 }
 
+namespace sequential_convex_scan {
+	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsSequential_Convex_Scan);
+}
 
-const std::array<scgms::TSolver_Descriptor, 11> solver_descriptions = {
-	mt_metade::desc, halton_metade::desc, rnd_metade::desc,
-	mt_unconstrainedmetade::desc,
-	pathfinder::desc_fast, pathfinder::desc_spiral, pathfinder::desc_landscape,
-	sequential_brute_force_scan::desc,
-	pso::desc_1, pso::desc_2, pso::desc_3,
+
+namespace pso {
+	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(pso::id, dsPSO_Halton);
+}
+
+const std::array<scgms::TSolver_Descriptor, 9> solver_descriptions = 
+	{ mt_metade::desc, halton_metade::desc, rnd_metade::desc, 
+	  pathfinder::desc_fast, pathfinder::desc_spiral, pathfinder::desc_landscape,
+	  sequential_brute_force_scan::desc, sequential_convex_scan::desc,
+	  pso::desc
 };
 
 

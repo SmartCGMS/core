@@ -79,7 +79,8 @@ CSamadi_Discrete_Model::CSamadi_Discrete_Model(scgms::IModel_Parameter_Vector *p
 		{ mState.TE,    std::bind<double>(&CSamadi_Discrete_Model::eq_dTE,     this, std::placeholders::_1, std::placeholders::_2) },
 	}
 {
-	mState.lastTime = -1;
+	mState.lastTime = -std::numeric_limits<decltype(mState.lastTime)>::max();
+	mInitialized = false;
 	mState.Q1   = mParameters.Q1_0;
 	mState.Q2   = mParameters.Q2_0;
 	mState.Gsub = mParameters.Gsub_0;
@@ -288,8 +289,8 @@ void CSamadi_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 HRESULT CSamadi_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 	HRESULT res = S_FALSE;
 
-	if (mState.lastTime > 0)
-	{
+	if (mInitialized) {
+
 		if (event.event_code() == scgms::NDevice_Event_Code::Level)
 		{
 			if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate)
@@ -362,6 +363,14 @@ HRESULT CSamadi_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 			}
 		}
 	}
+	else {
+		if (event.event_code() == scgms::NDevice_Event_Code::Level) {
+			if ((event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate) ||
+				(event.signal_id() == scgms::signal_Requested_Insulin_Bolus) ||
+				(event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue))
+				res = E_ILLEGAL_STATE_CHANGE;	//cannot modify our state prior initialization!
+		}
+	}
 
 	if (res == S_FALSE)
 		res = mOutput.Send(event);
@@ -375,6 +384,10 @@ HRESULT CSamadi_Discrete_Model::Do_Configure(scgms::SFilter_Configuration config
 }
 
 HRESULT IfaceCalling CSamadi_Discrete_Model::Step(const double time_advance_delta) {
+
+	if (!mInitialized)
+		return E_ILLEGAL_METHOD_CALL;
+
 	HRESULT rc = E_FAIL;
 	if (time_advance_delta > 0.0) {
 		// perform a few microsteps within advancement delta
@@ -462,9 +475,10 @@ HRESULT CSamadi_Discrete_Model::Emit_Signal_Level(const GUID& signal_id, double 
 }
 
 HRESULT IfaceCalling CSamadi_Discrete_Model::Initialize(const double current_time, const uint64_t segment_id) {
-	if (mState.lastTime < 0.0) {
+	if (!mInitialized) {
 		mState.lastTime = current_time;
 		mSegment_Id = segment_id;
+		mInitialized = true;
 		return S_OK;
 	}
 	else {
