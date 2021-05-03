@@ -40,20 +40,29 @@
 
 #include "pattern_prediction_descriptor.h"
 
-#include <vector>
+#include <array>
 #include <tuple>
 
 class CPattern_Prediction_Data {
 protected:
-    const size_t mState_Size = 40;
-    const double mStepping = 0.05;
-    std::vector<double> mState;
+    //let there be simple circular buffer    
+    static constexpr size_t mState_Size = 40;    
+    std::array<double, mState_Size> mState;    
+    size_t mHead = 0;
+    bool mFull = false; //true if we have filled the entire buffer
+                        //and we are overwriting the old values
+    
+protected:
+    //prediction helpers
+    const double mTrusted_Perimeter = 2.0;
+    double mRecent_Prediction = std::numeric_limits<double>::quiet_NaN();
+    bool mInvalidated = true;   //true, when ::predict must recalculate mRecent_Prediction
 public:
     CPattern_Prediction_Data();
 
-    void Update(const double level);
-    double Level() const;
-    bool Valid() const;
+    void push(const double level);
+    double predict() const;
+    explicit operator bool() const;
 
     void Set_State(const double& level);
     void State_from_String(const std::wstring& state);

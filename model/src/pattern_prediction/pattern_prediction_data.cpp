@@ -53,133 +53,80 @@
 CPattern_Prediction_Data::CPattern_Prediction_Data() {
 }
 
-void CPattern_Prediction_Data::Update(const double level) {
+void CPattern_Prediction_Data::push(const double level) {
     if (Is_Any_NaN(level)) return;
        
+    mState[mHead] = level;
+    mInvalidated = true;
 
-    mState.push_back(level);
-    if (mState.size() > mState_Size)
-        mState.erase(mState.begin());
+    mHead++;    
+    if (mHead >= mState.size()) {
+        mHead = 0;
+        mFull = true;
+    }
 }
 
 
-double CPattern_Prediction_Data::Level() const {   
+double CPattern_Prediction_Data::predict() const {       
 
-    double accu = 0.0;
-    for (const auto& e : mState) {
-        accu += e;
+    //const double avg = mRunning_Sum * (mFull ? mInverse_Count : (1.0 / static_cast<double>(mHead + 1.0)));
+
+    
+
+  /*  std::vector<double> x{ mState.begin(), mState.end() };
+    std::sort(x.begin(), x.end());
+    return x[x.size() / 2];
+*/
+    //if (mInvalidated) {
+
+        const size_t full_set_n = mFull ? mState.size() : mHead;
+        
+
+        double full_set_avg = 0.0;
+        for (size_t i = 0; i < full_set_n; i++) {
+            full_set_avg += mState[i];
+        }
+        full_set_avg /= static_cast<double>(full_set_n);
+
+
+        
+        double trusted_region_avg = 0.0;
+        double trusted_region_n = 0.0;
+
+        for (size_t i = 0; i < full_set_n; i++) {
+            const double tmp = fabs(mState[i] - full_set_avg);
+            if (tmp <= mTrusted_Perimeter) {
+                trusted_region_avg += mState[i];
+                trusted_region_n += 1.0;
+            }
+        }
+
+        return  trusted_region_avg / trusted_region_n;
+
+        /*mRecent_Prediction = trusted_region_n > 0.0 ?
+            trusted_region_avg / trusted_region_n :
+            full_set_avg;
+        
+        mInvalidated = false;
     }
-    return accu / static_cast<double>(mState.size());
 
-    if (mState.size() == 1) return mState[0];
-    if (mState.size() == 2) return 0.5 * (mState[0] + mState[1]);
-
-
-    size_t p95_cnt = std::max(static_cast<size_t>(static_cast<double>(mState.size()) * 0.95), static_cast<size_t>(1));
-    
-        /*
-    std::vector<double> state_copy{ mState.begin(), mState.end() };    
-
-
-    
-    std::sort(state_copy.begin(), state_copy.end());
-
-    //state_copy.resize(p95_cnt);
-    const size_t midp = state_copy.size() / 2;
-    return state_copy.size() % 2 != 0 ? state_copy[midp] : 0.5 * (state_copy[midp-1] + state_copy[midp]);
+    return mRecent_Prediction;
     */
     
-    auto [min_level, max_level] = std::minmax_element(mState.begin(), mState.end());
-
-    double best_sum = std::numeric_limits<double>::max();
-    double best_p95 = std::numeric_limits<double>::max();
-    double best_level = *min_level;
-    double level = *min_level;
-    
-
-    
-    const double p95_th = 0.15;
-
-    while (level <= *max_level) {
-
-        std::vector<double> errors;
-        for (const auto& e : mState) {
-            const double re = fabs(e - level) / e;
-            errors.push_back(re);
-         
-        }
-
-        std::sort(errors.begin(), errors.end());
-        errors.resize(p95_cnt);
-
-
-        double invn = static_cast<double>(errors.size());
-        //first, try Unbiased estimation of standard deviation
-       // if (invn > 1.5) invn -= 1.5;
-      //  else if (invn > 1.0) invn -= 1.0;	//if not, try to fall back to Bessel's Correction at least
-        invn = 1.0 / (invn-1.5);
-
-
-
-
-        double sum = 0.0;
-        for (const auto& e : errors) {
-            sum += e;
-        }
-
-        double avg = sum * invn;
-        sum = 0.0;
-        for (const auto& e : errors) {
-            const double tmp = avg - e;
-            sum += tmp * tmp;
-        }
-
-        avg += sqrt(sum * invn);
-        if (avg < best_sum) {
-            best_sum = avg;
-            best_level = level;
-        }
-        
-
-
-        
-        /*std::sort(errors.begin(), errors.end());
-        errors.resize(p95_cnt);
-
-        if (best_p95 > p95_th) {
-            //we need to fit 95% of all errors below 30%
-            if (errors[p95_cnt - 1] < best_p95) {
-                best_p95 = errors[p95_cnt - 1];
-                best_sum = std::accumulate(errors.begin(), errors.end(), 0.0);
-                best_level = level;
-            }
-        }
-        else if ((best_p95 <= p95_th) && (errors[p95_cnt - 1] <= p95_th)) {
-            const auto local_sum = std::accumulate(errors.begin(), errors.end(), 0.0);
-            if (local_sum < best_sum) {
-                best_p95 = errors[p95_cnt - 1];
-                best_sum = local_sum;
-                best_level = level;
-            }
-        }
-        */
-        
-
-        level += mStepping;
-    }
-
-    return best_level;   
 }
 
-bool CPattern_Prediction_Data::Valid() const {
-    return mState.size() > 0;
+CPattern_Prediction_Data::operator bool() const {
+    return (mHead > 0) || mFull;
 }
 
 
-void CPattern_Prediction_Data::Set_State(const double& level) {
-    mState.clear();
-    for (size_t i = 0; i < mState_Size; i++)
-        mState.push_back(level);
+void CPattern_Prediction_Data::Set_State(const double& level) {    
+    for (auto& e : mState)
+        e = level;
+    
+    mHead = 0;
+    mFull = true;
+    mInvalidated = true;
 }
 
 void CPattern_Prediction_Data::State_from_String(const std::wstring& state) {
@@ -188,11 +135,11 @@ void CPattern_Prediction_Data::State_from_String(const std::wstring& state) {
     wchar_t* buffer = nullptr;
     wchar_t* str_val = wcstok_s(const_cast<wchar_t*>(str_copy.data()), delimiters, &buffer);
     
-    while ((str_val != nullptr) && (mState.size()< mState_Size)) {
+    while (str_val != nullptr) {
          //and store the real value
          bool ok;
          const double value = str_2_dbl(str_val, ok);
-         if (ok) mState.push_back(value);
+         if (ok) push(value);
          else break;
 
         str_val = wcstok_s(nullptr, delimiters, &buffer);

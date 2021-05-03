@@ -112,6 +112,8 @@ struct CMeasured_Value
 	COptional<double> mSleepQuality;
 	// sleep end
 	COptional<double> mSleepEnd;
+	// acceleration vector magnitude
+	COptional<double> mAccelerationMagnitude;
 	// optional information
 	COptional<std::string> mStringNote;
 
@@ -123,12 +125,20 @@ struct CMeasured_Value
 		mIsig.reset();
 		mInsulinBolus.reset();
 		mInsulinBasalRate.reset();
+		mInsulinTempBasalRate.reset();
+		mInsulinTempBasalRateEnd.reset();
 		mCarbohydrates.reset();
 		mCalibration.reset();
 		mPhysicalActivity.reset();
+		mPhysicalActivityDuration.reset();
 		mSkinTemperature.reset();
+		mAirTemperature.reset();
 		mHeartrate.reset();
 		mElectrodermalActivity.reset();
 		mSteps.reset();
+		mSleepQuality.reset();
+		mSleepEnd.reset();
+		mAccelerationMagnitude.reset();
+		mStringNote.reset();
 	}
 };

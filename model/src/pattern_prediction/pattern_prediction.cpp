@@ -182,7 +182,7 @@ void CPattern_Prediction_Filter::Update_Learn(scgms::SSignal& ist, const double 
 		if (!mDo_Not_Learn) {
 
 			if (classified_ok)
-				mPatterns[static_cast<size_t>(pattern)][band_index].Update(current_ig_level);
+				mPatterns[static_cast<size_t>(pattern)][band_index].push(current_ig_level);
 
 			mUpdated_Levels = true;
 		}
@@ -246,8 +246,8 @@ double CPattern_Prediction_Filter::Predict(scgms::SSignal& ist, const double cur
 
 		const auto& patterns = mPatterns[static_cast<size_t>(pattern)];
 		const auto& pattern = patterns[pattern_band_index];
-		if (pattern.Valid())
-			predicted_level = pattern.Level();
+		if (pattern)
+			predicted_level = pattern.predict();
 	}
 
 	return predicted_level;
@@ -370,7 +370,7 @@ void CPattern_Prediction_Filter::Write_Parameters_File() {
 
 			const auto& pattern = mPatterns[pattern_idx][band_idx];
 
-			if (pattern.Valid()) {
+			if (pattern) {
 				const auto pattern_state = pattern.State_To_String();
 
 				const std::wstring section_name = isPattern+std::to_wstring(pattern_idx) + isBand + std::to_wstring(band_idx);
