@@ -89,6 +89,8 @@ const char* rsExtractorColumnStepsDatetime = "steps-datetime";
 const char* rsExtractorColumnSleep = "sleep-quality";
 const char* rsExtractorColumnSleepDatetime = "sleep-datetime";
 const char* rsExtractorColumnSleepDatetimeEnd = "sleep-datetime-end";
+const char* rsExtractorColumnAccelerationMagnitude = "acceleration-magnitude";
+const char* rsExtractorColumnAccelerationMagnitudeDatetime = "acceleration-magnitude-datetime";
 const char* rsExtractorColumnMiscNote = "misc-note";
 
 const char* dsDatabaseTimestampFormatShort = "%FT%T";
@@ -188,6 +190,8 @@ CExtractor::CExtractor()
 	mColumnTypes[rsExtractorColumnSleep] = ExtractorColumns::COL_SLEEP;
 	mColumnTypes[rsExtractorColumnSleepDatetime] = ExtractorColumns::COL_SLEEP_DATETIME;
 	mColumnTypes[rsExtractorColumnSleepDatetimeEnd] = ExtractorColumns::COL_SLEEP_DATETIME_END;
+	mColumnTypes[rsExtractorColumnAccelerationMagnitude] = ExtractorColumns::COL_ACCELERATION_MAGNITUDE;
+	mColumnTypes[rsExtractorColumnAccelerationMagnitudeDatetime] = ExtractorColumns::COL_ACCELERATION_MAGNITUDE_DATETIME;
 	mColumnTypes[rsExtractorColumnMiscNote] = ExtractorColumns::COL_MISC_NOTE;
 }
 
@@ -605,6 +609,7 @@ bool CExtractor::Extract_Hierarchy_File(std::string& formatName, CFormat_Adapter
 		{ ExtractorColumns::COL_AIR_TEMPERATURE, ExtractorColumns::COL_AIR_TEMPERATURE_DATETIME },
 		{ ExtractorColumns::COL_STEPS, ExtractorColumns::COL_STEPS_DATETIME },
 		{ ExtractorColumns::COL_SLEEP, ExtractorColumns::COL_SLEEP_DATETIME, ExtractorColumns::COL_SLEEP_DATETIME_END },
+		{ ExtractorColumns::COL_ACCELERATION_MAGNITUDE, ExtractorColumns::COL_ACCELERATION_MAGNITUDE_DATETIME },
 		{ ExtractorColumns::COL_INSULIN_TEMP_BASAL_RATE, ExtractorColumns::COL_INSULIN_TEMP_BASAL_RATE_DATETIME_BEGIN, ExtractorColumns::COL_INSULIN_TEMP_BASAL_RATE_DATETIME_END }
 	};
 
@@ -908,6 +913,9 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 
 							mval->mSleepQuality = dval * miscMultiplier;
 							mval->mSleepEnd = addValue; // already in rattime
+							break;
+						case ExtractorColumns::COL_ACCELERATION_MAGNITUDE:
+							mval->mAccelerationMagnitude = dval * miscMultiplier;
 							break;
 						default:
 							validValue = false;
