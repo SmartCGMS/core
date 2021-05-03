@@ -62,10 +62,33 @@ void CPattern_Prediction_Data::Update(const double level) {
         mState.erase(mState.begin());
 }
 
-double CPattern_Prediction_Data::Level() const {   
-    if (mState.size() == 1) return mState[0];
-    if (mState.size() == 2) return 0.5*(mState[0]+mState[1]);
 
+double CPattern_Prediction_Data::Level() const {   
+
+    double accu = 0.0;
+    for (const auto& e : mState) {
+        accu += e;
+    }
+    return accu / static_cast<double>(mState.size());
+
+    if (mState.size() == 1) return mState[0];
+    if (mState.size() == 2) return 0.5 * (mState[0] + mState[1]);
+
+
+    size_t p95_cnt = std::max(static_cast<size_t>(static_cast<double>(mState.size()) * 0.95), static_cast<size_t>(1));
+    
+        /*
+    std::vector<double> state_copy{ mState.begin(), mState.end() };    
+
+
+    
+    std::sort(state_copy.begin(), state_copy.end());
+
+    //state_copy.resize(p95_cnt);
+    const size_t midp = state_copy.size() / 2;
+    return state_copy.size() % 2 != 0 ? state_copy[midp] : 0.5 * (state_copy[midp-1] + state_copy[midp]);
+    */
+    
     auto [min_level, max_level] = std::minmax_element(mState.begin(), mState.end());
 
     double best_sum = std::numeric_limits<double>::max();
@@ -74,7 +97,7 @@ double CPattern_Prediction_Data::Level() const {
     double level = *min_level;
     
 
-    size_t p95_cnt = std::max(static_cast<size_t>(static_cast<double>(mState.size())*0.95), static_cast<size_t>(1));
+    
     const double p95_th = 0.15;
 
     while (level <= *max_level) {
