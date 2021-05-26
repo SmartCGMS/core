@@ -201,7 +201,7 @@ std::tuple<pattern_prediction::NPattern, size_t, bool> CPattern_Prediction_Filte
 		if (!Is_Any_NaN(levels)) {
 			
 			//acceleration and band-index are good on non-smoothed data
-			const bool acc = std::fabs(levels[3] - levels[2]) > std::fabs(levels[2] - levels[1]);
+			const bool acc = std::fabs(levels[2] - levels[1]) > std::fabs(levels[1] - levels[0]);			
 
 			std::get<NClassify::success>(result) = true;	//classified ok
 			std::get<NClassify::band>(result) = Level_2_Band_Index(levels[3]);
