@@ -201,20 +201,55 @@ std::tuple<pattern_prediction::NPattern, size_t, bool> CPattern_Prediction_Filte
 		if (!Is_Any_NaN(levels)) {
 			
 			//acceleration and band-index are good on non-smoothed data
-			const bool acc = std::fabs(levels[2] - levels[1]) > std::fabs(levels[1] - levels[0]);			
+			const bool acc = std::fabs(levels[3] - levels[2]) > std::fabs(levels[2] - levels[1]);			
 
 			std::get<NClassify::success>(result) = true;	//classified ok
 			std::get<NClassify::band>(result) = Level_2_Band_Index(levels[3]);
 
+			auto cmp_lev = [&](const double l, const double r)->std::tuple<bool, bool, bool> {
+				std::tuple<bool, bool, bool> result{ false, false, false };
+
+				if (fabs(l - r) <= pattern_prediction::Steady_Epsilon) std::get<1>(result) = true;
+				else if (l < r) std::get<0>(result) = true;
+				else std::get<2>(result) = true;	//l>r
+
+				return result;
+			};
+
+			/*
 			//pattern recognition works best on smoothed data
 			const double l10 = 0.25 * levels[0] + 0.5 * levels[1] + 0.25 * levels[2];
-			const double l05 = 0.25 * levels[1] + 0.5 * levels[2] + 0.25 * levels[3];			
-			const double l00 = 0.25 * levels[1] + 0.25 * levels[2] + 0.5 * levels[3];					
+			const double l05 = 0.25 * levels[1] + 0.5 * levels[2] + 0.25 * levels[3];
+			const double l00 = 0.25 * levels[1] + 0.25 * levels[2] + 0.5 * levels[3];
 
-			levels[0] = l10;
-			levels[1] = l05;
-			levels[2] = l00;
+			levels[1] = l10;
+			levels[2] = l05;
+			levels[3] = l00;
+			*/
 
+			const auto [alb, aeb, agb] = cmp_lev(levels[1], levels[2]);
+			const auto [blc, bec, bgc] = cmp_lev(levels[2], levels[3]);
+			const auto [alc, aec, agc] = cmp_lev(levels[1], levels[3]);
+
+
+			if (alb && blc && acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::accel;
+			else if (alb && blc && !acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::up;
+			else if (alb && bec ) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::concave_steady;
+			else if (alb && bgc && alc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::concave_slow;
+			else if (alb && bgc && agc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::concave_fast;
+			
+			else if (agb && blc && alc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::convex_fast;
+			else if (agb && blc && agc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::convex_slow;
+			else if (agb && bec) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::convex_steady;
+			else if (agb && bgc && !acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::down;
+			else if (agb && bgc && acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::deccel;
+
+			else if (aeb && blc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::steady_up;
+			else if (aeb && bgc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::steady_down;
+			else std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::steady;	//nor more options left
+			
+			/*
+			
 			const bool agb = levels[0] > levels[1];
 			const bool alb = !agb;
 
@@ -233,6 +268,7 @@ std::tuple<pattern_prediction::NPattern, size_t, bool> CPattern_Prediction_Filte
 			else if (alb && blc && (!acc)) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::up;
 			else if (alb && blc && acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::accel;
 			else std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::steady;
+			*/
 		}
 	}
 
@@ -275,7 +311,7 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list erro
 
 			if (swscanf_s(section_name.pItem, format.c_str(), &pattern_idx, &band_idx) == 2) {
 
-				if ((pattern_idx < static_cast<int>(pattern_prediction::NPattern::count)) && (band_idx < static_cast<int>(pattern_prediction::Band_Count))) {
+				if ((pattern_idx < static_cast<int>(mPatterns.size())) && (band_idx < static_cast<int>(pattern_prediction::Band_Count))) {
 
 					auto& pattern = mPatterns[pattern_idx][band_idx];
 					bool all_valid = true;
@@ -344,7 +380,7 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_From_Config(scgms::SFilter_C
 
 		size_t def_idx = 0;
 
-		for (size_t pattern_idx = 0; pattern_idx < static_cast<size_t>(pattern_prediction::NPattern::count); pattern_idx++) {
+		for (size_t pattern_idx = 0; pattern_idx < mPatterns.size(); pattern_idx++) {
 			for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {
 				auto& pattern = mPatterns[pattern_idx][band_idx];
 
@@ -365,7 +401,7 @@ void CPattern_Prediction_Filter::Write_Parameters_File() {
 
 	CSimpleIniW ini;
 
-	for (size_t pattern_idx = 0; pattern_idx < static_cast<size_t>(pattern_prediction::NPattern::count); pattern_idx++) {
+	for (size_t pattern_idx = 0; pattern_idx < mPatterns.size(); pattern_idx++) {
 		for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {
 
 			const auto& pattern = mPatterns[pattern_idx][band_idx];

@@ -56,6 +56,30 @@ namespace pattern_prediction {
 
     static constexpr size_t Band_Count = Internal_Bound_Count + 2;
 
+    static constexpr double Steady_Epsilon = 0.1; //epsilon for considering two levels as equal
+
+    enum class NPattern : size_t {
+        accel = 0,                  //a<b<c & acc       ;acc = |c-b|>|b-a|
+        up,                         //a<b<c & !acc
+        concave_steady,             //a<b & b==c
+        concave_slow,               //a<b &b>c & a<c
+        concave_fast,               //a<b &b>c & a>c
+
+        steady_up,                  //a=b & b<c
+        steady,                     //a=b & b=c
+        steady_down,                //a=b & b>c
+
+        convex_fast,                //a>b & b<c & a<c
+        convex_slow,                //a>b & b<c & a>c
+        convex_steady,              //a>b & b==c
+        down,                       //a>b>c & !acc
+        deccel,                     //a>b>c & acc
+
+        count
+
+    };
+
+    /*
     enum class NPattern : size_t {
         deccel = 0,             //a>b>c && acc; acc = |c-b|>|b-a|
         down,                   //a>b>c && !acc
@@ -65,11 +89,11 @@ namespace pattern_prediction {
         concave_fast,           //a<b>c & a>c
         concave_slow,           //a<b>c & a<c
         up,                     //a<b<c & !acc
-        accel,                  //a<b<c & acc        
+        accel,                  //a<b<c & acc
         count
-
-        //intentionally, we do not consider acceleration, because it actually worsens the results
+      
     };
+    */
 
     constexpr size_t model_param_count = Band_Count * static_cast<size_t>(NPattern::count);
 
