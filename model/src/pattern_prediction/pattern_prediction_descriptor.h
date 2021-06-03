@@ -79,16 +79,7 @@ namespace pattern_prediction {
 
     };
 
-    enum class NPattern_Speed : size_t {
-        slow = 0,
-        normal,
-        fast,
-
-        count
-    };
-
-
-    constexpr size_t model_param_count = Band_Count * static_cast<size_t>(NPattern::count);
+      constexpr size_t model_param_count = Band_Count * static_cast<size_t>(NPattern::count);
 
 	const GUID filter_id = { 0xa730a576, 0xe84d, 0x4834, { 0x82, 0x6f, 0xfa, 0xee, 0x56, 0x4e, 0x6a, 0xbd } };  // {A730A576-E84D-4834-826F-FAEE564E6ABD}
     constexpr const GUID signal_Pattern_Prediction = { 0x4f9d0e51, 0x65e3, 0x4aaf, { 0xa3, 0x87, 0xd4, 0xd, 0xee, 0xe0, 0x72, 0x50 } }; 		// {4F9D0E51-65E3-4AAF-A387-D40DEEE07250}

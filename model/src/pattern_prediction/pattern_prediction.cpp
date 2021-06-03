@@ -177,12 +177,12 @@ double CPattern_Prediction_Filter::Update_And_Predict(const uint64_t segment_id,
 
 void CPattern_Prediction_Filter::Update_Learn(scgms::SSignal& ist, const double current_time, const double current_ig_level) {
 	if (Succeeded(ist->Update_Levels(&current_time, &current_ig_level, 1))) {
-		auto [pattern, pattern_speed, band_index, classified_ok] = Classify(ist, current_time - mDt);
+		auto [pattern, band_index, classified_ok] = Classify(ist, current_time - mDt);
 
 		if (!mDo_Not_Learn) {
 
 			if (classified_ok)
-				mPatterns[static_cast<size_t>(pattern)][static_cast<size_t>(pattern_speed)][band_index].push(current_ig_level);
+				mPatterns[static_cast<size_t>(pattern)][band_index].push(current_ig_level);
 
 			mUpdated_Levels = true;
 		}
@@ -190,7 +190,7 @@ void CPattern_Prediction_Filter::Update_Learn(scgms::SSignal& ist, const double 
 }
 
 CPattern_Prediction_Filter::TClassification  CPattern_Prediction_Filter::Classify(scgms::SSignal& ist, const double current_time) {
-	TClassification result{ pattern_prediction::NPattern::steady, pattern_prediction::NPattern_Speed::normal, pattern_prediction::Band_Count / 2, false };
+	TClassification result{ pattern_prediction::NPattern::steady, pattern_prediction::Band_Count / 2, false };
 
 	std::array<double, 3> levels;
 	const std::array<double, 3> times = { current_time - 10.0 * scgms::One_Minute,
@@ -211,20 +211,8 @@ CPattern_Prediction_Filter::TClassification  CPattern_Prediction_Filter::Classif
 
 				return result;
 			};
-
-
-			const double diff_ab = std::fabs(levels[0] - levels[1]);
-			const double diff_bc = std::fabs(levels[1] - levels[2]);
-			const bool acc = diff_ab < diff_bc;
-
 			
-			const double total_diff = diff_bc;
-			if (total_diff < 0.5) std::get<NClassify::speed>(result) = pattern_prediction::NPattern_Speed::slow;
-			else if (total_diff < 1.0) std::get<NClassify::speed>(result) = pattern_prediction::NPattern_Speed::normal;
-			else std::get<NClassify::speed>(result) = pattern_prediction::NPattern_Speed::fast;
-			
-
-			//const bool acc = std::fabs(levels[2] - levels[1]) > std::fabs(levels[1] - levels[0]);
+			const bool acc = std::fabs(levels[2] - levels[1]) > std::fabs(levels[1] - levels[0]);
 
 			const auto [alb, aeb, agb] = cmp_lev(levels[0], levels[1]);
 			const auto [blc, bec, bgc] = cmp_lev(levels[1], levels[2]);
@@ -254,10 +242,10 @@ CPattern_Prediction_Filter::TClassification  CPattern_Prediction_Filter::Classif
 
 double CPattern_Prediction_Filter::Predict(scgms::SSignal& ist, const double current_time) {
 	double predicted_level = std::numeric_limits<double>::quiet_NaN();
-	auto [pattern, pattern_speed, pattern_band_index, classified_ok] = Classify(ist, current_time);
+	auto [pattern, pattern_band_index, classified_ok] = Classify(ist, current_time);
 	if (classified_ok) {
 
-		auto& patterns = mPatterns[static_cast<size_t>(pattern)][static_cast<size_t>(pattern_speed)];
+		auto& patterns = mPatterns[static_cast<size_t>(pattern)];
 		auto& pattern = patterns[pattern_band_index];
 		if (pattern)
 			predicted_level = pattern.predict();
@@ -281,20 +269,18 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list erro
 		std::list<CSimpleIniW::Entry> section_names;
 		ini.GetAllSections(section_names);
 
-		const std::wstring format = isPattern + std::wstring{L"%d"} + isSpeed + L"%d" + isBand + L"%d";
+		const std::wstring format = isPattern + std::wstring{L"%d"} + isBand + L"%d";
 		for (auto& section_name : section_names) {
-			int pattern_idx = std::numeric_limits<int>::max();
-			int pattern_speed = std::numeric_limits<int>::max();
+			int pattern_idx = std::numeric_limits<int>::max();			
 			int band_idx = std::numeric_limits<int>::max();
 
-			if (swscanf_s(section_name.pItem, format.c_str(), &pattern_idx, &pattern_speed, &band_idx) == 3) {
+			if (swscanf_s(section_name.pItem, format.c_str(), &pattern_idx, &band_idx) == 2) {
 
 				if ((pattern_idx < static_cast<int>(mPatterns.size())) &&
-					(pattern_speed < static_cast<int>(pattern_prediction::NPattern_Speed::count)) &&
 					(band_idx < static_cast<int>(pattern_prediction::Band_Count))) {
 
 
-					auto& pattern = mPatterns[pattern_idx][pattern_speed][band_idx];
+					auto& pattern = mPatterns[pattern_idx][band_idx];
 					bool all_valid = true;
 
 					std::wstring state = ini.GetValue(section_name.pItem, iiState);
@@ -361,15 +347,13 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_From_Config(scgms::SFilter_C
 
 		size_t def_idx = 0;
 
-		for (size_t pattern_idx = 0; pattern_idx < mPatterns.size(); pattern_idx++) {
-			for (size_t pattern_speed = 0; pattern_speed < static_cast<size_t>(pattern_prediction::NPattern_Speed::count); pattern_speed++) {
-				for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {					
-					auto& pattern = mPatterns[pattern_idx][pattern_speed][band_idx];
+		for (size_t pattern_idx = 0; pattern_idx < mPatterns.size(); pattern_idx++) {			
+			for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {					
+				auto& pattern = mPatterns[pattern_idx][band_idx];
 
-					pattern.Set_State(def[def_idx]);
+				pattern.Set_State(def[def_idx]);
 
-					def_idx++;
-				}
+				def_idx++;
 			}
 		}
 	}
@@ -384,22 +368,20 @@ void CPattern_Prediction_Filter::Write_Parameters_File() {
 
 	CSimpleIniW ini;
 
-	for (size_t pattern_idx = 0; pattern_idx < mPatterns.size(); pattern_idx++) {
-		for (size_t pattern_speed = 0; pattern_speed < static_cast<size_t>(pattern_prediction::NPattern_Speed::count); pattern_speed++) {
-			for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {
+	for (size_t pattern_idx = 0; pattern_idx < mPatterns.size(); pattern_idx++) {		
+		for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {
 
-				const auto& pattern = mPatterns[pattern_idx][pattern_speed][band_idx];
+			const auto& pattern = mPatterns[pattern_idx][band_idx];
 
-				if (pattern) {
-					const auto pattern_state = pattern.State_To_String();
+			if (pattern) {
+				const auto pattern_state = pattern.State_To_String();
 
-					const std::wstring section_name = isPattern + std::to_wstring(pattern_idx) + isSpeed + std::to_wstring(pattern_speed) + isBand + std::to_wstring(band_idx);
-					const wchar_t* section_name_ptr = section_name.c_str();
-					ini.SetValue(section_name_ptr, iiState, pattern_state.c_str());
+				const std::wstring section_name = isPattern + std::to_wstring(pattern_idx) + isBand + std::to_wstring(band_idx);
+				const wchar_t* section_name_ptr = section_name.c_str();
+				ini.SetValue(section_name_ptr, iiState, pattern_state.c_str());
 
-					//diagnostic
-					//ini.SetLongValue(section_name_ptr, L"Predicted_Band", Level_2_Band_Index(pattern_state.running_median));
-				}
+				//diagnostic
+				//ini.SetLongValue(section_name_ptr, L"Predicted_Band", Level_2_Band_Index(pattern_state.running_median));
 			}
 		}
 	}
