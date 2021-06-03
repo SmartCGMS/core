@@ -192,16 +192,15 @@ void CPattern_Prediction_Filter::Update_Learn(scgms::SSignal& ist, const double 
 std::tuple<pattern_prediction::NPattern, size_t, bool> CPattern_Prediction_Filter::Classify(scgms::SSignal& ist, const double current_time) {
 	std::tuple<pattern_prediction::NPattern, size_t, bool> result{ pattern_prediction::NPattern::steady, pattern_prediction::Band_Count / 2, false };
 
-	std::array<double, 4> levels;
-	const std::array<double, 4> times = { current_time - 15.0 * scgms::One_Minute,
-										  current_time - 10.0 * scgms::One_Minute,
+	std::array<double, 3> levels;
+	const std::array<double, 3> times = { current_time - 10.0 * scgms::One_Minute,
 										  current_time - 5.0 * scgms::One_Minute,
 										  current_time };
 	if (ist->Get_Continuous_Levels(nullptr, times.data(), levels.data(), levels.size(), scgms::apxNo_Derivation) == S_OK) {
 		if (!Is_Any_NaN(levels)) {
 		
 			std::get<NClassify::success>(result) = true;	//classified ok
-			std::get<NClassify::band>(result) = Level_2_Band_Index(levels[3]);
+			std::get<NClassify::band>(result) = Level_2_Band_Index(levels[2]);
 
 			auto cmp_lev = [&](const double l, const double r)->std::tuple<bool, bool, bool> {
 				std::tuple<bool, bool, bool> result{ false, false, false };
@@ -213,24 +212,23 @@ std::tuple<pattern_prediction::NPattern, size_t, bool> CPattern_Prediction_Filte
 				return result;
 			};
 
-			
-			const bool acc = std::fabs(levels[3] - levels[2]) > std::fabs(levels[2] - levels[1]);
+			const bool acc = std::fabs(levels[2] - levels[1]) > std::fabs(levels[1] - levels[0]);
 
-			const auto [alb, aeb, agb] = cmp_lev(levels[1], levels[2]);
-			const auto [blc, bec, bgc] = cmp_lev(levels[2], levels[3]);
-			const auto [alc, aec, agc] = cmp_lev(levels[1], levels[3]);
+			const auto [alb, aeb, agb] = cmp_lev(levels[0], levels[1]);
+			const auto [blc, bec, bgc] = cmp_lev(levels[1], levels[2]);
+			const auto [alc, aec, agc] = cmp_lev(levels[0], levels[2]);
 
 
 			if (alb && blc && acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::accel;
 			else if (alb && blc && !acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::up;
 			else if (alb && bec ) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::concave_steady;
-			else if (alb && bgc && alc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::concave_slow;
+			else if (alb && bgc && !agc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::concave_slow;
 			else if (alb && bgc && agc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::concave_fast;
 			
 			else if (agb && blc && alc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::convex_fast;
-			else if (agb && blc && agc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::convex_slow;
+			else if (agb && blc && !alc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::convex_slow;
 			else if (agb && bec) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::convex_steady;
-			else if (agb && bgc && !acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::down;
+			else if (agb && bgc && !acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::down;		
 			else if (agb && bgc && acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::deccel;
 
 			else if (aeb && blc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::steady_up;

@@ -79,22 +79,6 @@ namespace pattern_prediction {
 
     };
 
-    /*
-    enum class NPattern : size_t {
-        deccel = 0,             //a>b>c && acc; acc = |c-b|>|b-a|
-        down,                   //a>b>c && !acc
-        convex_slow,            //a>b<c & a>c
-        convex_fast,            //a>b<c & a<c
-        steady,                 //everything else
-        concave_fast,           //a<b>c & a>c
-        concave_slow,           //a<b>c & a<c
-        up,                     //a<b<c & !acc
-        accel,                  //a<b<c & acc
-        count
-      
-    };
-    */
-
     constexpr size_t model_param_count = Band_Count * static_cast<size_t>(NPattern::count);
 
 	const GUID filter_id = { 0xa730a576, 0xe84d, 0x4834, { 0x82, 0x6f, 0xfa, 0xee, 0x56, 0x4e, 0x6a, 0xbd } };  // {A730A576-E84D-4834-826F-FAEE564E6ABD}
