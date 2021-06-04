@@ -221,13 +221,11 @@ CPattern_Prediction_Filter::TClassification  CPattern_Prediction_Filter::Classif
 
 			if (alb && blc && acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::accel;
 			else if (alb && blc && !acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::up;
-			else if (alb && bec ) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::concave_steady;
-			else if (alb && bgc && !agc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::concave_slow;
-			else if (alb && bgc && agc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::concave_fast;
+			else if (alb && bec ) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::up_steady;
+			else if (alb && bgc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::concave;
 			
-			else if (agb && blc && alc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::convex_fast;
-			else if (agb && blc && !alc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::convex_slow;
-			else if (agb && bec) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::convex_steady;
+			else if (agb && blc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::convex;
+			else if (agb && bec) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::down_steady;
 			else if (agb && bgc && !acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::down;		
 			else if (agb && bgc && acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::deccel;
 

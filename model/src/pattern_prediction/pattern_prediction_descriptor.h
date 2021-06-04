@@ -61,17 +61,15 @@ namespace pattern_prediction {
     enum class NPattern : size_t {
         accel = 0,                  //a<b<c & acc       ;acc = |c-b|>|b-a|
         up,                         //a<b<c & !acc
-        concave_steady,             //a<b & b==c
-        concave_slow,               //a<b &b>c & a<c
-        concave_fast,               //a<b &b>c & a>c
+        up_steady,                  //a<b & b==c
+        concave,                    //a<b &b>c
 
         steady_up,                  //a=b & b<c
         steady,                     //a=b & b=c
         steady_down,                //a=b & b>c
 
-        convex_fast,                //a>b & b<c & a<c
-        convex_slow,                //a>b & b<c & a>c
-        convex_steady,              //a>b & b==c
+        convex,                     //a>b & b<c
+        down_steady,                //a>b & b==c
         down,                       //a>b>c & !acc
         deccel,                     //a>b>c & acc
 
