@@ -233,7 +233,7 @@ CPattern_Prediction_Filter::TClassification  CPattern_Prediction_Filter::Classif
 
 			else if (aeb && blc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::steady_up;
 			else if (aeb && bgc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::steady_down;
-			else std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::steady;	//nor more options left		
+			else std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::steady;	//no more options left		
 		}
 	}
 
