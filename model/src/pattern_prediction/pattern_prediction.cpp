@@ -216,7 +216,7 @@ CPattern_Prediction_Filter::TClassification CPattern_Prediction_Filter::Classify
 
 			const auto [alb, aeb, agb] = cmp_lev(levels[0], levels[1]);
 			const auto [blc, bec, bgc] = cmp_lev(levels[1], levels[2]);
-			const auto [alc, aec, agc] = cmp_lev(levels[0], levels[2]);
+			//const auto [alc, aec, agc] = cmp_lev(levels[0], levels[2]);
 
 
 			if (alb && blc && acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::accel;
