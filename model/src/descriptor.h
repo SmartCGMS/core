@@ -704,7 +704,6 @@ namespace gct2_model {
 	q1sc - transfer rate of diffusion between Q1 and Qsc
 	ix - transfer rate I -> X
 	xq1 - moderation rate Q1 -(X)-> sink
-	d12 - transfer rate D1 -> D2 ("digestion" rate)
 	d2q1 - transfer rate D2 -> Q1 (glucose absorption rate)
 	isc2i - transfer rate Isc2 -> I
 	isc2e - elimination rate of Isc2 insulin (local degradation, proposed by Hovorka, http://doi.org/10.1109/TBME.2004.839639 )
@@ -715,7 +714,8 @@ namespace gct2_model {
 	xe - elimination rate of X by glucose utilization moderation (coupled with xq1)
 
 	q1p - glucose appearance rate from glycogen and miscellanous sources
-	q1pe - glucose appearance moderated 
+	q1pe - glucose appearance moderated by exercise effects
+	q1pi - glucose appearance inhibition by insulin presence
 	ip - insulin production factor (how glucose stimulates insulin production)
 
 	e_pa - exercise-production virtual modulator appearance
@@ -743,19 +743,17 @@ namespace gct2_model {
 				// patient quantity and base parameters
 				double Vq, Vqsc, Vi, Q1b, Gthr, GIthr;
 				// transfer parameters
-				double q12, q1sc, ix, xq1, d12, d2q1, isc2i, isc2e;
+				double q12, q1sc, ix, xq1, d2q1, isc2i, isc2e;
 				// elimination parameters
 				double q1e, q1ee, q1e_thr, xe;
 				// production parameters
-				double q1p, q1pe, ip;
+				double q1p, q1pe, q1pi, ip;
 				// exercise-related parameters
 				double e_pa, e_ua, e_pe, e_ue, q_ep, q_eu;
 				// exercise-related long-term parameters
 				double e_lta, e_lte, e_Si;
 				// misc parameters
-				double Ag, t_d, t_i;
-
-				double t_id;
+				double Ag, t_d, t_i, t_id;
 			};
 			double vector[model_param_count];
 		};
@@ -766,12 +764,12 @@ namespace gct2_model {
 			0,    0,    0,     0,   0,     0,   0,    0,
 		//	Vq,  Vqsc, Vi, Q1b, Gthr, GIthr,
 			3,   1,    3,  50,  8.0,  4.0,
-		//	q12,  q1sc, ix,  xq1, d12,  d2q1, isc2i, isc2e
-			0.5, 1.4,  80,  3,   14.0, 14.0, 20,    1,
+		//	q12,  q1sc, ix, xq1, d2q1, isc2i, isc2e
+			0.5, 1.4,   1,  1,   14.0, 20,    1,
 		//	q1e,   q1ee,  q1e_thr, xe,
 			0.144, 0.144, 0.001,   0.1,
-		//	q1p,     q1pe,   ip,
-			0.00001, 0.0001, 0.0,
+		//	q1p,     q1pe,   q1pi,    ip,
+			0.00001, 0.0001, 0.00001, 0.0,
 		//	e_pa, e_ua, e_pe, e_ue, q_ep, q_eu
 			100,  100,  100,  100,  50,   50,
 		//	e_lta, e_lte, e_Si
@@ -787,13 +785,13 @@ namespace gct2_model {
 		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0
 			350,  65,   250,   0,   0,     0,   0,    0,
 		//	Vq,  Vqsc, Vi, Q1b, Gthr, GIthr,
-			30,  25,   10, 240, 8.0, 5.0,
-		//	q12, q1sc, ix,  xq1, d12,   d2q1,  isc2i, isc2e
-			0.8, 8,    150, 10,  144.0, 144.0, 35,     2,
+			8,   5,    10, 240, 8.0, 5.0,
+		//	q12, q1sc, ix, xq1, d2q1,  isc2i, isc2e
+			0.8, 8,    5,  5,   144.0, 35,     2,
 		//	q1e,     q1ee,    q1e_thr, xe,
 			0.38519, 0.38519, 0.8,     0.3,
-		//	q1p,  q1pe, ip,
-			0.01, 0.1,  0.0,
+		//	q1p,  q1pe, q1pi,  ip,
+			0.01, 0.1,  0.001, 0.0,
 		//	e_pa, e_ua, e_pe, e_ue, q_ep, q_eu
 			200, 200, 342, 200, 180, 100,
 		//	e_lta, e_lte, e_Si
@@ -809,13 +807,13 @@ namespace gct2_model {
 		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0
 			500,  500,  500,   500, 500,   500, 200,  200,
 		//	Vq,  Vqsc, Vi, Q1b,  Gthr, GIthr,
-			60,  60,   20, 1000, 14.0, 8.0,
-		//	q12, q1sc, ix,  xq1,  d12,   d2q1,  isc2i, isc2e
-			1.5, 24.0, 200, 15.0, 144.0, 144.0, 50,    20,
+			10,  10,   20, 1000, 14.0, 8.0,
+		//	q12, q1sc, ix,  xq1,  d2q1,  isc2i, isc2e
+			1.5, 24.0, 50,  10.0, 144.0, 50,    20,
 		//	q1e,  q1ee, q1e_thr, xe,
 			14.4, 14.4, 0.8,     2.0,
-		//	q1p,  q1pe, ip
-			0.01, 0.1,  0.05,
+		//	q1p,  q1pe, q1pi, ip
+			0.01, 0.1,  0.1,  0.05,
 		//	e_pa, e_ua, e_pe, e_ue, q_ep, q_eu
 			500,  500,  500,  500,  250,  250,
 		//	e_lta, e_lte, e_Si

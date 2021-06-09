@@ -124,6 +124,10 @@ namespace gct2_model
 				mModerators.push_back(TModerator{ moderator, std::make_unique<TModFunc>(std::forward<Args>(args)...) });
 			}
 
+			void Init(const double currentTime) {
+				mLast_Time = currentTime;
+			}
+
 			// steps link to given time
 			void Step(const double currentTime);
 
@@ -168,6 +172,9 @@ namespace gct2_model
 
 			// current depot volume (to be able to calculate concentration); we assume unit volume until changed
 			double mSolution_Volume = 1.0;
+
+			// current time
+			double mCurrent_Time = 0.0;
 
 			// for debugging purposes - depot name
 			std::wstring mName;
@@ -219,7 +226,7 @@ namespace gct2_model
 			CDepot& operator=(const CDepot& other) = delete;
 
 			// support move; try to respect conservation of mass even on architectural level
-			CDepot(CDepot&& other) noexcept : mQuantity(other.mQuantity), mNext_Quantity(other.mNext_Quantity), mAllow_Negative(other.mAllow_Negative) {
+			CDepot(CDepot&& other) noexcept : mQuantity(other.mQuantity), mNext_Quantity(other.mNext_Quantity), mAllow_Negative(other.mAllow_Negative), mPersistent(other.mPersistent), mSolution_Volume(other.mSolution_Volume), mCurrent_Time(other.mCurrent_Time) {
 				other.mQuantity = 0.0;
 				other.mNext_Quantity = 0.0;
 			}
@@ -227,6 +234,9 @@ namespace gct2_model
 				mQuantity = other.mQuantity;
 				mNext_Quantity = other.mNext_Quantity;
 				mAllow_Negative = other.mAllow_Negative;
+				mPersistent = other.mPersistent;
+				mSolution_Volume = other.mSolution_Volume;
+				mCurrent_Time = other.mCurrent_Time;
 
 				other.mQuantity = 0.0;
 				return *this;
@@ -268,6 +278,15 @@ namespace gct2_model
 				return mName;
 			}
 
+			void Init(const double currentTime) {
+
+				mCurrent_Time = currentTime;
+
+				for (auto& link : mLinks) {
+					link.Init(currentTime);
+				}
+			}
+
 			// steps depot to current time
 			void Step(const double currentTime) {
 				// step every link
@@ -290,13 +309,18 @@ namespace gct2_model
 					}),
 					mLinks.end()
 				);
+
+				mCurrent_Time = currentTime;
 			}
 
 			// add link from this depot to another; first type argument represents type of transfer function, variable arguments are passed to its constructor
 			template<typename TTransferFnc, typename... Args>
 			bool Link_To(CDepot& target, Args... args) {
 
-				mLinks.push_back(CDepot_Link::Create<TTransferFnc, Args...>(*this, target, std::forward<Args>(args)...));
+				auto link = CDepot_Link::Create<TTransferFnc, Args...>(*this, target, std::forward<Args>(args)...);
+				link.Init(mCurrent_Time);
+
+				mLinks.push_back(std::move(link));
 
 				return true;
 			}
@@ -306,6 +330,7 @@ namespace gct2_model
 			bool Moderated_Link_To(CDepot& target, TModerator_Add_Fnc addCallback, Args... args) {
 
 				auto link = CDepot_Link::Create<TTransferFnc, Args...>(*this, target, std::forward<Args>(args)...);
+				link.Init(mCurrent_Time);
 				addCallback(link);
 
 				mLinks.push_back(std::move(link));
@@ -378,6 +403,9 @@ namespace gct2_model
 			// depots within this compartment
 			std::vector<std::unique_ptr<CDepot>> mDepots;
 
+			// current time
+			double mCurrent_Time = 0.0;
+
 		public:
 			CCompartment() = default;
 
@@ -414,6 +442,14 @@ namespace gct2_model
 
 			double Get_Concentration() const override {
 				return Get_Quantity() / Get_Solution_Volume();
+			}
+
+			void Init(const double currentTime) {
+				mCurrent_Time = currentTime;
+
+				for (auto& depot : mDepots) {
+					depot->Init(currentTime);
+				}
 			}
 
 			// steps all depots in compartment to given time
@@ -466,6 +502,8 @@ namespace gct2_model
 			
 				auto ptr = std::make_unique<TDepot>(std::forward<Args>(args)...);
 				TDepot& res = *ptr; // pointer/reference will remain valid
+
+				res.Init(mCurrent_Time);
 
 				mDepots.push_back(std::move(ptr));
 

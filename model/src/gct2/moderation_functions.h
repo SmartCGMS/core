@@ -219,4 +219,35 @@ namespace gct2_model
 			}
 	};
 
+	/**
+	 * Transfer is moderated proportionally to moderator with base of 1.0, negatively
+	 * Moderator does not get eliminated
+	 * e.g.; moderation of transfers, that would happen even without the presence of the moderator, but
+	 *       the presence of moderator moderates the transfer negatively (i.e.; the more moderator, the less
+	 *       is transferred)
+	 * 
+	 * Moderator input ranges from 0.0 to 1.0
+	 * 1.0 is returned when no moderator is present
+	 * 0.0 is a limit value when moderator amount goes to infinity
+	 */
+	class CGaussian_Base_Moderation_No_Elimination_Function : public CModeration_Function {
+
+		protected:
+			double mModeration_Factor = 1.0;
+
+		public:
+			CGaussian_Base_Moderation_No_Elimination_Function(double modFactor)
+				: mModeration_Factor(modFactor) {
+				//
+			}
+
+			virtual double Get_Moderation_Input(double moderatorAmount) const override {
+				return std::exp(-moderatorAmount * moderatorAmount / (2.0 * mModeration_Factor)); // mModeration_Factor is already considered to be squared (to save some operations)
+			}
+
+			virtual double Get_Elimination_Input(double moderatorAmount) const override {
+				return 0.0;
+			}
+	};
+
 }

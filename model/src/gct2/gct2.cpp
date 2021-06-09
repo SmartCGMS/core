@@ -42,7 +42,8 @@
 //#define GCT_DEBUG_DRAWING
 
 // redirect incoming depots to a single persistent intermediate depot? This may come in handy in preliminary optimalization to speed things up
-#define GCT_SINGLE_INTERMEDIATE_DEPOT
+#define GCT_SINGLE_ISC_INTERMEDIATE_DEPOT
+#define GCT_SINGLE_D_INTERMEDIATE_DEPOT
 
 #include "../../../../common/rtl/SolverLib.h"
 
@@ -149,7 +150,7 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 	elt.Set_Persistent(true);
 	elt.Set_Name(L"Elt");
 
-#ifdef GCT_SINGLE_INTERMEDIATE_DEPOT
+#ifdef GCT_SINGLE_ISC_INTERMEDIATE_DEPOT
 	// Isc2 intermediate compartment (link between Isc2 and I)
 	auto& isc2 = mCompartments[NGCT_Compartment::Insulin_Subcutaneous_2].Create_Depot(0.0, false);
 
@@ -157,7 +158,9 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 	isc2.Set_Name(L"Isc2 (cpl)");
 	isc2.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot(), CTransfer_Function::Start, CTransfer_Function::Unlimited, mParameters.isc2i);
 	isc2.Link_To<CConstant_Unbounded_Transfer_Function>(mInsulin_Sink, CTransfer_Function::Start, CTransfer_Function::Unlimited, mParameters.isc2e);
+#endif
 
+#ifdef GCT_SINGLE_D_INTERMEDIATE_DEPOT
 	// D2 intermediate compartment (link between D1 and Q1)
 	auto& d2 = mCompartments[NGCT_Compartment::Carbs_2].Create_Depot(0.0, false);
 
@@ -169,24 +172,28 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 	//// Glucose subsystem links
 
 	// two glucose compartments diffusion flux
-	q1.Link_To<CTwo_Way_Diffusion_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(q2,
+	q1.Link_To<CTwo_Way_Diffusion_Unbounded_Transfer_Function>(q2,
 		CTransfer_Function::Start,
 		CTransfer_Function::Unlimited,
-		q1, q2,
+		std::ref(q1), std::ref(q2),
 		mParameters.q12);
 
 	// diffusion between main compartment and subcutaneous tissue
-	q1.Link_To<CTwo_Way_Diffusion_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(qsc,
+	q1.Link_To<CTwo_Way_Diffusion_Unbounded_Transfer_Function>(qsc,
 		CTransfer_Function::Start,
 		CTransfer_Function::Unlimited,
-		q1, qsc,
+		std::ref(q1), std::ref(qsc),
 		mParameters.q1sc);
 
 	// glucose appearance due to endogennous production
-	q_src.Link_To<CDifference_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(q1,
+	q_src.Moderated_Link_To<CDifference_Unbounded_Transfer_Function>(q1,
+		[&x, this](CDepot_Link& link) {
+			// production is inhibited by insulin presence
+			link.Add_Moderator<CGaussian_Base_Moderation_No_Elimination_Function>(x, mParameters.q1pi);
+		},
 		CTransfer_Function::Start,
 		CTransfer_Function::Unlimited,
-		q_src, q1,
+		std::ref(q_src), std::ref(q1),
 		mParameters.q1p);
 
 	// glucose appearance due to exercise
@@ -199,7 +206,7 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 		mParameters.q1pe);
 
 	// glucose elimination due to basal and peripheral needs
-	q1.Moderated_Link_To<CDifference_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(q_sink,
+	q1.Moderated_Link_To<CDifference_Unbounded_Transfer_Function>(q_sink,
 		[&x, &elt, this](CDepot_Link& link) {
 			// glucose elimination is moderated by insulin
 			link.Add_Moderator<CLinear_Moderation_Linear_Elimination_Function>(x, mParameters.xq1, mParameters.xe);
@@ -208,7 +215,7 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 		},
 		CTransfer_Function::Start,
 		CTransfer_Function::Unlimited,
-		q1, q_sink,
+		std::ref(q1), std::ref(q_sink),
 		mParameters.q1e);
 
 	// glucose elimination due to exercise
@@ -221,10 +228,10 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 		mParameters.q1ee);
 
 	// glucose elimination over certain threshold (glycosuria)
-	q1.Link_To<CConcentration_Threshold_Disappearance_Unbounded_Transfer_Function, double, double, IQuantizable&, double, double>(q_sink,
+	q1.Link_To<CConcentration_Threshold_Disappearance_Unbounded_Transfer_Function>(q_sink,
 		CTransfer_Function::Start,
 		CTransfer_Function::Unlimited,
-		q1,
+		std::ref(q1),
 		mParameters.Gthr,
 		mParameters.q1e_thr);
 
@@ -248,38 +255,38 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 	// mostly based on https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5872070/ and https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2769951/
 
 	// appearance of virtual "production modulator"
-	mPhysical_Activity.Link_To<CDifference_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(emp,
+	mPhysical_Activity.Link_To<CDifference_Unbounded_Transfer_Function>(emp,
 		CTransfer_Function::Start,
 		CTransfer_Function::Unlimited,
-		mPhysical_Activity, emp,
+		std::ref(mPhysical_Activity), std::ref(emp),
 		mParameters.e_pa);
 
 	// appearance of virtual "utilization modulator"
-	mPhysical_Activity.Link_To<CDifference_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(emu,
+	mPhysical_Activity.Link_To<CDifference_Unbounded_Transfer_Function>(emu,
 		CTransfer_Function::Start,
 		CTransfer_Function::Unlimited,
-		mPhysical_Activity, emu,
+		std::ref(mPhysical_Activity), std::ref(emu),
 		mParameters.e_ua);
 
 	// elimination rate of virtual "production modulator"
-	emp.Link_To<CDifference_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(mPhysical_Activity,
+	emp.Link_To<CDifference_Unbounded_Transfer_Function>(mPhysical_Activity,
 		CTransfer_Function::Start,
 		CTransfer_Function::Unlimited,
-		emp, mPhysical_Activity,
+		std::ref(emp), std::ref(mPhysical_Activity),
 		mParameters.e_pe);
 
 	// elimination rate of virtual "utilization modulator"
-	emu.Link_To<CDifference_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(mPhysical_Activity,
+	emu.Link_To<CDifference_Unbounded_Transfer_Function>(mPhysical_Activity,
 		CTransfer_Function::Start,
 		CTransfer_Function::Unlimited,
-		emu, mPhysical_Activity,
+		std::ref(emu), std::ref(mPhysical_Activity),
 		mParameters.e_ue);
 
 	// appearance of virtual "long-term modulator"
-	mPhysical_Activity.Link_To<CDifference_Unbounded_Transfer_Function, double, double, IQuantizable&, IQuantizable&, double>(elt,
+	mPhysical_Activity.Link_To<CDifference_Unbounded_Transfer_Function>(elt,
 		CTransfer_Function::Start,
 		CTransfer_Function::Unlimited,
-		mPhysical_Activity, elt,
+		std::ref(mPhysical_Activity), std::ref(elt),
 		mParameters.e_lta);
 
 	// elimination rate of virtual "long-term modulator"
@@ -313,7 +320,7 @@ CDepot& CGCT2_Discrete_Model::Add_To_D1(double amount, double start, double dura
 
 CDepot& CGCT2_Discrete_Model::Add_To_D2(double amount, double start, double duration) {
 
-#ifdef GCT_SINGLE_INTERMEDIATE_DEPOT
+#ifdef GCT_SINGLE_D_INTERMEDIATE_DEPOT
 	CDepot& depot = mCompartments[NGCT_Compartment::Carbs_2].Get_Persistent_Depot();
 #else
 	CDepot& depot = mCompartments[NGCT_Compartment::Carbs_2].Create_Depot(amount, false);
@@ -342,7 +349,7 @@ CDepot& CGCT2_Discrete_Model::Add_To_Isc1(double amount, double start, double du
 
 CDepot& CGCT2_Discrete_Model::Add_To_Isc2(double amount, double start, double duration) {
 
-#ifdef GCT_SINGLE_INTERMEDIATE_DEPOT
+#ifdef GCT_SINGLE_ISC_INTERMEDIATE_DEPOT
 	CDepot& depot = mCompartments[NGCT_Compartment::Insulin_Subcutaneous_2].Get_Persistent_Depot();
 #else
 	CDepot& depot = mCompartments[NGCT_Compartment::Insulin_Subcutaneous_2].Create_Depot(amount, false);
@@ -408,8 +415,8 @@ HRESULT CGCT2_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 				if (event.device_time() < mLast_Time)
 					return E_ILLEGAL_STATE_CHANGE;
 
-				constexpr double PortionTimeSpacing = 30_sec;
-				const double rate = event.level() / (60.0 * (60_sec / PortionTimeSpacing) );
+				constexpr double PortionTimeSpacing = 60_sec;
+				const double rate = event.level() / 60.0;// (60.0 * (60_sec / PortionTimeSpacing));
 
 				mInsulin_Pump.Set_Infusion_Parameter(rate, PortionTimeSpacing, mParameters.t_i);
 				mPending_Signals.push_back(TPending_Signal{ scgms::signal_Delivered_Insulin_Basal_Rate, event.device_time(), event.level() });
@@ -718,6 +725,9 @@ HRESULT IfaceCalling CGCT2_Discrete_Model::Initialize(const double current_time,
 
 		mInsulin_Pump.Initialize(mLast_Time, 0.0, 0.0, 0.0);
 
+		for (auto& cmp : mCompartments)
+			cmp.Init(current_time);
+
 		return S_OK;
 	}
 	else {
@@ -761,8 +771,10 @@ bool CInfusion_Device::Get_Dosage(double currentTime, TDosage& dosage) {
 	}
 
 	mLast_Time += mInfusion_Period;
+
 	dosage.amount = mInfusion_Rate;
 	dosage.start = mLast_Time;
 	dosage.duration = mAbsorption_Time;
+
 	return true;
 }
