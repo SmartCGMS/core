@@ -46,6 +46,7 @@
 #include "signal_feedback.h"
 #include "impulse_response_filter.h"
 #include "median_response_filter.h"
+#include "noise_filter.h"
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
@@ -550,7 +551,45 @@ namespace impulse_response {
 	};
 }
 
-const std::array<scgms::TFilter_Descriptor, 8> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, decoupling::desc, masking::Masking_Descriptor, signal_generator::desc, network_signal_generator::desc, feedback_sender::desc, impulse_response::desc } };
+namespace noise_generator {
+
+	constexpr const GUID id = { 0xe9924a75, 0xcfd3, 0x4d79, { 0xa8, 0x7b, 0x65, 0x4b, 0x8f, 0x10, 0x97, 0xa5 } };	// {E9924A75-CFD3-4D79-A87B-654B8F1097A5}
+
+	constexpr size_t param_count = 2;
+
+	constexpr scgms::NParameter_Type param_type[param_count] = {
+		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptDouble,
+	};
+
+	const wchar_t* ui_param_name[param_count] = {
+		dsSignal_Id,
+		L"Noise maximum value",
+	};
+
+	const wchar_t* config_param_name[param_count] = {
+		rsSignal_Id,
+		L"Noise_Max",
+	};
+
+	const wchar_t* ui_param_tooltips[param_count] = {
+		nullptr,
+		nullptr,
+	};
+
+	const scgms::TFilter_Descriptor desc = {
+		id,
+		scgms::NFilter_Flags::None,
+		L"White noise generator filter",
+		param_count,
+		param_type,
+		ui_param_name,
+		config_param_name,
+		ui_param_tooltips
+	};
+}
+
+const std::array<scgms::TFilter_Descriptor, 9> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, decoupling::desc, masking::Masking_Descriptor, signal_generator::desc, network_signal_generator::desc, feedback_sender::desc, impulse_response::desc, noise_generator::desc } };
 
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
@@ -581,6 +620,8 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 		return Manufacture_Object<CSignal_Feedback>(filter, output);
 	else if (*id == impulse_response::desc.id)
 		return Manufacture_Object<CImpulse_Response_Filter>(filter, output);
+	else if (*id == noise_generator::desc.id)
+		return Manufacture_Object<CWhite_Noise_Generator_Filter>(filter, output);
 
 	return E_NOTIMPL;
 }
@@ -596,5 +637,3 @@ extern "C" HRESULT IfaceCalling do_create_signal(const GUID *signal_id, scgms::I
 
 	return E_FAIL;
 }
-
-
