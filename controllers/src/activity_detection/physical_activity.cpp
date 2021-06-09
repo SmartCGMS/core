@@ -45,10 +45,11 @@
 
 namespace {
 	constexpr double MaxHeartRate = 200.0; // computational upper limit of heart rate
+	constexpr double SleepThreshold = 0.05; // when the sleep quality is over this threshold, we stop the physical activity detection
 }
 
 CPhysical_Activity_Detection_Model::CPhysical_Activity_Detection_Model(scgms::WTime_Segment segment)
-	: CCommon_Calculated_Signal(segment), mHeartRate(segment.Get_Signal(scgms::signal_Heartbeat)) {
+	: CCommon_Calculated_Signal(segment), mHeartRate(segment.Get_Signal(scgms::signal_Heartbeat)), mSleepQuality(segment.Get_Signal(scgms::signal_Sleep_Quality)) {
 	//
 }
 
@@ -56,8 +57,6 @@ HRESULT IfaceCalling CPhysical_Activity_Detection_Model::Get_Continuous_Levels(s
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
 {
 	const physical_activity_detection::TParameters &parameters = scgms::Convert_Parameters<physical_activity_detection::TParameters>(params, physical_activity_detection::default_parameters);
-
-	std::vector<double> heartbeat_measured(count);
 
 	const double historyTimeStep = scgms::One_Minute * 5.0;	// 5 minute step
 	const size_t historyTimeCnt = 6;
@@ -73,12 +72,20 @@ HRESULT IfaceCalling CPhysical_Activity_Detection_Model::Get_Continuous_Levels(s
 		// select maximum from history times
 
 		std::vector<double> sensor_readings(historyTimeCnt);
-		double mmax = heartbeat_measured[i];
+		double mmax = std::numeric_limits<double>::quiet_NaN();
 		if (mHeartRate->Get_Continuous_Levels(nullptr, htimes.data(), sensor_readings.data(), historyTimeCnt, scgms::apxNo_Derivation) == S_OK) {
 
 			for (size_t p = 0; p < historyTimeCnt; p++) {
 				if (!std::isnan(sensor_readings[p]) && (std::isnan(mmax) || sensor_readings[p] > mmax)) {
 					mmax = sensor_readings[p];
+				}
+			}
+		}
+
+		if (mSleepQuality && mSleepQuality->Get_Continuous_Levels(nullptr, htimes.data(), sensor_readings.data(), historyTimeCnt, scgms::apxNo_Derivation) == S_OK) {
+			for (size_t p = 0; p < historyTimeCnt; p++) {
+				if (!std::isnan(sensor_readings[p]) && sensor_readings[p] > SleepThreshold) {
+					mmax = std::numeric_limits<double>::quiet_NaN();
 				}
 			}
 		}
