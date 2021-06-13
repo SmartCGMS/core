@@ -61,7 +61,7 @@ namespace file_reader
 	constexpr double Default_Segment_Spacing = 600.0 * 1000.0 * InvMSecsPerDay;
 }
 
-CFile_Reader::CFile_Reader(scgms::IFilter *output) : CBase_Filter(output), mSegmentSpacing(file_reader::Default_Segment_Spacing) {
+CFile_Reader::CFile_Reader(scgms::IFilter *output) : CBase_Filter(output) {
 	//
 }
 
@@ -104,60 +104,53 @@ bool CFile_Reader::Send_Event(scgms::NDevice_Event_Code code, double device_time
 	return succcess;
 }
 
-void CFile_Reader::Resolve_Segments(TValue_Vector const& src, std::list<TSegment_Limits>& targetList) const
-{
-	//targetList.push_back(std::make_pair<size_t, size_t>(0, src.size()));
 
-	size_t begin = 0;
-	size_t end;
+void CFile_Reader::Resolve_Segments(TValue_Vector const& src, std::list<TSegment_Limits>& segment_start_stop) const {
+	size_t segment_begin = 0;
 
-	// the first iteration just finds all segment candidates and limits the minimum count of levels in each segment, no additional filtering involved yet
-	while (begin < src.size())
-	{
-		for (end = begin + 1; end < src.size(); end++)
-		{
-			// NOTE: we assume sorted values on input (see CFile_Reader::Merge_Values)
-			if (end == src.size() - 1 || src[end]->mMeasuredAt - src[end - 1]->mMeasuredAt > mSegmentSpacing)
-			{
-				if (end - begin >= mMinValueCount)
-					targetList.push_back({ begin, end });
+	while (segment_begin < src.size()) {
+		size_t segment_end = src.size() - 1;
+		size_t ig_counter = 0;
+		bool bg_is_present = false;
+		double recent_ig_time = std::numeric_limits<double>::quiet_NaN();//src[segment_begin]->mMeasuredAt;
+		
+		for (size_t current = segment_begin; current < src.size(); current++) {
+			
+			//if recent_ig_time is nan, then we consume any value as we wait for the first IG
+			const bool is_in_allowed_interval = std::isnan(recent_ig_time) || (recent_ig_time + mMaximum_IG_Interval >= src[current]->mMeasuredAt);
+
+			if (is_in_allowed_interval) {
+				if (src[current]->mIst.has_value()) {
+					//we've got IG level so that the segment looks OK
+					ig_counter++;
+					recent_ig_time = src[current]->mMeasuredAt;
+				}
+
+				//do not forget that src[current] may hold more than one signal
+				//this level still falls into the maximum allowed interval between consecutive IGs
+					if (src[current]->mBlood.has_value() || src[current]->mCalibration.has_value())
+						bg_is_present = true;
+			}
+			else {
+				//this level has exceeded the maximum allowed interval between consecutive IGs
+				//=>push it as the segment's end
+
+				segment_end = current - 1; //move one back as this level belongs to the following segment
 				break;
 			}
 		}
 
-		begin = end;
-	}
 
-	// filter segment without both BG or IG
-	if (mRequireBG_IG)
-	{
-		bool igFound, bgFound;
+		segment_end++;
+		
+		if ((ig_counter >= mMinimum_Required_IGs) &&					//minimum number of IG levels met
+			(!mRequire_BG || (mRequire_BG && bg_is_present)))		//BG is present, if required
+			segment_start_stop.push_back({ segment_begin, segment_end});
 
-		for (auto itr = targetList.begin(); itr != targetList.end(); )
-		{
-			igFound = false;
-			bgFound = false;
-
-			for (size_t i = itr->first; i < itr->second && (!igFound || !bgFound); i++)
-			{
-				if (src[i]->mBlood.has_value() || src[i]->mCalibration.has_value()) {
-					bgFound = true;
-					if (igFound)
-						break;	//no need to search further
-				}
-
-				if (src[i]->mIst.has_value()) {
-					igFound = true;
-					if (bgFound)
-						break;
-				}
-			}
-
-			if (!igFound || !bgFound)
-				itr = targetList.erase(itr);
-			else
-				itr++;
-		}
+		ig_counter = 0;
+		bg_is_present = false;
+		segment_begin = segment_end;			//at this level, new segment's start
+		recent_ig_time = std::numeric_limits<double>::quiet_NaN();
 	}
 }
 
@@ -378,12 +371,12 @@ HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration con
 	HRESULT rc = E_UNEXPECTED;
 
 	mFileName = configuration.Read_File_Path(rsInput_Values_File);
-	mSegmentSpacing = configuration.Read_Int(rsInput_Segment_Spacing) * 1000.0 * InvMSecsPerDay;
-	if (mSegmentSpacing == 0.0) mSegmentSpacing = file_reader::Default_Segment_Spacing;	//likely default, misconfigured value
+	mMaximum_IG_Interval = configuration.Read_Double(rsMaximum_IG_Interval, mMaximum_IG_Interval);
+
 
 	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
-	mMinValueCount = static_cast<size_t>(configuration.Read_Int(rsMinimum_Segment_Levels));
-	mRequireBG_IG = configuration.Read_Bool(rsRequire_IG_BG);
+	mMinimum_Required_IGs = static_cast<size_t>(configuration.Read_Int(rsMinimum_Required_IGs));
+	mRequire_BG = configuration.Read_Bool(rsRequire_BG);
 
 	std::error_code ec;
 	if ((Is_Regular_File_Or_Symlink(mFileName) || Is_Directory(mFileName)) && filesystem::exists(mFileName, ec)) {

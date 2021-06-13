@@ -64,16 +64,18 @@ class CFile_Reader : public scgms::CBase_Filter {
 	protected:
 		// original filename from configuration
 		filesystem::path mFileName;
-		// segment spacing as julian date
-		double mSegmentSpacing = 0.0;
+		
+		double mMaximum_IG_Interval = 12.0 * scgms::One_Minute;	//maximum allowed interval between to IGs
+
+
 		// merged extracted values from given file
 		std::vector<TValue_Vector> mMergedValues;
 		// do we need to send shutdown after last value?
 		bool mShutdownAfterLast = false;
 		// minimum values in segment
-		size_t mMinValueCount = 0;
-		// require both IG and BG values in a segment
-		bool mRequireBG_IG = false;
+		size_t mMinimum_Required_IGs = 0;
+		// require both BG values in a segment
+		bool mRequire_BG = false;
 
 		// reader thread
 		std::unique_ptr<std::thread> mReaderThread;
