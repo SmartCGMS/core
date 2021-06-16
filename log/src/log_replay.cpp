@@ -568,6 +568,15 @@ void CLog_Replay_Filter::Correct_Timings(std::vector<TLog_Entry>& log_lines) {
 		if (a.segment_id != b.segment_id)	//this will make the seg markes be close to the levels of the same segment
 			return a.segment_id < b.segment_id;
 
+		if (a.code == scgms::NDevice_Event_Code::Time_Segment_Start)
+			return true;
+
+		if (a.code == scgms::NDevice_Event_Code::Shut_Down)
+			return false;
+
+		if (a.code == scgms::NDevice_Event_Code::Time_Segment_Stop)
+			return false;
+
 
 		//if there were multiple events emitted with the same device time,
 		//let us emit them in their order in the log file (or in the order which we assigned to them)
