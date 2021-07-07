@@ -242,6 +242,29 @@ void CLoaded_Filters::describe_loaded_filters(refcnt::Swstr_list error_descripti
 		error_description.push(dsNone);
 }
 
+GUID CLoaded_Filters::Resolve_Signal_By_Name(const wchar_t* name, bool& valid) {
+	valid = false;
+	const std::wstring cname{ name };
+	for (const auto& elem : mSignal_Descriptors) {
+		if (cname.compare(elem.signal_description) == 0) {
+			valid = true;
+			return elem.id;
+		}
+	}
+
+	for (size_t i = 0; i < scgms::signal_Virtual.size(); i++) {
+		std::wstring desc_str = dsSignal_Prefix_Virtual + std::wstring(L" ") + std::to_wstring(i);
+		if (cname.compare(desc_str) == 0) {
+			valid = true;
+			return scgms::signal_Virtual[i];
+		}
+	}
+		
+
+	return Invalid_GUID;
+}
+
+
 scgms::SFilter create_filter(const GUID &id, scgms::IFilter *next_filter) {
 	scgms::SFilter result;
 	scgms::IFilter *filter;
@@ -256,4 +279,8 @@ scgms::SFilter create_filter(const GUID &id, scgms::IFilter *next_filter) {
 
 void describe_loaded_filters(refcnt::Swstr_list error_description) {
 	loaded_filters.describe_loaded_filters(error_description);
+}
+
+GUID resolve_signal_by_name(const wchar_t* name, bool& valid) {
+	return loaded_filters.Resolve_Signal_By_Name(name, valid);
 }

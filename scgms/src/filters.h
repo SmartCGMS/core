@@ -128,6 +128,7 @@ public:
 	
 	HRESULT add_filters(const scgms::TFilter_Descriptor *begin, const scgms::TFilter_Descriptor *end, const scgms::TCreate_Filter create_filter);
 	void describe_loaded_filters(refcnt::Swstr_list error_description);
+	GUID Resolve_Signal_By_Name(const wchar_t* name, bool& valid);
 };
 
 extern "C" HRESULT IfaceCalling create_filter(const GUID *id, scgms::IFilter* next_filter, scgms::IFilter **filter);
@@ -149,3 +150,4 @@ extern "C" HRESULT IfaceCalling add_filters(const scgms::TFilter_Descriptor *beg
 
 scgms::SFilter create_filter(const GUID &id, scgms::IFilter *next_filter);
 void describe_loaded_filters(refcnt::Swstr_list error_description);
+GUID resolve_signal_by_name(const wchar_t* name, bool& valid);
