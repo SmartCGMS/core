@@ -103,7 +103,7 @@ CAbsDiffPercentilMetric::CAbsDiffPercentilMetric(scgms::TMetric_Parameters& para
 
 double CAbsDiffPercentilMetric::Do_Calculate_Metric() {
 	size_t count = mDifferences.size();
-	size_t offset = (size_t)round(((double)(count))*mInvThreshold);
+	size_t offset = static_cast<size_t>(round((static_cast<double>(count))*mInvThreshold));
 	offset = std::min(offset, count - 1); //handles negative value as well
 
 	std::partial_sort(mDifferences.begin(),
@@ -189,7 +189,7 @@ CAICMetric::CAICMetric(scgms::TMetric_Parameters& params) : CAbsDiffAvgMetric({ 
 
 
 double CAICMetric::Do_Calculate_Metric() {
-	double n = (double) mDifferences.size();
+	double n = static_cast<double>(mDifferences.size());
 	return n*log(CAbsDiffAvgMetric::Do_Calculate_Metric()); 
 }
 
@@ -212,7 +212,7 @@ double CVariance_Metric::Do_Calculate_Metric() {
 
 	size_t lowbound, highbound;
 	{
-		double n = (double)mDifferences.size();
+		double n = static_cast<double>(mDifferences.size());
 		double margin = n*0.01*mParameters.threshold;
 		lowbound = (size_t)floor(margin);
 		highbound = (size_t)ceil(n - margin);
@@ -228,7 +228,7 @@ double CVariance_Metric::Do_Calculate_Metric() {
 		sum += diffs[i].difference;
 	}
 
-	double invn = (double)mDifferences.size();
+	double invn = static_cast<double>(mDifferences.size());
 	//first, try Unbiased estimation of standard deviation
 	if (invn > 1.5) invn -= 1.5; 
 		else if (invn > 1.0) invn -= 1.0;	//if not, try to fall back to Bessel's Correction at least
@@ -380,7 +380,7 @@ double CIntegralCDFMetric::Do_Calculate_Metric() {
 
 	size_t lowbound, highbound;
 	{
-		double n = (double)mDifferences.size();
+		double n = static_cast<double>(mDifferences.size());
 		double margin = n*0.01*mParameters.threshold;
 		lowbound = (size_t)floor(margin);
 		highbound = (size_t)ceil(n - margin);
@@ -392,7 +392,7 @@ double CIntegralCDFMetric::Do_Calculate_Metric() {
 
 
 	double area = 0.0;
-	double step = 1.0 / (double)mDifferences.size();
+	double step = 1.0 / static_cast<double>(mDifferences.size());
 
 	auto diffs = &mDifferences[0];
 	auto previous = lowbound;
