@@ -37,6 +37,7 @@
  */
 
 #include "pattern_prediction.h"
+#include "pattern_descriptor_model_parameters.h"
 
 #include "../../../../common/iface/ApproxIface.h"
 #include "../../../../common/utils/math_utils.h"
@@ -302,12 +303,18 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(scgms::SFilter_Configur
 
 		//update the parameters
 		size_t def_idx = 0;
+		lower.resize(pattern_prediction::model_param_count);
+		def.resize(pattern_prediction::model_param_count);	//ensure the proper size as the parameters could
+					//be set to $([[maybe_unused]]) and hence be validly empty - i.e.; zero sized
+		upper.resize(pattern_prediction::model_param_count);
 		for (size_t pattern_idx = 0; pattern_idx < mPatterns.size(); pattern_idx++) {
 			for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {
 				auto& pattern = mPatterns[pattern_idx][band_idx];
 
-				const double level = pattern.predict();
-				def[def_idx] = std::isnan(level) ? 0.5*(lower[def_idx]+upper[def_idx]) : level;
+				lower[def_idx] = pattern_prediction::lower_bound[def_idx];
+				const double level = pattern.predict();				
+				def[def_idx] = std::isnan(level) ? pattern_prediction::default_values[def_idx] : level;
+				upper[def_idx] = pattern_prediction::upper_bound[def_idx];
 
 				def_idx++;
 			}
@@ -389,11 +396,12 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_From_Config(scgms::SFilter_C
 	else
 		return S_FALSE;	//indicate empty parameters
 
+	mUpdated_Levels = true;	//so that they can be flushed to the external file
 	return S_OK;
 }
 
 void CPattern_Prediction_Filter::Write_Parameters_File() {
-	if (!mUpdated_Levels && !mUse_Config_Parameters) return;
+	if (!mUpdated_Levels /* && !mUse_Config_Parameters*/) return;	//we may be flushing the config to external files
 
 	CSimpleIniW ini;
 

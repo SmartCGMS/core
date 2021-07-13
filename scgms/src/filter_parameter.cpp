@@ -219,6 +219,7 @@ HRESULT IfaceCalling CFilter_Parameter::Set_Model_Parameters(scgms::IModel_Param
 	//by setting this to max, we effectively discard any nested variable and do not need to perform any additinal action
 	mFirst_Array_Var_idx = std::numeric_limits<size_t>::max();
 	mVariable_Name.clear();
+	mArray_Vars.clear();
 
 	mModel_Parameters = parameters;
 	return S_OK;
