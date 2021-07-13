@@ -84,7 +84,7 @@ protected:
     const wchar_t* isBand = L"_Band_";
     const wchar_t* iiState = L"State";
 
-    HRESULT Read_Parameters_File(refcnt::Swstr_list error_description);
+    HRESULT Read_Parameters_File(scgms::SFilter_Configuration configuration, refcnt::Swstr_list error_description);
     HRESULT Read_Parameters_From_Config(scgms::SFilter_Configuration configuration, refcnt::Swstr_list error_description);
     void Write_Parameters_File();
 protected:

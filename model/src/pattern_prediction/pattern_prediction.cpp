@@ -142,7 +142,7 @@ HRESULT CPattern_Prediction_Filter::Do_Configure(scgms::SFilter_Configuration co
 	if (!mUse_Config_Parameters) {
 		//loading parameters from the external .ini file
 		if (!mParameters_File_Path.empty()) {
-			const HRESULT rc = Read_Parameters_File(error_description);
+			const HRESULT rc = Read_Parameters_File(configuration, error_description);
 			if (Succeeded(rc))
 				return rc;
 		}
@@ -259,7 +259,7 @@ size_t CPattern_Prediction_Filter::Level_2_Band_Index(const double level) {
 	return static_cast<size_t>(round(tmp * pattern_prediction::Inv_Band_Size));
 }
 
-HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list error_description) {
+HRESULT CPattern_Prediction_Filter::Read_Parameters_File(scgms::SFilter_Configuration configuration, refcnt::Swstr_list error_description) {
 	auto load_from_ini = [this](CSimpleIniW& ini) {
 
 		std::list<CSimpleIniW::Entry> section_names;
@@ -289,6 +289,39 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list erro
 
 	};
 
+	auto write_params_to_config = [this, &configuration, &error_description]() {
+		std::vector<double> lower, def, upper;
+		if (configuration.Read_Parameters(rsParameters, lower, def, upper)) {
+			if (def.size() != pattern_prediction::model_param_count) {
+				error_description.push(L"Corrupted pattern-prediction configuration parameters!");
+				return E_INVALIDARG;
+			}
+
+		}
+
+
+		//update the parameters
+		size_t def_idx = 0;
+		for (size_t pattern_idx = 0; pattern_idx < mPatterns.size(); pattern_idx++) {
+			for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {
+				auto& pattern = mPatterns[pattern_idx][band_idx];
+
+				const double level = pattern.predict();
+				def[def_idx] = std::isnan(level) ? 0.5*(lower[def_idx]+upper[def_idx]) : level;
+
+				def_idx++;
+			}
+		}
+
+		if (!configuration.Write_Parameters(rsParameters, lower, def, upper)) {
+			error_description.push(L"Could not update the configuration!");
+			return E_INVALIDARG;			
+
+		}
+
+		return S_OK;
+	};
+
 	HRESULT rc = S_FALSE;
 	try {
 		std::ifstream configfile;
@@ -303,10 +336,10 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(refcnt::Swstr_list erro
 			
 			CSimpleIniW ini;
 			ini.LoadData(buf.data(), buf.size());
-			load_from_ini(ini);
+			load_from_ini(ini);			
 
 			configfile.close();
-			rc = S_OK;
+			rc = write_params_to_config();
 		}
 		else {
 			std::wstring desc = dsCannot_Open_File + mParameters_File_Path.wstring();
