@@ -171,6 +171,10 @@ namespace gct2_model
 
 	/**
 	 * Two-way diffusion unbounded transfer function
+	 * Note this is not a facilitated diffusion, so the rate of transfer (according to Fick's law) is directly proportional to concentration gradient
+	 * The concentration gradient is simply a concentration difference divided by width of the membrane
+	 * 
+	 * A very straight-forward explanation can be found here: http://www.tiem.utk.edu/~gross/bioed/webmodules/diffusion.htm
 	 */
 	class CTwo_Way_Diffusion_Unbounded_Transfer_Function final : public CTransfer_Function {
 
@@ -197,7 +201,6 @@ namespace gct2_model
 				// negative difference does not matter, the outer code manages that well (in fact in other direction)
 				const double diff = (mSource.Get_Concentration() - mTarget.Get_Concentration());
 
-				// TODO: some Michaelis-Menten wouldn't hurt
 				return mTransfer_Factor * diff;
 			}
 	};

@@ -82,13 +82,13 @@ HRESULT IfaceCalling CPhysical_Activity_Detection_Model::Get_Continuous_Levels(s
 			}
 		}
 
-		if (mSleepQuality && mSleepQuality->Get_Continuous_Levels(nullptr, htimes.data(), sensor_readings.data(), historyTimeCnt, scgms::apxNo_Derivation) == S_OK) {
+		/*if (mSleepQuality && mSleepQuality->Get_Continuous_Levels(nullptr, htimes.data(), sensor_readings.data(), historyTimeCnt, scgms::apxNo_Derivation) == S_OK) {
 			for (size_t p = 0; p < historyTimeCnt; p++) {
 				if (!std::isnan(sensor_readings[p]) && sensor_readings[p] > SleepThreshold) {
 					mmax = std::numeric_limits<double>::quiet_NaN();
 				}
 			}
-		}
+		}*/
 
 		// "detect" activity based on current max and resting heart rate ratio
 		if (!std::isnan(mmax) && mmax > parameters.heartrate_resting) {

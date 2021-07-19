@@ -243,6 +243,7 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 		CTransfer_Function::Unlimited,
 		mParameters.ix);
 
+	// insulin production, moderated by glucose presence in Q1 depot over certain threshold
 	i_src.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(i,
 		[&q1, this](CDepot_Link& link) {
 			link.Add_Moderator<CThreshold_Linear_Moderation_No_Elimination_Function>(q1, 1.0, mParameters.GIthr);
@@ -301,7 +302,6 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 
 		- inhibitors
 			* glucose utilization (insulin effect inhibition)
-			* glucose production (glycogen breakdown inhibition)
 		- sleep effects
 	
 	*/
@@ -314,7 +314,11 @@ CDepot& CGCT2_Discrete_Model::Add_To_D1(double amount, double start, double dura
 
 	depot.Set_Name(std::wstring(L"D1 (") + std::to_wstring(amount) + L")");
 
+#ifdef GCT_SINGLE_D_INTERMEDIATE_DEPOT
 	depot.Link_To<CTriangular_Bounded_Transfer_Function>(target, start, duration, amount);
+#else
+	depot.Link_To<CConstant_Bounded_Transfer_Function>(target, start, duration, amount);
+#endif
 	return depot;
 }
 
@@ -329,7 +333,7 @@ CDepot& CGCT2_Discrete_Model::Add_To_D2(double amount, double start, double dura
 
 	// TODO: attempt to estimate correct duration (with acceptable cut-off)
 
-	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Glucose_1].Get_Persistent_Depot(), start, duration*100.0, mParameters.d2q1);
+	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Glucose_1].Get_Persistent_Depot(), start, duration*20.0, mParameters.d2q1);
 #endif
 
 	return depot;
@@ -342,7 +346,11 @@ CDepot& CGCT2_Discrete_Model::Add_To_Isc1(double amount, double start, double du
 
 	depot.Set_Name(std::wstring(L"Isc1 (") + std::to_wstring(amount) + L")");
 
+#ifdef GCT_SINGLE_ISC_INTERMEDIATE_DEPOT
 	depot.Link_To<CTriangular_Bounded_Transfer_Function>(target, start, duration, amount);
+#else
+	depot.Link_To<CConstant_Bounded_Transfer_Function>(target, start, duration, amount);
+#endif
 
 	return depot;
 }
@@ -358,8 +366,8 @@ CDepot& CGCT2_Discrete_Model::Add_To_Isc2(double amount, double start, double du
 
 	// TODO: attempt to estimate correct duration (with acceptable cut-off)
 
-	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot(), start, duration * 100.0, mParameters.isc2i);
-	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mInsulin_Sink, start, duration * 100.0, mParameters.isc2e);
+	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot(), start, duration * 10.0, mParameters.isc2i);
+	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mInsulin_Sink, start, duration * 10.0, mParameters.isc2e);
 #endif
 
 	return depot;
