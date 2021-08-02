@@ -315,7 +315,7 @@ CDepot& CGCT2_Discrete_Model::Add_To_D1(double amount, double start, double dura
 	depot.Set_Name(std::wstring(L"D1 (") + std::to_wstring(amount) + L")");
 
 #ifdef GCT_SINGLE_D_INTERMEDIATE_DEPOT
-	depot.Link_To<CTriangular_Bounded_Transfer_Function>(target, start, duration, amount);
+	depot.Link_To<CConstant_Bounded_Transfer_Function>(target, start, duration, amount);
 #else
 	depot.Link_To<CConstant_Bounded_Transfer_Function>(target, start, duration, amount);
 #endif
@@ -347,7 +347,7 @@ CDepot& CGCT2_Discrete_Model::Add_To_Isc1(double amount, double start, double du
 	depot.Set_Name(std::wstring(L"Isc1 (") + std::to_wstring(amount) + L")");
 
 #ifdef GCT_SINGLE_ISC_INTERMEDIATE_DEPOT
-	depot.Link_To<CTriangular_Bounded_Transfer_Function>(target, start, duration, amount);
+	depot.Link_To<CConstant_Bounded_Transfer_Function>(target, start, duration, amount);
 #else
 	depot.Link_To<CConstant_Bounded_Transfer_Function>(target, start, duration, amount);
 #endif
@@ -424,7 +424,7 @@ HRESULT CGCT2_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 					return E_ILLEGAL_STATE_CHANGE;
 
 				constexpr double PortionTimeSpacing = 60_sec;
-				const double rate = event.level() / 60.0;// (60.0 * (60_sec / PortionTimeSpacing));
+				const double rate = event.level() / (60.0 * (60_sec / PortionTimeSpacing));
 
 				mInsulin_Pump.Set_Infusion_Parameter(rate, PortionTimeSpacing, mParameters.t_i);
 				mPending_Signals.push_back(TPending_Signal{ scgms::signal_Delivered_Insulin_Basal_Rate, event.device_time(), event.level() });

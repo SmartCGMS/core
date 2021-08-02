@@ -132,16 +132,17 @@ namespace physical_activity_detection
 {
 	constexpr const GUID signal_id = { 0x5596068a, 0x4acf, 0x4e3f, { 0x9a, 0x98, 0xda, 0x6b, 0x9f, 0xe5, 0xe1, 0x9f } };	// {5596068A-4ACF-4E3F-9A98-DA6B9FE5E19F}
 
-	const size_t param_count = 1;
+	const size_t param_count = 3;
 
-	const double lower_bound[param_count] = { 30.0 };
-	const double default_parameters[param_count] = { 65.0 };
-	const double upper_bound[param_count] = { 100.0 };
+	const double lower_bound[param_count] = { 30.0, 2.0, 15.0 };
+	const double default_parameters[param_count] = { 65.0, 10.0, 20.0 };
+	const double upper_bound[param_count] = { 100.0, 15.0, 30.0 };
 
 	struct TParameters {
 		union {
 			struct {
 				double heartrate_resting;
+				double eda_threshold, eda_max;
 			};
 			double vector[param_count];
 		};

@@ -45,11 +45,11 @@
 
 namespace {
 	constexpr double MaxHeartRate = 200.0; // computational upper limit of heart rate
-	constexpr double SleepThreshold = 0.05; // when the sleep quality is over this threshold, we stop the physical activity detection
+	constexpr double EDAThreshold = 0.0;
 }
 
 CPhysical_Activity_Detection_Model::CPhysical_Activity_Detection_Model(scgms::WTime_Segment segment)
-	: CCommon_Calculated_Signal(segment), mHeartRate(segment.Get_Signal(scgms::signal_Heartbeat)), mSleepQuality(segment.Get_Signal(scgms::signal_Sleep_Quality)) {
+	: CCommon_Calculated_Signal(segment), mHeartRate(segment.Get_Signal(scgms::signal_Heartbeat)), mElectrodermalActivity(segment.Get_Signal(scgms::signal_Electrodermal_Activity)) {
 	//
 }
 
@@ -72,30 +72,44 @@ HRESULT IfaceCalling CPhysical_Activity_Detection_Model::Get_Continuous_Levels(s
 		// select maximum from history times
 
 		std::vector<double> sensor_readings(historyTimeCnt);
-		double mmax = std::numeric_limits<double>::quiet_NaN();
-		if (mHeartRate->Get_Continuous_Levels(nullptr, htimes.data(), sensor_readings.data(), historyTimeCnt, scgms::apxNo_Derivation) == S_OK) {
+		double hrmax = std::numeric_limits<double>::quiet_NaN();
+		double edamax = std::numeric_limits<double>::quiet_NaN();
 
+		if (mHeartRate->Get_Continuous_Levels(nullptr, htimes.data(), sensor_readings.data(), historyTimeCnt, scgms::apxNo_Derivation) == S_OK) {
 			for (size_t p = 0; p < historyTimeCnt; p++) {
-				if (!std::isnan(sensor_readings[p]) && (std::isnan(mmax) || sensor_readings[p] > mmax)) {
-					mmax = sensor_readings[p];
+				if (!std::isnan(sensor_readings[p]) && (std::isnan(hrmax) || sensor_readings[p] > hrmax)) {
+					hrmax = sensor_readings[p];
 				}
 			}
 		}
 
-		/*if (mSleepQuality && mSleepQuality->Get_Continuous_Levels(nullptr, htimes.data(), sensor_readings.data(), historyTimeCnt, scgms::apxNo_Derivation) == S_OK) {
+		if (mElectrodermalActivity && mElectrodermalActivity->Get_Continuous_Levels(nullptr, htimes.data(), sensor_readings.data(), historyTimeCnt, scgms::apxNo_Derivation) == S_OK) {
 			for (size_t p = 0; p < historyTimeCnt; p++) {
-				if (!std::isnan(sensor_readings[p]) && sensor_readings[p] > SleepThreshold) {
-					mmax = std::numeric_limits<double>::quiet_NaN();
+				if (!std::isnan(sensor_readings[p]) && (std::isnan(edamax) || sensor_readings[p] > edamax)) {
+					edamax = sensor_readings[p];
 				}
 			}
-		}*/
+		}
+
+		levels[i] = 0.0;
 
 		// "detect" activity based on current max and resting heart rate ratio
-		if (!std::isnan(mmax) && mmax > parameters.heartrate_resting) {
-			levels[i] = (std::min(mmax, MaxHeartRate) - parameters.heartrate_resting) / (MaxHeartRate - parameters.heartrate_resting);
+		if (!std::isnan(hrmax) && hrmax > parameters.heartrate_resting) {
+			levels[i] += ( (std::min(hrmax, MaxHeartRate) - parameters.heartrate_resting) / (MaxHeartRate - parameters.heartrate_resting) );
 		}
-		else {
-			levels[i] = 0.0;
+
+		// if we have data from electrodermal activity sensor, we may want to "confirm" the activity index
+		if (!std::isnan(edamax)) {
+
+			if (edamax > parameters.eda_threshold)
+			{
+				const double thrmaxdiff = std::max(parameters.eda_max - parameters.eda_threshold + 1.0, 1.0);
+				levels[i] *= 1.0 + (  ((std::min(edamax, parameters.eda_max) - parameters.eda_threshold) / thrmaxdiff) * 0.25  );
+			}
+			else
+			{
+				levels[i] *= 0.75;
+			}
 		}
 	}
 
