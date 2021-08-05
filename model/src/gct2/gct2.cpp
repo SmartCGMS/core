@@ -150,25 +150,6 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 	elt.Set_Persistent(true);
 	elt.Set_Name(L"Elt");
 
-#ifdef GCT_SINGLE_ISC_INTERMEDIATE_DEPOT
-	// Isc2 intermediate compartment (link between Isc2 and I)
-	auto& isc2 = mCompartments[NGCT_Compartment::Insulin_Subcutaneous_2].Create_Depot(0.0, false);
-
-	isc2.Set_Persistent(true);
-	isc2.Set_Name(L"Isc2 (cpl)");
-	isc2.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot(), CTransfer_Function::Start, CTransfer_Function::Unlimited, mParameters.isc2i);
-	isc2.Link_To<CConstant_Unbounded_Transfer_Function>(mInsulin_Sink, CTransfer_Function::Start, CTransfer_Function::Unlimited, mParameters.isc2e);
-#endif
-
-#ifdef GCT_SINGLE_D_INTERMEDIATE_DEPOT
-	// D2 intermediate compartment (link between D1 and Q1)
-	auto& d2 = mCompartments[NGCT_Compartment::Carbs_2].Create_Depot(0.0, false);
-
-	d2.Set_Persistent(true);
-	d2.Set_Name(L"D2 (cpl)");
-	d2.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Glucose_1].Get_Persistent_Depot(), CTransfer_Function::Start, CTransfer_Function::Unlimited, mParameters.d2q1);
-#endif
-
 	//// Glucose subsystem links
 
 	// two glucose compartments diffusion flux
@@ -315,7 +296,7 @@ CDepot& CGCT2_Discrete_Model::Add_To_D1(double amount, double start, double dura
 	depot.Set_Name(std::wstring(L"D1 (") + std::to_wstring(amount) + L")");
 
 #ifdef GCT_SINGLE_D_INTERMEDIATE_DEPOT
-	depot.Link_To<CConstant_Bounded_Transfer_Function>(target, start, duration, amount);
+	depot.Link_To<CTriangular_Bounded_Transfer_Function>(target, start, duration, amount);
 #else
 	depot.Link_To<CConstant_Bounded_Transfer_Function>(target, start, duration, amount);
 #endif
@@ -325,7 +306,7 @@ CDepot& CGCT2_Discrete_Model::Add_To_D1(double amount, double start, double dura
 CDepot& CGCT2_Discrete_Model::Add_To_D2(double amount, double start, double duration) {
 
 #ifdef GCT_SINGLE_D_INTERMEDIATE_DEPOT
-	CDepot& depot = mCompartments[NGCT_Compartment::Carbs_2].Get_Persistent_Depot();
+	CDepot& depot = mCompartments[NGCT_Compartment::Glucose_1].Get_Persistent_Depot();
 #else
 	CDepot& depot = mCompartments[NGCT_Compartment::Carbs_2].Create_Depot(amount, false);
 
@@ -347,7 +328,8 @@ CDepot& CGCT2_Discrete_Model::Add_To_Isc1(double amount, double start, double du
 	depot.Set_Name(std::wstring(L"Isc1 (") + std::to_wstring(amount) + L")");
 
 #ifdef GCT_SINGLE_ISC_INTERMEDIATE_DEPOT
-	depot.Link_To<CConstant_Bounded_Transfer_Function>(target, start, duration, amount);
+	// absorbed insulin is lowered by the ratio of absorption to elimination
+	depot.Link_To<CTriangular_Bounded_Transfer_Function>(target, start, duration, amount * (mParameters.isc2i / (mParameters.isc2i + mParameters.isc2e)));
 #else
 	depot.Link_To<CConstant_Bounded_Transfer_Function>(target, start, duration, amount);
 #endif
@@ -358,7 +340,7 @@ CDepot& CGCT2_Discrete_Model::Add_To_Isc1(double amount, double start, double du
 CDepot& CGCT2_Discrete_Model::Add_To_Isc2(double amount, double start, double duration) {
 
 #ifdef GCT_SINGLE_ISC_INTERMEDIATE_DEPOT
-	CDepot& depot = mCompartments[NGCT_Compartment::Insulin_Subcutaneous_2].Get_Persistent_Depot();
+	CDepot& depot = mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot();
 #else
 	CDepot& depot = mCompartments[NGCT_Compartment::Insulin_Subcutaneous_2].Create_Depot(amount, false);
 

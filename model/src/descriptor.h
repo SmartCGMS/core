@@ -773,7 +773,7 @@ namespace gct2_model {
 		//	e_pa, e_ua, e_pe, e_ue, q_ep, q_eu
 			100,  100,  100,  100,  50,   50,
 		//	e_lta, e_lte, e_Si
-			0.05,  0.005, 0.02,
+			1,     0.2,   0.02,
 		//	Ag,  t_d,    t_i
 			0.5, 10_min, 5_min,
 
@@ -795,7 +795,7 @@ namespace gct2_model {
 		//	e_pa, e_ua, e_pe, e_ue, q_ep, q_eu
 			200, 200, 342, 200, 180, 100,
 		//	e_lta, e_lte, e_Si
-			0.08, 0.009, 0.03,
+			20,    0.5,   0.03,
 		//	Ag,   t_d,    t_i
 			0.98, 44_min, 60_min,
 
@@ -817,7 +817,7 @@ namespace gct2_model {
 		//	e_pa, e_ua, e_pe, e_ue, q_ep, q_eu
 			500,  500,  500,  500,  250,  250,
 		//	e_lta, e_lte, e_Si
-			0.1, 0.1, 0.1,
+			50,    10,    0.1,
 		//	Ag,   t_d,  t_i
 			0.98, 2_hr, 5_hr,
 
