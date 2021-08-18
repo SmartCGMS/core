@@ -228,9 +228,13 @@ double CVariance_Metric::Do_Calculate_Metric() {
 		sum += diffs[i].difference;
 	}
 
-	double invn = static_cast<double>(mDifferences.size());
+	const double casted_size = static_cast<double>(mDifferences.size());
+	double invn = casted_size;
+
 	//first, try Unbiased estimation of standard deviation
-	if (invn > 1.5) invn -= 1.5; 
+	if (invn > 1.5) 			//since invn is alway a full number (no fraction due to being a number of items in the vector),
+								//we just need to know whether it is greater than 1
+		invn = casted_size - 1.5 + 1 / (8 * (casted_size - 1));	//precise estimation, better than substracting 1.5	
 		else if (invn > 1.0) invn -= 1.0;	//if not, try to fall back to Bessel's Correction at least
 	invn = 1.0 / invn;
 
