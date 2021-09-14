@@ -148,6 +148,52 @@ namespace physical_activity_detection
 	};
 }
 
+namespace gege
+{
+	constexpr const GUID model_id = { 0x7be59b46, 0xb5db, 0x412c, { 0x96, 0x16, 0x30, 0xe7, 0x88, 0x32, 0xf2, 0xf0 } };		// {7BE59B46-B5DB-412C-9616-30E78832F2F0}
+
+	constexpr const GUID ibr_id = { 0xac22fa49, 0x154f, 0x435e, { 0x9e, 0xdc, 0x36, 0xb, 0x87, 0x69, 0xec, 0x8b } };		// {AC22FA49-154F-435E-9EDC-360B8769EC8B}
+
+	constexpr size_t param_count = 60;
+
+	struct TParameters {
+		union {
+			struct {
+				double codons[param_count];
+				// may be split to some logical units in the future (e.g.; codons coding the grammar and parameters of every node)
+			};
+			double vector[param_count];
+		};
+	};
+
+	const TParameters lower_bounds = {
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+	};
+	const TParameters default_parameters = {
+		0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,
+		0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,
+		0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,
+		0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,
+		0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,
+		0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,
+	};
+	const TParameters upper_bounds = {
+		1,1,1,1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1,1,1,1,
+	};
+
+}
+
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end);
 extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end);
 extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal);
+extern "C" HRESULT IfaceCalling do_create_discrete_model(const GUID * model_id, scgms::IModel_Parameter_Vector * parameters, scgms::IFilter * output, scgms::IDiscrete_Model * *model);

@@ -50,6 +50,7 @@
 #include "betapid/betapid.h"
 #include "lgs/lgs.h"
 #include "activity_detection/physical_activity.h"
+#include "gege/gege.h"
 
 #include <vector>
 
@@ -286,12 +287,73 @@ namespace physical_activity_detection {
 	const scgms::TSignal_Descriptor signal_desc{ signal_id, sgdesc.c_str(), L"", scgms::NSignal_Unit::Percent, 0xFF008000, 0xFF008000, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
 }
 
-const std::array<scgms::TModel_Descriptor, 6> model_descriptions = { { iob::desc, cob::desc, betapid_insulin_regulation::desc, betapid3_insulin_regulation::desc, lgs_basal_insulin::desc, physical_activity_detection::desc } };
+namespace gege {
+
+	const wchar_t* model_param_ui_names[param_count] = {
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+	};
+
+	const scgms::NModel_Parameter_Value model_param_types[param_count] = {
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+	};
+
+	constexpr size_t number_of_calculated_signals = 1;
+
+	const GUID calculated_signal_ids[number_of_calculated_signals] = {
+		ibr_id
+	};
+
+	const wchar_t* calculated_signal_names[number_of_calculated_signals] = {
+		L"GEGE - IBR",
+	};
+
+	const GUID reference_signal_ids[number_of_calculated_signals] = {
+		scgms::signal_Requested_Insulin_Basal_Rate,
+	};
+
+	scgms::TModel_Descriptor desc = {
+		model_id,
+		scgms::NModel_Flags::Discrete_Model,
+		L"GEGE",
+		nullptr,
+		param_count,
+		model_param_types,
+		model_param_ui_names,
+		nullptr,
+		lower_bounds.vector,
+		default_parameters.vector,
+		upper_bounds.vector,
+
+		number_of_calculated_signals,
+		calculated_signal_ids,
+		reference_signal_ids,
+	};
+
+	const scgms::TSignal_Descriptor ibr_desc{ ibr_id, L"GEGE - IBR", dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0xFF00FFFF, 0xFF00FFFF, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr};
+}
+
+const std::array<scgms::TModel_Descriptor, 7> model_descriptions = { { iob::desc, cob::desc, betapid_insulin_regulation::desc, betapid3_insulin_regulation::desc, lgs_basal_insulin::desc, physical_activity_detection::desc, gege::desc } };
 
 
-const std::array<scgms::TSignal_Descriptor, 10> signals_descriptors = { {iob::act_bi_desc, iob::act_exp_desc, iob::iob_bi_desc, iob::iob_exp_desc, cob::bi_desc,
+const std::array<scgms::TSignal_Descriptor, 11> signals_descriptors = { {iob::act_bi_desc, iob::act_exp_desc, iob::iob_bi_desc, iob::iob_exp_desc, cob::bi_desc,
 																		betapid_insulin_regulation::pid_desc, betapid_insulin_regulation::pid2_desc, betapid3_insulin_regulation::pid3_desc,
-																		lgs_basal_insulin::lgs_desc, physical_activity_detection::signal_desc } };
+																		lgs_basal_insulin::lgs_desc, physical_activity_detection::signal_desc, gege::ibr_desc } };
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
 	*begin = const_cast<scgms::TModel_Descriptor*>(model_descriptions.data());
@@ -332,4 +394,9 @@ extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITi
 		return Manufacture_Object<CPhysical_Activity_Detection_Model, scgms::ISignal>(signal, weak_segment);
 
 	return E_NOTIMPL;
+}
+
+HRESULT IfaceCalling do_create_discrete_model(const GUID* model_id, scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output, scgms::IDiscrete_Model** model) {
+	if (*model_id == gege::model_id) return Manufacture_Object<CGEGE_Model>(model, parameters, output);
+	else return E_NOTIMPL;
 }
