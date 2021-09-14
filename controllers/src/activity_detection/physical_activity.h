@@ -49,7 +49,7 @@
 class CPhysical_Activity_Detection_Model : public virtual CCommon_Calculated_Signal
 {
 	protected:
-		scgms::SSignal mHeartRate, mSleepQuality;
+		scgms::SSignal mHeartRate, mElectrodermalActivity;
 
 	public:
 		CPhysical_Activity_Detection_Model(scgms::WTime_Segment segment);

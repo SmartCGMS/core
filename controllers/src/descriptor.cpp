@@ -257,8 +257,8 @@ namespace physical_activity_detection {
 
 	const scgms::NModel_Parameter_Value param_types[param_count] = { scgms::NModel_Parameter_Value::mptDouble };
 
-	const wchar_t* param_names[param_count] = { dsHeart_Rate_Resting };
-	const wchar_t* param_columns[param_count] = { rsHeart_Rate_Resting };
+	const wchar_t* param_names[param_count] = { dsHeart_Rate_Resting, L"EDA_thr", L"EDA_max" };
+	const wchar_t* param_columns[param_count] = { rsHeart_Rate_Resting, L"EDA_thr", L"EDA_max" };
 
 	const size_t signal_count = 1;
 
