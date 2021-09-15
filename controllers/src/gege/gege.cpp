@@ -3,9 +3,11 @@
 
 #include "../../../../common/rtl/SolverLib.h"
 
-/*
+#include "../../../../common/utils/string_utils.h"
 
-0.1 0.8 0.1 0.5
+/*
+* 
+* 0.3
 
 <S> ::= <rule> | <rule> <S>
 
@@ -46,12 +48,6 @@ CGEGE_Model::CGEGE_Model(scgms::IModel_Parameter_Vector * parameters, scgms::IFi
 	pars.assign(mParameters.vector, mParameters.vector + gege::param_count);
 
 	mContext.Parse(pars);
-
-	std::vector<std::string> target;
-	mContext.Transcribe(target);
-
-	for (auto& s : target)
-		dprintf((s + "\r\n").c_str());
 }
 
 HRESULT CGEGE_Model::Do_Execute(scgms::UDevice_Event event) {
@@ -92,6 +88,18 @@ HRESULT CGEGE_Model::Do_Execute(scgms::UDevice_Event event) {
 
 			mContext.Set_State_Variable(gege::NQuantity::IG_Slope, avg);
 		}
+	}
+	else if (event.event_code() == scgms::NDevice_Event_Code::Parameters)
+	{
+		std::vector<std::string> target;
+		mContext.Transcribe(target);
+
+		std::string so;
+		for (auto& s : target)
+			so += s + "** ";
+
+		Emit_Info(scgms::NDevice_Event_Code::Information, Widen_String(so), mSegment_id);
+
 	}
 
 	return mOutput.Send(event);

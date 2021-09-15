@@ -129,19 +129,21 @@ namespace gege
 				if (cur_idx + 3 >= genome.size())
 					return false;
 
-				mLHS = static_cast<NQuantity>(genome[cur_idx + 1] * (static_cast<double>(NQuantity::count) - 0.0001)); // scale to 0 - N.999 (trimming to integer gives us N buckets)
-				mOperator = static_cast<NOperator>(genome[cur_idx + 2] * (static_cast<double>(NOperator::count) - 0.0001));
+				mLHS = static_cast<NQuantity>(genome[cur_idx + 0] * (static_cast<double>(NQuantity::count) - 0.0001)); // scale to 0 - N.999 (trimming to integer gives us N buckets)
+				mOperator = static_cast<NOperator>(genome[cur_idx + 1] * (static_cast<double>(NOperator::count) - 0.0001));
 
 				if (genome[cur_idx] < 0.5) // rule 1
 				{
-					mRHS = static_cast<NQuantity>(genome[cur_idx + 3] * (static_cast<double>(NQuantity::count) - 0.0001));
+					mRHS = static_cast<NQuantity>(genome[cur_idx + 2] * (static_cast<double>(NQuantity::count) - 0.0001));
 					mRHS_Is_Double = false;
 				}
 				else // rule 2
 				{
-					mRHS = genome[cur_idx + 3] * Value_Multiplier;
+					mRHS = genome[cur_idx + 2] * Value_Multiplier;
 					mRHS_Is_Double = true;
 				}
+
+				cur_idx += 3;
 
 				return true;
 			}
