@@ -52,8 +52,6 @@
 
 class CPattern_Prediction_Filter : public virtual scgms::CBase_Filter {
 protected:
-    size_t Level_2_Band_Index(const double level);
-protected:
     enum NClassify : size_t {
         pattern = 0,
         band = 1,
@@ -73,6 +71,10 @@ protected:
     void Update_Learn(scgms::SSignal &ist, const double current_time, const double current_ig_level);
     double Predict(scgms::SSignal &ist, const double current_time);
 protected:
+    filesystem::path mLearned_Data_Filename_Prefix;
+    size_t mSliding_Window_Length = 0;
+    void Write_Learning_Data() const;
+protected:
     bool mDo_Not_Learn = false;    
     bool mUpdate_Parameters_File = true;
     bool mUse_Config_Parameters = false;
@@ -86,7 +88,7 @@ protected:
 
     HRESULT Read_Parameters_File(scgms::SFilter_Configuration configuration, refcnt::Swstr_list error_description);
     HRESULT Read_Parameters_From_Config(scgms::SFilter_Configuration configuration, refcnt::Swstr_list error_description);
-    void Write_Parameters_File();
+    void Write_Parameters_File() const;
 protected:
     // scgms::CBase_Filter iface implementation
     virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;

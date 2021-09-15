@@ -55,6 +55,9 @@ CPattern_Prediction_Filter::CPattern_Prediction_Filter(scgms::IFilter *output)
 CPattern_Prediction_Filter::~CPattern_Prediction_Filter() {
 	if (mUpdate_Parameters_File)
 		Write_Parameters_File();
+
+	if ((!mLearned_Data_Filename_Prefix.empty()) && (mSliding_Window_Length > 0)) 
+		Write_Learning_Data();
 }
 
 HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
@@ -152,6 +155,16 @@ HRESULT CPattern_Prediction_Filter::Do_Configure(scgms::SFilter_Configuration co
 		return Read_Parameters_From_Config(configuration, error_description);
 	}
 
+
+	mLearned_Data_Filename_Prefix = configuration.Read_File_Path(rsLearned_Data_Filename_Prefix);
+	mSliding_Window_Length = configuration.Read_Int(rsSliding_Window_Length);
+	if ((!mLearned_Data_Filename_Prefix.empty()) && (mSliding_Window_Length>0)) {
+		for (auto& pattern : mPatterns) {
+			for (auto& band : pattern)
+				band.Start_Collecting_Learning_Data();
+		}
+	}
+
 	return S_OK;
 }
 
@@ -183,7 +196,7 @@ void CPattern_Prediction_Filter::Update_Learn(scgms::SSignal& ist, const double 
 		if (!mDo_Not_Learn) {
 
 			if (classified_ok)
-				mPatterns[static_cast<size_t>(pattern)][band_index].push(current_ig_level);
+				mPatterns[static_cast<size_t>(pattern)][band_index].push(current_time, current_ig_level);
 
 			mUpdated_Levels = true;
 		}
@@ -201,7 +214,7 @@ CPattern_Prediction_Filter::TClassification CPattern_Prediction_Filter::Classify
 		if (!Is_Any_NaN(levels)) {
 		
 			std::get<NClassify::success>(result) = true;	//classified ok
-			std::get<NClassify::band>(result) = Level_2_Band_Index(levels[2]);
+			std::get<NClassify::band>(result) = pattern_prediction::Level_2_Band_Index(levels[2]);
 
 			auto cmp_lev = [&](const double l, const double r)->std::tuple<bool, bool, bool> {
 				std::tuple<bool, bool, bool> result{ false, false, false };
@@ -251,14 +264,6 @@ double CPattern_Prediction_Filter::Predict(scgms::SSignal& ist, const double cur
 	return predicted_level;
 }
 
-size_t CPattern_Prediction_Filter::Level_2_Band_Index(const double level) {
-	if (level >= pattern_prediction::High_Threshold) return pattern_prediction::Band_Count - 1;
-
-	const double tmp = level - pattern_prediction::Low_Threshold;
-	if (tmp < 0.0) return 0;
-
-	return static_cast<size_t>(round(tmp * pattern_prediction::Inv_Band_Size));
-}
 
 HRESULT CPattern_Prediction_Filter::Read_Parameters_File(scgms::SFilter_Configuration configuration, refcnt::Swstr_list error_description) {
 	auto load_from_ini = [this](CSimpleIniW& ini) {
@@ -400,7 +405,7 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_From_Config(scgms::SFilter_C
 	return S_OK;
 }
 
-void CPattern_Prediction_Filter::Write_Parameters_File() {
+void CPattern_Prediction_Filter::Write_Parameters_File() const {
 	if (!mUpdated_Levels /* && !mUse_Config_Parameters*/) return;	//we may be flushing the config to external files
 
 	CSimpleIniW ini;
@@ -408,10 +413,10 @@ void CPattern_Prediction_Filter::Write_Parameters_File() {
 	for (size_t pattern_idx = 0; pattern_idx < mPatterns.size(); pattern_idx++) {		
 		for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {
 
-			const auto& pattern = mPatterns[pattern_idx][band_idx];
+			const auto& band = mPatterns[pattern_idx][band_idx];
 
-			if (pattern) {
-				const auto pattern_state = pattern.State_To_String();
+			if (band) {
+				const auto pattern_state = band.State_To_String();
 
 				const std::wstring section_name = isPattern + std::to_wstring(pattern_idx) + isBand + std::to_wstring(band_idx);
 				const wchar_t* section_name_ptr = section_name.c_str();
@@ -431,4 +436,26 @@ void CPattern_Prediction_Filter::Write_Parameters_File() {
 		config_file << content;
 		config_file.close();
 	}
+}
+
+
+void CPattern_Prediction_Filter::Write_Learning_Data() const {
+	for (size_t pattern_idx = 0; pattern_idx < mPatterns.size(); pattern_idx++) {
+		for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {
+
+			const auto& band = mPatterns[pattern_idx][band_idx];
+			const std::wstring band_data = band.Learning_Data(mSliding_Window_Length, mDt);
+		
+			
+			const std::wstring section_name = std::wstring{ L"." } + isPattern + std::to_wstring(pattern_idx) + isBand + std::to_wstring(band_idx) + L".csv";
+			const filesystem::path fpath = mLearned_Data_Filename_Prefix.wstring() + section_name;
+
+			std::wofstream band_data_file(fpath, std::ofstream::binary);
+			if (band_data_file.is_open()) {
+				band_data_file << band_data;
+				band_data_file.close();
+			}
+		}
+	}
+
 }

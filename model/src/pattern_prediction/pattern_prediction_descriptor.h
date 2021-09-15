@@ -55,6 +55,8 @@ namespace pattern_prediction {
     static constexpr double Half_Band_Size = 0.5 / Inv_Band_Size;
 
     static constexpr size_t Band_Count = Internal_Bound_Count + 2;
+    static constexpr size_t Subclasses_Count = 3;
+    
 
     static constexpr double Steady_Epsilon = 0.1; //epsilon for considering two levels as equal
 
@@ -85,4 +87,7 @@ namespace pattern_prediction {
 
     scgms::TFilter_Descriptor get_filter_desc();    //func to avoid static init fiasco as this is another unit than descriptor.cpp
     scgms::TModel_Descriptor get_model_desc();
+
+   size_t Level_2_Band_Index(const double level);
+   double Subclassed_Level(const double level);
 }
