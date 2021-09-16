@@ -6,7 +6,7 @@
 
 namespace gege
 {
-	constexpr double Value_Multiplier = 10.0;
+	constexpr double Value_Multiplier = 30.0; // this results to scaling on the interval of -15 to 15
 
 	enum class NOperator
 	{
@@ -18,15 +18,9 @@ namespace gege
 
 	enum class NQuantity
 	{
-		BG,
 		IG,
-
 		IG_Slope,
-
-		Intermediate_1,
-		Intermediate_2,
-		Intermediate_3,
-		Intermediate_4,
+		Meal_Last_30min,
 
 		count
 	};
@@ -34,11 +28,6 @@ namespace gege
 	enum class NAction
 	{
 		Set_IBR,
-		
-		Set_Intermediate_1,
-		Set_Intermediate_2,
-		Set_Intermediate_3,
-		Set_Intermediate_4,
 
 		count
 	};
@@ -139,7 +128,7 @@ namespace gege
 				}
 				else // rule 2
 				{
-					mRHS = genome[cur_idx + 2] * Value_Multiplier;
+					mRHS = genome[cur_idx + 2] * Value_Multiplier - Value_Multiplier*0.5;
 					mRHS_Is_Double = true;
 				}
 
@@ -153,13 +142,9 @@ namespace gege
 				auto quant_to_str = [](NQuantity q) -> std::string {
 					switch (q)
 					{
-						case NQuantity::BG: return "BG";
 						case NQuantity::IG: return "IG";
 						case NQuantity::IG_Slope: return "IG_Slope";
-						case NQuantity::Intermediate_1: return "Intermediate_1";
-						case NQuantity::Intermediate_2: return "Intermediate_2";
-						case NQuantity::Intermediate_3: return "Intermediate_3";
-						case NQuantity::Intermediate_4: return "Intermediate_4";
+						case NQuantity::Meal_Last_30min: return "Meal_Last_30min";
 					}
 
 					return "???";
@@ -268,31 +253,19 @@ namespace gege
 					case NAction::Set_IBR:
 						ctx.Set_Output_IBR(mValue);
 						break;
-					case NAction::Set_Intermediate_1:
-						ctx.Set_State_Variable(NQuantity::Intermediate_1, mValue);
-						break;
-					case NAction::Set_Intermediate_2:
-						ctx.Set_State_Variable(NQuantity::Intermediate_2, mValue);
-						break;
-					case NAction::Set_Intermediate_3:
-						ctx.Set_State_Variable(NQuantity::Intermediate_3, mValue);
-						break;
-					case NAction::Set_Intermediate_4:
-						ctx.Set_State_Variable(NQuantity::Intermediate_4, mValue);
-						break;
 				}
 			}
 
 			virtual bool Parse(const std::vector<double>& genome, size_t& cur_idx) override
 			{
-				// <action> ::= SET_IBR(<value>) | SET_INTERMEDIATE_1(<value>) | _2 | ... | _N
+				// <action> ::= SET_IBR(<value>)
 
 				// we need an additional 1 parameter (1 encodes the rule, 1 encodes the value
 				if (cur_idx + 1 >= genome.size())
 					return false;
 
 				mAction = static_cast<NAction>(genome[cur_idx] * (static_cast<double>(NAction::count) - 0.0001)); // scale to 0 - N.999 (trimming to integer gives us N buckets)
-				mValue = genome[cur_idx + 1] * Value_Multiplier; // let us try to multiply the value by a constant Value_Multiplier for now, TODO: revise this
+				mValue = genome[cur_idx + 1] * Value_Multiplier - Value_Multiplier * 0.5; // let us try to multiply the value by a constant Value_Multiplier for now, TODO: revise this
 
 				cur_idx += 2;
 
@@ -307,18 +280,6 @@ namespace gege
 				{
 					case NAction::Set_IBR:
 						actionStr = "SET_IBR(";
-						break;
-					case NAction::Set_Intermediate_1:
-						actionStr = "SET_INTERMEDIATE_1(";
-						break;
-					case NAction::Set_Intermediate_2:
-						actionStr = "SET_INTERMEDIATE_2(";
-						break;
-					case NAction::Set_Intermediate_3:
-						actionStr = "SET_INTERMEDIATE_3(";
-						break;
-					case NAction::Set_Intermediate_4:
-						actionStr = "SET_INTERMEDIATE_4(";
 						break;
 				}
 

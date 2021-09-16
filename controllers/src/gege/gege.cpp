@@ -6,8 +6,6 @@
 #include "../../../../common/utils/string_utils.h"
 
 /*
-* 
-* 0.3
 
 <S> ::= <rule> | <rule> <S>
 
@@ -17,7 +15,7 @@
 
 <bool_expression> ::= <quantity> <operator> <quantity> | <quantity> <operator> <constant>
 
-<action> ::= SET_IBR(<value>) | SET_INTERMEDIATE_1(<value>) | _2 | ... | _N
+<action> ::= SET_IBR(<value>) | SET_INTERMEDIATE_1(<value>) | _2
 
 */
 
@@ -54,9 +52,7 @@ HRESULT CGEGE_Model::Do_Execute(scgms::UDevice_Event event) {
 
 	if (event.event_code() == scgms::NDevice_Event_Code::Level)
 	{
-		if (event.signal_id() == scgms::signal_BG)
-			mContext.Set_State_Variable(gege::NQuantity::BG, event.level());
-		else if (event.signal_id() == scgms::signal_IG)
+		if (event.signal_id() == scgms::signal_IG)
 		{
 			mContext.Set_State_Variable(gege::NQuantity::IG, event.level());
 
@@ -88,18 +84,22 @@ HRESULT CGEGE_Model::Do_Execute(scgms::UDevice_Event event) {
 
 			mContext.Set_State_Variable(gege::NQuantity::IG_Slope, avg);
 		}
+		else if (event.signal_id() == scgms::signal_Carb_Intake || event.signal_id() == scgms::signal_Carb_Rescue)
+		{
+			mLast_Meal = event.device_time();
+			mLast_Meal_Size = event.level();
+		}
 	}
-	else if (event.event_code() == scgms::NDevice_Event_Code::Parameters)
+	else if (event.event_code() == scgms::NDevice_Event_Code::Shut_Down)
 	{
 		std::vector<std::string> target;
 		mContext.Transcribe(target);
 
 		std::string so;
 		for (auto& s : target)
-			so += s + "** ";
+			so += s + " | ";
 
 		Emit_Info(scgms::NDevice_Event_Code::Information, Widen_String(so), mSegment_id);
-
 	}
 
 	return mOutput.Send(event);
@@ -138,6 +138,11 @@ HRESULT IfaceCalling CGEGE_Model::Step(const double time_advance_delta) {
 void CGEGE_Model::Advance_Model(double time_advance_delta) {
 
 	// for now, we assume the stepping is exactly 5 minutes - this causes the model to advance based on the current state of input variables and past state of intermediate variables
+
+	if (mCurrent_Time > mLast_Meal + scgms::One_Minute * 30.0)
+		mContext.Set_State_Variable(gege::NQuantity::Meal_Last_30min, mLast_Meal_Size);
+	else
+		mContext.Set_State_Variable(gege::NQuantity::Meal_Last_30min, 0);
 
 	mContext.Evaluate();
 

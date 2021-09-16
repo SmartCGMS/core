@@ -20,6 +20,9 @@ class CGEGE_Model : public virtual scgms::CBase_Filter, public virtual scgms::ID
 		// we have to hold the current timestamp
 		double mCurrent_Time = 0;
 
+		double mLast_Meal = 0;
+		double mLast_Meal_Size = 0;
+
 		bool mHas_IG = false;
 		std::array<double, 5> mPast_IG;
 		size_t mPast_IG_Cursor = 0;

@@ -294,8 +294,8 @@ namespace gege {
 		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
 		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
 		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
-		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
-		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		//L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		//L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
 	};
 
 	const scgms::NModel_Parameter_Value model_param_types[param_count] = {
@@ -307,10 +307,11 @@ namespace gege {
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		/*scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
-		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		*/
 	};
 
 	constexpr size_t number_of_calculated_signals = 1;
