@@ -20,7 +20,9 @@ namespace gege
 	{
 		IG,
 		IG_Slope,
-		Meal_Last_30min,
+		IG_Average_Last_0_5,
+		IG_Average_Last_6_10,
+		
 
 		count
 	};
@@ -28,6 +30,7 @@ namespace gege
 	enum class NAction
 	{
 		Set_IBR,
+		Set_Bolus,
 
 		count
 	};
@@ -42,6 +45,7 @@ namespace gege
 
 			// output variables
 			double mIBR = 0;
+			double mBolus = 0;
 
 			// start node (to run the evaluation)
 			std::unique_ptr<CStart_Node> mStart_Node;
@@ -58,7 +62,9 @@ namespace gege
 			double Get_State_Variable(const NQuantity q) const { return mState[static_cast<size_t>(q)]; }
 
 			double Get_Output_IBR() const { return mIBR; };
+			double Get_Output_Bolus() const { return mBolus; };
 			void Set_Output_IBR(const double ibr) { mIBR = ibr; };
+			void Set_Output_Bolus(const double bolus) { mBolus = bolus; };
 
 			void Evaluate();
 
@@ -144,7 +150,8 @@ namespace gege
 					{
 						case NQuantity::IG: return "IG";
 						case NQuantity::IG_Slope: return "IG_Slope";
-						case NQuantity::Meal_Last_30min: return "Meal_Last_30min";
+						case NQuantity::IG_Average_Last_0_5: return "IG_Avg_0_5";
+						case NQuantity::IG_Average_Last_6_10: return "IG_Avg_6_10";
 					}
 
 					return "???";
@@ -251,7 +258,10 @@ namespace gege
 				switch (mAction)
 				{
 					case NAction::Set_IBR:
-						ctx.Set_Output_IBR(mValue);
+						ctx.Set_Output_IBR(std::max(mValue, 0.0));
+						break;
+					case NAction::Set_Bolus:
+						ctx.Set_Output_Bolus(std::max(mValue, 0.0));
 						break;
 				}
 			}
@@ -280,6 +290,9 @@ namespace gege
 				{
 					case NAction::Set_IBR:
 						actionStr = "SET_IBR(";
+						break;
+					case NAction::Set_Bolus:
+						actionStr = "SET_BOLUS(";
 						break;
 				}
 
@@ -314,18 +327,18 @@ namespace gege
 				if (cur_idx >= genome.size())
 					return false;
 
-				if (genome[cur_idx] < 0.5) // rule 1
+				//if (genome[cur_idx] < 0.5) // rule 1
 				{
 					cur_idx++;
 					mHas_Cond = true;
 					return mCond.Parse(genome, cur_idx) && mAction.Parse(genome, cur_idx);
 				}
-				else // rule 2
+				/*else // rule 2
 				{
 					cur_idx++;
 					mHas_Cond = false;
 					return mAction.Parse(genome, cur_idx);
-				}
+				}*/
 			}
 
 			virtual void Transcribe(std::vector<std::string>& target) override

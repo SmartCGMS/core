@@ -10,6 +10,7 @@ FILE(GLOB SRC_FILES "src/descriptor.cpp" "src/descriptor.h"
 					"src/absorption/*.cpp" "src/absorption/*.c" "src/absorption/*.h"
 					"src/activity_detection/*.cpp" "src/activity_detection/*.c" "src/activity_detection/*.h"
 					"src/gege/*.cpp" "src/gege/*.c" "src/gege/*.h"
+					"src/flr_ge/*.cpp" "src/flr_ge/*.c" "src/flr_ge/*.h"
 )
 
 IF(WIN32)

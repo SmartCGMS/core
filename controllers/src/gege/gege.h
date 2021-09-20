@@ -22,10 +22,13 @@ class CGEGE_Model : public virtual scgms::CBase_Filter, public virtual scgms::ID
 
 		double mLast_Meal = 0;
 		double mLast_Meal_Size = 0;
+		double mLast_Model_Bolus = 0;
 
 		bool mHas_IG = false;
 		std::array<double, 5> mPast_IG;
+		std::array<double, 10> mPast_10_IG;
 		size_t mPast_IG_Cursor = 0;
+		size_t mPast_IG_10_Cursor = 0;
 
 		gege::CContext mContext;
 
@@ -36,6 +39,7 @@ class CGEGE_Model : public virtual scgms::CBase_Filter, public virtual scgms::ID
 
 		void Advance_Model(double time_advance_delta);
 		bool Emit_IBR(double level, double time);
+		bool Emit_Bolus(double level, double time);
 
 	public:
 		CGEGE_Model(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output);
