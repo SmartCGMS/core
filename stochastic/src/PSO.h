@@ -240,7 +240,8 @@ namespace pso
 
 template <typename TUsed_Solution, typename TRandom_Device = std::random_device,
 	template<typename, typename> typename TSwarm_Generator = pso::CRandom_Swarm_Generator,
-	template<typename, typename> typename TVelocity_Modifier = pso::CSingle_Coefficient_Velocity_Modifier>
+	template<typename, typename> typename TVelocity_Modifier = pso::CSingle_Coefficient_Velocity_Modifier,
+	bool repulsory = false>
 class CPSO
 {
 	protected:
@@ -253,15 +254,26 @@ class CPSO
 		// maximum velocity factor (the maximum length of velocity vector in fractions of search space)
 		static constexpr double max_velocity = 0.4;
 
+		// global memory repulsion (how much the particle wants to go away from global repulsors)
+		static constexpr double phi_r = 3.05;
+		// how many repulsory iterations should be at least done
+		static constexpr size_t min_repulsory_iterations = 5;
+		// ratio of repulsory iterations to problem size (e.g.; if this number is 0.5 and problem size is 20, a total of 10 iteations will be done)
+		static constexpr double repulsory_itr_param_ratio = 0.25;
+
 	protected:
 		const solver::TSolver_Setup mSetup;
 		const TUsed_Solution mLower_Bound;
 		const TUsed_Solution mUpper_Bound;
 		const TUsed_Solution mVelocity_Lower_Bound, mVelocity_Upper_Bound;
 		pso::TSwarm_Vector<TUsed_Solution> mSwarm;
+		pso::TSwarm_Vector<TUsed_Solution> mRepulsors;
 
 		typename pso::TSwarm_Vector<TUsed_Solution>::iterator mBest_Itr;
 		double mBest_Fitness = std::numeric_limits<double>::max();
+
+		typename TUsed_Solution mOverall_Best;
+		double mOverall_Best_Fitness = std::numeric_limits<double>::max();
 
 		// updates global memory with best known position of the whole swarm
 		inline void Update_Best_Candidate() {
@@ -270,6 +282,20 @@ class CPSO
 			});
 
 			mBest_Fitness = mBest_Itr->best_fitness;
+
+			if (mBest_Fitness < mOverall_Best_Fitness)
+			{
+				mOverall_Best = mBest_Itr->best;
+				mOverall_Best_Fitness = mBest_Fitness;
+			}
+		}
+
+		inline void Print_Best_Candidate(size_t iter)
+		{
+			dprintf("%d; %llf; ", iter, mOverall_Best_Fitness);
+			for (size_t i = 0; i < mSetup.problem_size; i++)
+				dprintf("%llf; ", mOverall_Best[i]);
+			dprintf("\r\n");
 		}
 
 	protected:
@@ -284,20 +310,24 @@ class CPSO
 			mVelocity_Lower_Bound(- max_velocity * (mUpper_Bound - mLower_Bound)),
 			mVelocity_Upper_Bound(  max_velocity * (mUpper_Bound - mLower_Bound))
 		{
+			Init_PSO(true);
+		}
+
+		void Init_PSO(bool initial) {
 			mSwarm.resize(std::max(mSetup.population_size, static_cast<decltype(mSetup.population_size)>(5)));
 
 			// create the initial swarm using supplied hints; fill up to a half of a swarm with hints
 			const size_t initialized_count = std::min(mSwarm.size() / 2, mSetup.hint_count);
 
 			for (size_t i = 0; i < initialized_count; i++)
-				mSwarm[i].current = Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size);
+				mSwarm[i].current = Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], mSetup.problem_size);
 
 			// complement the rest with generated candidates
 			TSwarm_Generator<TUsed_Solution, TRandom_Device> gen;
 			gen.Generate_Swarm(mSwarm, initialized_count, mSwarm.size(), mSetup.problem_size, mLower_Bound, mUpper_Bound);
 
 			// calculate initial fitness
-			std::for_each(std::execution::par_unseq, mSwarm.begin(), mSwarm.end(), [this](auto &candidate_solution) {
+			std::for_each(std::execution::par_unseq, mSwarm.begin(), mSwarm.end(), [this, initial](auto& candidate_solution) {
 				candidate_solution.current_fitness = mSetup.objective(mSetup.data, candidate_solution.current.data());
 
 				// current is also the best known
@@ -315,7 +345,7 @@ class CPSO
 					rand_init[j] = mUniform_Distribution_dbl(mRandom_Generator);
 
 				candidate_solution.velocity = mVelocity_Lower_Bound + rand_init * (mVelocity_Upper_Bound - mVelocity_Lower_Bound);
-			});
+				});
 
 			// select swarm best candidate and store it
 			Update_Best_Candidate();
@@ -325,26 +355,77 @@ class CPSO
 
 			progress.current_progress = 0;
 			progress.max_progress = mSetup.max_generations;
+
+			size_t repulsory_iterations = repulsory ? std::max(static_cast<size_t>(repulsory_itr_param_ratio * mSetup.problem_size) + 1, min_repulsory_iterations) : 1;
+			if constexpr (repulsory)
+				progress.max_progress *= repulsory_iterations;
+
+			size_t cur_progress = 0;
 	
 			const size_t solution_size = mSwarm[0].current.cols();
 			TVelocity_Modifier<TUsed_Solution, TRandom_Device> mod;
 
-			while ((progress.current_progress++ < mSetup.max_generations) && (progress.cancelled == FALSE))
+			while ((cur_progress++ < mSetup.max_generations && repulsory_iterations > 0) && (progress.cancelled == FALSE))
 			{
+				progress.current_progress++;
+
+				if constexpr (repulsory)
+				{
+					if (cur_progress == mSetup.max_generations)
+					{
+						cur_progress = 0;
+						repulsory_iterations--;
+
+						mRepulsors.push_back(*mBest_Itr);
+
+						Init_PSO(false);
+					}
+				}
+
 				// update the progress
-				progress.best_metric = mBest_Fitness;
+				progress.best_metric = mOverall_Best_Fitness;
 
 				std::for_each(std::execution::par_unseq, mSwarm.begin(), mSwarm.end(), [=, &mod](auto &candidate_solution) {
 
 					// generate velocity update vectors/scalars (depends on chosen velocity update operator)
 					auto [r_p, r_g] = mod.Generate_Velocity_Change(solution_size);
 
-					// update velocity and ensure bounds
-					candidate_solution.velocity = mVelocity_Upper_Bound.min(mVelocity_Lower_Bound.max(
-						omega * candidate_solution.velocity
-						+ phi_p * r_p * (candidate_solution.best - candidate_solution.current)
-						+ phi_g * r_g * (mBest_Itr->best - candidate_solution.current)
-					));
+					if constexpr (repulsory)
+					{
+						// update velocity
+						candidate_solution.velocity = 
+							omega * candidate_solution.velocity
+							+ phi_p * r_p * (candidate_solution.best - candidate_solution.current)
+							+ phi_g * r_g * (mBest_Itr->best - candidate_solution.current);
+
+						if (repulsory_iterations > 0)
+						{
+							// repulse
+							for (auto& repulsor : mRepulsors)
+								//candidate_solution.velocity -= phi_r * 1.0 / (repulsor.best - candidate_solution.current);
+								//candidate_solution.velocity -= phi_r * (repulsor.best - candidate_solution.current) * (1.0 / (repulsor.best_fitness * candidate_solution.best_fitness)) / std::sqrt((repulsor.best - candidate_solution.current).pow(2).sum());
+								candidate_solution.velocity -= phi_r * r_g * (repulsor.best - candidate_solution.current) / std::sqrt((repulsor.best - candidate_solution.current).pow(2).sum());
+								//candidate_solution.velocity -= phi_r * (repulsor.best - candidate_solution.current) * (repulsor.best_fitness / candidate_solution.best_fitness) / std::sqrt((repulsor.best - candidate_solution.current).pow(2).sum());
+						}
+						else
+						{
+							// attract in last iteration - take all repulsors and make them attractors (so they now become solution hints)
+							for (auto& repulsor : mRepulsors)
+								candidate_solution.velocity += phi_r * r_g * (repulsor.best - candidate_solution.current);
+						}
+
+						// ensure bounds
+						candidate_solution.velocity = mVelocity_Upper_Bound.min(mVelocity_Lower_Bound.max(candidate_solution.velocity));
+					}
+					else
+					{
+						// update velocity and ensure bounds
+						candidate_solution.velocity = mVelocity_Upper_Bound.min(mVelocity_Lower_Bound.max(
+							omega * candidate_solution.velocity
+							+ phi_p * r_p * (candidate_solution.best - candidate_solution.current)
+							+ phi_g * r_g * (mBest_Itr->best - candidate_solution.current)
+						));
+					}
 
 					// move particle by its velocity vector and ensure bounds
 					candidate_solution.current = mUpper_Bound.min(mLower_Bound.max(candidate_solution.current + candidate_solution.velocity));
@@ -362,8 +443,11 @@ class CPSO
 
 				// update swarm-best candidate
 				Update_Best_Candidate();
+
+				// for debugging purposes
+				Print_Best_Candidate(progress.current_progress);
 			}
 
-			return mBest_Itr->best;
+			return mOverall_Best;
 		}
 };

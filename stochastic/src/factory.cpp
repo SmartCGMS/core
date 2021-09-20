@@ -156,6 +156,9 @@ public:
 			//using TPSO_MT_DiagInit_SCV = CPSO<TUsed_Solution, std::mt19937, pso::CDiagonal_Swarm_Generator, pso::CSingle_Coefficient_Vector_Velocity_Modifier>;					
 			//using TPSO_RND_CrossInit_DCV = CPSO<TUsed_Solution, std::random_device, pso::CCross_Diagonal_Swarm_Generator, pso::CDual_Coefficient_Vector_Velocity_Modifier>;		
 		mSolver_Id_Map[pso::id] = std::bind(&Solve_By_Class<TPSO_Halton, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+
+		using TPSO_pr_Halton = CPSO<TUsed_Solution, CHalton_Device, pso::CDiagonal_Swarm_Generator, pso::CDual_Coefficient_Vector_Velocity_Modifier, true>;
+		mSolver_Id_Map[pso::pr_id] = std::bind(&Solve_By_Class<TPSO_pr_Halton, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 	}
 
 	HRESULT Solve(const GUID &solver_id, solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
