@@ -260,6 +260,20 @@ double CAvgPlusBesselStdDevMetric::Do_Calculate_Metric() {
 	return mLast_Calculated_Avg + sqrt(variance);
 }
 
+
+
+double CAvg_Pow_StdDev_Metric::Do_Calculate_Metric() {
+	const double variance = CVariance_Metric::Do_Calculate_Metric();
+	//also calculates mLastCalculatedAvg
+
+		//the real metric is supposed to be
+		//(1.0+avg)^(1.0+std_dev_estimate)		
+		//both 1.0+ are to avoid adverse results with both avg and sd less than 1.0 so the best metric is 1.0 => -1.0 to have zero as the best fit like the other metrics
+	return pow(1.0+mLast_Calculated_Avg, 1.0 + sqrt(variance))-1.0;	//we do sqrt to minimize the power extent
+}
+
+
+
 double CCrossWalkMetric::Do_Calculate_Metric() {
 	/*
 		We will calculate path from first measured to second calculated, then to third measured, until we reach the last difference.

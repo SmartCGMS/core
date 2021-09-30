@@ -77,6 +77,8 @@ public:
 		Bind_Metric_Factory<CAvgPlusBesselStdDevMetric>(mtrAvg_Plus_Bessel_Std_Dev);
 		Bind_Metric_Factory<CRMSE_Metric>(mtrRMSE);
 		Bind_Metric_Factory<CExpWeightedDiffAvgPolar_Metric>(mtrExpWtDiff);
+		Bind_Metric_Factory<CAvg_Pow_StdDev_Metric>(mtrAvg_Pow_StdDev_Metric);
+		
 	}
 
 	HRESULT Create_Metric(const scgms::TMetric_Parameters &parameters, scgms::IMetric **metric) const {

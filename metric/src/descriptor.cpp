@@ -45,7 +45,7 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/utils/descriptor_utils.h"
 
-const std::array < scgms::TMetric_Descriptor, 13 > metric_descriptor = { {
+const std::array < scgms::TMetric_Descriptor, 14 > metric_descriptor = { {
 	 scgms::TMetric_Descriptor{ mtrAvg_Abs, dsAvg_Abs },
 	 scgms::TMetric_Descriptor{ mtrMax_Abs, dsMax_Abs },
 	 scgms::TMetric_Descriptor{ mtrPerc_Abs, dsPerc_Abs },
@@ -59,6 +59,7 @@ const std::array < scgms::TMetric_Descriptor, 13 > metric_descriptor = { {
 	 scgms::TMetric_Descriptor{ mtrAvg_Plus_Bessel_Std_Dev, dsAvg_Plus_Bessel_Std_Dev },
 	 scgms::TMetric_Descriptor{ mtrRMSE, dsRMSE },
 	 scgms::TMetric_Descriptor{ mtrExpWtDiff, dsExpWtDiffPolar },
+	 scgms::TMetric_Descriptor{ mtrAvg_Pow_StdDev_Metric, dsAvg_Pow_StdDev_Metric },	 
 } };
 
 HRESULT IfaceCalling do_get_metric_descriptors(scgms::TMetric_Descriptor const **begin, scgms::TMetric_Descriptor const **end) {
