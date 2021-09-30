@@ -54,8 +54,12 @@ CPattern_Prediction_Data::CPattern_Prediction_Data() {
     std::fill(mState.begin(), mState.end(), 0.0);
 }
 
-void CPattern_Prediction_Data::push(const double level) {
+void CPattern_Prediction_Data::push(const double device_time, const double level) {
     if (Is_Any_NaN(level)) return;
+
+    if (mCollect_Learning_Data) {
+        mLearning_Data.push_back({ device_time, level });
+    }
        
     mState[mHead] = level;
     mInvalidated = true;
@@ -127,7 +131,7 @@ void CPattern_Prediction_Data::State_from_String(const std::wstring& state) {
          //and store the real value
          bool ok;
          const double value = str_2_dbl(str_val, ok);
-         if (ok) push(value);
+         if (ok) push(0.0, value);
          else break;
 
         str_val = wcstok_s(nullptr, delimiters, &buffer);
@@ -154,6 +158,66 @@ std::wstring CPattern_Prediction_Data::State_To_String() const {
 
         converted << mState[i];
     }
+
+    return converted.str();
+}
+
+void CPattern_Prediction_Data::Start_Collecting_Learning_Data() {
+    mCollect_Learning_Data = true;
+}
+
+std::wstring CPattern_Prediction_Data::Learning_Data(const size_t sliding_window_length, const double dt) const {
+    std::wstringstream converted;
+    //unused keeps static analysis happy about creating an unnamed object
+    auto unused = converted.imbue(std::locale(std::wcout.getloc(), new CDecimal_Separator<wchar_t>{ L'.' })); //locale takes owner ship of dec_sep
+    converted << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+    
+    {   //write csv header
+        for (size_t i = 0; i < sliding_window_length; i++) {
+            converted << i+1 << "; ";
+        }
+        converted << "Subclass; Exact" << std::endl;
+    }
+
+
+    if (!mLearning_Data.empty()) {       
+        size_t last_recent_idx = mLearning_Data.size() - 1;
+
+        for (size_t predicted_idx = mLearning_Data.size() - 1; predicted_idx > 0; predicted_idx--) {
+            const double predicted_time = mLearning_Data[predicted_idx].device_time;
+
+            //find the last value in the recent sequence for the given prediction
+            while ((mLearning_Data[last_recent_idx].device_time + dt > predicted_time) && (last_recent_idx > 0))
+                last_recent_idx--;
+
+            //if ((last_recent_idx==0) && (mLearning_Data[last_recent_idx].device_time + dt > predicted_time))
+             //  continue;   //no data available
+
+            {//write the recent sequence
+                size_t first_recent_idx = 0;
+
+                const size_t recent_levels_count = last_recent_idx - first_recent_idx + 1;
+                if (recent_levels_count < sliding_window_length) {
+                    for (size_t i = 0; i < sliding_window_length - recent_levels_count; i++) {
+                        converted << "n/a; ";
+                    }
+                }
+                else
+                    first_recent_idx = last_recent_idx - sliding_window_length;
+
+                for (size_t i = first_recent_idx; i <= last_recent_idx; i++) {
+                    converted << mLearning_Data[i].level << "; ";
+                }
+            }
+
+            //write the subclassed level
+            converted << pattern_prediction::Subclassed_Level(mLearning_Data[predicted_idx].level) << "; ";
+
+            //write the exact level
+            converted << mLearning_Data[predicted_idx].level << std::endl;
+        }
+    }
+
 
     return converted.str();
 }

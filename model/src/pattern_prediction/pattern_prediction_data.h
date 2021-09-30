@@ -51,7 +51,10 @@ protected:
     size_t mHead = 0;
     bool mFull = false; //true if we have filled the entire buffer
                         //and we are overwriting the old values
-    
+protected:
+    bool mCollect_Learning_Data =false;
+    struct TLevel { double device_time, level; };
+    std::vector<TLevel> mLearning_Data;
 protected:
     //prediction helpers
     const double mTrusted_Perimeter = 2.0;
@@ -60,11 +63,15 @@ protected:
 public:
     CPattern_Prediction_Data();
 
-    void push(const double level);
+
+    void push(const double device_time, const double level);
     double predict();
     explicit operator bool() const;
 
     void Set_State(const double& level);
     void State_from_String(const std::wstring& state);
     std::wstring State_To_String() const;
+
+    void Start_Collecting_Learning_Data();
+    std::wstring Learning_Data(const size_t sliding_window_length, const double dt) const;
 };

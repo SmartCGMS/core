@@ -54,10 +54,10 @@ namespace pattern_prediction {
 	}
 
 
-	const size_t filter_param_count = 6;
-	const scgms::NParameter_Type filter_param_types[filter_param_count] = { scgms::NParameter_Type::ptRatTime, scgms::NParameter_Type::ptWChar_Array, scgms::NParameter_Type::ptBool, scgms::NParameter_Type::ptBool, scgms::NParameter_Type::ptBool, scgms::NParameter_Type::ptDouble_Array };
-	const wchar_t* filter_param_ui_names[filter_param_count] = { dsDt, dsParameters_File, dsDo_Not_Update_Parameters_File, dsDo_Not_Learn, dsUse_Config_parameters, dsParameters };
-	const wchar_t* filter_param_config_names[filter_param_count] = { rsDt_Column, rsParameters_File, rsDo_Not_Update_Parameters_File, rsDo_Not_Learn, rsUse_Config_parameters, rsParameters};
+	const size_t filter_param_count = 9;
+	const scgms::NParameter_Type filter_param_types[filter_param_count] = { scgms::NParameter_Type::ptRatTime, scgms::NParameter_Type::ptWChar_Array, scgms::NParameter_Type::ptBool, scgms::NParameter_Type::ptBool, scgms::NParameter_Type::ptBool, scgms::NParameter_Type::ptDouble_Array, scgms::NParameter_Type::ptNull, scgms::NParameter_Type::ptInt64, scgms::NParameter_Type::ptWChar_Array };
+	const wchar_t* filter_param_ui_names[filter_param_count] = { dsDt, dsParameters_File, dsDo_Not_Update_Parameters_File, dsDo_Not_Learn, dsUse_Config_parameters, dsParameters, dsExperimental, dsSliding_Window_Length, dsLearned_Data_Filename_Prefix };
+	const wchar_t* filter_param_config_names[filter_param_count] = { rsDt_Column, rsParameters_File, rsDo_Not_Update_Parameters_File, rsDo_Not_Learn, rsUse_Config_parameters, rsParameters, nullptr, rsSliding_Window_Length, rsLearned_Data_Filename_Prefix };
 	const wchar_t* filter_param_tooltips[filter_param_count] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 
 	scgms::TFilter_Descriptor get_filter_desc() {
@@ -98,4 +98,41 @@ namespace pattern_prediction {
 
 		return model_desc;
 	}
+
+	size_t Level_2_Band_Index(const double level) {
+		if (level >= pattern_prediction::High_Threshold) return pattern_prediction::Band_Count - 1;
+
+		const double tmp = level - pattern_prediction::Low_Threshold;
+		if (tmp < 0.0) return 0;
+
+		return static_cast<size_t>(round(tmp * pattern_prediction::Inv_Band_Size));
+	}
+
+	double Subclassed_Level(const double level) {
+		//this routine won't get called often => no real need to optimize it
+
+		const size_t band_idx = Level_2_Band_Index(level);
+
+		double effective_level = level;
+		double low_bound = pattern_prediction::Low_Threshold + static_cast<double>(band_idx) * pattern_prediction::Band_Size;
+		double high_bound = low_bound + pattern_prediction::Band_Size;;
+
+		//handle special cases
+		if (band_idx == 0) {
+			low_bound = 0.0;
+			high_bound = pattern_prediction::Low_Threshold;
+		}
+		else if (level >= pattern_prediction::High_Threshold) {
+			low_bound = pattern_prediction::High_Threshold;
+			high_bound = 20.0; //makes no sense to consider higher values
+			effective_level = std::min(high_bound, level);
+		}
+
+				
+		const double subclass_size = (high_bound - low_bound) / static_cast<double>(Subclasses_Count);
+		const double idx = (effective_level - low_bound) / subclass_size;
+		return low_bound + round(idx) * subclass_size;
+	}
+
+
 }
