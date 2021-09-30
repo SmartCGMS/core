@@ -252,8 +252,8 @@ HRESULT IfaceCalling CDb_Writer::Do_Configure(scgms::SFilter_Configuration confi
 
 	mDbHost = configuration.Read_String(rsDb_Host);
 	mDbProvider = configuration.Read_String(rsDb_Provider);
-	mDbPort = static_cast<decltype(mDbPort)>(configuration.Read_Int(rsDb_Port));
-	mDbDatabaseName = configuration.Read_String(rsDb_Name);
+	mDbPort = static_cast<decltype(mDbPort)>(configuration.Read_Int(rsDb_Port));	
+	mDbDatabaseName = db::is_file_db(mDbProvider) ? configuration.Read_File_Path(rsDb_Name).wstring() : configuration.Read_String(rsDb_Name);
 	mDbUsername = configuration.Read_String(rsDb_User_Name);
 	mDbPassword = configuration.Read_String(rsDb_Password);
 	mSubject_Id = configuration.Read_Int(rsSubject_Id);
@@ -274,11 +274,6 @@ HRESULT IfaceCalling CDb_Writer::Do_Configure(scgms::SFilter_Configuration confi
 	// do not store virtual signals either
 	for (const auto& id : scgms::signal_Virtual)
 		mIgnored_Signals.insert(id);
-
-	if (mDb_Connector)
-		mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
-	if (!mDb_Connection)
-		return E_FAIL;
 
 	switch (mSubject_Id)
 	{
@@ -334,8 +329,14 @@ HRESULT IfaceCalling CDb_Writer::Do_Execute(scgms::UDevice_Event event) {
 	return mOutput.Send(event);
 }
 
-HRESULT IfaceCalling CDb_Writer::Set_Connector(db::IDb_Connector *connector)
-{
+HRESULT IfaceCalling CDb_Writer::Set_Connector(db::IDb_Connector *connector) {
 	mDb_Connector = refcnt::make_shared_reference_ext<db::SDb_Connector, db::IDb_Connector>(connector, true);
+
+	if (mDb_Connector)
+		mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
+	if (!mDb_Connection)
+		return E_FAIL;
+
+
 	return connector != nullptr ? S_OK : S_FALSE;
 }
