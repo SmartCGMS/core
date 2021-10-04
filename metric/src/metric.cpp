@@ -269,8 +269,38 @@ double CAvg_Pow_StdDev_Metric::Do_Calculate_Metric() {
 		//the real metric is supposed to be
 		//(1.0+avg)^(1.0+std_dev_estimate)		
 		//both 1.0+ are to avoid adverse results with both avg and sd less than 1.0 so the best metric is 1.0 => -1.0 to have zero as the best fit like the other metrics
-	return pow(1.0+mLast_Calculated_Avg, 1.0 + sqrt(variance))-1.0;	//we do sqrt to minimize the power extent
+	//return pow(1.0+mLast_Calculated_Avg, 1.0 + sqrt(variance))-1.0;	//we do sqrt to minimize the power extent
+
+	//coefficient of variation
+	if (mLast_Calculated_Avg >= 0.0) {
+		return sqrt(variance) / mLast_Calculated_Avg;
+	}
+	else
+		return std::numeric_limits<double>::max();
+	
+
+	//quartile coefficient of dispersion
+	std::sort(mDifferences.begin(),
+		mDifferences.end(),
+		[](const TProcessed_Difference &a, const TProcessed_Difference &b) -> bool {
+		return a.difference < b.difference;
+	}
+	);
+	const size_t q1_idx = static_cast<size_t>(round(0.25*static_cast<double>(mDifferences.size())));
+	const size_t q3_idx = static_cast<size_t>(round(0.75*static_cast<double>(mDifferences.size())));
+	const double q1 = mDifferences[q1_idx].difference;
+	const double q3 = mDifferences[q3_idx].difference;
+	//const double interquartile_range = 0.5*(q3 - q1);
+	//const double midhinge = 0.5*(q1 + q3);
+	return (q3 - q1) / (q1 + q3); //interquartile_range / midhinge;
+
+
+	
+
+//https://en.wikipedia.org/wiki/Coefficient_of_variation
+//https://en.wikipedia.org/wiki/Coefficient_of_determination
 }
+
 
 
 
