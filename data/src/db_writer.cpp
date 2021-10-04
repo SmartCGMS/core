@@ -208,8 +208,8 @@ HRESULT IfaceCalling CDb_Writer::Do_Configure(scgms::SFilter_Configuration confi
 
 	mDbHost = configuration.Read_String(rsDb_Host);
 	mDbProvider = configuration.Read_String(rsDb_Provider);
-	mDbPort = static_cast<decltype(mDbPort)>(configuration.Read_Int(rsDb_Port));
-	mDbDatabaseName = configuration.Read_String(rsDb_Name);
+	mDbPort = static_cast<decltype(mDbPort)>(configuration.Read_Int(rsDb_Port));	
+	mDbDatabaseName = db::is_file_db(mDbProvider) ? configuration.Read_File_Path(rsDb_Name).wstring() : configuration.Read_String(rsDb_Name);
 	mDbUsername = configuration.Read_String(rsDb_User_Name);
 	mDbPassword = configuration.Read_String(rsDb_Password);
 	mSubject_Id = configuration.Read_Int(rsSubject_Id);
@@ -231,9 +231,24 @@ HRESULT IfaceCalling CDb_Writer::Do_Configure(scgms::SFilter_Configuration confi
 	for (const auto& id : scgms::signal_Virtual)
 		mIgnored_Signals.insert(id);
 
+
 	// bolus is an exception for now - model produces directly requested insulin bolus
 	// TODO: modify model to produce model-specific signal, that needs to be remapped to requested insulin bolus signal
 	mIgnored_Signals.erase(scgms::signal_Requested_Insulin_Bolus);
+
+	switch (mSubject_Id)
+	{
+	case db::Anonymous_Subject_Identifier:
+		// TODO: select this from DB
+		mSubject_Id = db_writer::Anonymous_Subject_Id;
+		break;
+	case db::New_Subject_Identifier:
+		mSubject_Id = Create_Subject(db_writer::Subject_Base_Name);
+		break;
+	default:
+		// TODO: just verify, that the subject exists
+		break;
+	}
 
 	return S_OK;
 }
@@ -276,40 +291,14 @@ HRESULT IfaceCalling CDb_Writer::Do_Execute(scgms::UDevice_Event event) {
 	return mOutput.Send(event);
 }
 
-HRESULT IfaceCalling CDb_Writer::Set_Connector(db::IDb_Connector *connector)
-{
-	if (!connector)
-		return E_INVALIDARG;
-
+HRESULT IfaceCalling CDb_Writer::Set_Connector(db::IDb_Connector *connector) {
 	mDb_Connector = refcnt::make_shared_reference_ext<db::SDb_Connector, db::IDb_Connector>(connector, true);
-
-	return S_OK;
-}
-
-HRESULT CDb_Writer::Connect_To_Db_If_Needed()
-{
-	if (mConnected)
-		return S_FALSE;
 
 	if (mDb_Connector)
 		mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
-
 	if (!mDb_Connection)
 		return E_FAIL;
 
-	switch (mSubject_Id)
-	{
-		case db::Anonymous_Subject_Identifier:
-			// TODO: select this from DB
-			mSubject_Id = db_writer::Anonymous_Subject_Id;
-			break;
-		case db::New_Subject_Identifier:
-			mSubject_Id = Create_Subject(db_writer::Subject_Base_Name);
-			break;
-		default:
-			// TODO: just verify, that the subject exists
-			break;
-	}
 
-	return S_OK;
+	return connector != nullptr ? S_OK : S_FALSE;
 }

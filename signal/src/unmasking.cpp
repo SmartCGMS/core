@@ -36,42 +36,36 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
+#include "unmasking.h"
 
-#include "pattern_prediction_descriptor.h"
+#include "../../../common/rtl/FilterLib.h"
+#include "../../../common/lang/dstrings.h"
+#include "../../../common/utils/string_utils.h"
 
-#include <array>
-#include <tuple>
+#include <algorithm>
+#include <cctype>
 
-class CPattern_Prediction_Data {
-protected:
-    //let there be simple circular buffer    
-    static constexpr size_t mState_Size = 40;    
-    std::array<double, mState_Size> mState;    
-    size_t mHead = 0;
-    bool mFull = false; //true if we have filled the entire buffer
-                        //and we are overwriting the old values
-protected:
-    bool mCollect_Learning_Data =false;
-    struct TLevel { double device_time, level; };
-    std::vector<TLevel> mLearning_Data;
-protected:
-    //prediction helpers
-    const double mTrusted_Perimeter = 2.0;
-    double mRecent_Prediction = std::numeric_limits<double>::quiet_NaN();
-    bool mInvalidated = true;   //true, when ::predict must recalculate mRecent_Prediction
-public:
-    CPattern_Prediction_Data();
+CUnmasking_Filter::CUnmasking_Filter(scgms::IFilter *output) : CBase_Filter(output) {
+	//
+}
+
+HRESULT IfaceCalling CUnmasking_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
+	mSignal_Id = configuration.Read_GUID(rsSignal_Masked_Id);
+	if (Is_Invalid_GUID(mSignal_Id)) return E_INVALIDARG;
+
+	return S_OK;
+}
+
+HRESULT IfaceCalling CUnmasking_Filter::Do_Execute(scgms::UDevice_Event event) {
+	// mask only configured signal and event of type "Level"
+	if (event.event_code() == scgms::NDevice_Event_Code::Masked_Level && event.signal_id() == mSignal_Id) {
 
 
-    void push(const double device_time, const double level);
-    double predict();
-    explicit operator bool() const;
+		scgms::TDevice_Event* raw;
+		if (event.get()->Raw(&raw) == S_OK)
+			raw->event_code = scgms::NDevice_Event_Code::Level;
+	}
 
-    void Set_State(const double& level);
-    void State_from_String(const std::wstring& state);
-    std::wstring State_To_String() const;
 
-    void Start_Collecting_Learning_Data();
-    std::wstring Learning_Data(const size_t sliding_window_length, const double dt) const;
-};
+	return mOutput.Send(event);
+}

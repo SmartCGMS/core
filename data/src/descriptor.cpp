@@ -317,7 +317,7 @@ namespace file_reader
 
 	constexpr scgms::NParameter_Type param_type[param_count] = {
 		scgms::NParameter_Type::ptWChar_Array,
-		scgms::NParameter_Type::ptInt64,
+		scgms::NParameter_Type::ptRatTime,
 		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptInt64,
 		scgms::NParameter_Type::ptBool,
@@ -325,18 +325,18 @@ namespace file_reader
 
 	const wchar_t* ui_param_name[param_count] = {
 		dsInput_Values_File,
-		dsInput_Segment_Spacing,
+		dsMaximum_IG_Interval,
 		dsShutdown_After_Last,
-		dsMinimum_Segment_Levels,
-		dsRequire_IG_BG
+		dsMinimum_Required_IGs,
+		dsRequire_BG
 	};
 
 	const wchar_t* config_param_name[param_count] = {
 		rsInput_Values_File,
-		rsInput_Segment_Spacing,
+		rsMaximum_IG_Interval,
 		rsShutdown_After_Last,
-		rsMinimum_Segment_Levels,
-		rsRequire_IG_BG
+		rsMinimum_Required_IGs,
+		rsRequire_BG
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {

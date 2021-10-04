@@ -52,23 +52,28 @@
 
 class CPattern_Prediction_Filter : public virtual scgms::CBase_Filter {
 protected:
-    size_t Level_2_Band_Index(const double level);
-protected:
     enum NClassify : size_t {
         pattern = 0,
         band = 1,
-        success = 2
+        success = 2,
     };
-    std::tuple<pattern_prediction::NPattern, size_t, bool> Classify(scgms::SSignal& ist, const double current_time);
+
+    using TClassification = std::tuple<pattern_prediction::NPattern, size_t, bool>;
+    TClassification Classify(scgms::SSignal& ist, const double current_time);
 protected:
     double mDt = 30.0 * scgms::One_Minute;
 
     std::map<uint64_t, scgms::SSignal> mIst;	//ist signals per segments
-    std::array<std::array<CPattern_Prediction_Data, pattern_prediction::Band_Count>, static_cast<size_t>(pattern_prediction::NPattern::count)> mPatterns;
+    std::array<std::array<CPattern_Prediction_Data, pattern_prediction::Band_Count>,
+                                                    static_cast<size_t>(pattern_prediction::NPattern::count)> mPatterns;
     
     double Update_And_Predict(const uint64_t segment_id, const double current_time, const double current_level);   
     void Update_Learn(scgms::SSignal &ist, const double current_time, const double current_ig_level);
     double Predict(scgms::SSignal &ist, const double current_time);
+protected:
+    filesystem::path mLearned_Data_Filename_Prefix;
+    size_t mSliding_Window_Length = 0;
+    void Write_Learning_Data() const;
 protected:
     bool mDo_Not_Learn = false;    
     bool mUpdate_Parameters_File = true;
@@ -81,9 +86,9 @@ protected:
     const wchar_t* isBand = L"_Band_";
     const wchar_t* iiState = L"State";
 
-    HRESULT Read_Parameters_File(refcnt::Swstr_list error_description);
+    HRESULT Read_Parameters_File(scgms::SFilter_Configuration configuration, refcnt::Swstr_list error_description);
     HRESULT Read_Parameters_From_Config(scgms::SFilter_Configuration configuration, refcnt::Swstr_list error_description);
-    void Write_Parameters_File();
+    void Write_Parameters_File() const;
 protected:
     // scgms::CBase_Filter iface implementation
     virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;

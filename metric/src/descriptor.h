@@ -87,6 +87,10 @@ static constexpr GUID mtrExpWtDiff =	// weigthed average preferring values highe
 { 0xcdb1c206, 0x7894, 0x42fd, { 0xa8, 0x5f, 0x4e, 0xd5, 0x21, 0x80, 0x27, 0x27 } };	// {CDB1C206-7894-42FD-A85F-4ED521802727}
 
 
+static const GUID mtrAvg_Pow_StdDev_Metric =    //average to the power of std dev estimation
+{ 0xf9b5fcae, 0x9f05, 0x4f75, { 0xb0, 0x17, 0xda, 0x25, 0xe2, 0xec, 0xee, 0x2c } }; // {F9B5FCAE-9F05-4F75-B017-DA25E2ECEE2C}
+
+
 
 extern "C" HRESULT IfaceCalling do_get_metric_descriptors(scgms::TMetric_Descriptor const **begin, scgms::TMetric_Descriptor const **end);
 

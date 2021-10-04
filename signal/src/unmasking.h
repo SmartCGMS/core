@@ -38,40 +38,27 @@
 
 #pragma once
 
-#include "pattern_prediction_descriptor.h"
+#include "../../../common/rtl/FilterLib.h"
+#include "../../../common/rtl/referencedImpl.h"
 
-#include <array>
-#include <tuple>
+#include <bitset>
 
-class CPattern_Prediction_Data {
+#pragma warning( push )
+#pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
+
+/*
+ * Filter class for unmasking input levels 
+ */
+class CUnmasking_Filter : public virtual scgms::CBase_Filter {
+protected:			
+	// signal ID to be masked
+	GUID mSignal_Id = Invalid_GUID;	
 protected:
-    //let there be simple circular buffer    
-    static constexpr size_t mState_Size = 40;    
-    std::array<double, mState_Size> mState;    
-    size_t mHead = 0;
-    bool mFull = false; //true if we have filled the entire buffer
-                        //and we are overwriting the old values
-protected:
-    bool mCollect_Learning_Data =false;
-    struct TLevel { double device_time, level; };
-    std::vector<TLevel> mLearning_Data;
-protected:
-    //prediction helpers
-    const double mTrusted_Perimeter = 2.0;
-    double mRecent_Prediction = std::numeric_limits<double>::quiet_NaN();
-    bool mInvalidated = true;   //true, when ::predict must recalculate mRecent_Prediction
+	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 public:
-    CPattern_Prediction_Data();
-
-
-    void push(const double device_time, const double level);
-    double predict();
-    explicit operator bool() const;
-
-    void Set_State(const double& level);
-    void State_from_String(const std::wstring& state);
-    std::wstring State_To_String() const;
-
-    void Start_Collecting_Learning_Data();
-    std::wstring Learning_Data(const size_t sliding_window_length, const double dt) const;
+	CUnmasking_Filter(scgms::IFilter *output);
+	virtual ~CUnmasking_Filter() {};
 };
+
+#pragma warning( pop )

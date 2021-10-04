@@ -119,16 +119,21 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 	}
 
 	{
-		std::vector<double> lb, def, ub;
-		configuration.Read_Parameters(rsParameters, lb, def, ub);
+		std::vector<double> lb, def, ub;		
+		if (!configuration.Read_Parameters(rsParameters, lb, def, ub)) {
+			error_description.push(L"Failed to read the parameters. Please, review that all variables are set (if used).");
+			return E_INVALIDARG;
+		}
+
+
 		if (def.size() > native::max_parameter_count) {
 			def.resize(native::max_parameter_count);
-			error_description.push(L"There is an excessive number of parameters.");
+			error_description.push(L"NativeScript: There is an excessive number of parameters.");
 		}
 		else if (def.size() < native::max_parameter_count) {
 			while (def.size() < native::max_parameter_count)
 				def.push_back(std::numeric_limits<double>::quiet_NaN());
-			error_description.push(L"Not all parameters are present.");
+			error_description.push(L"NativeScript: Not all parameters are present.");
 		} //else the parameters have just the correct size
 
 		std::copy(def.begin(), def.end(), mParameters.begin());

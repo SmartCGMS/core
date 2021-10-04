@@ -130,6 +130,13 @@ public:
 };
 
 
+class CAvg_Pow_StdDev_Metric : public CVariance_Metric {
+	virtual double Do_Calculate_Metric() override final;
+public:
+	CAvg_Pow_StdDev_Metric(scgms::TMetric_Parameters& params) : CVariance_Metric(params) {};
+};
+
+
 class CCrossWalkMetric : public CCommon_Metric {
 protected:
 	const bool mCross_Measured_With_Calculated_Only = true;

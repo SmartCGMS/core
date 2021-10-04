@@ -103,7 +103,7 @@ CAbsDiffPercentilMetric::CAbsDiffPercentilMetric(scgms::TMetric_Parameters& para
 
 double CAbsDiffPercentilMetric::Do_Calculate_Metric() {
 	size_t count = mDifferences.size();
-	size_t offset = (size_t)round(((double)(count))*mInvThreshold);
+	size_t offset = static_cast<size_t>(round((static_cast<double>(count))*mInvThreshold));
 	offset = std::min(offset, count - 1); //handles negative value as well
 
 	std::partial_sort(mDifferences.begin(),
@@ -189,7 +189,7 @@ CAICMetric::CAICMetric(scgms::TMetric_Parameters& params) : CAbsDiffAvgMetric({ 
 
 
 double CAICMetric::Do_Calculate_Metric() {
-	double n = (double) mDifferences.size();
+	double n = static_cast<double>(mDifferences.size());
 	return n*log(CAbsDiffAvgMetric::Do_Calculate_Metric()); 
 }
 
@@ -212,7 +212,7 @@ double CVariance_Metric::Do_Calculate_Metric() {
 
 	size_t lowbound, highbound;
 	{
-		double n = (double)mDifferences.size();
+		double n = static_cast<double>(mDifferences.size());
 		double margin = n*0.01*mParameters.threshold;
 		lowbound = (size_t)floor(margin);
 		highbound = (size_t)ceil(n - margin);
@@ -228,9 +228,13 @@ double CVariance_Metric::Do_Calculate_Metric() {
 		sum += diffs[i].difference;
 	}
 
-	double invn = (double)mDifferences.size();
+	const double casted_size = static_cast<double>(mDifferences.size());
+	double invn = casted_size;
+
 	//first, try Unbiased estimation of standard deviation
-	if (invn > 1.5) invn -= 1.5; 
+	if (invn > 1.5) 			//since invn is alway a full number (no fraction due to being a number of items in the vector),
+								//we just need to know whether it is greater than 1
+		invn = casted_size - 1.5 + 1 / (8 * (casted_size - 1));	//precise estimation, better than substracting 1.5	
 		else if (invn > 1.0) invn -= 1.0;	//if not, try to fall back to Bessel's Correction at least
 	invn = 1.0 / invn;
 
@@ -255,6 +259,20 @@ double CAvgPlusBesselStdDevMetric::Do_Calculate_Metric() {
 			//also calculates mLastCalculatedAvg
 	return mLast_Calculated_Avg + sqrt(variance);
 }
+
+
+
+double CAvg_Pow_StdDev_Metric::Do_Calculate_Metric() {
+	const double variance = CVariance_Metric::Do_Calculate_Metric();
+	//also calculates mLastCalculatedAvg
+
+		//the real metric is supposed to be
+		//(1.0+avg)^(1.0+std_dev_estimate)		
+		//both 1.0+ are to avoid adverse results with both avg and sd less than 1.0 so the best metric is 1.0 => -1.0 to have zero as the best fit like the other metrics
+	return pow(1.0+mLast_Calculated_Avg, 1.0 + sqrt(variance))-1.0;	//we do sqrt to minimize the power extent
+}
+
+
 
 double CCrossWalkMetric::Do_Calculate_Metric() {
 	/*
@@ -380,7 +398,7 @@ double CIntegralCDFMetric::Do_Calculate_Metric() {
 
 	size_t lowbound, highbound;
 	{
-		double n = (double)mDifferences.size();
+		double n = static_cast<double>(mDifferences.size());
 		double margin = n*0.01*mParameters.threshold;
 		lowbound = (size_t)floor(margin);
 		highbound = (size_t)ceil(n - margin);
@@ -392,7 +410,7 @@ double CIntegralCDFMetric::Do_Calculate_Metric() {
 
 
 	double area = 0.0;
-	double step = 1.0 / (double)mDifferences.size();
+	double step = 1.0 / static_cast<double>(mDifferences.size());
 
 	auto diffs = &mDifferences[0];
 	auto previous = lowbound;

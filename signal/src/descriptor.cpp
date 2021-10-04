@@ -41,6 +41,7 @@
 #include "mapping.h"
 #include "decoupling.h"
 #include "masking.h"
+#include "unmasking.h"
 #include "Measured_Signal.h"
 #include "signal_generator.h"
 #include "signal_feedback.h"
@@ -279,6 +280,38 @@ namespace masking
 		{ 0xa1124c89, 0x18a4, 0xf4c1,{ 0x28, 0xe8, 0xa9, 0x47, 0x1a, 0x58, 0x02, 0x1e } }, //// {A1124C89-18A4-F4C1-28E8-A9471A58021E}
 		scgms::NFilter_Flags::None,
 		dsMasking_Filter,
+		param_count,
+		param_type,
+		ui_param_name,
+		config_param_name,
+		ui_param_tooltips
+	};
+}
+
+
+namespace unmasking {
+	constexpr size_t param_count = 1;
+
+	constexpr scgms::NParameter_Type param_type[param_count] = {
+		scgms::NParameter_Type::ptSignal_Id,		
+	};
+
+	const wchar_t* ui_param_name[param_count] = {
+		dsSignal_Masked_Id,		
+	};
+
+	const wchar_t* config_param_name[param_count] = {
+		rsSignal_Masked_Id,		
+	};
+
+	const wchar_t* ui_param_tooltips[param_count] = {
+		dsMasked_Signal_Tooltip,		
+	};
+
+	const scgms::TFilter_Descriptor Unmasking_Descriptor = {
+		{ 0x5a883e4f, 0x198e, 0x4dde, { 0xa4, 0xfa, 0xbb, 0x33, 0x30, 0x1a, 0xdb, 0xd1 }}, // {5A883E4F-198E-4DDE-A4FA-BB33301ADBD1}
+		scgms::NFilter_Flags::None,
+		dsUnmasking_Filter,
 		param_count,
 		param_type,
 		ui_param_name,
@@ -589,7 +622,7 @@ namespace noise_generator {
 	};
 }
 
-const std::array<scgms::TFilter_Descriptor, 9> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, decoupling::desc, masking::Masking_Descriptor, signal_generator::desc, network_signal_generator::desc, feedback_sender::desc, impulse_response::desc, noise_generator::desc } };
+const std::array<scgms::TFilter_Descriptor, 10> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, decoupling::desc, masking::Masking_Descriptor, unmasking::Unmasking_Descriptor, signal_generator::desc, network_signal_generator::desc, feedback_sender::desc, impulse_response::desc, noise_generator::desc } };
 
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
@@ -609,6 +642,8 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 		return Manufacture_Object<CCalculate_Filter>(filter, output);
 	else if (*id == masking::Masking_Descriptor.id)
 		return Manufacture_Object<CMasking_Filter>(filter, output);
+	else if (*id == unmasking::Unmasking_Descriptor.id)
+		return Manufacture_Object<CUnmasking_Filter>(filter, output);
 	else if (*id == mapping::Mapping_Descriptor.id)
 		return Manufacture_Object<CMapping_Filter>(filter, output);
 	else if (*id == decoupling::desc.id)
