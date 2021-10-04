@@ -217,6 +217,9 @@ namespace flr_ge
 		};
 	};
 
+	constexpr const double Constant_Lower_Bound = -10.0;
+	constexpr const double Constant_Upper_Bound = 10.0;
+
 	const TParameters lower_bounds = {
 		// rules
 		0,0,0,0,0,0,0,0,0,0,
@@ -228,8 +231,8 @@ namespace flr_ge
 		0,0,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,0,0,0,0,0,
 		// constants
-		-100.0,-100.0,-100.0,-100.0,-100.0,-100.0,-100.0,-100.0,-100.0,-100.0,
-		-100.0,-100.0,-100.0,-100.0,-100.0,-100.0,-100.0,-100.0,-100.0,-100.0,
+		Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,
+		Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,
 	};
 	const TParameters default_parameters = {
 		// rules
@@ -256,8 +259,8 @@ namespace flr_ge
 		1,1,1,1,1,1,1,1,1,1,
 		1,1,1,1,1,1,1,1,1,1,
 		// constants
-		100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,
-		100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,
+		Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,
+		Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,
 	};
 
 }

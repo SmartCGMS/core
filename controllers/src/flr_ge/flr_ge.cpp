@@ -20,8 +20,6 @@ namespace flr_ge
 		{
 			auto opcode = classify<NInstruction>(input[cursor]);
 
-			dprintf("FLR_GE, parsed: %llu\r\n", static_cast<size_t>(opcode));
-
 			switch (opcode)
 			{
 				case NInstruction::NOP:
@@ -51,9 +49,7 @@ namespace flr_ge
 			cursor += rule_length;
 		}
 
-		//mRules.resize(last_not_nop + 1);
-
-		dprintf("Parsed %u rules\r\n", mRules.size());
+		mRules.resize(last_not_nop + 1);
 
 		return true;
 	}
@@ -154,19 +150,17 @@ HRESULT IfaceCalling CFLR_GE_Model::Step(const double time_advance_delta) {
 		mCurrent_Time += time_advance_delta;
 	}
 
-	if (!Emit_IBR(mContext.Get_Output(flr_ge::NOutput_Variable::IBR), mCurrent_Time + scgms::One_Minute * 5)) {
+	if (!Emit_IBR(mContext.Get_Output(flr_ge::NOutput_Variable::IBR), mCurrent_Time)) {
 		return E_FAIL;
 	}
 
 	if (mContext.Get_Output(flr_ge::NOutput_Variable::Bolus) > 0)
 	{
-		//if ((mLast_Model_Bolus + scgms::One_Minute * 180.0) < mCurrent_Time)
-		{
-			if (!Emit_Bolus(mContext.Get_Output(flr_ge::NOutput_Variable::Bolus), mCurrent_Time + scgms::One_Minute * 5))
-				return E_FAIL;
 
-			mLast_Model_Bolus = mCurrent_Time;
-		}
+		if (!Emit_Bolus(mContext.Get_Output(flr_ge::NOutput_Variable::Bolus), mCurrent_Time))
+			return E_FAIL;
+
+		mLast_Model_Bolus = mCurrent_Time;
 
 		mContext.Set_Output(flr_ge::NOutput_Variable::Bolus, 0);
 	}
