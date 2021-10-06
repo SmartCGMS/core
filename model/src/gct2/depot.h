@@ -52,7 +52,6 @@
 
 namespace gct2_model
 {
-
 	class CDepot;
 
 	/**

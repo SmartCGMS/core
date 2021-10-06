@@ -765,7 +765,7 @@ namespace gct2_model {
 		//	Vq,  Vqsc, Vi, Q1b, Gthr, GIthr,
 			3,   1,    3,  50,  8.0,  4.0,
 		//	q12,  q1sc, ix, xq1, d2q1, isc2i, isc2e
-			0.5, 1.4,   1,  1,   14.0, 20,    1,
+			0.5, 1.4,   1,  5,   14.0, 20,    1,
 		//	q1e,   q1ee,  q1e_thr, xe,
 			0.144, 0.144, 0.001,   0.1,
 		//	q1p,     q1pe,   q1pi,    ip,
@@ -787,7 +787,7 @@ namespace gct2_model {
 		//	Vq,  Vqsc, Vi, Q1b, Gthr, GIthr,
 			8,   5,    10, 240, 8.0, 5.0,
 		//	q12, q1sc, ix, xq1, d2q1,  isc2i, isc2e
-			0.8, 8,    5,  5,   144.0, 35,     2,
+			0.8, 8,    5,  45,  144.0, 35,     2,
 		//	q1e,     q1ee,    q1e_thr, xe,
 			0.38519, 0.38519, 0.8,     0.3,
 		//	q1p,  q1pe, q1pi,  ip,
@@ -808,8 +808,8 @@ namespace gct2_model {
 			500,  500,  500,   500, 500,   500, 200,  200,
 		//	Vq,  Vqsc, Vi, Q1b,  Gthr, GIthr,
 			10,  10,   20, 1000, 14.0, 8.0,
-		//	q12, q1sc, ix,  xq1,  d2q1,  isc2i, isc2e
-			1.5, 24.0, 50,  10.0, 144.0, 50,    20,
+		//	q12, q1sc, ix,  xq1,   d2q1,  isc2i, isc2e
+			1.5, 24.0, 50,  120.0, 144.0, 50,    20,
 		//	q1e,  q1ee, q1e_thr, xe,
 			14.4, 14.4, 0.8,     2.0,
 		//	q1p,  q1pe, q1pi, ip

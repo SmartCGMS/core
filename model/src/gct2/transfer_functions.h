@@ -126,6 +126,20 @@ namespace gct2_model
 			bool Is_Started(double time) const {
 				return time >= mTime_Start;
 			}
+
+			/**
+			 * Get the starting time of the transfer - may help with getting more precise outputs
+			 */
+			double Get_Start_Time() const {
+				return mTime_Start;
+			}
+
+			/**
+			 * Get the ending time of the transfer - may help with getting more precise outputs
+			 */
+			double Get_End_Time() const {
+				return mTime_Start + mDuration;
+			}
 	};
 
 	/**

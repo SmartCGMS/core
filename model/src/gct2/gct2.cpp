@@ -357,7 +357,7 @@ CDepot& CGCT2_Discrete_Model::Add_To_Isc2(double amount, double start, double du
 
 void CGCT2_Discrete_Model::Emit_All_Signals(double time_advance_delta) {
 
-	const double _T = mLast_Time + time_advance_delta;
+	const double _T = mLast_Time;
 
 	/*
 	 * Pending signals
@@ -402,47 +402,45 @@ HRESULT CGCT2_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 			// insulin pump control
 			if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate) {
 
-				if (event.device_time() < mLast_Time)
-					return E_ILLEGAL_STATE_CHANGE;
+				if (event.device_time() >= mLast_Time)
+				{
+					constexpr double PortionTimeSpacing = 60_sec;
+					const double rate = event.level() / (60.0 * (60_sec / PortionTimeSpacing));
 
-				constexpr double PortionTimeSpacing = 60_sec;
-				const double rate = event.level() / (60.0 * (60_sec / PortionTimeSpacing));
+					mInsulin_Pump.Set_Infusion_Parameter(rate, PortionTimeSpacing, mParameters.t_i);
+					mPending_Signals.push_back(TPending_Signal{ scgms::signal_Delivered_Insulin_Basal_Rate, event.device_time(), event.level() });
 
-				mInsulin_Pump.Set_Infusion_Parameter(rate, PortionTimeSpacing, mParameters.t_i);
-				mPending_Signals.push_back(TPending_Signal{ scgms::signal_Delivered_Insulin_Basal_Rate, event.device_time(), event.level() });
-
-				res = S_OK;
+					res = S_OK;
+				}
 			}
 			// physical activity
 			else if (event.signal_id() == scgms::signal_Physical_Activity) {
 
-				if (event.device_time() < mLast_Time)
-					return E_ILLEGAL_STATE_CHANGE;
-
-				mPhysical_Activity.Set_Quantity(event.level());
+				if (event.device_time() >= mLast_Time)
+					mPhysical_Activity.Set_Quantity(event.level());
 			}
 			// bolus insulin
 			else if (event.signal_id() == scgms::signal_Requested_Insulin_Bolus) {
 
-				if (event.device_time() < mLast_Time)
-					return E_ILLEGAL_STATE_CHANGE;	// got no time-machine to deliver insulin in the past
+				if (event.device_time() >= mLast_Time)
+				{
+					constexpr double PortionTimeSpacing = scgms::One_Minute;
+					const size_t Portions = static_cast<size_t>(mParameters.t_id / PortionTimeSpacing);
 
-				constexpr double PortionTimeSpacing = scgms::One_Minute;
-				const size_t Portions = static_cast<size_t>(mParameters.t_id / PortionTimeSpacing);
+					/*
+					constexpr size_t Portions = 2;
+					const double PortionTimeSpacing = mParameters.t_id / static_cast<double>(Portions);
+					*/
 
-				/*
-				constexpr size_t Portions = 2;
-				const double PortionTimeSpacing = mParameters.t_id / static_cast<double>(Portions);
-				*/
+					const double PortionSize = event.level() / static_cast<double>(Portions);
 
-				const double PortionSize = event.level() / static_cast<double>(Portions);
+					for (size_t i = 0; i < Portions; i++)
+						Add_To_Isc1(PortionSize, event.device_time() + static_cast<double>(i) * PortionTimeSpacing, mParameters.t_i);
 
-				for (size_t i = 0; i < Portions; i++)
-					Add_To_Isc1(PortionSize, event.device_time() + static_cast<double>(i) * PortionTimeSpacing, mParameters.t_i);
+					mPending_Signals.push_back(TPending_Signal{ scgms::signal_Delivered_Insulin_Bolus, event.device_time(), event.level() });
 
-				mPending_Signals.push_back(TPending_Signal{ scgms::signal_Delivered_Insulin_Bolus, event.device_time(), event.level() });
-
-				res = S_OK;
+					res = S_OK;
+				}
 			}
 			// carbs intake; NOTE: this should be further enhanced once architecture supports meal parametrization (e.g.; glycemic index, ...)
 			else if ((event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue)) {
@@ -602,7 +600,7 @@ HRESULT IfaceCalling CGCT2_Discrete_Model::Step(const double time_advance_delta)
 			for (size_t i = 0; i < microStepCount; i++) {
 
 				// for each step, retrieve insulin pump subcutaneous injection if any
-				while (mInsulin_Pump.Get_Dosage(mLast_Time, dosage))
+				if (mInsulin_Pump.Get_Dosage(mLast_Time, dosage))
 					Add_To_Isc1(dosage.amount, dosage.start, dosage.duration);
 
 				// step all compartments
@@ -611,7 +609,7 @@ HRESULT IfaceCalling CGCT2_Discrete_Model::Step(const double time_advance_delta)
 				});
 
 				// commit all compartments
-				std::for_each(std::execution::seq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
+				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
 					comp.Commit(mLast_Time);
 				});
 
@@ -620,7 +618,7 @@ HRESULT IfaceCalling CGCT2_Discrete_Model::Step(const double time_advance_delta)
 		}
 
 #ifdef GCT_DEBUG_DRAWING
-		auto comp_to_str = [](NGCT_Compartment comp) -> std::wstring {
+		auto comp_to_str = [](const NGCT_Compartment comp) -> std::wstring {
 			switch (comp) {
 				case NGCT_Compartment::Glucose_1: return L"Q1";
 				case NGCT_Compartment::Glucose_2: return L"Q2";
@@ -666,11 +664,9 @@ HRESULT IfaceCalling CGCT2_Discrete_Model::Step(const double time_advance_delta)
 		}
 #endif
 
-		mLast_Time = oldTime;
+		mLast_Time = futureTime; // to avoid precision loss
 
 		Emit_All_Signals(time_advance_delta);
-
-		mLast_Time = futureTime; // to avoid precision loss
 
 		rc = S_OK;
 	}

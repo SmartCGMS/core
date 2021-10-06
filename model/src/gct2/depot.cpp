@@ -40,7 +40,6 @@
 
 namespace gct2_model
 {
-
 	void CDepot_Link::Step(const double currentTime) {
 		// Transfer amount from source to target
 		// If the target refuses to accept given amount, return it back to source
@@ -48,25 +47,35 @@ namespace gct2_model
 		// Note that precision is not a subject of matter here - the larger the step, the worse
 		// is the precision; so it depends completely on outer code
 
+		const CTransfer_Function& transfer_fnc = *mTransfer_Function;
+
 		// the transfer hasn't started yet (delayed transfer)
-		if (!mTransfer_Function->Is_Started(currentTime)) {
+		if (!transfer_fnc.Is_Started(currentTime)) {
 			return;
 		}
+
+		// cache start and end points
+		const auto start = transfer_fnc.Get_Start_Time();
+		const auto end = transfer_fnc.Get_End_Time();
 
 		// no origin point in time, set given time as origin and return
 		if (std::isnan(mLast_Time)) {
-			mLast_Time = currentTime;
+			mLast_Time = currentTime < start ? currentTime : start;
 			return;
 		}
 
+		// move time boundaries to not extrapolate during the integration
+		const double fnc_past_time = std::max(mLast_Time, start);
+		const double fnc_future_time = currentTime > end ? end : currentTime;
+
 		// Simpson's 1/3 rule for integration
 
-		const double y_diff = currentTime - mLast_Time;
-		const double x0 = mTransfer_Function->Calculate_Transfer_Input(mLast_Time);
-		const double x1 = mTransfer_Function->Calculate_Transfer_Input((mLast_Time + currentTime) / 2.0);
-		const double x2 = mTransfer_Function->Calculate_Transfer_Input(currentTime);
+		const double y_diff = fnc_future_time - fnc_past_time;
+		const double x0 = transfer_fnc.Calculate_Transfer_Input(fnc_past_time);
+		const double x1 = transfer_fnc.Calculate_Transfer_Input((fnc_past_time + fnc_future_time) / 2.0);
+		const double x2 = transfer_fnc.Calculate_Transfer_Input(fnc_future_time);
 
-		double baseAmount = mTransfer_Function->Get_Transfer_Amount(mSource.get().Get_Quantity());
+		double baseAmount = transfer_fnc.Get_Transfer_Amount(mSource.get().Get_Quantity());
 
 		double amount = - (y_diff / 6.0) * (x0 + 4 * x1 + x2) * baseAmount;
 
