@@ -263,7 +263,7 @@ double CAvgPlusBesselStdDevMetric::Do_Calculate_Metric() {
 
 
 double CAvg_Pow_StdDev_Metric::Do_Calculate_Metric() {
-	const double variance = CVariance_Metric::Do_Calculate_Metric();
+	//const double variance = CVariance_Metric::Do_Calculate_Metric();
 	//also calculates mLastCalculatedAvg
 
 		//the real metric is supposed to be
@@ -271,9 +271,41 @@ double CAvg_Pow_StdDev_Metric::Do_Calculate_Metric() {
 		//both 1.0+ are to avoid adverse results with both avg and sd less than 1.0 so the best metric is 1.0 => -1.0 to have zero as the best fit like the other metrics
 	//return pow(1.0+mLast_Calculated_Avg, 1.0 + sqrt(variance))-1.0;	//we do sqrt to minimize the power extent
 
+
+	//coefficient of determination
+	double sum_of_residuals = 0.0;
+	double sum_observed = 0.0;
+	for (const auto& elem : mDifferences) {
+		sum_of_residuals += elem.difference * elem.difference;
+		sum_observed += elem.raw.expected;
+	}
+
+	const double avg_observed = sum_observed / static_cast<double>(mDifferences.size());
+	double sum_of_total = 0.0;
+	for (const auto& elem : mDifferences) {
+		const double diff = elem.raw.expected - avg_observed;
+		sum_of_total += diff * diff;
+	}
+
+	return sum_of_residuals / sum_of_total;
+
+	
+
+	//harmonic mean
+	double n = 0.0;
+	double sum = 0.0;
+	for (const auto& elem : mDifferences) {
+		if (elem.difference != 0.0) {
+			n += 1.0;
+			sum += 1.0 / std::fabs(elem.difference);
+		}
+	}
+	return n / sum;
+
+	/*
 	//coefficient of variation
 	if (mLast_Calculated_Avg >= 0.0) {
-		return sqrt(variance) / mLast_Calculated_Avg;
+		return sqrt(variance) / mLast_Calculated_Avg;	//coefficient of variation		
 	}
 	else
 		return std::numeric_limits<double>::max();
@@ -294,6 +326,8 @@ double CAvg_Pow_StdDev_Metric::Do_Calculate_Metric() {
 	//const double midhinge = 0.5*(q1 + q3);
 	return (q3 - q1) / (q1 + q3); //interquartile_range / midhinge;
 
+
+	*/
 
 	
 
