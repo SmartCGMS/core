@@ -279,7 +279,7 @@ double CUVA_Padova_S2013_Discrete_Model::eq_dHsc2(const double _T, const double 
 
 void CUVA_Padova_S2013_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 {
-	const double _T = mState.lastTime + time_advance_delta;	//locally-scoped because we might have been asked to emit the current state only
+	const double _T = mState.lastTime;	//locally-scoped because we might have been asked to emit the current state only
 
 	/*
 	 * Virtual insulin pump signals
@@ -327,41 +327,45 @@ HRESULT CUVA_Padova_S2013_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 		{
 			if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate)
 			{
-				if (event.device_time() < mState.lastTime)
-					return E_ILLEGAL_STATE_CHANGE;	//got no time-machine to deliver insulin in the past
+				if (event.device_time() >= mState.lastTime)
+				{
+					//return E_ILLEGAL_STATE_CHANGE;	//got no time-machine to deliver insulin in the past
 													//although we could allow this by setting it (if no newer basal is requested),
 													//it would defeat the purpose of any verification
 
-				std::unique_lock<std::mutex> lck(mStep_Mtx);
+					std::unique_lock<std::mutex> lck(mStep_Mtx);
 
-				mBasal_Ext.Add_Uptake(event.device_time(), std::numeric_limits<double>::max(), (event.level() / 60.0));
-				if (!mRequested_Basal.requested || event.device_time() > mRequested_Basal.time) {
-					mRequested_Basal.amount = event.level();
-					mRequested_Basal.time = event.device_time();
-					mRequested_Basal.requested = true;
+					mBasal_Ext.Add_Uptake(event.device_time(), std::numeric_limits<double>::max(), (event.level() / 60.0));
+					if (!mRequested_Basal.requested || event.device_time() > mRequested_Basal.time) {
+						mRequested_Basal.amount = event.level();
+						mRequested_Basal.time = event.device_time();
+						mRequested_Basal.requested = true;
+					}
+
+					res = S_OK;
 				}
-
-				res = S_OK;
 			}
 			else if (event.signal_id() == scgms::signal_Requested_Insulin_Bolus)
 			{
-				if (event.device_time() < mState.lastTime) 
-					return E_ILLEGAL_STATE_CHANGE;	//got no time-machine to deliver insulin in the past
+				if (event.device_time() >= mState.lastTime)
+				{
+					//return E_ILLEGAL_STATE_CHANGE;	//got no time-machine to deliver insulin in the past
 
-				// spread boluses to this much minutes
-				constexpr double MinsBolusing = 1.0;
+					// spread boluses to this much minutes
+					constexpr double MinsBolusing = 1.0;
 
-				std::unique_lock<std::mutex> lck(mStep_Mtx);
+					std::unique_lock<std::mutex> lck(mStep_Mtx);
 
-				mBolus_Ext.Add_Uptake(event.device_time(), MinsBolusing * scgms::One_Minute, (event.level() / MinsBolusing));
+					mBolus_Ext.Add_Uptake(event.device_time(), MinsBolusing * scgms::One_Minute, (event.level() / MinsBolusing));
 
-				mRequested_Boluses.push_back({
-					event.device_time(),
-					event.level(),
-					true
-				});
+					mRequested_Boluses.push_back({
+						event.device_time(),
+						event.level(),
+						true
+						});
 
-				res = S_OK;
+					res = S_OK;
+				}
 			}
 			else if ((event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue))
 			{
@@ -402,7 +406,7 @@ HRESULT IfaceCalling CUVA_Padova_S2013_Discrete_Model::Step(const double time_ad
 		constexpr size_t microStepCount = 5;
 		const double microStepSize = time_advance_delta / static_cast<double>(microStepCount);
 		const double oldTime = mState.lastTime;
-		const double futureTime = mState.lastTime + time_advance_delta;
+		volatile const double futureTime = mState.lastTime + time_advance_delta;
 
 		// lock scope
 		{
@@ -410,7 +414,7 @@ HRESULT IfaceCalling CUVA_Padova_S2013_Discrete_Model::Step(const double time_ad
 
 			for (size_t i = 0; i < microStepCount; i++)
 			{
-				const double nowTime = mState.lastTime + static_cast<double>(i)*microStepSize;
+				const double nowTime = oldTime + static_cast<double>(i)*microStepSize;
 
 				// Note: times in ODE solver is represented in minutes (and its fractions), as original model parameters are tuned to one minute unit
 				for (auto& binding : mEquation_Binding)
@@ -433,13 +437,13 @@ HRESULT IfaceCalling CUVA_Padova_S2013_Discrete_Model::Step(const double time_ad
 
 		mState.lastTime = oldTime;
 
-		Emit_All_Signals(time_advance_delta);
-
 		mMeal_Ext.Cleanup(mState.lastTime);
 		mBolus_Ext.Cleanup(mState.lastTime);
 		mBasal_Ext.Cleanup_Not_Recent(mState.lastTime);
 
 		mState.lastTime = futureTime;
+
+		Emit_All_Signals(time_advance_delta);
 
 		rc = S_OK;
 	}

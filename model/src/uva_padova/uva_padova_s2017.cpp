@@ -511,7 +511,7 @@ HRESULT IfaceCalling CUVA_Padova_S2017_Discrete_Model::Step(const double time_ad
 
 			for (size_t i = 0; i < microStepCount; i++)
 			{
-				const double nowTime = mState.lastTime + static_cast<double>(i)*microStepSize;
+				const double nowTime = oldTime + static_cast<double>(i)*microStepSize;
 
 				// Note: times in ODE solver are represented in minutes (and its fractions), as original model parameters are tuned to one minute unit
 
@@ -550,8 +550,6 @@ HRESULT IfaceCalling CUVA_Padova_S2017_Discrete_Model::Step(const double time_ad
 
 		mState.lastTime = oldTime;
 
-		Emit_All_Signals(time_advance_delta);
-
 		mMeal_Ext.Cleanup(mState.lastTime);
 		mBolus_Insulin_Ext.Cleanup(mState.lastTime);
 		mInhaled_Insulin_Ext.Cleanup(mState.lastTime);
@@ -559,6 +557,8 @@ HRESULT IfaceCalling CUVA_Padova_S2017_Discrete_Model::Step(const double time_ad
 		mIntradermal_Basal_Ext.Cleanup_Not_Recent(mState.lastTime);
 
 		mState.lastTime = futureTime; // to avoid precision loss
+
+		Emit_All_Signals(time_advance_delta);
 
 		rc = S_OK;
 	}
