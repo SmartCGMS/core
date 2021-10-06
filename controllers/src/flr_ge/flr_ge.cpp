@@ -148,21 +148,20 @@ HRESULT IfaceCalling CFLR_GE_Model::Step(const double time_advance_delta) {
 
 		// advance the timestamp
 		mCurrent_Time += time_advance_delta;
-	}
 
-	if (!Emit_IBR(mContext.Get_Output(flr_ge::NOutput_Variable::IBR), mCurrent_Time)) {
-		return E_FAIL;
-	}
-
-	if (mContext.Get_Output(flr_ge::NOutput_Variable::Bolus) > 0)
-	{
-
-		if (!Emit_Bolus(mContext.Get_Output(flr_ge::NOutput_Variable::Bolus), mCurrent_Time))
+		if (!Emit_IBR(mContext.Get_Output(flr_ge::NOutput_Variable::IBR), mCurrent_Time)) {
 			return E_FAIL;
+		}
 
-		mLast_Model_Bolus = mCurrent_Time;
+		if (mContext.Get_Output(flr_ge::NOutput_Variable::Bolus) > 0)
+		{
+			if (!Emit_Bolus(mContext.Get_Output(flr_ge::NOutput_Variable::Bolus), mCurrent_Time))
+				return E_FAIL;
 
-		mContext.Set_Output(flr_ge::NOutput_Variable::Bolus, 0);
+			mLast_Model_Bolus = mCurrent_Time;
+
+			mContext.Set_Output(flr_ge::NOutput_Variable::Bolus, 0);
+		}
 	}
 
 	return S_OK;
