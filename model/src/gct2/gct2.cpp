@@ -609,7 +609,7 @@ HRESULT IfaceCalling CGCT2_Discrete_Model::Step(const double time_advance_delta)
 				});
 
 				// commit all compartments
-				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
+				std::for_each(std::execution::seq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
 					comp.Commit(mLast_Time);
 				});
 

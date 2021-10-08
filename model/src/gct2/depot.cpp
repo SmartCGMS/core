@@ -68,6 +68,10 @@ namespace gct2_model
 		const double fnc_past_time = std::max(mLast_Time, start);
 		const double fnc_future_time = currentTime > end ? end : currentTime;
 
+		// not in std::abs on purpose - in case the times got somehow mixed up
+		if (fnc_future_time - fnc_past_time < std::numeric_limits<double>::epsilon())
+			return;
+
 		// Simpson's 1/3 rule for integration
 
 		const double y_diff = fnc_future_time - fnc_past_time;
