@@ -219,13 +219,12 @@ double CVariance_Metric::Do_Calculate_Metric() {
 
 	}
 
-	if (lowbound >= highbound)
+	if (lowbound > highbound)
 		return std::numeric_limits<double>::quiet_NaN();
 
-	double sum = 0.0;
-	auto diffs = &mDifferences[0];
+	double sum = 0.0;	
 	for (auto i = lowbound; i != highbound; i++) {
-		sum += diffs[i].difference;
+		sum += mDifferences[i].difference;
 	}
 
 	const double casted_size = static_cast<double>(mDifferences.size());
@@ -242,7 +241,7 @@ double CVariance_Metric::Do_Calculate_Metric() {
 
 	sum = 0.0;
 	for (auto i = lowbound; i != highbound; i++) {
-		double tmp = diffs[i].difference - mLast_Calculated_Avg;
+		double tmp = mDifferences[i].difference - mLast_Calculated_Avg;
 		sum += tmp*tmp;
 	}
 
@@ -263,7 +262,7 @@ double CAvgPlusBesselStdDevMetric::Do_Calculate_Metric() {
 
 
 double CAvg_Pow_StdDev_Metric::Do_Calculate_Metric() {
-	//const double variance = CVariance_Metric::Do_Calculate_Metric();
+	const double variance = CVariance_Metric::Do_Calculate_Metric();
 	//also calculates mLastCalculatedAvg
 
 		//the real metric is supposed to be
@@ -272,7 +271,16 @@ double CAvg_Pow_StdDev_Metric::Do_Calculate_Metric() {
 	//return pow(1.0+mLast_Calculated_Avg, 1.0 + sqrt(variance))-1.0;	//we do sqrt to minimize the power extent
 
 
-	//coefficient of determination
+	/*
+	//statistical efficiency
+	if (mLast_Calculated_Avg >= 0.0) {
+		return variance / mLast_Calculated_Avg*mLast_Calculated_Avg;	
+	}
+	else
+		return 0.0;	//zero average means no error
+	*/
+
+	//coefficient of determination - comes almost close to avg+sd
 	double sum_of_residuals = 0.0;
 	double sum_observed = 0.0;
 	for (const auto& elem : mDifferences) {
@@ -280,7 +288,13 @@ double CAvg_Pow_StdDev_Metric::Do_Calculate_Metric() {
 		sum_observed += elem.raw.expected;
 	}
 
-	const double avg_observed = sum_observed / static_cast<double>(mDifferences.size());
+
+	double corrected_count = static_cast<double>(mDifferences.size());	//this would be the original, but we make corrected estimation like sd-estimation
+	if (corrected_count > 1.5) 
+		corrected_count = corrected_count - 1.5 + 1 / (8 * (corrected_count - 1));	//precise estimation, better than substracting 1.5	
+		else if (corrected_count > 1.0) corrected_count -= 1.0;	//if not, try to fall back to Bessel's Correction at least
+
+	const double avg_observed = sum_observed / corrected_count;
 	double sum_of_total = 0.0;
 	for (const auto& elem : mDifferences) {
 		const double diff = elem.raw.expected - avg_observed;
@@ -308,7 +322,7 @@ double CAvg_Pow_StdDev_Metric::Do_Calculate_Metric() {
 		return sqrt(variance) / mLast_Calculated_Avg;	//coefficient of variation		
 	}
 	else
-		return std::numeric_limits<double>::max();
+		return 0.0;	//zero average means no error
 	
 
 	//quartile coefficient of dispersion
