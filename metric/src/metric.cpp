@@ -263,6 +263,9 @@ double CAvgPlusBesselStdDevMetric::Do_Calculate_Metric() {
 
 double CAvg_Pow_StdDev_Metric::Do_Calculate_Metric() {
 	const double variance = CVariance_Metric::Do_Calculate_Metric();
+
+	return log(mLast_Calculated_Avg) + log(sqrt(variance));
+
 	//also calculates mLastCalculatedAvg
 
 		//the real metric is supposed to be
