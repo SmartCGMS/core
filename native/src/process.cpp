@@ -83,7 +83,7 @@ protected:
 	std::vector<char> &mOutput;
 	TRedirected_IO mIO;
 #ifdef _WIN32
-	PROCESS_INFORMATION mProcess;
+	PROCESS_INFORMATION mProcess {0};
 #else
 	pid_t pid;
 #endif
@@ -131,10 +131,11 @@ protected:
 		siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
 				
 		const LPWSTR working_dir_raw = working_dir.empty() ? NULL : (LPWSTR)working_dir.c_str();
+		std::wstring shell_buf = shell;	//CreateProcessW explicitly requires lpCmdLine to be read-write
 
 		// Create the child process. 	
 		const bool result = CreateProcessW(NULL,	
-			(LPWSTR)shell.c_str(),     // command line 
+			(LPWSTR)shell_buf.c_str(),     // command line 
 			NULL,
 			NULL,          // primary thread security attributes 
 			TRUE,          // handles are inherited 
