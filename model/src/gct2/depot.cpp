@@ -51,18 +51,13 @@ namespace gct2_model
 
 		// the transfer hasn't started yet (delayed transfer)
 		if (!transfer_fnc.Is_Started(currentTime)) {
+			mLast_Time = currentTime;
 			return;
 		}
 
 		// cache start and end points
 		const auto start = transfer_fnc.Get_Start_Time();
 		const auto end = transfer_fnc.Get_End_Time();
-
-		// no origin point in time, set given time as origin and return
-		if (std::isnan(mLast_Time)) {
-			mLast_Time = currentTime < start ? currentTime : start;
-			return;
-		}
 
 		// move time boundaries to not extrapolate during the integration
 		const double fnc_past_time = std::max(mLast_Time, start);

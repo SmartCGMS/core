@@ -53,11 +53,9 @@ namespace gct2_model
 		Glucose_2,
 		Glucose_Subcutaneous,
 		Insulin_Base,
-		Insulin_Subcutaneous_1,
-		Insulin_Subcutaneous_2,
+		Insulin_Subcutaneous,
 		Insulin_Remote,
-		Carbs_1,
-		Carbs_2,
+		Carbs,
 
 		// coupled compartments - i.e.; we don't identify exact causes of elimination/production, we just recognize them as coupled compartment that "gives" and "takes"
 		Glucose_Peripheral,			// source for basal glucose (constant glucose production) and sink for glucose (basal metabolism consumption)
@@ -118,7 +116,7 @@ namespace gct2_model
 			void Initialize(double initialTime, double infusionRate, double infusionPeriod, double absorptionTime);
 
 			// sets infusion rate and infusion rate; set to quiet NaN if no change is intended to be made
-			void Set_Infusion_Parameter(double infusionRate, double infusionPeriod = std::numeric_limits<double>::quiet_NaN(), double absorptionTime = std::numeric_limits<double>::quiet_NaN());
+			void Set_Infusion_Parameter(double currentTime, double infusionRate, double infusionPeriod = std::numeric_limits<double>::quiet_NaN(), double absorptionTime = std::numeric_limits<double>::quiet_NaN());
 
 			// retrieves dosage at given time; returns true if 'dosage' was filled with valid values to be infused,
 			// false otherwise; this function should be called repeatedly until it returns false
@@ -171,12 +169,8 @@ class CGCT2_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscrete
 
 		// adds depot to D1 compartment and links to a new compartment in D2
 		gct2_model::CDepot& Add_To_D1(double amount, double start, double duration);
-		// adds depot to D2 compartment and links to a persistent depot in Q1
-		gct2_model::CDepot& Add_To_D2(double amount, double start, double duration);
 		// adds depot to Isc_1 compartment and links to a new compartment in Isc_2
 		gct2_model::CDepot& Add_To_Isc1(double amount, double start, double duration);
-		// adds depot to Isc_2 compartment and links to a persistent depot in I
-		gct2_model::CDepot& Add_To_Isc2(double amount, double start, double duration);
 
 	protected:
 		// scgms::CBase_Filter iface implementation

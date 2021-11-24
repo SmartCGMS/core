@@ -688,10 +688,10 @@ namespace gct2_model {
 	constexpr GUID signal_IOB = { 0x1613dabc, 0x1aed, 0x46b0, { 0x98, 0x10, 0x7f, 0xd, 0xba, 0xc8, 0xb1, 0x80 } };					// {1613DABC-1AED-46B0-9810-7F0DBAC8B180}
 	constexpr GUID signal_COB = { 0x4a1d62fe, 0x9273, 0x4a73, { 0xa6, 0xfe, 0xb3, 0xcd, 0xe6, 0x4a, 0x2a, 0x9d } };					// {4A1D62FE-9273-4A73-A6FE-B3CDE64A2A9D}
 
-	constexpr size_t model_param_count = 42;
+	constexpr size_t model_param_count = 39;
 
 	/*
-	Q1_0 - D2_0 - initial values/quantities
+	Q1_0 - D1_0 - initial values/quantities
 
 	Vq - distribution volume of glucose molecules in plasma ("volume of plasma")
 	Vqsc - distribution volume of glucose molecules in subcutaneous tissue / interstitial fluid
@@ -704,9 +704,7 @@ namespace gct2_model {
 	q1sc - transfer rate of diffusion between Q1 and Qsc
 	ix - transfer rate I -> X
 	xq1 - moderation rate Q1 -(X)-> sink
-	d2q1 - transfer rate D2 -> Q1 (glucose absorption rate)
-	isc2i - transfer rate Isc2 -> I
-	isc2e - elimination rate of Isc2 insulin (local degradation, proposed by Hovorka, http://doi.org/10.1109/TBME.2004.839639 )
+	iscimod - transfer rate Isc -> I, bundled with local degradation (proposed by Hovorka, http://doi.org/10.1109/TBME.2004.839639 )
 
 	q1e - base elimination of Q1 glucose
 	q1ee - glucose elimination moderated by exercise
@@ -739,11 +737,11 @@ namespace gct2_model {
 		union {
 			struct {
 				// initial quantities
-				double Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0;
+				double Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0;
 				// patient quantity and base parameters
 				double Vq, Vqsc, Vi, Q1b, Gthr, GIthr;
 				// transfer parameters
-				double q12, q1sc, ix, xq1, d2q1, isc2i, isc2e;
+				double q12, q1sc, ix, xq1, iscimod;
 				// elimination parameters
 				double q1e, q1ee, q1e_thr, xe;
 				// production parameters
@@ -760,12 +758,12 @@ namespace gct2_model {
 	};
 
 	const gct2_model::TParameters lower_bounds = { {{
-		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0
-			0,    0,    0,     0,   0,     0,   0,    0,
+		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0,
+			0,    0,    0,     0,   0,     0,   0,
 		//	Vq,  Vqsc, Vi, Q1b, Gthr, GIthr,
 			3,   1,    3,  50,  8.0,  4.0,
-		//	q12,  q1sc, ix, xq1, d2q1, isc2i, isc2e
-			0.5, 1.4,   1,  5,   14.0, 20,    1,
+		//	q12,  q1sc, ix, xq1, iscimod
+			0.5, 1.4,   1,  5,   0.1,
 		//	q1e,   q1ee,  q1e_thr, xe,
 			0.144, 0.144, 0.001,   0.1,
 		//	q1p,     q1pe,   q1pi,    ip,
@@ -782,12 +780,12 @@ namespace gct2_model {
 	}} };
 
 	const gct2_model::TParameters default_parameters = { { {
-		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0
-			350,  65,   250,   0,   0,     0,   0,    0,
+		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0,
+			350,  65,   250,   0,   0,     0,   0,
 		//	Vq,  Vqsc, Vi, Q1b, Gthr, GIthr,
 			8,   5,    10, 240, 8.0, 5.0,
-		//	q12, q1sc, ix, xq1, d2q1,  isc2i, isc2e
-			0.8, 8,    5,  45,  144.0, 35,     2,
+		//	q12, q1sc, ix, xq1, iscimod
+			0.8, 8,    5,  45,  0.7,
 		//	q1e,     q1ee,    q1e_thr, xe,
 			0.38519, 0.38519, 0.8,     0.3,
 		//	q1p,  q1pe, q1pi,  ip,
@@ -804,12 +802,12 @@ namespace gct2_model {
 	}} };
 
 	const gct2_model::TParameters upper_bounds = { { {
-		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0
-			500,  500,  500,   500, 500,   500, 200,  200,
+		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0,
+			500,  500,  500,   500, 500,   500, 200,
 		//	Vq,  Vqsc, Vi, Q1b,  Gthr, GIthr,
 			10,  10,   20, 1000, 14.0, 8.0,
-		//	q12, q1sc, ix,  xq1,   d2q1,  isc2i, isc2e
-			1.5, 24.0, 50,  120.0, 144.0, 50,    20,
+		//	q12, q1sc, ix,  xq1,   iscimod
+			1.5, 24.0, 50,  120.0, 1.0,
 		//	q1e,  q1ee, q1e_thr, xe,
 			14.4, 14.4, 0.8,     2.0,
 		//	q1p,  q1pe, q1pi, ip

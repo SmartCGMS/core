@@ -629,9 +629,9 @@ namespace gct2_model {
 
 	const wchar_t* model_param_ui_names[model_param_count] = {
 		// TODO: move to dstrings
-		L"Q1_0", L"Q2_0", L"Qsc_0", L"I_0", L"Isc_0", L"X_0", L"D1_0", L"D2_0",
+		L"Q1_0", L"Q2_0", L"Qsc_0", L"I_0", L"Isc_0", L"X_0", L"D1_0",
 		L"Vq", L"Vqsc", L"Vi", L"Q1b", L"Gthr", L"GIthr",
-		L"q12", L"q1sc", L"ix", L"xq1", L"d2q1",L"isc2i",L"isc2e",
+		L"q12", L"q1sc", L"ix", L"xq1", L"iscimod",
 		L"q1e", L"q1ee", L"q1e_thr", L"xe",
 		L"q1p", L"q1pe", L"q1pi", L"ip",
 		L"e_pa", L"e_ua", L"e_pe", L"e_ue", L"q_ep", L"q_eu",
@@ -648,7 +648,7 @@ namespace gct2_model {
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
-		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptTime
 	};
 
