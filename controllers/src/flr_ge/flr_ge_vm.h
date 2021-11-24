@@ -55,13 +55,23 @@ namespace flr_ge
 	enum class NInstruction
 	{
 		NOP = 0,
-		CSIBR_1 = 1,
-		CSBOL_1 = 2,
-		CSIBR_2 = 3,
-		CSBOL_2 = 4,
+		CSIBR_1,
+		//CSBOL_1,
+		CSIBR_2,
+		//CSBOL_2,
 
 		count
 	};
+
+	constexpr NInstruction Cond_Ins_To_Single(NInstruction Ins) {
+		switch (Ins)
+		{
+			case NInstruction::CSIBR_2:
+			case NInstruction::CSIBR_1:
+				return NInstruction::CSIBR_1;
+		}
+		return NInstruction::NOP;
+	}
 
 	static inline const char* Instruction_To_String(const NInstruction ins)
 	{
@@ -69,9 +79,9 @@ namespace flr_ge
 		{
 			case NInstruction::NOP: return "NOP";
 			case NInstruction::CSIBR_1: return "CSIBR";
-			case NInstruction::CSBOL_1: return "CSBOL";
+			//case NInstruction::CSBOL_1: return "CSBOL";
 			case NInstruction::CSIBR_2: return "CSIBR";
-			case NInstruction::CSBOL_2: return "CSBOL";
+			//case NInstruction::CSBOL_2: return "CSBOL";
 		}
 		return "???";
 	}
@@ -99,7 +109,7 @@ namespace flr_ge
 		IG,
 		IG_Avg5,
 		IG_Avg5_Slope,
-		Minutes_From_Last_Bolus,
+		//Minutes_From_Last_Bolus,
 
 		count
 	};
@@ -111,7 +121,7 @@ namespace flr_ge
 			case NQuantity::IG: return "IG";
 			case NQuantity::IG_Avg5: return "IG_Avg5";
 			case NQuantity::IG_Avg5_Slope: return "IG_Avg5_Slope";
-			case NQuantity::Minutes_From_Last_Bolus: return "Minutes_From_Last_Bolus";
+			//case NQuantity::Minutes_From_Last_Bolus: return "Minutes_From_Last_Bolus";
 		}
 		return "?";
 	}
@@ -119,7 +129,7 @@ namespace flr_ge
 	enum class NOutput_Variable
 	{
 		IBR,
-		Bolus,
+		//Bolus,
 
 		count
 	};
@@ -219,6 +229,8 @@ namespace flr_ge
 
 			bool Parse(const std::vector<double>& input, size_t rule_count, size_t rule_length);
 
+			void Prune();
+
 			void Evaluate()
 			{
 				for (auto& rule : mRules)
@@ -240,18 +252,151 @@ namespace flr_ge
 
 	class CCond_Rule : public CRule
 	{
-		protected:
+		public:
 			struct TConditional
 			{
+				enum class NConflict_Type {
+					None,
+					Equivalent,
+					Superceding_First,		// first rule supercedes second
+					Superceding_Second,		// second rule supercedes first
+					Opposing,
+				};
+
+				enum class NBool_Op {
+					And,
+					Or,
+				};
+
 				NOperator op;
 				NQuantity lhs;
 
+				bool marked_for_delete = false;
 				bool is_rhs_quantity;
 				union
 				{
 					NQuantity q;
 					size_t v;
 				} rhs; // yeah, we have std::variant, but let us speed things up
+
+				bool Is_Self_Conflicting() const
+				{
+					// (X op X) cmd --> delete
+					if (is_rhs_quantity && lhs == rhs.q)
+						return true;
+
+					return false;
+				}
+
+				NConflict_Type Is_Conflicting_With(CContext& ctx, const TConditional& cond2, const NBool_Op bool_op) const {
+
+					/*
+					1) superceding rules
+					   (X > 1 && X > 2) cmd --> (X > 2) cmd
+					   (X < 1 && X < 2) cmd --> (X < 1) cmd
+					   generalization
+					   (X > a && X > b), b > a cmd --> (X > b) cmd, else (X > a) cmd
+					   (X < a && X < b), b < a cmd --> (X < b) cmd, else (X < a) cmd
+					   more
+					   (X op a && X op b), b op a cmd --> (X op b) cmd, else (X op a) cmd
+
+					   (X > 1 || X > 0) cmd --> (X > 0) cmd
+					   (X < 0 || X < 1) cmd --> (X < 1) cmd
+					   generalization
+					   (X op a || X op b), a op b cmd --> (X op b) cmd
+
+					2) opposing rules
+					   (X > 1 && X < 0) cmd --> delete
+					   (X < 5 && X > 10) cmd --> delete
+					   generalization
+					   (X > a && X < b), a > b cmd --> delete
+					   (X < a && X > b), a < b cmd --> delete
+					   more
+					   (X op a && X !op b), a !op b cmd --> delete
+					*/
+
+					if (lhs != cond2.lhs)
+						return NConflict_Type::None;
+
+					// a, b are constants
+					if (!is_rhs_quantity && !cond2.is_rhs_quantity)
+					{
+						// 1) (X op a && X op b)
+						//    (X op a || X op b)
+						if (op == cond2.op)
+						{
+							// two same conditions --> squash to single conditional
+							if (rhs.v == cond2.rhs.v)
+								return NConflict_Type::Equivalent;
+
+							const double a = ctx.Get_Constant(rhs.v);
+							const double b = ctx.Get_Constant(cond2.rhs.v);
+
+							// b op a (a op b == !res)
+							bool res = false;
+
+							switch (op)
+							{
+								case NOperator::Less_Than:
+									res = b < a;
+									break;
+								case NOperator::Greater_Than:
+									res = b > a;
+									break;
+							}
+
+							if (bool_op == NBool_Op::And)
+							{
+								if (res)
+									return NConflict_Type::Superceding_Second;
+								else
+									return NConflict_Type::Superceding_First;
+							}
+							else
+							{
+								if (!res)
+									return NConflict_Type::Superceding_Second;
+								else
+									return NConflict_Type::Superceding_First;
+							}
+						}
+						// 2) (X op a && X !op b)
+						else
+						{
+							// a == b, opposing by definition, discard
+							if (rhs.v == cond2.rhs.v)
+								return NConflict_Type::Opposing;
+
+							const double a = ctx.Get_Constant(rhs.v);
+							const double b = ctx.Get_Constant(cond2.rhs.v);
+
+							// b !op a
+							bool res = false;
+
+							switch (cond2.op)
+							{
+								case NOperator::Less_Than:
+									res = b < a;
+									break;
+								case NOperator::Greater_Than:
+									res = b > a;
+									break;
+							}
+
+							if (res && bool_op == NBool_Op::And)
+								return NConflict_Type::Opposing;
+						}
+					}
+
+					return NConflict_Type::None;
+				}
+
+				bool operator==(const TConditional& other) const {
+					return (op == other.op)
+						&& (lhs == other.lhs)
+						&& (is_rhs_quantity == other.is_rhs_quantity)
+						&& (rhs.v == other.rhs.v);
+				}
 			};
 
 		public:
@@ -307,6 +452,20 @@ namespace flr_ge
 					target += std::to_string(ctx.Get_Constant(cond.rhs.v));
 				target += ")";
 			}
+
+			virtual const size_t Get_Cond_Count() const {
+				return 0;
+			}
+
+			virtual TConditional& Get_Cond_1() {
+				throw std::runtime_error{ "No condition 1 set" };
+			}
+
+			virtual TConditional& Get_Cond_2() {
+				throw std::runtime_error{ "No condition 2 set" };
+			}
+
+			virtual std::unique_ptr<CCond_Rule> Convert_To_Single(const TConditional& cond) const { return nullptr; }
 	};
 
 	template<NInstruction Ins, NOutput_Variable OVar>
@@ -317,6 +476,11 @@ namespace flr_ge
 			size_t mValue_Ref;
 
 		public:
+			CCond_Set_1() = default;
+			CCond_Set_1(const TConditional& cond, size_t value_ref) : mCond_1{ cond }, mValue_Ref{ value_ref }  {
+				//
+			}
+
 			virtual bool Parse(const std::vector<double>& input, size_t cursor) override
 			{
 				// CSxxx_1 <condition> <NULL> <value_ref>
@@ -337,9 +501,17 @@ namespace flr_ge
 				trans += " ";
 				Transcribe_Conditional(mCond_1, ctx, trans);
 				trans += " ";
-				trans += std::to_string(ctx.Get_Constant(mValue_Ref));
+				trans += (ctx.Get_Constant(mValue_Ref) < 0) ? "0!" : std::to_string(ctx.Get_Constant(mValue_Ref));
 
 				target.push_back(trans);
+			}
+
+			virtual const size_t Get_Cond_Count() const override {
+				return 1;
+			}
+
+			virtual TConditional& Get_Cond_1() override {
+				return mCond_1;
 			}
 	};
 
@@ -356,7 +528,13 @@ namespace flr_ge
 				// CSxxx_2 <condition> <condition> <value_ref>
 
 				mValue_Ref = classify(input[cursor + 3], value_ref_count);
-				return Decode_Conditional(input[cursor + 1], mCond_1) && Decode_Conditional(input[cursor + 2], mCond_2);
+				bool res = Decode_Conditional(input[cursor + 1], mCond_1) && Decode_Conditional(input[cursor + 2], mCond_2);
+
+				// just ensure the order of quantities in condition
+				if (static_cast<std::underlying_type<NQuantity>::type>(mCond_1.lhs) > static_cast<std::underlying_type<NQuantity>::type>(mCond_2.lhs))
+					std::swap(mCond_1, mCond_2);
+
+				return res;
 			}
 
 			virtual void Evaluate(CContext& ctx) override
@@ -376,6 +554,22 @@ namespace flr_ge
 				trans += std::to_string(ctx.Get_Constant(mValue_Ref));
 
 				target.push_back(trans);
+			}
+
+			virtual const size_t Get_Cond_Count() const override {
+				return 2;
+			}
+
+			virtual TConditional& Get_Cond_1() override {
+				return mCond_1;
+			}
+
+			virtual TConditional& Get_Cond_2() override {
+				return mCond_2;
+			}
+
+			virtual std::unique_ptr<CCond_Rule> Convert_To_Single(const TConditional& cond) const override {
+				return std::make_unique<CCond_Set_1<Cond_Ins_To_Single(Ins), OVar>>(cond, mValue_Ref);
 			}
 	};
 }
