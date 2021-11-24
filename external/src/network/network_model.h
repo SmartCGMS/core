@@ -76,7 +76,7 @@ class CNetwork_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 	static constexpr TSlot Invalid_Pool_Slot = ~(static_cast<TSlot>(0));
 
 	// how many connections to hold during simulation; setting this to 1 will result in serializing all external simulations
-	static constexpr size_t Connection_Pool_Size = 16;
+	static constexpr size_t Connection_Pool_Size = 32;
 
 	private:
 		struct TConnection_Slot
