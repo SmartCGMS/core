@@ -46,49 +46,74 @@
 #include <stdlib.h>
 
 #ifdef _WIN32
-std::string Visual_Studio() {
+std::string Get_VS_Installation_Path(std::string vswhere, const char* tool, const char* tool_switch, const std::string &install_dir_id) {
 	std::string result;
-
 	std::vector<char> output;	
-	std::array<char, 256> program_files_x86;
-	size_t dummy_len;
-	if (getenv_s(&dummy_len, program_files_x86.data(), program_files_x86.size(), "ProgramFiles(x86)") == 0) {		
-		std::string vswhere{ program_files_x86.data() };
-		vswhere.append("\\Microsoft Visual Studio\\Installer\\Vswhere.exe");
+	vswhere.append(tool);
+	vswhere = quote(vswhere);
+	vswhere.append(" ");
+	vswhere.append(tool_switch);
+			
 
-		const std::vector<std::string> commands{ quote(vswhere)};
-		const wchar_t* rsShell = L"cmd.exe";
-		if (Execute_Commands(rsShell, L".", commands, output)) {
-			output.push_back(0);	//ensure ASCIIZ
+	const std::vector<std::string> commands{ vswhere};
+	const wchar_t* rsShell = L"cmd.exe";
+	if (Execute_Commands(rsShell, L".", commands, output)) {
+		output.push_back(0);	//ensure ASCIIZ
+ 			
+		char* install_dir_val = strstr(output.data(), install_dir_id.c_str());
+		if (install_dir_val) {
+			install_dir_val += install_dir_id.size();
+			char* install_dir_val_end = install_dir_val;
 
- 			const std::string install_dir_id = "installationPath: ";
-			char* install_dir_val = strstr(output.data(), install_dir_id.c_str());
-			if (install_dir_val) {
-				install_dir_val += install_dir_id.size();
-				char* install_dir_val_end = install_dir_val;
+			//until EOL (on any OS, or null-terminating char)
+			while ((*install_dir_val_end != 10) && (*install_dir_val_end != 13) && (*install_dir_val_end != 0))
+				install_dir_val_end++;
 
-				//until EOL (on any OS, or null-terminating char)
-				while ((*install_dir_val_end != 10) && (*install_dir_val_end != 13) && (*install_dir_val_end != 0))
-					install_dir_val_end++;
-
-				result.assign(install_dir_val, install_dir_val_end);
-				result.append("\\VC\\Auxiliary\\Build\\vcvarsall.bat");
-				result = quote(result) + " ";
-
-#if defined(_M_AMD64) || defined(_M_X64)
-				result += "x64";
-#elif defined(_M_IX86)
-				result += "x86";
-#else
-				result += "arm64";
-#endif
-			}
+			result.assign(install_dir_val, install_dir_val_end);
 		}
 	}
+
 
 	return result;
 }
 #endif
+
+std::string Visual_Studio() {
+	std::string result;
+
+	std::array<char, 256> program_files_x86;
+	size_t dummy_len;
+	if (getenv_s(&dummy_len, program_files_x86.data(), program_files_x86.size(), "ProgramFiles(x86)") == 0) {		
+		std::string vswhere_root{ program_files_x86.data() };		
+		if (!vswhere_root.empty())
+			vswhere_root.append("\\Microsoft Visual Studio\\Installer\\");
+
+		result = Get_VS_Installation_Path(vswhere_root, "vswhere.exe",  "-latest", "installationPath: ");
+		if (result.empty())
+			result = Get_VS_Installation_Path(vswhere_root, "vs_layout.exe", "instance", "InstallationPath = ");
+
+
+		if (!result.empty()) {
+			result.append("\\VC\\Auxiliary\\Build\\vcvarsall.bat");
+			result = quote(result) + " ";
+		} else {
+			result = "vcvarsall.bat ";	//the best we can do, in such a case, is to hope for correctly set %PATH%
+										//trailing white space is OK
+		}
+
+#if defined(_M_AMD64) || defined(_M_X64)
+			result += "x64";
+#elif defined(_M_IX86)
+			result += "x86";
+#else
+			result += "arm64";
+#endif
+		}
+
+
+	
+	return result;
+}
 
 std::string Get_Env_Init(const std::wstring& compiler_prefix) {
 	std::string result;
