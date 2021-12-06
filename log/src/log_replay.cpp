@@ -550,7 +550,7 @@ void CLog_Replay_Filter::Correct_Timings(std::vector<TLog_Entry>& log_lines) {
 		entry.segment_id = seg.first;
 		entry.info = L"";
 		entry.the_rest = L"{172EA814-9DF1-657C-1289-C71893F1D085}; {00000000-0000-0000-0000-000000000000}";
-				//device id is log replay, the resit is invalid signal id
+				//device id is log replay, the rest is invalid signal id
 
 		entry.line_counter = 0;
 		entry.code = scgms::NDevice_Event_Code::Time_Segment_Start;
