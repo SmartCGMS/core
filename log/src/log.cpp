@@ -84,7 +84,9 @@ std::wstring CLog_Filter::Parameters_To_WStr(const scgms::UDevice_Event& evt) {
 	for (auto& desc : mModelDescriptors)
 	{
 		for (size_t i = 0; i < desc.number_of_calculated_signals; i++) 	{
-			if (evt.signal_id() == desc.calculated_signal_ids[i]) {
+			const auto& sig_id = evt.signal_id();
+			if ((sig_id == desc.calculated_signal_ids[i]) ||
+				(sig_id == desc.id)) {
 				modelDesc = &desc;
 				break;
 			}
@@ -106,7 +108,7 @@ std::wstring CLog_Filter::Parameters_To_WStr(const scgms::UDevice_Event& evt) {
 	else {
 		for (auto iter = begin; iter != end; iter++) {
 			if (iter != begin) stream << L", ";
-			stream << *begin;
+			stream << *iter;
 		}
 	}
 
