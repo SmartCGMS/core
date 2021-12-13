@@ -181,7 +181,7 @@ HRESULT CCalculate_Filter::Do_Execute(scgms::UDevice_Event event)  {
 						auto test_and_apply_parameters = [&event, this](const std::unique_ptr<CTime_Segment> &segment) {
 							//do these parameters improve?
 							if (Is_Invalid_GUID(mMetric_Id)) 
-								return;	//if there's no metric set, we believe the parameters as we got them
+								return true;	//if there's no metric set, we believe the parameters as we got them
 
 
 							scgms::SMetric metric{ scgms::TMetric_Parameters{ mMetric_Id, bool_2_uc(mUse_Relative_Error),  bool_2_uc(mUse_Squared_Differences), bool_2_uc(mPrefer_More_Levels),  mMetric_Threshold } };
@@ -191,6 +191,8 @@ HRESULT CCalculate_Filter::Do_Execute(scgms::UDevice_Event event)  {
 
 							if (new_fitness < current_fitness)
 								segment->Set_Parameters(event.parameters);
+
+							return true; // does this lambda really need to return anything?
 						};
 
 						if (event.segment_id() != scgms::All_Segments_Id) {

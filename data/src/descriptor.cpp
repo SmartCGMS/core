@@ -39,13 +39,15 @@
 #include "descriptor.h"
 #include "db_reader.h"
 #include "db_writer.h"
+#include "db_reader_legacy.h"
+#include "db_writer_legacy.h"
 #include "file_reader.h"
 #include "sincos_generator.h"
+#include "healthkit_dump_reader.h"
 #include "../../../common/utils/descriptor_utils.h"
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
-
 
 #include <vector>
 
@@ -179,6 +181,135 @@ namespace db_writer {
 
 }
 
+namespace db_reader_legacy {
+
+	constexpr size_t param_count = 8;
+
+	constexpr scgms::NParameter_Type param_type[param_count] = {
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptInt64,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptInt64_Array,
+		scgms::NParameter_Type::ptBool
+	};
+
+	const wchar_t* ui_param_name[param_count] = {
+		dsDb_Host,
+		dsDb_Port,
+		dsDb_Provider,
+		dsDb_Name,
+		dsDb_User_Name,
+		dsDb_Password,
+		dsTime_Segment_ID,
+		dsShutdown_After_Last
+	};
+
+	const wchar_t* config_param_name[param_count] = {
+		rsDb_Host,
+		rsDb_Port,
+		rsDb_Provider,
+		rsDb_Name,
+		rsDb_User_Name,
+		rsDb_Password,
+		rsTime_Segment_ID,
+		rsShutdown_After_Last
+	};
+
+	const wchar_t* ui_param_tooltips[param_count] = {
+		dsDb_Host_Tooltip,
+		dsDb_Port_Tooltip,
+		dsDb_Provider_Tooltip,
+		dsDb_Name_Tooltip,
+		dsDb_Username_Tooltip,
+		dsDb_Password_Tooltip,
+		nullptr,
+		dsShutdown_After_Last_Tooltip
+	};
+
+	const scgms::TFilter_Descriptor Db_Reader_Descriptor = {
+		filter_id,
+		scgms::NFilter_Flags::None,
+		dsDb_Reader_Legacy,
+		param_count,
+		param_type,
+		ui_param_name,
+		config_param_name,
+		ui_param_tooltips
+	};
+
+}
+
+namespace db_writer_legacy {
+
+	constexpr size_t param_count = 10;
+
+	constexpr scgms::NParameter_Type param_type[param_count] = {
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptInt64,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptSubject_Id
+	};
+
+	const wchar_t* ui_param_name[param_count] = {
+		dsDb_Host,
+		dsDb_Port,
+		dsDb_Provider,
+		dsDb_Name,
+		dsDb_User_Name,
+		dsDb_Password,
+		dsGenerate_Primary_Keys,
+		dsStore_Data,
+		dsStore_Parameters,
+		dsSubject_Id
+	};
+
+	const wchar_t* config_param_name[param_count] = {
+		rsDb_Host,
+		rsDb_Port,
+		rsDb_Provider,
+		rsDb_Name,
+		rsDb_User_Name,
+		rsDb_Password,
+		rsGenerate_Primary_Keys,
+		rsStore_Data,
+		rsStore_Parameters,
+		rsSubject_Id
+	};
+
+	const wchar_t* ui_param_tooltips[param_count] = {
+		dsDb_Host_Tooltip,
+		dsDb_Port_Tooltip,
+		dsDb_Provider_Tooltip,
+		dsDb_Name_Tooltip,
+		dsDb_Username_Tooltip,
+		dsDb_Password_Tooltip,
+		dsGenerate_Primary_Keys_Tooltip,
+		dsStore_Data_Tooltip,
+		dsStore_Parameters_Tooltip,
+		nullptr
+	};
+
+	const scgms::TFilter_Descriptor Db_Writer_Descriptor = {
+		filter_id,
+		scgms::NFilter_Flags::None,
+		dsDb_Writer_Legacy,
+		param_count,
+		param_type,
+		ui_param_name,
+		config_param_name,
+		ui_param_tooltips
+	};
+
+}
 
 namespace file_reader
 {
@@ -297,7 +428,49 @@ namespace sincos_generator {
 
 }
 
-static const std::array<scgms::TFilter_Descriptor, 4> filter_descriptions = { db_reader::Db_Reader_Descriptor, db_writer::Db_Writer_Descriptor, file_reader::File_Reader_Descriptor, sincos_generator::SinCos_Generator_Descriptor };
+namespace healthkit_dump_reader_filter {
+
+	constexpr size_t param_count = 1;
+
+	const scgms::NParameter_Type param_type[param_count] = {
+		scgms::NParameter_Type::ptWChar_Array
+	};
+
+	const wchar_t* ui_param_name[param_count] = {
+		dsInput_Values_File,
+	};
+
+	const wchar_t* config_param_name[param_count] = {
+		rsFile_Path
+	};
+
+	const wchar_t* ui_param_tooltips[param_count] = {
+		nullptr,
+	};
+
+	const wchar_t* filter_name = dsHealthKit_Dump_Reader_Filter;
+
+	const scgms::TFilter_Descriptor descriptor = {
+		id,
+		scgms::NFilter_Flags::None,
+		filter_name,
+		param_count,
+		param_type,
+		ui_param_name,
+		config_param_name,
+		ui_param_tooltips
+	};
+}
+
+static const std::array<scgms::TFilter_Descriptor, 7> filter_descriptions = {
+	db_reader::Db_Reader_Descriptor,
+	db_reader_legacy::Db_Reader_Descriptor,
+	db_writer::Db_Writer_Descriptor,
+	db_writer_legacy::Db_Writer_Descriptor,
+	file_reader::File_Reader_Descriptor,
+	sincos_generator::SinCos_Generator_Descriptor,
+	healthkit_dump_reader_filter::descriptor
+};
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 	return do_get_descriptors(filter_descriptions, begin, end);
@@ -307,12 +480,18 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 
 	if (*id == db_reader::Db_Reader_Descriptor.id)
 		return Manufacture_Object<CDb_Reader>(filter, next_filter);
-	if (*id == db_writer::Db_Writer_Descriptor.id)
+	else if (*id == db_writer::Db_Writer_Descriptor.id)
 		return Manufacture_Object<CDb_Writer>(filter, next_filter);
+	else if (*id == db_reader_legacy::Db_Reader_Descriptor.id)
+		return Manufacture_Object<CDb_Reader_Legacy>(filter, next_filter);
+	else if (*id == db_writer_legacy::Db_Writer_Descriptor.id)
+		return Manufacture_Object<CDb_Writer_Legacy>(filter, next_filter);
 	else if (*id == file_reader::File_Reader_Descriptor.id)
 		return Manufacture_Object<CFile_Reader>(filter, next_filter);
 	else if (*id == sincos_generator::SinCos_Generator_Descriptor.id)
 		return Manufacture_Object<CSinCos_Generator>(filter, next_filter);
+	else if (*id == healthkit_dump_reader_filter::descriptor.id)
+		return Manufacture_Object<CHealthKit_Dump_Reader>(filter, next_filter);
 
 	return E_NOTIMPL;
 }

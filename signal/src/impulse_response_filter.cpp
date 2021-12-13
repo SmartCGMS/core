@@ -80,8 +80,7 @@ HRESULT IfaceCalling CImpulse_Response_Filter::Do_Execute(scgms::UDevice_Event e
 double CImpulse_Response_Filter::Impulse_Response(const uint64_t time_segment, const double time, const double value)
 {
 	auto& values = mValues[time_segment];
-	auto& lastTime = mLast_Time[time_segment];
-	lastTime = std::max(lastTime, time);
+	const auto lastTime = std::max(mLast_Time[time_segment], time);
 
 	if (mTime_Window > std::numeric_limits<double>::epsilon())
 	{
@@ -92,6 +91,8 @@ double CImpulse_Response_Filter::Impulse_Response(const uint64_t time_segment, c
 	}
 
 	values.emplace_back(time, value);
+
+	mLast_Time[time_segment] = lastTime;
 
 	// TODO: impulse response parameters (weights)
 

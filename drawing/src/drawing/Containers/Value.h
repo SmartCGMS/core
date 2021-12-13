@@ -110,6 +110,9 @@ struct Data
 	GUID signal_id = Invalid_GUID;
 	std::string identifier;
 	std::string refSignalIdentifier;
+    bool forceDraw = false;
+    std::wstring nameAlias = L"";
+    double valuesScale = 1.0;
 };
 
 typedef std::map<std::string, Data> DataMap;

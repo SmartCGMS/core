@@ -903,6 +903,14 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 								validValue = false;
 								break;
 							}
+
+							// probably a bug, but since the file reader is a subject to refactoring, we leave it as follows
+							// sleep quality is a number between 0 and 1 (percentage of quality, 1 means best sleep quality)
+							// some formats store sleep quality as a number between 0 and 100, but the real minimum value is
+							// somewhere above 10, so this may serve as a detection criteria
+							if (dval > 1.0)
+								miscMultiplier = 0.01;
+
 							mval->mSleepQuality = dval * miscMultiplier;
 							mval->mSleepEnd = addValue; // already in rattime
 							break;

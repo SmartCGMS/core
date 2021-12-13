@@ -95,8 +95,7 @@ CUVA_Padova_S2017_Discrete_Model::CUVA_Padova_S2017_Discrete_Model(scgms::IModel
 						std::bind<double>(&CUVA_Padova_S2017_Discrete_Model::eq_didt2_output, this, std::placeholders::_1, std::placeholders::_2) },
 	}
 {
-	mState.lastTime = -std::numeric_limits<decltype(mState.lastTime)>::max();
-	mInitialized = false;
+	mState.lastTime = -1;
 	mState.Gp = mParameters.Gp_0;
 	mState.Gt = mParameters.Gt_0;
 	mState.Ip = mParameters.Ip_0;
@@ -237,12 +236,12 @@ double CUVA_Padova_S2017_Discrete_Model::eq_dIsc1(const double _T, const double 
 	const double basalSubcutaneousDisturbance = mSubcutaneous_Basal_Ext.Get_Recent(_T * scgms::One_Minute);			// U/min
 	const double insulinSubcutaneousDisturbance = (bolusDisturbance + basalSubcutaneousDisturbance) / (scgms::pmol_2_U * mParameters.BW); // U/min -> pmol/kg/min
 
-	return mState.Isc1 > 0 ? insulinSubcutaneousDisturbance - (mParameters.ka1 + mParameters.kd) * _X : 0;
+	return /*mState.Isc1 > 0 ? */insulinSubcutaneousDisturbance - (mParameters.ka1 + mParameters.kd) * _X /*: 0*/;
 }
 
 double CUVA_Padova_S2017_Discrete_Model::eq_dIsc2(const double _T, const double _X) const
 {
-	return mState.Isc2 > 0 ? mParameters.kd * mState.Isc1 - mParameters.ka2 * _X : 0;
+	return /*mState.Isc2 > 0 ? */mParameters.kd * mState.Isc1 - mParameters.ka2 * _X /*: 0*/;
 }
 
 double CUVA_Padova_S2017_Discrete_Model::eq_dIid1(const double _T, const double _X) const
@@ -394,8 +393,8 @@ void CUVA_Padova_S2017_Discrete_Model::Emit_All_Signals(double time_advance_delt
 HRESULT CUVA_Padova_S2017_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 	HRESULT res = S_FALSE;
 
-	if (mInitialized) {
-
+	if (mState.lastTime > 0)
+	{
 		if (event.event_code() == scgms::NDevice_Event_Code::Level)
 		{
 			if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate)
@@ -494,10 +493,7 @@ HRESULT CUVA_Padova_S2017_Discrete_Model::Do_Configure(scgms::SFilter_Configurat
 }
 
 HRESULT IfaceCalling CUVA_Padova_S2017_Discrete_Model::Step(const double time_advance_delta) {
-	HRESULT rc = E_INVALIDARG;
-	if (!mInitialized)
-		return E_ILLEGAL_METHOD_CALL;
-
+	HRESULT rc = E_FAIL;
 	if (time_advance_delta > 0.0) {
 		// perform a few microsteps within advancement delta
 		// we expect the spacing to be 5 minutes (between IG values) +- few seconds; however, bolus, basal intake and CHO intake may vary during this time period
@@ -515,7 +511,7 @@ HRESULT IfaceCalling CUVA_Padova_S2017_Discrete_Model::Step(const double time_ad
 
 			for (size_t i = 0; i < microStepCount; i++)
 			{
-				const double nowTime = mState.lastTime + static_cast<double>(i)*microStepSize;
+				const double nowTime = oldTime + static_cast<double>(i)*microStepSize;
 
 				// Note: times in ODE solver are represented in minutes (and its fractions), as original model parameters are tuned to one minute unit
 
@@ -554,8 +550,6 @@ HRESULT IfaceCalling CUVA_Padova_S2017_Discrete_Model::Step(const double time_ad
 
 		mState.lastTime = oldTime;
 
-		Emit_All_Signals(time_advance_delta);
-
 		mMeal_Ext.Cleanup(mState.lastTime);
 		mBolus_Insulin_Ext.Cleanup(mState.lastTime);
 		mInhaled_Insulin_Ext.Cleanup(mState.lastTime);
@@ -563,6 +557,8 @@ HRESULT IfaceCalling CUVA_Padova_S2017_Discrete_Model::Step(const double time_ad
 		mIntradermal_Basal_Ext.Cleanup_Not_Recent(mState.lastTime);
 
 		mState.lastTime = futureTime; // to avoid precision loss
+
+		Emit_All_Signals(time_advance_delta);
 
 		rc = S_OK;
 	}
@@ -588,10 +584,9 @@ HRESULT CUVA_Padova_S2017_Discrete_Model::Emit_Signal_Level(const GUID& signal_i
 }
 
 HRESULT IfaceCalling CUVA_Padova_S2017_Discrete_Model::Initialize(const double current_time, const uint64_t segment_id) {
-	if (!mInitialized) {
+	if (mState.lastTime < 0.0) {
 		mState.lastTime = current_time;
 		mSegment_Id = segment_id;
-		mInitialized = true;
 		return S_OK;
 	}
 	else {

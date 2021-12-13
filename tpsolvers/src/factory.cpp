@@ -57,8 +57,14 @@ bool Solve_NLOpt(const solver::TSolver_Setup &setup, solver::TSolver_Progress &p
 
 template <pagmo2::NPagmo_Algo algo>
 bool Solve_Pagmo(solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
-	CPagmo2<algo> pagmo{ setup };
-	return pagmo.Solve(progress);	
+	try {
+		CPagmo2<algo> pagmo{ setup };
+		return pagmo.Solve(progress);
+	}
+	catch (...)
+	{
+		return false;
+	}
 }
 
 
@@ -66,12 +72,17 @@ bool Solve_Pagmo(solver::TSolver_Setup &setup, solver::TSolver_Progress &progres
 
 using  TSolver_Func = std::function<bool(solver::TSolver_Setup &, solver::TSolver_Progress&)>;
 
-struct TSolver_Info{
+struct TSolver_Info
+{
+	TSolver_Info() = delete;
+	explicit TSolver_Info(const GUID& _id, const TSolver_Func& _fnc)
+		: id(_id), func(_fnc) {};
+
 	GUID id = Invalid_GUID;
 	TSolver_Func func;
 };
 
-const std::array<TSolver_Info, 15> solvers = {	TSolver_Info{nlopt::newuoa_id, Solve_NLOpt<nlopt::LN_NEWUOA>},
+const std::array<TSolver_Info, 14> solvers = {	TSolver_Info{nlopt::newuoa_id, Solve_NLOpt<nlopt::LN_NEWUOA>},
 												TSolver_Info{nlopt::bobyqa_id, Solve_NLOpt<nlopt::LN_BOBYQA>},
 												TSolver_Info{nlopt::simplex_id, Solve_NLOpt<nlopt::LN_NELDERMEAD>},
 												TSolver_Info{nlopt::subplex_id, Solve_NLOpt<nlopt::LN_SBPLX>},
@@ -84,9 +95,9 @@ const std::array<TSolver_Info, 15> solvers = {	TSolver_Info{nlopt::newuoa_id, So
 												TSolver_Info{pagmo::cmaes_id, Solve_Pagmo<pagmo2::NPagmo_Algo::CMAES>},
 												TSolver_Info{pagmo::xnes_id, Solve_Pagmo<pagmo2::NPagmo_Algo::xNES>},
 												TSolver_Info{pagmo::gpso_id, Solve_Pagmo<pagmo2::NPagmo_Algo::GPSO>},
-												TSolver_Info{pagmo::ihs_id, Solve_Pagmo<pagmo2::NPagmo_Algo::IHS>},	
+												TSolver_Info{pagmo::ihs_id, Solve_Pagmo<pagmo2::NPagmo_Algo::IHS>},
 
-                                                TSolver_Info{ppr::spo_id, solve_spo},
+												TSolver_Info{ppr::spo_id, solve_spo},
 };
 
 
@@ -99,7 +110,7 @@ extern "C" HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, solver::
 	for (const auto &solver : solvers) {
 		if (solver.id == *solver_id)
 			try {			
-				return solver.func(*setup, *progress) ? S_OK : E_FAIL;
+				return solver.func(*setup, *progress) ? S_OK : E_INVALIDARG;
 			}
 			catch (...) {
 				return E_FAIL;

@@ -56,7 +56,17 @@ namespace rnd_metade {
 	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsRnd_MetaDE);
 }
 
+namespace mt_unconstrainedmetade {
+	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, L"MT Unconstrained MetaDE");
+}
 
+namespace pso {
+	const scgms::TSolver_Descriptor desc_1 = Describe_Non_Specialized_Solver(id_mt_randinit_dcv, L"PSO (MT, RandInit, DCV)");
+	const scgms::TSolver_Descriptor desc_2 = Describe_Non_Specialized_Solver(id_mt_diaginit_scv, L"PSO (MT, DiagInit, SCV)");
+	const scgms::TSolver_Descriptor desc_3 = Describe_Non_Specialized_Solver(id_rnd_crossinit_dcv, L"PSO (RND, CrossInit, DCV)");
+
+	const scgms::TSolver_Descriptor desc_r = Describe_Non_Specialized_Solver(pr_id, L"Halton pr-PSO");
+}
 
 namespace pathfinder {
 	const scgms::TSolver_Descriptor desc_fast = Describe_Non_Specialized_Solver(id_fast, dsPathfinder_Fast);
@@ -77,11 +87,11 @@ namespace pso {
 	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(pso::id, dsPSO_Halton);
 }
 
-const std::array<scgms::TSolver_Descriptor, 9> solver_descriptions = 
+const std::array<scgms::TSolver_Descriptor, 10> solver_descriptions = 
 	{ mt_metade::desc, halton_metade::desc, rnd_metade::desc, 
 	  pathfinder::desc_fast, pathfinder::desc_spiral, pathfinder::desc_landscape,
 	  sequential_brute_force_scan::desc, sequential_convex_scan::desc,
-	  pso::desc
+	  pso::desc, pso::desc_r
 };
 
 

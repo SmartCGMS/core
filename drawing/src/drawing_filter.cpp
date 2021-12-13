@@ -64,6 +64,7 @@
 #include <fstream>
 #include <algorithm>
 #include <set>
+#include <utility>
 
 #undef min
 
@@ -79,8 +80,68 @@ const std::map<GUID, const char*, std::less<GUID>> Signal_Mapping = {
 	{ scgms::signal_Insulin_Activity, "insulin_activity" },
 	{ scgms::signal_Carb_Intake, "carbs" },
 	{ scgms::signal_IOB, "iob" },
-	{ scgms::signal_COB, "cob" },	
+	{ scgms::signal_COB, "cob" },
+	{ scgms::signal_Movement_Speed, "movspeed" },
+	{ scgms::signal_Steps, "steps" },
+	{ scgms::signal_Heartbeat, "heartbeat" },
 };
+
+class CSignal_Visualization_Config final
+{
+	private:
+		template<typename T>
+		using GUIDMap = std::map<GUID, T, std::less<GUID>>;
+
+		// these signals, although they are measured, will be drawn as if they were "calculated"
+		const GUIDMap<std::wstring> Force_Draw_Signals = {
+			{ scgms::signal_Movement_Speed, dsSignal_GUI_Name_Movement_Speed },
+			//{ scgms::signal_Steps, dsSignal_GUI_Name_Steps },
+			{ scgms::signal_Heartbeat, dsSignal_GUI_Name_Heartbeat },
+		};
+
+		const GUIDMap<double> Signal_Scales = {
+			{ scgms::signal_COB, 0.1 },
+			{ scgms::signal_Heartbeat, 0.1 },
+			{ scgms::signal_Movement_Speed, 0.1 },
+			//{ scgms::signal_Steps, 0.01 },
+		};
+
+		template<typename T>
+		bool Get_Map_Element(const GUID& id, const GUIDMap<T>& map, const T& default_value, T& target) const
+		{
+			auto itr = map.find(id);
+			if (itr != map.end()) {
+				target = itr->second;
+				return true;
+			}
+
+			target = default_value;
+			return false;
+		}
+
+	public:
+		CSignal_Visualization_Config()
+		{
+			//
+		}
+
+		bool Get_Signal_Force_Draw_Name(const GUID& id, std::wstring& target) const
+		{
+			bool found = Get_Map_Element<std::wstring>(id, Force_Draw_Signals, target, target);
+
+			return found;
+		}
+
+		double Get_Signal_Values_Scale(const GUID& id) const
+		{
+			double scale = 1.0;
+			Get_Map_Element(id, Signal_Scales, scale, scale);
+
+			return scale;
+		}
+};
+
+const CSignal_Visualization_Config Signal_Visualization_Config;
 
 CDrawing_Filter::CDrawing_Filter(scgms::IFilter *output) : CBase_Filter(output), mGraphMaxValue(-1) {
 	//
@@ -114,8 +175,6 @@ HRESULT CDrawing_Filter::Do_Execute(scgms::UDevice_Event event) {
 			}
 		} else
 			data.push_back(Value(event.level(), Rat_Time_To_Unix_Time(insert_time), event.segment_id()));
-		
-			 
 	}
 	// incoming new parameters
 	else if (event.event_code() == scgms::NDevice_Event_Code::Parameters)
@@ -229,6 +288,8 @@ HRESULT CDrawing_Filter::Do_Execute(scgms::UDevice_Event event) {
 		mParameterChanges.clear();
 	}
 
+	lck.unlock();
+
 	return mOutput.Send(event);
 }
 
@@ -292,13 +353,23 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 
 		vectorsMap[mapping.second] = Data({}, true, mInputData[mapping.first].empty(), false);
 
+		auto& vec = vectorsMap[mapping.second];
+
+		vec.signal_id = mapping.first;
+		vec.identifier = mapping.second;
+
+		if (Signal_Visualization_Config.Get_Signal_Force_Draw_Name(mapping.first, vec.nameAlias))
+			vec.forceDraw = true;
+
+		vec.valuesScale = Signal_Visualization_Config.Get_Signal_Values_Scale(mapping.first);
+
 		for (auto& dataPair : mInputData[mapping.first])
 		{
 			if (allSegments || segmentIds.find(dataPair.first) != segmentIds.end())
 			{
 				const auto& data = dataPair.second;
-				vectorsMap[mapping.second].values.reserve(vectorsMap[mapping.second].values.size() + data.size());
-				std::copy(data.begin(), data.end(), std::back_inserter(vectorsMap[mapping.second].values));
+				vec.values.reserve(vec.values.size() + data.size());
+				std::copy(data.begin(), data.end(), std::back_inserter(vec.values));
 			}
 		}
 	}
@@ -329,9 +400,6 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 		{
 			//const std::string& key = calcSignalMap[presentData.first];
 			const std::string& key = Narrow_WString(GUID_To_WString(presentData.first));
-								
-
-			mGraphMaxValue = 0.0;
 
 			vectorsMap[key] = Data({}, true, false, true);
 			for (auto& dataPair : mInputData[signal_id])
@@ -342,15 +410,6 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 					vectorsMap[key].values.reserve(vectorsMap[key].values.size() + data.size());
 					for (auto& val : data) {
 						vectorsMap[key].values.push_back(val);
-
-						// several signals are excluded from maximum value determining, since their values are not in mmol/l, and are drawn in a different way
-						// TODO: more generic way to determine value units
-						if (presentData.first != scgms::signal_Carb_Intake && presentData.first != scgms::signal_Delivered_Insulin_Bolus && presentData.first != scgms::signal_Delivered_Insulin_Basal_Rate && presentData.first != scgms::signal_Physical_Activity
-							&& presentData.first != scgms::signal_ISIG && presentData.first != scgms::signal_COB && presentData.first != scgms::signal_IOB)
-						{
-							if (val.value > mGraphMaxValue)
-								mGraphMaxValue = std::min(val.value, 150.0); //http://www.guinnessworldrecords.com/world-records/highest-blood-sugar-level/
-						} 
 					}
 				}
 			}
@@ -390,7 +449,7 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 				vectorsMap[pkey].signal_id = presentData.first;
 			}
 
-			signal_descriptions.for_each([this, &vectorsMap, &key, &presentData](scgms::TSignal_Descriptor desc) {
+			signal_descriptions.for_each([&vectorsMap, &key, &presentData](scgms::TSignal_Descriptor desc) {
 				if (desc.id == presentData.first)
 					vectorsMap[key].visualization_style = desc.visualization;
 			});
@@ -403,14 +462,29 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 		}
 	}
 
+	mGraphMaxValue = 0.0;
+
 	for (auto& mapping : vectorsMap)
 	{
 		std::sort(mapping.second.values.begin(), mapping.second.values.end(), [](Value& a, Value& b) {
 			return a.date < b.date;
 		});
+
+		const GUID& signalId = mapping.second.signal_id;
+
+		//if (signalId != scgms::signal_Carb_Intake && signalId != scgms::signal_Delivered_Insulin_Bolus && signalId != scgms::signal_Delivered_Insulin_Basal_Rate && signalId != scgms::signal_Physical_Activity
+		//	&& signalId != scgms::signal_ISIG && signalId != scgms::signal_COB && signalId != scgms::signal_IOB)
+		if (signalId == scgms::signal_BG || signalId == scgms::signal_IG)
+		{
+			for (auto& data : mapping.second.values)
+			{
+				if (data.value > mGraphMaxValue)
+					mGraphMaxValue = std::min(data.value, 150.0); //http://www.guinnessworldrecords.com/world-records/highest-blood-sugar-level/
+			}
+		}
 	}
 
-	mDataMap = vectorsMap;
+	mDataMap = std::move(vectorsMap);
 }
 
 HRESULT CDrawing_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {

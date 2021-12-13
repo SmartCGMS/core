@@ -49,6 +49,9 @@
 #include "absorption/cob.h"
 #include "betapid/betapid.h"
 #include "lgs/lgs.h"
+#include "activity_detection/physical_activity.h"
+#include "gege/gege.h"
+#include "flr_ge/flr_ge.h"
 
 #include <vector>
 
@@ -250,12 +253,195 @@ namespace lgs_basal_insulin {
 	const scgms::TSignal_Descriptor lgs_desc{ lgs_basal_insulin_signal_id, dsInsulin_LGS_Rate, dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0xFF008000, 0xFF008000, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
 }
 
-const std::array<scgms::TModel_Descriptor, 5> model_descriptions = { { iob::desc, cob::desc, betapid_insulin_regulation::desc, betapid3_insulin_regulation::desc, lgs_basal_insulin::desc } };
+namespace physical_activity_detection {
+	const GUID id = { 0x346d97df, 0x9bb4, 0x42e1, { 0x93, 0xac, 0x73, 0x57, 0xeb, 0xbb, 0x32, 0xe2 } };	// {346D97DF-9BB4-42E1-93AC-7357EBBB32E2}
+
+	const scgms::NModel_Parameter_Value param_types[param_count] = { scgms::NModel_Parameter_Value::mptDouble };
+
+	const wchar_t* param_names[param_count] = { dsHeart_Rate_Resting, L"EDA_thr", L"EDA_max" };
+	const wchar_t* param_columns[param_count] = { rsHeart_Rate_Resting, L"EDA_thr", L"EDA_max" };
+
+	const size_t signal_count = 1;
+
+	const GUID signal_ids[signal_count] = { signal_id };
+	const wchar_t* signal_names[signal_count] = { dsPhysical_Activity_Detected_Signal };
+	const GUID reference_signal_ids[signal_count] = { scgms::signal_Null };
+
+	const scgms::TModel_Descriptor desc = {
+		id,
+		scgms::NModel_Flags::Signal_Model,
+		dsPhysical_Activity_Detection_Model,
+		rsPhysical_Activity_Detection_Model,
+		param_count,
+		param_types,
+		param_names,
+		param_columns,
+		lower_bound,
+		default_parameters,
+		upper_bound,
+		signal_count,
+		signal_ids,
+		reference_signal_ids
+	};
+
+	const std::wstring sgdesc = dsPhysical_Activity_Detection_Model + std::wstring(L" - ") + dsPhysical_Activity_Detected_Signal;
+	const scgms::TSignal_Descriptor signal_desc{ signal_id, sgdesc.c_str(), L"", scgms::NSignal_Unit::Percent, 0xFF008000, 0xFF008000, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
+}
+
+namespace gege {
+
+	const wchar_t* model_param_ui_names[param_count] = {
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+	};
+
+	const scgms::NModel_Parameter_Value model_param_types[param_count] = {
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+	};
+
+	constexpr size_t number_of_calculated_signals = 2;
+
+	const GUID calculated_signal_ids[number_of_calculated_signals] = {
+		ibr_id,
+		bolus_id,
+	};
+
+	const wchar_t* calculated_signal_names[number_of_calculated_signals] = {
+		L"GEGE - IBR",
+		L"GEGE - Bolus",
+	};
+
+	const GUID reference_signal_ids[number_of_calculated_signals] = {
+		scgms::signal_Requested_Insulin_Basal_Rate,
+		scgms::signal_Requested_Insulin_Bolus,
+	};
+
+	scgms::TModel_Descriptor desc = {
+		model_id,
+		scgms::NModel_Flags::Discrete_Model,
+		L"GEGE",
+		nullptr,
+		param_count,
+		model_param_types,
+		model_param_ui_names,
+		nullptr,
+		lower_bounds.vector,
+		default_parameters.vector,
+		upper_bounds.vector,
+
+		number_of_calculated_signals,
+		calculated_signal_ids,
+		reference_signal_ids,
+	};
+
+	const scgms::TSignal_Descriptor ibr_desc{ ibr_id, L"GEGE - IBR", dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0x0000FFFF, 0x0000FFFF, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor bolus_desc{ bolus_id, L"GEGE - Bolus", dsU, scgms::NSignal_Unit::U_insulin, 0xFF00FFFF, 0xFF00FFFF, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::triangle, nullptr };
+}
+
+namespace flr_ge {
+
+	const wchar_t* model_param_ui_names[param_count] = {
+		// rules
+		L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",
+		L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",
+		L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",
+		L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",
+		L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",
+		L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",
+		L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",
+		L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",
+		// constants
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+	};
+
+	const scgms::NModel_Parameter_Value model_param_types[param_count] = {
+		// rules
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		// constants
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+	};
+
+	constexpr size_t number_of_calculated_signals = 2;
+
+	const GUID calculated_signal_ids[number_of_calculated_signals] = {
+		ibr_id,
+		bolus_id,
+	};
+
+	const wchar_t* calculated_signal_names[number_of_calculated_signals] = {
+		L"FLR GE - IBR",
+		L"FLR GE - Bolus",
+	};
+
+	const GUID reference_signal_ids[number_of_calculated_signals] = {
+		scgms::signal_Requested_Insulin_Basal_Rate,
+		scgms::signal_Requested_Insulin_Bolus,
+	};
+
+	scgms::TModel_Descriptor desc = {
+		model_id,
+		scgms::NModel_Flags::Discrete_Model,
+		L"FLR GE",
+		nullptr,
+		param_count,
+		model_param_types,
+		model_param_ui_names,
+		nullptr,
+		lower_bounds.vector,
+		default_parameters.vector,
+		upper_bounds.vector,
+
+		number_of_calculated_signals,
+		calculated_signal_ids,
+		reference_signal_ids,
+	};
+
+	const scgms::TSignal_Descriptor ibr_desc{ ibr_id, L"FLR GE - IBR", dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0x0000FFFF, 0x0000FFFF, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor bolus_desc{ bolus_id, L"FLR GE - Bolus", dsU, scgms::NSignal_Unit::U_insulin, 0xFF00FFFF, 0xFF00FFFF, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::triangle, nullptr };
+}
+
+const std::array<scgms::TModel_Descriptor, 8> model_descriptions = { { iob::desc, cob::desc, betapid_insulin_regulation::desc, betapid3_insulin_regulation::desc, lgs_basal_insulin::desc, physical_activity_detection::desc, gege::desc, flr_ge::desc } };
 
 
-const std::array<scgms::TSignal_Descriptor, 9> signals_descriptors = { {iob::act_bi_desc, iob::act_exp_desc, iob::iob_bi_desc, iob::iob_exp_desc, cob::bi_desc,
+const std::array<scgms::TSignal_Descriptor, 14> signals_descriptors = { {iob::act_bi_desc, iob::act_exp_desc, iob::iob_bi_desc, iob::iob_exp_desc, cob::bi_desc,
 																		betapid_insulin_regulation::pid_desc, betapid_insulin_regulation::pid2_desc, betapid3_insulin_regulation::pid3_desc,
-																		lgs_basal_insulin::lgs_desc } };
+																		lgs_basal_insulin::lgs_desc, physical_activity_detection::signal_desc, gege::ibr_desc, gege::bolus_desc,
+																		flr_ge::ibr_desc, flr_ge::bolus_desc,
+} };
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
 	*begin = const_cast<scgms::TModel_Descriptor*>(model_descriptions.data());
@@ -292,6 +478,14 @@ extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITi
 		return Manufacture_Object<CBetaPID3_Insulin_Regulation, scgms::ISignal>(signal, weak_segment);
 	else if (*calc_id == lgs_basal_insulin::lgs_basal_insulin_signal_id)
 		return Manufacture_Object<CConstant_Basal_LGS_Insulin_Rate_Model, scgms::ISignal>(signal, weak_segment);
+	else if (*calc_id == physical_activity_detection::signal_id)
+		return Manufacture_Object<CPhysical_Activity_Detection_Model, scgms::ISignal>(signal, weak_segment);
 
 	return E_NOTIMPL;
+}
+
+HRESULT IfaceCalling do_create_discrete_model(const GUID* model_id, scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output, scgms::IDiscrete_Model** model) {
+	if (*model_id == gege::model_id) return Manufacture_Object<CGEGE_Model>(model, parameters, output);
+	if (*model_id == flr_ge::model_id) return Manufacture_Object<CFLR_GE_Model>(model, parameters, output);
+	else return E_NOTIMPL;
 }

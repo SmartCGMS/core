@@ -53,35 +53,7 @@
 #include <cmath>
 #include <map>
 
-const GUID Db_Reader_Device_GUID = db_reader::filter_id;// { 0x00000001, 0x0001, 0x0001, { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
-
-// enumerator of known column indexes
-enum class NColumn_Pos : size_t
-{
-	Blood = 0,
-	Ist,
-	Isig,
-	Insulin_Bolus,
-	Insulin_Basal_Rate,
-	Carbohydrates,
-	Calibration,
-	_End,
-
-	_Begin = Blood,
-	_Count = _End
-};
-
-// increment operator to allow using for loop
-NColumn_Pos& operator++(NColumn_Pos& ref)
-{
-	ref = static_cast<NColumn_Pos>(static_cast<size_t>(ref) + 1);
-	return ref;
-}
-
-// array of DB columns - signal GUIDs used
-std::array<GUID, static_cast<size_t>(NColumn_Pos::_Count)> ColumnSignalMap = { {
-	scgms::signal_BG, scgms::signal_IG, scgms::signal_ISIG, scgms::signal_Requested_Insulin_Bolus, scgms::signal_Requested_Insulin_Basal_Rate, scgms::signal_Carb_Intake, scgms::signal_Calibration
-} };
+const GUID Db_Reader_Device_GUID = db_reader::filter_id;
 
 CDb_Reader::CDb_Reader(scgms::IFilter *output) : CBase_Filter(output) {
 	//
@@ -107,108 +79,104 @@ bool CDb_Reader::Emit_Segment_Marker(const scgms::NDevice_Event_Code code, const
 	return Succeeded(mOutput.Send(evt));
 }
 
-bool CDb_Reader::Emit_Segment_Parameters(const double device_time, const int64_t segment_id) {
-	for (const auto &descriptor : scgms::get_model_descriptors()) {
+bool CDb_Reader::Emit_Segment_Parameters(const double deviceTime, int64_t segment_id) {
 
-		// skip models without database schema tables
-		if (descriptor.db_table_name == nullptr || wcslen(descriptor.db_table_name) == 0)
+	// "select recorded_at, model_id, signal_id, parameters from model_parameters where time_segment_id = ?"
+
+	wchar_t* recorded_at_str;
+	GUID signal_id, model_id;
+	db::TBinary_Object blob;
+
+	db::SDb_Query query = mDb_Connection.Query(rsSelect_Params_Filter, segment_id);
+	if (!query.Bind_Result(recorded_at_str, model_id, signal_id, blob))
+		return false;
+
+	while (query.Get_Next() && !mQuit_Flag) {
+
+		if (!recorded_at_str)
 			continue;
 
-		std::wstring query = rsSelect_Params_Base;
+		const double recorded_at = Unix_Time_To_Rat_Time(from_iso8601(recorded_at_str));
+		if (recorded_at == 0.0)
+			continue;	// conversion did not succeed
 
-		for (size_t i = 0; i < descriptor.number_of_parameters; i++) {
+		scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Parameters };
 
-			if (i>0) query += L", ";
-			query += std::wstring(descriptor.parameter_db_column_names[i], descriptor.parameter_db_column_names[i] + wcslen(descriptor.parameter_db_column_names[i]));
-		}
+		double* vals = reinterpret_cast<double*>(blob.data);
+		const size_t valcount = blob.size / sizeof(double);
+		if (valcount == 0)
+			continue;
 
-		query += L" ";
-		query += rsSelect_Params_From;
-		query += std::wstring(descriptor.db_table_name, descriptor.db_table_name + wcslen(descriptor.db_table_name));
-		query += rsSelect_Params_Condition;
+		std::vector<double> datavec{ vals, vals + valcount };
 
-		try
-		{
-			db::SDb_Query squery = mDb_Connection.Query(query, segment_id);
+		evt.parameters.set(datavec);
+		evt.device_id() = model_id;
+		evt.signal_id() = signal_id;
+		evt.device_time() = recorded_at;
+		evt.segment_id() = segment_id;
 
-			std::vector<double> sql_result(descriptor.number_of_parameters);
-			if (squery.Bind_Result(sql_result)) {
-				if (squery.Get_Next()) {
-					// TODO: disambiguate stored parameters for different signals within one model! This i.e. mixes diffusion2 blood and ist parameters
-					for (size_t i = 0; i < descriptor.number_of_calculated_signals; i++)
-					{
-						scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Parameters };
-						evt.device_time() = device_time;
-						evt.device_id() = Db_Reader_Device_GUID;
-						evt.signal_id() = descriptor.calculated_signal_ids[i];
-						evt.segment_id() = segment_id;
-						if (evt.parameters.set(sql_result))
-							if (!Succeeded(mOutput.Send(evt))) return false;
-					}
-				}
-			}
-		}
-		catch (...)
-		{
-			/* this probably means the model does not have the table created yet */
-		}
+		if (mOutput.Send(evt) != S_OK)
+			return false;
 	}
 
 	return true;
 }
 
-
-
-bool CDb_Reader::Emit_Segment_Levels(const int64_t segment_id) {
+bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 	wchar_t* measured_at_str;
-
-	double recent_device_time = std::numeric_limits<double>::quiet_NaN();	//to sync segment's start and stop markers to the historical times
-
-	std::vector<double> levels(static_cast<size_t>(NColumn_Pos::_Count));
+	GUID signal_id;
+	double level;
 
 	db::SDb_Query query = mDb_Connection.Query(rsSelect_Timesegment_Values_Filter, segment_id);
-	if (!query.Bind_Result(measured_at_str, levels)) {
-		Emit_Info(scgms::NDevice_Event_Code::Error, L"Cannot query the database, perhaps its structure is different.");
-		return false;
-	}
+	if (!query.Bind_Result(measured_at_str, signal_id, level)) return false;
+
+	double lastTime = std::numeric_limits<double>::quiet_NaN();
 
 	while (query.Get_Next() && !mQuit_Flag) {
 
-		// "select measuredat, blood, ist, isig, insulin_bolus, insulin_basal_rate, carbohydrates, calibration from measuredvalue where segmentid = ? order by measuredat asc"
-		//         0           1      2    3     4              5                   6              7
+		// it is somehow possible for date being null (although the database constraint doesn't allow it)
+		// TODO: revisit this after database restructuralisation
+		if (!measured_at_str)
+			continue;
 
-		// assuming that subsequent datetime formats are identical, try to recognize the used date time format from the first line
+		// "select measured_at, signal_id, value from measured_value where time_segment_id = ? order by measured_at asc"
+		//         0            1          2
+
 		const double measured_at = Unix_Time_To_Rat_Time(from_iso8601(measured_at_str));
-		if (measured_at == 0.0) continue;	// conversion did not succeed
+		auto fpcl = std::fpclassify(measured_at);
+		if (fpcl == FP_ZERO || fpcl == FP_NAN)
+			continue;	// conversion did not succeed or yielded an invalid result
 
-		if (std::isnan(recent_device_time)) {	
-			if (!Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Start, measured_at, segment_id)) break;
-			if (!Emit_Segment_Parameters(measured_at, segment_id)) break;
+		// validate the level
+		fpcl = std::fpclassify(level);
+		if (fpcl == FP_NAN || fpcl == FP_INFINITE)
+			continue;
+
+		if (std::isnan(lastTime)) {
+			if (!Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Start, measured_at, segment_id)) {
+				return false;
+			}
+
+			if (!Emit_Segment_Parameters(measured_at, segment_id)) {
+				break;
+			}
 		}
-		recent_device_time = measured_at;
 
-		// go through all value columns
-		for (NColumn_Pos i = NColumn_Pos::_Begin; i < NColumn_Pos::_End; ++i) {
-			const auto column = levels[static_cast<size_t>(i)];
+		lastTime = measured_at;
 
-			// if no value is present, skip
-			const auto fpcl = std::fpclassify(column);
-			if (fpcl == FP_NAN || fpcl == FP_INFINITE)
-				continue;
+		scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
 
-			scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
+		evt.level() = level;
+		evt.device_id() = Db_Reader_Device_GUID;
+		evt.signal_id() = signal_id;
+		evt.device_time() = measured_at;
+		evt.segment_id() = segment_id;
 
-			evt.level() = column;
-			evt.device_id() = Db_Reader_Device_GUID;
-			evt.signal_id() = ColumnSignalMap[static_cast<size_t>(i)];
-			evt.device_time() = measured_at;
-			evt.segment_id() = segment_id;
-
-			// this may block if the pipe is full (i.e. due to artificial slowdown filter, simulation stepping, etc.)
-			if (!Succeeded(mOutput.Send(evt))) return false;
-		}
+		if (mOutput.Send(evt) != S_OK)
+			return false;
 	}
-	return Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Stop, recent_device_time, segment_id);
+
+	return Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Stop, lastTime, segment_id);
 }
 
 bool CDb_Reader::Emit_Info_Event(const std::wstring& info)
@@ -227,11 +195,11 @@ void CDb_Reader::Db_Reader() {
 	
 	mQuit_Flag = false;
 
-	//by consulting
-	//https://stackoverflow.com/questions/47457478/using-qsqlquery-from-multiple-threads?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
-	//https://doc.qt.io/qt-5/threads-modules.html
+	// by consulting
+	// https://stackoverflow.com/questions/47457478/using-qsqlquery-from-multiple-threads?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+	// https://doc.qt.io/qt-5/threads-modules.html
 
-	//we must open the db connection from exactly that thread, that is about to use it
+	// we must open the db connection from exactly that thread, that is about to use it
 
 	if (mDb_Connector)
 		mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
@@ -241,31 +209,29 @@ void CDb_Reader::Db_Reader() {
 		return;
 	}
 
-	
-
-	for (const auto segment_index : mDbTimeSegmentIds) {		
+	for (const auto segment_index : mDbTimeSegmentIds)
+	{
 		Emit_Segment_Levels(segment_index);
-}
+	}
 
 	if (mShutdownAfterLast)
 		Emit_Shut_Down();
 }
 
 HRESULT IfaceCalling CDb_Reader::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
-	mDbHost = configuration.Read_String(rsDb_Host);	
+	mDbHost = configuration.Read_String(rsDb_Host);
 	mDbProvider = configuration.Read_String(rsDb_Provider);
 	mDbPort = static_cast<decltype(mDbPort)>(configuration.Read_Int(rsDb_Port));
 	mDbDatabaseName = db::is_file_db(mDbProvider) ? configuration.Read_File_Path(rsDb_Name).wstring() : configuration.Read_String(rsDb_Name);
 	mDbUsername = configuration.Read_String(rsDb_User_Name);
 	mDbPassword = configuration.Read_String(rsDb_Password);
-	mDbTimeSegmentIds = configuration.Read_Int_Array(rsTime_Segment_ID);	
+	mDbTimeSegmentIds = configuration.Read_Int_Array(rsTime_Segment_ID);
 	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
 
 	if (mDbTimeSegmentIds.empty()) {
 		error_description.push(dsNo_Time_Segments_Specified);
 		return E_INVALIDARG;
 	}
-		
 
 	return S_OK;
 }
@@ -274,7 +240,7 @@ HRESULT IfaceCalling CDb_Reader::Do_Execute(scgms::UDevice_Event event) {
 
 	switch (event.event_code()) {
 		case scgms::NDevice_Event_Code::Warm_Reset: 
-			//recreate the reader thread
+			// recreate the reader thread
 			End_Db_Reader();
 			mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
 			break;
@@ -293,8 +259,10 @@ HRESULT IfaceCalling CDb_Reader::Do_Execute(scgms::UDevice_Event event) {
 void CDb_Reader::End_Db_Reader() {
 	mQuit_Flag = true;
 	if (mDb_Reader_Thread)
+	{
 		if (mDb_Reader_Thread->joinable())
 			mDb_Reader_Thread->join();
+	}
 }
 
 HRESULT IfaceCalling CDb_Reader::QueryInterface(const GUID*  riid, void ** ppvObj) {
@@ -303,7 +271,8 @@ HRESULT IfaceCalling CDb_Reader::QueryInterface(const GUID*  riid, void ** ppvOb
 }
 
 HRESULT IfaceCalling CDb_Reader::Set_Connector(db::IDb_Connector *connector) {
-	if (!connector) return E_INVALIDARG;
+	if (!connector)
+		return E_INVALIDARG;
 	mDb_Connector = refcnt::make_shared_reference_ext<db::SDb_Connector, db::IDb_Connector>(connector, true);
 	
 	// we need at least these parameters

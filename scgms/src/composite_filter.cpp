@@ -72,6 +72,15 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 
 	//we have to create the filter executors from the last one
 	{
+		auto send_shut_down = [this]() {
+			if (mExecutors.empty())
+				return;
+
+			scgms::IDevice_Event* shutdown_event = static_cast<scgms::IDevice_Event*> (new CDevice_Event{ scgms::NDevice_Event_Code::Shut_Down });
+			if (shutdown_event)
+				mExecutors[0]->Execute(shutdown_event);
+		};
+
 		//1st round - create the filters
 		do {
 			scgms::IFilter_Configuration_Link* &link = *(link_end-1);
@@ -80,6 +89,7 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 			rc = link->Get_Filter_Id(&filter_id);
 			if (rc != S_OK) {
 				error_description.push(dsCannot_read_filter_id);
+				send_shut_down();
 				mExecutors.clear();
 				return rc;
 			}
@@ -87,6 +97,7 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 			std::unique_ptr<CFilter_Executor> new_executor = std::make_unique<CFilter_Executor>(filter_id, mCommunication_Guard, last_filter, on_filter_created, on_filter_created_data);
 			//try to configure the filter 
 			if (!new_executor) {
+				send_shut_down();
 				mExecutors.clear();
 				return E_OUTOFMEMORY;
 			}
@@ -122,14 +133,10 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 				err_str = dsLast_RC + std::wstring{ Describe_Error(rc) };
 				error_description.push(err_str.c_str());
 
-				if (!mExecutors.empty()) {
-					scgms::IDevice_Event* shutdown_event = static_cast<scgms::IDevice_Event*> (new CDevice_Event{ scgms::NDevice_Event_Code::Shut_Down });
-					if (shutdown_event) 
-						mExecutors[0]->Execute(shutdown_event);
-							
-				}
-
+				send_shut_down();
+				
 				mExecutors.clear();
+
 				return rc;
 			}
 
@@ -170,7 +177,8 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 						else {
 							std::wstring err_str{ dsFeedback_sender_not_connected };
 							err_str += name;
-							error_description.push(err_str.c_str()); 
+							error_description.push(err_str.c_str());
+							send_shut_down();
 							mExecutors.clear();
 							return E_FAIL;	//this is very likely severe error in the configuration, hence we stop it
 						}

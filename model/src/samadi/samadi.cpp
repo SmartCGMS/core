@@ -363,14 +363,14 @@ HRESULT CSamadi_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 			}
 		}
 	}
-	else
+	else {
 		if (event.event_code() == scgms::NDevice_Event_Code::Level) {
 			if ((event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate) ||
 				(event.signal_id() == scgms::signal_Requested_Insulin_Bolus) ||
 				(event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue))
 				res = E_ILLEGAL_STATE_CHANGE;	//cannot modify our state prior initialization!
 		}
-
+	}
 
 	if (res == S_FALSE)
 		res = mOutput.Send(event);
@@ -384,6 +384,7 @@ HRESULT CSamadi_Discrete_Model::Do_Configure(scgms::SFilter_Configuration config
 }
 
 HRESULT IfaceCalling CSamadi_Discrete_Model::Step(const double time_advance_delta) {
+
 	if (!mInitialized)
 		return E_ILLEGAL_METHOD_CALL;
 

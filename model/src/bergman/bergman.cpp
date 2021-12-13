@@ -61,8 +61,7 @@ CBergman_Discrete_Model::CBergman_Discrete_Model(scgms::IModel_Parameter_Vector 
 		{ mState.D2,  std::bind<double>(&CBergman_Discrete_Model::eq_dD2,  this, std::placeholders::_1, std::placeholders::_2) },
 	}
 {
-	mState.lastTime = -std::numeric_limits<decltype(mState.lastTime)>::max();
-	mInitialized = false;
+	mState.lastTime = -1;
 	mState.Q1 = mParameters.Q10;
 	mState.Q2 = mParameters.Q20;
 	mState.X = mParameters.X0;
@@ -194,8 +193,8 @@ void CBergman_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 	HRESULT res = S_FALSE;	//	we consume any CHO input, but transforms insulin requests to deliveries
 
-	if (mInitialized) {
-
+	if (mState.lastTime > 0)
+	{
 		if (event.event_code() == scgms::NDevice_Event_Code::Level)
 		{
 			if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate)
@@ -264,10 +263,7 @@ HRESULT CBergman_Discrete_Model::Do_Configure(scgms::SFilter_Configuration confi
 }
 
 HRESULT IfaceCalling CBergman_Discrete_Model::Step(const double time_advance_delta) {
-	HRESULT rc = E_INVALIDARG;
-	if (!mInitialized)
-		return E_ILLEGAL_METHOD_CALL;
-
+	HRESULT rc = E_FAIL;
 	if (time_advance_delta > 0.0) {	
 		// perform a few microsteps within advancement delta
 		// we expect the spacing to be 5 minutes (between IG values) +- few seconds; however, bolus, basal intake and CHO intake may vary during this time period
@@ -318,10 +314,9 @@ HRESULT CBergman_Discrete_Model::Emit_Signal_Level(const GUID& signal_id, double
 }
 
 HRESULT IfaceCalling CBergman_Discrete_Model::Initialize(const double current_time, const uint64_t segment_id) {
-	if (!mInitialized) {
+	if (mState.lastTime < 0.0) {
 		mState.lastTime = current_time;
 		mSegment_Id = segment_id;
-		mInitialized = true;
 		return S_OK;
 	}
 	else

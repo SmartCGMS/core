@@ -113,7 +113,6 @@ class CUVA_Padova_S2013_Discrete_Model : public scgms::CBase_Filter, public scgm
 		Uptake_Accumulator mBasal_Ext;
 		// current state of Bergman model (all quantities)
 		CUVa_Padova_S2013_State mState;
-		bool mInitialized = false;
 		// bound equations in a single vector - quantity and equation bound together
 		const std::vector<uva_padova_S2013::CEquation_Binding> mEquation_Binding;
 

@@ -18,6 +18,13 @@ IF(WIN32)
 	SET(SRC_FILES "${SRC_FILES};${SRC_WIN_FILES}")
 ENDIF()
 
+# grouping
+SET(SRC_GRPS "bergman" "bolus" "constant" "diffusion" "gct" "gct2" "ge" "neural_net" "pattern_prediction" "samadi" "sensitivity" "steil_rebrin" "uva_padova" "wma")
+FOREACH(MODEL_DIR ${SRC_GRPS})
+	FILE(GLOB_RECURSE MDL_SOURCES "src/${MODEL_DIR}/*.cpp" "src/${MODEL_DIR}/*.h" "src/${MODEL_DIR}/*.c")
+	SOURCE_GROUP("model\\${MODEL_DIR}" FILES ${MDL_SOURCES})
+ENDFOREACH()
+
 SCGMS_ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES};${COMMON_FILES})
 CONFIGURE_FILTER_OUTPUT(${PROJ})
 

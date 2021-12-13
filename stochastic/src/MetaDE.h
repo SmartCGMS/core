@@ -47,26 +47,6 @@
 #include <chrono>
 #include <set>
 
-#ifdef __cpp_lib_execution
-	#include <execution>
-#else
-	namespace std
-	{
-		// minimal substitute for missing execution header (for pre C++20 compilers)
-
-		enum class execution {
-			par_unseq
-		};
-
-		template<typename Fnc, typename It>
-		void for_each(const execution ex, const It& begin, const It& end, Fnc fnc)
-		{
-			for (It itr = begin; itr != end; itr++)
-				fnc(*itr);
-		}
-	}
-#endif
-
 #undef max
 #undef min
 
@@ -363,7 +343,7 @@ public:
 					case metade::NStrategy::desTournament: {
 							//we choose mPBest_Count-number of random candidates for a direct crossbreeding with the current candidate solution
 
-							size_t to_go = mPBest_Count;
+							size_t to_go = std::max(mPBest_Count, mPopulation.size() / 20); //5%
 							size_t best_tournament_index = candidate_solution.population_index;
 							double best_tournament_fitness = std::numeric_limits<double>::max();
 							std::set<size_t> visited_tournament_indexes{ best_tournament_index };
