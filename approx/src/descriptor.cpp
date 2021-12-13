@@ -70,9 +70,9 @@ namespace avgexp {
 }
 
 
-const std::array<scgms::TApprox_Descriptor, 2> approx_descriptions = { { line::LineApprox_Descriptor, 
-																		  akima::Akima_Descriptor/*,
-																		 avgexp::AvgExp_Descriptor*/	} };
+const std::array<scgms::TApprox_Descriptor, 3> approx_descriptions = { { line::LineApprox_Descriptor, 
+																		  akima::Akima_Descriptor,
+																		 avgexp::AvgExp_Descriptor	} };
 
 extern "C" HRESULT IfaceCalling do_get_approximator_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end) {
 	*begin = const_cast<scgms::TApprox_Descriptor*>(approx_descriptions.data());

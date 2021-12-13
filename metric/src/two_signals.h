@@ -54,7 +54,7 @@
 /*
  * base class for comparig two signals
  */
-class CTwo_Signals : public scgms::CBase_Filter, public virtual scgms::ILogical_Clock {
+class CTwo_Signals : public virtual scgms::CBase_Filter, public virtual scgms::ILogical_Clock {
 protected:
 	GUID mReference_Signal_ID = Invalid_GUID;
 	GUID mError_Signal_ID = Invalid_GUID;

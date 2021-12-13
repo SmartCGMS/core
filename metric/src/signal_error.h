@@ -47,7 +47,7 @@
  * Filter class for calculating error metrics
  */
 
-class CSignal_Error : public CTwo_Signals, public scgms::ISignal_Error_Inspection {
+class CSignal_Error : public virtual CTwo_Signals, public virtual scgms::ISignal_Error_Inspection {
 protected:
 	scgms::SMetric mMetric;
 
