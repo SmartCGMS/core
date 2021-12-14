@@ -41,7 +41,7 @@
 #include <cmath>
 #include <limits>
 
-#include "common.h"
+#include "gct_common.h"
 
 /**
  * Base for all moderation functions

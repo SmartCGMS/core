@@ -41,9 +41,9 @@
 #include "../descriptor.h"
 #include "../../../../common/rtl/FilterLib.h"
 
-#include "transfer_functions.h"
-#include "moderation_functions.h"
-#include "depot.h"
+#include "gct2_transfer_functions.h"
+#include "gct2_moderation_functions.h"
+#include "gct2_depot.h"
 
 namespace gct2_model
 {
