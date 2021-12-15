@@ -198,7 +198,7 @@ bool CDb_Writer::Store_Parameters(const scgms::UDevice_Event& evt) {
         auto models = scgms::get_model_descriptors();
         for (const auto& model : models) {
             for (size_t i = 0; i < model.number_of_calculated_signals; i++) {
-                if (evt.signal_id() == model.calculated_signal_ids[i] && model.number_of_parameters == paramCnt) {
+                if (evt.signal_id() == model.calculated_signal_ids[i] && model.total_number_of_parameters == paramCnt) {
 
                     // delete old parameters
                     std::wstring query_text;
@@ -219,7 +219,7 @@ bool CDb_Writer::Store_Parameters(const scgms::UDevice_Event& evt) {
                     // (segmentid, param_1, param_2, ..., param_N)
                     query_text += L" (";
                     query_text += rsInsert_Params_Segmentid_Column;
-                    for (size_t i = 0; i < model.number_of_parameters; i++)
+                    for (size_t i = 0; i < model.total_number_of_parameters; i++)
                         query_text += L", " + std::wstring(model.parameter_db_column_names[i], model.parameter_db_column_names[i] + wcslen(model.parameter_db_column_names[i]));
                     query_text += L")";
 
@@ -227,7 +227,7 @@ bool CDb_Writer::Store_Parameters(const scgms::UDevice_Event& evt) {
                     query_text += L" ";
                     query_text += rsInsert_Params_Values_Stmt;
                     query_text += L" (?";
-                    for (size_t i = 0; i < model.number_of_parameters; i++)
+                    for (size_t i = 0; i < model.total_number_of_parameters; i++)
                         query_text += L", ?";
                     query_text += L")";
 
@@ -235,7 +235,7 @@ bool CDb_Writer::Store_Parameters(const scgms::UDevice_Event& evt) {
                     auto insert_query = mDb_Connection.Query(query_text);
                     if (insert_query) {
                         insert_query.Bind_Parameters(id);
-                        for (size_t i = 0; i < model.number_of_parameters; i++)
+                        for (size_t i = 0; i < model.total_number_of_parameters; i++)
                             insert_query.Bind_Parameters(*(begin + i));
 
                         result = insert_query.Execute();

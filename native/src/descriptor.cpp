@@ -185,6 +185,7 @@ namespace native_model {
 			L"Native_Script_Parameters",
 
 			model_param_count,
+			0,
 			filter_param_types,
 			filter_param_ui_names,
 			filter_param_config_names,

@@ -100,7 +100,7 @@ std::wstring CLog_Filter::Parameters_To_WStr(const scgms::UDevice_Event& evt) {
 	std::wostringstream stream;
 	if (modelDesc) {
 
-		for (size_t i = 0; i < modelDesc->number_of_parameters; i++) {
+		for (size_t i = 0; i < modelDesc->total_number_of_parameters; i++) {
 			if (i > 0) stream << L", ";
 			stream << modelDesc->parameter_ui_names[i] << "=" << begin[i];
 		}

@@ -174,12 +174,12 @@ HRESULT Solve_Model_Parameters(const TSegment_Solver_Setup &setup) {
 					hints.push_back(begin);
 			}	
 			
-			std::vector<double> solution(model->number_of_parameters);
+			std::vector<double> solution(model->total_number_of_parameters);
 						
-			CFitness fitness{ setup, model->number_of_parameters};
+			CFitness fitness{ setup, model->total_number_of_parameters};
 
 			solver::TSolver_Setup generic_setup{
-				model->number_of_parameters,
+				model->total_number_of_parameters,
 				lower_bound, upper_bound,
 				const_cast<const double**> (hints.data()), hints.size(),
 				solution.data(),

@@ -118,7 +118,7 @@ bool CDb_Reader_Legacy::Emit_Segment_Parameters(int64_t segment_id) {
 
 		std::wstring query = rsLegacy_Db_Select_Params_Base;
 
-		for (size_t i = 0; i < descriptor.number_of_parameters; i++) {
+		for (size_t i = 0; i < descriptor.total_number_of_parameters; i++) {
 
 			if (i>0) query += L", ";
 			query += std::wstring(descriptor.parameter_db_column_names[i], descriptor.parameter_db_column_names[i] + wcslen(descriptor.parameter_db_column_names[i]));
@@ -133,7 +133,7 @@ bool CDb_Reader_Legacy::Emit_Segment_Parameters(int64_t segment_id) {
 		{
 			db::SDb_Query squery = mDb_Connection.Query(query, segment_id);
 
-			std::vector<double> sql_result(descriptor.number_of_parameters);
+			std::vector<double> sql_result(descriptor.total_number_of_parameters);
 			if (squery.Bind_Result(sql_result)) {
 				if (squery.Get_Next()) {
 					// TODO: disambiguate stored parameters for different signals within one model! This i.e. mixes diffusion2 blood and ist parameters

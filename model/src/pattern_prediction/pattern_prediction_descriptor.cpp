@@ -83,6 +83,7 @@ namespace pattern_prediction {
 			rsParameters,
 
 			model_param_count,
+			0,
 			model_types,
 			model_param_ui_names,
 			model_param_config_names,

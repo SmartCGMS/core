@@ -77,6 +77,7 @@ namespace oref_model {
 		L"oref basal insulin",
 		L"oref_basal_insulin",
 		param_count,
+		0,
 		param_types,
 		param_names,
 		param_columns,
