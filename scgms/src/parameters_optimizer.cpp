@@ -358,7 +358,9 @@ public:
 
 	HRESULT Optimize(const GUID solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress &progress, refcnt::Swstr_list error_description) {
 
-		std::vector<double> lbound, params, ubound;
+		mLower_Bound.clear();
+		mFound_Parameters.clear();
+		mUpper_Bound.clear();
 
 		mFilter_Parameter_Counts.resize(mFilter_Indices.size());
 		mFilter_Parameter_Offsets.resize(mFilter_Indices.size());
@@ -372,6 +374,7 @@ public:
 				return E_INVALIDARG;
 			}
 
+			std::vector<double> lbound, params, ubound;
 			if (!configuration_link_parameters.Read_Parameters(mParameters_Config_Names[i].c_str(), lbound, params, ubound)) {
 				error_description.push(dsParameters_to_optimize_could_not_be_read_bounds_including);
 				return E_FAIL;
@@ -416,7 +419,8 @@ public:
 			for (size_t i = 0; i < mFilter_Indices.size(); i++) {
 				
 				scgms::SFilter_Configuration_Link configuration_link_parameters = mConfiguration[mFilter_Indices[i]];
-				
+			
+				std::vector<double> lbound, params, ubound;
 				Get_Parameter_Subset(i, mLower_Bound, lbound);
 				Get_Parameter_Subset(i, mFound_Parameters, params);
 				Get_Parameter_Subset(i, mUpper_Bound, ubound);
