@@ -212,7 +212,7 @@ HRESULT IfaceCalling CFilter_Parameter::Get_Model_Parameters(scgms::IModel_Param
 		return Succeeded(rc) ? Get_Container(mModel_Parameters, parameters) : rc;
 	}
 	else
-		return S_FALSE;
+		return E_NOT_SET;
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Model_Parameters(scgms::IModel_Parameter_Vector *parameters) {
