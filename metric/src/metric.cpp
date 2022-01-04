@@ -410,7 +410,7 @@ double CCrossWalkMetric::Do_Calculate_Metric() {
 		}		
 
 
-		bool mestocalccross = mCross_Measured_With_Calculated_Only || ((mesA>calcA) & (mesB > calcB)) || ((mesA < calcA) & (mesB < calcB));
+		bool mestocalccross = mCross_Measured_With_Calculated_Only || ((mesA>calcA) && (mesB > calcB)) || ((mesA < calcA) && (mesB < calcB));
 
 		
 		if (mestocalccross) {
