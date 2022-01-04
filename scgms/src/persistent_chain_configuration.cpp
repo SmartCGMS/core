@@ -157,7 +157,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 
 							if (valid) {
 								scgms::IFilter_Parameter* raw_param = static_cast<scgms::IFilter_Parameter*>(raw_filter_parameter.get());
-								if (Succeeded(filter_config->add(&raw_param, &raw_param + 1)))
+								filter_config->add(&raw_param, &raw_param + 1);	//we should release thr raw_filter_parameter all the time
+								//Succeeded(filter_config->add(&raw_param, &raw_param + 1)))	//because if ti scucess, the filter config has added the reference
 									raw_filter_parameter.release();
 							}
 							else {
