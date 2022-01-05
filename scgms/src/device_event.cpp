@@ -42,6 +42,7 @@
 #include "../../../common/rtl/manufactory.h"
 #include "../../../common/rtl/referencedImpl.h"
 #include "../../../common/rtl/DeviceLib.h"
+#include "../../../common/utils/DebugHelper.h"
 
 #include <atomic>
 #include <stdexcept>
@@ -71,6 +72,9 @@ public:
 	virtual ULONG IfaceCalling Release() noexcept override;
 	virtual HRESULT IfaceCalling Raw(scgms::TDevice_Event** dst) noexcept override;
 	virtual HRESULT IfaceCalling Clone(IDevice_Event** event) noexcept override;
+
+	//tiny helper for debugging
+	size_t logical_clock() noexcept { return mRaw.logical_time; }
 };
 
 
@@ -87,6 +91,20 @@ public:
 			mAllocated_Flags[i] = false;
 		}
 	}
+	
+	~CEvent_Pool() {
+
+
+
+		for (size_t i = 0; i < Event_Pool_Size; i++) {
+			if (mAllocated_Flags[i]) {
+
+				dprintf("Leaked device event; logical time: %d", mEvents[i].logical_clock());
+			}
+		}
+
+	}
+
 
 
 	CDevice_Event* Alloc_Event() {
