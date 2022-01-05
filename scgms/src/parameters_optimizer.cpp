@@ -110,7 +110,7 @@ protected:
 		return result;
 	}
 protected:
-	std::vector<scgms::IDevice_Event*> mEvents_To_Replay;
+	std::vector<CDevice_Event> mEvents_To_Replay;
 
 	scgms::SFilter_Chain_Configuration Copy_Reduced_Configuration(const size_t end_index) {
 					
@@ -352,8 +352,8 @@ public:
 
 
 	~CParameters_Optimizer() {
-		for (auto &event : mEvents_To_Replay)
-			event->Release();
+		//for (auto &event : mEvents_To_Replay)
+//			event->Release();
 	}
 
 	HRESULT Optimize(const GUID solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress &progress, refcnt::Swstr_list error_description) {
@@ -475,7 +475,7 @@ public:
 			if (!mEvents_To_Replay.empty()) {
 				for (size_t i = 0; i < mEvents_To_Replay.size(); i++) {		//we can replay the pre-calculated events
 					scgms::IDevice_Event* event_to_replay = nullptr;
-					failure_detected = !Succeeded(mEvents_To_Replay[i]->Clone(&event_to_replay));
+					failure_detected = !Succeeded(mEvents_To_Replay[i].Clone(&event_to_replay));
 					if (!failure_detected)
 						failure_detected = !Succeeded(composite_filter.Execute(event_to_replay));
 					if (failure_detected) {

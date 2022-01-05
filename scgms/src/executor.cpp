@@ -112,15 +112,20 @@ HRESULT IfaceCalling CTerminal_Filter::Execute(scgms::IDevice_Event *event) {
 };
 
 
-CCopying_Terminal_Filter::CCopying_Terminal_Filter(std::vector<scgms::IDevice_Event*> &events) : CTerminal_Filter(nullptr), mEvents(events) {
+CCopying_Terminal_Filter::CCopying_Terminal_Filter(std::vector<CDevice_Event> &events) : CTerminal_Filter(nullptr), mEvents(events) {
 
 }
 
 HRESULT IfaceCalling CCopying_Terminal_Filter::Execute(scgms::IDevice_Event *event) {
-	scgms::IDevice_Event* clone = nullptr;
-	const HRESULT rc = event->Clone(&clone);
+	scgms::TDevice_Event* raw_event;
+		
+	const HRESULT rc = event->Raw(&raw_event);
 	if (Succeeded(rc)) {
-		mEvents.push_back(clone);
+		CDevice_Event clone;
+		clone.Initialize(raw_event);
+
+
+		mEvents.push_back(std::move(clone));
 		return CTerminal_Filter::Execute(event);
 	}
 	else

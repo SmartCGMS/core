@@ -54,36 +54,11 @@
 
 constexpr size_t Event_Pool_Size = 1024;
 
-class CDevice_Event : public virtual scgms::IDevice_Event {
-protected:
-	scgms::TDevice_Event mRaw;
-	size_t mSlot = std::numeric_limits<size_t>::max();
-	void Clean_Up() noexcept;	
-public:
-	CDevice_Event() noexcept {} ;
-	virtual ~CDevice_Event() noexcept;
-
-	void Set_Slot(const size_t slot) noexcept { mSlot = slot; };
-
-	void Initialize(const scgms::NDevice_Event_Code code) noexcept;
-	void Initialize(const scgms::TDevice_Event* event) noexcept;
-
-	
-	virtual ULONG IfaceCalling Release() noexcept override;
-	virtual HRESULT IfaceCalling Raw(scgms::TDevice_Event** dst) noexcept override;
-	virtual HRESULT IfaceCalling Clone(IDevice_Event** event) noexcept override;
-
-	//tiny helper for debugging
-	size_t logical_clock() noexcept { return mRaw.logical_time; }
-};
-
-
 class CEvent_Pool {
 protected:
 	std::array<CDevice_Event, Event_Pool_Size> mEvents;
 	std::array<std::atomic<bool>, Event_Pool_Size > mAllocated_Flags{ false };
-	std::atomic<size_t> mFree_Event_Idx{ 0 };
-
+	std::atomic<size_t> mFree_Event_Idx{ 0 };	
 public:
 	CEvent_Pool() {		
 		for (size_t i = 0; i < Event_Pool_Size; i++) {
@@ -93,10 +68,7 @@ public:
 	}
 	
 	~CEvent_Pool() {
-
-
-
-		for (size_t i = 0; i < Event_Pool_Size; i++) {
+				for (size_t i = 0; i < Event_Pool_Size; i++) {
 			if (mAllocated_Flags[i]) {
 
 				dprintf("Leaked device event; logical time: %d", mEvents[i].logical_clock());
@@ -235,7 +207,7 @@ HRESULT IfaceCalling CDevice_Event::Clone(IDevice_Event** event) noexcept {
 	return *event ? S_OK : E_OUTOFMEMORY;
 }
 
-//syntactic sugar that hides the CDevice_Event class to prevent other code from bypassing the allocation scheme
+//syntactic sugar 
 scgms::IDevice_Event* allocate_device_event(scgms::NDevice_Event_Code code) noexcept {
 	auto result = event_pool.Alloc_Event();
 	if (result)
@@ -245,9 +217,7 @@ scgms::IDevice_Event* allocate_device_event(scgms::NDevice_Event_Code code) noex
 }
 
 //SCGMS exported function
-extern "C" HRESULT IfaceCalling create_device_event(scgms::NDevice_Event_Code code, scgms::IDevice_Event **event) noexcept {	
+extern "C" HRESULT IfaceCalling create_device_event(scgms::NDevice_Event_Code code, scgms::IDevice_Event **event) noexcept {
 	*event = allocate_device_event(code);
 	return *event ? S_OK : E_OUTOFMEMORY;
 }
-
-
