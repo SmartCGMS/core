@@ -179,11 +179,13 @@ CDevice_Event::~CDevice_Event() noexcept {
 
 void CDevice_Event::Clean_Up() noexcept {
 	switch (scgms::UDevice_Event_internal::major_type(mRaw.event_code)) {
-		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::info:			if (mRaw.info) mRaw.info->Release();
-																						break;
+		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::info:			if (mRaw.info) 
+																						mRaw.info->Release();
+																					break;
 
-		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::parameters:		if (mRaw.parameters) mRaw.parameters->Release();
-																						break;
+		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::parameters:	if (mRaw.parameters) 
+																						mRaw.parameters->Release();
+																					break;
 		default:	break;
 	}
 

@@ -104,7 +104,7 @@ protected:
 					std::wstring str_val;
 					std::tie(rc, str_val) = Evaluate_Variable(mArray_Vars[var_idx]);
 					if (rc == S_OK) {
-						bool valid;
+						bool valid = false;
 						*current = conv(str_val, valid);
 						
 						if (!valid) {
