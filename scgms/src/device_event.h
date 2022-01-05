@@ -40,18 +40,4 @@
 
 #include "../../../common/iface/DeviceIface.h"
 
-
-class CDevice_Event : public virtual scgms::IDevice_Event {
-protected:
-	scgms::TDevice_Event mRaw;	
-public:
-	CDevice_Event(const scgms::NDevice_Event_Code code) noexcept;
-	CDevice_Event(const scgms::TDevice_Event *event) noexcept;
-
-	virtual ~CDevice_Event() noexcept;
-	virtual ULONG IfaceCalling Release() noexcept override;
-	virtual HRESULT IfaceCalling Raw(scgms::TDevice_Event **dst) noexcept override;
-	virtual HRESULT IfaceCalling Clone(IDevice_Event** event) noexcept override;
-};
-
-extern "C" HRESULT IfaceCalling create_device_event(scgms::NDevice_Event_Code code, scgms::IDevice_Event **event) noexcept;
+scgms::IDevice_Event* allocate_device_event(scgms::NDevice_Event_Code code) noexcept;

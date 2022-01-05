@@ -46,6 +46,89 @@
 #include <atomic>
 #include <stdexcept>
 
+
+#include <array>
+#include <atomic>
+#include <tuple>
+
+constexpr size_t Event_Pool_Size = 1024;
+
+class CDevice_Event : public virtual scgms::IDevice_Event {
+protected:
+	scgms::TDevice_Event mRaw;
+	size_t mSlot = std::numeric_limits<size_t>::max();
+	void Clean_Up() noexcept;	
+public:
+	CDevice_Event() noexcept {} ;
+	virtual ~CDevice_Event() noexcept;
+
+	void Set_Slot(const size_t slot) noexcept { mSlot = slot; };
+
+	void Initialize(const scgms::NDevice_Event_Code code) noexcept;
+	void Initialize(const scgms::TDevice_Event* event) noexcept;
+
+	
+	virtual ULONG IfaceCalling Release() noexcept override;
+	virtual HRESULT IfaceCalling Raw(scgms::TDevice_Event** dst) noexcept override;
+	virtual HRESULT IfaceCalling Clone(IDevice_Event** event) noexcept override;
+};
+
+
+class CEvent_Pool {
+protected:
+	std::array<CDevice_Event, Event_Pool_Size> mEvents;
+	std::array<std::atomic<bool>, Event_Pool_Size > mAllocated_Flags{ false };
+	std::atomic<size_t> mFree_Event_Idx{ 0 };
+
+public:
+	CEvent_Pool() {		
+		for (size_t i = 0; i < Event_Pool_Size; i++) {
+			mEvents[i].Set_Slot(i);
+			mAllocated_Flags[i] = false;
+		}
+	}
+
+
+	CDevice_Event* Alloc_Event() {
+
+		//obtain working index, but we need to do it as modulo spinlock
+
+		size_t working_idx = std::numeric_limits<size_t>::max();	//initializing to apparently wrong value to catch a bug
+		size_t expected_idx = working_idx;
+		bool locked = false;
+		size_t retries_count = Event_Pool_Size * 2;
+
+
+		while ((!locked) && (retries_count-- > 0)) {
+
+			do {
+				expected_idx = mFree_Event_Idx;
+				working_idx = (expected_idx + 1) % Event_Pool_Size;
+			} while (!mFree_Event_Idx.compare_exchange_weak(expected_idx, working_idx, std::memory_order_release, std::memory_order_relaxed));
+
+
+
+			//try to get the actual lock
+			if (working_idx < Event_Pool_Size) {	//testing to make the static analyzer happy
+				if (!mAllocated_Flags[working_idx])
+					locked = !mAllocated_Flags[working_idx].exchange(true);
+			}
+		}
+
+
+		return locked ? &mEvents[working_idx] : nullptr;
+	}
+
+	void Free_Event(const size_t slot) {
+		mAllocated_Flags[slot] = false;
+	}
+};
+
+
+
+
+CEvent_Pool event_pool;
+
 std::atomic<int64_t> global_logical_time{ 0 };
 
 void Clone_Raw(const scgms::TDevice_Event& src_raw, scgms::TDevice_Event& dst_raw) noexcept {
@@ -66,7 +149,7 @@ void Clone_Raw(const scgms::TDevice_Event& src_raw, scgms::TDevice_Event& dst_ra
 
 
 
-CDevice_Event::CDevice_Event(const scgms::NDevice_Event_Code code) noexcept {
+void CDevice_Event::Initialize(const scgms::NDevice_Event_Code code) noexcept {
 	memset(&mRaw, 0, sizeof(mRaw));
 	mRaw.logical_time = global_logical_time.fetch_add(1);
 	mRaw.event_code = code;
@@ -86,11 +169,15 @@ CDevice_Event::CDevice_Event(const scgms::NDevice_Event_Code code) noexcept {
 }
 
 
-CDevice_Event::CDevice_Event(const scgms::TDevice_Event *event) noexcept {
+void CDevice_Event::Initialize(const scgms::TDevice_Event *event) noexcept {
 	Clone_Raw(*event, mRaw);
 }
 
 CDevice_Event::~CDevice_Event() noexcept {
+	Clean_Up();
+}
+
+void CDevice_Event::Clean_Up() noexcept {
 	switch (scgms::UDevice_Event_internal::major_type(mRaw.event_code)) {
 		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::info:			if (mRaw.info) mRaw.info->Release();
 																						break;
@@ -100,10 +187,13 @@ CDevice_Event::~CDevice_Event() noexcept {
 		default:	break;
 	}
 
+	mRaw.info = nullptr;	//also resets parameters to nullptr
+
 }
 
 ULONG IfaceCalling CDevice_Event::Release() noexcept {
-	delete this;
+	Clean_Up();
+	event_pool.Free_Event(mSlot);
 	return 0;
 }
 
@@ -115,18 +205,29 @@ HRESULT IfaceCalling CDevice_Event::Raw(scgms::TDevice_Event **dst) noexcept {
 
 HRESULT IfaceCalling CDevice_Event::Clone(IDevice_Event** event) noexcept {	
 
-	std::unique_ptr<CDevice_Event> clone = std::make_unique<CDevice_Event>(mRaw.event_code);
-	Clone_Raw(mRaw, clone->mRaw);
-	*event = clone.get();
-	clone.release();	
+	auto clone = event_pool.Alloc_Event();
+	if (clone)
+		Clone_Raw(mRaw, clone->mRaw);
 
-	return S_OK;
+	*event = static_cast<scgms::IDevice_Event*>(clone);
+	
+
+	return *event ? S_OK : E_OUTOFMEMORY;
 }
 
-HRESULT IfaceCalling create_device_event(scgms::NDevice_Event_Code code, scgms::IDevice_Event **event) noexcept {
-	CDevice_Event *tmp = new CDevice_Event{code};
-	*event = static_cast<scgms::IDevice_Event*> (tmp);
-	return S_OK;
+//syntactic sugar that hides the CDevice_Event class to prevent other code from bypassing the allocation scheme
+scgms::IDevice_Event* allocate_device_event(scgms::NDevice_Event_Code code) noexcept {
+	auto result = event_pool.Alloc_Event();
+	if (result)
+		result->Initialize(code);
+
+	return static_cast<scgms::IDevice_Event*>(result);
+}
+
+//SCGMS exported function
+extern "C" HRESULT IfaceCalling create_device_event(scgms::NDevice_Event_Code code, scgms::IDevice_Event **event) noexcept {	
+	*event = allocate_device_event(code);
+	return *event ? S_OK : E_OUTOFMEMORY;
 }
 
 

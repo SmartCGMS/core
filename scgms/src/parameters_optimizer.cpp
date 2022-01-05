@@ -480,7 +480,7 @@ public:
 						failure_detected = !Succeeded(composite_filter.Execute(event_to_replay));
 					if (failure_detected) {
 						//something has not gone well => break, but be that nice to issue the shutdown event first
-						scgms::IDevice_Event* shutdown_event = static_cast<scgms::IDevice_Event*> (new CDevice_Event{ scgms::NDevice_Event_Code::Shut_Down });
+						scgms::IDevice_Event* shutdown_event = allocate_device_event(scgms::NDevice_Event_Code::Shut_Down );
 						if (Succeeded(composite_filter.Execute(shutdown_event)))
 							terminal_filter.Wait_For_Shutdown();	//wait only if the shutdown did go through succesfully
 						break;

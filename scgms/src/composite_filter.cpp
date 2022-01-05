@@ -76,7 +76,7 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 			if (mExecutors.empty())
 				return;
 
-			scgms::IDevice_Event* shutdown_event = static_cast<scgms::IDevice_Event*> (new CDevice_Event{ scgms::NDevice_Event_Code::Shut_Down });
+			scgms::IDevice_Event* shutdown_event = allocate_device_event( scgms::NDevice_Event_Code::Shut_Down );
 			if (shutdown_event)
 				mExecutors[0]->Execute(shutdown_event);
 		};
