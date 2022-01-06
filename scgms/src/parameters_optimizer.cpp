@@ -53,6 +53,17 @@
 #include <mutex>
 #include <set>
 
+class CNull_wstr_list : public refcnt::Swstr_list {
+		//hides all the methods to do nothing
+		//i.e.; to even save the overhead of checking the null pointer as Swstr_list does
+public:
+	CNull_wstr_list() : SReferenced<refcnt::wstr_list>{ } {};
+	void push(const wchar_t* wstr) {};
+	void push(const std::wstring& wstr) {};
+
+	void for_each(std::function<void(const std::wstring& wstr)> callback) const {};
+};
+
 struct TFast_Configuration {
 	bool failed = true;
 	scgms::SFilter_Chain_Configuration configuration;
@@ -336,14 +347,14 @@ protected:
 
 	
 public:
-	static inline refcnt::Swstr_list mEmpty_Error_Description;	//no thread local as we need to reset it!
+	static inline CNull_wstr_list mEmpty_Error_Description;	//no thread local as we need to reset it!
 public:
 	CParameters_Optimizer(scgms::IFilter_Chain_Configuration *configuration, const size_t *filter_indices, const wchar_t **parameters_config_names, const size_t filter_count, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data)
 		: mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data),
 		mConfiguration(refcnt::make_shared_reference_ext<scgms::SFilter_Chain_Configuration, scgms::IFilter_Chain_Configuration>(configuration, true)),
 		mFilter_Indices{ filter_indices, filter_indices + filter_count }, mParameters_Config_Names{ parameters_config_names, parameters_config_names + filter_count } {
 
-		mEmpty_Error_Description.reset();
+		//mEmpty_Error_Description.reset();
 		//having this with nullptr, no error write will actually occur
 		//actually, many errors may arise due to the use of genetic algorithm -> let's suppress them
 		//end user has the chance the debug the configuration first, by running a single isntance	

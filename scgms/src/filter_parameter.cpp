@@ -84,7 +84,7 @@ HRESULT IfaceCalling CFilter_Parameter::Get_WChar_Container(refcnt::wstr_contain
 HRESULT IfaceCalling CFilter_Parameter::Set_WChar_Container(refcnt::wstr_container *wstr) {
 	std::wstring tmp = WChar_Container_To_WString(wstr);
 	if (from_string(mType, tmp.c_str())) {
-		mWChar_Container = wstr;
+		mWChar_Container = refcnt::make_shared_reference_ext<decltype(mWChar_Container), refcnt::wstr_container>(wstr, true);
 		return S_OK;
 	}
 	else
@@ -152,7 +152,7 @@ HRESULT IfaceCalling CFilter_Parameter::Set_Time_Segment_Id_Container(scgms::tim
 	mFirst_Array_Var_idx = std::numeric_limits<size_t>::max();
 	mVariable_Name.clear();
 
-	mTime_Segment_ID = ids;
+	mTime_Segment_ID = refcnt::make_shared_reference_ext<decltype(mTime_Segment_ID), scgms::time_segment_id_container>(ids, true);
 	return S_OK;
 }
 
@@ -221,7 +221,7 @@ HRESULT IfaceCalling CFilter_Parameter::Set_Model_Parameters(scgms::IModel_Param
 	mVariable_Name.clear();
 	mArray_Vars.clear();
 
-	mModel_Parameters = parameters;
+	mModel_Parameters = refcnt::make_shared_reference_ext<decltype(mModel_Parameters), scgms::IModel_Parameter_Vector>(parameters, true);
 	return S_OK;
 }
 
@@ -229,11 +229,11 @@ HRESULT IfaceCalling CFilter_Parameter::Set_Model_Parameters(scgms::IModel_Param
 HRESULT IfaceCalling CFilter_Parameter::Clone(scgms::IFilter_Parameter **deep_copy) {
 	std::unique_ptr<CFilter_Parameter> clone = std::make_unique<CFilter_Parameter>(mType, mConfig_Name.c_str());
 	clone->mVariable_Name = mVariable_Name;
-	clone->mWChar_Container = refcnt::Copy_Container<wchar_t>(mWChar_Container.get());
+	clone->mWChar_Container = refcnt::Copy_Container_shared<wchar_t, decltype(mWChar_Container)>(mWChar_Container.get());
 	clone->mArray_Vars = mArray_Vars;
 	clone->mFirst_Array_Var_idx = mFirst_Array_Var_idx;
-	clone->mTime_Segment_ID = refcnt::Copy_Container<int64_t>(mTime_Segment_ID.get());
-	clone->mModel_Parameters = refcnt::Copy_Container<double>(mModel_Parameters.get());
+	clone->mTime_Segment_ID = refcnt::Copy_Container_shared<int64_t, decltype(mTime_Segment_ID)>(mTime_Segment_ID.get());
+	clone->mModel_Parameters = refcnt::Copy_Container_shared<double, decltype(mModel_Parameters)>(mModel_Parameters.get());
 	clone->mData = mData;
 
 	clone->mParent_Path = mParent_Path;
@@ -296,13 +296,13 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 	switch (desired_type) {
 
 		case scgms::NParameter_Type::ptWChar_Array:		
-			mWChar_Container = refcnt::WString_To_WChar_Container(str);
+			mWChar_Container = refcnt::make_shared_reference_ext<decltype(mWChar_Container), refcnt::wstr_container>(refcnt::WString_To_WChar_Container(str), false);
 			valid = true;
 			break;
 
 		case scgms::NParameter_Type::ptInt64_Array:
 			{
-				mTime_Segment_ID = Parse_Array_String<int64_t, scgms::time_segment_id_container>(str, str_2_int);
+				mTime_Segment_ID = refcnt::make_shared_reference_ext<decltype(mTime_Segment_ID), scgms::time_segment_id_container>(Parse_Array_String<int64_t, scgms::time_segment_id_container>(str, str_2_int), false);
 				valid = mTime_Segment_ID.operator bool();		
 			}
 			break;
@@ -355,7 +355,7 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 
 		case scgms::NParameter_Type::ptDouble_Array:
 			{
-			mModel_Parameters = Parse_Array_String<double, scgms::IModel_Parameter_Vector>(str, str_2_rat_dbl);
+			mModel_Parameters =  refcnt::make_shared_reference_ext<decltype(mModel_Parameters), scgms::IModel_Parameter_Vector>( Parse_Array_String<double, scgms::IModel_Parameter_Vector>(str, str_2_rat_dbl), false);
 			valid = mModel_Parameters.operator bool();
 		}
 		break;

@@ -124,7 +124,7 @@ void CLoaded_Filters::load_libraries() {
 	const auto filters_dir = Get_Dll_Dir();
 #endif		
 	for (const auto& dir_entry : filesystem::directory_iterator(filters_dir)) {
-		const auto filepath = dir_entry.path();
+		const auto &filepath = dir_entry.path();
 
 		if (CDynamic_Library::Is_Library(filepath)) {				//just checks the extension
 			imported::TLibraryInfo lib;

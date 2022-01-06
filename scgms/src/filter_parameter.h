@@ -69,7 +69,7 @@ protected:
 	std::vector<std::wstring> mArray_Vars;	//empty or a var name
 	size_t mFirst_Array_Var_idx = std::numeric_limits<size_t>::max();
 
-	refcnt::SReferenced<scgms::time_segment_id_container> mTime_Segment_ID;	
+	refcnt::SReferenced<scgms::time_segment_id_container> mTime_Segment_ID;
 	refcnt::SReferenced<scgms::IModel_Parameter_Vector> mModel_Parameters;
 
 	union {	
