@@ -56,6 +56,7 @@ bool add_model_descriptor(TUser_Defined_Model_Descriptor& descriptor)
 		descriptor.description.c_str(),
 		descriptor.dbTableName.c_str(),
 		descriptor.paramNames.size(),
+		0, // TODO: allow matlab manifest to specify segment-specific parameters
 		descriptor.paramTypes.data(),
 		descriptor.paramNames_Proxy.data(),
 		descriptor.paramDBColumnNames_Proxy.data(),

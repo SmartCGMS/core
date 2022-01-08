@@ -45,6 +45,7 @@ ISA:
 #include <memory>
 #include <vector>
 #include <array>
+#include <cmath>
 
 #include "../../../../common/utils/DebugHelper.h"
 
