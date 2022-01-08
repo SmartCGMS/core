@@ -36,7 +36,7 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "depot.h"
+#include "gct_depot.h"
 
 void CDepot_Link::Step(const double currentTime) {
 	// Transfer amount from source to target

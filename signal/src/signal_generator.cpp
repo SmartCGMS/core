@@ -218,6 +218,10 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 			if (sync_model_iter == mSync_Models.end()) {
 				TSync_Model sync_model = std::make_unique<signal_generator_internal::CSynchronized_Generator>(mOutput.get(), mLast_Sync_Generator, event.segment_id());
 				refcnt::Swstr_list errs;
+
+				Update_Sync_Configuration_Parameters();
+
+
 				rc = sync_model->Configure(mSync_Configuration.get(), errs.get());
 				if (!Succeeded(rc)) return rc;
 
@@ -263,12 +267,17 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 		return E_INVALIDARG;
 	}
 
+	//we require the model descriptor to resolve segment-specific and segment-agnostic paramters
+    scgms::TModel_Descriptor model_desc = scgms::Null_Model_Descriptor;
+	if (!scgms::get_model_descriptor_by_id(model_id, model_desc)) {
+		error_description.push(dsCannot_Get_Model_Descriptor);
+		return E_INVALIDARG;
+	}
+
 
 	if (!mSync_To_Signal && (mFixed_Stepping <= 0.0)) {
 		std::wstring str = dsAsync_Stepping_Not_Positive;
-		scgms::TModel_Descriptor desc = scgms::Null_Model_Descriptor;
-		if (scgms::get_model_descriptor_by_id(model_id, desc))  str += desc.description;
-			else str += GUID_To_WString(model_id);
+	    str += model_desc.description;
 		
 		error_description.push(str);
 		return E_INVALIDARG;
@@ -278,15 +287,57 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 	mMax_Time = configuration.Read_Double(rsMaximum_Time, mMax_Time);
 	mEmit_Shutdown = configuration.Read_Bool(rsShutdown_After_Last, mEmit_Shutdown);	
 
-	std::vector<double> lower, parameters, upper;
-	configuration.Read_Parameters(rsParameters, lower, parameters, upper);
+	
+	if (!configuration.Read_Parameters(rsParameters, mSegment_Agnostic_Lower_Bound, mSegment_Agnostic_Parameters, mSegment_Agnostic_Upper_Bound)) {
+		mSegment_Agnostic_Lower_Bound.assign(model_desc.lower_bound, model_desc.lower_bound + model_desc.total_number_of_parameters);
+		mSegment_Agnostic_Parameters.assign(model_desc.default_values, model_desc.default_values + model_desc.total_number_of_parameters);
+		mSegment_Agnostic_Upper_Bound.assign(model_desc.upper_bound, model_desc.upper_bound + model_desc.total_number_of_parameters);
+	}
+    
+    mNumber_Of_Segment_Specific_Parameters = mSync_To_Signal ? model_desc.number_of_segment_specific_parameters : 0;	
+	const size_t total_specific_parameters_in_doubles = mSegment_Agnostic_Parameters.size() - model_desc.total_number_of_parameters + mNumber_Of_Segment_Specific_Parameters;
+
+	//check that the number of parameters is correct => check that they are not corrupted
+	if (mNumber_Of_Segment_Specific_Parameters>1) {
+		if ((total_specific_parameters_in_doubles % mNumber_Of_Segment_Specific_Parameters) != 0) {
+			error_description.push(dsStored_Parameters_Corrupted_Not_Loaded);
+			return E_INVALIDARG;
+		}
+
+	}
+
+	{
+		const size_t parametrized_segments = total_specific_parameters_in_doubles / mNumber_Of_Segment_Specific_Parameters;
+		size_t begin_offset = 0;
+		
+		for (size_t i = 0; i < parametrized_segments; i++) {
+			const size_t end_offset = begin_offset + mNumber_Of_Segment_Specific_Parameters;
+
+			mSegment_Specific_Parameters.push_back(std::vector<double>{mSegment_Agnostic_Parameters.begin() + begin_offset, mSegment_Agnostic_Parameters.begin() + end_offset});
+			mSegment_Specific_Lower_Bound.push_back(std::vector<double>{mSegment_Agnostic_Lower_Bound.begin() + begin_offset, mSegment_Agnostic_Lower_Bound.begin() + end_offset});
+			mSegment_Specific_Upper_Bound.push_back(std::vector<double>{mSegment_Agnostic_Upper_Bound.begin() + begin_offset, mSegment_Agnostic_Upper_Bound.begin() + end_offset});
+
+			begin_offset += mNumber_Of_Segment_Specific_Parameters;
+		}
+
+
+		//eventually, trim the segment-agnostic parameters
+		mSegment_Agnostic_Parameters.erase(mSegment_Agnostic_Parameters.begin(), mSegment_Agnostic_Parameters.begin() + begin_offset);
+		mSegment_Agnostic_Lower_Bound.erase(mSegment_Agnostic_Lower_Bound.begin(), mSegment_Agnostic_Lower_Bound.begin() + begin_offset);
+		mSegment_Agnostic_Upper_Bound.erase(mSegment_Agnostic_Upper_Bound.begin(), mSegment_Agnostic_Upper_Bound.begin() + begin_offset);
+	}
+
+
+
+	mOriginal_Configuration = configuration;
 	mSync_Configuration = configuration.Clone();
 
 	mQuitting = false;
 
 	if (!mSync_To_Signal) {
 
-		mAsync_Model = scgms::SDiscrete_Model{ model_id, parameters, mOutput };
+		mAsync_Model = scgms::SDiscrete_Model{ model_id, mSegment_Agnostic_Parameters, mOutput };	
+				//async model will produce just a single segment => hence all the configured parametes apply for this segment
 		if (!mAsync_Model)
 			return E_FAIL;
 
@@ -344,4 +395,48 @@ HRESULT IfaceCalling CSignal_Generator::Name(wchar_t** const name) {
 
 	*name = const_cast<wchar_t*>(mFeedback_Name.c_str());
 	return S_OK;
+}
+
+
+void CSignal_Generator::Update_Sync_Configuration_Parameters() {
+	if (mCurrent_Segment_Idx >= mSegment_Specific_Parameters.size()) {
+		//new segment, for which we don't have the parameters => let us copy the most recent ones
+
+		const size_t last_index = mSegment_Specific_Parameters.size()-1;
+		mSegment_Specific_Lower_Bound.push_back(mSegment_Specific_Lower_Bound[last_index]);
+		mSegment_Specific_Parameters.push_back(mSegment_Specific_Parameters[last_index]);		
+		mSegment_Specific_Upper_Bound.push_back(mSegment_Specific_Upper_Bound[last_index]);
+	} 
+
+	//we have the parameters => let's assembly vectors with which we will update the configuration
+	std::vector<double> local_lower{ mSegment_Specific_Lower_Bound[mCurrent_Segment_Idx].begin(), mSegment_Specific_Lower_Bound[mCurrent_Segment_Idx].end() };
+	std::vector<double> local_parameters{ mSegment_Specific_Parameters[mCurrent_Segment_Idx].begin(), mSegment_Specific_Parameters[mCurrent_Segment_Idx].end() };
+	std::vector<double> local_upper{ mSegment_Specific_Upper_Bound[mCurrent_Segment_Idx].begin(), mSegment_Specific_Upper_Bound[mCurrent_Segment_Idx].end() };
+
+	local_lower.insert(local_lower.end(), mSegment_Agnostic_Lower_Bound.begin(), mSegment_Agnostic_Lower_Bound.end());
+	local_parameters.insert(local_parameters.end(), mSegment_Agnostic_Parameters.begin(), mSegment_Agnostic_Parameters.end());
+	local_upper.insert(local_upper.end(), mSegment_Agnostic_Upper_Bound.begin(), mSegment_Agnostic_Upper_Bound.end());
+	
+		
+	mSync_Configuration.Write_Parameters(rsParameters, local_lower, local_parameters, local_upper);
+	
+	//and, also, we will update the global configuration => hence with the console /saveconfig the individually parametrized segments will get updated
+
+	local_lower.clear();
+	local_parameters.clear();
+	local_upper.clear();
+
+	for (size_t i = 0; i < mSegment_Specific_Parameters.size(); i++) {
+		local_lower.insert(local_lower.end(), mSegment_Specific_Lower_Bound[i].begin(), mSegment_Specific_Lower_Bound[i].end());
+		local_parameters.insert(local_parameters.end(), mSegment_Specific_Parameters[i].begin(), mSegment_Specific_Parameters[i].end());
+		local_upper.insert(local_upper.end(), mSegment_Specific_Upper_Bound[i].begin(), mSegment_Specific_Upper_Bound[i].end());
+	}
+
+	local_lower.insert(local_lower.end(), mSegment_Agnostic_Lower_Bound.begin(), mSegment_Agnostic_Lower_Bound.end());
+	local_parameters.insert(local_parameters.end(), mSegment_Agnostic_Parameters.begin(), mSegment_Agnostic_Parameters.end());
+	local_upper.insert(local_upper.end(), mSegment_Agnostic_Upper_Bound.begin(), mSegment_Agnostic_Upper_Bound.end());
+	mOriginal_Configuration.Write_Parameters(rsParameters, local_lower, local_parameters, local_upper);
+
+	//eventully, set up the index for the next segment
+	mCurrent_Segment_Idx++;
 }

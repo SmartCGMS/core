@@ -39,6 +39,7 @@
 #include "descriptor.h"
 
 #include "signal_error.h"
+#include "fast_signal_error.h"
 #include "signal_stats.h"
 #include "diabetes_grid/diabetes_grid.h"
 
@@ -194,6 +195,67 @@ namespace signal_stats {
 }
 
 
+
+namespace fast_signal_error {
+	constexpr size_t param_count = 8;
+
+	const scgms::NParameter_Type parameter_type[param_count] = {
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptMetric_Id,
+		scgms::NParameter_Type::ptInt64,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptBool,
+	};
+
+	const wchar_t* ui_parameter_name[param_count] = {
+		dsDescription,
+		dsReference_Signal,
+		dsError_Signal,
+		dsSelected_Metric,
+		dsMetric_Levels_Required,
+		dsUse_Relative_Error,
+		dsUse_Squared_Diff,
+		dsUse_Prefer_More_Levels,
+	};
+
+	const wchar_t* config_parameter_name[param_count] = {
+		rsDescription,
+		rsReference_Signal,
+		rsError_Signal,
+		rsSelected_Metric,
+		rsMetric_Levels_Required,
+		rsUse_Relative_Error,
+		rsUse_Squared_Diff,
+		rsUse_Prefer_More_Levels,
+	};
+
+	const wchar_t* ui_parameter_tooltip[param_count] = {
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		dsMetric_Levels_Required_Hint,
+		nullptr,
+		nullptr,
+		nullptr		
+	};
+
+	const scgms::TFilter_Descriptor desc = {
+		{ 0x1a2e54ae, 0x2738, 0x4c54, { 0xac, 0xf, 0x2e, 0x4b, 0xa4, 0xa5, 0x41, 0xc9 } },			// {1A2E54AE-2738-4C54-AC0F-2E4BA4A541C9}
+		scgms::NFilter_Flags::None,
+		dsFast_Signal_Error,
+		param_count,
+		parameter_type,
+		ui_parameter_name,
+		config_parameter_name,
+		ui_parameter_tooltip
+	};
+}
+
+
 namespace diabetes_grid {
 
 	constexpr size_t param_count = 4;
@@ -239,7 +301,7 @@ namespace diabetes_grid {
 
 }
 
-static const std::array<scgms::TFilter_Descriptor, 3> filter_descriptions = { signal_error::desc, signal_stats::desc, diabetes_grid::desc };
+static const std::array<scgms::TFilter_Descriptor, 4> filter_descriptions = { signal_error::desc, fast_signal_error::desc , signal_stats::desc, diabetes_grid::desc };
 
 extern "C" HRESULT IfaceCalling do_get_filter_descriptors(const scgms::TFilter_Descriptor* *begin, scgms::TFilter_Descriptor const **end) {
 	*begin = const_cast<scgms::TFilter_Descriptor*>(filter_descriptions.data());
@@ -255,8 +317,10 @@ extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descrip
 
 extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
 	if (*id == signal_error::desc.id) return Manufacture_Object<CSignal_Error>(filter, output);
+	else if (*id == fast_signal_error::desc.id) return Manufacture_Object<CFast_Signal_Error>(filter, output);
 	else if (*id == signal_stats::desc.id) return Manufacture_Object<CSignal_Stats>(filter, output);
 	else if (*id == diabetes_grid::desc.id) return Manufacture_Object<CDiabetes_Grid>(filter, output);
+	
 
 	return E_NOTIMPL;
 }

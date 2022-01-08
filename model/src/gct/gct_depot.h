@@ -38,8 +38,8 @@
 
 #pragma once
 
-#include "transfer_functions.h"
-#include "moderation_functions.h"
+#include "gct_transfer_functions.h"
+#include "gct_moderation_functions.h"
 
 #include <vector>
 #include <list>

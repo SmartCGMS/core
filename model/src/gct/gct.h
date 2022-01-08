@@ -41,9 +41,9 @@
 #include "../descriptor.h"
 #include "../../../../common/rtl/FilterLib.h"
 
-#include "transfer_functions.h"
-#include "moderation_functions.h"
-#include "depot.h"
+#include "gct_transfer_functions.h"
+#include "gct_moderation_functions.h"
+#include "gct_depot.h"
 
 enum class NGCT_Compartment : size_t {
 	// physical compartments

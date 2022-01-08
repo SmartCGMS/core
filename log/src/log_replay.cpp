@@ -174,7 +174,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 				std::wstring msg{ dsUnknown_Date_Time_Format };
 				msg.append(specificval);
 				emit_parsing_exception_w(msg);
-				continue; // skip log lines with invalid datetime
+				return;
 			}
 
 			// skip; event type name
@@ -182,7 +182,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			// skip; signal name
 			specificval = cut_column();
 
-			const auto info_str = cut_column();
+			const auto info_str = std::move(cut_column());
 			const uint64_t original_segment_id = read_segment_id();
 
 			if ((original_segment_id != scgms::Invalid_Segment_Id) && (original_segment_id != scgms::All_Segments_Id))
@@ -503,8 +503,20 @@ void CLog_Replay_Filter::Correct_Timings(std::vector<TLog_Entry>& log_lines) {
 	};
 
 	std::map<uint64_t, TStamps> segments;	//seg. id, and its time stamps
-
 	std::vector<size_t> lines_to_remove;
+
+	auto update_stamps = [&segments](const auto& evt) {
+		auto iter = segments.find(evt.segment_id);
+		if (iter != segments.end()) {
+			//update the bounds only
+			iter->second.start = std::min(iter->second.start, evt.device_time);
+			iter->second.stop = std::max(iter->second.stop, evt.device_time);
+		}
+		else
+			//insert new segment
+			segments.insert({ evt.segment_id, {evt.device_time, evt.device_time} });
+	};
+
 
 	//1. mark any time segment start/stop markers for removal, 
 	//but also deduce their correct timing from all events with valid segment id
@@ -512,19 +524,14 @@ void CLog_Replay_Filter::Correct_Timings(std::vector<TLog_Entry>& log_lines) {
 		auto& evt = log_lines[i];
 		if (evt.segment_id != scgms::Invalid_Segment_Id) {
 
-			auto iter = segments.find(evt.segment_id);
-			if (iter != segments.end()) {
-				//update the bounds only
-				iter->second.start = std::min(iter->second.start, evt.device_time);
-				iter->second.stop = std::max(iter->second.stop, evt.device_time);
-			} else
-				//insert new segment
-				segments.insert({ evt.segment_id, {evt.device_time, evt.device_time} });
+			//update_stamps(evt); //this preserves empty segments and original starts and stops
 		
 			//do we remove this?
 			if ((evt.code == scgms::NDevice_Event_Code::Time_Segment_Start) ||
 				(evt.code == scgms::NDevice_Event_Code::Time_Segment_Stop))
 				lines_to_remove.push_back(i);
+			else
+				update_stamps(evt);	//this removes empty segments and stretchtes the starts and stops
 		}
 	}
 
@@ -543,7 +550,7 @@ void CLog_Replay_Filter::Correct_Timings(std::vector<TLog_Entry>& log_lines) {
 		entry.segment_id = seg.first;
 		entry.info = L"";
 		entry.the_rest = L"{172EA814-9DF1-657C-1289-C71893F1D085}; {00000000-0000-0000-0000-000000000000}";
-				//device id is log replay, the resit is invalid signal id
+				//device id is log replay, the rest is invalid signal id
 
 		entry.line_counter = 0;
 		entry.code = scgms::NDevice_Event_Code::Time_Segment_Start;

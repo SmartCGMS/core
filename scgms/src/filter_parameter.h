@@ -69,7 +69,7 @@ protected:
 	std::vector<std::wstring> mArray_Vars;	//empty or a var name
 	size_t mFirst_Array_Var_idx = std::numeric_limits<size_t>::max();
 
-	refcnt::SReferenced<scgms::time_segment_id_container> mTime_Segment_ID;	
+	refcnt::SReferenced<scgms::time_segment_id_container> mTime_Segment_ID;
 	refcnt::SReferenced<scgms::IModel_Parameter_Vector> mModel_Parameters;
 
 	union {	
@@ -104,7 +104,7 @@ protected:
 					std::wstring str_val;
 					std::tie(rc, str_val) = Evaluate_Variable(mArray_Vars[var_idx]);
 					if (rc == S_OK) {
-						bool valid;
+						bool valid = false;
 						*current = conv(str_val, valid);
 						
 						if (!valid) {

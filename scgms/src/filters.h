@@ -75,7 +75,8 @@ protected:
 
 		if ((desc_func) && (desc_func(&desc_begin, &desc_end) == S_OK)) {
 			result = desc_begin != desc_end;
-			std::copy(desc_begin, desc_end, std::back_inserter(dst));
+			if (result)
+				std::copy(desc_begin, desc_end, std::back_inserter(dst));
 		}
 
 		return result;

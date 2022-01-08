@@ -53,6 +53,17 @@
 #include <mutex>
 #include <set>
 
+class CNull_wstr_list : public refcnt::Swstr_list {
+		//hides all the methods to do nothing
+		//i.e.; to even save the overhead of checking the null pointer as Swstr_list does
+public:
+	CNull_wstr_list() : SReferenced<refcnt::wstr_list>{ } {};
+	void push(const wchar_t* wstr) {};
+	void push(const std::wstring& wstr) {};
+
+	void for_each(std::function<void(const std::wstring& wstr)> callback) const {};
+};
+
 struct TFast_Configuration {
 	bool failed = true;
 	scgms::SFilter_Chain_Configuration configuration;
@@ -110,7 +121,7 @@ protected:
 		return result;
 	}
 protected:
-	std::vector<scgms::IDevice_Event*> mEvents_To_Replay;
+	std::vector<CDevice_Event> mEvents_To_Replay;
 
 	scgms::SFilter_Chain_Configuration Copy_Reduced_Configuration(const size_t end_index) {
 					
@@ -336,14 +347,14 @@ protected:
 
 	
 public:
-	static inline refcnt::Swstr_list mEmpty_Error_Description;	//no thread local as we need to reset it!
+	static inline CNull_wstr_list mEmpty_Error_Description;	//no thread local as we need to reset it!
 public:
 	CParameters_Optimizer(scgms::IFilter_Chain_Configuration *configuration, const size_t *filter_indices, const wchar_t **parameters_config_names, const size_t filter_count, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data)
 		: mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data),
 		mConfiguration(refcnt::make_shared_reference_ext<scgms::SFilter_Chain_Configuration, scgms::IFilter_Chain_Configuration>(configuration, true)),
 		mFilter_Indices{ filter_indices, filter_indices + filter_count }, mParameters_Config_Names{ parameters_config_names, parameters_config_names + filter_count } {
 
-		mEmpty_Error_Description.reset();
+		//mEmpty_Error_Description.reset();
 		//having this with nullptr, no error write will actually occur
 		//actually, many errors may arise due to the use of genetic algorithm -> let's suppress them
 		//end user has the chance the debug the configuration first, by running a single isntance	
@@ -352,13 +363,15 @@ public:
 
 
 	~CParameters_Optimizer() {
-		for (auto &event : mEvents_To_Replay)
-			event->Release();
+		//for (auto &event : mEvents_To_Replay)
+//			event->Release();
 	}
 
 	HRESULT Optimize(const GUID solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress &progress, refcnt::Swstr_list error_description) {
 
-		std::vector<double> lbound, params, ubound;
+		mLower_Bound.clear();
+		mFound_Parameters.clear();
+		mUpper_Bound.clear();
 
 		mFilter_Parameter_Counts.resize(mFilter_Indices.size());
 		mFilter_Parameter_Offsets.resize(mFilter_Indices.size());
@@ -372,6 +385,7 @@ public:
 				return E_INVALIDARG;
 			}
 
+			std::vector<double> lbound, params, ubound;
 			if (!configuration_link_parameters.Read_Parameters(mParameters_Config_Names[i].c_str(), lbound, params, ubound)) {
 				error_description.push(dsParameters_to_optimize_could_not_be_read_bounds_including);
 				return E_FAIL;
@@ -416,7 +430,8 @@ public:
 			for (size_t i = 0; i < mFilter_Indices.size(); i++) {
 				
 				scgms::SFilter_Configuration_Link configuration_link_parameters = mConfiguration[mFilter_Indices[i]];
-				
+			
+				std::vector<double> lbound, params, ubound;
 				Get_Parameter_Subset(i, mLower_Bound, lbound);
 				Get_Parameter_Subset(i, mFound_Parameters, params);
 				Get_Parameter_Subset(i, mUpper_Bound, ubound);
@@ -471,11 +486,12 @@ public:
 			if (!mEvents_To_Replay.empty()) {
 				for (size_t i = 0; i < mEvents_To_Replay.size(); i++) {		//we can replay the pre-calculated events
 					scgms::IDevice_Event* event_to_replay = nullptr;
-					failure_detected = !Succeeded(mEvents_To_Replay[i]->Clone(&event_to_replay));						
-					failure_detected &= !Succeeded(composite_filter.Execute(event_to_replay));
+					failure_detected = !Succeeded(mEvents_To_Replay[i].Clone(&event_to_replay));
+					if (!failure_detected)
+						failure_detected = !Succeeded(composite_filter.Execute(event_to_replay));
 					if (failure_detected) {
 						//something has not gone well => break, but be that nice to issue the shutdown event first
-						scgms::IDevice_Event* shutdown_event = static_cast<scgms::IDevice_Event*> (new CDevice_Event{ scgms::NDevice_Event_Code::Shut_Down });
+						scgms::IDevice_Event* shutdown_event = allocate_device_event(scgms::NDevice_Event_Code::Shut_Down );
 						if (Succeeded(composite_filter.Execute(shutdown_event)))
 							terminal_filter.Wait_For_Shutdown();	//wait only if the shutdown did go through succesfully
 						break;

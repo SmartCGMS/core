@@ -219,13 +219,12 @@ double CVariance_Metric::Do_Calculate_Metric() {
 
 	}
 
-	if (lowbound >= highbound)
+	if (lowbound > highbound)
 		return std::numeric_limits<double>::quiet_NaN();
 
-	double sum = 0.0;
-	auto diffs = &mDifferences[0];
+	double sum = 0.0;	
 	for (auto i = lowbound; i != highbound; i++) {
-		sum += diffs[i].difference;
+		sum += mDifferences[i].difference;
 	}
 
 	const double casted_size = static_cast<double>(mDifferences.size());
@@ -242,7 +241,7 @@ double CVariance_Metric::Do_Calculate_Metric() {
 
 	sum = 0.0;
 	for (auto i = lowbound; i != highbound; i++) {
-		double tmp = diffs[i].difference - mLast_Calculated_Avg;
+		double tmp = mDifferences[i].difference - mLast_Calculated_Avg;
 		sum += tmp*tmp;
 	}
 
@@ -264,13 +263,95 @@ double CAvgPlusBesselStdDevMetric::Do_Calculate_Metric() {
 
 double CAvg_Pow_StdDev_Metric::Do_Calculate_Metric() {
 	const double variance = CVariance_Metric::Do_Calculate_Metric();
+
+	return log(mLast_Calculated_Avg) + log(sqrt(variance));
+
 	//also calculates mLastCalculatedAvg
 
 		//the real metric is supposed to be
 		//(1.0+avg)^(1.0+std_dev_estimate)		
 		//both 1.0+ are to avoid adverse results with both avg and sd less than 1.0 so the best metric is 1.0 => -1.0 to have zero as the best fit like the other metrics
-	return pow(1.0+mLast_Calculated_Avg, 1.0 + sqrt(variance))-1.0;	//we do sqrt to minimize the power extent
+	//return pow(1.0+mLast_Calculated_Avg, 1.0 + sqrt(variance))-1.0;	//we do sqrt to minimize the power extent
+
+
+	/*
+	//statistical efficiency
+	if (mLast_Calculated_Avg >= 0.0) {
+		return variance / mLast_Calculated_Avg*mLast_Calculated_Avg;	
+	}
+	else
+		return 0.0;	//zero average means no error
+	*/
+
+	//coefficient of determination - comes almost close to avg+sd
+	double sum_of_residuals = 0.0;
+	double sum_observed = 0.0;
+	for (const auto& elem : mDifferences) {
+		sum_of_residuals += elem.difference * elem.difference;
+		sum_observed += elem.raw.expected;
+	}
+
+
+	double corrected_count = static_cast<double>(mDifferences.size());	//this would be the original, but we make corrected estimation like sd-estimation
+	if (corrected_count > 1.5) 
+		corrected_count = corrected_count - 1.5 + 1 / (8 * (corrected_count - 1));	//precise estimation, better than substracting 1.5	
+		else if (corrected_count > 1.0) corrected_count -= 1.0;	//if not, try to fall back to Bessel's Correction at least
+
+	const double avg_observed = sum_observed / corrected_count;
+	double sum_of_total = 0.0;
+	for (const auto& elem : mDifferences) {
+		const double diff = elem.raw.expected - avg_observed;
+		sum_of_total += diff * diff;
+	}
+
+	return sum_of_residuals / sum_of_total;
+
+	
+
+	//harmonic mean
+	double n = 0.0;
+	double sum = 0.0;
+	for (const auto& elem : mDifferences) {
+		if (elem.difference != 0.0) {
+			n += 1.0;
+			sum += 1.0 / std::fabs(elem.difference);
+		}
+	}
+	return n / sum;
+
+	/*
+	//coefficient of variation
+	if (mLast_Calculated_Avg >= 0.0) {
+		return sqrt(variance) / mLast_Calculated_Avg;	//coefficient of variation		
+	}
+	else
+		return 0.0;	//zero average means no error
+	
+
+	//quartile coefficient of dispersion
+	std::sort(mDifferences.begin(),
+		mDifferences.end(),
+		[](const TProcessed_Difference &a, const TProcessed_Difference &b) -> bool {
+		return a.difference < b.difference;
+	}
+	);
+	const size_t q1_idx = static_cast<size_t>(round(0.25*static_cast<double>(mDifferences.size())));
+	const size_t q3_idx = static_cast<size_t>(round(0.75*static_cast<double>(mDifferences.size())));
+	const double q1 = mDifferences[q1_idx].difference;
+	const double q3 = mDifferences[q3_idx].difference;
+	//const double interquartile_range = 0.5*(q3 - q1);
+	//const double midhinge = 0.5*(q1 + q3);
+	return (q3 - q1) / (q1 + q3); //interquartile_range / midhinge;
+
+
+	*/
+
+	
+
+//https://en.wikipedia.org/wiki/Coefficient_of_variation
+//https://en.wikipedia.org/wiki/Coefficient_of_determination
 }
+
 
 
 
@@ -329,7 +410,7 @@ double CCrossWalkMetric::Do_Calculate_Metric() {
 		}		
 
 
-		bool mestocalccross = mCross_Measured_With_Calculated_Only || ((mesA>calcA) & (mesB > calcB)) || ((mesA < calcA) & (mesB < calcB));
+		bool mestocalccross = mCross_Measured_With_Calculated_Only || ((mesA>calcA) && (mesB > calcB)) || ((mesA < calcA) && (mesB < calcB));
 
 		
 		if (mestocalccross) {

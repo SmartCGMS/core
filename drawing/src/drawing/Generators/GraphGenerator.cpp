@@ -262,6 +262,26 @@ void CGraph_Generator::Write_Normalized_Lines(ValueVector istVector, ValueVector
 		//
 	}
 
+	// heartbeat curve group scope
+	try
+	{
+		ValueVector& bpms = Utility::Get_Value_Vector_Ref(mInputData, "heartbeat");
+
+		if (!bpms.empty()) {
+
+			auto& bpmsData = mInputData["heartbeat"];
+			bpmsData.valuesScale = 0.1; // force
+
+			mSvg.Set_Stroke(1, "#00DD00", "none");
+			SVG::GroupGuard grp(mSvg, "heartbeat", true);
+			Write_LinearCurve(bpms, bpmsData);
+		}
+	}
+	catch (...)
+	{
+		//
+	}
+
 	// CoB curve group scope
 	try
 	{

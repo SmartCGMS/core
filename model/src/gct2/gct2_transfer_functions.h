@@ -41,7 +41,7 @@
 #include <cmath>
 #include <limits>
 
-#include "common.h"
+#include "gct2_common.h"
 
 namespace gct2_model
 {

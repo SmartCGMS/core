@@ -322,7 +322,7 @@ namespace unmasking {
 
 namespace signal_generator {
 
-	constexpr size_t filter_param_count = 10;
+	constexpr size_t filter_param_count = 11;
 	const wchar_t *filter_ui_names[filter_param_count] = {
 		dsSelected_Model,
 		dsFeedback_Name,
@@ -333,6 +333,7 @@ namespace signal_generator {
 		dsMaximum_Time,
 		dsShutdown_After_Last,
 		dsEcho_Default_Parameters_As_Event,
+		dsIndividualize_Segment_Specific_Parameters,
 		dsParameters
 	};
 
@@ -346,11 +347,13 @@ namespace signal_generator {
 		rsMaximum_Time,
 		rsShutdown_After_Last,
 		rsEcho_Default_Parameters_As_Event,
+		rsIndividualize_Segment_Specific_Parameters,
 		rsParameters
 	};
 
 	const wchar_t *filter_tooltips[filter_param_count] = {
 		dsSelected_Model_Tooltip,
+		nullptr,
 		nullptr,
 		nullptr,
 		nullptr,
@@ -370,6 +373,7 @@ namespace signal_generator {
 		scgms::NParameter_Type::ptInt64,
 		scgms::NParameter_Type::ptRatTime,
 		scgms::NParameter_Type::ptRatTime,
+		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptDouble_Array

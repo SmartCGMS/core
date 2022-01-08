@@ -40,8 +40,11 @@
 
 #include "../../../common/rtl/FilterLib.h"
 
+#include "device_event.h"
+
 #include <mutex>
 #include <condition_variable>
+
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
@@ -83,9 +86,9 @@ public:
 
 class CCopying_Terminal_Filter : public virtual CTerminal_Filter {
 protected:
-	std::vector<scgms::IDevice_Event*> &mEvents;
+	std::vector<CDevice_Event> &mEvents;
 public:
-	CCopying_Terminal_Filter(std::vector<scgms::IDevice_Event*> &events);
+	CCopying_Terminal_Filter(std::vector<CDevice_Event> &events);
 	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
 };
 

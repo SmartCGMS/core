@@ -156,7 +156,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 							const bool valid = raw_filter_parameter->from_string(desc.parameter_type[i], str_value);
 
 							if (valid) {
-								scgms::IFilter_Parameter* raw_param = static_cast<scgms::IFilter_Parameter*>(raw_filter_parameter.get());
+								scgms::IFilter_Parameter* raw_param = static_cast<scgms::IFilter_Parameter*>(raw_filter_parameter.get());								
 								if (Succeeded(filter_config->add(&raw_param, &raw_param + 1)))
 									raw_filter_parameter.release();
 							}

@@ -46,6 +46,7 @@
 #include <thread>
 #include <map>
 #include <atomic>
+#include <vector>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
@@ -95,6 +96,15 @@ protected:
 	std::unique_ptr<std::thread> mThread;
 	std::atomic<bool> mQuitting = false;
 	void Stop_Generator(bool wait);
+protected:
+	size_t mNumber_Of_Segment_Specific_Parameters;
+	size_t mCurrent_Segment_Idx = 0;
+    scgms::SFilter_Configuration mOriginal_Configuration;
+	std::vector<double> mSegment_Agnostic_Parameters, mSegment_Agnostic_Lower_Bound, mSegment_Agnostic_Upper_Bound;
+	std::vector<std::vector<double>> mSegment_Specific_Parameters, mSegment_Specific_Lower_Bound, mSegment_Specific_Upper_Bound;
+
+	void Update_Sync_Configuration_Parameters();	//increments the current segment and expands mSegment_Specific_Parameters if needed
+
 protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
