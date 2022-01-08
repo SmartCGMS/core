@@ -272,7 +272,7 @@ class CPSO
 		typename pso::TSwarm_Vector<TUsed_Solution>::iterator mBest_Itr;
 		double mBest_Fitness = std::numeric_limits<double>::max();
 
-		typename TUsed_Solution mOverall_Best;
+		TUsed_Solution mOverall_Best;
 		double mOverall_Best_Fitness = std::numeric_limits<double>::max();
 
 		// updates global memory with best known position of the whole swarm
