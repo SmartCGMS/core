@@ -43,6 +43,8 @@
 #include "../../../../common/utils/descriptor_utils.h"
 #include "../../../../common/lang/dstrings.h"
 
+#include <cmath>
+
 #undef min
 
 namespace pattern_prediction {	
@@ -106,7 +108,7 @@ namespace pattern_prediction {
 		const double tmp = level - pattern_prediction::Low_Threshold;
 		if (tmp < 0.0) return 0;
 
-		return static_cast<size_t>(round(tmp * pattern_prediction::Inv_Band_Size));
+		return static_cast<size_t>(std::round(tmp * pattern_prediction::Inv_Band_Size));
 	}
 
 	double Subclassed_Level(const double level) {
@@ -132,7 +134,7 @@ namespace pattern_prediction {
 				
 		const double subclass_size = (high_bound - low_bound) / static_cast<double>(Subclasses_Count);
 		const double idx = (effective_level - low_bound) / subclass_size;
-		return low_bound + round(idx) * subclass_size;
+		return low_bound + std::round(idx) * subclass_size;
 	}
 
 
