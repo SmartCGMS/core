@@ -367,7 +367,9 @@ public:
 //			event->Release();
 	}
 
-	HRESULT Optimize(const GUID solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress &progress, refcnt::Swstr_list error_description) {
+	HRESULT Optimize(const GUID solver_id, const size_t population_size, const size_t max_generations, 
+		const double** hints, const size_t hint_count,
+		solver::TSolver_Progress &progress, refcnt::Swstr_list error_description) {
 
 		mLower_Bound.clear();
 		mFound_Parameters.clear();
@@ -411,12 +413,17 @@ public:
 
 		if (!Fetch_Events_To_Replay(error_description)) return E_FAIL;
 
-		const double* default_parameters = mFound_Parameters.data();
+		//const double* default_parameters = mFound_Parameters.data();
+
+		std::vector<const double*> effective_hints;
+		effective_hints.push_back(mFound_Parameters.data());
+		for (size_t i = 0; i < hint_count; i++)
+			effective_hints.push_back(hints[i]);
 
 		solver::TSolver_Setup solver_setup{
 			mProblem_Size,
 			mLower_Bound.data(), mUpper_Bound.data(),
-			&default_parameters, 1,					//hints
+			effective_hints.data(), effective_hints.size(),					//hints
 			mFound_Parameters.data(),
 
 			this, internal::Parameters_Fitness_Wrapper,
@@ -518,20 +525,24 @@ double IfaceCalling internal::Parameters_Fitness_Wrapper(const void *data, const
 
 HRESULT IfaceCalling optimize_parameters(scgms::IFilter_Chain_Configuration *configuration, const size_t filter_index, const wchar_t *parameters_configuration_name, 
 										 scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data,
-									     const GUID *solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress *progress,
+									     const GUID *solver_id, const size_t population_size, const size_t max_generations, 
+										 const double** hints, const size_t hint_count,
+										 solver::TSolver_Progress *progress,
 										 refcnt::wstr_list *error_description) {
 
 	CParameters_Optimizer optimizer{ configuration, &filter_index, &parameters_configuration_name, 1, on_filter_created, on_filter_created_data };
 	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
-	return optimizer.Optimize(*solver_id, population_size, max_generations, *progress, shared_error_description);
+	return optimizer.Optimize(*solver_id, population_size, max_generations, hints, hint_count, *progress, shared_error_description);
 }
 
 HRESULT IfaceCalling optimize_multiple_parameters(scgms::IFilter_Chain_Configuration *configuration, const size_t *filter_indices, const wchar_t **parameters_configuration_names, size_t filter_count,
 												  scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data,
-												  const GUID *solver_id, const size_t population_size, const size_t max_generations, solver::TSolver_Progress *progress,
+												  const GUID *solver_id, const size_t population_size, const size_t max_generations, 
+												  const double** hints, const size_t hint_count,
+												  solver::TSolver_Progress *progress,
 												  refcnt::wstr_list *error_description) {
 
 	CParameters_Optimizer optimizer{ configuration, filter_indices, parameters_configuration_names, filter_count, on_filter_created, on_filter_created_data };
 	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
-	return optimizer.Optimize(*solver_id, population_size, max_generations, *progress, shared_error_description);
+	return optimizer.Optimize(*solver_id, population_size, max_generations, hints, hint_count, *progress, shared_error_description);
 }
