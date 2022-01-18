@@ -60,7 +60,7 @@
 class CLog_Filter : public scgms::CBase_Filter, public scgms::ILog_Filter_Inspection{
 protected:
 	std::wofstream mLog;	//all segments logging
-	std::map<int64_t, std::wofstream> mSegmented_Logs;
+	std::map<uint64_t, std::wofstream> mSegmented_Logs;
 	bool mLog_Per_Segment = false;
 
 	scgms::CSignal_Description mSignal_Names;
