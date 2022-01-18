@@ -91,10 +91,10 @@ namespace diffusion_v2_model {
 
 	
 	const std::wstring blood_desc = std::wstring{ dsDiffusion_Model_v2 } +L" - " + dsBlood;
-	const scgms::TSignal_Descriptor bg_desc { signal_Diffusion_v2_Blood, blood_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0000, 0xFFFF0000, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor bg_desc { signal_Diffusion_v2_Blood, blood_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0000, 0xFFFF0000, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 	const std::wstring ist_desc = std::wstring{ dsDiffusion_Model_v2 } +L" - " + dsInterstitial;
-	const scgms::TSignal_Descriptor ig_desc{ signal_Diffusion_v2_Ist, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor ig_desc{ signal_Diffusion_v2_Ist, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 }
 
@@ -130,7 +130,7 @@ namespace steil_rebrin {
 	};
 
 	const std::wstring blood_desc = std::wstring{ dsSteil_Rebrin } +L" - " + dsBlood;
-	const scgms::TSignal_Descriptor bg_desc{ signal_Steil_Rebrin_Blood, blood_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0000, 0xFFFF0000, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor bg_desc{ signal_Steil_Rebrin_Blood, blood_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0000, 0xFFFF0000, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 }
 
@@ -168,7 +168,7 @@ namespace steil_rebrin_diffusion_prediction {
 	};
 
 	const std::wstring ist_desc = std::wstring{ dsSteil_Rebrin_Diffusion_Prediction } +L" - " + dsInterstitial;
-	const scgms::TSignal_Descriptor ig_desc{ signal_Steil_Rebrin_Diffusion_Prediction, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor ig_desc{ signal_Steil_Rebrin_Diffusion_Prediction, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 }
 
 namespace diffusion_prediction {
@@ -207,7 +207,7 @@ namespace diffusion_prediction {
 	};
 
 	const std::wstring ist_desc = std::wstring{ dsDiffusion_Prediction } +L" - " + dsInterstitial;
-	const scgms::TSignal_Descriptor ig_desc{ signal_Diffusion_Prediction, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor ig_desc{ signal_Diffusion_Prediction, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 }
 
 namespace constant_model {
@@ -246,7 +246,7 @@ namespace constant_model {
 	};
 
 
-	const scgms::TSignal_Descriptor const_desc{ constant_model::signal_Constant, dsConstant_Signal, L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor const_desc{ constant_model::signal_Constant, dsConstant_Signal, L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 }
 
 
@@ -367,22 +367,22 @@ namespace bergman_model {
 	};
 
 	const std::wstring blood_desc = std::wstring{ dsBergman_Minimal_Model } +L" - " + dsBlood;
-	const scgms::TSignal_Descriptor bg_desc{ signal_Bergman_BG, blood_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0000, 0xFFFF0000, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor bg_desc{ signal_Bergman_BG, blood_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0000, 0xFFFF0000, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 	const std::wstring ist_desc = std::wstring{ dsBergman_Minimal_Model } +L" - " + dsInterstitial;
-	const scgms::TSignal_Descriptor ig_desc{ signal_Bergman_IG, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor ig_desc{ signal_Bergman_IG, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 	const std::wstring iob_str_desc = std::wstring{ dsBergman_Minimal_Model } +L" - " + dsSignal_GUI_Name_IOB;
-	const scgms::TSignal_Descriptor iob_desc{ signal_Bergman_IOB, iob_str_desc.c_str(), L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor iob_desc{ signal_Bergman_IOB, iob_str_desc.c_str(), L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 	const std::wstring cob_str_desc = std::wstring{ dsBergman_Minimal_Model } +L" - " + dsSignal_GUI_Name_COB;
-	const scgms::TSignal_Descriptor cob_desc{ signal_Bergman_COB, cob_str_desc.c_str(), L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFF0000FF,scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor cob_desc{ signal_Bergman_COB, cob_str_desc.c_str(), L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFF0000FF,scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 0.1 };
 
 	const std::wstring basal_insulin_str_desc = std::wstring{ dsBergman_Minimal_Model } +L" - " + dsSignal_GUI_Name_Basal_Insulin;
-	const scgms::TSignal_Descriptor basal_insulin_desc{ signal_Bergman_Basal_Insulin, basal_insulin_str_desc.c_str(), L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor basal_insulin_desc{ signal_Bergman_Basal_Insulin, basal_insulin_str_desc.c_str(), L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 	const std::wstring insulin_activity_str_desc = std::wstring{ dsBergman_Minimal_Model } +L" - " + dsSignal_GUI_Name_Insulin_Activity;
-	const scgms::TSignal_Descriptor insulin_activity_desc{ signal_Bergman_Insulin_Activity, insulin_activity_str_desc.c_str(), L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor insulin_activity_desc{ signal_Bergman_Insulin_Activity, insulin_activity_str_desc.c_str(), L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 }
 
 namespace uva_padova_S2013 { //DOI: 10.1177/1932296813514502
@@ -455,13 +455,13 @@ namespace uva_padova_S2013 { //DOI: 10.1177/1932296813514502
 	};
 
 	const std::wstring ist_desc = std::wstring{ dsUVa_Padova_IG };
-	const scgms::TSignal_Descriptor ig_desc{ uva_padova_S2013::signal_IG, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor ig_desc{ uva_padova_S2013::signal_IG, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 	const std::wstring bgs_desc = std::wstring{ dsUVa_Padova_BG };
-	const scgms::TSignal_Descriptor bg_desc{ uva_padova_S2013::signal_BG, bgs_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor bg_desc{ uva_padova_S2013::signal_BG, bgs_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 	const std::wstring inss_desc = std::wstring{ dsUVa_Padova_Delivered_Insulin };
-	const scgms::TSignal_Descriptor ins_desc{ uva_padova_S2013::signal_Delivered_Insulin, inss_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor ins_desc{ uva_padova_S2013::signal_Delivered_Insulin, inss_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 }
 
 namespace uva_padova_S2017 { //DOI: 10.1177/1932296818757747
@@ -543,19 +543,19 @@ namespace uva_padova_S2017 { //DOI: 10.1177/1932296818757747
 	};
 
 	const std::wstring ist_desc = std::wstring{ dsUVa_Padova_S2017_IG };
-	const scgms::TSignal_Descriptor ig_desc{ uva_padova_S2017::signal_IG, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor ig_desc{ uva_padova_S2017::signal_IG, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 	const std::wstring bgs_desc = std::wstring{ dsUVa_Padova_S2017_BG };
-	const scgms::TSignal_Descriptor bg_desc{ uva_padova_S2017::signal_BG, bgs_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor bg_desc{ uva_padova_S2017::signal_BG, bgs_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 	const std::wstring inss_desc = std::wstring{ dsUVa_Padova_S2017_Delivered_Insulin };
-	const scgms::TSignal_Descriptor ins_desc{ uva_padova_S2017::signal_Delivered_Insulin, inss_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor ins_desc{ uva_padova_S2017::signal_Delivered_Insulin, inss_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 	const std::wstring iobs_desc = std::wstring{ dsUVa_Padova_S2017_IOB };
-	const scgms::TSignal_Descriptor iob_desc{ uva_padova_S2017::signal_IOB, iobs_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF456898, 0xFF456898, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor iob_desc{ uva_padova_S2017::signal_IOB, iobs_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF456898, 0xFF456898, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 	const std::wstring cobs_desc = std::wstring{ dsUVa_Padova_S2017_COB };
-	const scgms::TSignal_Descriptor cob_desc{ uva_padova_S2017::signal_COB, cobs_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor cob_desc{ uva_padova_S2017::signal_COB, cobs_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 0.1 };
 }
 
 namespace gct_model {
@@ -627,11 +627,11 @@ namespace gct_model {
 		reference_signal_ids,
 	};
 
-	const scgms::TSignal_Descriptor ig_desc{ gct_model::signal_IG, dsGCT_Model_v1_IG, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
-	const scgms::TSignal_Descriptor bg_desc{ gct_model::signal_BG, dsGCT_Model_v1_BG, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
-	const scgms::TSignal_Descriptor ins_desc{ gct_model::signal_Delivered_Insulin, dsGCT_Model_v1_Delivered_Insulin, dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
-	const scgms::TSignal_Descriptor iob_desc{ gct_model::signal_IOB, dsGCT_Model_v1_IOB, dsU, scgms::NSignal_Unit::U_insulin, 0xFF456898, 0xFF456898, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
-	const scgms::TSignal_Descriptor cob_desc{ gct_model::signal_COB, dsGCT_Model_v1_COB, dsU, scgms::NSignal_Unit::g, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor ig_desc{ gct_model::signal_IG, dsGCT_Model_v1_IG, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+	const scgms::TSignal_Descriptor bg_desc{ gct_model::signal_BG, dsGCT_Model_v1_BG, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+	const scgms::TSignal_Descriptor ins_desc{ gct_model::signal_Delivered_Insulin, dsGCT_Model_v1_Delivered_Insulin, dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+	const scgms::TSignal_Descriptor iob_desc{ gct_model::signal_IOB, dsGCT_Model_v1_IOB, dsU, scgms::NSignal_Unit::U_insulin, 0xFF456898, 0xFF456898, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+	const scgms::TSignal_Descriptor cob_desc{ gct_model::signal_COB, dsGCT_Model_v1_COB, dsU, scgms::NSignal_Unit::g, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 0.1 };
 }
 
 namespace gct2_model {
@@ -693,7 +693,7 @@ namespace gct2_model {
 		dsGCT_Model_v2,
 		nullptr,
 		model_param_count,
-		0,
+		7,
 		model_param_types,
 		model_param_ui_names,
 		nullptr,
@@ -706,11 +706,11 @@ namespace gct2_model {
 		reference_signal_ids,
 	};
 
-	const scgms::TSignal_Descriptor ig_desc{ gct2_model::signal_IG, dsGCT_Model_v2_IG, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
-	const scgms::TSignal_Descriptor bg_desc{ gct2_model::signal_BG, dsGCT_Model_v2_BG, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
-	const scgms::TSignal_Descriptor ins_desc{ gct2_model::signal_Delivered_Insulin, dsGCT_Model_v2_Delivered_Insulin, dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
-	const scgms::TSignal_Descriptor iob_desc{ gct2_model::signal_IOB, dsGCT_Model_v2_IOB, dsU, scgms::NSignal_Unit::U_insulin, 0xFF456898, 0xFF456898, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
-	const scgms::TSignal_Descriptor cob_desc{ gct2_model::signal_COB, dsGCT_Model_v2_COB, dsU, scgms::NSignal_Unit::g, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor ig_desc{ gct2_model::signal_IG, dsGCT_Model_v2_IG, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF00A0FF, 0xFF00A0FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+	const scgms::TSignal_Descriptor bg_desc{ gct2_model::signal_BG, dsGCT_Model_v2_BG, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+	const scgms::TSignal_Descriptor ins_desc{ gct2_model::signal_Delivered_Insulin, dsGCT_Model_v2_Delivered_Insulin, dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+	const scgms::TSignal_Descriptor iob_desc{ gct2_model::signal_IOB, dsGCT_Model_v2_IOB, dsU, scgms::NSignal_Unit::U_insulin, 0xFF456898, 0xFF456898, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+	const scgms::TSignal_Descriptor cob_desc{ gct2_model::signal_COB, dsGCT_Model_v2_COB, dsU, scgms::NSignal_Unit::g, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 0.1 };
 }
 
 namespace insulin_bolus {
@@ -903,19 +903,19 @@ namespace samadi_model { // DOI: 10.1016/j.compchemeng.2019.106565
 	};
 
 	const std::wstring ist_desc = std::wstring{ L"Samadi model - IG" };
-	const scgms::TSignal_Descriptor ig_desc{ samadi_model::signal_IG, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor ig_desc{ samadi_model::signal_IG, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 	const std::wstring bgs_desc = std::wstring{ L"Samadi model - BG" };
-	const scgms::TSignal_Descriptor bg_desc{ samadi_model::signal_BG, bgs_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor bg_desc{ samadi_model::signal_BG, bgs_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 	const std::wstring inss_desc = std::wstring{ L"Samadi model - Delivered insulin" };
-	const scgms::TSignal_Descriptor ins_desc{ samadi_model::signal_Delivered_Insulin, inss_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor ins_desc{ samadi_model::signal_Delivered_Insulin, inss_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 	const std::wstring iobs_desc = std::wstring{ L"Samadi model - IOB" };
-	const scgms::TSignal_Descriptor iob_desc{ samadi_model::signal_IOB, iobs_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF456898, 0xFF456898, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor iob_desc{ samadi_model::signal_IOB, iobs_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF456898, 0xFF456898, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 	const std::wstring cobs_desc = std::wstring{ L"Samadi model - COB" };
-	const scgms::TSignal_Descriptor cob_desc{ samadi_model::signal_COB, cobs_desc.c_str(), dsU, scgms::NSignal_Unit::g, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor cob_desc{ samadi_model::signal_COB, cobs_desc.c_str(), dsU, scgms::NSignal_Unit::g, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 0.1 };
 }
 
 

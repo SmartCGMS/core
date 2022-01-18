@@ -121,11 +121,11 @@ namespace dmms_model {
 	};
 
 	const std::wstring blood_str_desc = std::wstring{ L"DMMS discrete model" } +L" - " + dsBlood;
-	const scgms::TSignal_Descriptor blood_desc{ signal_DMMS_BG, blood_str_desc.c_str(), L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFFFF0000, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor blood_desc{ signal_DMMS_BG, blood_str_desc.c_str(), L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFFFF0000, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 	const std::wstring ig_str_desc = std::wstring{ L"DMMS discrete model" } +L" - " + dsInterstitial;
-	const scgms::TSignal_Descriptor ig_desc{ signal_DMMS_IG, ig_str_desc.c_str(), L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor ig_desc{ signal_DMMS_IG, ig_str_desc.c_str(), L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 	const std::wstring delivered_insulin_str_desc = std::wstring{ L"DMMS discrete model" } +L" - delivered insulin";
-	const scgms::TSignal_Descriptor delivered_insulin_desc{ signal_DMMS_Delivered_Insulin_Basal, delivered_insulin_str_desc.c_str(), L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+	const scgms::TSignal_Descriptor delivered_insulin_desc{ signal_DMMS_Delivered_Insulin_Basal, delivered_insulin_str_desc.c_str(), L"", scgms::NSignal_Unit::Other, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 }
 #endif
 
