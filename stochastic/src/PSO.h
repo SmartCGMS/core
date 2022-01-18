@@ -290,14 +290,6 @@ class CPSO
 			}
 		}
 
-		inline void Print_Best_Candidate(size_t iter)
-		{
-			dprintf("%d; %llf; ", iter, mOverall_Best_Fitness);
-			for (size_t i = 0; i < mSetup.problem_size; i++)
-				dprintf("%llf; ", mOverall_Best[i]);
-			dprintf("\r\n");
-		}
-
 	protected:
 		inline static TRandom_Device mRandom_Generator;
 		inline static thread_local std::uniform_real_distribution<double> mUniform_Distribution_dbl{ 0.0, 1.0 };
@@ -443,9 +435,6 @@ class CPSO
 
 				// update swarm-best candidate
 				Update_Best_Candidate();
-
-				// for debugging purposes
-				Print_Best_Candidate(progress.current_progress);
 			}
 
 			return mOverall_Best;
