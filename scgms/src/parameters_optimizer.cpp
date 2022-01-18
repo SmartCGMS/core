@@ -235,7 +235,7 @@ protected:
 		result.first_parameter_ptrs.resize(mFilter_Indices.size());
 		result.failed = !result.configuration.operator bool();
 
-		const std::set<GUID> ui_filters = { scgms::IID_Drawing_Filter, scgms::IID_Log_Filter };	//let's optimize away thos filters, which would only slow down
+		const std::set<GUID> ui_filters = { scgms::IID_Drawing_Filter, scgms::IID_Log_Filter };	//let's optimize away those filters, which would only slow down
 
 		//we do not need to do a complete copy -> we just need to 
 		// 1. create the root configuration container, because the we can

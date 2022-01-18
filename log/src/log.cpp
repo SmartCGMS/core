@@ -115,19 +115,18 @@ std::wstring CLog_Filter::Parameters_To_WStr(const scgms::UDevice_Event& evt) {
 	return stream.str();
 }
 
-bool CLog_Filter::Open_Log(const filesystem::path &log_filename) {
-	bool result = false;
+std::wofstream CLog_Filter::Open_Log(const filesystem::path &log_filename) {
+	std::wofstream result;
 
 	// if have output file name
 	if (!log_filename.empty()) {
 		// try to open output file
-		mLog.open(log_filename);
+		result.open(log_filename);
 	
-		result = mLog.is_open();
-		if (result) {
+		if (result.is_open()) {
 			//unused keeps static analysis happy about creating an unnamed object
-			auto unused = mLog.imbue(std::locale(std::cout.getloc(), new CDecimal_Separator<char>{ '.' })); //locale takes owner ship of dec_sep
-			mLog << dsLog_Header << std::endl;
+			auto unused = mLog.imbue(std::locale(std::cout.getloc(), new CDecimal_Separator<wchar_t>{ '.' })); //locale takes owner ship of dec_sep
+			result << dsLog_Header << std::endl;
 		}
 	}
 
@@ -143,29 +142,65 @@ HRESULT IfaceCalling CLog_Filter::Do_Configure(scgms::SFilter_Configuration conf
 	mLog_Filename = configuration.Read_File_Path(rsLog_Output_File);
 #endif
 
-	HRESULT rc = S_OK;
-	if (!mLog_Filename.empty()) {			
+	
+	mLog_Per_Segment = configuration.Read_Bool(rsLog_Segments_Individually, mLog_Per_Segment);
+	//empty log file path just means that we simply do not write the log to the disk
+	 //but collect it in the memory, e.g.; for GUI	
 
-		if (!Open_Log(mLog_Filename)) {
+
+	if (!mLog_Per_Segment && !mLog_Filename.empty()) {
+		mLog = Open_Log(mLog_Filename);
+		if (!mLog.is_open()) {
 			error_description.push(dsCannot_Open_File + mLog_Filename.wstring());
 
-			rc = MK_E_CANTOPENFILE;
+			return MK_E_CANTOPENFILE;
 		}
-
-	} //empty log file path just means that we simply do not write the log to the disk
-	  //but collect it in the memory, e.g.; for GUI	
+	}
 
 	mIs_Terminated = false;
-	return rc;
+	return S_OK;
 }
 
 HRESULT IfaceCalling CLog_Filter::Do_Execute(scgms::UDevice_Event event) {
-	Log_Event(event);
+	if (mLog_Per_Segment) {
+		if ((event.segment_id() == scgms::All_Segments_Id) ||			//intended broadcast
+			(event.segment_id() == scgms::Invalid_Segment_Id)) {		//segment-independent control code
+			//broadcast, write it to all logs
+
+			bool push_to_ui_container = true;
+			for (auto& log : mSegmented_Logs) {
+				Log_Event(log.second, event, push_to_ui_container);
+				push_to_ui_container = false;	//to avoid event duplication in the ui log
+			}
+
+
+		} else {
+			//an event dedicated to a single log
+			auto iter = mSegmented_Logs.find(event.segment_id());
+			if (iter == mSegmented_Logs.end()) {
+				//we need to create a new one
+				filesystem::path seg_log_path = mLog_Filename;
+				seg_log_path.replace_filename(mLog_Filename.stem().concat("."+std::to_string(event.segment_id())));
+				seg_log_path += mLog_Filename.extension().string();
+				const auto insertion = mSegmented_Logs.insert(std::pair<int64_t, std::wofstream>(event.segment_id(), std::move(Open_Log(seg_log_path))));
+				if (!insertion.second)
+					return E_OUTOFMEMORY;
+
+				iter = insertion.first;
+			}
+
+			//OK, we've got the log, just write the event
+			Log_Event(iter->second, event, true);
+		}
+		
+	} else
+	  Log_Event(mLog, event, true);	//we are writing everything to a single log
+
 	return mOutput.Send(event);
 };
 
 
-void CLog_Filter::Log_Event(const scgms::UDevice_Event &evt) {
+void CLog_Filter::Log_Event(std::wofstream& log, const scgms::UDevice_Event& evt, const bool push_to_ui_container) {
 	const wchar_t *delim = L"; ";
 
 	std::wostringstream log_line;
@@ -187,14 +222,17 @@ void CLog_Filter::Log_Event(const scgms::UDevice_Event &evt) {
 	// but not in GUI output, since records in list are considered "lines" and external logic (e.g. GUI) maintains line endings by itself
 
 	const std::wstring log_line_str = log_line.str();
-	if (mLog.is_open()) mLog << log_line_str << std::endl;
+	if (log.is_open())
+		log << log_line_str << std::endl;
 
-	refcnt::wstr_container* container = refcnt::WString_To_WChar_Container(log_line_str.c_str());
-	{
-		std::unique_lock<std::mutex> scoped_lock{ mLog_Records_Guard };
-		mNew_Log_Records->add(&container, &container + 1);
+	if (push_to_ui_container) {
+		refcnt::wstr_container* container = refcnt::WString_To_WChar_Container(log_line_str.c_str());
+		{
+			std::unique_lock<std::mutex> scoped_lock{ mLog_Records_Guard };
+			mNew_Log_Records->add(&container, &container + 1);
+		}
+		container->Release();
 	}
-	container->Release();
 }
 
 HRESULT IfaceCalling CLog_Filter::Pop(refcnt::wstr_list **str) {
