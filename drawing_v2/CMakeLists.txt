@@ -1,0 +1,24 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
+
+SET(PROJ "drawing_v2")
+
+CONFIGURE_COMMON(${PROJ})
+
+FILE(GLOB SRC_FILES "src/*.cpp" "src/*.c" "src/*.h")
+IF(WIN32)
+    FILE(GLOB SRC_WIN_FILES "src/win/*.cpp" "src/win/*.h" "src/win/*.def")
+    SET(SRC_FILES "${SRC_FILES};${SRC_WIN_FILES}")
+ENDIF()
+
+SET(DRAWING_UTILS_SRC )
+ADD_UTILS_FILE(DRAWING_UTILS_SRC "drawing/IRenderer.h")
+ADD_UTILS_FILE(DRAWING_UTILS_SRC "drawing/Drawing.cpp")
+ADD_UTILS_FILE(DRAWING_UTILS_SRC "drawing/Drawing.h")
+ADD_UTILS_FILE(DRAWING_UTILS_SRC "drawing/SVGRenderer.cpp")
+ADD_UTILS_FILE(DRAWING_UTILS_SRC "drawing/SVGRenderer.h")
+
+FILE(GLOB_RECURSE SRC_FILTER_FILES "src/filter/*.cpp" "src/filter/*.c" "src/filter/*.h")
+FILE(GLOB_RECURSE SRC_VIEWS_FILES "src/views/*.cpp" "src/views/*.c" "src/views/*.h")
+
+SCGMS_ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES};${COMMON_FILES};${SRC_FILTER_FILES};${SRC_VIEWS_FILES};${DRAWING_UTILS_SRC})
+CONFIGURE_FILTER_OUTPUT(${PROJ})
