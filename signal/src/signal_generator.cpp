@@ -306,6 +306,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 
 	}
 
+	if (mNumber_Of_Segment_Specific_Parameters > 0)
 	{
 		const size_t parametrized_segments = total_specific_parameters_in_doubles / mNumber_Of_Segment_Specific_Parameters;
 		size_t begin_offset = 0;
