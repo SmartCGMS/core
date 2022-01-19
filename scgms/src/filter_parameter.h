@@ -215,7 +215,7 @@ protected:
 		std::wstringstream converted;
 
 		//unused keeps static analysis happy about creating an unnamed object
-		auto unused = converted.imbue(std::locale(std::wcout.getloc(), new CDecimal_Separator<wchar_t>{ L'.' })); //locale takes owner ship of dec_sep
+		auto unused = converted.imbue(std::locale(std::wcout.getloc(), new CDecimal_Separator<wchar_t>{ L'.' })); //locale takes ownership of dec_sep
 		converted << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
 
 		bool not_empty = false;
@@ -260,6 +260,9 @@ protected:
 	std::wstring mVariable_Name;
 	std::map<std::wstring, std::wstring> mNon_OS_Variables;
 	std::tuple<HRESULT, std::wstring> Evaluate_Variable(const std::wstring &var_name);
+protected:
+	std::wstring mDeferred_Path;	//wstring so that we can pass its c_str when Get_Deffered_File gets called
+	std::wstring Make_Absolute_Path(filesystem::path src_path);
 public:
 	CFilter_Parameter(const scgms::NParameter_Type type, const wchar_t *config_name);
 	virtual ~CFilter_Parameter() {};	
@@ -275,8 +278,12 @@ public:
 
 	virtual HRESULT IfaceCalling Get_WChar_Container(refcnt::wstr_container** wstr, BOOL read_interpreted) override final;
 	virtual HRESULT IfaceCalling Set_WChar_Container(refcnt::wstr_container *wstr) override final;
+
 	virtual HRESULT IfaceCalling Get_File_Path(refcnt::wstr_container** wstr) override final;
 	virtual HRESULT IfaceCalling Set_Parent_Path(const wchar_t* parent_path) override final;
+
+	virtual HRESULT IfaceCalling Defer_To_File(const wchar_t* path) override final;
+	virtual HRESULT IfaceCalling Get_Deferred_File(wchar_t** path) override final;
 
 	virtual HRESULT IfaceCalling Get_Time_Segment_Id_Container(scgms::time_segment_id_container **ids) override final;
 	virtual HRESULT IfaceCalling Set_Time_Segment_Id_Container(scgms::time_segment_id_container *ids) override final;

@@ -112,23 +112,30 @@ HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** w
 		result_path = var_val;
 	}
 
-	if (result_path.is_relative()) {
-		std::error_code ec;
-		filesystem::path relative_part = result_path;
-		result_path = filesystem::canonical(mParent_Path / relative_part, ec);
-		if (ec) {
-			result_path = filesystem::weakly_canonical(mParent_Path / relative_part, ec);
-			if (ec)
-				result_path = mParent_Path / relative_part;
-		}
-	}
-
-	result_path = result_path.make_preferred();	//we know that make_preferred fails sometimes
-    std::wstring converted_path = result_path.wstring();
-	converted_path = Ensure_Uniform_Dir_Separator(converted_path);
+	std::wstring converted_path = Make_Absolute_Path(result_path);
 	*wstr = refcnt::WString_To_WChar_Container(converted_path.c_str());
 
 	return S_OK;
+}
+
+std::wstring CFilter_Parameter::Make_Absolute_Path(filesystem::path src_path) {
+	if (src_path.is_relative()) {
+		std::error_code ec;
+		filesystem::path relative_part = src_path;
+		src_path = filesystem::canonical(mParent_Path / relative_part, ec);
+		if (ec) {
+			src_path = filesystem::weakly_canonical(mParent_Path / relative_part, ec);
+			if (ec)
+				src_path = mParent_Path / relative_part;
+		}
+	}
+
+
+	src_path = src_path.make_preferred();	//we know that make_preferred fails sometimes
+	std::wstring converted_path = src_path.wstring();
+	converted_path = Ensure_Uniform_Dir_Separator(converted_path);
+
+	return converted_path;
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Parent_Path(const wchar_t* parent_path) {
@@ -237,6 +244,7 @@ HRESULT IfaceCalling CFilter_Parameter::Clone(scgms::IFilter_Parameter **deep_co
 	clone->mData = mData;
 
 	clone->mParent_Path = mParent_Path;
+	clone->mDeferred_Path = mDeferred_Path;
 
 	(*deep_copy) = static_cast<scgms::IFilter_Parameter*>(clone.get());
 	(*deep_copy)->AddRef();
@@ -439,4 +447,24 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string(bool read_interpr
 		converted.clear();
 
 	return std::tuple<HRESULT, std::wstring>{rc, converted};
+}
+
+
+HRESULT IfaceCalling CFilter_Parameter::Defer_To_File(const wchar_t* path) {
+	if (!path)
+		return E_INVALIDARG;
+
+	mDeferred_Path = Make_Absolute_Path(filesystem::path{ path });
+	if (mDeferred_Path.empty())
+		return E_FAIL;
+
+	return S_OK;
+}
+
+HRESULT IfaceCalling CFilter_Parameter::Get_Deferred_File(wchar_t** path) {
+	if (!path)
+		return E_INVALIDARG;
+
+	*path = const_cast<wchar_t*>(mDeferred_Path.c_str());
+	return S_OK;
 }

@@ -50,7 +50,14 @@
 class CPersistent_Chain_Configuration : public virtual scgms::IPersistent_Filter_Chain_Configuration, public virtual refcnt::internal::CVector_Container<scgms::IFilter_Configuration_Link*> {
 protected:
 	filesystem::path mFile_Path;
+	std::wstring Get_Parent_Path() noexcept;
 	void Advertise_Parent_Path() noexcept;
+protected:
+	const wchar_t* mDeferred_Magic_String_Prefix = L"$(deferred to ";
+	const wchar_t* mDeferred_Magic_String_Postfix = L")";
+	std::tuple<bool, std::wstring> Is_Deferred_Parameter(const wchar_t* str_value);
+	std::tuple<HRESULT, std::wstring> Load_From_File(const wchar_t *path);
+	HRESULT Save_To_File(const std::wstring &text, const wchar_t *path);
 protected:
 	wchar_t* Describe_GUID(const GUID& val, const scgms::NParameter_Type param_type, const scgms::CSignal_Description& signal_descriptors) const noexcept;
 public:
