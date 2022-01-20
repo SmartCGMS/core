@@ -45,6 +45,8 @@
 #include "../../../common/rtl/rattime.h"
 #include "../../../common/lang/dstrings.h"
 
+#include <fstream>
+
 const std::wstring CFilter_Parameter::mUnused_Variable_Name = rsUnused_Variable_Name;
 
 double str_2_rat_dbl(const std::wstring& str, bool& converted_ok) {
@@ -244,7 +246,7 @@ HRESULT IfaceCalling CFilter_Parameter::Clone(scgms::IFilter_Parameter **deep_co
 	clone->mData = mData;
 
 	clone->mParent_Path = mParent_Path;
-	clone->mDeferred_Path = mDeferred_Path;
+	clone->mDeferred_Path_Or_Var = mDeferred_Path_Or_Var;
 
 	(*deep_copy) = static_cast<scgms::IFilter_Parameter*>(clone.get());
 	(*deep_copy)->AddRef();
@@ -285,11 +287,43 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::Evaluate_Variable(const std
 }
 
 
+std::wstring CFilter_Parameter::Resolve_Deferred_Path() {
+	std::wstring effective_deferred_path = mDeferred_Path_Or_Var;
+	HRESULT rc = E_UNEXPECTED;
+
+	//deferred path could still be an OS-variable, which needs to be resolved
+	const auto [is_var, var_name] = scgms::Is_Variable_Name(mDeferred_Path_Or_Var);
+	if (is_var) {
+		std::tie(rc, effective_deferred_path) = Evaluate_Variable(var_name);
+	}
+	else
+		rc = S_OK;
+
+	return Succeeded(rc) ? Make_Absolute_Path(effective_deferred_path) : std::wstring{};
+}
+
 bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, const wchar_t* str) {
+	wchar_t* effective_str = const_cast<wchar_t*>(str);
+	std::wstring possibly_deferred_content = L"";
+
+	//check for a possibly deferred file
+	bool is_deferred = false;
+	std::tie(is_deferred, mDeferred_Path_Or_Var) = Is_Deferred_Parameter(str);
+	if (is_deferred) {
+		auto effective_deferred_path = Resolve_Deferred_Path();
+		HRESULT deferred_success = E_UNEXPECTED;
+		std::tie(deferred_success, possibly_deferred_content) = Load_From_File(effective_deferred_path.c_str());
+		if (Succeeded(deferred_success))
+			effective_str = const_cast<wchar_t*>(possibly_deferred_content.c_str());
+	}
+	else
+		mDeferred_Path_Or_Var.clear();
+
+
 	//when converting an array, each variable reference represents just one value
 	if ((desired_type != scgms::NParameter_Type::ptDouble_Array) && (desired_type != scgms::NParameter_Type::ptInt64_Array)) {
 
-		auto [is_var, var_name] = scgms::Is_Variable_Name(str);
+		auto [is_var, var_name] = scgms::Is_Variable_Name(effective_str);
 		if (is_var) {
 			mVariable_Name = var_name;
 			return true;
@@ -304,13 +338,13 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 	switch (desired_type) {
 
 		case scgms::NParameter_Type::ptWChar_Array:		
-			mWChar_Container = refcnt::make_shared_reference_ext<decltype(mWChar_Container), refcnt::wstr_container>(refcnt::WString_To_WChar_Container(str), false);
+			mWChar_Container = refcnt::make_shared_reference_ext<decltype(mWChar_Container), refcnt::wstr_container>(refcnt::WString_To_WChar_Container(effective_str), false);
 			valid = true;
 			break;
 
 		case scgms::NParameter_Type::ptInt64_Array:
 			{
-				mTime_Segment_ID = refcnt::make_shared_reference_ext<decltype(mTime_Segment_ID), scgms::time_segment_id_container>(Parse_Array_String<int64_t, scgms::time_segment_id_container>(str, str_2_int), false);
+				mTime_Segment_ID = refcnt::make_shared_reference_ext<decltype(mTime_Segment_ID), scgms::time_segment_id_container>(Parse_Array_String<int64_t, scgms::time_segment_id_container>(effective_str, str_2_int), false);
 				valid = mTime_Segment_ID.operator bool();		
 			}
 			break;
@@ -318,7 +352,7 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 		case scgms::NParameter_Type::ptRatTime:	
 		case scgms::NParameter_Type::ptDouble:
 		{
-			double val = str_2_rat_dbl(str, valid);		
+			double val = str_2_rat_dbl(effective_str, valid);		
 			if (valid)
 				mData.dbl = val;
 		}
@@ -327,7 +361,7 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 		case scgms::NParameter_Type::ptInt64:
 		case scgms::NParameter_Type::ptSubject_Id:
 		{
-			int64_t val = str_2_int(str, valid);
+			int64_t val = str_2_int(effective_str, valid);
 			if (valid)
 				mData.int64 = val;
 		}
@@ -335,7 +369,7 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 
 		case scgms::NParameter_Type::ptBool:
 		{
-			bool val = str_2_bool(str, valid);
+			bool val = str_2_bool(effective_str, valid);
 			if (valid)
 				mData.boolean = val;
 		}
@@ -348,10 +382,10 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 		case scgms::NParameter_Type::ptSignal_Id:
 		case scgms::NParameter_Type::ptSolver_Id:
 		{
-			GUID tmp_guid = WString_To_GUID(str, valid);
+			GUID tmp_guid = WString_To_GUID(effective_str, valid);
 			if (!valid) {
 				//not found, but let's try to find the signal as if the string is its name
-				tmp_guid = resolve_signal_by_name(str, valid);
+				tmp_guid = resolve_signal_by_name(effective_str, valid);
 			}
 
 			if (valid) 
@@ -363,7 +397,7 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 
 		case scgms::NParameter_Type::ptDouble_Array:
 			{
-			mModel_Parameters =  refcnt::make_shared_reference_ext<decltype(mModel_Parameters), scgms::IModel_Parameter_Vector>( Parse_Array_String<double, scgms::IModel_Parameter_Vector>(str, str_2_rat_dbl), false);
+			mModel_Parameters =  refcnt::make_shared_reference_ext<decltype(mModel_Parameters), scgms::IModel_Parameter_Vector>( Parse_Array_String<double, scgms::IModel_Parameter_Vector>(effective_str, str_2_rat_dbl), false);
 			valid = mModel_Parameters.operator bool();
 		}
 		break;
@@ -446,25 +480,63 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string(bool read_interpr
 	if (rc != S_OK)
 		converted.clear();
 
+	if ((rc == S_OK) && (!mDeferred_Path_Or_Var.empty()) && (read_interpreted == false)) {
+		//we actually have to save the content to a deferred file
+		auto effective_deffered_path = Resolve_Deferred_Path();
+		rc = Save_To_File(converted, effective_deffered_path.c_str());
+
+		//file has been saved succesfully => write the deferred file path
+		converted = mDeferred_Magic_String_Prefix;
+		converted.append(L" ");
+		converted.append(mDeferred_Path_Or_Var);
+		converted.append(mDeferred_Magic_String_Postfix);
+	}
+
 	return std::tuple<HRESULT, std::wstring>{rc, converted};
 }
 
+std::tuple<bool, std::wstring> CFilter_Parameter::Is_Deferred_Parameter(const wchar_t* str_value) {
+	const size_t len = wcslen(str_value);
+	if (len < wcslen(mDeferred_Magic_String_Prefix) + wcslen(mDeferred_Magic_String_Postfix) + 1)
+		return { false, L"" };	//just does not fit
 
-HRESULT IfaceCalling CFilter_Parameter::Defer_To_File(const wchar_t* path) {
-	if (!path)
-		return E_INVALIDARG;
+	if (wmemcmp(str_value, mDeferred_Magic_String_Prefix, wcslen(mDeferred_Magic_String_Prefix)) != 0)
+		return { false, L"" };	//unrecognized prefix
 
-	mDeferred_Path = Make_Absolute_Path(filesystem::path{ path });
-	if (mDeferred_Path.empty())
-		return E_FAIL;
 
-	return S_OK;
+	if (str_value[len - 1] != mDeferred_Magic_String_Postfix[0])
+		return { false, L"" };	//malformed
+
+	std::wstring deferred_path{ str_value + wcslen(mDeferred_Magic_String_Prefix),
+						 str_value + len - wcslen(mDeferred_Magic_String_Postfix) };
+
+	return { true, trim(deferred_path) };
 }
 
-HRESULT IfaceCalling CFilter_Parameter::Get_Deferred_File(wchar_t** path) {
-	if (!path)
-		return E_INVALIDARG;
+std::tuple<HRESULT, std::wstring> CFilter_Parameter::Load_From_File(const wchar_t* path) {
+	std::wifstream src_file;
+	src_file.open(path);
 
-	*path = const_cast<wchar_t*>(mDeferred_Path.c_str());
-	return S_OK;
+	if (src_file.is_open()) {
+		std::vector<wchar_t> buf;
+		buf.assign(std::istreambuf_iterator<wchar_t>(src_file), std::istreambuf_iterator<wchar_t>());
+		// fix valgrind's "Conditional jump or move depends on uninitialised value(s)"
+		// although we are sending proper length, SimpleIni probably reaches one byte further and reads uninitialized memory
+		buf.push_back(0);
+		return { S_OK, std::wstring{ buf.begin(), buf.end() } };
+	}
+	else
+		return { S_FALSE, L"" };	//empty file is like an empty line
+}
+
+HRESULT CFilter_Parameter::Save_To_File(const std::wstring& text, const wchar_t* path) {
+	std::wofstream dst_file;
+	dst_file.open(path);
+
+	if (dst_file.is_open()) {
+		dst_file << text;
+		return S_OK;
+	}
+	else
+		return MK_E_CANTOPENFILE;
 }

@@ -84,14 +84,15 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 	configfile.open(working_file_path);
 
 	if (configfile.is_open()) {
+		mFile_Path = working_file_path;
+
 		std::vector<char> buf;
 		buf.assign(std::istreambuf_iterator<char>(configfile), std::istreambuf_iterator<char>());
 		// fix valgrind's "Conditional jump or move depends on uninitialised value(s)"
 		// although we are sending proper length, SimpleIni probably reaches one byte further and reads uninitialized memory
 		buf.push_back(0);
 		rc = Load_From_Memory(buf.data(), buf.size(), error_description);	//also clears mFile_Path!
-		if (Succeeded(rc)) {
-			mFile_Path = working_file_path;	//so that we clearly sets new one whehn we succeed
+		if (Succeeded(rc)) {			
 			Advertise_Parent_Path();
 		}
 
@@ -113,8 +114,6 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 	bool loaded_all_filters = true;
 	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
 
-	
-	mFile_Path = Get_Dll_Dir();
 	const std::wstring parent_path = Get_Parent_Path();
 
 
@@ -158,35 +157,8 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 						if (str_value) {
 
 							std::unique_ptr<CFilter_Parameter> raw_filter_parameter = std::make_unique<CFilter_Parameter>(desc.parameter_type[i], desc.config_parameter_name[i]);
-							bool valid = raw_filter_parameter.operator bool();	
-
-							const auto [is_deferred, deferred_path] = Is_Deferred_Parameter(str_value);
-							std::wstring possibly_deferred_content;
-							if (is_deferred) {
-								//let use a trick to resolve a relative path								
-								raw_filter_parameter->Set_Parent_Path(parent_path.c_str());		//needs to be called may be few times more in order to make the relative-resolving work
-								valid = Succeeded(raw_filter_parameter->Defer_To_File(deferred_path.c_str()));
-
-								if (valid) {
-									HRESULT deferred_success = E_UNEXPECTED;
-									wchar_t* resolved_path = nullptr;
-									valid = Succeeded(raw_filter_parameter->Get_Deferred_File(&resolved_path));
-									valid &= resolved_path != nullptr;
-
-									if (valid)
-										std::tie(deferred_success, possibly_deferred_content) = Load_From_File(resolved_path);
-
-									valid = Succeeded(deferred_success);
-								}
-								if (!valid) {
-									std::wstring error_desc = dsCannot_Read_File;
-									error_desc.append(deferred_path);
-									shared_error_description.push(error_desc.c_str());
-								}
-							}
-							
-							if (valid)
-								valid = raw_filter_parameter->from_string(desc.parameter_type[i], is_deferred ? possibly_deferred_content.c_str() : str_value);							
+							raw_filter_parameter->Set_Parent_Path(parent_path.c_str()); //needed to make the deferred parameters work
+							const bool valid = raw_filter_parameter->from_string(desc.parameter_type[i], str_value);							
 
 							if (valid) {
 								scgms::IFilter_Parameter* raw_param = static_cast<scgms::IFilter_Parameter*>(raw_filter_parameter.get());								
@@ -240,7 +212,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 
 	}
 
-	Advertise_Parent_Path();	
+	Advertise_Parent_Path();	//called once more to ensure that everybody got the parent path
 
 	if (!loaded_all_filters)
 		describe_loaded_filters(shared_error_description);
@@ -350,30 +322,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 			} //switch param_type
 
 
-			//and, write the value
-			
-			//but wait a moment, a parameter value could be deferred to a file
-			wchar_t* possibly_deferred_path = nullptr;
-			bool deferred = Succeeded((*parameter_begin)->Get_Deferred_File(&possibly_deferred_path));
-			deferred &= wcslen(possibly_deferred_path) > 0;
-
-			if (deferred) {
-				//write the file
-				rc = Save_To_File(converted, possibly_deferred_path);
-				if (!Succeeded(rc)) {
-					std::wstring error_desc = dsCannot_Write_File;
-					error_desc.append(possibly_deferred_path);
-					
-					shared_error_description.push(error_desc);
-					return rc;
-				}
-
-				//file has been saved succesfully => write the deferred file path
-				converted = mDeferred_Magic_String_Prefix;
-				converted.append(possibly_deferred_path);
-				converted.append(mDeferred_Magic_String_Postfix);				
-			} 
-			
+			//and, write the value				
 			ini_SetValue(id_str, config_name, converted, comment);
 		}
 	}
@@ -493,50 +442,6 @@ wchar_t* CPersistent_Chain_Configuration::Describe_GUID(const GUID& val, const s
 	return result;
 }
 
-std::tuple<bool, std::wstring> CPersistent_Chain_Configuration::Is_Deferred_Parameter(const wchar_t* str_value) {
-	const size_t len = wcslen(str_value);
-	if (len < wcslen(mDeferred_Magic_String_Prefix) + wcslen(mDeferred_Magic_String_Postfix) + 1)
-		return { false, L"" };	//just does not fit
-
-	if (wmemcmp(str_value, mDeferred_Magic_String_Prefix, wcslen(mDeferred_Magic_String_Prefix)) != 0)
-		return { false, L"" };	//unrecognized prefix
-
-
-	if (str_value[len - 1] != mDeferred_Magic_String_Postfix[0])
-		return { false, L"" };	//malformed
-
-	return { true, 
-		std::wstring{str_value + wcslen(mDeferred_Magic_String_Prefix), 
-						 str_value + len - wcslen(mDeferred_Magic_String_Postfix)} };
-}
-
-std::tuple<HRESULT, std::wstring> CPersistent_Chain_Configuration::Load_From_File(const wchar_t *path) {
-	std::wifstream src_file;
-	src_file.open(path);
-
-	if (src_file.is_open()) {
-		std::vector<wchar_t> buf;
-		buf.assign(std::istreambuf_iterator<wchar_t>(src_file), std::istreambuf_iterator<wchar_t>());
-		// fix valgrind's "Conditional jump or move depends on uninitialised value(s)"
-		// although we are sending proper length, SimpleIni probably reaches one byte further and reads uninitialized memory
-		buf.push_back(0);
-		return { S_OK, std::wstring{ buf.begin(), buf.end() } };
-	}
-	else
-		return { ERROR_FILE_NOT_FOUND, L"" };
-}
-
-HRESULT CPersistent_Chain_Configuration::Save_To_File(const std::wstring& text, const wchar_t* path) {
-	std::wofstream dst_file;
-	dst_file.open(path);
-
-	if (dst_file.is_open()) {
-		dst_file << text;
-		return S_OK;
-	}
-	else
-		return MK_E_CANTOPENFILE;
-}
 
 HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersistent_Filter_Chain_Configuration** configuration) noexcept {
 	return Manufacture_Object<CPersistent_Chain_Configuration, scgms::IPersistent_Filter_Chain_Configuration>(configuration);

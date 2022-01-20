@@ -261,8 +261,14 @@ protected:
 	std::map<std::wstring, std::wstring> mNon_OS_Variables;
 	std::tuple<HRESULT, std::wstring> Evaluate_Variable(const std::wstring &var_name);
 protected:
-	std::wstring mDeferred_Path;	//wstring so that we can pass its c_str when Get_Deffered_File gets called
+	std::wstring mDeferred_Path_Or_Var;	//wstring so that we can pass its c_str when Get_Deffered_File gets called
+	const wchar_t* mDeferred_Magic_String_Prefix = L"$([[deferred to]]";
+	const wchar_t* mDeferred_Magic_String_Postfix = L")";
 	std::wstring Make_Absolute_Path(filesystem::path src_path);
+	std::tuple<bool, std::wstring> Is_Deferred_Parameter(const wchar_t* str_value); //returns true/false and filepath if true
+	std::wstring Resolve_Deferred_Path();
+	std::tuple<HRESULT, std::wstring> Load_From_File(const wchar_t* path);
+	HRESULT Save_To_File(const std::wstring& text, const wchar_t* path);
 public:
 	CFilter_Parameter(const scgms::NParameter_Type type, const wchar_t *config_name);
 	virtual ~CFilter_Parameter() {};	
@@ -281,9 +287,6 @@ public:
 
 	virtual HRESULT IfaceCalling Get_File_Path(refcnt::wstr_container** wstr) override final;
 	virtual HRESULT IfaceCalling Set_Parent_Path(const wchar_t* parent_path) override final;
-
-	virtual HRESULT IfaceCalling Defer_To_File(const wchar_t* path) override final;
-	virtual HRESULT IfaceCalling Get_Deferred_File(wchar_t** path) override final;
 
 	virtual HRESULT IfaceCalling Get_Time_Segment_Id_Container(scgms::time_segment_id_container **ids) override final;
 	virtual HRESULT IfaceCalling Set_Time_Segment_Id_Container(scgms::time_segment_id_container *ids) override final;
