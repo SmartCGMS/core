@@ -223,8 +223,8 @@ public:
 
 			//check their fitness in parallel - if actually needed
 			if (initialized_count < mSetup.hint_count) {
-				std::for_each(std::execution::par_unseq, hint_indexes.begin(), hint_indexes.end(), [&mSetup, &hint_fitness](auto& hint_idx) {
-					hint_fitness = mSetup.objective(mSetup.data, mSetup.hints[hint_idx]);
+				std::for_each(std::execution::par_unseq, hint_indexes.begin(), hint_indexes.end(), [this, &hint_fitness](auto& hint_idx) {
+					hint_fitness[hint_idx] = mSetup.objective(mSetup.data, mSetup.hints[hint_idx]);
 					});
 
 				//and sort the select up to the initialized_count best of them
