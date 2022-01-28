@@ -4,6 +4,8 @@
 #include <limits>
 #include <math.h>
 #include <iostream>
+#include <algorithm>
+#include <execution>
 
 static const int MAX_ITER_WITHOUT_IMPROVEMENT = 256;
 
@@ -87,28 +89,27 @@ double** multiply(
         r = new double* [am];
         for (int i = 0; i < am; ++i) {
             double* row = new double[bn];
-            for (int j = 0; j < bn; j++) {
-                row[j] = 0;
-            }
+            memset(row, 0, bn * sizeof(double));
             r[i] = row;
         }
     }
     else {
         // vynulovani matice s vysledkem
         for (int i = 0; i < am; ++i) {
-            for (int j = 0; j < bn; j++) {
-                r[i][j] = 0;
-            }
+            memset(r[i], 0, bn * sizeof(double));
         }
     }
 
-    for (int i = 0; i < am; ++i) {
+    std::vector<size_t> indexes(am);
+    std::iota(indexes.begin(), indexes.end(), 0);
+
+    std::for_each(std::execution::par_unseq, indexes.begin(), indexes.end(), [&](const auto& i) {
         for (int j = 0; j < bn; ++j) {
             for (int k = 0; k < bm; ++k) {
                 r[i][j] += a[i][k] * b[k][j];
             }
         }
-    }
+     });
 
     return r;
 }
@@ -157,6 +158,9 @@ double** create_matrix_R(size_t n, int i, int j) {
     double** r = new double* [n];
     for (int idx_i = 0; idx_i < n; ++idx_i) {
         double* row = new double[n];
+        memset(row, 0, sizeof(double) * n);
+
+
         for (int idx_j = 0; idx_j < n; idx_j++) {
             if (idx_i == i && idx_j == i) {
                 row[idx_j] = std::cos(THETA);
@@ -174,7 +178,7 @@ double** create_matrix_R(size_t n, int i, int j) {
                 row[idx_j] = 1;
             }
             else {
-                row[idx_j] = 0;
+            //    row[idx_j] = 0;  - done by the memset
             }
         }
         r[idx_i] = row;
@@ -221,7 +225,7 @@ double** create_matrix_S_minus_I(size_t n, double** S) {
 }
 
 // Spocte fitness pro jeden bod
-double count_fitness(solver::TSolver_Setup& setup, double* point) {
+double count_fitness(solver::TSolver_Setup& setup, const double* point) {
     // muze se realne stat, ze nenizsi hodnotu fitness bude mit bod mimo rozsah
     // a my nechceme aby tento bod "unesl" ostatni
     // timto ho vyradime z vyberu
@@ -262,13 +266,22 @@ void calculate_fitness_serial(solver::TSolver_Setup &setup, double **search_poin
 }
 
 HRESULT solve_spo(solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {    
+    std::vector<size_t> indexes(setup.population_size);
+    std::iota(indexes.begin(), indexes.end(), 0);
+
+
     int min_fitness_index;
     double min_sum_fitness = std::numeric_limits<double>::max();
     int min_sum_fitness_k = 0;    
     std::vector<double> fitness(setup.population_size);
 
     double **search_points = generate_search_points(setup);
-    calculate_fitness_serial(setup, search_points, fitness);
+    //calculate_fitness_serial(setup, search_points, fitness);
+    std::for_each(std::execution::par_unseq, indexes.begin(), indexes.end(), [&](const auto& index) {
+        const double* x_vec = search_points[index];
+        fitness[index] = count_fitness(setup, x_vec);
+        });
+
     collect_fitness(setup, fitness, progress.best_metric, min_fitness_index, min_sum_fitness);
 
     double **S = create_matrix_S(setup.problem_size);  // S
@@ -276,8 +289,9 @@ HRESULT solve_spo(solver::TSolver_Setup &setup, solver::TSolver_Progress &progre
     std::vector<double> SIc(setup.problem_size);  // (S-I)*c
     std::vector<double> Sx(setup.problem_size);  // S*x
 
-    int k;
-    for (k = 1; k < setup.max_generations; k++) {
+    
+    progress.max_progress = setup.max_generations;
+    for (int k = 1; k < setup.max_generations; k++) {
         // otoceni podle centroidu c - ten s nejmensi fitness
         // x = S*x - (S-I)*c
 
@@ -288,15 +302,19 @@ HRESULT solve_spo(solver::TSolver_Setup &setup, solver::TSolver_Progress &progre
             // center preskocime
             if (i == min_fitness_index) continue;
 
-            double *x_vec = search_points[i];
+            double* x_vec = search_points[i];
             multiply_vect(S, setup.problem_size, setup.problem_size, x_vec, Sx);
             for (int j = 0; j < setup.problem_size; j++) {
                 x_vec[j] = Sx[j] - SIc[j];
             }
-
-            // vypocet fitness presunuteho bodu
-            fitness[i] = count_fitness(setup, x_vec);
         }
+
+
+        std::for_each(std::execution::par_unseq, indexes.begin(), indexes.end(), [&](const auto &index) {
+            // vypocet fitness presunuteho bodu
+            const double* x_vec = search_points[index];
+            fitness[index] = count_fitness(setup, x_vec);
+           });
 
         // vypocet nove fitness
         double sum_fitness;
@@ -310,6 +328,8 @@ HRESULT solve_spo(solver::TSolver_Setup &setup, solver::TSolver_Progress &progre
         else if (k - min_sum_fitness_k > MAX_ITER_WITHOUT_IMPROVEMENT) {
             break;
         }
+
+        progress.current_progress = k;
     }
 
     // zapsani vysledku    
