@@ -17,6 +17,7 @@ protected:
 
 	const TUsed_Solution mLower_Bound;
 	const TUsed_Solution mUpper_Bound;
+	TUsed_Solution mBest_Hint;
 	std::vector<THint_Bounds> mHints;	
 protected:
 	solver::TSolver_Setup mSetup;
@@ -108,6 +109,24 @@ public:
 		//global borders must go as the last one to prefer user-supplied hints 
 		mHints.push_back({ mLower_Bound, mUpper_Bound });
 
+
+		//eventually, let's find the best solution
+		if (setup.hint_count > 0) {
+			mBest_Hint = Vector_2_Solution<TUsed_Solution>(mSetup.hints[0], setup.problem_size);
+			double best_hint_fitness = mSetup.objective(mSetup.data, mBest_Hint.data());
+
+			for (size_t i = 1; i < mSetup.hint_count; i++) {	//check if any other solution is better or not
+				TUsed_Solution candidate = Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size);
+				double candidate_fitness = mSetup.objective(mSetup.data, candidate.data());
+				if (candidate_fitness < best_hint_fitness) {
+					best_hint_fitness = candidate_fitness;
+					mBest_Hint = candidate;
+				}
+			}
+		}
+		else
+			mBest_Hint = 0.5 * (mHints[0].upper + mHints[0].lower);
+
 	}
 
 
@@ -116,7 +135,7 @@ public:
 
 		TCandidate_Solution best_solution;
 
-		best_solution.solution = 0.5*(mHints[0].upper+mHints[0].lower);		
+		best_solution.solution = mBest_Hint;			
 		best_solution.fitness = mSetup.objective(mSetup.data, best_solution.solution.data());
 		progress.best_metric = best_solution.fitness;
 				

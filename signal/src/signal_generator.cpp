@@ -294,7 +294,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 		mSegment_Agnostic_Upper_Bound.assign(model_desc.upper_bound, model_desc.upper_bound + model_desc.total_number_of_parameters);
 	}
     
-    mNumber_Of_Segment_Specific_Parameters = mSync_To_Signal ? model_desc.number_of_segment_specific_parameters : 0;	
+    mNumber_Of_Segment_Specific_Parameters = mSync_To_Signal ? model_desc.number_of_segment_specific_parameters : 1;	
 	const size_t total_specific_parameters_in_doubles = mSegment_Agnostic_Parameters.size() - model_desc.total_number_of_parameters + mNumber_Of_Segment_Specific_Parameters;
 
 	//check that the number of parameters is correct => check that they are not corrupted
@@ -308,9 +308,10 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 
 	if (mNumber_Of_Segment_Specific_Parameters > 0)
 	{
-		const size_t parametrized_segments = total_specific_parameters_in_doubles / mNumber_Of_Segment_Specific_Parameters;
 		size_t begin_offset = 0;
-		
+
+
+		const size_t parametrized_segments = total_specific_parameters_in_doubles / mNumber_Of_Segment_Specific_Parameters;
 		for (size_t i = 0; i < parametrized_segments; i++) {
 			const size_t end_offset = begin_offset + mNumber_Of_Segment_Specific_Parameters;
 

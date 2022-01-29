@@ -59,7 +59,6 @@
 #include <cmath>
 #include <tuple>
 #include <set>
-#include <cwctype>
 
 #undef min
 #undef max
@@ -299,52 +298,6 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 		}
 	}
 
-}
-
-
-bool Match_Wildcard(const std::wstring fname, const std::wstring wcard, const bool case_sensitive) {
-	size_t f = 0;
-	for (size_t w = 0; w < wcard.size(); w++) {
-		switch (wcard[w]) {
-		case L'?':
-			if (f >= fname.size()) return false;
-			//there is one char to eat, let's continue
-			f++;
-			break;
-
-
-		case L'*':
-			//skip everything in the filename until extension or dir separator
-			while (f < fname.size()) {
-				if ((fname[f] == L'.') || (fname[f] == filesystem::path::preferred_separator))
-					break;
-
-				f++;
-			}
-			break;
-
-
-		default:
-			if (f >= fname.size()) 
-				return false;
-			if (case_sensitive) {
-				if (wcard[w] != fname[f]) 
-					return false;
-			}
-			else {
-				if (std::towupper(wcard[w]) != std::towupper(fname[f])) 
-					return false;
-			}
-			//wild card and name still matches, continue
-			f++;
-			break;
-
-		}
-
-
-	}
-
-	return f < fname.size() ? false : true;	//return false if some chars in the fname were not eaten
 }
 
 std::vector<CLog_Replay_Filter::TLog_Segment_id> CLog_Replay_Filter::Enumerate_Log_Segments() {

@@ -49,6 +49,7 @@
 #include <fstream>
 #include <vector>
 #include <mutex>
+#include <map>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
@@ -58,7 +59,10 @@
  */
 class CLog_Filter : public scgms::CBase_Filter, public scgms::ILog_Filter_Inspection{
 protected:
-	std::wofstream mLog;
+	std::wofstream mLog;	//all segments logging
+	std::map<uint64_t, std::wofstream> mSegmented_Logs;
+	bool mLog_Per_Segment = false;
+
 	scgms::CSignal_Description mSignal_Names;
 	filesystem::path mLog_Filename;
 
@@ -67,8 +71,8 @@ protected:
 	std::mutex mLog_Records_Guard;
 	std::shared_ptr<refcnt::wstr_list> mNew_Log_Records;
 	
-	bool Open_Log(const filesystem::path&log_filename);
-	void Log_Event(const scgms::UDevice_Event &evt);
+	std::wofstream Open_Log(const filesystem::path&log_filename);
+	void Log_Event(std::wofstream& log, const scgms::UDevice_Event &evt, const bool push_to_ui_container);
 protected:
 	// vector of model descriptors; stored for parameter formatting
 	std::vector<scgms::TModel_Descriptor> mModelDescriptors;

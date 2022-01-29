@@ -215,13 +215,36 @@ public:
 
 		//1. create the initial population		
 		const size_t initialized_count = std::min(mPopulation.size() / 2, mSetup.hint_count);
+		//a) find the best hints
+		std::vector<size_t> hint_indexes(mSetup.hint_count);
+		{
+			std::iota(std::begin(hint_indexes), std::end(hint_indexes), 0);
+			std::vector<double> hint_fitness;
 
-		//a) by storing suggested params
-		for (size_t i = 0; i < initialized_count; i++) {
-			mPopulation[i].current = mUpper_Bound.min(mLower_Bound.max(Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size)));//also ensure the bounds
+			//check their fitness in parallel - if actually needed
+			if (initialized_count < mSetup.hint_count) {
+				std::for_each(std::execution::par_unseq, hint_indexes.begin(), hint_indexes.end(), [this, &hint_fitness](auto& hint_idx) {
+					hint_fitness[hint_idx] = mSetup.objective(mSetup.data, mSetup.hints[hint_idx]);
+					});
+
+				//and sort the select up to the initialized_count best of them
+				std::partial_sort(hint_indexes.begin(), hint_indexes.begin() + initialized_count, hint_indexes.end(),
+					[&](const size_t& a, const size_t& b) {
+						if (std::isnan(hint_fitness[hint_indexes[a]])) return false;
+						if (std::isnan(hint_fitness[hint_indexes[b]])) return true;
+
+						return hint_fitness[hint_indexes[a]] < hint_fitness[hint_indexes[b]];
+					});
+			}
 		}
 
-		//b) by complementing it with randomly generated numbers
+
+		//b) by storing suggested params
+		for (size_t i = 0; i < initialized_count; i++) {
+			mPopulation[i].current = mUpper_Bound.min(mLower_Bound.max(Vector_2_Solution<TUsed_Solution>(mSetup.hints[hint_indexes[i]], setup.problem_size)));//also ensure the bounds
+		}
+
+		//c) by complementing it with randomly generated numbers
 		const auto bounds_range = mUpper_Bound - mLower_Bound;
 		for (size_t i = initialized_count; i < mPopulation.size(); i++) {
 			TUsed_Solution tmp;
@@ -236,7 +259,7 @@ public:
 			mPopulation[i].current = mLower_Bound + tmp.cwiseProduct(bounds_range);
 		}
 
-		//c) and shuffle
+		//d) and shuffle
 		std::shuffle(mPopulation.begin(), mPopulation.end(), mRandom_Generator);
 
 		//2. set cr and f parameters, and calculate the metrics		

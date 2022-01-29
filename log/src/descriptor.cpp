@@ -48,22 +48,26 @@
 
 namespace logger
 {
-	constexpr size_t param_count = 1;
+	constexpr size_t param_count = 2;
 
 	constexpr scgms::NParameter_Type param_type[param_count] = {
-		scgms::NParameter_Type::ptWChar_Array		
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptBool
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
-		dsLog_Output_File		
+		dsLog_Output_File,
+		dsLog_Segments_Individually
 	};
 
 	const wchar_t* config_param_name[param_count] = {
-		rsLog_Output_File
+		rsLog_Output_File,
+		rsLog_Segments_Individually
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
-		dsLog_File_Output_Tooltip,		
+		dsLog_File_Output_Tooltip,	
+		nullptr
 	};
 
 	const scgms::TFilter_Descriptor Log_Descriptor = {

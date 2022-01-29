@@ -37,7 +37,6 @@
  */
 
 #include "fast_signal_error.h"
-#include "descriptor.h"
 
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/UILib.h"
@@ -50,16 +49,83 @@
 #include <type_traits>
 
 
+namespace fast_signal_metrics {
+
+
+	CAvg_SD::CAvg_SD(double& levels_counter) : mLevels_Counter(levels_counter) {
+		//
+	};
+
+
+	double CAvg_SD::Avg_Divisor() {
+		return mLevels_Counter > 1.5 ? mLevels_Counter - 1.5 + 1.0 / (8.0 * (mLevels_Counter - 1.0)) : 1.0;
+	}
+
+	void CAvg_SD::Update_Counters(const double difference) {
+		const double frozen_counter = mLevels_Counter;
+
+		mLevels_Counter += 1.0;
+		mAccumulator += difference;
+
+		const double delta = difference - (mAccumulator / Avg_Divisor());
+		mVariance += delta * delta * frozen_counter / mLevels_Counter;
+	}
+
+	double CAvg_SD::Calculate_Metric() {
+		const double divisor = Avg_Divisor();
+		const double avg = mAccumulator / divisor;
+		if (mLevels_Counter > 1.0) {
+			return avg + std::sqrt(mVariance / divisor);
+		}
+		else
+			return avg; //zero variance	
+	}
+
+	void CAvg_SD::Clear_Counters() {
+		mAccumulator = 0.0;
+		mVariance = 0.0;
+		mLevels_Counter = 0.0;
+	}
+
+
+	const GUID& CAvg_SD::Metric_ID() const {
+		return mMetric_ID;
+	}
+
+	CAvg::CAvg(double& levels_counter) : mLevels_Counter(levels_counter) {
+		//
+	}
+
+	void CAvg::Update_Counters(const double difference) {
+		mAccumulator += difference;
+		mLevels_Counter += 1.0;
+	}
+
+	double CAvg::Calculate_Metric() {
+		return mAccumulator / mLevels_Counter;
+	}
+
+
+	void CAvg::Clear_Counters() {
+		mAccumulator = 0.0;
+		mLevels_Counter = 0.0;
+	}
+
+	const GUID& CAvg::Metric_ID() const {
+		return mMetric_ID;
+	}
+
+}
+
 
 CFast_Signal_Error::CFast_Signal_Error(scgms::IFilter *output) : CBase_Filter(output) {
-	Clear_Counters();
-	Clear_Signal_Info();
+	
 }
 
 CFast_Signal_Error::~CFast_Signal_Error() {
 	if (mPromised_Metric) {		
 		if (mLevels_Counter >= static_cast<double>(mLevels_Required)) {
-			double metric = Calculate_Metric();
+			double metric = mCalculate_Metric();
 			if (mPrefer_More_Levels)
 				metric /= mLevels_Counter;
 			*mPromised_Metric = metric;
@@ -81,7 +147,7 @@ HRESULT CFast_Signal_Error::Do_Execute(scgms::UDevice_Event event) {
 
 		case scgms::NDevice_Event_Code::Warm_Reset:
 			{
-				Clear_Counters();
+				mClear_Counters();
 				Clear_Signal_Info();
 				mNew_Data_Logical_Clock++;
 				break;
@@ -102,11 +168,18 @@ HRESULT CFast_Signal_Error::Do_Configure(scgms::SFilter_Configuration configurat
 	if (Is_Invalid_GUID(mReference_Signal_ID, mError_Signal_ID)) return E_INVALIDARG;
 
 	const GUID metric_id = configuration.Read_GUID(rsSelected_Metric);
-	if (metric_id != mtrAvg_Plus_Bessel_Std_Dev) {
-		error_description.push(dsUnsupported_Metric_Configuration);
-		return E_INVALIDARG;
-	}
 
+	if (Bind_Metric(metric_id, mAvg_SD)) {}
+		else if (Bind_Metric(metric_id, mAvg)) {}
+			else {
+				error_description.push(dsUnsupported_Metric_Configuration);
+				return E_INVALIDARG;
+			}
+
+	mClear_Counters();
+	Clear_Signal_Info();
+
+	
 	mDescription = configuration.Read_String(rsDescription, true, GUID_To_WString(mReference_Signal_ID).append(L" - ").append(GUID_To_WString(mError_Signal_ID)));
 
 	mRelative_Error = configuration.Read_Bool(rsUse_Relative_Error, mRelative_Error);
@@ -196,40 +269,11 @@ void CFast_Signal_Error::Update_Signal_Info(const double level, const double dev
 			else
 				difference = std::fabs(difference);
 
-			Update_Counters(difference);
+			mUpdate_Counters(difference);
 		}
 	}	
 }
 
-
-double CFast_Signal_Error::avg_divisor() {	
-	return mLevels_Counter > 1.5 ? mLevels_Counter - 1.5 + 1.0 / (8.0 * (mLevels_Counter - 1.0)) : 1.0;
-}
-
-void CFast_Signal_Error::Update_Counters(const double difference) {
-	const double frozen_counter = mLevels_Counter;
-	
-	mLevels_Counter += 1.0;
-	mAccumulator += difference;
-	
-	const double delta = difference - (mAccumulator / avg_divisor());
-	mVariance += delta * delta * frozen_counter / mLevels_Counter;
-}
-
-double CFast_Signal_Error::Calculate_Metric() {
-	const double divisor = avg_divisor();
-	const double avg = mAccumulator / divisor;
-	if (mLevels_Counter > 1.0) {
-		return avg+std::sqrt(mVariance / divisor);
-	}
-	else
-		return avg; //zero variance
-}
-
-void CFast_Signal_Error::Clear_Counters() {
-	mAccumulator = 0.0;
-	mVariance = 0.0;
-}
 
 HRESULT IfaceCalling CFast_Signal_Error::Logical_Clock(ULONG* clock) {
 	if (!clock) return E_INVALIDARG;

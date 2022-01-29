@@ -38,6 +38,8 @@
 
 #pragma once
 
+#include "descriptor.h"
+
 #include "../../../common/rtl/DeviceLib.h"
 #include "../../../common/rtl/FilterLib.h"
 #include "../../../common/rtl/SolverLib.h"
@@ -51,22 +53,77 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
+
+namespace fast_signal_metrics {
+
+	class CAvg_SD {
+	protected:
+		double mAccumulator = 0.0;
+		double mVariance = 0.0;
+		double &mLevels_Counter;
+		
+		double Avg_Divisor();
+
+
+		const GUID mMetric_ID = mtrAvg_Plus_Bessel_Std_Dev;
+
+	public:
+		CAvg_SD(double& levels_counter);
+		
+		void Update_Counters(const double difference);
+		double Calculate_Metric();
+		void Clear_Counters();
+		const GUID& Metric_ID() const;
+	};
+
+
+	class CAvg {
+	protected:
+		double mAccumulator = 0.0;
+		double& mLevels_Counter;
+
+		const GUID mMetric_ID = mtrAvg_Abs;
+	public:
+		CAvg(double& levels_counter);
+
+		void Update_Counters(const double difference);
+		double Calculate_Metric();
+		void Clear_Counters();
+
+		const GUID& Metric_ID() const;
+	};
+
+}
+
 /*
  * So far, it calcules avg+sd only. In the future, it could be extended.
  */
 class CFast_Signal_Error : public virtual scgms::CBase_Filter, public virtual scgms::ILogical_Clock, public virtual scgms::ISignal_Error_Inspection {
 protected:
-	//this protected section has to be moved to a separate class, once we support more metrics
-	
-	double mAccumulator = 0.0;
-	double mVariance = 0.0;
-	
-	double avg_divisor();
-	void Update_Counters(const double difference);
-	double Calculate_Metric();
-	void Clear_Counters();
+	double mLevels_Counter = 0.0;	//shared variable needed by all metric and this class too
+
+
+	//we prefere to occupy few bytes more to avoid the costs of dynamic polymorphismus
+	std::function<void(const double)> mUpdate_Counters;
+	std::function<double()> mCalculate_Metric;
+	std::function<void()> mClear_Counters;
+
+
+	template <typename M>
+	bool Bind_Metric(const GUID &desired_metric_id, M& metric) {
+		if (desired_metric_id == metric.Metric_ID()) {
+			mCalculate_Metric = std::bind(std::mem_fn(&M::Calculate_Metric), &metric);
+			mUpdate_Counters = std::bind(std::mem_fn(&M::Update_Counters), &metric, std::placeholders::_1);
+			mClear_Counters = std::bind(std::mem_fn(&M::Clear_Counters), &metric);		
+			
+			return true;
+		}
+		else
+			return false;
+	}
 protected:
-	double mLevels_Counter = 0.0;
+	fast_signal_metrics::CAvg_SD mAvg_SD{ mLevels_Counter };
+	fast_signal_metrics::CAvg mAvg{ mLevels_Counter };
 
 	struct TSignal_Info {
 		double level;

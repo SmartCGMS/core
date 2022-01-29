@@ -215,7 +215,7 @@ protected:
 		std::wstringstream converted;
 
 		//unused keeps static analysis happy about creating an unnamed object
-		auto unused = converted.imbue(std::locale(std::wcout.getloc(), new CDecimal_Separator<wchar_t>{ L'.' })); //locale takes owner ship of dec_sep
+		auto unused = converted.imbue(std::locale(std::wcout.getloc(), new CDecimal_Separator<wchar_t>{ L'.' })); //locale takes ownership of dec_sep
 		converted << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
 
 		bool not_empty = false;
@@ -260,6 +260,15 @@ protected:
 	std::wstring mVariable_Name;
 	std::map<std::wstring, std::wstring> mNon_OS_Variables;
 	std::tuple<HRESULT, std::wstring> Evaluate_Variable(const std::wstring &var_name);
+protected:
+	std::wstring mDeferred_Path_Or_Var;	//wstring so that we can pass its c_str when Get_Deffered_File gets called
+	const wchar_t* mDeferred_Magic_String_Prefix = L"$([[deferred to]]";
+	const wchar_t* mDeferred_Magic_String_Postfix = L")";
+	std::wstring Make_Absolute_Path(filesystem::path src_path);
+	std::tuple<bool, std::wstring> Is_Deferred_Parameter(const wchar_t* str_value); //returns true/false and filepath if true
+	std::wstring Resolve_Deferred_Path();
+	std::tuple<HRESULT, std::wstring> Load_From_File(const wchar_t* path);
+	HRESULT Save_To_File(const std::wstring& text, const wchar_t* path);
 public:
 	CFilter_Parameter(const scgms::NParameter_Type type, const wchar_t *config_name);
 	virtual ~CFilter_Parameter() {};	
@@ -275,6 +284,7 @@ public:
 
 	virtual HRESULT IfaceCalling Get_WChar_Container(refcnt::wstr_container** wstr, BOOL read_interpreted) override final;
 	virtual HRESULT IfaceCalling Set_WChar_Container(refcnt::wstr_container *wstr) override final;
+
 	virtual HRESULT IfaceCalling Get_File_Path(refcnt::wstr_container** wstr) override final;
 	virtual HRESULT IfaceCalling Set_Parent_Path(const wchar_t* parent_path) override final;
 

@@ -50,6 +50,7 @@
 class CPersistent_Chain_Configuration : public virtual scgms::IPersistent_Filter_Chain_Configuration, public virtual refcnt::internal::CVector_Container<scgms::IFilter_Configuration_Link*> {
 protected:
 	filesystem::path mFile_Path;
+	std::wstring Get_Parent_Path() noexcept;
 	void Advertise_Parent_Path() noexcept;
 protected:
 	wchar_t* Describe_GUID(const GUID& val, const scgms::NParameter_Type param_type, const scgms::CSignal_Description& signal_descriptors) const noexcept;
