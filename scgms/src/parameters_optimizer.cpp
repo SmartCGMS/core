@@ -85,7 +85,7 @@ public:
 
 	HRESULT On_Filter_Created(scgms::IFilter *filter) {
 
-		if (mError_Metric_Count << mError_Metric.size()) {	//check if we actually have a room to store the promised metric
+		if (mError_Metric_Count < mError_Metric.size()) {	//check if we actually have a room to store the promised metric
 			scgms::SSignal_Error_Inspection insp = scgms::SSignal_Error_Inspection{ scgms::SFilter{filter} };
 			if (insp) {
 				const bool metric_available = insp->Promise_Metric(scgms::All_Segments_Id, &mError_Metric[mError_Metric_Count], true) == S_OK;
