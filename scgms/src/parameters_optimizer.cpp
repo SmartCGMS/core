@@ -73,9 +73,13 @@ struct TFast_Configuration {
 class CError_Metric_Future {
 protected:
 	const scgms::TOn_Filter_Created mOn_Filter_Created;
-	const void* mOn_Filter_Created_Data;
-	double mError_Metric = std::numeric_limits<double>::quiet_NaN();
-	bool mError_Metric_Available = false;
+	const void* mOn_Filter_Created_Data;		
+protected:
+	//bool mError_Metric_Available = false;
+	//double mError_Metric = std::numeric_limits<double>::quiet_NaN();
+	std::array<double, 10> mError_Metric{ std::numeric_limits<double>::quiet_NaN() };
+		//has to be array as vector could actually reallocate the memory block on push_back
+	size_t mError_Metric_Count = 0;	//count of all used metrics
 public:
 	CError_Metric_Future(scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) : mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data) {};
 
@@ -83,15 +87,32 @@ public:
 
 		scgms::SSignal_Error_Inspection insp = scgms::SSignal_Error_Inspection{ scgms::SFilter{filter} };
 		if (insp) {
-			mError_Metric_Available = insp->Promise_Metric(scgms::All_Segments_Id, &mError_Metric, true) == S_OK;
-			if (!mError_Metric_Available) return E_FAIL;
+			const bool metric_available = insp->Promise_Metric(scgms::All_Segments_Id, &mError_Metric[mError_Metric_Count], true) == S_OK;
+			if (metric_available)
+				mError_Metric_Count++;
+			else
+				return E_FAIL;
+
 		}
 
 		return mOn_Filter_Created ? mOn_Filter_Created(filter, mOn_Filter_Created_Data) : S_OK;
 	}
 
 	double Get_Error_Metric() {
-		return mError_Metric_Available ? mError_Metric : std::numeric_limits<double>::quiet_NaN();
+		if (mError_Metric_Count == 1) {
+			return mError_Metric[0];	//no need to compute the final metric
+		} 
+			else if (mError_Metric_Count > 1) {
+				double result = 0.0;
+
+				//at this point, we have no other choice but to treat all the metrics as equally worth
+				for (size_t i = 0; i < mError_Metric_Count; i++)
+					result += mError_Metric[i] * mError_Metric[i];
+
+				return std::sqrt(result);
+
+			} else
+				return std::numeric_limits<double>::quiet_NaN();
 	}
 };
 
