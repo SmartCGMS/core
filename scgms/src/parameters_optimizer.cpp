@@ -85,14 +85,16 @@ public:
 
 	HRESULT On_Filter_Created(scgms::IFilter *filter) {
 
-		scgms::SSignal_Error_Inspection insp = scgms::SSignal_Error_Inspection{ scgms::SFilter{filter} };
-		if (insp) {
-			const bool metric_available = insp->Promise_Metric(scgms::All_Segments_Id, &mError_Metric[mError_Metric_Count], true) == S_OK;
-			if (metric_available)
-				mError_Metric_Count++;
-			else
-				return E_FAIL;
+		if (mError_Metric_Count << mError_Metric.size()) {	//check if we actually have a room to store the promised metric
+			scgms::SSignal_Error_Inspection insp = scgms::SSignal_Error_Inspection{ scgms::SFilter{filter} };
+			if (insp) {
+				const bool metric_available = insp->Promise_Metric(scgms::All_Segments_Id, &mError_Metric[mError_Metric_Count], true) == S_OK;
+				if (metric_available)
+					mError_Metric_Count++;
+				else
+					return E_FAIL;
 
+			}
 		}
 
 		return mOn_Filter_Created ? mOn_Filter_Created(filter, mOn_Filter_Created_Data) : S_OK;
