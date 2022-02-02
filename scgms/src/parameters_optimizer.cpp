@@ -80,6 +80,9 @@ protected:
 	std::array<double, 10> mError_Metric{ std::numeric_limits<double>::quiet_NaN() };
 		//has to be array as vector could actually reallocate the memory block on push_back
 	size_t mError_Metric_Count = 0;	//count of all used metrics
+
+	const std::array<double, 10> mMetric_Weight_Prefixes{ 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0 };
+	const std::array<double, 10> mInv_Metric_Weight_Sum_Of_Prefixes{ 1.0, 1.0/3.0, 1.0 / 6.0, 0.1, 1.0 / 15.0, 1.0 / 21.0, 1.0 / 28.0, 1.0 / 36.0, 1.0 / 45.0, 1.0 / 55.0 };
 public:
 	CError_Metric_Future(scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) : mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data) {};
 
@@ -91,6 +94,8 @@ public:
 				const bool metric_available = insp->Promise_Metric(scgms::All_Segments_Id, &mError_Metric[mError_Metric_Count], true) == S_OK;
 				if (metric_available)
 					mError_Metric_Count++;
+						//note that we are actually storing the last metric as the first one
+						//which is beneficial to us here - see as we compute the weights in ::Get_Error_Metric()
 				else
 					return E_FAIL;
 
@@ -105,13 +110,14 @@ public:
 			return mError_Metric[0];	//no need to compute the final metric
 		} 
 			else if (mError_Metric_Count > 1) {
-				double result = 0.0;
+				double result = 0.0;				 
 
 				//at this point, we have no other choice but to treat all the metrics as equally worth
+				//so we experiment with their order - the first one in the config has the highest priority
 				for (size_t i = 0; i < mError_Metric_Count; i++)
-					result += mError_Metric[i] * mError_Metric[i];
+					result += mError_Metric[i] * mError_Metric[i] * mMetric_Weight_Prefixes[i];
 
-				return std::sqrt(result);
+				return std::sqrt(result * mInv_Metric_Weight_Sum_Of_Prefixes[mError_Metric_Count]);
 
 			} else
 				return std::numeric_limits<double>::quiet_NaN();
