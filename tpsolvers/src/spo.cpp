@@ -234,7 +234,12 @@ double count_fitness(solver::TSolver_Setup& setup, const double* point) {
             return std::numeric_limits<double>::max();
         }
     }
-    return setup.objective(setup.data, point);
+
+    std::array<double, solver::Maximum_Objectives_Count> fitness;
+    if (setup.objective(setup.data, point, fitness.data()) != TRUE)
+        fitness[0] = std::numeric_limits<double>::max();
+
+    return fitness[0];
 }
 
 // Projde fitness hodnoty a urci minimum a sumu

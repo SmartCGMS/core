@@ -14,7 +14,7 @@ protected:
 	template <typename TSolution>
 	struct TCandidate_Solution {
 		TSolution solution;
-		double fitness = std::numeric_limits<double>::quiet_NaN();
+		std::array<double, solver::Maximum_Objectives_Count> fitness{ std::numeric_limits<double>::quiet_NaN() };
 	};
 protected:
 	const TUsed_Solution mLower_Bound;
@@ -28,7 +28,7 @@ public:
 		mSetup(solver::Check_Default_Parameters(setup, /*100'000*/0, 100)) {
 
 		//a) by storing suggested params
-		for (size_t i = 0; i < mSetup.hint_count; i++) {
+		for (size_t i = 0; i < mSetup.hint_count; i++) {	
 			mStepping.push_back(mUpper_Bound.min(mLower_Bound.max(Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size))));//also ensure the bounds
 		}
 
@@ -56,9 +56,12 @@ public:
 
 		TCandidate_Solution<TUsed_Solution> best_solution;
 		best_solution.solution = mStepping[0];
-		best_solution.fitness = mSetup.objective(mSetup.data, best_solution.solution.data());		
-		progress.best_metric = best_solution.fitness;		
+		if (mSetup.objective(mSetup.data, best_solution.solution.data(), best_solution.fitness.data()) != TRUE)
+			return best_solution.solution;			//TODO: this is not necessarily the best solution, just the first one!
 
+		progress.best_metric = best_solution.fitness[0];
+
+		
 		std::atomic<size_t> atomic_progress{ 0 };
 		std::shared_mutex best_mutex;
 
@@ -85,23 +88,25 @@ public:
 						if (progress.cancelled != FALSE) return;
 
 						static thread_local TUsed_Solution local_solution;
+						static thread_local std::array<double, solver::Maximum_Objectives_Count>  local_solution_fitness;
 						{
 							std::shared_lock read_lock{ best_mutex };
 							local_solution = best_solution.solution;
 						}
 						local_solution(param_idx) = mStepping[val_idx](param_idx);
-						const double local_solution_fitness = mSetup.objective(mSetup.data, local_solution.data());
+						if (mSetup.objective(mSetup.data, local_solution.data(), local_solution_fitness.data()) == TRUE) {
+							
+							if (Compare_Solutions(local_solution_fitness.data(), best_solution.fitness.data(), mSetup.objectives_count)) {
+								std::unique_lock write_lock{ best_mutex };
 
-						if (local_solution_fitness < best_solution.fitness) {
-							std::unique_lock write_lock{ best_mutex };
+								//do not be so rush! verify that this is still the better solution
+								if (Compare_Solutions(local_solution_fitness.data(), best_solution.fitness.data(), mSetup.objectives_count)) {
+									best_solution.solution = local_solution;
+									best_solution.fitness = local_solution_fitness;
+									progress.best_metric = local_solution_fitness[0];
 
-							//do not be so rush! verify that this is still the better solution
-							if (local_solution_fitness < best_solution.fitness) {
-								best_solution.solution = local_solution;
-								best_solution.fitness = local_solution_fitness;
-								progress.best_metric = local_solution_fitness;
-
-								improved = true;
+									improved = true;
+								}
 							}
 						}
 					});

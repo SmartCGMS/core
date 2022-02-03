@@ -36,33 +36,49 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
+#include "solution.h"
 
-#include "../../../common/iface/UIIface.h"
-#include "../../../common/rtl/hresult.h"
+bool Compare_Solutions(const double* a, const double* b, const size_t objectives_count) {
+
+	auto internal_compare = [](const double a, const double b)->bool {
+		if (std::isnan(a))
+			return false;
+
+		if (std::isnan(b))
+			return true;
+
+		return a < b;	//less value is better	
+	};
+
+	//1. handle the special-case of the single objective
+	if (objectives_count == 1) 
+		return internal_compare(a[0], b[0]);
+
+	//2. multi-objective => let's try to determine more dominating solution
+	size_t a_dominations = 0, b_dominations = 0;
+	for (size_t i = 0; i < objectives_count; i++) {
+		if (internal_compare(a[i], b[i])) a_dominations++;				
+		else if (internal_compare(b[i], a[i])) b_dominations++;
+	}
 
 
+	if (a_dominations > b_dominations)
+		return true;
 
-namespace mt_metade {	//mersenne twister initialized with linear random generator
-	constexpr GUID id =	{ 0x1b21b62f, 0x7c6c, 0x4027,{ 0x89, 0xbc, 0x68, 0x7d, 0x8b, 0xd3, 0x2b, 0x3c } };	// {1B21B62F-7C6C-4027-89BC-687D8BD32B3C}
+
+	if (b_dominations > a_dominations)
+		return false;
+
+	
+	//3. both a and b have equal number of dominations => cannot decide
+	//	 and cannot compute a composite metric, as each metric could have different unit
+	//	 => we assume that metrics are sorted by their prioirty and hce we compare them one by one
+	for (size_t i = 0; i < objectives_count; i++) {
+		if (a[i] != b[i]) 
+			return internal_compare(a[i], b[i]);		
+	}
+	
+
+	//4. they look equal, hence a does not dominate b
+	return false;
 }
-
-namespace halton_metade {
-	constexpr GUID id = { 0x1274b08, 0xf721, 0x42bc, { 0xa5, 0x62, 0x5, 0x56, 0x71, 0x4c, 0x56, 0x85 } };
-}
-
-namespace rnd_metade {		//std::random_device, should be cryprographicallly secure depending on the implementation
-	constexpr GUID id = { 0x2332f9a7, 0x39a2, 0x4fd6, { 0x90, 0xd5, 0x90, 0xb8, 0x85, 0x20, 0x18, 0x69 } };
-}
-
-
-namespace sequential_brute_force_scan {		
-	constexpr GUID id = { 0x33d92b0, 0xb49c, 0x45d1, { 0x95, 0x7f, 0x57, 0x68, 0x2d, 0x56, 0xab, 0xd2 } };  //{033D92B0-B49C-45D1-957F-57682D56ABD2}
-}
-
-namespace sequential_convex_scan {
-	constexpr GUID id = { 0xfa42286b, 0x928c, 0x47bd, { 0xaa, 0xf3, 0x2f, 0xe4, 0x73, 0x77, 0x46, 0x6d } };	//{FA42286B-928C-47BD-AAF3-2FE47377466D}
-}
-
-
-extern "C" HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end);

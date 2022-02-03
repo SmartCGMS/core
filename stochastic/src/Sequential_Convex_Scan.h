@@ -21,12 +21,14 @@ protected:
 	std::vector<THint_Bounds> mHints;	
 protected:
 	solver::TSolver_Setup mSetup;
+
 protected:	
 	struct TCandidate_Solution {
 		TUsed_Solution solution;
-		double fitness = std::numeric_limits<double>::quiet_NaN();
+		std::array<double, solver::Maximum_Objectives_Count> fitness{ std::numeric_limits<double>::quiet_NaN() };		
 	};
-	
+
+
 	TCandidate_Solution Find_Extreme(const size_t param_idx, const TUsed_Solution &best, const THint_Bounds& bounds) {
 
 		TCandidate_Solution result;
@@ -40,8 +42,8 @@ protected:
 		double experimental_high = effective_high[param_idx] = bounds.upper[param_idx];
 
 
-		double lower_fitness = std::numeric_limits<double>::max(), 
-				upper_fitness = std::numeric_limits<double>::max();
+		std::array<double, solver::Maximum_Objectives_Count> lower_fitness{ std::numeric_limits<double>::max() };
+		std::array<double, solver::Maximum_Objectives_Count> upper_fitness{ std::numeric_limits<double>::max() };
 
 		size_t iter_counter = 0;
 		while (iter_counter++ < mSetup.population_size) {
@@ -53,16 +55,23 @@ protected:
 
 			//2. find the fitness at both borders
 			result.solution[param_idx] = experimental_low;
-			lower_fitness = mSetup.objective(mSetup.data, result.solution.data());
+			if (mSetup.objective(mSetup.data, result.solution.data(), lower_fitness.data()) != TRUE) {
+				for (auto& elem : lower_fitness)
+					elem = std::numeric_limits<double>::quiet_NaN();
+			}
+
 			result.solution[param_idx] = experimental_high;
-			upper_fitness = mSetup.objective(mSetup.data, result.solution.data());
+			if (mSetup.objective(mSetup.data, result.solution.data(), upper_fitness.data()) != TRUE) {
+				for (auto& elem : upper_fitness)
+					elem = std::numeric_limits<double>::quiet_NaN();
+			}
 			
 			//3. and adjust the borders
-			if (lower_fitness < upper_fitness) {
+			if (Compare_Solutions(lower_fitness.data(), upper_fitness.data(), mSetup.objectives_count)) {
 				//upper fitness is worse, make it the new border; the convex extreme should be at the left
 				effective_high[param_idx] = experimental_high;
 			}
-			else if (upper_fitness < lower_fitness) {
+			else if (Compare_Solutions(upper_fitness.data(), lower_fitness.data(), mSetup.objectives_count)) {
 				//lower border is worse, make it a new border; the convex extreme should lay to the right
 				effective_low[param_idx] = experimental_low;
 			}
@@ -78,7 +87,7 @@ protected:
 
 
 		//return that contracted border that's closer to the extreme
-		if (lower_fitness < upper_fitness) {
+		if (Compare_Solutions(lower_fitness.data(), upper_fitness.data(), mSetup.objectives_count)) {
 			result.solution[param_idx] = experimental_low;
 			result.fitness = lower_fitness;
 		}
@@ -113,14 +122,19 @@ public:
 		//eventually, let's find the best solution
 		if (setup.hint_count > 0) {
 			mBest_Hint = Vector_2_Solution<TUsed_Solution>(mSetup.hints[0], setup.problem_size);
-			double best_hint_fitness = mSetup.objective(mSetup.data, mBest_Hint.data());
+			std::array<double, solver::Maximum_Objectives_Count> best_hint_fitness;
+			if (mSetup.objective(mSetup.data, mBest_Hint.data(), best_hint_fitness.data()) == TRUE) {
+				for (size_t i = 1; i < mSetup.hint_count; i++) {	//check if any other solution is better or not
+					TUsed_Solution candidate = Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size);
+					
+					std::array<double, solver::Maximum_Objectives_Count> candidate_fitness;
+					if (mSetup.objective(mSetup.data, candidate.data(), candidate_fitness.data()) == TRUE) {						
 
-			for (size_t i = 1; i < mSetup.hint_count; i++) {	//check if any other solution is better or not
-				TUsed_Solution candidate = Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size);
-				double candidate_fitness = mSetup.objective(mSetup.data, candidate.data());
-				if (candidate_fitness < best_hint_fitness) {
-					best_hint_fitness = candidate_fitness;
-					mBest_Hint = candidate;
+						if (Compare_Solutions(candidate_fitness.data(), best_hint_fitness.data(), mSetup.objectives_count))	{
+							best_hint_fitness = candidate_fitness;
+							mBest_Hint = candidate;
+						}
+					}
 				}
 			}
 		}
@@ -136,8 +150,10 @@ public:
 		TCandidate_Solution best_solution;
 
 		best_solution.solution = mBest_Hint;			
-		best_solution.fitness = mSetup.objective(mSetup.data, best_solution.solution.data());
-		progress.best_metric = best_solution.fitness;
+		if (mSetup.objective(mSetup.data, best_solution.solution.data(), best_solution.fitness.data()) != TRUE)
+			return mBest_Hint;
+
+		progress.best_metric = best_solution.fitness[0];
 				
 		progress.max_progress = mSetup.problem_size;
 
@@ -164,14 +180,15 @@ public:
 
 						const TCandidate_Solution local_solution = Find_Extreme(param_idx, best_solution.solution, mHints[val_idx]);
 
-						if (local_solution.fitness < best_solution.fitness) {
+						if (Compare_Solutions(local_solution.fitness.data(), best_solution.fitness.data(), mSetup.objectives_count)) {
+
 							std::unique_lock write_lock{ best_mutex };
 
 							//do not be so rush! verify that this is still the better solution
-							if (local_solution.fitness < best_solution.fitness) {
+							if (Compare_Solutions(local_solution.fitness.data(), best_solution.fitness.data(), mSetup.objectives_count)) {
 								best_solution.solution = local_solution.solution;
 								best_solution.fitness = local_solution.fitness;
-								progress.best_metric = local_solution.fitness;
+								progress.best_metric = local_solution.fitness[0];
 
 								improved = true;
 							}

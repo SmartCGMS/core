@@ -40,6 +40,7 @@
 
 #include <Eigen/Dense>
 #include <vector>
+
 #include "../../../common/rtl/AlignmentAllocator.h"
 
 
@@ -57,3 +58,7 @@ TUsed_Solution Vector_2_Solution(const double *vector, const size_t n) {
 	std::copy(vector, vector + n, result.data());	
 	return result;
 }
+
+
+bool Compare_Solutions(const double* a, const double* b, const size_t objectives_count);
+		//returns true if a is better than b - i.e.; if a dominates b
