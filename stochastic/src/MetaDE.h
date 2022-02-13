@@ -240,7 +240,8 @@ public:
 					if (!hint_validity[hint_indexes[a]]) return false;
 					if (!hint_validity[hint_indexes[b]]) return true;
 
-					return Compare_Solutions(hint_fitness[hint_indexes[a]].data(), hint_fitness[hint_indexes[b]].data(), mSetup.objectives_count);
+					return Compare_Solutions(hint_fitness[hint_indexes[a]].data(), hint_fitness[hint_indexes[b]].data(), mSetup.objectives_count, false);
+							//true/false domination see the sorting in the main cycle
 				});
 		}
 		
@@ -325,7 +326,8 @@ public:
 			
 				//comparison to NaN would yield false, if std::numeric_limits::is_iec559
 				//otherwise, it is implementation specific
-				return Compare_Solutions(mPopulation[a].current_fitness.data(), mPopulation[b].current_fitness.data(), mSetup.objectives_count);
+				return Compare_Solutions(mPopulation[a].current_fitness.data(), mPopulation[b].current_fitness.data(), mSetup.objectives_count, false);
+					//do not require strict domination as the [0] has to be the best one, so we need to choose from the non-dominating set
 			});
 
 			//update the progress
@@ -397,7 +399,7 @@ public:
 								if (visited_tournament_indexes.find(random_tournament_index) == visited_tournament_indexes.end()) {
 									visited_tournament_indexes.insert(random_tournament_index);
 
-									if (Compare_Solutions(mPopulation[random_tournament_index].current_fitness.data(), best_tournament_fitness.data(), mSetup.objectives_count)) {
+									if (Compare_Solutions(mPopulation[random_tournament_index].current_fitness.data(), best_tournament_fitness.data(), mSetup.objectives_count, false)) {
 										best_tournament_fitness = mPopulation[random_tournament_index].current_fitness;
 										best_tournament_index = random_tournament_index;
 									}
@@ -442,7 +444,8 @@ public:
 			//3. Let us preserve the better vectors - too fast to amortize parallelization => serial code
 			for (auto &solution : mPopulation) {
 				//used strategy produced a better offspring => leave meta params as they are
-				if (Compare_Solutions(solution.next_fitness.data(), solution.current_fitness.data(), mSetup.objectives_count)) {
+				if (Compare_Solutions(solution.next_fitness.data(), solution.current_fitness.data(), mSetup.objectives_count, true)) {
+									//requires strict domination to push the population towards the Pareto front
 					solution.current = solution.next;
 					solution.current_fitness = solution.next_fitness;
 				}

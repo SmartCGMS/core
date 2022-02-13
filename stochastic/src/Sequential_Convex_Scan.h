@@ -11,6 +11,8 @@
 template <typename TUsed_Solution>
 class CSequential_Convex_Scan {
 protected:
+	const bool mUse_Strict_Domination = true;
+protected:
 	struct THint_Bounds {
 		TUsed_Solution lower, upper;
 	};
@@ -67,11 +69,11 @@ protected:
 			}
 			
 			//3. and adjust the borders
-			if (Compare_Solutions(lower_fitness.data(), upper_fitness.data(), mSetup.objectives_count)) {
+			if (Compare_Solutions(lower_fitness.data(), upper_fitness.data(), mSetup.objectives_count, mUse_Strict_Domination)) {
 				//upper fitness is worse, make it the new border; the convex extreme should be at the left
 				effective_high[param_idx] = experimental_high;
 			}
-			else if (Compare_Solutions(upper_fitness.data(), lower_fitness.data(), mSetup.objectives_count)) {
+			else if (Compare_Solutions(upper_fitness.data(), lower_fitness.data(), mSetup.objectives_count, mUse_Strict_Domination)) {
 				//lower border is worse, make it a new border; the convex extreme should lay to the right
 				effective_low[param_idx] = experimental_low;
 			}
@@ -87,7 +89,7 @@ protected:
 
 
 		//return that contracted border that's closer to the extreme
-		if (Compare_Solutions(lower_fitness.data(), upper_fitness.data(), mSetup.objectives_count)) {
+		if (Compare_Solutions(lower_fitness.data(), upper_fitness.data(), mSetup.objectives_count, mUse_Strict_Domination)) {
 			result.solution[param_idx] = experimental_low;
 			result.fitness = lower_fitness;
 		}
@@ -130,7 +132,7 @@ public:
 					std::array<double, solver::Maximum_Objectives_Count> candidate_fitness;
 					if (mSetup.objective(mSetup.data, candidate.data(), candidate_fitness.data()) == TRUE) {						
 
-						if (Compare_Solutions(candidate_fitness.data(), best_hint_fitness.data(), mSetup.objectives_count))	{
+						if (Compare_Solutions(candidate_fitness.data(), best_hint_fitness.data(), mSetup.objectives_count, mUse_Strict_Domination))	{
 							best_hint_fitness = candidate_fitness;
 							mBest_Hint = candidate;
 						}
@@ -180,12 +182,12 @@ public:
 
 						const TCandidate_Solution local_solution = Find_Extreme(param_idx, best_solution.solution, mHints[val_idx]);
 
-						if (Compare_Solutions(local_solution.fitness.data(), best_solution.fitness.data(), mSetup.objectives_count)) {
+						if (Compare_Solutions(local_solution.fitness.data(), best_solution.fitness.data(), mSetup.objectives_count, mUse_Strict_Domination)) {
 
 							std::unique_lock write_lock{ best_mutex };
 
 							//do not be so rush! verify that this is still the better solution
-							if (Compare_Solutions(local_solution.fitness.data(), best_solution.fitness.data(), mSetup.objectives_count)) {
+							if (Compare_Solutions(local_solution.fitness.data(), best_solution.fitness.data(), mSetup.objectives_count, mUse_Strict_Domination)) {
 								best_solution.solution = local_solution.solution;
 								best_solution.fitness = local_solution.fitness;
 								progress.best_metric = local_solution.fitness[0];

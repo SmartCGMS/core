@@ -38,7 +38,7 @@
 
 #include "solution.h"
 
-bool Compare_Solutions(const double* a, const double* b, const size_t objectives_count) {
+bool Compare_Solutions(const double* a, const double* b, const size_t objectives_count, const bool strict_domination) {
 
 	auto internal_compare = [](const double a, const double b)->bool {
 		if (std::isnan(a))
@@ -61,6 +61,10 @@ bool Compare_Solutions(const double* a, const double* b, const size_t objectives
 		else if (internal_compare(b[i], a[i])) b_dominations++;
 	}
 
+	if (strict_domination) {
+		return (a_dominations > 0) && (b_dominations == 0);
+	}
+
 
 	if (a_dominations > b_dominations)
 		return true;
@@ -69,7 +73,22 @@ bool Compare_Solutions(const double* a, const double* b, const size_t objectives
 	if (b_dominations > a_dominations)
 		return false;
 
+	double a_accu = 0.0;
+	double b_accu = 0.0;
+
 	
+	for (size_t i = 0; i < objectives_count; i++) {
+		if (a[i] != b[i]) {
+			const double w = static_cast<double>(objectives_count - i);
+
+			a_accu += a[i] * a[i] * w;
+			b_accu += b[i] * b[i] * w;
+		}
+	}
+
+	if (a_accu != b_accu)
+		return a_accu < b_accu;
+		
 	//3. both a and b have equal number of dominations => cannot decide
 	//	 and cannot compute a composite metric, as each metric could have different unit
 	//	 => we assume that metrics are sorted by their prioirty and hce we compare them one by one

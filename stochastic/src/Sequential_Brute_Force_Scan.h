@@ -11,6 +11,8 @@
 template <typename TUsed_Solution>
 class CSequential_Brute_Force_Scan {
 protected:
+	const bool mUse_Strict_Domination = true;
+protected:
 	template <typename TSolution>
 	struct TCandidate_Solution {
 		TSolution solution;
@@ -96,11 +98,11 @@ public:
 						local_solution(param_idx) = mStepping[val_idx](param_idx);
 						if (mSetup.objective(mSetup.data, local_solution.data(), local_solution_fitness.data()) == TRUE) {
 							
-							if (Compare_Solutions(local_solution_fitness.data(), best_solution.fitness.data(), mSetup.objectives_count)) {
+							if (Compare_Solutions(local_solution_fitness.data(), best_solution.fitness.data(), mSetup.objectives_count, mUse_Strict_Domination)) {
 								std::unique_lock write_lock{ best_mutex };
 
 								//do not be so rush! verify that this is still the better solution
-								if (Compare_Solutions(local_solution_fitness.data(), best_solution.fitness.data(), mSetup.objectives_count)) {
+								if (Compare_Solutions(local_solution_fitness.data(), best_solution.fitness.data(), mSetup.objectives_count, mUse_Strict_Domination)) {
 									best_solution.solution = local_solution;
 									best_solution.fitness = local_solution_fitness;
 									progress.best_metric = local_solution_fitness[0];

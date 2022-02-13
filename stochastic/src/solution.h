@@ -60,5 +60,5 @@ TUsed_Solution Vector_2_Solution(const double *vector, const size_t n) {
 }
 
 
-bool Compare_Solutions(const double* a, const double* b, const size_t objectives_count);
+bool Compare_Solutions(const double* a, const double* b, const size_t objectives_count, const bool strict_domination);
 		//returns true if a is better than b - i.e.; if a dominates b
