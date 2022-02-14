@@ -61,6 +61,7 @@ bool Compare_Solutions(const double* a, const double* b, const size_t objectives
 		else if (internal_compare(b[i], a[i])) b_dominations++;
 	}
 
+	/*
 	if (strict_domination) {
 		return (a_dominations > 0) && (b_dominations == 0);
 	}
@@ -73,6 +74,14 @@ bool Compare_Solutions(const double* a, const double* b, const size_t objectives
 	if (b_dominations > a_dominations)
 		return false;
 
+	*/
+
+	if ((a_dominations > 0) && (b_dominations == 0))
+		return true;
+	if ((b_dominations > 0) && (a_dominations == 0))
+		return false;
+
+
 	double a_accu = 0.0;
 	double b_accu = 0.0;
 
@@ -81,8 +90,17 @@ bool Compare_Solutions(const double* a, const double* b, const size_t objectives
 		if (a[i] != b[i]) {
 			//const double w = static_cast<double>(objectives_count - i);
 
-			a_accu += a[i] * a[i];// *w;
-			b_accu += b[i] * b[i];// *w;
+			const double sum = a[i] + b[i];	//cannot be zero, because we already tested for their inequality
+				//we use the sum to somewhat equalize possibly different units of each objective
+
+			const double ratio_a = a[i] / sum;
+			const double ratio_b = 1.0 - ratio_a;	//faster than another division
+			
+			a_accu += ratio_a * ratio_a;		//least squares error
+			b_accu += ratio_b * ratio_b;	
+
+			//a_accu += a[i] * a[i];// *w;
+			//b_accu += b[i] * b[i];// *w;
 		}
 	}
 
