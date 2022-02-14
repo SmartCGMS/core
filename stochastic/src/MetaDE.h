@@ -332,11 +332,7 @@ public:
 				//otherwise, it is implementation specific
 				return Compare_Solutions(mPopulation[a].current_fitness.data(), mPopulation[b].current_fitness.data(), mSetup.objectives_count, false);
 					//do not require strict domination as the [0] has to be the best one, so we need to choose from the non-dominating set
-			});
-			//fix the population indexes for the sort-affected positions
-			for (size_t i = 0; i < partial_sort_size; i++) {
-				mPopulation[i].population_index = i;
-			}
+			});			
 
 
 			//update the progress
@@ -408,7 +404,8 @@ public:
 								if (visited_tournament_indexes.find(random_tournament_index) == visited_tournament_indexes.end()) {
 									visited_tournament_indexes.insert(random_tournament_index);
 
-									if (Compare_Solutions(mPopulation[random_tournament_index].current_fitness.data(), best_tournament_fitness.data(), mSetup.objectives_count, candidate_solution.population_index < partial_sort_size)) {
+									if (Compare_Solutions(mPopulation[random_tournament_index].current_fitness.data(), best_tournament_fitness.data(), mSetup.objectives_count, false)) {
+												//no need to require strict domination, as we are computing the candidate fitess now
 										best_tournament_fitness = mPopulation[random_tournament_index].current_fitness;
 										best_tournament_index = random_tournament_index;
 									}
@@ -451,9 +448,12 @@ public:
 
 
 			//3. Let us preserve the better vectors - too fast to amortize parallelization => serial code
-			for (auto &solution : mPopulation) {
+			//for (auto &solution : mPopulation) {
+			for (size_t i=0; i<mPopulation_Best.size(); i++) {
+				auto& solution = mPopulation[mPopulation_Best[i]];
+
 				//used strategy produced a better offspring => leave meta params as they are
-				if (Compare_Solutions(solution.next_fitness.data(), solution.current_fitness.data(), mSetup.objectives_count, solution.population_index < partial_sort_size)) {
+				if (Compare_Solutions(solution.next_fitness.data(), solution.current_fitness.data(), mSetup.objectives_count, i < partial_sort_size)) {
 									//requires strict domination to push the population towards the Pareto front, but only a half of it to improve the diversity
 					solution.current = solution.next;
 					solution.current_fitness = solution.next_fitness;
@@ -473,7 +473,10 @@ public:
 		}
 
 		//find the best result and return it
-		const auto result = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const metade::TMetaDE_Candidate_Solution<TUsed_Solution> &a, const metade::TMetaDE_Candidate_Solution<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
+		const auto result = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const metade::TMetaDE_Candidate_Solution<TUsed_Solution> &a, const metade::TMetaDE_Candidate_Solution<TUsed_Solution> &b) {
+			return Compare_Solutions(a.current_fitness.data(), b.current_fitness.data(), mSetup.objectives_count, false);
+		});
+
 		return result->current;		
 	}
 };
