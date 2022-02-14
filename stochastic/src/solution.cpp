@@ -79,10 +79,10 @@ bool Compare_Solutions(const double* a, const double* b, const size_t objectives
 	
 	for (size_t i = 0; i < objectives_count; i++) {
 		if (a[i] != b[i]) {
-			const double w = static_cast<double>(objectives_count - i);
+			//const double w = static_cast<double>(objectives_count - i);
 
-			a_accu += a[i] * a[i] * w;
-			b_accu += b[i] * b[i] * w;
+			a_accu += a[i] * a[i];// *w;
+			b_accu += b[i] * b[i];// *w;
 		}
 	}
 

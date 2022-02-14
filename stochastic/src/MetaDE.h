@@ -290,7 +290,7 @@ public:
 		//d) and shuffle
 		std::shuffle(mPopulation.begin(), mPopulation.end(), mRandom_Generator);
 
-		//2. set cr and f parameters, and calculate the metrics		
+		//2. set cr and f parameters, and calculate the metrics
 		for (size_t i = 0; i < mPopulation.size(); i++) {
 			auto &solution = mPopulation[i];
 			Generate_Meta_Params(solution);
@@ -318,10 +318,14 @@ public:
 		std::uniform_int_distribution<size_t> mUniform_Distribution_Solution{ 0, solution_size - 1 };	//this distribution must be local as solution can be dynamic
 		std::uniform_int_distribution<size_t> mUniform_Distribution_Population{ 0, mPopulation.size() - 1 };
 
+		const size_t partial_sort_size = std::max(mPBest_Count, mPopulation.size() / 2);
+
 		while ((progress.current_progress++ < mSetup.max_generations) && (progress.cancelled == FALSE)) {
 			//1. determine the best p-count parameters, without actually re-ordering the population
 			//we want to avoid of getting all params close together and likely loosing the population diversity
-			std::partial_sort(mPopulation_Best.begin(), mPopulation_Best.begin() + mPBest_Count, mPopulation_Best.end(),
+			//std::partial_sort(mPopulation_Best.begin(), mPopulation_Best.begin() + mPBest_Count, mPopulation_Best.end(),
+			
+			std::partial_sort(mPopulation_Best.begin(), mPopulation_Best.begin() + partial_sort_size, mPopulation_Best.end(),
 				[&](const size_t &a, const size_t &b) {
 			
 				//comparison to NaN would yield false, if std::numeric_limits::is_iec559
@@ -329,6 +333,11 @@ public:
 				return Compare_Solutions(mPopulation[a].current_fitness.data(), mPopulation[b].current_fitness.data(), mSetup.objectives_count, false);
 					//do not require strict domination as the [0] has to be the best one, so we need to choose from the non-dominating set
 			});
+			//fix the population indexes for the sort-affected positions
+			for (size_t i = 0; i < partial_sort_size; i++) {
+				mPopulation[i].population_index = i;
+			}
+
 
 			//update the progress
 			progress.best_metric = mPopulation[mPopulation_Best[0]].current_fitness[0];
@@ -399,7 +408,7 @@ public:
 								if (visited_tournament_indexes.find(random_tournament_index) == visited_tournament_indexes.end()) {
 									visited_tournament_indexes.insert(random_tournament_index);
 
-									if (Compare_Solutions(mPopulation[random_tournament_index].current_fitness.data(), best_tournament_fitness.data(), mSetup.objectives_count, false)) {
+									if (Compare_Solutions(mPopulation[random_tournament_index].current_fitness.data(), best_tournament_fitness.data(), mSetup.objectives_count, candidate_solution.population_index < partial_sort_size)) {
 										best_tournament_fitness = mPopulation[random_tournament_index].current_fitness;
 										best_tournament_index = random_tournament_index;
 									}
@@ -444,8 +453,8 @@ public:
 			//3. Let us preserve the better vectors - too fast to amortize parallelization => serial code
 			for (auto &solution : mPopulation) {
 				//used strategy produced a better offspring => leave meta params as they are
-				if (Compare_Solutions(solution.next_fitness.data(), solution.current_fitness.data(), mSetup.objectives_count, true)) {
-									//requires strict domination to push the population towards the Pareto front
+				if (Compare_Solutions(solution.next_fitness.data(), solution.current_fitness.data(), mSetup.objectives_count, solution.population_index < partial_sort_size)) {
+									//requires strict domination to push the population towards the Pareto front, but only a half of it to improve the diversity
 					solution.current = solution.next;
 					solution.current_fitness = solution.next_fitness;
 				}
