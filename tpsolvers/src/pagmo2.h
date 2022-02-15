@@ -72,7 +72,7 @@ namespace pagmo2 {
 			if (mSetup.objective(mSetup.data, mBounded_Solution.data(), fitness.data()) != TRUE)
 				fitness[0] = std::numeric_limits<double>::max();
 
-			if (fitness[0] < mProgress.best_metric) mProgress.best_metric = fitness[0];
+			if (fitness[0] < mProgress.best_metric[0]) mProgress.best_metric[0] = fitness[0];
 			return pagmo::vector_double(1, fitness[0]);
 		}
 		

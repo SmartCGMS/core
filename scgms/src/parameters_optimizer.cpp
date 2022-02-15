@@ -77,7 +77,7 @@ protected:
 protected:
 	//bool mError_Metric_Available = false;
 	//double mError_Metric = std::numeric_limits<double>::quiet_NaN();
-	std::array<double, solver::Maximum_Objectives_Count> mError_Metric{ std::numeric_limits<double>::quiet_NaN() };
+	solver::TFitness mError_Metric = solver::Nan_Fitness;
 		//has to be array as vector could actually reallocate the memory block on push_back
 	size_t mError_Metric_Count = 0;	//count of all used metrics
 public:
@@ -569,7 +569,7 @@ public:
 
 		//once implemented, we should return the configuration back to the pool
 
-		//pickup the fitness value/error metrics and return it
+		//pickup the fitness value/error metrics and return it		
 		return (!failure_detected) && (error_metric_future.Get_Error_Metric(fitness) == mObjectives_Count);	//we have to pick at as many metrics as promised
 	}
 };

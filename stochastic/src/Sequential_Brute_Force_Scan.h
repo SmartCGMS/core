@@ -11,12 +11,12 @@
 template <typename TUsed_Solution>
 class CSequential_Brute_Force_Scan {
 protected:
-	const bool mUse_Strict_Domination = true;
+	const NFitness_Strategy mFitness_Strategy = NFitness_Strategy::Master;
 protected:
 	template <typename TSolution>
 	struct TCandidate_Solution {
 		TSolution solution;
-		std::array<double, solver::Maximum_Objectives_Count> fitness{ std::numeric_limits<double>::quiet_NaN() };
+		solver::TFitness fitness{ std::numeric_limits<double>::quiet_NaN() };
 	};
 protected:
 	const TUsed_Solution mLower_Bound;
@@ -52,16 +52,20 @@ public:
 
 	TUsed_Solution Solve(solver::TSolver_Progress &progress) {
 
+		progress = solver::Null_Solver_Progress;
+
 		progress.current_progress = 0;
 		progress.max_progress = mStepping.size()*mSetup.problem_size;
 
 
 		TCandidate_Solution<TUsed_Solution> best_solution;
 		best_solution.solution = mStepping[0];
+		best_solution.fitness = solver::Nan_Fitness;
+
 		if (mSetup.objective(mSetup.data, best_solution.solution.data(), best_solution.fitness.data()) != TRUE)
 			return best_solution.solution;			//TODO: this is not necessarily the best solution, just the first one!
 
-		progress.best_metric = best_solution.fitness[0];
+		progress.best_metric = best_solution.fitness;
 
 		
 		std::atomic<size_t> atomic_progress{ 0 };
@@ -98,14 +102,14 @@ public:
 						local_solution(param_idx) = mStepping[val_idx](param_idx);
 						if (mSetup.objective(mSetup.data, local_solution.data(), local_solution_fitness.data()) == TRUE) {
 							
-							if (Compare_Solutions(local_solution_fitness.data(), best_solution.fitness.data(), mSetup.objectives_count, mUse_Strict_Domination)) {
+							if (Compare_Solutions(local_solution_fitness, best_solution.fitness, mSetup.objectives_count, mFitness_Strategy)) {
 								std::unique_lock write_lock{ best_mutex };
 
 								//do not be so rush! verify that this is still the better solution
-								if (Compare_Solutions(local_solution_fitness.data(), best_solution.fitness.data(), mSetup.objectives_count, mUse_Strict_Domination)) {
+								if (Compare_Solutions(local_solution_fitness, best_solution.fitness, mSetup.objectives_count, mFitness_Strategy)) {
 									best_solution.solution = local_solution;
 									best_solution.fitness = local_solution_fitness;
-									progress.best_metric = local_solution_fitness[0];
+									progress.best_metric = local_solution_fitness;
 
 									improved = true;
 								}

@@ -271,6 +271,8 @@ void calculate_fitness_serial(solver::TSolver_Setup &setup, double **search_poin
 }
 
 HRESULT solve_spo(solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {    
+    progress = solver::Null_Solver_Progress;
+    
     std::vector<size_t> indexes(setup.population_size);
     std::iota(indexes.begin(), indexes.end(), 0);
 
@@ -287,7 +289,7 @@ HRESULT solve_spo(solver::TSolver_Setup &setup, solver::TSolver_Progress &progre
         fitness[index] = count_fitness(setup, x_vec);
         });
 
-    collect_fitness(setup, fitness, progress.best_metric, min_fitness_index, min_sum_fitness);
+    collect_fitness(setup, fitness, progress.best_metric[0], min_fitness_index, min_sum_fitness);
 
     double **S = create_matrix_S(setup.problem_size);  // S
     double **SI = create_matrix_S_minus_I(setup.problem_size, S);  // S-I
@@ -323,7 +325,7 @@ HRESULT solve_spo(solver::TSolver_Setup &setup, solver::TSolver_Progress &progre
 
         // vypocet nove fitness
         double sum_fitness;
-        collect_fitness(setup, fitness, progress.best_metric, min_fitness_index, sum_fitness);
+        collect_fitness(setup, fitness, progress.best_metric[0], min_fitness_index, sum_fitness);
 
         // kontrola zastaveni
         if (sum_fitness < min_sum_fitness) {

@@ -50,6 +50,8 @@
 #undef max
 #undef min
 
+#include "solution.h"
+
 #include "../../../common/rtl/SolverLib.h"
 #include "../../../common/utils/DebugHelper.h"
 
@@ -78,8 +80,10 @@ namespace metade {
 		double CR = 0.5, F = 1.0;
 		TUsed_Solution current, next;
 		
-		std::array<double, solver::Maximum_Objectives_Count> current_fitness{ std::numeric_limits<double>::quiet_NaN() };
-		std::array<double, solver::Maximum_Objectives_Count> next_fitness{ std::numeric_limits<double>::quiet_NaN() };
+		NFitness_Strategy fitness_strategy = NFitness_Strategy::Master;
+
+		solver::TFitness current_fitness{ std::numeric_limits<double>::quiet_NaN() };
+		solver::TFitness next_fitness{ std::numeric_limits<double>::quiet_NaN() };
 	};
 
 	struct TMetaDE_Stats {
@@ -182,18 +186,28 @@ protected:
 	TAligned_Solution_Vector<metade::TMetaDE_Candidate_Solution<TUsed_Solution>> mPopulation;
 	std::vector<size_t> mPopulation_Best;	//indexes into mPopulation sorted by mPopulation's member's current fitness
 											//we do not sort mPopulation due to performance costs and not to loose population diversity
+
+
+	template <typename T>
+	T Generate_New_Strategy(const T old_strategy, std::uniform_int_distribution<size_t> &distribution) {
+		T new_strategy;
+
+		do {
+			new_strategy = static_cast<T>(distribution(mRandom_Generator));			
+		} while (old_strategy == new_strategy);
+
+		return new_strategy;
+	}
+
 	void Generate_Meta_Params(metade::TMetaDE_Candidate_Solution<TUsed_Solution> &solution) { 
 		solution.CR = mCR_min + mCR_range*mUniform_Distribution_dbl(mRandom_Generator);
 		solution.F = mF_min + mF_range*mUniform_Distribution_dbl(mRandom_Generator);
 
-		const auto old_strategy = solution.strategy;
-		decltype(solution.strategy) new_strategy;
+		solution.strategy = Generate_New_Strategy<metade::NStrategy>(solution.strategy, mUniform_Distribution_Strategy);
+		
 		do {
-			new_strategy = static_cast<metade::NStrategy>(mUniform_Distribution_Strategy(mRandom_Generator));							
-			//new_strategy = mUniform_Distribution(mRandom_Generator) > 0.5 ? metade::NStrategy::desCurrentToUmPBest : metade::NStrategy::desCurrentToRand1;
-		} while (old_strategy == new_strategy);
-
-		solution.strategy = new_strategy;
+			solution.fitness_strategy = Generate_New_Strategy<NFitness_Strategy>(solution.fitness_strategy, mUniform_Distribution_Fitness_Strategy);
+		} while (solution.fitness_strategy > static_cast<NFitness_Strategy>(static_cast<size_t>(NFitness_Strategy::MO_Count) + mSetup.objectives_count));	//we need to ensure that we do not overcome the number of objectives
 	}
 protected:
 	//not used in a thread-safe way but does not seem to be a problem so far
@@ -203,6 +217,7 @@ protected:
 	inline static thread_local std::uniform_real_distribution<double> mUniform_Distribution_dbl{ 0.0, 1.0 };
 	inline static thread_local std::uniform_int_distribution<size_t> mUniform_Distribution_PBest{ 0, mPBest_Count-1 };
 	inline static thread_local std::uniform_int_distribution<size_t> mUniform_Distribution_Strategy{ 0, static_cast<size_t>(metade::NStrategy::count)-1 };
+	inline static thread_local std::uniform_int_distribution<size_t> mUniform_Distribution_Fitness_Strategy{ 0, static_cast<size_t>(NFitness_Strategy::count) - 1 };
 protected:
     solver::TSolver_Setup mSetup;
 public:
@@ -218,7 +233,7 @@ public:
 		//1. create the initial population		
 		std::vector<TUsed_Solution> trimmed_hints;
 		std::vector<size_t> hint_indexes(mSetup.hint_count);
-		std::vector<std::array<double, solver::Maximum_Objectives_Count>> hint_fitness(mSetup.hint_count);
+		std::vector<solver::TFitness> hint_fitness(mSetup.hint_count);
 		std::vector<bool> hint_validity(mSetup.hint_count);
 
 		//a) find the best hints
@@ -240,7 +255,7 @@ public:
 					if (!hint_validity[hint_indexes[a]]) return false;
 					if (!hint_validity[hint_indexes[b]]) return true;
 
-					return Compare_Solutions(hint_fitness[hint_indexes[a]].data(), hint_fitness[hint_indexes[b]].data(), mSetup.objectives_count, false);
+					return Compare_Solutions(hint_fitness[hint_indexes[a]], hint_fitness[hint_indexes[b]], mSetup.objectives_count, NFitness_Strategy::Master);
 							//true/false domination see the sorting in the main cycle
 				});
 		}
@@ -290,11 +305,14 @@ public:
 		//d) and shuffle
 		std::shuffle(mPopulation.begin(), mPopulation.end(), mRandom_Generator);
 
-		//2. set cr and f parameters, and calculate the metrics
+		//2. set cr and f parameters, and reset the unused part of the metrics
 		for (size_t i = 0; i < mPopulation.size(); i++) {
 			auto &solution = mPopulation[i];
 			Generate_Meta_Params(solution);
 			solution.population_index = i;
+
+			for (size_t j = mSetup.objectives_count; j < solver::Maximum_Objectives_Count; j++) 
+				solution.current_fitness[j] = solution.next_fitness[j] = std::numeric_limits<double>::quiet_NaN();
 		}
 
 		
@@ -304,13 +322,14 @@ public:
 	}
 
 
-	TUsed_Solution Solve(volatile solver::TSolver_Progress &progress) {
+	TUsed_Solution Solve(solver::TSolver_Progress &progress) {
 
 		if (mCollect_Statistics) {
 			Take_Statistics_Snapshot();
 			mSolve_Start_Time = std::chrono::high_resolution_clock::now();
 		}
 
+		progress = solver::Null_Solver_Progress;
 		progress.current_progress = 0;
 		progress.max_progress = mSetup.max_generations;
 	
@@ -330,13 +349,13 @@ public:
 			
 				//comparison to NaN would yield false, if std::numeric_limits::is_iec559
 				//otherwise, it is implementation specific
-				return Compare_Solutions(mPopulation[a].current_fitness.data(), mPopulation[b].current_fitness.data(), mSetup.objectives_count, false);
+				return Compare_Solutions(mPopulation[a].current_fitness, mPopulation[b].current_fitness, mSetup.objectives_count, NFitness_Strategy::Master);
 					//do not require strict domination as the [0] has to be the best one, so we need to choose from the non-dominating set
 			});			
 
 
 			//update the progress
-			progress.best_metric = mPopulation[mPopulation_Best[0]].current_fitness[0];
+			progress.best_metric = mPopulation[mPopulation_Best[0]].current_fitness;
 
 			//2. Calculate the next vectors and their fitness 
 			//In this step, current is read-only and next is write-only => no locking is needed
@@ -396,7 +415,7 @@ public:
 
 							size_t to_go = std::max(mPBest_Count, mPopulation.size() / 20); //5%
 							size_t best_tournament_index = candidate_solution.population_index;							
-							std::array<double, solver::Maximum_Objectives_Count> best_tournament_fitness{ std::numeric_limits<double>::max() };
+							solver::TFitness best_tournament_fitness{ std::numeric_limits<double>::max() };
 
 							std::set<size_t> visited_tournament_indexes{ best_tournament_index };
 							while (to_go-- > 0) {
@@ -404,7 +423,7 @@ public:
 								if (visited_tournament_indexes.find(random_tournament_index) == visited_tournament_indexes.end()) {
 									visited_tournament_indexes.insert(random_tournament_index);
 
-									if (Compare_Solutions(mPopulation[random_tournament_index].current_fitness.data(), best_tournament_fitness.data(), mSetup.objectives_count, false)) {
+									if (Compare_Solutions(mPopulation[random_tournament_index].current_fitness, best_tournament_fitness, mSetup.objectives_count, NFitness_Strategy::Master)) {
 												//no need to require strict domination, as we are computing the candidate fitess now
 										best_tournament_fitness = mPopulation[random_tournament_index].current_fitness;
 										best_tournament_index = random_tournament_index;
@@ -448,12 +467,9 @@ public:
 
 
 			//3. Let us preserve the better vectors - too fast to amortize parallelization => serial code
-			//for (auto &solution : mPopulation) {
-			for (size_t i=0; i<mPopulation_Best.size(); i++) {
-				auto& solution = mPopulation[mPopulation_Best[i]];
-
+			for (auto &solution : mPopulation) {
 				//used strategy produced a better offspring => leave meta params as they are
-				if (Compare_Solutions(solution.next_fitness.data(), solution.current_fitness.data(), mSetup.objectives_count, i < partial_sort_size)) {
+				if (Compare_Solutions(solution.next_fitness, solution.current_fitness, mSetup.objectives_count, solution.fitness_strategy)) {
 									//requires strict domination to push the population towards the Pareto front, but only a half of it to improve the diversity
 					solution.current = solution.next;
 					solution.current_fitness = solution.next_fitness;
@@ -474,7 +490,7 @@ public:
 
 		//find the best result and return it
 		const auto result = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const metade::TMetaDE_Candidate_Solution<TUsed_Solution> &a, const metade::TMetaDE_Candidate_Solution<TUsed_Solution> &b) {
-			return Compare_Solutions(a.current_fitness.data(), b.current_fitness.data(), mSetup.objectives_count, false);
+			return Compare_Solutions(a.current_fitness, b.current_fitness, mSetup.objectives_count, NFitness_Strategy::Master);
 		});
 
 		return result->current;		

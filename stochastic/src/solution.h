@@ -40,7 +40,9 @@
 
 #include <Eigen/Dense>
 #include <vector>
+#include <array>
 
+#include "../../../common/iface/SolverIface.h"
 #include "../../../common/rtl/AlignmentAllocator.h"
 
 
@@ -60,5 +62,37 @@ TUsed_Solution Vector_2_Solution(const double *vector, const size_t n) {
 }
 
 
-bool Compare_Solutions(const double* a, const double* b, const size_t objectives_count, const bool strict_domination);
+	
+		//Beware, origin is the ultimate, best fitness - negative fitness are not allowed by all strategies
+		//Dominnance based strategies must go first!
+enum class NFitness_Strategy : size_t { Strict_Dominance = 0,					//solution A must be strictly better than solution B
+									    Soft_Dominance,							//A is better if it has more dominating fitnesses than B	
+										Euclidean_Dominance,					//if A nor B is not softly dominant, better solution is chosen by its Euclidean distance from the Origin
+										Weighted_Euclidean_Dominance,			//metrics are assigned weights, while the first one has the greatest weight (weights: n, n-1, n-2... 1, where n is the number of objectives)
+										Ratio_Dominance,						//if A nor B is not softly dominant, better solution is chosen by Euclidean distance of A[i]/(A[i]+B[i]) and its complement (1.0-a/sum) ratios from the Origin
+										Weighted_Ratio_Dominance,				
+		
+										//any dominance-based strategy must be less than this element!!!
+										Dominance_Count,						
+										Euclidean_Distance = Dominance_Count,
+										Weighted_Euclidean_Distance,
+
+										//by this we ended multiple-objective strategies
+										MO_Count,
+										
+										//single objectives must go last
+										Objective_0 = MO_Count,							//just a single objective is better
+										Objective_1,
+										Objective_2,
+										Objective_3, 
+										Objective_4,
+										Objective_5,
+										Objective_6,
+										Objective_7,
+										Objective_8,
+										Objective_9,
+										Master = Euclidean_Dominance,			//the master, default strategy used to slect the final solution
+										count };
+
+bool Compare_Solutions(const solver::TFitness & a, const solver::TFitness & b, const size_t objectives_count, const NFitness_Strategy strategy);
 		//returns true if a is better than b - i.e.; if a dominates b

@@ -38,83 +38,178 @@
 
 #include "solution.h"
 
-bool Compare_Solutions(const double* a, const double* b, const size_t objectives_count, const bool strict_domination) {
 
-	auto internal_compare = [](const double a, const double b)->bool {
-		if (std::isnan(a))
-			return false;
+bool Compare_Elements(const double a, const double b) {
+	if (std::isnan(a))
+		return false;
 
-		if (std::isnan(b))
-			return true;
+	if (std::isnan(b))
+		return true;
 
-		return a < b;	//less value is better	
-	};
+	return a < b;	//less value is better	
+}
 
-	//1. handle the special-case of the single objective
-	if (objectives_count == 1) 
-		return internal_compare(a[0], b[0]);
+std::tuple<size_t, size_t> Count_Dominance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
+	size_t a_count = 0;
+	size_t b_count = 0;
 
-	//2. multi-objective => let's try to determine more dominating solution
-	size_t a_dominations = 0, b_dominations = 0;
 	for (size_t i = 0; i < objectives_count; i++) {
-		if (internal_compare(a[i], b[i])) a_dominations++;				
-		else if (internal_compare(b[i], a[i])) b_dominations++;
-	}
-
-	/*
-	if (strict_domination) {
-		return (a_dominations > 0) && (b_dominations == 0);
+		if (Compare_Elements(a[i], b[i])) a_count++;
+		else if (Compare_Elements(b[i], a[i])) b_count++;
 	}
 
 
-	if (a_dominations > b_dominations)
-		return true;
+	return std::tuple<size_t, size_t>{a_count, b_count};
+}
 
 
-	if (b_dominations > a_dominations)
-		return false;
-
-	*/
-
-	if ((a_dominations > 0) && (b_dominations == 0))
-		return true;
-	if ((b_dominations > 0) && (a_dominations == 0))
-		return false;
-
-
+template <bool weighted>
+bool Euclidean_Distance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
 	double a_accu = 0.0;
 	double b_accu = 0.0;
 
-	
 	for (size_t i = 0; i < objectives_count; i++) {
 		if (a[i] != b[i]) {
-			//const double w = static_cast<double>(objectives_count - i);
+			double a_tmp = a[i] * a[i];
+			double b_tmp = b[i] * b[i];
 
-			const double sum = a[i] + b[i];	//cannot be zero, because we already tested for their inequality
-				//we use the sum to somewhat equalize possibly different units of each objective
+			if constexpr (weighted) {
+				const double w = static_cast<double>(objectives_count - i);
+				a_tmp *= w;
+				b_tmp *= w;
+			}
 
-			const double ratio_a = a[i] / sum;
-			const double ratio_b = 1.0 - ratio_a;	//faster than another division
-			
-			a_accu += ratio_a * ratio_a;		//least squares error
-			b_accu += ratio_b * ratio_b;	
+			a_accu += a_tmp;
+			b_accu += b_tmp;
 
-			//a_accu += a[i] * a[i];// *w;
-			//b_accu += b[i] * b[i];// *w;
 		}
 	}
 
-	if (a_accu != b_accu)
-		return a_accu < b_accu;
-		
-	//3. both a and b have equal number of dominations => cannot decide
-	//	 and cannot compute a composite metric, as each metric could have different unit
-	//	 => we assume that metrics are sorted by their prioirty and hce we compare them one by one
+	return a_accu < b_accu;
+}
+
+
+template <bool weighted>
+bool Ratio_Distance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
+	double a_accu = 0.0;
+	double b_accu = 0.0;
+
 	for (size_t i = 0; i < objectives_count; i++) {
-		if (a[i] != b[i]) 
-			return internal_compare(a[i], b[i]);		
+		if (a[i] != b[i]) {
+			const double sum = a[i] + b[i];
+
+			double a_tmp = a[i] / sum;
+			double b_tmp = 1.0 - a_tmp;
+
+			a_tmp *= a_tmp;
+			b_tmp *= b_tmp;
+
+			if constexpr (weighted) {
+				const double w = static_cast<double>(objectives_count - i);
+				a_tmp *= w;
+				b_tmp *= w;
+			}
+
+			a_accu += a_tmp;
+			b_accu += b_tmp;
+
+		}
+	}
+
+	return a_accu < b_accu;
+}
+
+
+bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count, const NFitness_Strategy strategy) {
+
+	
+	//1. handle the special-case of the single objective
+	if (objectives_count == 1) 
+		return Compare_Elements(a[0], b[0]);
+
+
+	//2. multi-objective => let's try to determine more dominating solution
+	if (strategy < NFitness_Strategy::Dominance_Count) {
+		const auto [a_count, b_count] = Count_Dominance(a, b, objectives_count);
+
+		if ((a_count >0) && (b_count == 0))
+			return true;						//a strictly dominates b
+
+		if (strategy == NFitness_Strategy::Strict_Dominance)
+			return false;
+
+		//now, we are dealing with a soft dominance
+		if (a_count > b_count)
+			return true;
+		else if (b_count > a_count)
+			return false;
+		
+		if (strategy == NFitness_Strategy::Soft_Dominance)
+			return false;
+
+		//at this point, the chosen dominance strategy takes another option to decide
 	}
 	
+
+
+	//3. let us decide by another option than the dominance
+	switch (strategy) {
+		
+
+		case NFitness_Strategy::Weighted_Euclidean_Dominance: [[fallthrough]];
+		case NFitness_Strategy::Weighted_Euclidean_Distance: 
+			return Euclidean_Distance<true>(a, b, objectives_count);
+
+
+		case NFitness_Strategy::Ratio_Dominance:
+			return Ratio_Distance<false>(a, b, objectives_count);
+
+		case NFitness_Strategy::Weighted_Ratio_Dominance:
+			return Ratio_Distance<true>(a, b, objectives_count);
+		
+		
+		case NFitness_Strategy::Objective_0:
+			return Compare_Elements(a[0], b[0]);
+
+		case NFitness_Strategy::Objective_1:
+			return Compare_Elements(a[1], b[1]);
+
+		case NFitness_Strategy::Objective_2:
+			return Compare_Elements(a[2], b[2]);
+
+		case NFitness_Strategy::Objective_3:
+			return Compare_Elements(a[3], b[3]);
+
+		case NFitness_Strategy::Objective_4:
+			return Compare_Elements(a[4], b[4]);
+
+		case NFitness_Strategy::Objective_5:
+			return Compare_Elements(a[5], b[5]);
+
+		case NFitness_Strategy::Objective_6:
+			return Compare_Elements(a[6], b[6]);
+
+		case NFitness_Strategy::Objective_7:
+			return Compare_Elements(a[7], b[7]);
+
+		case NFitness_Strategy::Objective_8:
+			return Compare_Elements(a[8], b[8]);
+
+		case NFitness_Strategy::Objective_9:
+			return Compare_Elements(a[9], b[9]);
+			
+		
+		case NFitness_Strategy::Euclidean_Dominance: [[fallthrough]];
+			//case NFitness_Strategy::Master: [[fallthrough]];
+		case NFitness_Strategy::Euclidean_Distance: [[fallthrough]];
+		default:
+			return Euclidean_Distance<false>(a, b, objectives_count);
+		
+	}
+
+
+	//We should never get here!
+	assert(false);
 
 	//4. they look equal, hence a does not dominate b
 	return false;
