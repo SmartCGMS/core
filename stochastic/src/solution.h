@@ -91,8 +91,10 @@ enum class NFitness_Strategy : size_t { Strict_Dominance = 0,					//solution A m
 										Objective_7,
 										Objective_8,
 										Objective_9,
-										Master = Euclidean_Dominance,			//the master, default strategy used to slect the final solution
-										count };
+										count,
+
+										//unused aliases has to go as the last [with optionally, disabled strategies moved here in the source code]
+										Master = Euclidean_Dominance};			//the master, default strategy used to slect the final solution};
 
 bool Compare_Solutions(const solver::TFitness & a, const solver::TFitness & b, const size_t objectives_count, const NFitness_Strategy strategy);
 		//returns true if a is better than b - i.e.; if a dominates b
