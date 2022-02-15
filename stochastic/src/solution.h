@@ -64,7 +64,7 @@ TUsed_Solution Vector_2_Solution(const double *vector, const size_t n) {
 
 	
 		//Beware, origin is the ultimate, best fitness - negative fitness are not allowed by all strategies
-		//Dominnance based strategies must go first!
+		//Dominance based strategies must go first!
 enum class NFitness_Strategy : size_t { Strict_Dominance = 0,					//solution A must be strictly better than solution B
 									    Soft_Dominance,							//A is better if it has more dominating fitnesses than B	
 										Euclidean_Dominance,					//if A nor B is not softly dominant, better solution is chosen by its Euclidean distance from the Origin
