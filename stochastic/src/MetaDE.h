@@ -204,10 +204,7 @@ protected:
 		solution.F = mF_min + mF_range*mUniform_Distribution_dbl(mRandom_Generator);
 
 		solution.strategy = Generate_New_Strategy<metade::NStrategy>(solution.strategy, mUniform_Distribution_Strategy);
-		
-		do {
-			solution.fitness_strategy = Generate_New_Strategy<NFitness_Strategy>(solution.fitness_strategy, mUniform_Distribution_Fitness_Strategy);
-		} while (solution.fitness_strategy > static_cast<NFitness_Strategy>(static_cast<size_t>(NFitness_Strategy::MO_Count) + mSetup.objectives_count));	//we need to ensure that we do not overcome the number of objectives
+solution.fitness_strategy = Generate_New_Strategy<NFitness_Strategy>(solution.fitness_strategy, mUniform_Distribution_Fitness_Strategy);
 	}
 protected:
 	//not used in a thread-safe way but does not seem to be a problem so far

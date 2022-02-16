@@ -138,13 +138,15 @@ bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, con
 		if (strategy == NFitness_Strategy::Strict_Dominance)
 			return false;
 
-		//now, we are dealing with a soft dominance
-		if (a_count > b_count)
-			return true;
-		else if (b_count > a_count)
+		//now, we are dealing with a soft dominance or any non-dominated
+		if ((a_count > b_count) || ((a_count>0) && (strategy == NFitness_Strategy::Any_Non_Dominated)))
+			return true; //a either softly dominates b, or a is at least not dominated by b - it's just different on the parent front, thus increasing the diversity
+
+
+		if (b_count > a_count)
 			return false;
 		
-		if (strategy == NFitness_Strategy::Soft_Dominance)
+		if ((strategy == NFitness_Strategy::Soft_Dominance) || (strategy == NFitness_Strategy::Any_Non_Dominated))
 			return false;
 
 		//at this point, the chosen dominance strategy takes another option to decide
@@ -167,37 +169,6 @@ bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, con
 		case NFitness_Strategy::Weighted_Ratio_Dominance:
 			return Ratio_Distance<true>(a, b, objectives_count);
 		
-		
-		case NFitness_Strategy::Objective_0:
-			return Compare_Elements(a[0], b[0]);
-
-		case NFitness_Strategy::Objective_1:
-			return Compare_Elements(a[1], b[1]);
-
-		case NFitness_Strategy::Objective_2:
-			return Compare_Elements(a[2], b[2]);
-
-		case NFitness_Strategy::Objective_3:
-			return Compare_Elements(a[3], b[3]);
-
-		case NFitness_Strategy::Objective_4:
-			return Compare_Elements(a[4], b[4]);
-
-		case NFitness_Strategy::Objective_5:
-			return Compare_Elements(a[5], b[5]);
-
-		case NFitness_Strategy::Objective_6:
-			return Compare_Elements(a[6], b[6]);
-
-		case NFitness_Strategy::Objective_7:
-			return Compare_Elements(a[7], b[7]);
-
-		case NFitness_Strategy::Objective_8:
-			return Compare_Elements(a[8], b[8]);
-
-		case NFitness_Strategy::Objective_9:
-			return Compare_Elements(a[9], b[9]);
-			
 		
 		case NFitness_Strategy::Euclidean_Dominance: [[fallthrough]];
 			//case NFitness_Strategy::Master: [[fallthrough]];

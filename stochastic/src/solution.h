@@ -67,6 +67,7 @@ TUsed_Solution Vector_2_Solution(const double *vector, const size_t n) {
 		//Dominance based strategies must go first!
 enum class NFitness_Strategy : size_t { Strict_Dominance = 0,					//solution A must be strictly better than solution B
 									    Soft_Dominance,							//A is better if it has more dominating fitnesses than B	
+										Any_Non_Dominated,						//A is better if it dominates B on at least one fitness - can be used for parent-child only, not for sorting!!
 										Euclidean_Dominance,					//if A nor B is not softly dominant, better solution is chosen by its Euclidean distance from the Origin
 										Weighted_Euclidean_Dominance,			//metrics are assigned weights, while the first one has the greatest weight (weights: n, n-1, n-2... 1, where n is the number of objectives)
 										Ratio_Dominance,						//if A nor B is not softly dominant, better solution is chosen by Euclidean distance of A[i]/(A[i]+B[i]) and its complement (1.0-a/sum) ratios from the Origin
@@ -77,20 +78,6 @@ enum class NFitness_Strategy : size_t { Strict_Dominance = 0,					//solution A m
 										Euclidean_Distance = Dominance_Count,
 										Weighted_Euclidean_Distance,
 
-										//by this we ended multiple-objective strategies
-										MO_Count,
-										
-										//single objectives must go last
-										Objective_0 = MO_Count,							//just a single objective is better
-										Objective_1,
-										Objective_2,
-										Objective_3, 
-										Objective_4,
-										Objective_5,
-										Objective_6,
-										Objective_7,
-										Objective_8,
-										Objective_9,
 										count,
 
 										//unused aliases has to go as the last [with optionally, disabled strategies moved here in the source code]
