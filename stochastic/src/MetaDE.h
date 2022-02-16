@@ -469,7 +469,10 @@ public:
 			//3. Let us preserve the better vectors - too fast to amortize parallelization => serial code
 			for (auto &solution : mPopulation) {
 				//used strategy produced a better offspring => leave meta params as they are
-				if (Compare_Solutions(solution.next_fitness, solution.current_fitness, mSetup.objectives_count, solution.fitness_strategy)) {
+				const bool best_individual = solution.population_index == mPopulation_Best[0];
+				const auto fitness_strategy = best_individual ? NFitness_Strategy::Master : solution.fitness_strategy; //if we would allow any strategy for the best,
+																													   //then, the best distance from the origin could degrade
+				if (Compare_Solutions(solution.next_fitness, solution.current_fitness, mSetup.objectives_count, fitness_strategy)) {
 									//requires strict domination to push the population towards the Pareto front, but only a half of it to improve the diversity
 					solution.current = solution.next;
 					solution.current_fitness = solution.next_fitness;
