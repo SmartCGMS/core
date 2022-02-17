@@ -16,7 +16,7 @@ protected:
 	template <typename TSolution>
 	struct TCandidate_Solution {
 		TSolution solution;
-		solver::TFitness fitness{ std::numeric_limits<double>::quiet_NaN() };
+		solver::TFitness fitness = solver::Nan_Fitness;
 	};
 protected:
 	const TUsed_Solution mLower_Bound;
@@ -94,7 +94,7 @@ public:
 						if (progress.cancelled != FALSE) return;
 
 						static thread_local TUsed_Solution local_solution;
-						static thread_local std::array<double, solver::Maximum_Objectives_Count>  local_solution_fitness;
+						static thread_local solver::TFitness  local_solution_fitness = solver::Nan_Fitness;
 						{
 							std::shared_lock read_lock{ best_mutex };
 							local_solution = best_solution.solution;
