@@ -64,7 +64,7 @@ std::tuple<size_t, size_t> Count_Dominance(const solver::TFitness& a, const solv
 
 
 template <bool weighted>
-bool Euclidean_Distance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
+std::partial_ordering Euclidean_Distance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
 	double a_accu = 0.0;
 	double b_accu = 0.0;
 
@@ -85,12 +85,12 @@ bool Euclidean_Distance(const solver::TFitness& a, const solver::TFitness& b, co
 		}
 	}
 
-	return a_accu < b_accu;
+	return a_accu <=> b_accu;
 }
 
 
 template <bool weighted>
-bool Ratio_Distance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
+std::partial_ordering Ratio_Distance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
 	double a_accu = 0.0;
 	double b_accu = 0.0;
 
@@ -116,7 +116,7 @@ bool Ratio_Distance(const solver::TFitness& a, const solver::TFitness& b, const 
 		}
 	}
 
-	return a_accu < b_accu;
+	return a_accu <=> b_accu;
 }
 
 
@@ -153,34 +153,54 @@ bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, con
 	}
 	
 
-
+	std::partial_ordering comparison = std::partial_ordering::unordered;
 	//3. let us decide by another option than the dominance
 	switch (strategy) {
 		
 
 		case NFitness_Strategy::Weighted_Euclidean_Dominance: [[fallthrough]];
 		case NFitness_Strategy::Weighted_Euclidean_Distance: 
-			return Euclidean_Distance<true>(a, b, objectives_count);
+			comparison = Euclidean_Distance<true>(a, b, objectives_count);
+			break;
 
 
 		case NFitness_Strategy::Ratio_Dominance:
-			return Ratio_Distance<false>(a, b, objectives_count);
+			comparison = Ratio_Distance<false>(a, b, objectives_count);
+			break;
 
 		case NFitness_Strategy::Weighted_Ratio_Dominance:
-			return Ratio_Distance<true>(a, b, objectives_count);
+			comparison = Ratio_Distance<true>(a, b, objectives_count);
+			break;
 		
 		
 		case NFitness_Strategy::Euclidean_Dominance: [[fallthrough]];
 			//case NFitness_Strategy::Master: [[fallthrough]];
 		case NFitness_Strategy::Euclidean_Distance: [[fallthrough]];
 		default:
-			return Euclidean_Distance<false>(a, b, objectives_count);
+			comparison = Euclidean_Distance<false>(a, b, objectives_count);
+			break;
 		
 	}
 
 
-	//We should never get here!
-	assert(false);
+	//4. Is the comparison clearly decided? 
+	if (comparison == std::partial_ordering::less)
+		return true;
+
+	if (comparison == std::partial_ordering::greater)
+		return false;
+
+	
+	//5. No, there's either some nan or the solutions could have exactly the same distance from the origin, but on different coordinates like [0, 1] and [1, 0] being equal in e2
+	// => we have to compare by the metrics priority
+	for (size_t i = 0; i < objectives_count; i++) {
+		if (a[i] != b[i]) {
+			if (Compare_Elements(a[i], b[i]))		//unlike the spaceship operator, this func considers the NaN in the evolutionary manner, in which a normal number should replace NaN
+				return true;
+		}
+	}
+
+
 
 	//4. they look equal, hence a does not dominate b
 	return false;
