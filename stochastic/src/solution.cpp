@@ -89,6 +89,7 @@ std::partial_ordering Euclidean_Distance(const solver::TFitness& a, const solver
 }
 
 
+
 template <bool weighted>
 std::partial_ordering Ratio_Distance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
 	double a_accu = 0.0;
@@ -122,7 +123,6 @@ std::partial_ordering Ratio_Distance(const solver::TFitness& a, const solver::TF
 
 bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count, const NFitness_Strategy strategy) {
 
-	
 	//1. handle the special-case of the single objective
 	if (objectives_count == 1) 
 		return Compare_Elements(a[0], b[0]);
@@ -132,23 +132,22 @@ bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, con
 	if (strategy < NFitness_Strategy::Dominance_Count) {
 		const auto [a_count, b_count] = Count_Dominance(a, b, objectives_count);
 
+		if (a_count == 0)
+			return false;	//solutions are either equal, or b strictly dominates a => in both cases, we return false
+
 		if ((a_count >0) && (b_count == 0))
 			return true;						//a strictly dominates b
 
 		if (strategy == NFitness_Strategy::Strict_Dominance)
 			return false;
 
-		//now, we are dealing with a soft dominance or any non-dominated
-		if ((a_count > b_count) || ((a_count>0) && (strategy == NFitness_Strategy::Any_Non_Dominated)))
-			return true; //a either softly dominates b, or a is at least not dominated by b - it's just different on the parent front, thus increasing the diversity
 
+		if (strategy == NFitness_Strategy::Soft_Dominance)
+			return a_count > b_count;	//a is not dominated by b, not be is dominated by a - they are just two different, non-dominated solutions on the known Pareto front
 
-		if (b_count > a_count)
-			return false;
+		if (strategy == NFitness_Strategy::Any_Non_Dominated)
+			return a_count > 0;			//just like the soft dominance; in both cases we increase the diversity on the best known Pareto front
 		
-		if ((strategy == NFitness_Strategy::Soft_Dominance) || (strategy == NFitness_Strategy::Any_Non_Dominated))
-			return false;
-
 		//at this point, the chosen dominance strategy takes another option to decide
 	}
 	
@@ -184,8 +183,8 @@ bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, con
 
 
 	//4. Is the comparison clearly decided? 
-	if (comparison == std::partial_ordering::less)
-		return true;
+	if (comparison == std::partial_ordering::less) 
+		return true;	
 
 	if (comparison == std::partial_ordering::greater)
 		return false;

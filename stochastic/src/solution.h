@@ -68,7 +68,7 @@ TUsed_Solution Vector_2_Solution(const double *vector, const size_t n) {
 enum class NFitness_Strategy : size_t { Strict_Dominance = 0,					//solution A must be strictly better than solution B
 									    Soft_Dominance,							//A is better if it has more dominating fitnesses than B	
 										Any_Non_Dominated,						//A is better if it dominates B on at least one fitness - can be used for parent-child only, not for sorting!!
-										Euclidean_Dominance,					//if A nor B is not softly dominant, better solution is chosen by its Euclidean distance from the Origin
+										Euclidean_Dominance,					//if A does not strictly dominate B, better solution is chosen by its Euclidean distance from the Origin
 										Weighted_Euclidean_Dominance,			//metrics are assigned weights, while the first one has the greatest weight (weights: n, n-1, n-2... 1, where n is the number of objectives)
 										Ratio_Dominance,						//if A nor B is not softly dominant, better solution is chosen by Euclidean distance of A[i]/(A[i]+B[i]) and its complement (1.0-a/sum) ratios from the Origin
 										Weighted_Ratio_Dominance,				
