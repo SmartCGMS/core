@@ -237,7 +237,12 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 		if (mAsync_Model) {
 
 			if (shutdown) 
-				Stop_Generator(true);
+				Stop_Generator(false);
+					//we should not be waiting here for the generator to stop, because we would get blocked then
+					//e.e.; if one thread injects shutdown, then it holds the communication lock
+					//then, the model in another thread might want to send an event while performing a step
+					//however, it cannot complete it because the shutdown event holds the lock and we weait for 
+					//the in-step thraed to terminate, which cannot
 
 			scgms::IDevice_Event *raw_event = event.get();
 			event.release();
