@@ -64,7 +64,7 @@ std::tuple<size_t, size_t> Count_Dominance(const solver::TFitness& a, const solv
 
 
 template <bool weighted>
-bool Euclidean_Distance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
+std::partial_ordering Euclidean_Distance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
 	double a_accu = 0.0;
 	double b_accu = 0.0;
 
@@ -85,12 +85,13 @@ bool Euclidean_Distance(const solver::TFitness& a, const solver::TFitness& b, co
 		}
 	}
 
-	return a_accu < b_accu;
+	return a_accu <=> b_accu;
 }
 
 
+
 template <bool weighted>
-bool Ratio_Distance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
+std::partial_ordering Ratio_Distance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
 	double a_accu = 0.0;
 	double b_accu = 0.0;
 
@@ -116,13 +117,12 @@ bool Ratio_Distance(const solver::TFitness& a, const solver::TFitness& b, const 
 		}
 	}
 
-	return a_accu < b_accu;
+	return a_accu <=> b_accu;
 }
 
 
 bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count, const NFitness_Strategy strategy) {
 
-	
 	//1. handle the special-case of the single objective
 	if (objectives_count == 1) 
 		return Compare_Elements(a[0], b[0]);
@@ -132,55 +132,74 @@ bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, con
 	if (strategy < NFitness_Strategy::Dominance_Count) {
 		const auto [a_count, b_count] = Count_Dominance(a, b, objectives_count);
 
+		if (a_count == 0)
+			return false;	//solutions are either equal, or b strictly dominates a => in both cases, we return false
+
 		if ((a_count >0) && (b_count == 0))
 			return true;						//a strictly dominates b
 
 		if (strategy == NFitness_Strategy::Strict_Dominance)
 			return false;
 
-		//now, we are dealing with a soft dominance or any non-dominated
-		if ((a_count > b_count) || ((a_count>0) && (strategy == NFitness_Strategy::Any_Non_Dominated)))
-			return true; //a either softly dominates b, or a is at least not dominated by b - it's just different on the parent front, thus increasing the diversity
 
+		if (strategy == NFitness_Strategy::Soft_Dominance)
+			return a_count > b_count;	//a is not dominated by b, not be is dominated by a - they are just two different, non-dominated solutions on the known Pareto front
 
-		if (b_count > a_count)
-			return false;
+		if (strategy == NFitness_Strategy::Any_Non_Dominated)
+			return a_count > 0;			//just like the soft dominance; in both cases we increase the diversity on the best known Pareto front
 		
-		if ((strategy == NFitness_Strategy::Soft_Dominance) || (strategy == NFitness_Strategy::Any_Non_Dominated))
-			return false;
-
 		//at this point, the chosen dominance strategy takes another option to decide
 	}
 	
 
-
+	std::partial_ordering comparison = std::partial_ordering::unordered;
 	//3. let us decide by another option than the dominance
 	switch (strategy) {
 		
 
 		case NFitness_Strategy::Weighted_Euclidean_Dominance: [[fallthrough]];
 		case NFitness_Strategy::Weighted_Euclidean_Distance: 
-			return Euclidean_Distance<true>(a, b, objectives_count);
+			comparison = Euclidean_Distance<true>(a, b, objectives_count);
+			break;
 
 
 		case NFitness_Strategy::Ratio_Dominance:
-			return Ratio_Distance<false>(a, b, objectives_count);
+			comparison = Ratio_Distance<false>(a, b, objectives_count);
+			break;
 
 		case NFitness_Strategy::Weighted_Ratio_Dominance:
-			return Ratio_Distance<true>(a, b, objectives_count);
+			comparison = Ratio_Distance<true>(a, b, objectives_count);
+			break;
 		
 		
 		case NFitness_Strategy::Euclidean_Dominance: [[fallthrough]];
 			//case NFitness_Strategy::Master: [[fallthrough]];
 		case NFitness_Strategy::Euclidean_Distance: [[fallthrough]];
 		default:
-			return Euclidean_Distance<false>(a, b, objectives_count);
+			comparison = Euclidean_Distance<false>(a, b, objectives_count);
+			break;
 		
 	}
 
 
-	//We should never get here!
-	assert(false);
+	//4. Is the comparison clearly decided? 
+	if (comparison == std::partial_ordering::less) 
+		return true;	
+
+	if (comparison == std::partial_ordering::greater)
+		return false;
+
+	
+	//5. No, there's either some nan or the solutions could have exactly the same distance from the origin, but on different coordinates like [0, 1] and [1, 0] being equal in e2
+	// => we have to compare by the metrics priority
+	for (size_t i = 0; i < objectives_count; i++) {
+		if (a[i] != b[i]) {
+			if (Compare_Elements(a[i], b[i]))		//unlike the spaceship operator, this func considers the NaN in the evolutionary manner, in which a normal number should replace NaN
+				return true;
+		}
+	}
+
+
 
 	//4. they look equal, hence a does not dominate b
 	return false;

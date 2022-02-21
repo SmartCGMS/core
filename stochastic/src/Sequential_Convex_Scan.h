@@ -35,6 +35,7 @@ protected:
 
 		TCandidate_Solution result;
 		result.solution = best;
+		result.fitness = solver::Nan_Fitness;
 
 
 		TUsed_Solution effective_low = best;
@@ -44,8 +45,8 @@ protected:
 		double experimental_high = effective_high[param_idx] = bounds.upper[param_idx];
 
 
-		std::array<double, solver::Maximum_Objectives_Count> lower_fitness{ std::numeric_limits<double>::max() };
-		std::array<double, solver::Maximum_Objectives_Count> upper_fitness{ std::numeric_limits<double>::max() };
+		solver::TFitness lower_fitness = solver::Nan_Fitness;
+		solver::TFitness upper_fitness = solver::Nan_Fitness;
 
 		size_t iter_counter = 0;
 		while (iter_counter++ < mSetup.population_size) {
@@ -56,7 +57,7 @@ protected:
 			experimental_high = effective_low[param_idx] + diff * 2.0 / 3.0;
 
 			//2. find the fitness at both borders
-			result.solution[param_idx] = experimental_low;
+			result.solution[param_idx] = experimental_low;			
 			if (mSetup.objective(mSetup.data, result.solution.data(), lower_fitness.data()) != TRUE) {
 				for (auto& elem : lower_fitness)
 					elem = std::numeric_limits<double>::quiet_NaN();
@@ -154,6 +155,7 @@ public:
 		TCandidate_Solution best_solution;		
 
 		best_solution.solution = mBest_Hint;			
+		best_solution.fitness = solver::Nan_Fitness;
 		if (mSetup.objective(mSetup.data, best_solution.solution.data(), best_solution.fitness.data()) != TRUE)
 			return mBest_Hint;
 
