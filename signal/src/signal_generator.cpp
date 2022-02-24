@@ -299,7 +299,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 		mSegment_Agnostic_Upper_Bound.assign(model_desc.upper_bound, model_desc.upper_bound + model_desc.total_number_of_parameters);
 	}
     
-    mNumber_Of_Segment_Specific_Parameters = mSync_To_Signal ? model_desc.number_of_segment_specific_parameters : 1;	
+	mNumber_Of_Segment_Specific_Parameters = model_desc.number_of_segment_specific_parameters;
 	const size_t total_specific_parameters_in_doubles = mSegment_Agnostic_Parameters.size() - model_desc.total_number_of_parameters + mNumber_Of_Segment_Specific_Parameters;
 
 	//check that the number of parameters is correct => check that they are not corrupted
@@ -315,7 +315,8 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 		size_t begin_offset = 0;
 
 
-		const size_t parametrized_segments = total_specific_parameters_in_doubles / mNumber_Of_Segment_Specific_Parameters;
+		const size_t parametrized_segments = mNumber_Of_Segment_Specific_Parameters>0 ? (total_specific_parameters_in_doubles / mNumber_Of_Segment_Specific_Parameters) : 1;	
+							//models with no segment-specific parameters encodes exactly one segment
 		for (size_t i = 0; i < parametrized_segments; i++) {
 			const size_t end_offset = begin_offset + mNumber_Of_Segment_Specific_Parameters;
 
@@ -334,13 +335,20 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 	}
 
 
+	const bool echo_default_parameters = configuration.Read_Bool(rsEcho_Default_Parameters_As_Event);
+		//reading this value for the async model to avoid possible race-condition if we would read it in the async's model thread
+
 
 	mOriginal_Configuration = configuration;
 	mSync_Configuration = configuration.Clone();
-
+	
 	mQuitting = false;
 
 	if (!mSync_To_Signal) {
+
+		mSegment_Agnostic_Parameters.insert(mSegment_Agnostic_Parameters.begin(), mSegment_Specific_Parameters[0].begin(), mSegment_Specific_Parameters[0].end());
+			//OK, this is quite ineffective to insert, what we've just removed in the for (size_t i = 0; i < parametrized_segments; i++) {
+			//however, it keeps our code readable and this is not critical, just inefficient
 
 		mAsync_Model = scgms::SDiscrete_Model{ model_id, mSegment_Agnostic_Parameters, mOutput };	
 				//async model will produce just a single segment => hence all the configured parametes apply for this segment
@@ -351,7 +359,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 		if (!Succeeded(rc))
 			return rc;
 
-		mThread = std::make_unique<std::thread>([this, segment_id]() {
+		mThread = std::make_unique<std::thread>([this, segment_id, model_id, echo_default_parameters]() {
 			double total_time = 0.0;
 
 			const double initial_time = Unix_Time_To_Rat_Time(time(nullptr));
@@ -359,6 +367,23 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 			scgms::SDiscrete_Model model = mAsync_Model; // hold local instance to avoid race conditions with Execute shutdown code
 			if (Succeeded(model->Initialize(initial_time, segment_id))) {
 				Emit_Marker(scgms::NDevice_Event_Code::Time_Segment_Start, initial_time, segment_id);
+
+
+				{
+					if (echo_default_parameters) {
+						scgms::UDevice_Event param_event{ scgms::NDevice_Event_Code::Parameters };
+						param_event.segment_id() = segment_id;
+						param_event.device_id() = model_id;
+						param_event.signal_id() = model_id;
+						param_event.parameters.set(mSegment_Agnostic_Parameters);
+
+						auto raw_event = param_event.get();
+						param_event.release();
+
+						HRESULT rc = mOutput->Execute(raw_event);	//mOutput will bypass the model as it is already configured with these parameters
+					}
+				}
+
 
 				model->Step(0.0);	//emit the initial state as this is the current state now
 				while (!mQuitting) {
