@@ -401,6 +401,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 
 					if (mEmit_Shutdown) {
 						auto evt = scgms::UDevice_Event{ scgms::NDevice_Event_Code::Shut_Down };
+						evt.device_time() = initial_time + total_time + std::numeric_limits<double>::epsilon();
 						scgms::IDevice_Event* raw_event = evt.get();
 						evt.release();
 						model->Execute(raw_event);
