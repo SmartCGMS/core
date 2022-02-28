@@ -96,7 +96,7 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 	max_y += 2.0; // always move the maximum value, so there's still room for descriptions, etc.
 
 	size_t total_x_label_cnt = (opts.width - mCanvas_WidthOff) / 150;
-	total_x_label_cnt = std::min(std::max(total_x_label_cnt, 4ULL), 18ULL);
+	total_x_label_cnt = std::min(std::max(total_x_label_cnt, static_cast<size_t>(4)), static_cast<size_t>(18));
 
 	// TODO: calculate steps, so the displayed values are with "nice" stepping (such as 1hr, 30min, 6hr, ...) and not necessarily evenly distributed
 	double x_label_step_val = (max_x - min_x) / static_cast<double>(total_x_label_cnt);
