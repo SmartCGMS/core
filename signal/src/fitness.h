@@ -85,5 +85,5 @@ public:
 };
 
 
-double IfaceCalling Fitness_Wrapper(const void *data, const double *solution);
+BOOL IfaceCalling Fitness_Wrapper(const void* data, const double* solution, double* const fitness);
 HRESULT Solve_Model_Parameters(const TSegment_Solver_Setup &setup);

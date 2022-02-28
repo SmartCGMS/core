@@ -73,25 +73,42 @@ struct TFast_Configuration {
 class CError_Metric_Future {
 protected:
 	const scgms::TOn_Filter_Created mOn_Filter_Created;
-	const void* mOn_Filter_Created_Data;
-	double mError_Metric = std::numeric_limits<double>::quiet_NaN();
-	bool mError_Metric_Available = false;
+	const void* mOn_Filter_Created_Data;		
+protected:
+	//bool mError_Metric_Available = false;
+	//double mError_Metric = std::numeric_limits<double>::quiet_NaN();
+	solver::TFitness mError_Metric = solver::Nan_Fitness;
+		//has to be array as vector could actually reallocate the memory block on push_back
+	size_t mError_Metric_Count = 0;	//count of all used metrics
 public:
 	CError_Metric_Future(scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) : mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data) {};
 
 	HRESULT On_Filter_Created(scgms::IFilter *filter) {
 
-		scgms::SSignal_Error_Inspection insp = scgms::SSignal_Error_Inspection{ scgms::SFilter{filter} };
-		if (insp) {
-			mError_Metric_Available = insp->Promise_Metric(scgms::All_Segments_Id, &mError_Metric, true) == S_OK;
-			if (!mError_Metric_Available) return E_FAIL;
+		if (mError_Metric_Count < mError_Metric.size()) {	//check if we actually have a room to store the promised metric
+			scgms::SSignal_Error_Inspection insp = scgms::SSignal_Error_Inspection{ scgms::SFilter{filter} };
+			if (insp) {
+				const bool metric_available = insp->Promise_Metric(scgms::All_Segments_Id, &mError_Metric[mError_Metric_Count], true) == S_OK;
+				if (metric_available)
+					mError_Metric_Count++;
+				else
+					return E_FAIL;
+
+			}
 		}
 
 		return mOn_Filter_Created ? mOn_Filter_Created(filter, mOn_Filter_Created_Data) : S_OK;
 	}
 
-	double Get_Error_Metric() {
-		return mError_Metric_Available ? mError_Metric : std::numeric_limits<double>::quiet_NaN();
+	size_t Get_Error_Metric(double * const fitness) const {
+		for (size_t i = 0; i < mError_Metric_Count; i++)	//we have to copy this in a reverse to order to make highest priority first
+			fitness[i] = mError_Metric[mError_Metric_Count - i - 1];
+		
+		return mError_Metric_Count;		
+	}
+
+	size_t Metric_Count() const {
+		return mError_Metric_Count;
 	}
 };
 
@@ -103,6 +120,7 @@ HRESULT IfaceCalling On_Filter_Created_Wrapper(scgms::IFilter *filter, const voi
 class  CParameters_Optimizer {
 protected:
 	size_t mProblem_Size = 0;
+	size_t mObjectives_Count = 0;
 	std::vector<double> mLower_Bound, mUpper_Bound, mFound_Parameters;
 protected:
 	scgms::SFilter_Chain_Configuration Empty_Chain() {
@@ -129,13 +147,11 @@ protected:
 		bool success = reduced_filter_configuration.operator bool();
 
 		if (success) {
-
-
 			refcnt::wstr_container* parent_path = nullptr;
 			success = mConfiguration->Get_Parent_Path(&parent_path) == S_OK;
 			if (success) {
-                                const auto converted_path = refcnt::WChar_Container_To_WString(parent_path);
-                                success = reduced_filter_configuration->Set_Parent_Path(converted_path.c_str()) == S_OK;
+                const auto converted_path = refcnt::WChar_Container_To_WString(parent_path);
+                success = reduced_filter_configuration->Set_Parent_Path(converted_path.c_str()) == S_OK;
 				parent_path->Release();
 			}
 
@@ -215,6 +231,42 @@ protected:
 				}
 		}
 	}
+
+	size_t Count_Objectives() {
+		size_t result = 0;
+
+		CNull_wstr_list empty_error_description{};
+		TFast_Configuration clone = Clone_Configuration(mFirst_Effective_Filter_Index, empty_error_description);
+
+		if (!clone.failed) {
+
+			//Have the means to pickup the final metric
+			CError_Metric_Future error_metric_future{ mOn_Filter_Created, mOn_Filter_Created_Data };
+
+			//run the configuration
+			std::recursive_mutex communication_guard;
+			CTerminal_Filter terminal_filter{ nullptr };
+			{
+				CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely
+																			//call its dtor to get the future error properly
+
+				if (composite_filter.Build_Filter_Chain(clone.configuration.get(), &terminal_filter, On_Filter_Created_Wrapper, &error_metric_future, empty_error_description) == S_OK) {
+					//error metric future should hold the result now - just the count, the results! but we are intersted in the counts only
+					std::array<double, solver::Maximum_Objectives_Count> tmp_metrics{ std::numeric_limits<double>::quiet_NaN() };
+					result = error_metric_future.Get_Error_Metric(tmp_metrics.data());
+
+					scgms::IDevice_Event* shutdown_event = allocate_device_event(scgms::NDevice_Event_Code::Shut_Down);
+					if (Succeeded(composite_filter.Execute(shutdown_event)))
+						terminal_filter.Wait_For_Shutdown();	//wait only if the shutdown did go through succesfully
+				}
+
+			}	//calls dtor of the signal error filter, thus filling the future error metric
+				//but we cared about the count only
+		}
+
+		return result;
+	}
+
 protected:
 	const scgms::TOn_Filter_Created mOn_Filter_Created;
 	const void* mOn_Filter_Created_Data;
@@ -412,6 +464,11 @@ public:
 		}
 
 		if (!Fetch_Events_To_Replay(error_description)) return E_FAIL;
+		mObjectives_Count = Count_Objectives();
+		if (mObjectives_Count == 0) {
+			error_description.push(dsUnsupported_Metric_Configuration);
+			return E_FAIL;
+		}
 
 		//const double* default_parameters = mFound_Parameters.data();
 
@@ -421,7 +478,7 @@ public:
 			effective_hints.push_back(hints[i]);
 
 		solver::TSolver_Setup solver_setup{
-			mProblem_Size,
+			mProblem_Size, mObjectives_Count,
 			mLower_Bound.data(), mUpper_Bound.data(),
 			effective_hints.data(), effective_hints.size(),					//hints
 			mFound_Parameters.data(),
@@ -463,7 +520,7 @@ public:
 		std::copy(parameterSet.begin() + mFilter_Parameter_Offsets[optimized_filter_idx], parameterSet.begin() + mFilter_Parameter_Offsets[optimized_filter_idx] + mFilter_Parameter_Counts[optimized_filter_idx], target.begin());
 	}
 
-	double Calculate_Fitness(const void* solution, refcnt::Swstr_list empty_error_description) {
+	bool Calculate_Fitness(const void* solution, double* const fitness, refcnt::Swstr_list empty_error_description) {
 		bool failure_detected = false;
 
 		TFast_Configuration configuration = Clone_Configuration(mFirst_Effective_Filter_Index, empty_error_description);	//later on, we will replace this with a pool
@@ -512,14 +569,16 @@ public:
 
 		//once implemented, we should return the configuration back to the pool
 
-		//pickup the fitness value/error metric and return it
-		return failure_detected ? std::numeric_limits<double>::quiet_NaN() : error_metric_future.Get_Error_Metric();
+		//pickup the fitness value/error metrics and return it		
+		return (!failure_detected) && (error_metric_future.Get_Error_Metric(fitness) == mObjectives_Count);	//we have to pick at as many metrics as promised
 	}
 };
 
-double IfaceCalling internal::Parameters_Fitness_Wrapper(const void *data, const double *solution) {
-	CParameters_Optimizer *fitness = reinterpret_cast<CParameters_Optimizer*>(const_cast<void*>(data));
-	return fitness->Calculate_Fitness(solution, CParameters_Optimizer::mEmpty_Error_Description);
+
+
+BOOL IfaceCalling internal::Parameters_Fitness_Wrapper(const void *data, const double *solution, double* const fitness) {
+	CParameters_Optimizer *candidate = reinterpret_cast<CParameters_Optimizer*>(const_cast<void*>(data));
+	return candidate->Calculate_Fitness(solution, fitness, CParameters_Optimizer::mEmpty_Error_Description) ? TRUE : FALSE;
 }
 
 

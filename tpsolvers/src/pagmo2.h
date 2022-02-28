@@ -67,10 +67,13 @@ namespace pagmo2 {
 			for (size_t i = 0; i < x.size(); i++)											//enforce bounds as pagmo does not do so
 				mBounded_Solution[i] = std::min(mSetup.upper_bound[i], std::max(x[i], mSetup.lower_bound[i]));
 
+			std::array<double, solver::Maximum_Objectives_Count> fitness;
 
-			const double fitness = mSetup.objective(mSetup.data, mBounded_Solution.data());
-			if (fitness < mProgress.best_metric) mProgress.best_metric = fitness;
-			return pagmo::vector_double(1, fitness);			
+			if (mSetup.objective(mSetup.data, mBounded_Solution.data(), fitness.data()) != TRUE)
+				fitness[0] = std::numeric_limits<double>::max();
+
+			if (fitness[0] < mProgress.best_metric[0]) mProgress.best_metric[0] = fitness[0];
+			return pagmo::vector_double(1, fitness[0]);
 		}
 		
 		std::pair<pagmo::vector_double, pagmo::vector_double> get_bounds() const {

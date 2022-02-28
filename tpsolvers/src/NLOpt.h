@@ -71,10 +71,12 @@ double NLOpt_Top_Solution_Objective_Function(const std::vector<double> &x, std::
 		}
 	
 	
-	const double fitness = data.setup.objective(data.setup.data, use_remap ? data.remapped_solution.data() : x.data());
+	std::array<double, solver::Maximum_Objectives_Count> fitness;
+	if (data.setup.objective(data.setup.data, use_remap ? data.remapped_solution.data() : x.data(), fitness.data()) != TRUE)
+		fitness[0] = std::numeric_limits<double>::quiet_NaN();
 
-	if (fitness < data.progress.best_metric) 
-		data.progress.best_metric = fitness;
+	if (fitness[0] < data.progress.best_metric[0])
+		data.progress.best_metric[0] = fitness[0];
 	
 
 	data.progress.current_progress++;
@@ -83,7 +85,7 @@ double NLOpt_Top_Solution_Objective_Function(const std::vector<double> &x, std::
 
 	if (data.progress.cancelled == TRUE) data.options.set_force_stop(true);
 
-	return fitness;
+	return fitness[0];
 }
 
 
@@ -123,6 +125,7 @@ public:
 
 
 	bool Solve(solver::TSolver_Progress &progress) {
+		progress = solver::Null_Solver_Progress;
 
 		if ((algo == nlopt::LN_PRAXIS) && (mDimension_Remap.size() < 2)) return false;	//NLopt lib does not actully check the required N
 

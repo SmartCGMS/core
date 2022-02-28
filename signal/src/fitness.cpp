@@ -142,9 +142,10 @@ double CFitness::Calculate_Fitness(const double *solution) {
 }
 
 
-double IfaceCalling Fitness_Wrapper(const void *data, const double *solution) {	
-	CFitness *fitness = reinterpret_cast<CFitness*>(const_cast<void*>(data));
-	return fitness->Calculate_Fitness(solution);
+BOOL IfaceCalling Fitness_Wrapper(const void *data, const double *solution, double* const fitness) {	
+	CFitness *candidate = reinterpret_cast<CFitness*>(const_cast<void*>(data));
+	*fitness = candidate->Calculate_Fitness(solution);
+	return TRUE;
 }
 
 HRESULT Solve_Model_Parameters(const TSegment_Solver_Setup &setup) {	
@@ -180,6 +181,7 @@ HRESULT Solve_Model_Parameters(const TSegment_Solver_Setup &setup) {
 
 			solver::TSolver_Setup generic_setup{
 				model->total_number_of_parameters,
+				1,	//TSegment_Solver_Setup does not allow multi-objective optimization
 				lower_bound, upper_bound,
 				const_cast<const double**> (hints.data()), hints.size(),
 				solution.data(),

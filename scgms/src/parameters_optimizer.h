@@ -42,7 +42,7 @@
 #include "../../../common/iface/SolverIface.h"
 
 namespace internal {
-	double IfaceCalling Parameters_Fitness_Wrapper(const void *data, const double *solution);
+	BOOL IfaceCalling Parameters_Fitness_Wrapper(const void* data, const double* solution, double* const fitness);
 }
 
 extern "C" HRESULT IfaceCalling optimize_parameters(scgms::IFilter_Chain_Configuration *configuration, const size_t filter_index, const wchar_t *parameters_configuration_name,

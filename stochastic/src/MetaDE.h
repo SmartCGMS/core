@@ -50,6 +50,8 @@
 #undef max
 #undef min
 
+#include "solution.h"
+
 #include "../../../common/rtl/SolverLib.h"
 #include "../../../common/utils/DebugHelper.h"
 
@@ -77,8 +79,11 @@ namespace metade {
 		NStrategy strategy = NStrategy::desCurrentToPBest;
 		double CR = 0.5, F = 1.0;
 		TUsed_Solution current, next;
-		double current_fitness = std::numeric_limits<double>::max();
-		double next_fitness = std::numeric_limits<double>::max();
+		
+		NFitness_Strategy fitness_strategy = NFitness_Strategy::Master;
+
+		solver::TFitness current_fitness{ std::numeric_limits<double>::quiet_NaN() };
+		solver::TFitness next_fitness{ std::numeric_limits<double>::quiet_NaN() };
 	};
 
 	struct TMetaDE_Stats {
@@ -123,8 +128,8 @@ protected:
 
 		for (const auto &individual : mPopulation) {
 			snapshot.strategy_counter[static_cast<size_t>(individual.strategy)]++;
-			snapshot.strategy_fitness[static_cast<size_t>(individual.strategy)] = std::min(snapshot.strategy_fitness[static_cast<size_t>(individual.strategy)], individual.current_fitness);
-			snapshot.best_fitness = std::min(snapshot.best_fitness, individual.current_fitness);
+			snapshot.strategy_fitness[static_cast<size_t>(individual.strategy)] = std::min(snapshot.strategy_fitness[static_cast<size_t>(individual.strategy)], individual.current_fitness[0]);
+			snapshot.best_fitness = std::min(snapshot.best_fitness, individual.current_fitness[0]);
 		}
 
 		mStatistics.push_back(snapshot);
@@ -181,18 +186,25 @@ protected:
 	TAligned_Solution_Vector<metade::TMetaDE_Candidate_Solution<TUsed_Solution>> mPopulation;
 	std::vector<size_t> mPopulation_Best;	//indexes into mPopulation sorted by mPopulation's member's current fitness
 											//we do not sort mPopulation due to performance costs and not to loose population diversity
+
+
+	template <typename T>
+	T Generate_New_Strategy(const T old_strategy, std::uniform_int_distribution<size_t> &distribution) {
+		T new_strategy;
+
+		do {
+			new_strategy = static_cast<T>(distribution(mRandom_Generator));			
+		} while (old_strategy == new_strategy);
+
+		return new_strategy;
+	}
+
 	void Generate_Meta_Params(metade::TMetaDE_Candidate_Solution<TUsed_Solution> &solution) { 
 		solution.CR = mCR_min + mCR_range*mUniform_Distribution_dbl(mRandom_Generator);
 		solution.F = mF_min + mF_range*mUniform_Distribution_dbl(mRandom_Generator);
 
-		const auto old_strategy = solution.strategy;
-		decltype(solution.strategy) new_strategy;
-		do {
-			new_strategy = static_cast<metade::NStrategy>(mUniform_Distribution_Strategy(mRandom_Generator));							
-			//new_strategy = mUniform_Distribution(mRandom_Generator) > 0.5 ? metade::NStrategy::desCurrentToUmPBest : metade::NStrategy::desCurrentToRand1;
-		} while (old_strategy == new_strategy);
-
-		solution.strategy = new_strategy;
+		solution.strategy = Generate_New_Strategy<metade::NStrategy>(solution.strategy, mUniform_Distribution_Strategy);
+solution.fitness_strategy = Generate_New_Strategy<NFitness_Strategy>(solution.fitness_strategy, mUniform_Distribution_Fitness_Strategy);
 	}
 protected:
 	//not used in a thread-safe way but does not seem to be a problem so far
@@ -202,6 +214,7 @@ protected:
 	inline static thread_local std::uniform_real_distribution<double> mUniform_Distribution_dbl{ 0.0, 1.0 };
 	inline static thread_local std::uniform_int_distribution<size_t> mUniform_Distribution_PBest{ 0, mPBest_Count-1 };
 	inline static thread_local std::uniform_int_distribution<size_t> mUniform_Distribution_Strategy{ 0, static_cast<size_t>(metade::NStrategy::count)-1 };
+	inline static thread_local std::uniform_int_distribution<size_t> mUniform_Distribution_Fitness_Strategy{ 0, static_cast<size_t>(NFitness_Strategy::count) - 1 };
 protected:
     solver::TSolver_Setup mSetup;
 public:
@@ -212,41 +225,59 @@ public:
 
 		mPopulation.resize(std::max(mSetup.population_size, mPBest_Count));
 		mPopulation_Best.resize(mPopulation.size());
+		const size_t initialized_count = std::min(mPopulation.size() / 2, mSetup.hint_count);
 
 		//1. create the initial population		
-		const size_t initialized_count = std::min(mPopulation.size() / 2, mSetup.hint_count);
-		//a) find the best hints
+		std::vector<TUsed_Solution> trimmed_hints;
 		std::vector<size_t> hint_indexes(mSetup.hint_count);
-		{
-			std::iota(std::begin(hint_indexes), std::end(hint_indexes), 0);
-			std::vector<double> hint_fitness;
+		std::vector<solver::TFitness> hint_fitness(mSetup.hint_count);
+		std::vector<bool> hint_validity(mSetup.hint_count);
 
-			//check their fitness in parallel - if actually needed
-			if (initialized_count < mSetup.hint_count) {
-				std::for_each(std::execution::par_unseq, hint_indexes.begin(), hint_indexes.end(), [this, &hint_fitness](auto& hint_idx) {
-					hint_fitness[hint_idx] = mSetup.objective(mSetup.data, mSetup.hints[hint_idx]);
-					});
-
-				//and sort the select up to the initialized_count best of them
-				std::partial_sort(hint_indexes.begin(), hint_indexes.begin() + initialized_count, hint_indexes.end(),
-					[&](const size_t& a, const size_t& b) {
-						if (std::isnan(hint_fitness[hint_indexes[a]])) return false;
-						if (std::isnan(hint_fitness[hint_indexes[b]])) return true;
-
-						return hint_fitness[hint_indexes[a]] < hint_fitness[hint_indexes[b]];
-					});
-			}
+		//a) find the best hints
+		// trim the parameters to the bounds
+		std::iota(std::begin(hint_indexes), std::end(hint_indexes), 0);
+		for (size_t i = 0; i < setup.hint_count; i++) {
+			trimmed_hints.push_back(mUpper_Bound.min(mLower_Bound.max(Vector_2_Solution<TUsed_Solution>(mSetup.hints[hint_indexes[i]], setup.problem_size))));//ensure the bounds
 		}
 
+		//b check their fitness in parallel 		
+		std::for_each(std::execution::par_unseq, hint_indexes.begin(), hint_indexes.end(), [this, &trimmed_hints, &hint_fitness, &hint_validity](auto& hint_idx) {
+			hint_validity[hint_idx] = mSetup.objective(mSetup.data, trimmed_hints[hint_idx].data(), hint_fitness[hint_idx].data()) == TRUE;
+		});
 
+		if (initialized_count < mSetup.hint_count) { 
+			//and sort the select up to the initialized_count best of them - if actually needed
+			std::partial_sort(hint_indexes.begin(), hint_indexes.begin() + initialized_count, hint_indexes.end(),
+				[&](const size_t& a, const size_t& b) {
+					if (!hint_validity[hint_indexes[a]]) return false;
+					if (!hint_validity[hint_indexes[b]]) return true;
+
+					return Compare_Solutions(hint_fitness[hint_indexes[a]], hint_fitness[hint_indexes[b]], mSetup.objectives_count, NFitness_Strategy::Master);
+							//true/false domination see the sorting in the main cycle
+				});
+		}
+		
+
+
+
+		//1. create the initial population		
+		
+				
 		//b) by storing suggested params
+		size_t effectively_initialized_count = 0;
 		for (size_t i = 0; i < initialized_count; i++) {
-			mPopulation[i].current = mUpper_Bound.min(mLower_Bound.max(Vector_2_Solution<TUsed_Solution>(mSetup.hints[hint_indexes[i]], setup.problem_size)));//also ensure the bounds
+			if (hint_validity[hint_indexes[i]]) {
+				effectively_initialized_count++;
+				mPopulation[i].current = trimmed_hints[hint_indexes[i]];
+				mPopulation[i].current_fitness = hint_fitness[hint_indexes[i]];
+			}
+			else
+				break;
 		}
 
 		//c) by complementing it with randomly generated numbers
 		const auto bounds_range = mUpper_Bound - mLower_Bound;
-		for (size_t i = initialized_count; i < mPopulation.size(); i++) {
+		for (size_t i = effectively_initialized_count; i < mPopulation.size(); i++) {
 			TUsed_Solution tmp;
 
 			// this helps when we use generic solution vector, and does nothing when we use fixed lengths (since ColsAtCompileTime already equals bounds_range.cols(), so it gets
@@ -259,19 +290,29 @@ public:
 			mPopulation[i].current = mLower_Bound + tmp.cwiseProduct(bounds_range);
 		}
 
+		//compute the fitness in parallel
+		std::for_each(std::execution::par_unseq, mPopulation.begin() + effectively_initialized_count, mPopulation.end(), [this](auto& candidate_solution) {
+			if (mSetup.objective(mSetup.data, candidate_solution.current.data(), candidate_solution.current_fitness.data()) != TRUE) {
+				for (auto& elem : candidate_solution.current_fitness)
+					elem = std::numeric_limits<double>::quiet_NaN();
+			  }
+			});
+
+
 		//d) and shuffle
 		std::shuffle(mPopulation.begin(), mPopulation.end(), mRandom_Generator);
 
-		//2. set cr and f parameters, and calculate the metrics		
+		//2. set cr and f parameters, and reset the unused part of the metrics
 		for (size_t i = 0; i < mPopulation.size(); i++) {
 			auto &solution = mPopulation[i];
 			Generate_Meta_Params(solution);
 			solution.population_index = i;
+
+			for (size_t j = mSetup.objectives_count; j < solver::Maximum_Objectives_Count; j++) 
+				solution.current_fitness[j] = solution.next_fitness[j] = std::numeric_limits<double>::quiet_NaN();
 		}
 
-		std::for_each(std::execution::par_unseq, mPopulation.begin(), mPopulation.end(), [this](auto &candidate_solution) {
-			candidate_solution.current_fitness = mSetup.objective(mSetup.data, candidate_solution.current.data());
-		});
+		
 
 		//3. finally, create and fill mpopulation indexes
 		std::iota(mPopulation_Best.begin(), mPopulation_Best.end(), 0);
@@ -285,6 +326,7 @@ public:
 			mSolve_Start_Time = std::chrono::high_resolution_clock::now();
 		}
 
+		progress = solver::Null_Solver_Progress;
 		progress.current_progress = 0;
 		progress.max_progress = mSetup.max_generations;
 	
@@ -292,20 +334,22 @@ public:
 		std::uniform_int_distribution<size_t> mUniform_Distribution_Solution{ 0, solution_size - 1 };	//this distribution must be local as solution can be dynamic
 		std::uniform_int_distribution<size_t> mUniform_Distribution_Population{ 0, mPopulation.size() - 1 };
 
+		const size_t partial_sort_size = std::max(mPBest_Count, mPopulation.size() / 2);
+
 		while ((progress.current_progress++ < mSetup.max_generations) && (progress.cancelled == FALSE)) {
 			//1. determine the best p-count parameters, without actually re-ordering the population
 			//we want to avoid of getting all params close together and likely loosing the population diversity
-			std::partial_sort(mPopulation_Best.begin(), mPopulation_Best.begin() + mPBest_Count, mPopulation_Best.end(),
+			//std::partial_sort(mPopulation_Best.begin(), mPopulation_Best.begin() + mPBest_Count, mPopulation_Best.end(),
+			
+			std::partial_sort(mPopulation_Best.begin(), mPopulation_Best.begin() + partial_sort_size, mPopulation_Best.end(),
 				[&](const size_t &a, const size_t &b) {
 			
 				//comparison to NaN would yield false, if std::numeric_limits::is_iec559
 				//otherwise, it is implementation specific
-				if (std::isnan(mPopulation[a].current_fitness)) return false;
-				if (std::isnan(mPopulation[b].current_fitness)) return true;
+				return Compare_Solutions(mPopulation[a].current_fitness, mPopulation[b].current_fitness, mSetup.objectives_count, NFitness_Strategy::Master);
+					//do not require strict domination as the [0] has to be the best one, so we need to choose from the non-dominating set
+			});			
 
-				return mPopulation[a].current_fitness < mPopulation[b].current_fitness; 
-			
-			});
 
 			//update the progress
 			progress.best_metric = mPopulation[mPopulation_Best[0]].current_fitness;
@@ -367,15 +411,17 @@ public:
 							//we choose mPBest_Count-number of random candidates for a direct crossbreeding with the current candidate solution
 
 							size_t to_go = std::max(mPBest_Count, mPopulation.size() / 20); //5%
-							size_t best_tournament_index = candidate_solution.population_index;
-							double best_tournament_fitness = std::numeric_limits<double>::max();
+							size_t best_tournament_index = candidate_solution.population_index;							
+							solver::TFitness best_tournament_fitness{ std::numeric_limits<double>::max() };
+
 							std::set<size_t> visited_tournament_indexes{ best_tournament_index };
 							while (to_go-- > 0) {
 								size_t random_tournament_index = mUniform_Distribution_Population(mRandom_Generator);
 								if (visited_tournament_indexes.find(random_tournament_index) == visited_tournament_indexes.end()) {
 									visited_tournament_indexes.insert(random_tournament_index);
 
-									if (mPopulation[random_tournament_index].current_fitness < best_tournament_fitness) {
+									if (Compare_Solutions(mPopulation[random_tournament_index].current_fitness, best_tournament_fitness, mSetup.objectives_count, NFitness_Strategy::Master)) {
+												//no need to require strict domination, as we are computing the candidate fitess now
 										best_tournament_fitness = mPopulation[random_tournament_index].current_fitness;
 										best_tournament_index = random_tournament_index;
 									}
@@ -407,7 +453,12 @@ public:
 				}
 
 				//and evaluate					
-				candidate_solution.next_fitness = mSetup.objective(mSetup.data, candidate_solution.next.data());						
+				if (mSetup.objective(mSetup.data, candidate_solution.next.data(), candidate_solution.next_fitness.data()) != TRUE) {
+					for (auto& elem : candidate_solution.next_fitness) {
+						elem = std::numeric_limits<double>::quiet_NaN();	//sanitize on error
+					}
+				}
+					
 				
 			});
 
@@ -415,9 +466,11 @@ public:
 			//3. Let us preserve the better vectors - too fast to amortize parallelization => serial code
 			for (auto &solution : mPopulation) {
 				//used strategy produced a better offspring => leave meta params as they are
-				if (std::isnan(solution.current_fitness) ||
-					((solution.current_fitness > solution.next_fitness) && (!std::isnan(solution.next_fitness)))
-					) { 
+				const bool best_individual = solution.population_index == mPopulation_Best[0];
+				const auto fitness_strategy = best_individual ? NFitness_Strategy::Master : solution.fitness_strategy; //if we would allow any strategy for the best,
+																													   //then, the best distance from the origin could degrade
+				if (Compare_Solutions(solution.next_fitness, solution.current_fitness, mSetup.objectives_count, fitness_strategy)) {
+									//requires strict domination to push the population towards the Pareto front, but only a half of it to improve the diversity
 					solution.current = solution.next;
 					solution.current_fitness = solution.next_fitness;
 				}
@@ -436,7 +489,10 @@ public:
 		}
 
 		//find the best result and return it
-		const auto result = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const metade::TMetaDE_Candidate_Solution<TUsed_Solution> &a, const metade::TMetaDE_Candidate_Solution<TUsed_Solution> &b) {return a.current_fitness < b.current_fitness; });
+		const auto result = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const metade::TMetaDE_Candidate_Solution<TUsed_Solution> &a, const metade::TMetaDE_Candidate_Solution<TUsed_Solution> &b) {
+			return Compare_Solutions(a.current_fitness, b.current_fitness, mSetup.objectives_count, NFitness_Strategy::Master);
+		});
+
 		return result->current;		
 	}
 };

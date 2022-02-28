@@ -521,9 +521,12 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::Load_From_File(const wchar_
 		std::vector<wchar_t> buf;
 		buf.assign(std::istreambuf_iterator<wchar_t>(src_file), std::istreambuf_iterator<wchar_t>());
 		// fix valgrind's "Conditional jump or move depends on uninitialised value(s)"
-		// although we are sending proper length, SimpleIni probably reaches one byte further and reads uninitialized memory
-		buf.push_back(0);
-		return { S_OK, std::wstring{ buf.begin(), buf.end() } };
+		// although we are sending proper length, SimpleIni probably reaches one byte further and reads uninitialized memory		
+//		buf.push_back(0);
+		std::wstring raw_content{ buf.begin(), buf.end() };
+		raw_content = trim(raw_content);
+
+		return { S_OK, raw_content };
 	}
 	else
 		return { S_FALSE, L"" };	//empty file is like an empty line

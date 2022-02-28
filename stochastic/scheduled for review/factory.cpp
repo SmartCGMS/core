@@ -42,14 +42,78 @@
 
 #include "HaltonDevice.h"
 #include "MetaDE.h"
+#include "UnconstrainedMetaDE.h"
+#include "fast_pathfinder.h"
+#include "landscape_pathfinder.h"
 #include "Sequential_Brute_Force_Scan.h"
 #include "Sequential_Convex_Scan.h"
+#include "PSO.h"
+
+template <typename TSolver, typename TUsed_Solution>
+HRESULT Solve_Pathfinder_Spiral(solver::TSolver_Setup& setup, solver::TSolver_Progress& progress) {
+	solver::TSolver_Setup spiral_setup{
+		setup.problem_size,
+		setup.lower_bound, setup.upper_bound,
+		setup.hints, setup.hint_count,
+		setup.solution,
+		setup.data, setup.objective,
+		0,
+		setup.population_size,
+		setup.tolerance
+	};
+		
+	TSolver solver{ spiral_setup };
+	TUsed_Solution result = solver.Solve(progress);
+	std::copy(result.data(), result.data() + result.cols(), setup.solution);
+	return progress.cancelled == FALSE ? S_OK : E_ABORT;
+}
 
 template <typename TSolver, typename TUsed_Solution>
 HRESULT Solve_By_Class(solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
 	TSolver solver{ setup };
 	TUsed_Solution result = solver.Solve(progress);
 	std::copy(result.data(), result.data() + result.cols(), setup.solution);
+	return progress.cancelled == FALSE ? S_OK : E_ABORT;
+}
+
+template <typename TSolver, typename TUsed_Solution>
+HRESULT Eval_Pathfinder_Angle(solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
+	TUsed_Solution best_solution;
+
+	const double stepping = 0.05;
+	double global_fitness = std::numeric_limits<double>::max();
+	double best_angle = std::numeric_limits<double>::quiet_NaN();
+
+	double stepped = stepping;//0.0 is illformed solution
+	const double pi = atan(1.0)*4.0;
+	while (stepped <= 2.0*pi) {
+		TSolver solver{ setup, stepped };
+		TUsed_Solution local_solution = solver.Solve(progress);
+		const double local_fitness = setup.objective(setup.data, local_solution.data());
+		if (local_fitness < global_fitness) {
+			global_fitness = local_fitness;
+			best_solution = local_solution;
+			best_angle = stepped;
+		}
+
+
+		stepped += stepping;
+	}
+
+	
+	std::cout << "best angle: " << best_angle << std::endl;
+	std::cout << "best fitness: " << global_fitness << std::endl;
+
+	{
+		CFast_Pathfinder<TUsed_Solution> solver{ setup, 0.45 };
+		TUsed_Solution local_solution = solver.Solve(progress);
+		const double local_fitness = setup.objective(setup.data, local_solution.data());
+		std::cout << "0.45 fitness: " << local_fitness << std::endl;
+	}
+
+	
+
+	std::copy(best_solution.data(), best_solution.data() + best_solution.cols(), setup.solution);
 	return progress.cancelled == FALSE ? S_OK : E_ABORT;
 }
 
@@ -78,8 +142,23 @@ public:
 		using TRandom_MetaDE = CMetaDE<TUsed_Solution, std::random_device>;
 		mSolver_Id_Map[rnd_metade::id] = std::bind(&Solve_By_Class<TRandom_MetaDE, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 
+		//mSolver_Id_Map[pathfinder::id] = std::bind(&Eval_Pathfinder_Angle<TUsed_Solution>, std::placeholders::_1, std::placeholders::_2); -- diagnostic
+		mSolver_Id_Map[pathfinder::id_fast] = std::bind(&Solve_By_Class<CFast_Pathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+		//mSolver_Id_Map[pathfinder::id_fast] = std::bind(&Eval_Pathfinder_Angle<CFast_Pathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);  -- diagnostic
+
+		mSolver_Id_Map[pathfinder::id_spiral] = std::bind(&Solve_Pathfinder_Spiral<CFast_Pathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+		mSolver_Id_Map[pathfinder::id_landscape] = std::bind(&Solve_By_Class<CLandscape_Pathfinder<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+		
 		mSolver_Id_Map[sequential_brute_force_scan::id] = std::bind(&Solve_By_Class<CSequential_Brute_Force_Scan<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
-		mSolver_Id_Map[sequential_convex_scan::id] = std::bind(&Solve_By_Class<CSequential_Convex_Scan<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);		
+		mSolver_Id_Map[sequential_convex_scan::id] = std::bind(&Solve_By_Class<CSequential_Convex_Scan<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+
+		using TPSO_Halton = CPSO<TUsed_Solution, CHalton_Device, pso::CRandom_Swarm_Generator, pso::CDual_Coefficient_Vector_Velocity_Modifier>;									
+			//using TPSO_MT_DiagInit_SCV = CPSO<TUsed_Solution, std::mt19937, pso::CDiagonal_Swarm_Generator, pso::CSingle_Coefficient_Vector_Velocity_Modifier>;					
+			//using TPSO_RND_CrossInit_DCV = CPSO<TUsed_Solution, std::random_device, pso::CCross_Diagonal_Swarm_Generator, pso::CDual_Coefficient_Vector_Velocity_Modifier>;		
+		mSolver_Id_Map[pso::id] = std::bind(&Solve_By_Class<TPSO_Halton, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+
+		using TPSO_pr_Halton = CPSO<TUsed_Solution, CHalton_Device, pso::CDiagonal_Swarm_Generator, pso::CDual_Coefficient_Vector_Velocity_Modifier, true>;
+		mSolver_Id_Map[pso::pr_id] = std::bind(&Solve_By_Class<TPSO_pr_Halton, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 	}
 
 	HRESULT Solve(const GUID &solver_id, solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
