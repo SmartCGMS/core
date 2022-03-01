@@ -38,6 +38,26 @@
 
 #include "solution.h"
 
+enum class partial_ordering
+{
+	unordered,
+	less,
+	greater
+};
+
+static inline partial_ordering Compare_Values(const double a, const double b)
+{
+	if (std::isnan(a) || std::isnan(b))
+		return partial_ordering::unordered;
+
+	if (a < b)
+		return partial_ordering::less;
+	if (a > b)
+		return partial_ordering::greater;
+
+	return partial_ordering::unordered;
+}
+
 
 bool Compare_Elements(const double a, const double b) {
 	if (std::isnan(a))
@@ -64,7 +84,7 @@ std::tuple<size_t, size_t> Count_Dominance(const solver::TFitness& a, const solv
 
 
 template <bool weighted>
-std::partial_ordering Euclidean_Distance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
+partial_ordering Euclidean_Distance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
 	double a_accu = 0.0;
 	double b_accu = 0.0;
 
@@ -85,13 +105,13 @@ std::partial_ordering Euclidean_Distance(const solver::TFitness& a, const solver
 		}
 	}
 
-	return a_accu <=> b_accu;
+	return Compare_Values(a_accu, b_accu); // a_accu <=> b_accu (as soon as C++20 is supported on all major platforms)
 }
 
 
 
 template <bool weighted>
-std::partial_ordering Ratio_Distance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
+partial_ordering Ratio_Distance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
 	double a_accu = 0.0;
 	double b_accu = 0.0;
 
@@ -117,7 +137,7 @@ std::partial_ordering Ratio_Distance(const solver::TFitness& a, const solver::TF
 		}
 	}
 
-	return a_accu <=> b_accu;
+	return Compare_Values(a_accu, b_accu); // a_accu <=> b_accu (as soon as C++20 is supported on all major platforms)
 }
 
 
@@ -152,7 +172,7 @@ bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, con
 	}
 	
 
-	std::partial_ordering comparison = std::partial_ordering::unordered;
+	partial_ordering comparison = partial_ordering::unordered;
 	//3. let us decide by another option than the dominance
 	switch (strategy) {
 		
@@ -182,11 +202,11 @@ bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, con
 	}
 
 
-	//4. Is the comparison clearly decided? 
-	if (comparison == std::partial_ordering::less) 
-		return true;	
+	//4. Is the comparison clearly decided?
+	if (comparison == partial_ordering::less)
+		return true;
 
-	if (comparison == std::partial_ordering::greater)
+	if (comparison == partial_ordering::greater)
 		return false;
 
 	
