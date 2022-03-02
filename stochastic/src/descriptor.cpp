@@ -56,6 +56,11 @@ namespace rnd_metade {
 	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsRnd_MetaDE);
 }
 
+namespace pso {
+	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsPSO_Halton);
+	const scgms::TSolver_Descriptor desc_r = Describe_Non_Specialized_Solver(pr_id, L"Halton pr-PSO");
+}
+
 namespace sequential_brute_force_scan {
 	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsSequential_Brute_Force_Scan);
 }
@@ -67,8 +72,9 @@ namespace sequential_convex_scan {
 
 
 
-const std::array<scgms::TSolver_Descriptor, 5> solver_descriptions = 
-	{ mt_metade::desc, halton_metade::desc, rnd_metade::desc, 
+const std::array<scgms::TSolver_Descriptor, 7> solver_descriptions = 
+	{ mt_metade::desc, halton_metade::desc, rnd_metade::desc,
+	  pso::desc, pso::desc_r,
 	  sequential_brute_force_scan::desc, sequential_convex_scan::desc,
 
 };

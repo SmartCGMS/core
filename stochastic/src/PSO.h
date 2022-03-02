@@ -64,9 +64,9 @@ namespace pso
 		// current particle velocity vector
 		TUsed_Solution velocity;
 		// current parameter vector fitness
-		double current_fitness = std::numeric_limits<double>::max();
+		solver::TFitness current_fitness = solver::Nan_Fitness;
 		// local memory - best known position fitness
-		double best_fitness = std::numeric_limits<double>::max();
+		solver::TFitness best_fitness = solver::Nan_Fitness;
 	};
 
 	// swarm vector used in calculations
@@ -270,20 +270,20 @@ class CPSO
 		pso::TSwarm_Vector<TUsed_Solution> mRepulsors;
 
 		typename pso::TSwarm_Vector<TUsed_Solution>::iterator mBest_Itr;
-		double mBest_Fitness = std::numeric_limits<double>::max();
+		solver::TFitness mBest_Fitness = solver::Nan_Fitness;
 
 		TUsed_Solution mOverall_Best;
-		double mOverall_Best_Fitness = std::numeric_limits<double>::max();
+		solver::TFitness mOverall_Best_Fitness = solver::Nan_Fitness;
 
 		// updates global memory with best known position of the whole swarm
 		inline void Update_Best_Candidate() {
-			mBest_Itr = std::min_element(std::execution::par_unseq, mSwarm.begin(), mSwarm.end(), [](const pso::TCandidate_Solution<TUsed_Solution>& a, const pso::TCandidate_Solution<TUsed_Solution>& b) {
-				return a.best_fitness < b.best_fitness;
+			mBest_Itr = std::min_element(mSwarm.begin(), mSwarm.end(), [&](const pso::TCandidate_Solution<TUsed_Solution>& a, const pso::TCandidate_Solution<TUsed_Solution>& b) {
+				return Compare_Solutions(a.current_fitness, b.current_fitness, mSetup.objectives_count, NFitness_Strategy::Master);
 			});
 
 			mBest_Fitness = mBest_Itr->best_fitness;
 
-			if (mBest_Fitness < mOverall_Best_Fitness)
+			if (Compare_Solutions(mBest_Fitness, mOverall_Best_Fitness, mSetup.objectives_count, NFitness_Strategy::Master))
 			{
 				mOverall_Best = mBest_Itr->best;
 				mOverall_Best_Fitness = mBest_Fitness;
@@ -320,7 +320,11 @@ class CPSO
 
 			// calculate initial fitness
 			std::for_each(std::execution::par_unseq, mSwarm.begin(), mSwarm.end(), [this, initial](auto& candidate_solution) {
-				candidate_solution.current_fitness = mSetup.objective(mSetup.data, candidate_solution.current.data());
+				if (mSetup.objective(mSetup.data, candidate_solution.current.data(), candidate_solution.current_fitness.data()) != TRUE)
+				{
+					for (auto& elem : candidate_solution.current_fitness)
+						elem = std::numeric_limits<double>::quiet_NaN();	// sanitize on error
+				}
 
 				// current is also the best known
 				candidate_solution.best_fitness = candidate_solution.current_fitness;
@@ -337,7 +341,7 @@ class CPSO
 					rand_init[j] = mUniform_Distribution_dbl(mRandom_Generator);
 
 				candidate_solution.velocity = mVelocity_Lower_Bound + rand_init * (mVelocity_Upper_Bound - mVelocity_Lower_Bound);
-				});
+			});
 
 			// select swarm best candidate and store it
 			Update_Best_Candidate();
@@ -423,7 +427,11 @@ class CPSO
 					candidate_solution.current = mUpper_Bound.min(mLower_Bound.max(candidate_solution.current + candidate_solution.velocity));
 
 					// evaluate candidate solution
-					candidate_solution.current_fitness = mSetup.objective(mSetup.data, candidate_solution.current.data());
+					if (mSetup.objective(mSetup.data, candidate_solution.current.data(), candidate_solution.current_fitness.data()) != TRUE)
+					{
+						for (auto& elem : candidate_solution.current_fitness)
+							elem = std::numeric_limits<double>::quiet_NaN();	// sanitize on error
+					}
 
 					// update best solution
 					if (candidate_solution.current_fitness < candidate_solution.best_fitness)
