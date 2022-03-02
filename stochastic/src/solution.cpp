@@ -38,15 +38,28 @@
 
 #include "solution.h"
 
+#include <compare>
+
+#if __cplusplus >= 202002L
+#define __has_threeway_cmp 1
+#endif
+
+#if __has_threeway_cmp
+using partial_ordering = std::partial_ordering;
+#else
 enum class partial_ordering
 {
 	unordered,
 	less,
 	greater
 };
+#endif
 
 static inline partial_ordering Compare_Values(const double a, const double b)
 {
+#if __has_threeway_cmp
+	return a <=> b;
+#else
 	if (std::isnan(a) || std::isnan(b))
 		return partial_ordering::unordered;
 
@@ -56,6 +69,7 @@ static inline partial_ordering Compare_Values(const double a, const double b)
 		return partial_ordering::greater;
 
 	return partial_ordering::unordered;
+#endif
 }
 
 
