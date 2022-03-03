@@ -97,7 +97,7 @@ protected:
 	std::atomic<bool> mQuitting = false;
 	void Stop_Generator(bool wait);
 protected:
-	size_t mNumber_Of_Segment_Specific_Parameters;
+	size_t mNumber_Of_Segment_Specific_Parameters = 0;
 	size_t mCurrent_Segment_Idx = 0;
     scgms::SFilter_Configuration mOriginal_Configuration;
 	std::vector<double> mSegment_Agnostic_Parameters, mSegment_Agnostic_Lower_Bound, mSegment_Agnostic_Upper_Bound;
