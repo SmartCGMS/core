@@ -42,6 +42,25 @@
 #include "../../../common/rtl/hresult.h"
 #include "../../../common/rtl/ModelsLib.h"
 
+
+namespace basal_2_bolus {
+
+	constexpr GUID filter_id = { 0xebf3a9e5, 0x5b00, 0x43ef, { 0xb6, 0x64, 0xde, 0x30, 0xcc, 0xd1, 0xa3, 0x7d } }; // {EBF3A9E5-5B00-43EF-B664-DE30CCD1A37D}
+
+	constexpr size_t model_param_count = 2;
+	const double default_parameters[model_param_count] = { 0.05, 5.0 * scgms::One_Minute };	//https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4455475/
+
+	struct TParameters {
+		union {
+			struct {
+				double minimum_amount;		//e.g.; the insulin pump motor delivers 0.05 IU/hour
+				double period;				//every 5 minutes
+			};
+			double vector[model_param_count];
+		};
+	};
+}
+
 namespace iob {
 	constexpr size_t param_count = 2;
 	const double default_parameters[param_count] = { 75.0*scgms::One_Minute, 180.0*scgms::One_Minute };

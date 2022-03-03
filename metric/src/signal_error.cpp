@@ -239,10 +239,15 @@ HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(const uint64_t segmen
 		for (size_t i = 0; i < reference_levels.size(); i++) {
 			if (!std::isnan(reference_levels[i]) && !std::isnan(error_levels[i])) {
 				//both levels are not nan, so we can calcualte the error here
-				absolute_differences[absolute_error_count] = std::fabs(reference_levels[i] - error_levels[i]);
+				const double abs_diff = std::fabs(reference_levels[i] - error_levels[i]);
+				absolute_differences[absolute_error_count] = abs_diff;
 				
 				if (reference_levels[i] != 0.0) {
-					relative_differences[relative_error_count] = absolute_differences[absolute_error_count] / reference_levels[i];
+					relative_differences[relative_error_count] = abs_diff / reference_levels[i];
+					relative_error_count++;
+				}
+				else if (abs_diff == 0.0) {	//special-case, when the relative error is zero even if the reference level could be zero
+					relative_differences[relative_error_count] = 0.0;
 					relative_error_count++;
 				}
 
