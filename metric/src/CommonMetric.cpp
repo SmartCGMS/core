@@ -56,17 +56,30 @@ HRESULT IfaceCalling CCommon_Metric::Accumulate(const double *times, const doubl
 		if (!std::isnan(calculated[i])) {
 			TProcessed_Difference tmp;
 
-			tmp.raw.datetime = times[i];
-			
-			tmp.raw.calculated = std::isnan(calculated[i]) ? Infinity_Diff_Penalty : calculated[i];
+			tmp.raw.datetime = times[i];			
+			tmp.raw.calculated = calculated[i];			
 			tmp.raw.expected = expected[i];
 
 			tmp.difference = fabs(expected[i] - tmp.raw.calculated);
 
-			if (std::isnormal(tmp.raw.expected)) {
+			auto fp = std::fpclassify(tmp.difference);
+			if (fp == FP_SUBNORMAL) {
+				tmp.difference = 0.0;
+				fp = FP_ZERO;
+			}
 
-				if (mParameters.use_relative_error)
-					tmp.difference /= fabs(tmp.raw.expected);	//with wrong (e.g., MetaDE random) parameters, the result could be negative
+			if ((fp == FP_NORMAL) || (fp == FP_ZERO)) {
+
+				if (mParameters.use_relative_error) {
+
+					if (tmp.raw.calculated != 0.0)
+						tmp.difference /= fabs(tmp.raw.expected);	//with wrong (e.g., MetaDE random) parameters, the result could be negative
+																	//albeit it is no longer a valid metric then (the triangle inequality wouldn't hold)
+					else if (tmp.difference <= std::numeric_limits<double>::epsilon())
+						tmp.difference = 0.0;		//if the difference is zero, then the relative difference is zero as well
+					else
+						tmp.difference = Infinity_Diff_Penalty;		//open case, what to do in such a case when we cannot divide by zero
+				}
 				if (mParameters.use_squared_differences)
 					tmp.difference *= tmp.difference;
 			}
