@@ -121,11 +121,14 @@ HRESULT CBasal_2_Bolus::Do_Execute(scgms::UDevice_Event event) {
 		event.signal_id() = scgms::signal_Delivered_Insulin_Basal_Rate;
 	}
 	
-	if ((current_device_time >= mNext_Delivery_Time) && (mValid_Settings)) {
-		const HRESULT rc = Deliver_Bolus(current_device_time, event.segment_id());
-		if (!Succeeded(rc))
-			return rc;
+	if (event.segment_id() != scgms::Invalid_Segment_Id) {
+		if ((current_device_time >= mNext_Delivery_Time) && (mValid_Settings)) {
+			const HRESULT rc = Deliver_Bolus(current_device_time, event.segment_id());
+			if (!Succeeded(rc))
+				return rc;
+		}
 	}
+
 
 
 	return mOutput.Send(event);
