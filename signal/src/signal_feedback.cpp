@@ -41,6 +41,25 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/utils/string_utils.h"
 
+
+class CAtomic_Counter {
+protected:
+	std::atomic<size_t>& mCounter;
+public:
+	CAtomic_Counter(std::atomic<size_t>& counter) : mCounter(counter) {
+		counter++;
+	}
+
+	~CAtomic_Counter() {
+		mCounter--;
+	}
+
+
+	size_t Value() {
+		return mCounter.load();
+	}
+};
+
 CSignal_Feedback::CSignal_Feedback(scgms::IFilter *output) : CBase_Filter(output) {
 	//
 }
@@ -55,6 +74,10 @@ HRESULT IfaceCalling CSignal_Feedback::QueryInterface(const GUID*  riid, void **
 }
 
 HRESULT CSignal_Feedback::Do_Execute(scgms::UDevice_Event event) {
+	CAtomic_Counter stack_guard{ mStack_Counter };
+
+	if (mStack_Counter >= mMaximum_Stack_Depth)
+		return	EVENT_E_TOO_MANY_METHODS;	//looks better than ERROR_STACK_OVERFLOW, because we actually prevented the stack overflow
 
 	auto send_to_receiver = [this](scgms::UDevice_Event &event)->HRESULT {
 		if (!mReceiver)
