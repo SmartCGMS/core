@@ -385,10 +385,12 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Variable(const wchar_t
 	if (!name || (*name == 0)) return E_INVALIDARG;
 	if (name == CFilter_Parameter::mUnused_Variable_Name) return TYPE_E_AMBIGUOUSNAME;
 
-	HRESULT rc = S_OK;
-	for (scgms::IFilter_Configuration_Link* link : *this) {
-		if (!Succeeded(link->Set_Variable(name, value)))
-			rc = E_UNEXPECTED;
+	HRESULT rc = refcnt::internal::CVector_Container<scgms::IFilter_Configuration_Link*>::empty();
+	if (rc == S_FALSE) {
+		for (scgms::IFilter_Configuration_Link* link : *this) {
+			if (!Succeeded(link->Set_Variable(name, value)))
+				rc = E_UNEXPECTED;
+		}
 	}
 
 	return rc;

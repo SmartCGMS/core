@@ -32,10 +32,12 @@ HRESULT IfaceCalling CFilter_Configuration_Link::Set_Variable(const wchar_t* nam
 	if ((!name) || (*name == 0)) return E_INVALIDARG;
 	if (name == CFilter_Parameter::mUnused_Variable_Name) return TYPE_E_AMBIGUOUSNAME;
 
-	HRESULT rc = S_OK;
-	for (auto param : *this) {
-		if (!Succeeded(param->Set_Variable(name, value)))
-			rc = E_UNEXPECTED;
+	HRESULT rc = refcnt::internal::CVector_Container<scgms::IFilter_Parameter*>::empty();
+	if (rc == S_FALSE) {
+		for (auto param : *this) {
+			if (!Succeeded(param->Set_Variable(name, value)))
+				rc = E_UNEXPECTED;
+		}
 	}
 
 	return rc;
