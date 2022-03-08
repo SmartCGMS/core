@@ -212,7 +212,7 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 					//the sync'ed generators will subsequenly forward this event among them
 			else
 				rc = mOutput.Send(event);
-		} else {
+		} else if (event.segment_id() != scgms::Invalid_Segment_Id) {
 			//this event is intended for a single segment only
 			auto sync_model_iter = mSync_Models.find(event.segment_id());
 			if (sync_model_iter == mSync_Models.end()) {
@@ -231,7 +231,8 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 			}
 
 			rc = sync_model_iter->second->Execute_Sync(event);
-		}
+		} else
+			rc = mOutput.Send(event);
 
 	} else {
 		if (mAsync_Model) {

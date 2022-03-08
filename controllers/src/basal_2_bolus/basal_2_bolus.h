@@ -36,39 +36,37 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/referencedImpl.h"
+#pragma once
 
-#include <vector>
+#include "../../../../common/iface/DeviceIface.h"
+#include "../../../../common/rtl/FilterLib.h"
+
+#include "../descriptor.h"
+
+#include <map>
+#include <array>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
- /*
-  * Class that reads selected segments from the db produces the events
-  * i.e., it mimicks CGMS
-  */
-class CSignal_Feedback : public scgms::CBase_Filter, public scgms::IFilter_Feedback_Sender {
+class CBasal_2_Bolus : public virtual scgms::CBase_Filter {
 protected:
-	std::atomic<size_t> mStack_Counter{ 0 };	//counter used to detect possibly infinity loop
-	const size_t mMaximum_Stack_Depth = 10;		//maximum depth of Do_Execute
-protected:
-	scgms::SFilter_Feedback_Receiver mReceiver;
-	std::wstring mFeedback_Name;
-    GUID mSignal_ID = Invalid_GUID;
-    bool mForward_Clone = false;
-protected:
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+    basal_2_bolus::TParameters mParameters{ 0.0 };
 
+    bool mValid_Settings = false;    
+    double mInsulin_To_Deliver_Per_Period = 0.0;
+    double mEffective_Period = 0.0;
+    double mNext_Delivery_Time = 0.0;
+
+    bool Schedule_Delivery(const double current_device_time, const double target_rate, const uint64_t segment_id);
+    HRESULT Deliver_Bolus(const double current_device_time, const uint64_t segment_id);
+protected:
+    // scgms::CBase_Filter iface implementation
+    virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+    virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 public:
-    CSignal_Feedback(scgms::IFilter *output);
-	virtual ~CSignal_Feedback();
-
-	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
-	virtual HRESULT IfaceCalling Sink(scgms::IFilter_Feedback_Receiver *receiver) override final;
-	virtual HRESULT IfaceCalling Name(wchar_t** const name) override final;
+    CBasal_2_Bolus(scgms::IFilter* output);
+    virtual ~CBasal_2_Bolus();
 };
 
 #pragma warning( pop )
-

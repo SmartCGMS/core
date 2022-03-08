@@ -52,8 +52,59 @@
 #include "activity_detection/physical_activity.h"
 #include "gege/gege.h"
 #include "flr_ge/flr_ge.h"
+#include "basal_2_bolus/basal_2_bolus.h"
 
 #include <vector>
+
+
+namespace basal_2_bolus {
+	const size_t filter_param_count = 1;
+	const scgms::NParameter_Type filter_param_types[filter_param_count] = { scgms::NParameter_Type::ptDouble_Array};
+	const wchar_t* filter_param_ui_names[filter_param_count] = { dsParameters};
+	const wchar_t* filter_param_config_names[filter_param_count] = { rsParameters };
+	const wchar_t* filter_param_tooltips[filter_param_count] = { nullptr};
+
+	const scgms::TFilter_Descriptor filter_desc = {
+				filter_id,
+				scgms::NFilter_Flags::None,
+				dsBasal_2_Bolus,
+				filter_param_count,
+				filter_param_types,
+				filter_param_ui_names,
+				filter_param_config_names,
+				filter_param_tooltips
+		};
+
+
+	const scgms::NModel_Parameter_Value model_types[model_param_count] = { scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime };
+	const wchar_t* model_param_ui_names[model_param_count] = {dsMinimum_Volume, dsPPeriod };
+	const wchar_t* model_param_config_names[model_param_count] = { rsMinimum, rsPeriod };
+
+	const double lower_bound[model_param_count] = { 0.0, 0.0};	
+	const double upper_bound[model_param_count] = { 100.0, 1.0 };
+
+	const scgms::TModel_Descriptor model_desc = {
+		filter_id,
+		scgms::NModel_Flags::None,
+		dsParameters,
+		rsParameters,
+
+		model_param_count,
+		0,
+		model_types,
+		model_param_ui_names,
+		model_param_config_names,
+
+		lower_bound,
+		default_parameters,
+		upper_bound,
+
+		0,
+		&scgms::signal_Null,
+		&scgms::signal_Null
+	};
+}
+
 
 namespace iob {
 	const GUID model_id = { 0xd3d57cb4, 0x48da, 0x40e2, { 0x9e, 0x53, 0xbb, 0x1e, 0x84, 0x8a, 0x63, 0x95 } };// {D3D57CB4-48DA-40E2-9E53-BB1E848A6395}
@@ -442,7 +493,8 @@ namespace flr_ge {
 	const scgms::TSignal_Descriptor bolus_desc{ bolus_id, L"FLR GE - Bolus", dsU, scgms::NSignal_Unit::U_insulin, 0xFF00FFFF, 0xFF00FFFF, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::triangle, nullptr, 1.0 };
 }
 
-const std::array<scgms::TModel_Descriptor, 8> model_descriptions = { { iob::desc, cob::desc, betapid_insulin_regulation::desc, betapid3_insulin_regulation::desc, lgs_basal_insulin::desc, physical_activity_detection::desc, gege::desc, flr_ge::desc } };
+const std::array<scgms::TModel_Descriptor, 9> model_descriptions = { { iob::desc, cob::desc, betapid_insulin_regulation::desc, betapid3_insulin_regulation::desc, lgs_basal_insulin::desc, physical_activity_detection::desc, gege::desc, flr_ge::desc,
+																		basal_2_bolus::model_desc} };
 
 
 const std::array<scgms::TSignal_Descriptor, 14> signals_descriptors = { {iob::act_bi_desc, iob::act_exp_desc, iob::iob_bi_desc, iob::iob_exp_desc, cob::bi_desc,
@@ -450,6 +502,9 @@ const std::array<scgms::TSignal_Descriptor, 14> signals_descriptors = { {iob::ac
 																		lgs_basal_insulin::lgs_desc, physical_activity_detection::signal_desc, gege::ibr_desc, gege::bolus_desc,
 																		flr_ge::ibr_desc, flr_ge::bolus_desc,
 } };
+
+const std::array<scgms::TFilter_Descriptor, 1> filter_descriptions = { { basal_2_bolus::filter_desc} };
+
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
 	*begin = const_cast<scgms::TModel_Descriptor*>(model_descriptions.data());
@@ -496,4 +551,18 @@ HRESULT IfaceCalling do_create_discrete_model(const GUID* model_id, scgms::IMode
 	if (*model_id == gege::model_id) return Manufacture_Object<CGEGE_Model>(model, parameters, output);
 	if (*model_id == flr_ge::model_id) return Manufacture_Object<CFLR_GE_Model>(model, parameters, output);
 	else return E_NOTIMPL;
+}
+
+
+HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor** begin, scgms::TFilter_Descriptor** end) {
+	*begin = const_cast<scgms::TFilter_Descriptor*>(filter_descriptions.data());
+	*end = *begin + filter_descriptions.size();
+	return S_OK;
+}
+
+HRESULT IfaceCalling do_create_filter(const GUID* id, scgms::IFilter* output, scgms::IFilter** filter) {
+	if (*id == basal_2_bolus::filter_id)
+		return Manufacture_Object<CBasal_2_Bolus>(filter, output);
+
+	return E_NOTIMPL;
 }

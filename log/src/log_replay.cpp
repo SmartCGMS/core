@@ -265,14 +265,14 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			else if (evt.is_parameters_event())
 				WStr_To_Parameters(info_str, evt.parameters);
 
-			mLast_Event_Time = evt.device_time() = device_time;			
-			evt.segment_id() = segment_id;
-
-
 			// do not send shutdown event through pipes - it's a job for outer code (GUI, ..)
 			// furthermore, sending this event would cancel and stop simulation - we don't want that
 			if (evt.event_code() == scgms::NDevice_Event_Code::Shut_Down)
 				continue;
+
+			mLast_Event_Time = evt.device_time() = device_time;
+			evt.segment_id() = segment_id;
+
 
 			bool device_id_ok, signal_id_ok;
 			evt.device_id() = WString_To_GUID(cut_column(), device_id_ok);
