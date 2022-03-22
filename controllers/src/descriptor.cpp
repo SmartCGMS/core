@@ -53,6 +53,7 @@
 #include "gege/gege.h"
 #include "flr_ge/flr_ge.h"
 #include "basal_2_bolus/basal_2_bolus.h"
+#include "sensor/sensor.h"
 
 #include <vector>
 
@@ -105,6 +106,67 @@ namespace basal_2_bolus {
 	};
 }
 
+namespace sensor
+{
+	const wchar_t* rsNoise_Level = L"Noise_Level";
+	const wchar_t* rsCalibration_Signal_Id = L"Calibration_Signal_Id";
+	const wchar_t* rsCalibration_Min_Value_Count = L"Calibration_Min_Value_Count";
+	const wchar_t* rsPrecalibrated = L"Precalibrated";
+	const wchar_t* rsSensor_Drift_Per_Day = L"Sensor_Drift_Per_Day";
+
+	const size_t filter_param_count = 7;
+
+	const scgms::NParameter_Type filter_param_types[filter_param_count] = {
+		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptInt64,
+		scgms::NParameter_Type::ptDouble,
+		scgms::NParameter_Type::ptDouble,
+	};
+
+	const wchar_t* filter_param_ui_names[filter_param_count] = {
+		dsSignal_Source_Id,
+		dsSignal_Destination_Id,
+		L"Calibration signal ID",
+		L"Precalibrated",
+		L"Minimum calibration levels",
+		L"Noise level",
+		L"Sensor drift per day",
+	};
+
+	const wchar_t* filter_param_config_names[filter_param_count] = {
+		rsSignal_Source_Id,
+		rsSignal_Destination_Id,
+		rsCalibration_Signal_Id,
+		rsPrecalibrated,
+		rsCalibration_Min_Value_Count,
+		rsNoise_Level,
+		rsSensor_Drift_Per_Day,
+	};
+
+	const wchar_t* filter_param_tooltips[filter_param_count] = {
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+	};
+
+	const scgms::TFilter_Descriptor filter_desc = {
+		filter_id,
+		scgms::NFilter_Flags::None,
+		L"Simulated sensor filter",
+		filter_param_count,
+		filter_param_types,
+		filter_param_ui_names,
+		filter_param_config_names,
+		filter_param_tooltips
+	};
+}
 
 namespace iob {
 	const GUID model_id = { 0xd3d57cb4, 0x48da, 0x40e2, { 0x9e, 0x53, 0xbb, 0x1e, 0x84, 0x8a, 0x63, 0x95 } };// {D3D57CB4-48DA-40E2-9E53-BB1E848A6395}
@@ -476,7 +538,7 @@ namespace flr_ge {
 		L"FLR GE",
 		nullptr,
 		param_count,
-		0,
+		1,
 		model_param_types,
 		model_param_ui_names,
 		nullptr,
@@ -503,7 +565,7 @@ const std::array<scgms::TSignal_Descriptor, 14> signals_descriptors = { {iob::ac
 																		flr_ge::ibr_desc, flr_ge::bolus_desc,
 } };
 
-const std::array<scgms::TFilter_Descriptor, 1> filter_descriptions = { { basal_2_bolus::filter_desc} };
+const std::array<scgms::TFilter_Descriptor, 2> filter_descriptions = { { basal_2_bolus::filter_desc, sensor::filter_desc } };
 
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
@@ -563,6 +625,8 @@ HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor** begin
 HRESULT IfaceCalling do_create_filter(const GUID* id, scgms::IFilter* output, scgms::IFilter** filter) {
 	if (*id == basal_2_bolus::filter_id)
 		return Manufacture_Object<CBasal_2_Bolus>(filter, output);
+	else if (*id == sensor::filter_id)
+		return Manufacture_Object<CSensor_Filter>(filter, output);
 
 	return E_NOTIMPL;
 }

@@ -61,6 +61,18 @@ namespace basal_2_bolus {
 	};
 }
 
+namespace sensor {
+
+	constexpr GUID filter_id = { 0x3c2f37ab, 0x92c7, 0x4903, { 0x8d, 0x89, 0x8c, 0x71, 0xca, 0xf8, 0xec, 0xb9 } }; // {3C2F37AB-92C7-4903-8D89-8C71CAF8ECB9}
+
+	extern const wchar_t* rsNoise_Level;
+	extern const wchar_t* rsCalibration_Signal_Id;
+	extern const wchar_t* rsCalibration_Min_Value_Count;
+	extern const wchar_t* rsPrecalibrated;
+	extern const wchar_t* rsSensor_Drift_Per_Day;
+
+}
+
 namespace iob {
 	constexpr size_t param_count = 2;
 	const double default_parameters[param_count] = { 75.0*scgms::One_Minute, 180.0*scgms::One_Minute };
