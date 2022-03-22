@@ -71,7 +71,7 @@ public:
 				for (size_t i = 0; i < Event_Pool_Size; i++) {
 			if (mAllocated_Flags[i]) {
 
-				dprintf("Leaked device event; logical time: %d", mEvents[i].logical_clock());
+				dprintf("Leaked device event; logical time: %d\n", mEvents[i].logical_clock());
 			}
 		}
 

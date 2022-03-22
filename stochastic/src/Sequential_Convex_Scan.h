@@ -125,12 +125,12 @@ public:
 		//eventually, let's find the best solution
 		if (setup.hint_count > 0) {
 			mBest_Hint = Vector_2_Solution<TUsed_Solution>(mSetup.hints[0], setup.problem_size);
-			std::array<double, solver::Maximum_Objectives_Count> best_hint_fitness;
+			std::array<double, solver::Maximum_Objectives_Count> best_hint_fitness{solver::Nan_Fitness};
 			if (mSetup.objective(mSetup.data, mBest_Hint.data(), best_hint_fitness.data()) == TRUE) {
 				for (size_t i = 1; i < mSetup.hint_count; i++) {	//check if any other solution is better or not
 					TUsed_Solution candidate = Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size);
 					
-					std::array<double, solver::Maximum_Objectives_Count> candidate_fitness;
+					std::array<double, solver::Maximum_Objectives_Count> candidate_fitness{ solver::Nan_Fitness };
 					if (mSetup.objective(mSetup.data, candidate.data(), candidate_fitness.data()) == TRUE) {						
 
 						if (Compare_Solutions(candidate_fitness, best_hint_fitness, mSetup.objectives_count, mFitness_Strategy))	{
