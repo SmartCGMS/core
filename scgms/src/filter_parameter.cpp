@@ -515,7 +515,7 @@ std::tuple<bool, std::wstring> CFilter_Parameter::Is_Deferred_Parameter(const wc
 
 std::tuple<HRESULT, std::wstring> CFilter_Parameter::Load_From_File(const wchar_t* path) {
 	std::wifstream src_file;
-	src_file.open(path);
+	src_file.open(filesystem::path{ path });
 
 	if (src_file.is_open()) {
 		std::vector<wchar_t> buf;
@@ -534,7 +534,7 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::Load_From_File(const wchar_
 
 HRESULT CFilter_Parameter::Save_To_File(const std::wstring& text, const wchar_t* path) {
 	std::wofstream dst_file;
-	dst_file.open(path);
+	dst_file.open(filesystem::path{ path });
 
 	if (dst_file.is_open()) {
 		dst_file << text;

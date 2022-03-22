@@ -76,7 +76,6 @@ std::string Get_VS_Installation_Path(std::string vswhere, const char* tool, cons
 
 	return result;
 }
-#endif
 
 std::string Visual_Studio() {
 	std::string result;
@@ -114,6 +113,8 @@ std::string Visual_Studio() {
 	
 	return result;
 }
+
+#endif
 
 std::string Get_Env_Init(const std::wstring& compiler_prefix) {
 	std::string result;
