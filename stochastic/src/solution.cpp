@@ -38,9 +38,8 @@
 
 #include "solution.h"
 
-#include <compare>
-
 #if __cplusplus >= 202002L
+#include <compare>
 #define __has_threeway_cmp 1
 #endif
 

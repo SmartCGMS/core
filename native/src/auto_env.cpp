@@ -113,6 +113,8 @@ std::string Visual_Studio() {
 }
 #endif // _WIN32
 
+#endif
+
 std::string Get_Env_Init(const std::wstring& compiler_prefix) {
 	std::string result;
 
