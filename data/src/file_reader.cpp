@@ -52,6 +52,7 @@
 #include <iostream>
 #include <chrono>
 #include <string>
+#include <cmath>
 
 namespace file_reader
 {

@@ -4,6 +4,8 @@
 #include "../../../../common/rtl/referencedImpl.h"
 #include "../../../../common/rtl/UILib.h"
 
+#include <cmath>
+
 #include "../descriptor.h"
 #include "flr_ge_vm.h"
 

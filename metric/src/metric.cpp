@@ -39,7 +39,7 @@
 #include "metric.h"
 
 #include <algorithm>
-#include <math.h>
+#include <cmath>
 #include <limits>
 
 #undef max
