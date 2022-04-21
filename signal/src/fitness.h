@@ -69,8 +69,7 @@ struct TSegment_Info {
 };
 
 class CFitness {
-protected:
-	const size_t mSolution_Size;
+protected:	
 	scgms::TMetric_Parameters mMetric_Params = scgms::Null_Metric_Parameters;		
 	static thread_local scgms::SMetric mMetric_Per_Thread;
 protected:
@@ -80,10 +79,12 @@ protected:
 	static thread_local aligned_double_vector mTemporal_Levels;
 	double* Reserve_Temporal_Levels_Data();
 public:
+	const size_t mSolution_Size;
+
 	CFitness(const TSegment_Solver_Setup &setup, const size_t solution_size);
 	double Calculate_Fitness(const double *solution);
 };
 
 
-BOOL IfaceCalling Fitness_Wrapper(const void* data, const double* solution, double* const fitness);
+BOOL IfaceCalling Fitness_Wrapper(const void* data, const size_t solution_count, const double* solutions, double* const fitnesses);
 HRESULT Solve_Model_Parameters(const TSegment_Solver_Setup &setup);

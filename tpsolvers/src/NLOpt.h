@@ -72,7 +72,7 @@ double NLOpt_Top_Solution_Objective_Function(const std::vector<double> &x, std::
 	
 	
 	std::array<double, solver::Maximum_Objectives_Count> fitness;
-	if (data.setup.objective(data.setup.data, use_remap ? data.remapped_solution.data() : x.data(), fitness.data()) != TRUE)
+	if (data.setup.objective(data.setup.data, 1, use_remap ? data.remapped_solution.data() : x.data(), fitness.data()) != TRUE)
 		fitness[0] = std::numeric_limits<double>::quiet_NaN();
 
 	if (fitness[0] < data.progress.best_metric[0])

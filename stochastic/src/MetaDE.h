@@ -242,7 +242,7 @@ public:
 
 		//b check their fitness in parallel 		
 		std::for_each(std::execution::par_unseq, hint_indexes.begin(), hint_indexes.end(), [this, &trimmed_hints, &hint_fitness, &hint_validity](auto& hint_idx) {
-			hint_validity[hint_idx] = mSetup.objective(mSetup.data, trimmed_hints[hint_idx].data(), hint_fitness[hint_idx].data()) == TRUE;
+			hint_validity[hint_idx] = mSetup.objective(mSetup.data, 1, trimmed_hints[hint_idx].data(), hint_fitness[hint_idx].data()) == TRUE;
 		});
 
 		if (initialized_count < mSetup.hint_count) { 
@@ -292,7 +292,7 @@ public:
 
 		//compute the fitness in parallel
 		std::for_each(std::execution::par_unseq, mPopulation.begin() + effectively_initialized_count, mPopulation.end(), [this](auto& candidate_solution) {
-			if (mSetup.objective(mSetup.data, candidate_solution.current.data(), candidate_solution.current_fitness.data()) != TRUE) {
+			if (mSetup.objective(mSetup.data, 1, candidate_solution.current.data(), candidate_solution.current_fitness.data()) != TRUE) {
 				for (auto& elem : candidate_solution.current_fitness)
 					elem = std::numeric_limits<double>::quiet_NaN();
 			  }
@@ -453,7 +453,7 @@ public:
 				}
 
 				//and evaluate					
-				if (mSetup.objective(mSetup.data, candidate_solution.next.data(), candidate_solution.next_fitness.data()) != TRUE) {
+				if (mSetup.objective(mSetup.data, 1, candidate_solution.next.data(), candidate_solution.next_fitness.data()) != TRUE) {
 					for (auto& elem : candidate_solution.next_fitness) {
 						elem = std::numeric_limits<double>::quiet_NaN();	//sanitize on error
 					}

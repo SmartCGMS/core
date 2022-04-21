@@ -47,11 +47,14 @@
 
 #include "../../../common/rtl/referencedImpl.h"
 #include "../../../common/rtl/FilterLib.h"
+#include "../../../common/rtl/SolverLib.h"
 #include "../../../common/utils/DebugHelper.h"
 #include "../../../common/lang/dstrings.h"
 
 #include <mutex>
 #include <set>
+#include <numeric>
+#include <execution> 
 
 class CNull_wstr_list : public refcnt::Swstr_list {
 		//hides all the methods to do nothing
@@ -520,7 +523,24 @@ public:
 		std::copy(parameterSet.begin() + mFilter_Parameter_Offsets[optimized_filter_idx], parameterSet.begin() + mFilter_Parameter_Offsets[optimized_filter_idx] + mFilter_Parameter_Counts[optimized_filter_idx], target.begin());
 	}
 
-	bool Calculate_Fitness(const void* solution, double* const fitness, refcnt::Swstr_list empty_error_description) {
+	bool Calculate_Fitness(const size_t solution_count, const double* solutions, double* const fitnesses, refcnt::Swstr_list empty_error_description) {
+		if (solution_count > 1) {
+			bool success_flag = true;
+			std::for_each(std::execution::par_unseq, solver::CInt_Iterator<size_t>{ 0 }, solver::CInt_Iterator<size_t>{ solution_count }, [=, &success_flag](const auto& id) {
+				if (success_flag) {
+					if (!Calculate_Single_Fitness(solutions + id * mProblem_Size, fitnesses + id * solver::Maximum_Objectives_Count, empty_error_description))
+						success_flag = false;	//no need for locking because any thread may write the same value
+				}
+			});
+
+			return success_flag;
+		}
+		else
+			return Calculate_Single_Fitness(solutions, fitnesses, empty_error_description);
+	}
+
+
+	bool Calculate_Single_Fitness(const double* solution, double* const fitness, refcnt::Swstr_list empty_error_description) {
 		bool failure_detected = false;
 
 		TFast_Configuration configuration = Clone_Configuration(mFirst_Effective_Filter_Index, empty_error_description);	//later on, we will replace this with a pool
@@ -569,16 +589,16 @@ public:
 
 		//once implemented, we should return the configuration back to the pool
 
-		//pickup the fitness value/error metrics and return it		
+		//pickup the fitnesses value/error metrics and return it		
 		return (!failure_detected) && (error_metric_future.Get_Error_Metric(fitness) == mObjectives_Count);	//we have to pick at as many metrics as promised
 	}
 };
 
 
 
-BOOL IfaceCalling internal::Parameters_Fitness_Wrapper(const void *data, const double *solution, double* const fitness) {
+BOOL IfaceCalling internal::Parameters_Fitness_Wrapper(const void *data, const size_t solution_count, const double *solutions, double* const fitnesses) {
 	CParameters_Optimizer *candidate = reinterpret_cast<CParameters_Optimizer*>(const_cast<void*>(data));
-	return candidate->Calculate_Fitness(solution, fitness, CParameters_Optimizer::mEmpty_Error_Description) ? TRUE : FALSE;
+	return candidate->Calculate_Fitness(solution_count, solutions, fitnesses, CParameters_Optimizer::mEmpty_Error_Description) ? TRUE : FALSE;
 }
 
 

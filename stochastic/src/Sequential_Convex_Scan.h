@@ -58,13 +58,13 @@ protected:
 
 			//2. find the fitness at both borders
 			result.solution[param_idx] = experimental_low;			
-			if (mSetup.objective(mSetup.data, result.solution.data(), lower_fitness.data()) != TRUE) {
+			if (mSetup.objective(mSetup.data, 1, result.solution.data(), lower_fitness.data()) != TRUE) {
 				for (auto& elem : lower_fitness)
 					elem = std::numeric_limits<double>::quiet_NaN();
 			}
 
 			result.solution[param_idx] = experimental_high;
-			if (mSetup.objective(mSetup.data, result.solution.data(), upper_fitness.data()) != TRUE) {
+			if (mSetup.objective(mSetup.data, 1, result.solution.data(), upper_fitness.data()) != TRUE) {
 				for (auto& elem : upper_fitness)
 					elem = std::numeric_limits<double>::quiet_NaN();
 			}
@@ -126,12 +126,12 @@ public:
 		if (setup.hint_count > 0) {
 			mBest_Hint = Vector_2_Solution<TUsed_Solution>(mSetup.hints[0], setup.problem_size);
 			std::array<double, solver::Maximum_Objectives_Count> best_hint_fitness{solver::Nan_Fitness};
-			if (mSetup.objective(mSetup.data, mBest_Hint.data(), best_hint_fitness.data()) == TRUE) {
+			if (mSetup.objective(mSetup.data, 1, mBest_Hint.data(), best_hint_fitness.data()) == TRUE) {
 				for (size_t i = 1; i < mSetup.hint_count; i++) {	//check if any other solution is better or not
 					TUsed_Solution candidate = Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size);
 					
 					std::array<double, solver::Maximum_Objectives_Count> candidate_fitness{ solver::Nan_Fitness };
-					if (mSetup.objective(mSetup.data, candidate.data(), candidate_fitness.data()) == TRUE) {						
+					if (mSetup.objective(mSetup.data, 1, candidate.data(), candidate_fitness.data()) == TRUE) {						
 
 						if (Compare_Solutions(candidate_fitness, best_hint_fitness, mSetup.objectives_count, mFitness_Strategy))	{
 							best_hint_fitness = candidate_fitness;
@@ -156,7 +156,7 @@ public:
 
 		best_solution.solution = mBest_Hint;			
 		best_solution.fitness = solver::Nan_Fitness;
-		if (mSetup.objective(mSetup.data, best_solution.solution.data(), best_solution.fitness.data()) != TRUE)
+		if (mSetup.objective(mSetup.data, 1, best_solution.solution.data(), best_solution.fitness.data()) != TRUE)
 			return mBest_Hint;
 
 		progress.best_metric = best_solution.fitness;

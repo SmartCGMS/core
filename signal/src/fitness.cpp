@@ -42,6 +42,9 @@
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/rtl/referencedImpl.h"
 
+#include <numeric>
+#include <execution> 
+
 thread_local scgms::SMetric CFitness::mMetric_Per_Thread;
 thread_local aligned_double_vector CFitness::mTemporal_Levels;
 
@@ -142,9 +145,16 @@ double CFitness::Calculate_Fitness(const double *solution) {
 }
 
 
-BOOL IfaceCalling Fitness_Wrapper(const void *data, const double *solution, double* const fitness) {	
+BOOL IfaceCalling Fitness_Wrapper(const void* data, const size_t solution_count, const double* solutions, double* const fitnesses) {
 	CFitness *candidate = reinterpret_cast<CFitness*>(const_cast<void*>(data));
-	*fitness = candidate->Calculate_Fitness(solution);
+	
+	if (solution_count > 1) {
+		std::for_each(std::execution::par_unseq, solver::CInt_Iterator<size_t>{ 0 }, solver::CInt_Iterator<size_t>{ solution_count }, [=](const auto& id) {
+			fitnesses[id] = candidate->Calculate_Fitness(solutions + id * candidate->mSolution_Size);
+		});
+	} else {
+		*fitnesses = candidate->Calculate_Fitness(solutions);
+	}
 	return TRUE;
 }
 

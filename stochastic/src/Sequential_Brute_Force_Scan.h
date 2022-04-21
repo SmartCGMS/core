@@ -62,7 +62,7 @@ public:
 		best_solution.solution = mStepping[0];
 		best_solution.fitness = solver::Nan_Fitness;
 
-		if (mSetup.objective(mSetup.data, best_solution.solution.data(), best_solution.fitness.data()) != TRUE)
+		if (mSetup.objective(mSetup.data, 1, best_solution.solution.data(), best_solution.fitness.data()) != TRUE)
 			return best_solution.solution;			//TODO: this is not necessarily the best solution, just the first one!
 
 		progress.best_metric = best_solution.fitness;
@@ -100,7 +100,7 @@ public:
 							local_solution = best_solution.solution;
 						}
 						local_solution(param_idx) = mStepping[val_idx](param_idx);
-						if (mSetup.objective(mSetup.data, local_solution.data(), local_solution_fitness.data()) == TRUE) {
+						if (mSetup.objective(mSetup.data, 1, local_solution.data(), local_solution_fitness.data()) == TRUE) {
 							
 							if (Compare_Solutions(local_solution_fitness, best_solution.fitness, mSetup.objectives_count, mFitness_Strategy)) {
 								std::unique_lock write_lock{ best_mutex };

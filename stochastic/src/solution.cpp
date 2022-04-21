@@ -153,8 +153,17 @@ partial_ordering Ratio_Distance(const solver::TFitness& a, const solver::TFitnes
 	return Compare_Values(a_accu, b_accu); // a_accu <=> b_accu (as soon as C++20 is supported on all major platforms)
 }
 
+partial_ordering Max_Reduction(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
+	const auto max_a = std::max_element(a.begin(), a.begin() + objectives_count);
+	const auto max_b = std::max_element(b.begin(), b.begin() + objectives_count);
+
+	return Compare_Values(*max_a, *max_b);
+}
+
 
 bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count, const NFitness_Strategy strategy) {
+
+	//0. should not we check if any of the fitness contain nan?
 
 	//1. handle the special-case of the single objective
 	if (objectives_count == 1) 
@@ -174,12 +183,13 @@ bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, con
 		if (strategy == NFitness_Strategy::Strict_Dominance)
 			return false;
 
-
+/*
 		if (strategy == NFitness_Strategy::Soft_Dominance)
 			return a_count > b_count;	//a is not dominated by b, not be is dominated by a - they are just two different, non-dominated solutions on the known Pareto front
 
 		if (strategy == NFitness_Strategy::Any_Non_Dominated)
 			return a_count > 0;			//just like the soft dominance; in both cases we increase the diversity on the best known Pareto front
+*/
 		
 		//at this point, the chosen dominance strategy takes another option to decide
 	}
@@ -204,6 +214,10 @@ bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, con
 			comparison = Ratio_Distance<true>(a, b, objectives_count);
 			break;
 		
+		case NFitness_Strategy::Max_Reduction:
+			comparison = Max_Reduction(a, b, objectives_count);
+			break;
+
 		
 		case NFitness_Strategy::Euclidean_Dominance: [[fallthrough]];
 			//case NFitness_Strategy::Master: [[fallthrough]];

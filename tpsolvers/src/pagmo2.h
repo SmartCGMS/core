@@ -69,7 +69,7 @@ namespace pagmo2 {
 
 			std::array<double, solver::Maximum_Objectives_Count> fitness;
 
-			if (mSetup.objective(mSetup.data, mBounded_Solution.data(), fitness.data()) != TRUE)
+			if (mSetup.objective(mSetup.data, 1, mBounded_Solution.data(), fitness.data()) != TRUE)
 				fitness[0] = std::numeric_limits<double>::max();
 
 			if (fitness[0] < mProgress.best_metric[0]) mProgress.best_metric[0] = fitness[0];
