@@ -252,7 +252,7 @@ public:
 		//1. create the initial population		
 		std::vector<TUsed_Solution> trimmed_hints;
 		std::vector<size_t> hint_indexes(mSetup.hint_count);
-		std::vector<solver::TFitness> hint_fitness(mSetup.hint_count);
+		std::vector<solver::TFitness> hint_fitness(mSetup.hint_count, solver::Nan_Fitness);
 		std::vector<bool> hint_validity(mSetup.hint_count);
 
 		//a) find the best hints
