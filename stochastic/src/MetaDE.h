@@ -534,6 +534,14 @@ public:
 			return Compare_Solutions(a.current_fitness, b.current_fitness, mSetup.objectives_count, NFitness_Strategy::Master);
 		});
 
+		//check for a fail
+		for (size_t i = 0; i < mSetup.objectives_count; i++) {
+			if (std::isnan(result->current_fitness[i])) {
+				progress.cancelled = TRUE;
+				break;
+			}
+		}
+
 		return result->current;		
 	}
 };
