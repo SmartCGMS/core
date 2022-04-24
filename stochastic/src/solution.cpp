@@ -38,9 +38,11 @@
 
 #include "solution.h"
 
+#include "../../../common/utils/math_utils.h"
+
 #if __cplusplus >= 202002L
-#include <compare>
-#define __has_threeway_cmp 1
+	#include <compare>
+	#define __has_threeway_cmp 1
 #endif
 
 #if __has_threeway_cmp
@@ -59,8 +61,10 @@ static inline partial_ordering Compare_Values(const double a, const double b)
 #if __has_threeway_cmp
 	return a <=> b;
 #else
+	/*	nans are already checked for in CompareSolutions
 	if (std::isnan(a) || std::isnan(b))
 		return partial_ordering::unordered;
+	*/
 
 	if (a < b)
 		return partial_ordering::less;
@@ -71,7 +75,8 @@ static inline partial_ordering Compare_Values(const double a, const double b)
 #endif
 }
 
-
+/* nans are already checked for in CompareSolutions
+ * => we just need to compare
 bool Compare_Elements(const double a, const double b) {
 	if (std::isnan(a))
 		return false;
@@ -81,14 +86,15 @@ bool Compare_Elements(const double a, const double b) {
 
 	return a < b;	//less value is better	
 }
+*/
 
 std::tuple<size_t, size_t> Count_Dominance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
 	size_t a_count = 0;
 	size_t b_count = 0;
 
 	for (size_t i = 0; i < objectives_count; i++) {
-		if (Compare_Elements(a[i], b[i])) a_count++;
-		else if (Compare_Elements(b[i], a[i])) b_count++;
+		if (a[i] < b[i]) a_count++;
+		else if (b[i] < a[i]) b_count++;
 	}
 
 
@@ -162,12 +168,20 @@ partial_ordering Max_Reduction(const solver::TFitness& a, const solver::TFitness
 
 
 bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count, const NFitness_Strategy strategy) {
-
 	//0. should not we check if any of the fitness contain nan?
+	for (size_t i = 0; i < objectives_count; i++) {
+		if (Is_Any_NaN(a[i]))
+			return false;
+
+		if (Is_Any_NaN(b[i]))
+			return true;
+	}
+
+	
 
 	//1. handle the special-case of the single objective
-	if (objectives_count == 1) 
-		return Compare_Elements(a[0], b[0]);
+	if (objectives_count == 1)
+		return a[0] < b[0];
 
 
 	//2. multi-objective => let's try to determine more dominating solution
@@ -241,7 +255,7 @@ bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, con
 	// => we have to compare by the metrics priority
 	for (size_t i = 0; i < objectives_count; i++) {
 		if (a[i] != b[i]) {
-			if (Compare_Elements(a[i], b[i]))		//unlike the spaceship operator, this func considers the NaN in the evolutionary manner, in which a normal number should replace NaN
+			if (a[i] < b[i])		//unlike the spaceship operator, this func considers the NaN in the evolutionary manner, in which a normal number should replace NaN
 				return true;
 		}
 	}
