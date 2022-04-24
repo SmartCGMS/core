@@ -542,6 +542,7 @@ public:
 			}
 		}
 
+		progress.best_metric = result->current_fitness;
 		return result->current;		
 	}
 };
