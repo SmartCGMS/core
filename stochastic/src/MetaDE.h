@@ -331,9 +331,9 @@ public:
 			Generate_Meta_Params(solution);
 			solution.population_index = i;
 
-			solution.current_fitness = solver::Nan_Fitness;	//next fitness is dereferenced only				
+			//solution.current_fitness = solver::Nan_Fitness;	//next fitness is dereferenced only				
 			solution.next_fitness = reinterpret_cast<solver::TFitness*>(&mNext_Fitnesses[i * solver::Maximum_Objectives_Count]);
-			
+			*solution.next_fitness = solution.current_fitness;
 			//dst.next = std::move(Map_Double_To_Eigen<TUsed_Solution>(&mNext_Solutions[i * mSetup.problem_size], mSetup.problem_size));
 		}
 
@@ -493,14 +493,11 @@ public:
 				std::copy(intermediate.data(), intermediate.data() + mSetup.problem_size, Next_Solution(candidate_solution.population_index));
 			});
 			
-			
 			//and evaluate					
 			if (mSetup.objective(mSetup.data, mPopulation.size(), mNext_Solutions.data(), mNext_Fitnesses.data()) != TRUE) {
 				progress.cancelled = TRUE;	//error!
 				break;
-			}	
-				
-			
+			}					
 
 
 			//3. Let us preserve the better vectors - too fast to amortize parallelization => serial code
