@@ -164,6 +164,8 @@ static const std::array<std::string, 6> gPredictionMaps = {
 	"{BBE13567-C1F8-489D-8416-AB3565DE4F67}",	// 30min (virtual 95)
 };
 
+static const std::string gPhysicalActivitySignalName = "{F4438E9A-DD52-45BD-83CE-5E93615E62BD}";
+
 static bool Fill_Pred_Vector(DataMap& inputMap, ValueVector& dst)
 {
 	ValueVector tmp;
@@ -309,6 +311,51 @@ void CMobile_Glucose_Generator::Write_Body()
 			lastX = curX;
 			lastY = curY;
 		}
+	}
+
+	// exercise group scope
+	try
+	{
+		ValueVector& exerciseData = Utility::Get_Value_Vector_Ref(mInputData, gPhysicalActivitySignalName);
+
+		auto& grp = mDraw.Root().Add<drawing::Group>("exercise");
+
+		double lastExerciseValue = 0.0;
+		time_t lastExerciseTime = 0;
+
+		for (auto& val : exerciseData)
+		{
+			if (val.date < mTimeRange.first || val.date > mTimeRange.second)
+			{
+				lastExerciseValue = val.value;
+				lastExerciseTime = val.date;
+				continue;
+			}
+
+			grp.Set_Default_Stroke_Width(2);
+			grp.Set_Default_Stroke_Color(RGBColor::From_HTML_Color(InsulinBasalDotColor));
+			grp.Set_Default_Fill_Color(RGBColor::From_HTML_Color(InsulinBolusColumnColor));
+
+			grp.Add<drawing::Line>(startX + Normalize_Time_X(lastExerciseTime < mTimeRange.first ? mTimeRange.first : lastExerciseTime), Normalize_Y(lastExerciseValue + mMinValueY),
+				startX + Normalize_Time_X(val.date), Normalize_Y(lastExerciseValue + mMinValueY));
+
+			grp.Add<drawing::Line>(startX + Normalize_Time_X(val.date), Normalize_Y(lastExerciseValue + mMinValueY),
+				startX + Normalize_Time_X(val.date), Normalize_Y(val.value + mMinValueY));
+
+			grp.Add<drawing::Circle>(startX + Normalize_Time_X(val.date), Normalize_Y(lastExerciseValue + mMinValueY), 2);
+			grp.Add<drawing::Circle>(startX + Normalize_Time_X(val.date), Normalize_Y(val.value + mMinValueY), 2);
+
+			lastExerciseValue = val.value;
+			lastExerciseTime = val.date;
+		}
+
+		grp.Add<drawing::Line>(startX + Normalize_Time_X(lastExerciseTime < mTimeRange.first ? mTimeRange.first : lastExerciseTime), Normalize_Y(lastExerciseValue + mMinValueY),
+			lastMeasuredX, Normalize_Y(lastExerciseValue + mMinValueY));
+
+	}
+	catch (...)
+	{
+		// no exercise data - fine, we don't need them
 	}
 
 	// blood calibration group scope
