@@ -39,19 +39,22 @@
 #include "drawing_filter_v2.h"
 
 #include "../views/graph_view.h"
+#include "../views/cvga.h"
 
 #include <set>
 #include <cmath>
 
 // vector of supported views
 std::vector<scgms::TPlot_Descriptor> CDrawing_Filter_v2::mAvailable_Plots = {
-	{ scgms::dcGraph, L"Graph (v2)" }
+	{ scgms::dcGraph, L"Graph (v2)" },
+	{ scgms::dcCVGA, L"CVGA (v2)"},
 };
 
 CDrawing_Filter_v2::CDrawing_Filter_v2(scgms::IFilter *output) : CBase_Filter(output) {
 
 	// register known views
 	Register_View<CGraph_View>(scgms::dcGraph);
+	Register_View<CCVGA_View>(scgms::dcCVGA);
 }
 
 HRESULT IfaceCalling CDrawing_Filter_v2::QueryInterface(const GUID*  riid, void ** ppvObj) {
