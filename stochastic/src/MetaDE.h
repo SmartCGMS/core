@@ -280,8 +280,6 @@ public:
 		}
 		
 
-
-
 		//1. create the initial population		
 		
 				
@@ -384,7 +382,8 @@ public:
 			//as each next will be written just once.
 			//We assume that parallelization cost will get amortized			
 
-			std::for_each(std::execution::unseq, mPopulation.begin(), mPopulation.end(), [=, &mUniform_Distribution_Solution, &mUniform_Distribution_Population](auto &candidate_solution) {
+			//std::for_each(std::execution::unseq, mPopulation.begin(), mPopulation.end(), [=, &mUniform_Distribution_Solution, &mUniform_Distribution_Population](auto &candidate_solution) {
+			for  (auto& candidate_solution : mPopulation) { //std for each seems to make a bug, at least with VS2019
 			
 				//in the original version, which did not support the bulk objective call, this for-cycle used to be parallel
 				//however, with bulk objective and modern processor, breeding new candidates won't amortize => just a vectorized for-cycle
@@ -490,14 +489,16 @@ public:
 				}
 
 				//and write				
+				intermediate.eval();
 				std::copy(intermediate.data(), intermediate.data() + mSetup.problem_size, Next_Solution(candidate_solution.population_index));
-			});
+			
+			}//);
 			
 			//and evaluate					
 			if (mSetup.objective(mSetup.data, mPopulation.size(), mNext_Solutions.data(), mNext_Fitnesses.data()) != TRUE) {
 				progress.cancelled = TRUE;	//error!
 				break;
-			}					
+			}
 
 
 			//3. Let us preserve the better vectors - too fast to amortize parallelization => serial code
