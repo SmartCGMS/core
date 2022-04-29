@@ -494,6 +494,12 @@ public:
 			
 			}//);
 			
+			//flush all subnormals to zero
+			for (auto& elem : mNext_Solutions) {
+				if (std::fpclassify(elem) == FP_SUBNORMAL)
+					elem = 0.0;
+			}
+
 			//and evaluate					
 			if (mSetup.objective(mSetup.data, mPopulation.size(), mNext_Solutions.data(), mNext_Fitnesses.data()) != TRUE) {
 				progress.cancelled = TRUE;	//error!

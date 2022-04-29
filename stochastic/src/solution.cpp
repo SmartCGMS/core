@@ -170,10 +170,12 @@ partial_ordering Max_Reduction(const solver::TFitness& a, const solver::TFitness
 bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count, const NFitness_Strategy strategy) {
 	//0. should not we check if any of the fitness contain nan?
 	for (size_t i = 0; i < objectives_count; i++) {
-		if (Is_Any_NaN(a[i]))
+		const auto a_class = std::fpclassify(a[i]);
+		if ((a_class != FP_NORMAL) && (a_class != FP_ZERO))
 			return false;
 
-		if (Is_Any_NaN(b[i]))
+		const auto b_class = std::fpclassify(a[i]);
+		if ((b_class != FP_NORMAL) && (b_class != FP_ZERO))
 			return true;
 	}
 
