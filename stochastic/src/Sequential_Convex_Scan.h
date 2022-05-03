@@ -174,17 +174,19 @@ public:
 			improved = false;
 			progress.current_progress = 0;
 
-			for (size_t param_idx = 0; param_idx < mSetup.problem_size; param_idx++) {
+			for (size_t param_idx_offset = 0; param_idx_offset < mSetup.problem_size; param_idx_offset++) {
 				progress.current_progress++;
 
 				if (progress.cancelled != FALSE) break;
 
-				if (mLower_Bound[param_idx] != mUpper_Bound[param_idx]) {
+				const size_t effective_param_idx = mSetup.problem_size - param_idx_offset - 1;	//let's prefer the segment common parameters, which are stored as last 
+
+				if (mLower_Bound[effective_param_idx] != mUpper_Bound[effective_param_idx]) {
 					
 					std::for_each(std::execution::par_unseq, val_indexes.begin(), val_indexes.end(),
-						[this, &best_solution, &best_mutex, &progress, &param_idx, &improved](const auto& val_idx) {
+						[this, &best_solution, &best_mutex, &progress, &effective_param_idx, &improved](const auto& val_idx) {
 
-						const TCandidate_Solution local_solution = Find_Extreme(param_idx, best_solution.solution, mHints[val_idx]);
+						const TCandidate_Solution local_solution = Find_Extreme(effective_param_idx, best_solution.solution, mHints[val_idx]);
 
 						if (Compare_Solutions(local_solution.fitness, best_solution.fitness, mSetup.objectives_count, mFitness_Strategy)) {
 
