@@ -37,66 +37,63 @@ protected:
 		result.solution = best;
 		result.fitness = solver::Nan_Fitness;
 
+		std::vector<double> candidate(2 * mSetup.problem_size);		
+		std::array<solver::TFitness, 2> candidate_fitness{ solver::Nan_Fitness, solver::Nan_Fitness };
 
-		TUsed_Solution effective_low = best;
-		TUsed_Solution effective_high = best;
+		{
+			const size_t block_size = mSetup.problem_size * sizeof(double);
+			memcpy(candidate.data(), best.data(), block_size);
+			memcpy(candidate.data() + mSetup.problem_size, best.data(), block_size);
+		}
 
-		double experimental_low = effective_low[param_idx] = bounds.lower[param_idx];
-		double experimental_high = effective_high[param_idx] = bounds.upper[param_idx];
 
+		double effective_low = bounds.lower[param_idx], experimental_low = bounds.lower[param_idx];
+		double effective_high = bounds.upper[param_idx],  experimental_high = bounds.upper[param_idx];
 
-		solver::TFitness lower_fitness = solver::Nan_Fitness;
-		solver::TFitness upper_fitness = solver::Nan_Fitness;
+		constexpr size_t low_idx = 0;
+		constexpr size_t high_idx = 1;
 
 		size_t iter_counter = 0;
 		while (iter_counter++ < mSetup.population_size) {
 
 			//1. divide the interval to three parts with borders at x1 and x2
-			const double diff = effective_high[param_idx] - effective_low[param_idx];
-			experimental_low = effective_low[param_idx] + diff / 3.0;
-			experimental_high = effective_low[param_idx] + diff * 2.0 / 3.0;
+			const double diff = effective_high - effective_low;
+			experimental_low = effective_low + diff / 3.0;
+			experimental_high = effective_low + diff * 2.0 / 3.0;
+
+			candidate[param_idx] = experimental_low;
+			candidate[mSetup.problem_size + param_idx] = experimental_high;
 
 			//2. find the fitness at both borders
-			result.solution[param_idx] = experimental_low;			
-			if (mSetup.objective(mSetup.data, 1, result.solution.data(), lower_fitness.data()) != TRUE) {
-				for (auto& elem : lower_fitness)
-					elem = std::numeric_limits<double>::quiet_NaN();
-			}
+			if (mSetup.objective(mSetup.data, 2, candidate.data(), reinterpret_cast<double*>(candidate_fitness.data())) != TRUE)
+				break;
 
-			result.solution[param_idx] = experimental_high;
-			if (mSetup.objective(mSetup.data, 1, result.solution.data(), upper_fitness.data()) != TRUE) {
-				for (auto& elem : upper_fitness)
-					elem = std::numeric_limits<double>::quiet_NaN();
-			}
-			
 			//3. and adjust the borders
-			if (Compare_Solutions(lower_fitness, upper_fitness, mSetup.objectives_count, mFitness_Strategy)) {
+			if (Compare_Solutions(candidate_fitness[low_idx], candidate_fitness[high_idx], mSetup.objectives_count, mFitness_Strategy)) {
 				//upper fitness is worse, make it the new border; the convex extreme should be at the left
-				effective_high[param_idx] = experimental_high;
-			}
-			else if (Compare_Solutions(upper_fitness, lower_fitness, mSetup.objectives_count, mFitness_Strategy)) {
-				//lower border is worse, make it a new border; the convex extreme should lay to the right
-				effective_low[param_idx] = experimental_low;
-			}
-			else {
-				//as this solver requires convex fitness function with a single extreme
-				//equal fitness of both borders mean that the extreme is between them
-				effective_high[param_idx] = experimental_high;
-				effective_low[param_idx] = experimental_low;
-			}
-
+				effective_high = experimental_high;
+			} else
+				if (Compare_Solutions(candidate_fitness[high_idx], candidate_fitness[low_idx], mSetup.objectives_count, mFitness_Strategy)) {
+					//lower border is worse, make it a new border; the convex extreme should lay to the right
+					effective_low = experimental_low;
+				} else {
+					//as this solver requires convex fitness function with a single extreme
+					//equal fitness of both borders mean that the extreme is between them
+					effective_high = experimental_high;
+					effective_low = experimental_low;
+				}
 		}
 		
 
 
 		//return that contracted border that's closer to the extreme
-		if (Compare_Solutions(lower_fitness, upper_fitness, mSetup.objectives_count, mFitness_Strategy)) {
+		if (Compare_Solutions(candidate_fitness[low_idx], candidate_fitness[high_idx], mSetup.objectives_count, mFitness_Strategy)) {
 			result.solution[param_idx] = experimental_low;
-			result.fitness = lower_fitness;
+			result.fitness = candidate_fitness[low_idx];
 		}
 		else {
 			result.solution[param_idx] = experimental_high;
-			result.fitness = upper_fitness;
+			result.fitness = candidate_fitness[high_idx];
 		}
 
 		return result;
@@ -130,7 +127,7 @@ public:
 				for (size_t i = 1; i < mSetup.hint_count; i++) {	//check if any other solution is better or not
 					TUsed_Solution candidate = Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size);
 					
-					std::array<double, solver::Maximum_Objectives_Count> candidate_fitness{ solver::Nan_Fitness };
+					solver::TFitness candidate_fitness{ solver::Nan_Fitness };
 					if (mSetup.objective(mSetup.data, 1, candidate.data(), candidate_fitness.data()) == TRUE) {						
 
 						if (Compare_Solutions(candidate_fitness, best_hint_fitness, mSetup.objectives_count, mFitness_Strategy))	{
@@ -183,7 +180,7 @@ public:
 
 				if (mLower_Bound[effective_param_idx] != mUpper_Bound[effective_param_idx]) {
 					
-					std::for_each(std::execution::par_unseq, val_indexes.begin(), val_indexes.end(),
+					std::for_each(std::execution::par, val_indexes.begin(), val_indexes.end(),
 						[this, &best_solution, &best_mutex, &progress, &effective_param_idx, &improved](const auto& val_idx) {
 
 						const TCandidate_Solution local_solution = Find_Extreme(effective_param_idx, best_solution.solution, mHints[val_idx]);
