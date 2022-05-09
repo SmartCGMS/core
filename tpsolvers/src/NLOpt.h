@@ -53,30 +53,48 @@ namespace nlopt_tx {
 }
 
 struct TNLOpt_Objective_Function_Data {
-	const solver::TSolver_Setup &setup;
-	solver::TSolver_Progress &progress;
+	const solver::TSolver_Setup& setup;
+	solver::TSolver_Progress& progress;
 	std::vector<double> remapped_solution;	//must be initialized to the default solution as only the remapped elements will be replaced	
-	const std::vector<size_t> &dimension_remap;
-	nlopt::opt &options;
+	const std::vector<size_t>& dimension_remap;
+	nlopt::opt& options;
+	double& best_distance;
 };
+
+
+inline double Solution_Distance(const size_t objective_count, const solver::TFitness& solution) {
+	if (objective_count == 1)
+		return solution[0];
+
+	double result = 0.0;
+	for (size_t i = 0; i < objective_count; i++) {
+		result += solution[i] * solution[i];
+	}
+
+	return result;
+}
+
 
 //let's use use_remap to eliminate the overhead of remapping, when it is not needed - compiler will generate two functions for us, just from a single source code
 template <bool use_remap>
-double NLOpt_Top_Solution_Objective_Function(const std::vector<double> &x, std::vector<double> &grad, void *my_func_data) {
-	TNLOpt_Objective_Function_Data &data = *static_cast<TNLOpt_Objective_Function_Data*>(my_func_data);
+double NLOpt_Top_Solution_Objective_Function(const std::vector<double>& x, std::vector<double>& grad, void* my_func_data) {
+	TNLOpt_Objective_Function_Data& data = *static_cast<TNLOpt_Objective_Function_Data*>(my_func_data);
 
-	if (use_remap) 
+	if (use_remap)
 		for (size_t i = 0; i < x.size(); i++) {
 			data.remapped_solution[data.dimension_remap[i]] = x[i];
 		}
-	
-	
-	std::array<double, solver::Maximum_Objectives_Count> fitness;
-	if (data.setup.objective(data.setup.data, 1, use_remap ? data.remapped_solution.data() : x.data(), fitness.data()) != TRUE)
-		fitness[0] = std::numeric_limits<double>::quiet_NaN();
 
-	if (fitness[0] < data.progress.best_metric[0])
-		data.progress.best_metric[0] = fitness[0];
+
+	std::array<double, solver::Maximum_Objectives_Count> fitness = solver::Nan_Fitness;
+	if (data.setup.objective(data.setup.data, 1, use_remap ? data.remapped_solution.data() : x.data(), fitness.data()) != TRUE)
+		return std::numeric_limits<double>::quiet_NaN();
+
+	const double distance = Solution_Distance(data.setup.objectives_count, fitness);
+	if (distance < data.best_distance) {
+		data.best_distance = distance;
+		data.progress.best_metric = fitness;
+	}
 	
 
 	data.progress.current_progress++;
@@ -85,7 +103,7 @@ double NLOpt_Top_Solution_Objective_Function(const std::vector<double> &x, std::
 
 	if (data.progress.cancelled == TRUE) data.options.set_force_stop(true);
 
-	return fitness[0];
+	return distance;
 }
 
 
@@ -132,14 +150,16 @@ public:
 		if (nlopt_tx::print_statistics) nlopt_tx::eval_counter = 0;
 
 		nlopt::opt opt{ algo, static_cast<unsigned int>(mDimension_Remap.size()) };
-
+		
+		double best_distance = std::numeric_limits<double>::max();
 
 		TNLOpt_Objective_Function_Data data = {	
 			mSetup,
 			progress,
 			mInitial_Solution,
 			mDimension_Remap,
-			opt
+			opt,
+			best_distance
 		};
 		
 		//we need expression templates to reduce the overhead of remapping
@@ -154,8 +174,7 @@ public:
 		
 		progress.max_progress = opt.get_maxeval();
 		if (progress.max_progress == 0) progress.max_progress = 100;
-		progress.current_progress = 0;
-		progress.best_metric = std::numeric_limits<decltype(progress.best_metric)>::max();
+		progress.current_progress = 0;		
 
 		std::vector<double> x;
 		for (auto i = 0; i < mDimension_Remap.size(); i++)
