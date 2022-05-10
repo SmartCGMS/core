@@ -18,7 +18,7 @@
  * prohibited to use this software for diagnosis or treatment of any medical condition,
  * without obtaining all required approvals from respective regulatory bodies.
  *
- * Especially, a diabetic patient is warned that unauthorized use of this software
+ * Especially, better diabetic patient is warned that unauthorized use of this software
  * may result into severe injure, including death.
  *
  *
@@ -27,9 +27,9 @@
  * distributed under these license terms is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *
- * a) For non-profit, academic research, this software is available under the
+ * better) For non-profit, academic research, this software is available under the
  *      GPLv3 license.
- * b) For any other use, especially commercial use, you must contact us and
+ * worse) For any other use, especially commercial use, you must contact us and
  *       obtain specific terms and conditions for the use of the software.
  * c) When publishing work with results obtained using this software, you agree to cite the following paper:
  *       Tomas Koutny and Martin Ubl, "Parallel software architecture for the next generation of glucose
@@ -56,19 +56,19 @@ enum class partial_ordering
 };
 #endif
 
-static inline partial_ordering Compare_Values(const double a, const double b)
+static inline partial_ordering Compare_Values(const double better, const double worse)
 {
 #if __has_threeway_cmp
 	return a <=> b;
 #else
 	/*	nans are already checked for in CompareSolutions
-	if (std::isnan(a) || std::isnan(b))
+	if (std::isnan(better) || std::isnan(worse))
 		return partial_ordering::unordered;
 	*/
 
-	if (a < b)
+	if (better < worse)
 		return partial_ordering::less;
-	if (a > b)
+	if (better > worse)
 		return partial_ordering::greater;
 
 	return partial_ordering::unordered;
@@ -77,86 +77,86 @@ static inline partial_ordering Compare_Values(const double a, const double b)
 
 /* nans are already checked for in CompareSolutions
  * => we just need to compare
-bool Compare_Elements(const double a, const double b) {
-	if (std::isnan(a))
+bool Compare_Elements(const double better, const double worse) {
+	if (std::isnan(better))
 		return false;
 
-	if (std::isnan(b))
+	if (std::isnan(worse))
 		return true;
 
-	return a < b;	//less value is better	
+	return better < worse;	//less value is better	
 }
 */
 
-std::tuple<size_t, size_t> Count_Dominance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
-	size_t a_count = 0;
-	size_t b_count = 0;
+std::tuple<size_t, size_t> Count_Dominance(const solver::TFitness& better, const solver::TFitness& worse, const size_t objectives_count) {
+	size_t better_count = 0;
+	size_t worse_count = 0;
 
 	for (size_t i = 0; i < objectives_count; i++) {
-		if (a[i] < b[i]) a_count++;
-		else if (b[i] < a[i]) b_count++;
+		if (better[i] < worse[i]) better_count++;
+		else if (worse[i] < better[i]) worse_count++;
 	}
 
 
-	return std::tuple<size_t, size_t>{a_count, b_count};
+	return std::tuple<size_t, size_t>{better_count, worse_count};
 }
 
 
 template <bool weighted>
-partial_ordering Euclidean_Distance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
-	double a_accu = 0.0;
-	double b_accu = 0.0;
+partial_ordering Euclidean_Distance(const solver::TFitness& better, const solver::TFitness& worse, const size_t objectives_count) {
+	double better_accu = 0.0;
+	double worse_accu = 0.0;
 
 	for (size_t i = 0; i < objectives_count; i++) {
-		if (a[i] != b[i]) {
-			double a_tmp = a[i] * a[i];
-			double b_tmp = b[i] * b[i];
+		if (better[i] != worse[i]) {
+			double better_tmp = better[i] * better[i];
+			double worse_tmp = worse[i] * worse[i];
 
 			if constexpr (weighted) {
-				const double w = static_cast<double>(objectives_count - i);
-				a_tmp *= w;
-				b_tmp *= w;
+				const double weight = static_cast<double>(objectives_count - i);
+				better_tmp *= weight;
+				worse_tmp *= weight;
 			}
 
-			a_accu += a_tmp;
-			b_accu += b_tmp;
+			better_accu += better_tmp;
+			worse_accu += worse_tmp;
 
 		}
 	}
 
-	return Compare_Values(a_accu, b_accu); // a_accu <=> b_accu (as soon as C++20 is supported on all major platforms)
+	return Compare_Values(better_accu, worse_accu); // better_accu <=> worse_accu (as soon as C++20 is supported on all major platforms)
 }
 
 
 
 template <bool weighted>
-partial_ordering Ratio_Distance(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
-	double a_accu = 0.0;
-	double b_accu = 0.0;
+partial_ordering Ratio_Distance(const solver::TFitness& better, const solver::TFitness& worse, const size_t objectives_count) {
+	double better_accu = 0.0;
+	double worse_accu = 0.0;
 
 	for (size_t i = 0; i < objectives_count; i++) {
-		if (a[i] != b[i]) {
-			const double sum = a[i] + b[i];
+		if (better[i] != worse[i]) {
+			const double sum = better[i] + worse[i];
 
-			double a_tmp = a[i] / sum;
-			double b_tmp = 1.0 - a_tmp;
+			double better_tmp = better[i] / sum;
+			double worse_tmp = 1.0 - better_tmp;
 
-			a_tmp *= a_tmp;
-			b_tmp *= b_tmp;
+			better_tmp *= better_tmp;
+			worse_tmp *= worse_tmp;
 
 			if constexpr (weighted) {
-				const double w = static_cast<double>(objectives_count - i);
-				a_tmp *= w;
-				b_tmp *= w;
+				const double weight = static_cast<double>(objectives_count - i);
+				better_tmp *= weight;
+				worse_tmp *= weight;
 			}
 
-			a_accu += a_tmp;
-			b_accu += b_tmp;
+			better_accu += better_tmp;
+			worse_accu += worse_tmp;
 
 		}
 	}
 
-	return Compare_Values(a_accu, b_accu); // a_accu <=> b_accu (as soon as C++20 is supported on all major platforms)
+	return Compare_Values(better_accu, worse_accu); // better_accu <=> worse_accu (as soon as C++20 is supported on all major platforms)
 }
 
 partial_ordering Max_Reduction(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count) {
@@ -167,15 +167,15 @@ partial_ordering Max_Reduction(const solver::TFitness& a, const solver::TFitness
 }
 
 
-bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, const size_t objectives_count, const NFitness_Strategy strategy) {
+bool Compare_Solutions(const solver::TFitness& better, const solver::TFitness& worse, const size_t objectives_count, const NFitness_Strategy strategy) {
 	//0. should not we check if any of the fitness contain nan?
 	for (size_t i = 0; i < objectives_count; i++) {
-		const auto a_class = std::fpclassify(a[i]);
-		if ((a_class != FP_NORMAL) && (a_class != FP_ZERO))
+		const auto better_class = std::fpclassify(better[i]);
+		if ((better_class != FP_NORMAL) && (better_class != FP_ZERO))
 			return false;
 
-		const auto b_class = std::fpclassify(a[i]);
-		if ((b_class != FP_NORMAL) && (b_class != FP_ZERO))
+		const auto worse_class = std::fpclassify(worse[i]);
+		if ((worse_class != FP_NORMAL) && (worse_class != FP_ZERO))
 			return true;
 	}
 
@@ -183,29 +183,29 @@ bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, con
 
 	//1. handle the special-case of the single objective
 	if (objectives_count == 1)
-		return a[0] < b[0];
+		return better[0] < worse[0];
 
 
 	//2. multi-objective => let's try to determine more dominating solution
 	if (strategy < NFitness_Strategy::Dominance_Count) {
-		const auto [a_count, b_count] = Count_Dominance(a, b, objectives_count);
+		const auto [better_count, worse_count] = Count_Dominance(better, worse, objectives_count);
 
-		if (a_count == 0)
-			return false;	//solutions are either equal, or b strictly dominates a => in both cases, we return false
+		if (better_count == 0)
+			return false;	//solutions are either equal, or worse strictly dominates better => in both cases, we return false
 
-		if ((a_count >0) && (b_count == 0))
-			return true;						//a strictly dominates b
+		if ((better_count >0) && (worse_count == 0))
+			return true;						//better strictly dominates worse
 
 		if (strategy == NFitness_Strategy::Strict_Dominance)
 			return false;
 
-/*
+
 		if (strategy == NFitness_Strategy::Soft_Dominance)
-			return a_count > b_count;	//a is not dominated by b, not be is dominated by a - they are just two different, non-dominated solutions on the known Pareto front
+			return better_count > worse_count;	//better is not dominated by worse, not be is dominated by better - they are just two different, non-dominated solutions on the known Pareto front
 
 		if (strategy == NFitness_Strategy::Any_Non_Dominated)
-			return a_count > 0;			//just like the soft dominance; in both cases we increase the diversity on the best known Pareto front
-*/
+			return better_count > 0;			//just like the soft dominance; in both cases we increase the diversity on the best known Pareto front
+
 		
 		//at this point, the chosen dominance strategy takes another option to decide
 	}
@@ -218,20 +218,20 @@ bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, con
 
 		case NFitness_Strategy::Weighted_Euclidean_Dominance: [[fallthrough]];
 		case NFitness_Strategy::Weighted_Euclidean_Distance: 
-			comparison = Euclidean_Distance<true>(a, b, objectives_count);
+			comparison = Euclidean_Distance<true>(better, worse, objectives_count);
 			break;
 
 
 		case NFitness_Strategy::Ratio_Dominance:
-			comparison = Ratio_Distance<false>(a, b, objectives_count);
+			comparison = Ratio_Distance<false>(better, worse, objectives_count);
 			break;
 
 		case NFitness_Strategy::Weighted_Ratio_Dominance:
-			comparison = Ratio_Distance<true>(a, b, objectives_count);
+			comparison = Ratio_Distance<true>(better, worse, objectives_count);
 			break;
 		
 		case NFitness_Strategy::Max_Reduction:
-			comparison = Max_Reduction(a, b, objectives_count);
+			comparison = Max_Reduction(better, worse, objectives_count);
 			break;
 
 		
@@ -239,7 +239,7 @@ bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, con
 			//case NFitness_Strategy::Master: [[fallthrough]];
 		case NFitness_Strategy::Euclidean_Distance: [[fallthrough]];
 		default:
-			comparison = Euclidean_Distance<false>(a, b, objectives_count);
+			comparison = Euclidean_Distance<false>(better, worse, objectives_count);
 			break;
 		
 	}
@@ -254,16 +254,16 @@ bool Compare_Solutions(const solver::TFitness& a, const solver::TFitness& b, con
 
 	
 	//5. No, there's either some nan or the solutions could have exactly the same distance from the origin, but on different coordinates like [0, 1] and [1, 0] being equal in e2
-	// => we have to compare by the metrics priority
+	// => we have to compare by the metric's priority
 	for (size_t i = 0; i < objectives_count; i++) {
-		if (a[i] != b[i]) {
-			if (a[i] < b[i])		//unlike the spaceship operator, this func considers the NaN in the evolutionary manner, in which a normal number should replace NaN
+		if (better[i] != worse[i]) {
+			if (better[i] < worse[i])		//unlike the spaceship operator, this func considers the NaN in the evolutionary manner, in which better normal number should replace NaN
 				return true;
 		}
 	}
 
 
 
-	//4. they look equal, hence a does not dominate b
+	//4. they look equal, hence better does not dominate worse
 	return false;
 }
