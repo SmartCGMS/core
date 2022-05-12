@@ -62,7 +62,8 @@ struct TNLOpt_Objective_Function_Data {
 };
 
 
-inline double Solution_Distance(const size_t objective_count, const solver::TFitness& solution) {
+template <typename T>
+inline double Solution_Distance(const size_t objective_count, const T solution) {
 	if (objective_count == 1)
 		return solution[0];
 
