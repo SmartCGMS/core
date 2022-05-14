@@ -736,7 +736,7 @@ namespace insulin_bolus {
 		dsBolus_Calculator,
 		rsBolus_Calculator,
 		param_count,
-		0,
+		1,
 		param_types,
 		param_names,
 		param_columns,
