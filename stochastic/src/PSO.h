@@ -396,11 +396,11 @@ class CPSO
 
 						if (repulsory_iterations > 0)
 						{
-							// repulse
+							// repulse (stronger in each repulsory iteration)
 							for (auto& repulsor : mRepulsors)
 								//candidate_solution.velocity -= phi_r * 1.0 / (repulsor.best - candidate_solution.current);
 								//candidate_solution.velocity -= phi_r * (repulsor.best - candidate_solution.current) * (1.0 / (repulsor.best_fitness * candidate_solution.best_fitness)) / std::sqrt((repulsor.best - candidate_solution.current).pow(2).sum());
-								candidate_solution.velocity -= phi_r * r_g * (repulsor.best - candidate_solution.current) / std::sqrt((repulsor.best - candidate_solution.current).pow(2).sum());
+								candidate_solution.velocity -= phi_r * r_g * (repulsor.best - candidate_solution.current) / std::pow((repulsor.best - candidate_solution.current).pow(static_cast<double>(mRepulsors.size())).sum(), 1.0 / static_cast<double>(mRepulsors.size()));
 								//candidate_solution.velocity -= phi_r * (repulsor.best - candidate_solution.current) * (repulsor.best_fitness / candidate_solution.best_fitness) / std::sqrt((repulsor.best - candidate_solution.current).pow(2).sum());
 						}
 						else
