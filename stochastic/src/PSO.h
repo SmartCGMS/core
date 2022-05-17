@@ -248,9 +248,9 @@ class CPSO
 		// inertia factor (how much velocity the particle retains from previous generation)
 		static constexpr double omega = 0.7298;
 		// local memory attraction (how much the particle wants to return to its best known position)
-		static constexpr double phi_p = 2.05;
+		static constexpr double phi_p = 1.55;
 		// global memory attraction (how much the particle wants to go to swarm's best known position)
-		static constexpr double phi_g = 1.55;
+		static constexpr double phi_g = 2.05;
 		// maximum velocity factor (the maximum length of velocity vector in fractions of search space)
 		static constexpr double max_velocity = 0.4;
 
