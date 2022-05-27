@@ -42,8 +42,6 @@
 
 namespace drawing_filter_v2 {
 
-	constexpr GUID id = { 0xa96b151a, 0xb120, 0x44ec, { 0x9b, 0x10, 0xca, 0x6a, 0x4d, 0x1d, 0x76, 0x8e } }; // {A96B151A-B120-44EC-9B10-CA6A4D1D768E}
-
 	extern const wchar_t* rsConfig_Drawing_Width;
 	extern const wchar_t* rsConfig_Drawing_Height;
 }

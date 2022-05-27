@@ -81,7 +81,7 @@ namespace drawing_filter_v2 {
 	const wchar_t* filter_name = L"Drawing filter v2";
 
 	const scgms::TFilter_Descriptor descriptor = {
-		id,
+		scgms::IID_Drawing_Filter_v2,
 		scgms::NFilter_Flags::None,
 		filter_name,
 		param_count,

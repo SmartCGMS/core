@@ -95,7 +95,7 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 
 	max_y += 2.0; // always move the maximum value, so there's still room for descriptions, etc.
 
-	size_t total_x_label_cnt = (opts.width - mCanvas_WidthOff) / 150;
+	size_t total_x_label_cnt = static_cast<size_t>( (static_cast<double>(opts.width) - mCanvas_WidthOff) / 150.0 );
 	total_x_label_cnt = std::min(std::max(total_x_label_cnt, static_cast<size_t>(4)), static_cast<size_t>(18));
 
 	// TODO: calculate steps, so the displayed values are with "nice" stepping (such as 1hr, 30min, 6hr, ...) and not necessarily evenly distributed
@@ -131,6 +131,28 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 		}
 	}
 
+	const double firstFullDay = std::floor(min_x + 1.0);
+	const double firstFullHour = std::floor(min_x / scgms::One_Hour) * scgms::One_Hour;
+	for (double fdx = firstFullHour; fdx < max_x; fdx += scgms::One_Hour)
+	{
+		double xpos = mCanvas_WidthOff + (opts.width - mCanvas_WidthOff) * ((max_x - fdx) / (max_x - min_x));
+
+		grp.Add<drawing::Line>(xpos, mCanvas_HeightOff, xpos, 0)
+			.Set_Stroke_Color(RGBColor::From_HTML_Color("#F8F8F8"))
+			.Set_Stroke_Opacity(1.0)
+			.Set_Stroke_Width(1.0);
+	}
+
+	for (double fdx = firstFullDay; fdx < max_x; fdx += 1.0)
+	{
+		double xpos = mCanvas_WidthOff + (opts.width - mCanvas_WidthOff) * ((max_x - fdx) / (max_x - min_x));
+
+		grp.Add<drawing::Line>(xpos, mCanvas_HeightOff, xpos, 0)
+			.Set_Stroke_Color(RGBColor::From_HTML_Color("#D8D8D8"))
+			.Set_Stroke_Opacity(1.0)
+			.Set_Stroke_Width(1.0);
+	}
+
 	grp.Add<drawing::Text>(mCanvas_WidthOff + (opts.width - mCanvas_WidthOff) / 2, mCanvas_HeightOff + 50, "Time [day.month.year hour:minute]")
 		.Set_Font_Size(15)
 		.Set_Anchor(drawing::Text::TextAnchor::MIDDLE);
@@ -147,6 +169,13 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 			)
 			.Set_Font_Size(12) // TODO: font scaling proportionally to drawing size
 			.Set_Anchor(drawing::Text::TextAnchor::MIDDLE);
+
+		grp.Add<drawing::Line>(
+			mCanvas_WidthOff, mCanvas_HeightOff - (yf / (max_y - min_y)) * mCanvas_HeightOff,
+			opts.width, mCanvas_HeightOff - (yf / (max_y - min_y)) * mCanvas_HeightOff
+			)
+			.Set_Stroke_Color(RGBColor::From_HTML_Color("#D8D8D8"))
+			.Set_Stroke_Width(1);
 	}
 
 	double descriptionY = 20;
