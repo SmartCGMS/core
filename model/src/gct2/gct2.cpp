@@ -302,7 +302,7 @@ CDepot& CGCT2_Discrete_Model::Add_To_Isc1(double amount, double start, double du
 	depot.Set_Name(std::wstring(L"Isc1 (") + std::to_wstring(amount) + L")");
 
 	// absorbed insulin is lowered by the ratio of absorption to elimination
-	depot.Link_To<CTriangular_Bounded_Transfer_Function>(mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot(), start, duration, amount * mParameters.iscimod);
+	depot.Link_To<CConstant_Bounded_Transfer_Function>(mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot(), start, duration, amount * mParameters.iscimod);
 
 	return depot;
 }

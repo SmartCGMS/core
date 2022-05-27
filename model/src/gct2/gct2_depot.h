@@ -137,7 +137,7 @@ namespace gct2_model
 
 			// is this link expired? i.e.; has the transfer function reached its end?
 			bool Is_Expired(double time) const {
-				return mTransfer_Function->Is_Expired(time);
+				return false;// mTransfer_Function->Is_Expired(time);
 			}
 	};
 
@@ -156,6 +156,9 @@ namespace gct2_model
 		private:
 			// current depot quantity
 			double mQuantity = 0.0;
+
+			// initial depot quantity
+			double mInitial_Quantity = 0.0;
 
 			// next step quantity
 			double mNext_Quantity = 0.0;
@@ -217,6 +220,7 @@ namespace gct2_model
 				if (mQuantity < 0 && !mAllow_Negative) {
 					mQuantity = 0;
 				}
+				mInitial_Quantity = mQuantity;
 				mNext_Quantity = mQuantity;
 			}
 
@@ -225,12 +229,13 @@ namespace gct2_model
 			CDepot& operator=(const CDepot& other) = delete;
 
 			// support move; try to respect conservation of mass even on architectural level
-			CDepot(CDepot&& other) noexcept : mQuantity(other.mQuantity), mNext_Quantity(other.mNext_Quantity), mAllow_Negative(other.mAllow_Negative), mPersistent(other.mPersistent), mSolution_Volume(other.mSolution_Volume), mCurrent_Time(other.mCurrent_Time) {
+			CDepot(CDepot&& other) noexcept : mQuantity(other.mQuantity), mInitial_Quantity(other.mInitial_Quantity), mNext_Quantity(other.mNext_Quantity), mAllow_Negative(other.mAllow_Negative), mPersistent(other.mPersistent), mSolution_Volume(other.mSolution_Volume), mCurrent_Time(other.mCurrent_Time) {
 				other.mQuantity = 0.0;
 				other.mNext_Quantity = 0.0;
 			}
 			CDepot& operator=(CDepot&& other) noexcept {
 				mQuantity = other.mQuantity;
+				mInitial_Quantity = other.mInitial_Quantity;
 				mNext_Quantity = other.mNext_Quantity;
 				mAllow_Negative = other.mAllow_Negative;
 				mPersistent = other.mPersistent;
@@ -263,6 +268,10 @@ namespace gct2_model
 
 			virtual double Get_Quantity() const override {
 				return mQuantity;
+			}
+
+			virtual double Get_Initial_Quantity() const {
+				return mInitial_Quantity;
 			}
 
 			virtual double Get_Concentration() const override {
