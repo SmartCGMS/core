@@ -164,16 +164,18 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 
 		lastTime = measured_at;
 
-		scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
+		{
+			scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
 
-		evt.level() = level;
-		evt.device_id() = Db_Reader_Device_GUID;
-		evt.signal_id() = signal_id;
-		evt.device_time() = measured_at;
-		evt.segment_id() = segment_id;
+			evt.level() = level;
+			evt.device_id() = Db_Reader_Device_GUID;
+			evt.signal_id() = signal_id;
+			evt.device_time() = measured_at;
+			evt.segment_id() = segment_id;
 
-		if (mOutput.Send(evt) != S_OK)
-			return false;
+			if (mOutput.Send(std::move(evt)) != S_OK)
+				return false;
+		}
 	}
 
 	return Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Stop, lastTime, segment_id);
