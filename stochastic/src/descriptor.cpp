@@ -69,13 +69,18 @@ namespace sequential_convex_scan {
 	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsSequential_Convex_Scan);
 }
 
+namespace mutation {
+	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, L"1-to-N mutation");
+}
 
 
 
-const std::array<scgms::TSolver_Descriptor, 7> solver_descriptions = 
+
+const std::array<scgms::TSolver_Descriptor, 8> solver_descriptions = 
 	{ mt_metade::desc, halton_metade::desc, rnd_metade::desc,
 	  pso::desc, pso::desc_r,
 	  sequential_brute_force_scan::desc, sequential_convex_scan::desc,
+	  mutation::desc
 
 };
 
