@@ -1169,7 +1169,7 @@ namespace cgp_pred {
 namespace bases_pred {
 
 	const wchar_t* model_param_ui_names[param_count] = {
-		L"W_g", L"b_win", L"b_off", L"Cc", L"Ic", L"PA_Cc", L"PA_Ic", L"c_hist", L"i_hist",
+		L"W_g", L"b_win", L"b_off", L"Cc", L"Ic", L"PAc", L"c_hist", L"i_hist",
 		
 		L"b1_a", L"b1_toff", L"b1_var",
 		L"b2_a", L"b2_toff", L"b2_var",
@@ -1179,11 +1179,14 @@ namespace bases_pred {
 		L"b6_a", L"b6_toff", L"b6_var",
 		L"b7_a", L"b7_toff", L"b7_var",
 		L"b8_a", L"b8_toff", L"b8_var",
+		L"b9_a", L"b9_toff", L"b9_var",
+
+		L"c", L"k", L"h",
 	};
 
 	const scgms::NModel_Parameter_Value model_param_types[param_count] = {
 		scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble,
-		scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptTime,
 
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
@@ -1193,6 +1196,9 @@ namespace bases_pred {
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
+
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,
 	};
 
 	constexpr size_t number_of_calculated_signals = 1;

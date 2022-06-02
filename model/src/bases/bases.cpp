@@ -38,14 +38,29 @@
 
 #include "bases.h"
 #include "../../../../common/rtl/SolverLib.h"
+#include "../../../../common/rtl/ApproxLib.h"
+#include "../../../../common/utils/math_utils.h"
 
 #include "../../../../common/utils/DebugHelper.h"
+
+#include "../pattern_prediction/pattern_prediction_descriptor.h"
+
+enum class NIG_History_Mode
+{
+	Moving_Average,
+	Median,
+	Moving_Average_Plus_StdDev,
+};
+
+constexpr NIG_History_Mode IG_History_Mode = NIG_History_Mode::Moving_Average;
 
 using namespace scgms::literals;
 
 CBase_Functions_Predictor::CBase_Functions_Predictor(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output)
 	: CBase_Filter(output), mParameters(scgms::Convert_Parameters<bases_pred::TParameters>(parameters, bases_pred::default_parameters.vector)) {
 	//
+
+	mTime_Seg = refcnt::Manufacture_Object_Shared<scgms::CTime_Segment, scgms::ITime_Segment, scgms::STime_Segment>();
 }
 
 HRESULT CBase_Functions_Predictor::Do_Execute(scgms::UDevice_Event event)
@@ -57,6 +72,19 @@ HRESULT CBase_Functions_Predictor::Do_Execute(scgms::UDevice_Event event)
 			mStored_IG.push_back({
 				event.device_time(), event.device_time(), event.level()
 			});
+
+			for (auto itr = mStored_IG.begin(); itr != mStored_IG.end(); )
+			{
+				if (itr->time_start < mCurrent_Time - mParameters.baseAvgTimeWindow)
+					itr = mStored_IG.erase(itr);
+				else // once we find a value that falls within the window, end the cleanup - values are always ordered from oldest to newest
+					break;
+			}
+
+			double times = event.device_time();
+			double levels = event.level();
+			auto ig = mTime_Seg.Get_Signal(scgms::signal_IG);
+			ig->Update_Levels(&times, &levels, 1);
 		}
 		else if (event.signal_id() == scgms::signal_Carb_Intake)
 		{
@@ -74,12 +102,10 @@ HRESULT CBase_Functions_Predictor::Do_Execute(scgms::UDevice_Event event)
 				event.level()
 			});
 		}
-		else if (event.signal_id() == scgms::signal_Physical_Activity)
+		//else if (event.signal_id() == scgms::signal_Physical_Activity)
+		else if (event.signal_id() == pattern_prediction::signal_Pattern_Prediction)
 		{
-			if (event.level() > mLast_Physical_Activity_Index)
-				mLast_Physical_Activity_Index = mLast_Physical_Activity_Index * 0.1 + event.level() * 0.9;
-			else
-				mLast_Physical_Activity_Index = mLast_Physical_Activity_Index * 0.9 + event.level() * 0.1;
+			mLast_Physical_Activity_Index = event.level();
 			mLast_Physical_Activity_Time = event.device_time();
 		}
 	}
@@ -103,13 +129,11 @@ HRESULT IfaceCalling CBase_Functions_Predictor::Initialize(const double current_
 
 HRESULT IfaceCalling CBase_Functions_Predictor::Step(const double time_advance_delta)
 {
-	constexpr double Prediction_Horizon = 60.0_min;
-
 	if (time_advance_delta > 0)
 	{
 		mCurrent_Time += time_advance_delta;
 
-		if (mCurrent_Time + 2.0 > mLast_Activated_Day)
+		if (mCurrent_Time + 3.0 > mLast_Activated_Day)
 		{
 			for (size_t i = 0; i < bases_pred::Base_Functions_Count; i++)
 			{
@@ -127,22 +151,69 @@ HRESULT IfaceCalling CBase_Functions_Predictor::Step(const double time_advance_d
 			size_t valCnt = 0;
 			double val = 0.0;
 
-			for (auto itr = mStored_IG.rbegin(); itr != mStored_IG.rend(); ++itr)
+			if constexpr (IG_History_Mode == NIG_History_Mode::Moving_Average || IG_History_Mode == NIG_History_Mode::Moving_Average_Plus_StdDev)
 			{
-				if (itr->time_start < mCurrent_Time - mParameters.baseAvgTimeWindow)
-					break;
+				for (auto itr = mStored_IG.rbegin(); itr != mStored_IG.rend(); ++itr)
+				{
+					if (itr->time_start < mCurrent_Time - mParameters.baseAvgTimeWindow)
+						break;
 
-				valCnt++;
-				val += itr->value;
+					valCnt++;
+					val += itr->value;
+				}
+
+				if (valCnt > 1)
+					val /= static_cast<double>(valCnt);
+
+				if constexpr (IG_History_Mode == NIG_History_Mode::Moving_Average_Plus_StdDev)
+				{
+					double sd = 0;
+
+					for (auto itr = mStored_IG.rbegin(); itr != mStored_IG.rend(); ++itr)
+					{
+						if (itr->time_start < mCurrent_Time - mParameters.baseAvgTimeWindow)
+							break;
+
+						sd += std::pow(itr->value - val, 2.0);
+					}
+
+					if (valCnt > 1)
+					{
+						sd /= static_cast<double>(valCnt + 1); // bessel's correction
+						sd = std::sqrt(sd);
+					}
+
+					val += sd;
+				}
 			}
+			else if constexpr (IG_History_Mode == NIG_History_Mode::Median)
+			{
+				std::vector<double> d;
 
-			if (valCnt > 1)
-				val /= static_cast<double>(valCnt);
+				for (auto itr = mStored_IG.rbegin(); itr != mStored_IG.rend(); ++itr)
+				{
+					if (itr->time_start < mCurrent_Time - mParameters.baseAvgTimeWindow)
+						break;
+
+					d.push_back(itr->value);
+				}
+				// i am so sorry
+				std::sort(d.begin(), d.end());
+				if (d.size() > 1)
+				{
+					if (d.size() % 2)
+						val = (d[d.size() / 2 - 1] + d[d.size() / 2]) / 2.0;
+					else
+						val = d[d.size() / 2];
+				}
+				else
+					val = d.empty() ? 0 : d[0];
+			}
 
 			double est = (1 - mParameters.curWeight) * mStored_IG.rbegin()->value + mParameters.curWeight * (val + mParameters.baseAvgOffset);
 
 			// emit just the weighted average and current value
-			{
+			/*{
 				scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
 				evt.signal_id() = scgms::signal_Virtual[55];
 				evt.device_id() = bases_pred::model_id;
@@ -150,28 +221,38 @@ HRESULT IfaceCalling CBase_Functions_Predictor::Step(const double time_advance_d
 				evt.segment_id() = mSegment_Id;
 				evt.level() = est;
 				mOutput.Send(evt);
-			}
+			}*/
 
-			const double choContribFactor =  (1.0 + mParameters.carbContrib * Calc_COB_At(mCurrent_Time + mParameters.carbPast));
-			const double insContribFactor = -(1.0 + mParameters.insContrib  * Calc_IOB_At(mCurrent_Time + mParameters.insPast) );
-			const double paChoContribFactor = (1.0 + mParameters.paCarbContrib * (0.5*std::tanh(10*(mLast_Physical_Activity_Index-0.3)) + 0.5));
-			const double paInsContribFactor = (1.0 + mParameters.paInsContrib * (std::exp(-200*std::pow(mLast_Physical_Activity_Index-0.2, 2.0))));
+			if (Is_Any_NaN(mLast_Physical_Activity_Index))
+				mLast_Physical_Activity_Index = 0;
+
+			/*if (mLast_Physical_Activity_Time + 10_min < mCurrent_Time)
+				mLast_Physical_Activity_Index = 0;*/
+
+			const double choContribFactor = (1.0 + mParameters.carbContrib * Calc_COB_At(mCurrent_Time + mParameters.carbPast));
+			const double insContribFactor = (1.0 + mParameters.insContrib  * Calc_IOB_At(mCurrent_Time + mParameters.insPast) );
+			const double paContribFactor  = (0.0 + mParameters.paContrib   * mLast_Physical_Activity_Index);
 
 			double basisFunctionContrib = 0;
+			double unfactoredBasisFunctionContrib = 0;
 
 			for (auto itr = mActive_Bases.begin(); itr != mActive_Bases.end(); )
 			{
 				const auto& fnc = *itr;
 
-				double baseContribFactor = choContribFactor * paChoContribFactor;
+				double baseContribFactor = choContribFactor;
 				
-				if (fnc.idx >= bases_pred::Base_Functions_CHO)
-					baseContribFactor = insContribFactor * paInsContribFactor;
+				if (fnc.idx >= bases_pred::Base_Functions_CHO && fnc.idx < bases_pred::Base_Functions_CHO + bases_pred::Base_Functions_Ins)
+					baseContribFactor = insContribFactor;
+				else if (fnc.idx >= bases_pred::Base_Functions_CHO + bases_pred::Base_Functions_Ins)
+					baseContribFactor = paContribFactor;
 
 				const auto& pars = mParameters.baseFunction[fnc.idx];
-				double tval = pars.amplitude * std::exp(-std::pow(mCurrent_Time + Prediction_Horizon - fnc.toff, 2.0) / (2 * pars.variance * pars.variance));
+				double tval = pars.amplitude * std::exp(-std::pow(mCurrent_Time + bases_pred::Prediction_Horizon - fnc.toff, 2.0) / (2 * pars.variance * pars.variance));
 
-				if (tval * baseContribFactor < 0.001 && fnc.toff < mCurrent_Time)
+				unfactoredBasisFunctionContrib += tval;
+
+				if (fnc.toff + 24.0_hr < mCurrent_Time)
 					itr = mActive_Bases.erase(itr);
 				else
 					++itr;
@@ -179,15 +260,40 @@ HRESULT IfaceCalling CBase_Functions_Predictor::Step(const double time_advance_d
 				basisFunctionContrib += tval * baseContribFactor;
 			}
 
+			// emit the basis function contribution
+			/*
+			{
+				scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
+				evt.signal_id() = scgms::signal_Steps;
+				evt.device_id() = bases_pred::model_id;
+				evt.device_time() = mCurrent_Time + Prediction_Horizon;
+				evt.segment_id() = mSegment_Id;
+				evt.level() = unfactoredBasisFunctionContrib;
+				mOutput.Send(evt);
+			}
+			*/
+
 			est += basisFunctionContrib;
 
-			scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
-			evt.signal_id() = bases_pred::ig_signal_id;
-			evt.device_id() = bases_pred::model_id;
-			evt.device_time() = mCurrent_Time + Prediction_Horizon;
-			evt.segment_id() = mSegment_Id;
-			evt.level() = est;
-			mOutput.Send(evt);
+			est += mParameters.c;
+
+			/*double times = mCurrent_Time - mParameters.h;
+			double pastlev = 0;
+			auto ig = mTime_Seg.Get_Signal(scgms::signal_IG);
+			ig->Get_Continuous_Levels(nullptr, &times, &pastlev, 1, scgms::apxNo_Derivation);*/
+			const double phiT = bases_pred::Prediction_Horizon;// +mParameters.k * mStored_IG.rbegin()->value * (mStored_IG.rbegin()->value - pastlev) / mParameters.h;
+
+			// emit the prediction
+			if (!Is_Any_NaN(phiT))
+			{
+				scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
+				evt.signal_id() = bases_pred::ig_signal_id;
+				evt.device_id() = bases_pred::model_id;
+				evt.device_time() = mCurrent_Time + phiT;//bases_pred::Prediction_Horizon;
+				evt.segment_id() = mSegment_Id;
+				evt.level() = est;
+				mOutput.Send(evt);
+			}
 		}
 
 		auto cleanup = [this](auto& cont) {

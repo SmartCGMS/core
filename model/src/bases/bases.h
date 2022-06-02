@@ -39,6 +39,8 @@
 #pragma once
 
 #include "../../../../common/rtl/FilterLib.h"
+#include "../../../../common/rtl/DeviceLib.h"
+#include "../../../../common/rtl/ApproxLib.h"
 #include "../descriptor.h"
 
 #pragma warning( push )
@@ -72,6 +74,8 @@ class CBase_Functions_Predictor : public scgms::CBase_Filter, public scgms::IDis
 		};
 
 		std::list<TActive_Base> mActive_Bases;
+
+		scgms::STime_Segment mTime_Seg;
 
 	protected:
 		// scgms::CBase_Filter iface implementation
