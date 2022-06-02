@@ -320,7 +320,7 @@ class CPSO
 
 			// calculate initial fitness
 			std::for_each(std::execution::par_unseq, mSwarm.begin(), mSwarm.end(), [this, initial](auto& candidate_solution) {
-				if (mSetup.objective(mSetup.data, candidate_solution.current.data(), candidate_solution.current_fitness.data()) != TRUE)
+				if (mSetup.objective(mSetup.data, 1, candidate_solution.current.data(), candidate_solution.current_fitness.data()) != TRUE)
 				{
 					for (auto& elem : candidate_solution.current_fitness)
 						elem = std::numeric_limits<double>::quiet_NaN();	// sanitize on error
@@ -427,7 +427,7 @@ class CPSO
 					candidate_solution.current = mUpper_Bound.min(mLower_Bound.max(candidate_solution.current + candidate_solution.velocity));
 
 					// evaluate candidate solution
-					if (mSetup.objective(mSetup.data, candidate_solution.current.data(), candidate_solution.current_fitness.data()) != TRUE)
+					if (mSetup.objective(mSetup.data, 1, candidate_solution.current.data(), candidate_solution.current_fitness.data()) != TRUE)
 					{
 						for (auto& elem : candidate_solution.current_fitness)
 							elem = std::numeric_limits<double>::quiet_NaN();	// sanitize on error

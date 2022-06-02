@@ -236,7 +236,7 @@ double count_fitness(solver::TSolver_Setup& setup, const double* point) {
     }
 
     std::array<double, solver::Maximum_Objectives_Count> fitness;
-    if (setup.objective(setup.data, point, fitness.data()) != TRUE)
+    if (setup.objective(setup.data, 1, point, fitness.data()) != TRUE)
         fitness[0] = std::numeric_limits<double>::max();
 
     return fitness[0];

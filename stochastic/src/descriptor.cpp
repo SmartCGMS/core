@@ -75,7 +75,6 @@ namespace mutation {
 
 
 
-
 const std::array<scgms::TSolver_Descriptor, 8> solver_descriptions = 
 	{ mt_metade::desc, halton_metade::desc, rnd_metade::desc,
 	  pso::desc, pso::desc_r,

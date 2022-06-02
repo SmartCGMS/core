@@ -53,6 +53,7 @@
 #include "solution.h"
 
 #include "../../../common/rtl/SolverLib.h"
+#include "../../../common/rtl/Eigen_Buffer.h"
 #include "../../../common/utils/DebugHelper.h"
 
 
@@ -75,15 +76,18 @@ namespace metade {
 
 	template <typename TUsed_Solution>
 	struct TMetaDE_Candidate_Solution {
+		TUsed_Solution current;		//declared as first to aid the alignement
+
 		size_t population_index = 0;	//only because of the tournament and =0 to keep static analyzer happy
 		NStrategy strategy = NStrategy::desCurrentToPBest;
 		double CR = 0.5, F = 1.0;
-		TUsed_Solution current, next;
+		
+		//TMapped_Solution<TUsed_Solution> next;
 		
 		NFitness_Strategy fitness_strategy = NFitness_Strategy::Master;
 
-		solver::TFitness current_fitness{ std::numeric_limits<double>::quiet_NaN() };
-		solver::TFitness next_fitness{ std::numeric_limits<double>::quiet_NaN() };
+		solver::TFitness current_fitness{ solver::Nan_Fitness };
+		solver::TFitness *next_fitness = nullptr;
 	};
 
 	struct TMetaDE_Stats {
@@ -182,11 +186,11 @@ protected:
 	}
 protected:
 	const TUsed_Solution mLower_Bound;
-	const TUsed_Solution mUpper_Bound;
-	TAligned_Solution_Vector<metade::TMetaDE_Candidate_Solution<TUsed_Solution>> mPopulation;
+	const TUsed_Solution mUpper_Bound;	
+	using TCandidate_Solution = metade::TMetaDE_Candidate_Solution<TUsed_Solution>;
+	std::vector<TCandidate_Solution, AlignmentAllocator<TCandidate_Solution>> mPopulation;
 	std::vector<size_t> mPopulation_Best;	//indexes into mPopulation sorted by mPopulation's member's current fitness
 											//we do not sort mPopulation due to performance costs and not to loose population diversity
-
 
 	template <typename T>
 	T Generate_New_Strategy(const T old_strategy, std::uniform_int_distribution<size_t> &distribution) {
@@ -199,13 +203,27 @@ protected:
 		return new_strategy;
 	}
 
-	void Generate_Meta_Params(metade::TMetaDE_Candidate_Solution<TUsed_Solution> &solution) { 
+	void Generate_Meta_Params(TCandidate_Solution &solution) {
 		solution.CR = mCR_min + mCR_range*mUniform_Distribution_dbl(mRandom_Generator);
 		solution.F = mF_min + mF_range*mUniform_Distribution_dbl(mRandom_Generator);
 
 		solution.strategy = Generate_New_Strategy<metade::NStrategy>(solution.strategy, mUniform_Distribution_Strategy);
-solution.fitness_strategy = Generate_New_Strategy<NFitness_Strategy>(solution.fitness_strategy, mUniform_Distribution_Fitness_Strategy);
+		solution.fitness_strategy = Generate_New_Strategy<NFitness_Strategy>(solution.fitness_strategy, mUniform_Distribution_Fitness_Strategy);
 	}
+protected:
+	std::vector<double, AlignmentAllocator<double>> mNext_Solutions, mNext_Fitnesses;
+		//these are the containers, which allow bulk objective calls - Eigen::Map does not work due to missing construct_at
+
+	void Store_Next_Solution(const size_t index, TUsed_Solution& dst) const {
+		const auto begin = Next_Solution(index);
+		std::copy(begin, begin + mSetup.problem_size, dst.data());
+	}
+
+
+	double* Next_Solution(const size_t index) const {
+		return const_cast<double*>(mNext_Solutions.data() + index * mSetup.problem_size);
+	}
+
 protected:
 	//not used in a thread-safe way but does not seem to be a problem so far
 	//std::random_device mRandom_Device;
@@ -220,17 +238,21 @@ protected:
 public:
 	CMetaDE(const solver::TSolver_Setup &setup) : 
 		mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)),
-		mSetup(solver::Check_Default_Parameters(setup, 100'000, 100))
-	{
+		mSetup(solver::Check_Default_Parameters(setup, 100'000, 100)) {
 
 		mPopulation.resize(std::max(mSetup.population_size, mPBest_Count));
 		mPopulation_Best.resize(mPopulation.size());
 		const size_t initialized_count = std::min(mPopulation.size() / 2, mSetup.hint_count);
 
+		mNext_Solutions.resize(mSetup.problem_size * mSetup.population_size);
+		mNext_Fitnesses.resize(solver::Maximum_Objectives_Count * mSetup.population_size);
+		std::fill(mNext_Fitnesses.begin(), mNext_Fitnesses.end(), std::numeric_limits<double>::quiet_NaN());
+
+
 		//1. create the initial population		
 		std::vector<TUsed_Solution> trimmed_hints;
 		std::vector<size_t> hint_indexes(mSetup.hint_count);
-		std::vector<solver::TFitness> hint_fitness(mSetup.hint_count);
+		std::vector<solver::TFitness> hint_fitness(mSetup.hint_count, solver::Nan_Fitness);
 		std::vector<bool> hint_validity(mSetup.hint_count);
 
 		//a) find the best hints
@@ -242,7 +264,7 @@ public:
 
 		//b check their fitness in parallel 		
 		std::for_each(std::execution::par_unseq, hint_indexes.begin(), hint_indexes.end(), [this, &trimmed_hints, &hint_fitness, &hint_validity](auto& hint_idx) {
-			hint_validity[hint_idx] = mSetup.objective(mSetup.data, trimmed_hints[hint_idx].data(), hint_fitness[hint_idx].data()) == TRUE;
+			hint_validity[hint_idx] = mSetup.objective(mSetup.data, 1, trimmed_hints[hint_idx].data(), hint_fitness[hint_idx].data()) == TRUE;
 		});
 
 		if (initialized_count < mSetup.hint_count) { 
@@ -257,8 +279,6 @@ public:
 				});
 		}
 		
-
-
 
 		//1. create the initial population		
 		
@@ -280,7 +300,7 @@ public:
 		for (size_t i = effectively_initialized_count; i < mPopulation.size(); i++) {
 			TUsed_Solution tmp;
 
-			// this helps when we use generic solution vector, and does nothing when we use fixed lengths (since ColsAtCompileTime already equals bounds_range.cols(), so it gets
+			// this helps when we use generic dst vector, and does nothing when we use fixed lengths (since ColsAtCompileTime already equals bounds_range.cols(), so it gets
 			// optimized away in compile time
 			tmp.resize(Eigen::NoChange, mSetup.problem_size);
 
@@ -292,7 +312,7 @@ public:
 
 		//compute the fitness in parallel
 		std::for_each(std::execution::par_unseq, mPopulation.begin() + effectively_initialized_count, mPopulation.end(), [this](auto& candidate_solution) {
-			if (mSetup.objective(mSetup.data, candidate_solution.current.data(), candidate_solution.current_fitness.data()) != TRUE) {
+			if (mSetup.objective(mSetup.data, 1, candidate_solution.current.data(), candidate_solution.current_fitness.data()) != TRUE) {
 				for (auto& elem : candidate_solution.current_fitness)
 					elem = std::numeric_limits<double>::quiet_NaN();
 			  }
@@ -303,13 +323,16 @@ public:
 		std::shuffle(mPopulation.begin(), mPopulation.end(), mRandom_Generator);
 
 		//2. set cr and f parameters, and reset the unused part of the metrics
+		//also, setup the next metric and next pointers
 		for (size_t i = 0; i < mPopulation.size(); i++) {
 			auto &solution = mPopulation[i];
 			Generate_Meta_Params(solution);
 			solution.population_index = i;
 
-			for (size_t j = mSetup.objectives_count; j < solver::Maximum_Objectives_Count; j++) 
-				solution.current_fitness[j] = solution.next_fitness[j] = std::numeric_limits<double>::quiet_NaN();
+			//solution.current_fitness = solver::Nan_Fitness;	//next fitness is dereferenced only				
+			solution.next_fitness = reinterpret_cast<solver::TFitness*>(&mNext_Fitnesses[i * solver::Maximum_Objectives_Count]);
+			*solution.next_fitness = solution.current_fitness;
+			//dst.next = std::move(Map_Double_To_Eigen<TUsed_Solution>(&mNext_Solutions[i * mSetup.problem_size], mSetup.problem_size));
 		}
 
 		
@@ -331,7 +354,7 @@ public:
 		progress.max_progress = mSetup.max_generations;
 	
 		const size_t solution_size = mPopulation[0].current.cols();
-		std::uniform_int_distribution<size_t> mUniform_Distribution_Solution{ 0, solution_size - 1 };	//this distribution must be local as solution can be dynamic
+		std::uniform_int_distribution<size_t> mUniform_Distribution_Solution{ 0, solution_size - 1 };	//this distribution must be local as dst can be dynamic
 		std::uniform_int_distribution<size_t> mUniform_Distribution_Population{ 0, mPopulation.size() - 1 };
 
 		const size_t partial_sort_size = std::max(mPBest_Count, mPopulation.size() / 2);
@@ -359,60 +382,72 @@ public:
 			//as each next will be written just once.
 			//We assume that parallelization cost will get amortized			
 
-			std::for_each(std::execution::par_unseq, mPopulation.begin(), mPopulation.end(), [=, &mUniform_Distribution_Solution, &mUniform_Distribution_Population](auto &candidate_solution) {
-
+			//std::for_each(std::execution::unseq, mPopulation.begin(), mPopulation.end(), [=, &mUniform_Distribution_Solution, &mUniform_Distribution_Population](auto &candidate_solution) {
+			for  (auto& candidate_solution : mPopulation) { //std for each seems to make a bug, at least with VS2019
 			
+				//in the original version, which did not support the bulk objective call, this for-cycle used to be parallel
+				//however, with bulk objective and modern processor, breeding new candidates won't amortize => just a vectorized for-cycle
+				//=> no mutexes at all, only atomic ops are allowed!
+
 				auto random_difference_vector = [&]()->TUsed_Solution {
 					const size_t idx1 = mUniform_Distribution_Population(mRandom_Generator);
 					const size_t idx2 = mUniform_Distribution_Population(mRandom_Generator);
 					return mPopulation[idx1].current - mPopulation[idx2].current;
 				};
 
-				//auto &candidate_solution = mPopulation[iter];
+				
+				TUsed_Solution intermediate;
+				intermediate.resize(Eigen::NoChange, mSetup.problem_size);
 
 				switch (candidate_solution.strategy) {
 					case metade::NStrategy::desCurrentToPBest:
-					{
-						const size_t p_index = mUniform_Distribution_PBest(mRandom_Generator);
-						candidate_solution.next = candidate_solution.current +
-							candidate_solution.F*(mPopulation[mPopulation_Best[p_index]].current - candidate_solution.current) +
-							candidate_solution.F*random_difference_vector();
-					}
+						{
+							const size_t p_index = mUniform_Distribution_PBest(mRandom_Generator);
+							const TUsed_Solution im = candidate_solution.current +
+								candidate_solution.F * (mPopulation[mPopulation_Best[p_index]].current - candidate_solution.current) +
+								candidate_solution.F * random_difference_vector();							
+						}
 					break;
 
 					case metade::NStrategy::desCurrentToUmPBest:
-					{
-						const size_t p_index = mUniform_Distribution_PBest(mRandom_Generator);
-						candidate_solution.next = candidate_solution.current +
-							candidate_solution.F*(mPopulation[mPopulation_Best[p_index]].current - candidate_solution.current) +
-							mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector();
-					}
+						{
+							const size_t p_index = mUniform_Distribution_PBest(mRandom_Generator);
+							const TUsed_Solution im = candidate_solution.current +
+								candidate_solution.F*(mPopulation[mPopulation_Best[p_index]].current - candidate_solution.current) +
+								mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector();							
+						}
 					break;
 
-					case metade::NStrategy::desBest2Bin:
-						candidate_solution.next = candidate_solution.current +
-							candidate_solution.F*random_difference_vector() +
-							candidate_solution.F*random_difference_vector();
+					case metade::NStrategy::desBest2Bin: 
+						{
+							const TUsed_Solution im = candidate_solution.current +
+								candidate_solution.F * random_difference_vector() +
+								candidate_solution.F * random_difference_vector();							
+						}
 						break;
 
 					case metade::NStrategy::desUmBest1:
-						candidate_solution.next = candidate_solution.current +
+						{
+							const TUsed_Solution im = candidate_solution.current +
 							candidate_solution.F*(mPopulation[mPopulation_Best[0]].current - candidate_solution.current) +
 							mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector();
+						}
 						break;
 
 					case metade::NStrategy::desCurrentToRand1:
-						candidate_solution.next = candidate_solution.current +
-							mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector() +
-							candidate_solution.F*random_difference_vector();
+						{
+							const TUsed_Solution im = candidate_solution.current +
+								mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector() +
+								candidate_solution.F*random_difference_vector();
+						}
 						break;
 
 					case metade::NStrategy::desTournament: {
-							//we choose mPBest_Count-number of random candidates for a direct crossbreeding with the current candidate solution
+							//we choose mPBest_Count-number of random candidates for a direct crossbreeding with the current candidate dst
 
 							size_t to_go = std::max(mPBest_Count, mPopulation.size() / 20); //5%
 							size_t best_tournament_index = candidate_solution.population_index;							
-							solver::TFitness best_tournament_fitness{ std::numeric_limits<double>::max() };
+							solver::TFitness best_tournament_fitness{ solver::Nan_Fitness };
 
 							std::set<size_t> visited_tournament_indexes{ best_tournament_index };
 							while (to_go-- > 0) {
@@ -427,8 +462,8 @@ public:
 									}
 								}
 							}
-
-							candidate_solution.next = mPopulation[best_tournament_index].current;
+							
+							intermediate = mPopulation[best_tournament_index].current;
 						}
 						break;
 
@@ -437,30 +472,39 @@ public:
 				}
 
 				//ensure the bounds
-				candidate_solution.next = mUpper_Bound.min(mLower_Bound.max(candidate_solution.next));
+				intermediate = mUpper_Bound.min(mLower_Bound.max(intermediate));
+				
 
 
 				//crossbreed
 				{						
 					for (size_t element_iter = 0; element_iter < solution_size; element_iter++) {
 						if (mUniform_Distribution_dbl(mRandom_Generator) > candidate_solution.CR)
-							candidate_solution.next[element_iter] = candidate_solution.current[element_iter];
+							intermediate[element_iter] = candidate_solution.current[element_iter];
 					}
 
 					//and, we alway have to keep at least one original/current element
 					const size_t element_to_replace = mUniform_Distribution_Solution(mRandom_Generator);
-					candidate_solution.next[element_to_replace] = candidate_solution.current[element_to_replace];
+					intermediate[element_to_replace] = candidate_solution.current[element_to_replace];
 				}
 
-				//and evaluate					
-				if (mSetup.objective(mSetup.data, candidate_solution.next.data(), candidate_solution.next_fitness.data()) != TRUE) {
-					for (auto& elem : candidate_solution.next_fitness) {
-						elem = std::numeric_limits<double>::quiet_NaN();	//sanitize on error
-					}
-				}
-					
-				
-			});
+				//and write				
+				intermediate.eval();
+				std::copy(intermediate.data(), intermediate.data() + mSetup.problem_size, Next_Solution(candidate_solution.population_index));
+			
+			}//);
+			
+			//flush all subnormals to zero
+			for (auto& elem : mNext_Solutions) {
+				if (std::fpclassify(elem) == FP_SUBNORMAL)
+					elem = 0.0;
+			}
+
+			//and evaluate					
+			if (mSetup.objective(mSetup.data, mPopulation.size(), mNext_Solutions.data(), mNext_Fitnesses.data()) != TRUE) {
+				progress.cancelled = TRUE;	//error!
+				break;
+			}
 
 
 			//3. Let us preserve the better vectors - too fast to amortize parallelization => serial code
@@ -469,10 +513,11 @@ public:
 				const bool best_individual = solution.population_index == mPopulation_Best[0];
 				const auto fitness_strategy = best_individual ? NFitness_Strategy::Master : solution.fitness_strategy; //if we would allow any strategy for the best,
 																													   //then, the best distance from the origin could degrade
-				if (Compare_Solutions(solution.next_fitness, solution.current_fitness, mSetup.objectives_count, fitness_strategy)) {
+				if (Compare_Solutions(*solution.next_fitness, solution.current_fitness, mSetup.objectives_count, fitness_strategy)) {
 									//requires strict domination to push the population towards the Pareto front, but only a half of it to improve the diversity
-					solution.current = solution.next;
-					solution.current_fitness = solution.next_fitness;
+					//dst.current = dst.next;
+					Store_Next_Solution(solution.population_index, solution.current);
+					solution.current_fitness = *solution.next_fitness;
 				}
 				else {
 					//the offspring is worse than its parents => modify parents' DE parameters
@@ -493,6 +538,15 @@ public:
 			return Compare_Solutions(a.current_fitness, b.current_fitness, mSetup.objectives_count, NFitness_Strategy::Master);
 		});
 
+		//check for a fail
+		for (size_t i = 0; i < mSetup.objectives_count; i++) {
+			if (std::isnan(result->current_fitness[i])) {
+				progress.cancelled = TRUE;
+				break;
+			}
+		}
+
+		progress.best_metric = result->current_fitness;
 		return result->current;		
 	}
 };

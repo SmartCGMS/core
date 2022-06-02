@@ -19,6 +19,38 @@ protected:
 		solver::TFitness fitness = solver::Nan_Fitness;
 	};
 protected:
+	std::vector<double> mBulk_Solutions;
+	std::vector<double> mBulk_Fitness;
+
+	void Prepare_Next_Solutions(const size_t param_idx, const TUsed_Solution& solution) {
+		const double* src = solution.data();
+		double* dst = mBulk_Solutions.data();
+		for (size_t i = 0; i < mStepping.size(); i++) {
+			std::copy(src, src + mSetup.problem_size, dst);
+			dst[param_idx] = mStepping[i][param_idx];
+			dst += mSetup.problem_size;
+		}
+	}
+
+
+	size_t Next_Best_Fitness() {
+		size_t best_idx = 0;
+		solver::TFitness* best_fitness = reinterpret_cast<solver::TFitness*>(mBulk_Fitness.data());
+		solver::TFitness* fitness_to_compare = best_fitness + 1;
+		for (size_t i = 1; i < mStepping.size(); i++) {			
+
+			if (Compare_Solutions(*fitness_to_compare, *best_fitness, mSetup.problem_size, NFitness_Strategy::Master)) {
+				best_idx = i;
+				best_fitness = fitness_to_compare;
+			}
+
+			fitness_to_compare++;
+		}
+
+		return best_idx;
+	}
+
+protected:
 	const TUsed_Solution mLower_Bound;
 	const TUsed_Solution mUpper_Bound;
 	std::vector<TUsed_Solution> mStepping;
@@ -46,6 +78,10 @@ public:
 			step += stepping;
 			mStepping.push_back(step);
 		}
+
+		mBulk_Solutions.resize(mSetup.problem_size * mStepping.size());
+		mBulk_Fitness.resize(solver::Maximum_Objectives_Count * mStepping.size());
+		std::fill(mBulk_Fitness.begin(), mBulk_Fitness.end(), std::numeric_limits<double>::quiet_NaN());
 	}
 
 	
@@ -55,67 +91,48 @@ public:
 		progress = solver::Null_Solver_Progress;
 
 		progress.current_progress = 0;
-		progress.max_progress = mStepping.size()*mSetup.problem_size;
+		progress.max_progress = mStepping.size();
 
 
 		TCandidate_Solution<TUsed_Solution> best_solution;
 		best_solution.solution = mStepping[0];
 		best_solution.fitness = solver::Nan_Fitness;
 
-		if (mSetup.objective(mSetup.data, best_solution.solution.data(), best_solution.fitness.data()) != TRUE)
+		if (mSetup.objective(mSetup.data, 1, best_solution.solution.data(), best_solution.fitness.data()) != TRUE)
 			return best_solution.solution;			//TODO: this is not necessarily the best solution, just the first one!
-
+		
 		progress.best_metric = best_solution.fitness;
 
-		
-		std::atomic<size_t> atomic_progress{ 0 };
-		std::shared_mutex best_mutex;
-
-		std::vector<size_t> val_indexes(mStepping.size());
-		std::iota(val_indexes.begin(), val_indexes.end(), 0);
-
-		bool improved = true;
+				bool improved = true;
 
 		size_t improved_counter = 0;
 		while (improved && (improved_counter++ < mSetup.max_generations)) {
 			improved = false;
 			progress.current_progress = 0;
-			atomic_progress.store(0);	//running next generation
 
 			for (size_t param_idx = 0; param_idx < mSetup.problem_size; param_idx++) {
 				if (progress.cancelled != FALSE) break;
 
 				if (mLower_Bound[param_idx] != mUpper_Bound[param_idx]) {
-
-					std::for_each(std::execution::par_unseq, val_indexes.begin(), val_indexes.end(),
-						[this, &best_solution, &best_mutex, &progress, &atomic_progress, &param_idx, &improved](const auto &val_idx) {
-
-						progress.current_progress = atomic_progress.fetch_add(1);
-						if (progress.cancelled != FALSE) return;
-
-						static thread_local TUsed_Solution local_solution;
-						static thread_local solver::TFitness  local_solution_fitness = solver::Nan_Fitness;
-						{
-							std::shared_lock read_lock{ best_mutex };
-							local_solution = best_solution.solution;
-						}
-						local_solution(param_idx) = mStepping[val_idx](param_idx);
-						if (mSetup.objective(mSetup.data, local_solution.data(), local_solution_fitness.data()) == TRUE) {
+					Prepare_Next_Solutions(param_idx, best_solution.solution);
+					if (mSetup.objective(mSetup.data, mStepping.size(), mBulk_Solutions.data(), mBulk_Fitness.data()) == TRUE) {
+						const size_t local_best_idx = Next_Best_Fitness();
+						const solver::TFitness& local_best_fitness = *(reinterpret_cast<solver::TFitness*>(mBulk_Fitness.data()) + local_best_idx);
+						if (Compare_Solutions(local_best_fitness, best_solution.fitness, mSetup.problem_size, NFitness_Strategy::Master)) {
+							best_solution.fitness = local_best_fitness;
 							
-							if (Compare_Solutions(local_solution_fitness, best_solution.fitness, mSetup.objectives_count, mFitness_Strategy)) {
-								std::unique_lock write_lock{ best_mutex };
+							double* local_solution = mBulk_Solutions.data() + local_best_idx * mSetup.problem_size;
+							std::copy(local_solution, local_solution + mSetup.problem_size, best_solution.solution.data());
 
-								//do not be so rush! verify that this is still the better solution
-								if (Compare_Solutions(local_solution_fitness, best_solution.fitness, mSetup.objectives_count, mFitness_Strategy)) {
-									best_solution.solution = local_solution;
-									best_solution.fitness = local_solution_fitness;
-									progress.best_metric = local_solution_fitness;
 
-									improved = true;
-								}
-							}
+							progress.best_metric = local_best_fitness;
+
+							improved = true;
 						}
-					});
+					}
+
+
+					progress.current_progress++;										
 				}
 			}
 		}

@@ -298,18 +298,18 @@ void CSignal_Error::Do_Flush_Stats(std::wofstream stats_file) {
 
 		stats_file << "; " << marker_string << tc_d
 			<< signal_stats.avg << "; " << signal_stats.stddev << "; " << signal_stats.count << tc_d
-			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::min_value)] << "; "
-			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::p25)] << "; "
-			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::median)] << "; "
-			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::p75)] << "; "
-			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::p95)] << "; "
-			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::p99)] << "; "
-			<< signal_stats.ecdf[static_cast<et>(scgms::NECDF::max_value)];
+			<< signal_stats.ecdf[scgms::NECDF::min_value] << "; "
+			<< signal_stats.ecdf[scgms::NECDF::p25] << "; "
+			<< signal_stats.ecdf[scgms::NECDF::median] << "; "
+			<< signal_stats.ecdf[scgms::NECDF::p75] << "; "
+			<< signal_stats.ecdf[scgms::NECDF::p95] << "; "
+			<< signal_stats.ecdf[scgms::NECDF::p99] << "; "
+			<< signal_stats.ecdf[scgms::NECDF::max_value];
 		
 		//write ECDF
-		stats_file << tc_d << signal_stats.ecdf[static_cast<et>(scgms::NECDF::min_value)];
+		stats_file << tc_d << signal_stats.ecdf[scgms::NECDF::min_value];
 		for (et i = static_cast<et>(scgms::NECDF::min_value) + 1; i <= static_cast<et>(scgms::NECDF::max_value); i++)
-			stats_file << "; " << signal_stats.ecdf[i];
+			stats_file << "; " << signal_stats.ecdf[static_cast<scgms::NECDF>(i)];
 
 		stats_file<< std::endl;
 	};

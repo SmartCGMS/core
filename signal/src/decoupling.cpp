@@ -207,11 +207,11 @@ void CDecoupling_Filter::Flush_Stats() {
 
             stats_file << "; " << marker_string << ";; "
                 << signal_stats.avg << "; " << signal_stats.stddev << "; " << signal_stats.count << ";; "
-                << signal_stats.ecdf[static_cast<et>(scgms::NECDF::min_value)] << "; "
-                << signal_stats.ecdf[static_cast<et>(scgms::NECDF::p25)] << "; "
-                << signal_stats.ecdf[static_cast<et>(scgms::NECDF::median)] << "; "
-                << signal_stats.ecdf[static_cast<et>(scgms::NECDF::p75)] << "; "
-                << signal_stats.ecdf[static_cast<et>(scgms::NECDF::max_value)] << ";; "
+                << signal_stats.ecdf[scgms::NECDF::min_value] << "; "
+                << signal_stats.ecdf[scgms::NECDF::p25] << "; "
+                << signal_stats.ecdf[scgms::NECDF::median] << "; "
+                << signal_stats.ecdf[scgms::NECDF::p75] << "; "
+                << signal_stats.ecdf[scgms::NECDF::max_value] << ";; "
                 << stats.events_matched << "; " << stats.events_evaluated << "; "
                 << stats.levels_matched << "; " << stats.levels_evaluated << "; "
                 << std::endl;

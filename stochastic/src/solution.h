@@ -77,6 +77,7 @@ enum class NFitness_Strategy : size_t { Strict_Dominance = 0,					//solution A m
 										Dominance_Count,						
 										Euclidean_Distance = Dominance_Count,
 										Weighted_Euclidean_Distance,
+										Max_Reduction,
 
 										count,
 
