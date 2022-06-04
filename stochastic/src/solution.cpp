@@ -38,39 +38,6 @@
 
 #include "solution.h"
 
-#if __cplusplus >= 202002L
-#include <compare>
-#define __has_threeway_cmp 1
-#endif
-
-#if __has_threeway_cmp
-using partial_ordering = std::partial_ordering;
-#else
-enum class partial_ordering
-{
-	unordered,
-	less,
-	greater
-};
-#endif
-
-static inline partial_ordering Compare_Values(const double a, const double b)
-{
-#if __has_threeway_cmp
-	return a <=> b;
-#else
-	if (std::isnan(a) || std::isnan(b))
-		return partial_ordering::unordered;
-
-	if (a < b)
-		return partial_ordering::less;
-	if (a > b)
-		return partial_ordering::greater;
-
-	return partial_ordering::unordered;
-#endif
-}
-
 #include "../../../common/utils/math_utils.h"
 
 #if __cplusplus >= 202002L
@@ -92,7 +59,7 @@ enum class partial_ordering
 static inline partial_ordering Compare_Values(const double better, const double worse)
 {
 #if __has_threeway_cmp
-	return a <=> b;
+	return better <=> worse;
 #else
 	/*	nans are already checked for in CompareSolutions
 	if (std::isnan(better) || std::isnan(worse))
