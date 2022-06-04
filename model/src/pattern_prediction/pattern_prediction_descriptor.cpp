@@ -65,7 +65,7 @@ namespace pattern_prediction {
 	scgms::TFilter_Descriptor get_filter_desc() {
 		const scgms::TFilter_Descriptor filter_desc = {
 				filter_id,
-				scgms::NFilter_Flags::None,
+				scgms::NFilter_Flags::Encapsulated_Model,
 				dsPattern_Prediction_Model,
 				filter_param_count,
 				filter_param_types,
