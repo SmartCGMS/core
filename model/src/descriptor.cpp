@@ -1180,6 +1180,9 @@ namespace bases_pred {
 		L"b7_a", L"b7_toff", L"b7_var",
 		L"b8_a", L"b8_toff", L"b8_var",
 		L"b9_a", L"b9_toff", L"b9_var",
+		L"b10_a", L"b10_toff", L"b10_var",
+		L"b11_a", L"b11_toff", L"b11_var",
+		L"b12_a", L"b12_toff", L"b12_var",
 
 		L"c", L"k", L"h",
 	};
@@ -1188,6 +1191,9 @@ namespace bases_pred {
 		scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptTime,
 
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
@@ -1240,7 +1246,7 @@ namespace bases_pred {
 
 const std::array<const scgms::TFilter_Descriptor, 1> filter_descriptions = { { pattern_prediction::get_filter_desc()} };
 
-const std::array<scgms::TModel_Descriptor, 19> model_descriptions = { { diffusion_v2_model::desc,
+const std::array<scgms::TModel_Descriptor, 20> model_descriptions = { { diffusion_v2_model::desc,
 																		 steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc, diffusion_prediction::desc,
 																		 constant_model::desc,
 																		 bergman_model::desc,
@@ -1251,6 +1257,7 @@ const std::array<scgms::TModel_Descriptor, 19> model_descriptions = { { diffusio
 																		 samadi_model::desc,
 																		 gct_model::desc,
 																		 gct2_model::desc,
+																		 pattern_prediction::get_model_desc(),
 																		 p559_model::desc,
 																		 aim_ge::desc,
 																		 data_enhacement::desc,

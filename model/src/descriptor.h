@@ -1071,7 +1071,8 @@ namespace bases_pred
 	constexpr size_t Base_Functions_CHO = 3;
 	constexpr size_t Base_Functions_Ins = 4;
 	constexpr size_t Base_Functions_PA = 2;
-	constexpr size_t Base_Functions_Count = Base_Functions_CHO + Base_Functions_Ins + Base_Functions_PA;
+	constexpr size_t Base_Functions_PatternPred = 3;
+	constexpr size_t Base_Functions_Count = Base_Functions_CHO + Base_Functions_Ins + Base_Functions_PA + Base_Functions_PatternPred;
 
 	constexpr double Prediction_Horizon = 60.0_min;
 
@@ -1120,6 +1121,9 @@ namespace bases_pred
 		-10.0, 0.0, 0.05,
 		-10.0, 0.0, 0.05,
 		-10.0, 0.0, 0.05,
+		-10.0, 0.0, 0.05,
+		-10.0, 0.0, 0.05,
+		-10.0, 0.0, 0.05,
 		-5, -1, scgms::One_Minute * 5,
 	};
 	const TParameters default_parameters = {
@@ -1141,6 +1145,9 @@ namespace bases_pred
 		4, 0.7, 0.2,
 		4, 0.7, 0.2,
 		4, 0.7, 0.2,
+		4, 0.7, 0.2,
+		4, 0.7, 0.2,
+		4, 0.7, 0.2,
 		0, -0.07, scgms::One_Minute * 5,
 	};
 	const TParameters upper_bounds = {
@@ -1153,6 +1160,9 @@ namespace bases_pred
 		scgms::One_Hour * 2.0,
 		scgms::One_Hour * 2.0,
 
+		10.0, 0.99, 0.5,
+		10.0, 0.99, 0.5,
+		10.0, 0.99, 0.5,
 		10.0, 0.99, 0.5,
 		10.0, 0.99, 0.5,
 		10.0, 0.99, 0.5,

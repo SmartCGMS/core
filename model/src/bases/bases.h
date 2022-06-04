@@ -65,7 +65,7 @@ class CBase_Functions_Predictor : public scgms::CBase_Filter, public scgms::IDis
 		std::list<Stored_Signal> mStored_Insulin;
 		std::list<Stored_Signal> mStored_Carbs;
 		double mLast_Physical_Activity_Index = 0;
-		double mLast_Physical_Activity_Time = 0;
+		double mLast_Pattern_Pred = 0;
 
 		struct TActive_Base
 		{

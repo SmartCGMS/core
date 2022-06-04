@@ -102,11 +102,13 @@ HRESULT CBase_Functions_Predictor::Do_Execute(scgms::UDevice_Event event)
 				event.level()
 			});
 		}
-		//else if (event.signal_id() == scgms::signal_Physical_Activity)
-		else if (event.signal_id() == pattern_prediction::signal_Pattern_Prediction)
+		else if (event.signal_id() == scgms::signal_Physical_Activity)
 		{
 			mLast_Physical_Activity_Index = event.level();
-			mLast_Physical_Activity_Time = event.device_time();
+		}
+		else if (event.signal_id() == pattern_prediction::signal_Pattern_Prediction)
+		{
+			mLast_Pattern_Pred = event.level();
 		}
 	}
 
@@ -226,12 +228,13 @@ HRESULT IfaceCalling CBase_Functions_Predictor::Step(const double time_advance_d
 			if (Is_Any_NaN(mLast_Physical_Activity_Index))
 				mLast_Physical_Activity_Index = 0;
 
-			/*if (mLast_Physical_Activity_Time + 10_min < mCurrent_Time)
-				mLast_Physical_Activity_Index = 0;*/
+			if (Is_Any_NaN(mLast_Pattern_Pred))
+				mLast_Pattern_Pred = 0;
 
 			const double choContribFactor = (1.0 + mParameters.carbContrib * Calc_COB_At(mCurrent_Time + mParameters.carbPast));
 			const double insContribFactor = (1.0 + mParameters.insContrib  * Calc_IOB_At(mCurrent_Time + mParameters.insPast) );
-			const double paContribFactor  = (0.0 + mParameters.paContrib   * mLast_Physical_Activity_Index);
+			const double paContribFactor =  (0.0 + mParameters.paContrib * mLast_Physical_Activity_Index);
+			const double ppredContribFactor = (0.0 + mParameters.paContrib * mLast_Pattern_Pred);
 
 			double basisFunctionContrib = 0;
 			double unfactoredBasisFunctionContrib = 0;
@@ -244,8 +247,10 @@ HRESULT IfaceCalling CBase_Functions_Predictor::Step(const double time_advance_d
 				
 				if (fnc.idx >= bases_pred::Base_Functions_CHO && fnc.idx < bases_pred::Base_Functions_CHO + bases_pred::Base_Functions_Ins)
 					baseContribFactor = insContribFactor;
-				else if (fnc.idx >= bases_pred::Base_Functions_CHO + bases_pred::Base_Functions_Ins)
+				else if (fnc.idx >= bases_pred::Base_Functions_CHO + bases_pred::Base_Functions_Ins && fnc.idx < bases_pred::Base_Functions_CHO + bases_pred::Base_Functions_Ins + bases_pred::Base_Functions_PA)
 					baseContribFactor = paContribFactor;
+				else if (fnc.idx >= bases_pred::Base_Functions_CHO + bases_pred::Base_Functions_Ins + bases_pred::Base_Functions_PA)
+					baseContribFactor = ppredContribFactor;
 
 				const auto& pars = mParameters.baseFunction[fnc.idx];
 				double tval = pars.amplitude * std::exp(-std::pow(mCurrent_Time + bases_pred::Prediction_Horizon - fnc.toff, 2.0) / (2 * pars.variance * pars.variance));
