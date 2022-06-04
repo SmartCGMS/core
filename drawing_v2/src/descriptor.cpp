@@ -82,7 +82,7 @@ namespace drawing_filter_v2 {
 
 	const scgms::TFilter_Descriptor descriptor = {
 		scgms::IID_Drawing_Filter_v2,
-		scgms::NFilter_Flags::None,
+		scgms::NFilter_Flags::Presentation_Only,
 		filter_name,
 		param_count,
 		param_type,
