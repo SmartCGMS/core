@@ -121,7 +121,7 @@ class COne_To_N_Mutation
 
 			// calculate initial fitness
 			std::for_each(std::execution::par_unseq, mPopulation.begin(), mPopulation.end(), [this](auto& candidate_solution) {
-				if (mSetup.objective(mSetup.data, candidate_solution.current.data(), candidate_solution.fitness.data()) != TRUE)
+				if (mSetup.objective(mSetup.data, 1, candidate_solution.current.data(), candidate_solution.fitness.data()) != TRUE)
 				{
 					for (auto& elem : candidate_solution.fitness)
 						elem = std::numeric_limits<double>::quiet_NaN();	// sanitize on error
@@ -153,7 +153,7 @@ class COne_To_N_Mutation
 				});
 
 				std::for_each(std::execution::par_unseq, mPopulation.begin(), mPopulation.end(), [this](auto& candidate_solution) {
-					if (mSetup.objective(mSetup.data, candidate_solution.current.data(), candidate_solution.fitness.data()) != TRUE)
+					if (mSetup.objective(mSetup.data, 1, candidate_solution.current.data(), candidate_solution.fitness.data()) != TRUE)
 					{
 						for (auto& elem : candidate_solution.fitness)
 							elem = std::numeric_limits<double>::quiet_NaN();	// sanitize on error
