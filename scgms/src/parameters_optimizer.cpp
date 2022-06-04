@@ -290,8 +290,6 @@ protected:
 		result.first_parameter_ptrs.resize(mFilter_Indices.size());
 		result.failed = !result.configuration.operator bool();
 
-		const std::set<GUID> ui_filters = { scgms::IID_Drawing_Filter, scgms::IID_Drawing_Filter_v2, scgms::IID_Log_Filter };	//let's optimize away those filters, which would only slow down
-
 		//we do not need to do a complete copy -> we just need to 
 		// 1. create the root configuration container, because the we can
 		// 2. create a new link configuration for the given filter
@@ -301,7 +299,7 @@ protected:
 		
 		size_t link_counter = 0;
 		if (!result.failed)
-			mConfiguration.for_each([&link_counter, &result, &ui_filters, this, first_effective_filter, &error_description](scgms::SFilter_Configuration_Link src_link) {
+			mConfiguration.for_each([&link_counter, &result, this, first_effective_filter, &error_description](scgms::SFilter_Configuration_Link src_link) {
 				if (result.failed) return;
 
 				if ((link_counter < first_effective_filter) && !mEvents_To_Replay.empty()) {
@@ -310,12 +308,17 @@ protected:
 					return;
 				}
 
+				scgms::TFilter_Descriptor filter_desc = scgms::Null_Filter_Descriptor;
 
 				GUID filter_id = Invalid_GUID;
 				if (src_link->Get_Filter_Id(&filter_id) == S_OK) {
-					if (ui_filters.find(filter_id) != ui_filters.end()) {
-						link_counter++;
-						return;
+					// if the filter should not be instantiated during non-presentation related runs, skip it
+					// this is marked with scgms::NFilter_Flags::Presentation_Only in filter descriptor
+					if (scgms::get_filter_descriptor_by_id(filter_id, filter_desc)) {
+						if (scgms::Has_Flags_All(filter_desc.flags, scgms::NFilter_Flags::Presentation_Only)) {
+							link_counter++;
+							return;
+						}
 					}
 				}
 
