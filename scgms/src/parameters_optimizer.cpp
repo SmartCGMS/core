@@ -486,7 +486,7 @@ public:
 			effective_hints.data(), effective_hints.size(),					//hints
 			mFound_Parameters.data(),
 
-			this, internal::Parameters_Fitness_Wrapper,
+			this, internal::Parameters_Fitness_Wrapper, nullptr,
 			max_generations, population_size, std::numeric_limits<double>::min()
 		};
 

@@ -29,6 +29,8 @@
 #include <pagmo/algorithms/maco.hpp>
 #include <pagmo/algorithms/nspso.hpp>
 
+
+
 namespace pagmo2 {
 
 	enum class NPagmo_Algo {
@@ -47,11 +49,6 @@ namespace pagmo2 {
 	};
 
 
-std::mutex guard;
-std::vector<double> best_solution;
-double best_distance = std::numeric_limits<double>::max();
-
-	
 	class CRemap {
 	protected:
 		pagmo::vector_double mRemapped_solution, mRemapped_Lower, mRemapped_Upper;	//must be initialized to the default solution as only the remapped elements will be replaced	
@@ -134,38 +131,6 @@ double best_distance = std::numeric_limits<double>::max();
 
 			pagmo::vector_double result(solver::Maximum_Objectives_Count, std::numeric_limits<double>::quiet_NaN());	//mSetup.objective may expect all the solver::TFitness
 			mSetup.objective(mSetup.data, 1, solution.data(), result.data());	//should it fail, result should remain set to nan 
-			
-
-			const double local_distance = Solution_Distance(mSetup.objectives_count , result);
-			if (local_distance<pagmo2::best_distance) {
-				std::unique_lock<std::mutex> scoped_guard {pagmo2::guard};
-					if (local_distance<pagmo2::best_distance) {
-pagmo2::best_solution.assign(solution.begin(), solution.end());
-pagmo2::best_distance = local_distance;
-std::cout << "\nBest Distance: " << local_distance << "; ";
-
-for (size_t i = 0; i < mSetup.objectives_count; i++) {
-	mProgress.best_metric[i] = result[i];
-	if (i > 0)
-		std::cout << "; ";
-	std::cout << i << ":" << result[i];
-}
-
-std::cout << std::endl;
-}	
-			}
-
-
-//			if (result[0] < mProgress.best_metric[0]) //mProgress.best_metric[0] = result[0];
-
-
-
-			//if (mSetup.objective(mSetup.data, 1, mBounded_Solution.data(), result.data()) != TRUE)
-			//				return pagmo::vector_double{ solver::Nan_Fitness.begin(), solver::Nan_Fitness.end() };
-
-			//if (fitness[0] < mProgress.best_metric[0]) mProgress.best_metric[0] = fitness[0];
-			//return pagmo::vector_double(1, fitness[0]);
-
 			result.resize(mSetup.objectives_count);	//pagmo expects actual objective count
 			return result;
 		}
@@ -189,11 +154,8 @@ protected:
 protected:
 	pagmo2::CRemap mRemap;
 public:
-	CPagmo2(const solver::TSolver_Setup &setup) : mSetup(solver::Check_Default_Parameters(setup, 100'000, 100)), mRemap(setup) {		
-
-		pagmo2::best_distance = Solution_Distance(mSetup.objectives_count, mSetup.hints[0]);
-		pagmo2::best_solution = std::move(std::vector<double>{mSetup.hints[0], mSetup.hints[0]+mSetup.problem_size});
-
+	CPagmo2(const solver::TSolver_Setup &setup) : mSetup(solver::Check_Default_Parameters(setup, 100'000, 100)), mRemap(setup) {			
+		//
 	};
 
 	bool Solve(solver::TSolver_Progress &progress) {
@@ -220,19 +182,21 @@ public:
 
 			if (mSetup.hint_count > 0) {
 				//insert the hints into the population
-				auto population = archi[0].get_population();
-				const size_t pop_size = population.size();
-				for (size_t i = 0; i < std::min(mSetup.hint_count, pop_size); i++) {
-					population.set_x(i, mRemap.Reduce_Solution(mSetup.hints[i]));
+				for (auto& isle : archi) {
+					auto population = isle.get_population();
+					const size_t pop_size = population.size();
+					for (size_t i = 0; i < std::min(mSetup.hint_count, pop_size); i++) {
+						population.set_x(i, mRemap.Reduce_Solution(mSetup.hints[i]));
+					}
+					isle.set_population(population);
 				}
-				archi[0].set_population(population);
 			}
 			
 			archi.evolve();
 			archi.wait_check();
 
 			succeded = archi.status() == pagmo::evolve_status::idle;
-/*
+
 
 			//with a single-objective, we could just call get_champion_x
 			//but this code works with both single- and multi-objective
@@ -246,28 +210,22 @@ public:
 				all_fitnesses.insert(all_fitnesses.end(), fitnesses.begin(), fitnesses.end());
 			}
 			
+
+
 			std::vector<size_t> indexes(all_solutions.size());
 			std::iota(indexes.begin(), indexes.end(), 0);
 
 			if (mSetup.objectives_count > 1) {
-				std::vector<double> scalar_fitnesses;
-				for (size_t i = 0; i < all_fitnesses.size(); i++) {
-					double accu = 0.0;
-					for (size_t j = 0; j < mSetup.objectives_count; j++) {
-						const double e = all_fitnesses[i][j];
-						accu += e * e;
-					}
-					scalar_fitnesses.push_back(accu);
-				}
-
-				std::sort(indexes.begin(), indexes.end(), [&](const size_t a, const size_t b) {return scalar_fitnesses[indexes[a]] < scalar_fitnesses[indexes[b]]; });
+				std::vector<double> scalar_fitnesses;				
+				for (size_t j=0; j<all_fitnesses.size(); j++)
+					scalar_fitnesses.push_back(solver::Solution_Distance(mSetup.objectives_count, all_fitnesses[j]));
+				std::sort(indexes.begin(), indexes.end(), [&](const size_t a, const size_t b) {return scalar_fitnesses[a] < scalar_fitnesses[b]; });
 
 			} else
-				std::sort(indexes.begin(), indexes.end(), [&](const size_t a, const size_t b) {return all_fitnesses[indexes[a]][0] < all_fitnesses[indexes[b]][0]; });
+				std::sort(indexes.begin(), indexes.end(), [&](const size_t a, const size_t b) {return all_fitnesses[a][0] < all_fitnesses[b][0]; });
 	
 			champion_x = mRemap.Expand_Solution(all_solutions[indexes[0]]);
-*/
-champion_x.assign(pagmo2::best_solution.begin(), pagmo2::best_solution.end());
+
 		};
 
 		switch (mAlgo) {
@@ -280,8 +238,8 @@ champion_x.assign(pagmo2::best_solution.begin(), pagmo2::best_solution.end());
 			case pagmo2::NPagmo_Algo::GPSO:		ps(pagmo::pso_gen{ static_cast<unsigned int>(mSetup.max_generations) }); break;
 			
 			case pagmo2::NPagmo_Algo::IHS:		ps(pagmo::ihs{ static_cast<unsigned int>(mSetup.max_generations) }); break;
-			case pagmo2::NPagmo_Algo::NSGA2:	ps(pagmo::nsga2{ static_cast<unsigned int>(mSetup.max_generations) }); break;
-			case pagmo2::NPagmo_Algo::MOEAD:	ps(pagmo::moead{ static_cast<unsigned int>(mSetup.max_generations) }); break;
+			case pagmo2::NPagmo_Algo::NSGA2:	ps(pagmo::nsga2{ static_cast<unsigned int>(mSetup.max_generations) }); break;			
+			case pagmo2::NPagmo_Algo::MOEAD:	ps(pagmo::moead{ static_cast<unsigned int>(mSetup.max_generations), "random" }); break;
 			case pagmo2::NPagmo_Algo::MACO:		ps(pagmo::maco{ static_cast<unsigned int>(mSetup.max_generations) }); break;
 			case pagmo2::NPagmo_Algo::NSPSO:	ps(pagmo::nspso{ static_cast<unsigned int>(mSetup.max_generations) }); break;
 		}
