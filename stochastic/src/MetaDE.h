@@ -401,9 +401,9 @@ public:
 				auto SBX_alike = [&](const bool rand)->TUsed_Solution {
 					const size_t p_index = rand ?						
 												mUniform_Distribution_Population(mRandom_Generator) :
-												const size_t p_index = mUniform_Distribution_PBest(mRandom_Generator);
+												mUniform_Distribution_PBest(mRandom_Generator);
 					const auto& p_elem = mPopulation[mPopulation_Best[p_index]].current;
-					const double FT = 2.0 * (candidate_solution.F - 0.5 * mF_range);		//allow plus and minus, like with the original SBX, when creating two children
+					const double FT = mF_min + 2.0 * (candidate_solution.F - mF_min - 0.5 * mF_range);		//allow plus and minus, like with the original SBX, when creating two children
 					const TUsed_Solution im = 0.5 * (candidate_solution.current + p_elem) +
 						FT * (candidate_solution.current - p_elem);
 						//like SBX, but we do not create two children, but just one childr is possible with the current design
