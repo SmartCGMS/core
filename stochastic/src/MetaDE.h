@@ -59,7 +59,7 @@
 
 namespace metade {
 	
-	enum class NStrategy : size_t { desCurrentToPBest = 0, desCurrentToUmPBest, desBest2Bin, desUmBest1, desCurrentToRand1, desTournament, count };
+	enum class NStrategy : size_t { desCurrentToPBest = 0, desCurrentToUmPBest, desBest2Bin, desUmBest1, desCurrentToRand1, desTournament, desSBX_Alike_Random, desSBX_Alike_PBest,  count };
 
 	const std::map<NStrategy, const char*, std::less<NStrategy>> strategy_name = {
 														{ NStrategy::desCurrentToPBest,		"CurToPBest" },
@@ -67,7 +67,10 @@ namespace metade {
 														{ NStrategy::desBest2Bin,			"Best2Bin" },
 														{ NStrategy::desUmBest1,			"UmBest1" },
 														{ NStrategy::desCurrentToRand1,		"CurToRand1" },
-														{ NStrategy::desTournament,			"Tournament" } };
+														{ NStrategy::desTournament,			"Tournament" },
+														{ NStrategy::desSBX_Alike_Random,	"SBXalikeRand" },
+														{ NStrategy::desSBX_Alike_PBest,	"SBXalikePBest" }
+};
 
 
 
@@ -406,6 +409,8 @@ public:
 							const TUsed_Solution im = candidate_solution.current +
 								candidate_solution.F * (mPopulation[mPopulation_Best[p_index]].current - candidate_solution.current) +
 								candidate_solution.F * random_difference_vector();							
+
+							intermediate = im;
 						}
 					break;
 
@@ -415,6 +420,8 @@ public:
 							const TUsed_Solution im = candidate_solution.current +
 								candidate_solution.F*(mPopulation[mPopulation_Best[p_index]].current - candidate_solution.current) +
 								mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector();							
+
+							intermediate = im;
 						}
 					break;
 
@@ -423,14 +430,16 @@ public:
 							const TUsed_Solution im = candidate_solution.current +
 								candidate_solution.F * random_difference_vector() +
 								candidate_solution.F * random_difference_vector();							
+							intermediate = im;
 						}
 						break;
 
 					case metade::NStrategy::desUmBest1:
 						{
 							const TUsed_Solution im = candidate_solution.current +
-							candidate_solution.F*(mPopulation[mPopulation_Best[0]].current - candidate_solution.current) +
-							mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector();
+								candidate_solution.F*(mPopulation[mPopulation_Best[0]].current - candidate_solution.current) +
+								mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector();
+							intermediate = im;
 						}
 						break;
 
@@ -439,6 +448,7 @@ public:
 							const TUsed_Solution im = candidate_solution.current +
 								mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector() +
 								candidate_solution.F*random_difference_vector();
+							intermediate = im;
 						}
 						break;
 
@@ -464,6 +474,30 @@ public:
 							}
 							
 							intermediate = mPopulation[best_tournament_index].current;
+						}
+						break;
+
+					case metade::NStrategy::desSBX_Alike_Random:
+						{
+							const size_t p_index = mUniform_Distribution_Population(mRandom_Generator);
+							const auto& p_elem = mPopulation[mPopulation_Best[p_index]].current;
+							const TUsed_Solution im = 0.5 * (candidate_solution.current + p_elem) +
+												candidate_solution.F * (candidate_solution.current - p_elem);
+												//like SBX, but we do not create two child, but just one children is possible with the current design
+
+							intermediate = im;
+						}
+						break;
+						
+					case metade::NStrategy::desSBX_Alike_PBest:
+						{
+							const size_t p_index = mUniform_Distribution_PBest(mRandom_Generator);
+							const auto& p_elem = mPopulation[mPopulation_Best[p_index]].current;
+							const TUsed_Solution im = 0.5 * (candidate_solution.current + p_elem) +
+												candidate_solution.F * (candidate_solution.current - p_elem);
+												//like SBX, but we do not create two child, but just one children is possible with the current design
+
+							intermediate = im;
 						}
 						break;
 
