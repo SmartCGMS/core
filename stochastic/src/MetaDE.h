@@ -398,6 +398,21 @@ public:
 					return mPopulation[idx1].current - mPopulation[idx2].current;
 				};
 
+				auto SBX_alike = [&](const bool rand)->TUsed_Solution {
+					const size_t p_index = rand ?						
+												mUniform_Distribution_Population(mRandom_Generator) :
+												const size_t p_index = mUniform_Distribution_PBest(mRandom_Generator);
+					const auto& p_elem = mPopulation[mPopulation_Best[p_index]].current;
+					const double FT = 2.0 * (candidate_solution.F - 0.5 * mF_range);		//allow plus and minus, like with the original SBX, when creating two children
+					const TUsed_Solution im = 0.5 * (candidate_solution.current + p_elem) +
+						FT * (candidate_solution.current - p_elem);
+						//like SBX, but we do not create two children, but just one childr is possible with the current design
+
+
+					return im;
+
+				};
+
 				
 				TUsed_Solution intermediate;
 				intermediate.resize(Eigen::NoChange, mSetup.problem_size);
@@ -478,27 +493,11 @@ public:
 						break;
 
 					case metade::NStrategy::desSBX_Alike_Random:
-						{
-							const size_t p_index = mUniform_Distribution_Population(mRandom_Generator);
-							const auto& p_elem = mPopulation[mPopulation_Best[p_index]].current;
-							const TUsed_Solution im = 0.5 * (candidate_solution.current + p_elem) +
-												candidate_solution.F * (candidate_solution.current - p_elem);
-												//like SBX, but we do not create two child, but just one children is possible with the current design
-
-							intermediate = im;
-						}
+						intermediate = SBX_alike(true);
 						break;
 						
 					case metade::NStrategy::desSBX_Alike_PBest:
-						{
-							const size_t p_index = mUniform_Distribution_PBest(mRandom_Generator);
-							const auto& p_elem = mPopulation[mPopulation_Best[p_index]].current;
-							const TUsed_Solution im = 0.5 * (candidate_solution.current + p_elem) +
-												candidate_solution.F * (candidate_solution.current - p_elem);
-												//like SBX, but we do not create two child, but just one children is possible with the current design
-
-							intermediate = im;
-						}
+						intermediate = SBX_alike(false);
 						break;
 
 					default:
