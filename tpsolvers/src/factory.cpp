@@ -63,7 +63,8 @@ bool Solve_Pagmo(solver::TSolver_Setup &setup, solver::TSolver_Progress &progres
 	}
 	catch (std::exception &e)
 	{
-		dprintf(e.what());
+		//dprintf(e.what());
+		std::cout << "Pagmo2 Error!\n" << e.what() << std::endl;
 
 		return false;
 	}

@@ -198,7 +198,7 @@ HRESULT Solve_Model_Parameters(const TSegment_Solver_Setup &setup) {
 
 
 				&fitness,
-				Fitness_Wrapper,
+				Fitness_Wrapper, nullptr,
 
 				solver::Default_Solver_Setup.max_generations,
 				solver::Default_Solver_Setup.population_size,
