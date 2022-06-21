@@ -84,6 +84,7 @@ namespace metade {
 		size_t population_index = 0;	//only because of the tournament and =0 to keep static analyzer happy
 		NStrategy strategy = NStrategy::desCurrentToPBest;
 		double CR = 0.5, F = 1.0;
+		size_t strategy_TTL = 5;
 		
 		//TMapped_Solution<TUsed_Solution> next;
 		
@@ -195,6 +196,8 @@ protected:
 	std::vector<size_t> mPopulation_Best;	//indexes into mPopulation sorted by mPopulation's member's current fitness
 											//we do not sort mPopulation due to performance costs and not to loose population diversity
 
+	const size_t Max_Strategy_TTL = 10;
+
 	template <typename T>
 	T Generate_New_Strategy(const T old_strategy, std::uniform_int_distribution<size_t> &distribution) {
 		T new_strategy;
@@ -210,8 +213,14 @@ protected:
 		solution.CR = mCR_min + mCR_range*mUniform_Distribution_dbl(mRandom_Generator);
 		solution.F = mF_min + mF_range*mUniform_Distribution_dbl(mRandom_Generator);
 
-		solution.strategy = Generate_New_Strategy<metade::NStrategy>(solution.strategy, mUniform_Distribution_Strategy);
-		solution.fitness_strategy = Generate_New_Strategy<NFitness_Strategy>(solution.fitness_strategy, mUniform_Distribution_Fitness_Strategy);
+		if (solution.strategy_TTL > 0) {
+			solution.strategy_TTL--;		//CR and FR paremeters may have been wrong only, do not change strategy so soon
+		}
+		else {
+			solution.strategy = Generate_New_Strategy<metade::NStrategy>(solution.strategy, mUniform_Distribution_Strategy);
+			solution.fitness_strategy = Generate_New_Strategy<NFitness_Strategy>(solution.fitness_strategy, mUniform_Distribution_Fitness_Strategy);
+			solution.strategy_TTL = Max_Strategy_TTL / 2;
+		}
 	}
 protected:
 	std::vector<double, AlignmentAllocator<double>> mNext_Solutions, mNext_Fitnesses;
@@ -551,6 +560,7 @@ public:
 					//dst.current = dst.next;
 					Store_Next_Solution(solution.population_index, solution.current);
 					solution.current_fitness = *solution.next_fitness;
+					solution.strategy_TTL = std::max(Max_Strategy_TTL, solution.strategy_TTL + 1);	//increase the chances of keeping a working strategy
 				}
 				else {
 					//the offspring is worse than its parents => modify parents' DE parameters
