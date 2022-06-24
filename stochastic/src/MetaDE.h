@@ -271,7 +271,7 @@ public:
 		// trim the parameters to the bounds
 		std::iota(std::begin(hint_indexes), std::end(hint_indexes), 0);
 		for (size_t i = 0; i < setup.hint_count; i++) {
-			trimmed_hints.push_back(mUpper_Bound.min(mLower_Bound.max(Vector_2_Solution<TUsed_Solution>(mSetup.hints[hint_indexes[i]], setup.problem_size))));//ensure the bounds
+			trimmed_hints.push_back(mUpper_Bound.min(mLower_Bound.max(Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size))));//ensure the bounds
 		}
 
 		//b check their fitness in parallel 		
@@ -283,10 +283,10 @@ public:
 			//and sort the select up to the initialized_count best of them - if actually needed
 			std::partial_sort(hint_indexes.begin(), hint_indexes.begin() + initialized_count, hint_indexes.end(),
 				[&](const size_t& a, const size_t& b) {
-					if (!hint_validity[hint_indexes[a]]) return false;
-					if (!hint_validity[hint_indexes[b]]) return true;
+					if (!hint_validity[a]) return false;
+					if (!hint_validity[b]) return true;
 
-					return Compare_Solutions(hint_fitness[hint_indexes[a]], hint_fitness[hint_indexes[b]], mSetup.objectives_count, NFitness_Strategy::Master);
+					return Compare_Solutions(hint_fitness[a], hint_fitness[b], mSetup.objectives_count, NFitness_Strategy::Master);
 							//true/false domination see the sorting in the main cycle
 				});
 		}
@@ -375,7 +375,7 @@ public:
 			//1. determine the best p-count parameters, without actually re-ordering the population
 			//we want to avoid of getting all params close together and likely loosing the population diversity
 			//std::partial_sort(mPopulation_Best.begin(), mPopulation_Best.begin() + mPBest_Count, mPopulation_Best.end(),
-			
+			break;
 			std::partial_sort(mPopulation_Best.begin(), mPopulation_Best.begin() + partial_sort_size, mPopulation_Best.end(),
 				[&](const size_t &a, const size_t &b) {
 			
