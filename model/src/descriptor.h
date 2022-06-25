@@ -1068,10 +1068,10 @@ namespace bases_pred
 	constexpr const GUID model_id = { 0x6bcaf380, 0x292a, 0x4aa8, { 0x85, 0x4a, 0x87, 0xe5, 0xa5, 0xba, 0x32, 0xc9 } };		// {6BCAF380-292A-4AA8-854A-87E5A5BA32C9}
 	constexpr const GUID ig_signal_id = { 0xe20fb63c, 0x9028, 0x4593, { 0x8f, 0x96, 0x6, 0xa7, 0xc5, 0xb, 0x66, 0xff } };	// {E20FB63C-9028-4593-8F96-06A7C50B66FF}
 
-	constexpr size_t Base_Functions_CHO = 3;
+	constexpr size_t Base_Functions_CHO = 4;
 	constexpr size_t Base_Functions_Ins = 4;
-	constexpr size_t Base_Functions_PA = 2;
-	constexpr size_t Base_Functions_PatternPred = 3;
+	constexpr size_t Base_Functions_PA = 3;
+	constexpr size_t Base_Functions_PatternPred = 0;
 	constexpr size_t Base_Functions_Count = Base_Functions_CHO + Base_Functions_Ins + Base_Functions_PA + Base_Functions_PatternPred;
 
 	constexpr double Prediction_Horizon = 60.0_min;
@@ -1123,7 +1123,10 @@ namespace bases_pred
 		-10.0, 0.0, 0.05,
 		-10.0, 0.0, 0.05,
 		-10.0, 0.0, 0.05,
+		/*-10.0, 0.0, 0.05,
 		-10.0, 0.0, 0.05,
+		-10.0, 0.0, 0.05,
+		-10.0, 0.0, 0.05,*/
 		-5, -1, scgms::One_Minute * 5,
 	};
 	const TParameters default_parameters = {
@@ -1147,7 +1150,10 @@ namespace bases_pred
 		4, 0.7, 0.2,
 		4, 0.7, 0.2,
 		4, 0.7, 0.2,
+		/*4, 0.7, 0.2,
 		4, 0.7, 0.2,
+		4, 0.7, 0.2,
+		4, 0.7, 0.2,*/
 		0, -0.07, scgms::One_Minute * 5,
 	};
 	const TParameters upper_bounds = {
@@ -1171,7 +1177,10 @@ namespace bases_pred
 		10.0, 0.99, 0.5,
 		10.0, 0.99, 0.5,
 		10.0, 0.99, 0.5,
+		/*10.0, 0.99, 0.5,
 		10.0, 0.99, 0.5,
+		10.0, 0.99, 0.5,
+		10.0, 0.99, 0.5,*/
 		5, 0, scgms::One_Minute * 20,
 	};
 }

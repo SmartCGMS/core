@@ -1182,7 +1182,10 @@ namespace bases_pred {
 		L"b9_a", L"b9_toff", L"b9_var",
 		L"b10_a", L"b10_toff", L"b10_var",
 		L"b11_a", L"b11_toff", L"b11_var",
-		L"b12_a", L"b12_toff", L"b12_var",
+		/*L"b12_a", L"b12_toff", L"b12_var",
+		L"b13_a", L"b13_toff", L"b13_var",
+		L"b14_a", L"b14_toff", L"b14_var",
+		L"b15_a", L"b15_toff", L"b15_var",*/
 
 		L"c", L"k", L"h",
 	};
@@ -1202,7 +1205,10 @@ namespace bases_pred {
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
+		/*scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,*/
 
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,
 	};

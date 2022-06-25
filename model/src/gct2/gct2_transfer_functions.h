@@ -116,28 +116,28 @@ namespace gct2_model
 			/**
 			 * Is this transfer function over? i.e.; it transfered everything it could transfer and is a subject to deletion
 			 */
-			bool Is_Expired(double time) const {
+			inline bool Is_Expired(double time) const {
 				return time > mTime_Start + mDuration;
 			}
 
 			/**
 			 * Has the transfer begin yet? this may come in handy if we plan some "inevitable" activity, like eating a meal "one bite per X seconds"
 			 */
-			bool Is_Started(double time) const {
+			inline bool Is_Started(double time) const {
 				return time >= mTime_Start;
 			}
 
 			/**
 			 * Get the starting time of the transfer - may help with getting more precise outputs
 			 */
-			double Get_Start_Time() const {
+			inline double Get_Start_Time() const {
 				return mTime_Start;
 			}
 
 			/**
 			 * Get the ending time of the transfer - may help with getting more precise outputs
 			 */
-			double Get_End_Time() const {
+			inline double Get_End_Time() const {
 				return mTime_Start + mDuration;
 			}
 	};
