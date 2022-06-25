@@ -46,6 +46,7 @@
 #include "Sequential_Brute_Force_Scan.h"
 #include "Sequential_Convex_Scan.h"
 #include "mutation.h"
+#include "RumorOpt.h"
 
 template <typename TSolver, typename TUsed_Solution>
 HRESULT Solve_By_Class(solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
@@ -91,6 +92,9 @@ public:
 
 		using THalton_OneToNMutation = COne_To_N_Mutation<TUsed_Solution, CHalton_Device>;
 		mSolver_Id_Map[mutation::id] = std::bind(&Solve_By_Class<THalton_OneToNMutation, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+
+		using THalton_RumorOpt = CRumor_Opt<TUsed_Solution, CHalton_Device>;
+		mSolver_Id_Map[rumoropt::id] = std::bind(&Solve_By_Class<THalton_RumorOpt, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 	}
 
 	HRESULT Solve(const GUID &solver_id, solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {

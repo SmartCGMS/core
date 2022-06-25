@@ -73,14 +73,16 @@ namespace mutation {
 	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, L"1-to-N mutation");
 }
 
+namespace rumoropt {
+	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, L"RumorOpt");
+}
 
 
-const std::array<scgms::TSolver_Descriptor, 8> solver_descriptions = 
+const std::array<scgms::TSolver_Descriptor, 9> solver_descriptions = 
 	{ mt_metade::desc, halton_metade::desc, rnd_metade::desc,
 	  pso::desc, pso::desc_r,
 	  sequential_brute_force_scan::desc, sequential_convex_scan::desc,
-	  mutation::desc
-
+	  mutation::desc, rumoropt::desc,
 };
 
 
