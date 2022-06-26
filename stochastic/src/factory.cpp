@@ -45,6 +45,7 @@
 #include "PSO.h"
 #include "Sequential_Brute_Force_Scan.h"
 #include "Sequential_Convex_Scan.h"
+#include "RumorOpt.h"
 
 template <typename TSolver, typename TUsed_Solution>
 HRESULT Solve_By_Class(solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
@@ -87,6 +88,9 @@ public:
 
 		using TPSO_pr_Halton = CPSO<TUsed_Solution, CHalton_Device, pso::CDiagonal_Swarm_Generator, pso::CDual_Coefficient_Vector_Velocity_Modifier, true>;
 		mSolver_Id_Map[pso::pr_id] = std::bind(&Solve_By_Class<TPSO_pr_Halton, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+
+		using THalton_RumorOpt = CRumor_Opt<TUsed_Solution, CHalton_Device>;
+		mSolver_Id_Map[rumoropt::id] = std::bind(&Solve_By_Class<THalton_RumorOpt, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 	}
 
 	HRESULT Solve(const GUID &solver_id, solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
