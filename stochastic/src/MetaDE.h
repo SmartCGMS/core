@@ -471,7 +471,7 @@ public:
 			//1. determine the best p-count parameters, without actually re-ordering the population
 			//we want to avoid of getting all params close together and likely loosing the population diversity
 			//std::partial_sort(mPopulation_Best.begin(), mPopulation_Best.begin() + mPBest_Count, mPopulation_Best.end(),
-			break;
+			
 			std::partial_sort(mPopulation_Best.begin(), mPopulation_Best.begin() + partial_sort_size, mPopulation_Best.end(),
 				[&](const size_t &a, const size_t &b) {
 			
