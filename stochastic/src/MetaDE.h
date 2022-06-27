@@ -59,7 +59,8 @@
 
 namespace metade {
 	
-	enum class NStrategy : size_t { desCurrentToPBest = 0, desCurrentToUmPBest, desBest2Bin, desUmBest1, desCurrentToRand1, desTournament, desSBX_Alike_Random, desSBX_Alike_PBest,  count };
+	//Mutation strategy
+	enum class NStrategy : size_t { desPolynomial = 0, desSBX_Children, desCurrentToPBest, desCurrentToUmPBest, desBest2Bin, desUmBest1, desCurrentToRand1, desTournament, desSBX_Alike_Random, desSBX_Alike_PBest, count };
 
 	const std::map<NStrategy, const char*, std::less<NStrategy>> strategy_name = {
 														{ NStrategy::desCurrentToPBest,		"CurToPBest" },
@@ -69,8 +70,10 @@ namespace metade {
 														{ NStrategy::desCurrentToRand1,		"CurToRand1" },
 														{ NStrategy::desTournament,			"Tournament" },
 														{ NStrategy::desSBX_Alike_Random,	"SBXalikeRand" },
-														{ NStrategy::desSBX_Alike_PBest,	"SBXalikePBest" }
-};
+														{ NStrategy::desSBX_Alike_PBest,	"SBXalikePBest" },
+														{ NStrategy::desPolynomial,			"Polynomial"},
+														{ NStrategy::desSBX_Children,		"SBX_Single"},
+}; 
 
 
 
@@ -246,6 +249,99 @@ protected:
 	inline static thread_local std::uniform_int_distribution<size_t> mUniform_Distribution_Strategy{ 0, static_cast<size_t>(metade::NStrategy::count)-1 };
 	inline static thread_local std::uniform_int_distribution<size_t> mUniform_Distribution_Fitness_Strategy{ 0, static_cast<size_t>(NFitness_Strategy::count) - 1 };
 protected:
+	//http://www.iitk.ac.in/kangal/codes/nsga2/nsga2-gnuplot-v1.1.6.tar.gz
+	// http://www.slideshare.net/paskorn/simulated-binary-crossover-presentation
+	TUsed_Solution Polynomial_Mutation(TCandidate_Solution& solution) const {
+
+		TUsed_Solution result = solution.current;
+		result.eval();
+
+		for (size_t i = 0; i < mSetup.problem_size; i++) {
+
+			if (mUniform_Distribution_dbl(mRandom_Generator) < solution.CR) {
+				double y = solution.current[i];
+				const double lb = mSetup.lower_bound[i];
+				const double ub = mSetup.upper_bound[i];
+
+				const double delta1 = (y - lb) / (ub - lb);
+				const double delta2 = (ub - y) / (ub - lb);
+
+				const double eta = 20.0;
+				const double mut_pow = 1.0 / (eta + 1.0);
+
+				double deltaq = 0.0;
+				const double rnd = mUniform_Distribution_dbl(mRandom_Generator);
+				if (rnd <= 0.5) {
+					const double xy = 1.0 - delta1;
+					const double val = 2.0 * rnd + (1.0 - 2.0 * rnd) * (pow(xy, (eta + 1.0)));
+					deltaq = pow(val, mut_pow) - 1.0;
+				} else {
+					const double xy = 1.0 - delta2;
+					const double val = 2.0 * (1.0 - rnd) + 2.0 * (rnd - 0.5) * (pow(xy, (eta + 1.0)));
+					deltaq = 1.0 - (pow(val, mut_pow));
+				}
+
+				y = y + deltaq * (ub - lb);
+				//y = std::min(ub, std::max(lb, y)); done later in a common fashion
+
+				result[i] = y;
+			}
+		}
+
+
+		return result;
+	}
+
+	double get_SBX_betaq(double rand, double alpha, double eta) const{
+		return rand <= (1.0 / alpha) 
+			? std::pow((rand * alpha), (1.0 / (eta + 1.0)))
+			: std::pow((1.0 / (2.0 - rand * alpha)), (1.0 / (eta + 1.0)));
+	}
+
+
+	TUsed_Solution SBX_Children(const TCandidate_Solution &parent1, const TCandidate_Solution &parent2) const {		
+		const double eta = 30.0;// NSGA-III (t-EC 2014) setting
+
+		const bool left_child = ((0.5*(parent1.F + parent2.F)- mF_min) < 0.5 * mF_range);	//unlike original SBX, we can produce just one children, so we need to choose which one
+		TUsed_Solution result = left_child ? parent1.current : parent2.current;
+
+		for (size_t i = 0; i < mSetup.problem_size; i++) {
+			if (mUniform_Distribution_dbl(mRandom_Generator) > 0.5) continue; // these two variables are not crossovered
+			if (parent1.current[i] == parent2.current[i]) continue;				//the same values
+
+
+			const double y1 = std::min(parent1.current[i], parent2.current[i]);
+			const double y2 = std::max(parent1.current[i], parent2.current[i]);
+
+			const double lb = mSetup.lower_bound[i];
+			const double ub = mSetup.upper_bound[i];
+
+			const double rand = mUniform_Distribution_dbl(mRandom_Generator);
+
+			
+			bool effective_left_child = mUniform_Distribution_dbl(mRandom_Generator) < 0.5 ? !left_child : left_child; //swap if random			
+
+			if (effective_left_child) {
+				const double beta = 1.0 + (2.0 * (y1 - lb) / (y2 - y1));
+				const double alpha = 2.0 - std::pow(beta, -(eta + 1.0));
+				const double betaq = get_SBX_betaq(rand, alpha, eta);
+
+				result[i] = 0.5 * ((y1 + y2) - betaq * (y2 - y1));
+			}
+			else {
+				const double beta = 1.0 + (2.0 * (ub - y2) / (y2 - y1));
+				const double alpha = 2.0 - std::pow(beta, -(eta + 1.0));
+				const double betaq = get_SBX_betaq(rand, alpha, eta);
+
+				result[i] = 0.5 * ((y1 + y2) + betaq * (y2 - y1));
+			}
+
+		}
+
+		return result;
+	}
+
+protected:
     solver::TSolver_Setup mSetup;
 public:
 	CMetaDE(const solver::TSolver_Setup &setup) : 
@@ -395,6 +491,9 @@ public:
 			//We assume that parallelization cost will get amortized			
 
 			//std::for_each(std::execution::unseq, mPopulation.begin(), mPopulation.end(), [=, &mUniform_Distribution_Solution, &mUniform_Distribution_Population](auto &candidate_solution) {
+
+			TUsed_Solution intermediate;		//this one would need to be inside the cycle, if the cycle would be parallelized again
+			intermediate.resize(Eigen::NoChange, mSetup.problem_size);
 			for  (auto& candidate_solution : mPopulation) { //std for each seems to make a bug, at least with VS2019
 			
 				//in the original version, which did not support the bulk objective call, this for-cycle used to be parallel
@@ -421,58 +520,50 @@ public:
 					return im;
 
 				};
-
-				
-				TUsed_Solution intermediate;
-				intermediate.resize(Eigen::NoChange, mSetup.problem_size);
+							
 
 				switch (candidate_solution.strategy) {
 					case metade::NStrategy::desCurrentToPBest:
 						{
 							const size_t p_index = mUniform_Distribution_PBest(mRandom_Generator);
-							const TUsed_Solution im = candidate_solution.current +
+							intermediate = candidate_solution.current +
 								candidate_solution.F * (mPopulation[mPopulation_Best[p_index]].current - candidate_solution.current) +
 								candidate_solution.F * random_difference_vector();							
-
-							intermediate = im;
 						}
 					break;
 
 					case metade::NStrategy::desCurrentToUmPBest:
 						{
 							const size_t p_index = mUniform_Distribution_PBest(mRandom_Generator);
-							const TUsed_Solution im = candidate_solution.current +
+							intermediate = candidate_solution.current +
 								candidate_solution.F*(mPopulation[mPopulation_Best[p_index]].current - candidate_solution.current) +
 								mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector();							
 
-							intermediate = im;
 						}
 					break;
 
 					case metade::NStrategy::desBest2Bin: 
 						{
-							const TUsed_Solution im = candidate_solution.current +
+							intermediate = candidate_solution.current +
 								candidate_solution.F * random_difference_vector() +
-								candidate_solution.F * random_difference_vector();							
-							intermediate = im;
+								candidate_solution.F * random_difference_vector();														
 						}
 						break;
 
 					case metade::NStrategy::desUmBest1:
 						{
-							const TUsed_Solution im = candidate_solution.current +
+							intermediate = candidate_solution.current +
 								candidate_solution.F*(mPopulation[mPopulation_Best[0]].current - candidate_solution.current) +
 								mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector();
-							intermediate = im;
+							
 						}
 						break;
 
 					case metade::NStrategy::desCurrentToRand1:
 						{
-							const TUsed_Solution im = candidate_solution.current +
+							intermediate = candidate_solution.current +
 								mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector() +
-								candidate_solution.F*random_difference_vector();
-							intermediate = im;
+								candidate_solution.F*random_difference_vector();							
 						}
 						break;
 
@@ -509,6 +600,17 @@ public:
 						intermediate = SBX_alike(false);
 						break;
 
+					case metade::NStrategy::desPolynomial:
+						intermediate = Polynomial_Mutation(candidate_solution);
+						break;
+
+					case metade::NStrategy::desSBX_Children:
+						{
+							const size_t p_index = mUniform_Distribution_PBest(mRandom_Generator);
+							intermediate = SBX_Children(candidate_solution, mPopulation[p_index]);
+						}
+						break;
+
 					default:
 						break;
 				}
@@ -518,8 +620,9 @@ public:
 				
 
 
-				//crossbreed
-				{						
+				//crossbreed aka recombination
+				//it does not make sense for NSGA mutations, which already do it
+				if ((candidate_solution.strategy != metade::NStrategy::desPolynomial) && (candidate_solution.strategy != metade::NStrategy::desSBX_Children)) {						
 					for (size_t element_iter = 0; element_iter < solution_size; element_iter++) {
 						if (mUniform_Distribution_dbl(mRandom_Generator) > candidate_solution.CR)
 							intermediate[element_iter] = candidate_solution.current[element_iter];
