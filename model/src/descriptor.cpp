@@ -52,6 +52,7 @@
 #include "bolus/insulin_bolus.h"
 #include "pattern_prediction/pattern_prediction.h"
 #include "samadi/samadi.h"
+#include "gct2/samadi_gct2.h"
 #include "gct/gct.h"
 #include "gct2/gct2.h"
 #include "p559/p559.h"
@@ -894,7 +895,7 @@ namespace samadi_model { // DOI: 10.1016/j.compchemeng.2019.106565
 		L"Samadi model",
 		nullptr,
 		model_param_count,
-		0,
+		16,
 		model_param_types,
 		model_param_ui_names,
 		nullptr,
@@ -908,7 +909,7 @@ namespace samadi_model { // DOI: 10.1016/j.compchemeng.2019.106565
 	};
 
 	const std::wstring ist_desc = std::wstring{ L"Samadi model - IG" };
-	const scgms::TSignal_Descriptor ig_desc{ samadi_model::signal_IG, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+	const scgms::TSignal_Descriptor ig_desc{ samadi_model::signal_IG, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF80F0FF, 0xFF80F0FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 	const std::wstring bgs_desc = std::wstring{ L"Samadi model - BG" };
 	const scgms::TSignal_Descriptor bg_desc{ samadi_model::signal_BG, bgs_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
@@ -921,6 +922,51 @@ namespace samadi_model { // DOI: 10.1016/j.compchemeng.2019.106565
 
 	const std::wstring cobs_desc = std::wstring{ L"Samadi model - COB" };
 	const scgms::TSignal_Descriptor cob_desc{ samadi_model::signal_COB, cobs_desc.c_str(), dsU, scgms::NSignal_Unit::g, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 0.1 };
+}
+
+namespace samadi_gct2_model { // DOI: 10.1016/j.compchemeng.2019.106565
+
+	const GUID calculated_signal_ids[samadi_model::number_of_calculated_signals] = {
+		samadi_gct2_model::signal_IG,
+		samadi_gct2_model::signal_BG,
+		samadi_gct2_model::signal_Delivered_Insulin,
+		samadi_gct2_model::signal_IOB,
+		samadi_gct2_model::signal_COB,
+	};
+
+	scgms::TModel_Descriptor desc = {
+		model_id,
+		scgms::NModel_Flags::Discrete_Model,
+		L"Samadi GCTv2 model",
+		nullptr,
+		samadi_model::model_param_count,
+		16,
+		samadi_model::model_param_types,
+		samadi_model::model_param_ui_names,
+		nullptr,
+		samadi_model::lower_bounds.vector,
+		samadi_model::default_parameters.vector,
+		samadi_model::upper_bounds.vector,
+
+		samadi_model::number_of_calculated_signals,
+		calculated_signal_ids,
+		samadi_model::reference_signal_ids,
+	};
+
+	const std::wstring ist_desc = std::wstring{ L"Samadi GCTv2 model - IG" };
+	const scgms::TSignal_Descriptor ig_desc{ samadi_gct2_model::signal_IG, ist_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFF080FF, 0xFFF080FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+
+	const std::wstring bgs_desc = std::wstring{ L"Samadi GCTv2 model - BG" };
+	const scgms::TSignal_Descriptor bg_desc{ samadi_gct2_model::signal_BG, bgs_desc.c_str(), dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF8800, 0xFFFF8800, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+
+	const std::wstring inss_desc = std::wstring{ L"Samadi GCTv2 model - Delivered insulin" };
+	const scgms::TSignal_Descriptor ins_desc{ samadi_gct2_model::signal_Delivered_Insulin, inss_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFF459800, 0xFF459800, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+
+	const std::wstring iobs_desc = std::wstring{ L"Samadi GCTv2 model - IOB" };
+	const scgms::TSignal_Descriptor iob_desc{ samadi_gct2_model::signal_IOB, iobs_desc.c_str(), dsU, scgms::NSignal_Unit::U_insulin, 0xFFFF6845, 0xFFFF6845, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+
+	const std::wstring cobs_desc = std::wstring{ L"Samadi GCTv2 model - COB" };
+	const scgms::TSignal_Descriptor cob_desc{ samadi_gct2_model::signal_COB, cobs_desc.c_str(), dsU, scgms::NSignal_Unit::g, 0xFFCC4598, 0xFFCC4598, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 0.1 };
 }
 
 namespace p559_model {
@@ -1252,7 +1298,7 @@ namespace bases_pred {
 
 const std::array<const scgms::TFilter_Descriptor, 1> filter_descriptions = { { pattern_prediction::get_filter_desc()} };
 
-const std::array<scgms::TModel_Descriptor, 20> model_descriptions = { { diffusion_v2_model::desc,
+const std::array<scgms::TModel_Descriptor, 21> model_descriptions = { { diffusion_v2_model::desc,
 																		 steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc, diffusion_prediction::desc,
 																		 constant_model::desc,
 																		 bergman_model::desc,
@@ -1260,7 +1306,7 @@ const std::array<scgms::TModel_Descriptor, 20> model_descriptions = { { diffusio
 																		 uva_padova_S2017::desc,
 																		 insulin_bolus::desc,
 																		 const_isf::desc, const_cr::desc,
-																		 samadi_model::desc,
+																		 samadi_model::desc, samadi_gct2_model::desc,
 																		 gct_model::desc,
 																		 gct2_model::desc,
 																		 pattern_prediction::get_model_desc(),
@@ -1271,13 +1317,14 @@ const std::array<scgms::TModel_Descriptor, 20> model_descriptions = { { diffusio
 																		 bases_pred::desc,
 																		} };
 
-const std::array<scgms::TSignal_Descriptor, 41+cgp_pred::number_of_calculated_signals> signals_descriptors = { {diffusion_v2_model::bg_desc, diffusion_v2_model::ig_desc, steil_rebrin::bg_desc,
+const std::array<scgms::TSignal_Descriptor, 46+cgp_pred::number_of_calculated_signals> signals_descriptors = { {diffusion_v2_model::bg_desc, diffusion_v2_model::ig_desc, steil_rebrin::bg_desc,
 																		 steil_rebrin_diffusion_prediction::ig_desc, diffusion_prediction::ig_desc, 
 																		 constant_model::const_desc,
 																		 bergman_model::bg_desc, bergman_model::ig_desc, bergman_model::iob_desc, bergman_model::cob_desc, bergman_model::basal_insulin_desc, bergman_model::insulin_activity_desc,
 																		 uva_padova_S2013::ig_desc, uva_padova_S2013::bg_desc, uva_padova_S2013::ins_desc,
 																		 uva_padova_S2017::ig_desc, uva_padova_S2017::bg_desc, uva_padova_S2017::ins_desc, uva_padova_S2017::iob_desc, uva_padova_S2017::cob_desc,
 																		 samadi_model::ig_desc, samadi_model::bg_desc, samadi_model::ins_desc, samadi_model::iob_desc, samadi_model::cob_desc,
+																		 samadi_gct2_model::ig_desc, samadi_gct2_model::bg_desc, samadi_gct2_model::ins_desc, samadi_gct2_model::iob_desc, samadi_gct2_model::cob_desc,
 																		 gct_model::ig_desc, gct_model::bg_desc, gct_model::ins_desc, gct_model::iob_desc, gct_model::cob_desc,
 																		 gct2_model::ig_desc, gct2_model::bg_desc, gct2_model::ins_desc, gct2_model::iob_desc, gct2_model::cob_desc,
 																		 pattern_prediction::get_sig_desc(),
@@ -1309,6 +1356,7 @@ HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IMode
 	else if (*model_id == uva_padova_S2017::model_id) return Manufacture_Object<CUVA_Padova_S2017_Discrete_Model>(model, parameters, output);
 	else if (*model_id == insulin_bolus::model_id) return Manufacture_Object<CDiscrete_Insulin_Bolus_Calculator>(model, parameters, output);
 	else if (*model_id == samadi_model::model_id) return Manufacture_Object<CSamadi_Discrete_Model>(model, parameters, output);
+	else if (*model_id == samadi_gct2_model::model_id) return Manufacture_Object<CSamadi_GCT2_Discrete_Model>(model, parameters, output);
 	else if (*model_id == gct_model::model_id) return Manufacture_Object<CGCT_Discrete_Model>(model, parameters, output);
 	else if (*model_id == gct2_model::model_id) return Manufacture_Object<CGCT2_Discrete_Model>(model, parameters, output);
 	else if (*model_id == p559_model::model_id) return Manufacture_Object<CP559_Model>(model, parameters, output);

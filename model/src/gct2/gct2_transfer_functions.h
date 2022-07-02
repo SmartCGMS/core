@@ -68,6 +68,9 @@ namespace gct2_model
 			// cached value of inverse duration
 			const double mInvDuration = 0.0;
 
+			// is this transfer function dependent on source depot quantity?
+			bool mSource_Quantity_Dependent = true;
+
 		protected:
 			/**
 			 * Retrieves scaled time from simulation-time to the interval <0;1>
@@ -110,7 +113,7 @@ namespace gct2_model
 			 * Transfer function may specify transfer amount; by default, outer code does that; indicate this by returning NaN
 			 */
 			virtual double Get_Transfer_Amount(double defaultInput) const {
-				return defaultInput;
+				return mSource_Quantity_Dependent ? defaultInput : 1.0;
 			}
 
 			/**
@@ -139,6 +142,14 @@ namespace gct2_model
 			 */
 			inline double Get_End_Time() const {
 				return mTime_Start + mDuration;
+			}
+
+			/**
+			 * Sets the dependency on source depot quantity
+			 */
+			CTransfer_Function& Set_Source_Quantity_Dependent(bool dependent) {
+				mSource_Quantity_Dependent = dependent;
+				return *this;
 			}
 	};
 
@@ -227,21 +238,51 @@ namespace gct2_model
 		private:
 			double mTransfer_Factor = 1.0;
 			double mThreshold;
+			bool mInverse_Diff = false;
 
 			IQuantizable& mSource;
 
 		public:
-			CConcentration_Threshold_Disappearance_Unbounded_Transfer_Function(double timeStart, double duration, IQuantizable& source, double threshold, double transferFactor = 1.0)
-				: CTransfer_Function(timeStart, duration), mTransfer_Factor(transferFactor), mThreshold(threshold), mSource(source) {
+			CConcentration_Threshold_Disappearance_Unbounded_Transfer_Function(double timeStart, double duration, IQuantizable& source, double threshold, double transferFactor = 1.0, bool inverseDiff = false)
+				: CTransfer_Function(timeStart, duration), mTransfer_Factor(transferFactor), mThreshold(threshold), mSource(source), mInverse_Diff(inverseDiff) {
 				//
 			}
 
 			double Calculate_Transfer_Input(double time) const override {
 
-				const double diff = (mSource.Get_Concentration() - mThreshold);
+				const double diff = mInverse_Diff ? (mThreshold - mSource.Get_Concentration()) : (mSource.Get_Concentration() - mThreshold);
 
 				// do not transfer if concentration is under threshold
 				return mTransfer_Factor * std::max(0.0, diff);
+			}
+	};
+
+	/**
+	 * Concentration threshold ratio disappearance unbounded transfer function
+	 */
+	class CConcentration_Threshold_Ratio_Disappearance_Unbounded_Transfer_Function final : public CTransfer_Function {
+
+		private:
+			double mTransfer_Factor = 1.0;
+			double mThreshold;
+			bool mInverseThreshold = false;
+
+			IQuantizable& mSource;
+
+		public:
+			CConcentration_Threshold_Ratio_Disappearance_Unbounded_Transfer_Function(double timeStart, double duration, IQuantizable& source, double threshold, double transferFactor = 1.0, bool inverseThreshold = false)
+				: CTransfer_Function(timeStart, duration), mTransfer_Factor(transferFactor), mThreshold(threshold), mSource(source), mInverseThreshold(inverseThreshold) {
+				//
+			}
+
+			double Calculate_Transfer_Input(double time) const override {
+
+				if ((mSource.Get_Concentration() > mThreshold && mInverseThreshold) || (mSource.Get_Concentration() < mThreshold && !mInverseThreshold))
+					return mTransfer_Factor;
+
+				const double ratio = (mSource.Get_Concentration() / mThreshold);
+
+				return mTransfer_Factor * ratio;
 			}
 	};
 
@@ -268,6 +309,32 @@ namespace gct2_model
 
 				// only appearance when the target level is lower
 				return mTransfer_Factor * std::max(0.0, diff);
+			}
+	};
+
+	/**
+	 * Constant difference-based transfer function
+	 */
+	class CConst_Difference_Unbounded_Transfer_Function final : public CTransfer_Function {
+
+		private:
+			double mTransfer_Factor = 1.0;
+
+			IQuantizable& mSource;
+			double mConstant = 0.0;
+
+		public:
+			CConst_Difference_Unbounded_Transfer_Function(double timeStart, double duration, IQuantizable& source, double constant, double transferFactor = 1.0)
+				: CTransfer_Function(timeStart, duration), mTransfer_Factor(transferFactor), mSource(source), mConstant(constant) {
+				//
+			}
+
+			double Calculate_Transfer_Input(double time) const override {
+
+				const double diff = (mConstant - mSource.Get_Quantity());
+
+				// only appearance when the target level is lower
+				return mTransfer_Factor * diff;
 			}
 	};
 

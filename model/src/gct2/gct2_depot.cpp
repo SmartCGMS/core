@@ -61,7 +61,7 @@ namespace gct2_model
 
 		// move time boundaries to not extrapolate during the integration
 		const double fnc_past_time = std::max(mLast_Time, start);
-		const double fnc_future_time = currentTime > end ? end : currentTime;
+		const double fnc_future_time = (currentTime > end ? end : currentTime);
 
 		// not in std::abs on purpose - in case the times got somehow mixed up
 		if (fnc_future_time - fnc_past_time < std::numeric_limits<double>::epsilon())
@@ -76,30 +76,46 @@ namespace gct2_model
 
 		double baseAmount = transfer_fnc.Get_Transfer_Amount(mSource.get().Get_Quantity());
 
-		double amount = - (y_diff / 6.0) * (x0 + 4 * x1 + x2) * baseAmount;
+		double amount = -(y_diff / 6.0) * (x0 + 4 * x1 + x2) * baseAmount;
 
 		// transfer moderation
 		for (const auto& mods : mModerators) {
 
-			amount *= mods.function.get()->Get_Moderation_Input(mods.depot.get().Get_Quantity());
+			const double amt = mods.function.get()->Get_Moderation_Input(mods.depot.get().Get_Quantity());
+
+			if (mModerators.size() == 2 && mSource.get().Get_Name() == L"Q1")
+			{
+				dprintf("Moderated amount %llf\r\n", amount * amt);
+			}
+
+			amount *= amt;
 			double eliminateAmount = -mods.function.get()->Get_Elimination_Input(mods.depot.get().Get_Quantity());
-			mods.depot.get().Mod_Quantity(eliminateAmount);
+			if (eliminateAmount != 0.0)
+				mods.depot.get().Mod_Quantity(eliminateAmount);
 		}
 
-		// NOTE: source and destination is selected dynamically - this is for e.g.; two-way links like diffusion
-		auto& src = (amount < 0.0) ? mSource.get() : mTarget.get();
-		auto& dst = (amount < 0.0) ? mTarget.get() : mSource.get();
-		amount = -std::fabs(amount);
+		// only transfer if there is something to transfer; the transfer function determined this amount, so if it returned 0.0, that means, no transfer will be done in this step
+		if (amount != 0.0)
+		{
+			// NOTE: source and destination is selected dynamically - this is for e.g.; two-way links like diffusion
+			auto& src = (amount < 0.0) ? mSource.get() : mTarget.get();
+			auto& dst = (amount < 0.0) ? mTarget.get() : mSource.get();
+			amount = -std::fabs(amount);
 
-		src.Mod_Quantity(amount);	// modifies amount in source compartment; 'amount' is modified
-		const double result_1 = amount;
+			src.Mod_Quantity(amount);	// modifies amount in source compartment; 'amount' is modified
+			const double result_1 = amount;
 
-		dst.Mod_Quantity(amount);	// modifies amount in destination compartment; 'amount' is modified
-		const double result_2 = amount;
+			// convert units, if needed
+			amount *= mTransfer_Unit_Coefficient;
+			amount += mTransfer_Unit_Shift;
 
-		// dst was unable to accept/give all amount, return it back
-		if (result_1 != -result_2) {
-			src.Return_Quantity(-result_2);
+			dst.Mod_Quantity(amount);	// modifies amount in destination compartment; 'amount' is modified
+			const double result_2 = amount;
+
+			// dst was unable to accept/give all amount, return it back
+			if (result_1 != -result_2) {
+				src.Return_Quantity(-result_2);
+			}
 		}
 
 		mLast_Time = currentTime;
