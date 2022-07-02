@@ -64,7 +64,6 @@ CCalculate_Filter::~CCalculate_Filter() {
 }
 
 HRESULT IfaceCalling CCalculate_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
-	if (Internal_Query_Interface<scgms::IFilter>(scgms::IID_Log_Filter, *riid, ppvObj)) return S_OK;
 	if (Internal_Query_Interface<scgms::ICalculate_Filter_Inspection>(scgms::IID_Calculate_Filter_Inspection, *riid, ppvObj)) return S_OK;
 
 	return E_NOINTERFACE;
