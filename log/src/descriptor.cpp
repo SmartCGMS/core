@@ -72,7 +72,7 @@ namespace logger
 
 	const scgms::TFilter_Descriptor Log_Descriptor = {
 		scgms::IID_Log_Filter,
-		scgms::NFilter_Flags::None,
+		scgms::NFilter_Flags::Presentation_Only,
 		dsLog_Filter,
 		param_count,
 		param_type,
@@ -115,7 +115,7 @@ namespace log_replay {
 
 	const scgms::TFilter_Descriptor Log_Replay_Descriptor = {
 		{ 0x172ea814, 0x9df1, 0x657c,{ 0x12, 0x89, 0xc7, 0x18, 0x93, 0xf1, 0xd0, 0x85 } }, // {172EA814-9DF1-657C-1289-C71893F1D085}
-		scgms::NFilter_Flags::Presentation_Only,
+		scgms::NFilter_Flags::None,
 		dsLog_Filter_Replay,
 		param_count,
 		param_type,
