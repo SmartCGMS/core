@@ -256,8 +256,10 @@ protected:
 		TUsed_Solution result = solution.current;
 		result.eval();
 
-		for (size_t i = 0; i < mSetup.problem_size; i++) {			
-			const double bounds_diff = mSetup.upper_bound[i] - mSetup.lower_bound[i];
+		for (size_t i = 0; i < mSetup.problem_size; i++) {	
+			const double lb = mSetup.lower_bound[i];
+			const double ub = mSetup.upper_bound[i];
+			const double bounds_diff = ub - lb;
 			if (bounds_diff > 0.0) {
 				
 
@@ -308,43 +310,43 @@ protected:
 		const bool left_child = ((0.5*(parent1.F + parent2.F)- mF_min) < 0.5 * mF_range);	//unlike original SBX, we can produce just one children, so we need to choose which one
 		TUsed_Solution result = left_child ? parent1.current : parent2.current;
 
-		if (parent1.current[i] != parent2.current[i]) {
-			for (size_t i = 0; i < mSetup.problem_size; i++) {
-				if (mUniform_Distribution_dbl(mRandom_Generator) > 0.5) continue; // these two variables are not crossovered
+		for (size_t i = 0; i < mSetup.problem_size; i++) {
+			if (mUniform_Distribution_dbl(mRandom_Generator) > 0.5) continue; // these two variables are not crossovered
+			if (parent1.current[i] == parent2.current[i]) continue;	//the same value
 
 
 
-				const double y1 = std::min(parent1.current[i], parent2.current[i]);
-				const double y2 = std::max(parent1.current[i], parent2.current[i]);
+			const double y1 = std::min(parent1.current[i], parent2.current[i]);
+			const double y2 = std::max(parent1.current[i], parent2.current[i]);
 
-				if (y2 > y1) {
+			if (y2 > y1) {
 
-					const double lb = mSetup.lower_bound[i];
-					const double ub = mSetup.upper_bound[i];
+				const double lb = mSetup.lower_bound[i];
+				const double ub = mSetup.upper_bound[i];
 
-					const double rand = mUniform_Distribution_dbl(mRandom_Generator);
+				const double rand = mUniform_Distribution_dbl(mRandom_Generator);
 
 
-					bool effective_left_child = mUniform_Distribution_dbl(mRandom_Generator) < 0.5 ? !left_child : left_child; //swap if random			
+				bool effective_left_child = mUniform_Distribution_dbl(mRandom_Generator) < 0.5 ? !left_child : left_child; //swap if random			
 
-					if (effective_left_child) {
-						const double beta = 1.0 + (2.0 * (y1 - lb) / (y2 - y1));
-						const double alpha = 2.0 - std::pow(beta, -(eta + 1.0));
-						const double betaq = get_SBX_betaq(rand, alpha, eta);
+				if (effective_left_child) {
+					const double beta = 1.0 + (2.0 * (y1 - lb) / (y2 - y1));
+					const double alpha = 2.0 - std::pow(beta, -(eta + 1.0));
+					const double betaq = get_SBX_betaq(rand, alpha, eta);
 
-						result[i] = 0.5 * ((y1 + y2) - betaq * (y2 - y1));
-					}
-					else {
-						const double beta = 1.0 + (2.0 * (ub - y2) / (y2 - y1));
-						const double alpha = 2.0 - std::pow(beta, -(eta + 1.0));
-						const double betaq = get_SBX_betaq(rand, alpha, eta);
-
-						result[i] = 0.5 * ((y1 + y2) + betaq * (y2 - y1));
-					}
+					result[i] = 0.5 * ((y1 + y2) - betaq * (y2 - y1));
 				}
+				else {
+					const double beta = 1.0 + (2.0 * (ub - y2) / (y2 - y1));
+					const double alpha = 2.0 - std::pow(beta, -(eta + 1.0));
+					const double betaq = get_SBX_betaq(rand, alpha, eta);
 
+					result[i] = 0.5 * ((y1 + y2) + betaq * (y2 - y1));
+				}
 			}
+
 		}
+		
 
 		return result;
 	}
