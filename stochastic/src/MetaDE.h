@@ -256,35 +256,38 @@ protected:
 		TUsed_Solution result = solution.current;
 		result.eval();
 
-		for (size_t i = 0; i < mSetup.problem_size; i++) {
+		for (size_t i = 0; i < mSetup.problem_size; i++) {			
+			const double bounds_diff = mSetup.upper_bound[i] - mSetup.lower_bound[i];
+			if (bounds_diff > 0.0) {
+				
 
-			if (mUniform_Distribution_dbl(mRandom_Generator) < solution.CR) {
-				double y = solution.current[i];
-				const double lb = mSetup.lower_bound[i];
-				const double ub = mSetup.upper_bound[i];
+				if (mUniform_Distribution_dbl(mRandom_Generator) < solution.CR) {
+					double y = solution.current[i];
 
-				const double delta1 = (y - lb) / (ub - lb);
-				const double delta2 = (ub - y) / (ub - lb);
+					const double delta1 = (y - lb) / bounds_diff;
+					const double delta2 = (ub - y) / bounds_diff;
 
-				const double eta = 20.0;
-				const double mut_pow = 1.0 / (eta + 1.0);
+					const double eta = 20.0;
+					const double mut_pow = 1.0 / (eta + 1.0);
 
-				double deltaq = 0.0;
-				const double rnd = mUniform_Distribution_dbl(mRandom_Generator);
-				if (rnd <= 0.5) {
-					const double xy = 1.0 - delta1;
-					const double val = 2.0 * rnd + (1.0 - 2.0 * rnd) * (pow(xy, (eta + 1.0)));
-					deltaq = pow(val, mut_pow) - 1.0;
-				} else {
-					const double xy = 1.0 - delta2;
-					const double val = 2.0 * (1.0 - rnd) + 2.0 * (rnd - 0.5) * (pow(xy, (eta + 1.0)));
-					deltaq = 1.0 - (pow(val, mut_pow));
+					double deltaq = 0.0;
+					const double rnd = mUniform_Distribution_dbl(mRandom_Generator);
+					if (rnd <= 0.5) {
+						const double xy = 1.0 - delta1;
+						const double val = 2.0 * rnd + (1.0 - 2.0 * rnd) * (pow(xy, (eta + 1.0)));
+						deltaq = pow(val, mut_pow) - 1.0;
+					}
+					else {
+						const double xy = 1.0 - delta2;
+						const double val = 2.0 * (1.0 - rnd) + 2.0 * (rnd - 0.5) * (pow(xy, (eta + 1.0)));
+						deltaq = 1.0 - (pow(val, mut_pow));
+					}
+
+					y = y + deltaq * bounds_diff;
+					//y = std::min(ub, std::max(lb, y)); done later in a common fashion
+
+					result[i] = y;
 				}
-
-				y = y + deltaq * (ub - lb);
-				//y = std::min(ub, std::max(lb, y)); done later in a common fashion
-
-				result[i] = y;
 			}
 		}
 
@@ -305,37 +308,42 @@ protected:
 		const bool left_child = ((0.5*(parent1.F + parent2.F)- mF_min) < 0.5 * mF_range);	//unlike original SBX, we can produce just one children, so we need to choose which one
 		TUsed_Solution result = left_child ? parent1.current : parent2.current;
 
-		for (size_t i = 0; i < mSetup.problem_size; i++) {
-			if (mUniform_Distribution_dbl(mRandom_Generator) > 0.5) continue; // these two variables are not crossovered
-			if (parent1.current[i] == parent2.current[i]) continue;				//the same values
+		if (parent1.current[i] != parent2.current[i]) {
+			for (size_t i = 0; i < mSetup.problem_size; i++) {
+				if (mUniform_Distribution_dbl(mRandom_Generator) > 0.5) continue; // these two variables are not crossovered
 
 
-			const double y1 = std::min(parent1.current[i], parent2.current[i]);
-			const double y2 = std::max(parent1.current[i], parent2.current[i]);
 
-			const double lb = mSetup.lower_bound[i];
-			const double ub = mSetup.upper_bound[i];
+				const double y1 = std::min(parent1.current[i], parent2.current[i]);
+				const double y2 = std::max(parent1.current[i], parent2.current[i]);
 
-			const double rand = mUniform_Distribution_dbl(mRandom_Generator);
+				if (y2 > y1) {
 
-			
-			bool effective_left_child = mUniform_Distribution_dbl(mRandom_Generator) < 0.5 ? !left_child : left_child; //swap if random			
+					const double lb = mSetup.lower_bound[i];
+					const double ub = mSetup.upper_bound[i];
 
-			if (effective_left_child) {
-				const double beta = 1.0 + (2.0 * (y1 - lb) / (y2 - y1));
-				const double alpha = 2.0 - std::pow(beta, -(eta + 1.0));
-				const double betaq = get_SBX_betaq(rand, alpha, eta);
+					const double rand = mUniform_Distribution_dbl(mRandom_Generator);
 
-				result[i] = 0.5 * ((y1 + y2) - betaq * (y2 - y1));
+
+					bool effective_left_child = mUniform_Distribution_dbl(mRandom_Generator) < 0.5 ? !left_child : left_child; //swap if random			
+
+					if (effective_left_child) {
+						const double beta = 1.0 + (2.0 * (y1 - lb) / (y2 - y1));
+						const double alpha = 2.0 - std::pow(beta, -(eta + 1.0));
+						const double betaq = get_SBX_betaq(rand, alpha, eta);
+
+						result[i] = 0.5 * ((y1 + y2) - betaq * (y2 - y1));
+					}
+					else {
+						const double beta = 1.0 + (2.0 * (ub - y2) / (y2 - y1));
+						const double alpha = 2.0 - std::pow(beta, -(eta + 1.0));
+						const double betaq = get_SBX_betaq(rand, alpha, eta);
+
+						result[i] = 0.5 * ((y1 + y2) + betaq * (y2 - y1));
+					}
+				}
+
 			}
-			else {
-				const double beta = 1.0 + (2.0 * (ub - y2) / (y2 - y1));
-				const double alpha = 2.0 - std::pow(beta, -(eta + 1.0));
-				const double betaq = get_SBX_betaq(rand, alpha, eta);
-
-				result[i] = 0.5 * ((y1 + y2) + betaq * (y2 - y1));
-			}
-
 		}
 
 		return result;
