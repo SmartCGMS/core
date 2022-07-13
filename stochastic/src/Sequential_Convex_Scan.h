@@ -11,7 +11,17 @@
 template <typename TUsed_Solution>
 class CSequential_Convex_Scan {
 protected:
+	using TFitness_Comparator_Proc = bool(CSequential_Convex_Scan<TUsed_Solution>::*)(const solver::TFitness&, const solver::TFitness&) const;
+	TFitness_Comparator_Proc mFitness_Comparator = &CSequential_Convex_Scan<TUsed_Solution>::Compare_Solutions_Default;
+
 	const NFitness_Strategy mFitness_Strategy = NFitness_Strategy::Master;
+	bool Compare_Solutions_Default(const solver::TFitness& better, const solver::TFitness& worse) const {
+		return Compare_Solutions(better, worse, mSetup.objectives_count, mFitness_Strategy);
+	}
+
+	bool Compare_Solutions_User(const solver::TFitness& better, const solver::TFitness& worse) const {
+		return mSetup.comparator(better.data(), worse.data(), mSetup.objectives_count);			
+	}
 protected:
 	struct THint_Bounds {
 		TUsed_Solution lower, upper;
@@ -23,7 +33,6 @@ protected:
 	std::vector<THint_Bounds> mHints;	
 protected:
 	solver::TSolver_Setup mSetup;
-
 protected:	
 	struct TCandidate_Solution {
 		TUsed_Solution solution;
@@ -69,11 +78,11 @@ protected:
 				break;
 
 			//3. and adjust the borders
-			if (Compare_Solutions(candidate_fitness[low_idx], candidate_fitness[high_idx], mSetup.objectives_count, mFitness_Strategy)) {
+			if ((*this.*mFitness_Comparator)(candidate_fitness[low_idx], candidate_fitness[high_idx])) {
 				//upper fitness is worse, make it the new border; the convex extreme should be at the left
 				effective_high = experimental_high;
 			} else
-				if (Compare_Solutions(candidate_fitness[high_idx], candidate_fitness[low_idx], mSetup.objectives_count, mFitness_Strategy)) {
+				if ((*this.*mFitness_Comparator)(candidate_fitness[high_idx], candidate_fitness[low_idx])) {
 					//lower border is worse, make it a new border; the convex extreme should lay to the right
 					effective_low = experimental_low;
 				} else {
@@ -87,7 +96,7 @@ protected:
 
 
 		//return that contracted border that's closer to the extreme
-		if (Compare_Solutions(candidate_fitness[low_idx], candidate_fitness[high_idx], mSetup.objectives_count, mFitness_Strategy)) {
+		if ((*this.*mFitness_Comparator)(candidate_fitness[low_idx], candidate_fitness[high_idx])) {
 			result.solution[param_idx] = experimental_low;
 			result.fitness = candidate_fitness[low_idx];
 		}
@@ -102,6 +111,11 @@ public:
 	CSequential_Convex_Scan(const solver::TSolver_Setup &setup) :
 		mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)),
 		mSetup(solver::Check_Default_Parameters(setup, /*100'000*/0, 100)) {
+
+
+		//setup custom comparator, before we use it
+		if (mSetup.comparator)
+			mFitness_Comparator = &CSequential_Convex_Scan<TUsed_Solution>::Compare_Solutions_User;
 
 
 		//store suggested params as already contracted borders to 10% of the default borders to make local search
@@ -122,7 +136,7 @@ public:
 		//eventually, let's find the best solution
 		if (setup.hint_count > 0) {
 			mBest_Hint = Vector_2_Solution<TUsed_Solution>(mSetup.hints[0], setup.problem_size);
-			std::array<double, solver::Maximum_Objectives_Count> best_hint_fitness{solver::Nan_Fitness};
+			solver::TFitness best_hint_fitness{solver::Nan_Fitness};
 			if (mSetup.objective(mSetup.data, 1, mBest_Hint.data(), best_hint_fitness.data()) == TRUE) {
 				for (size_t i = 1; i < mSetup.hint_count; i++) {	//check if any other solution is better or not
 					TUsed_Solution candidate = Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size);
@@ -130,7 +144,7 @@ public:
 					solver::TFitness candidate_fitness{ solver::Nan_Fitness };
 					if (mSetup.objective(mSetup.data, 1, candidate.data(), candidate_fitness.data()) == TRUE) {						
 
-						if (Compare_Solutions(candidate_fitness, best_hint_fitness, mSetup.objectives_count, mFitness_Strategy))	{
+						if ((*this.*mFitness_Comparator)(candidate_fitness, best_hint_fitness))	{
 							best_hint_fitness = candidate_fitness;
 							mBest_Hint = candidate;
 						}
@@ -140,6 +154,7 @@ public:
 		}
 		else
 			mBest_Hint = 0.5 * (mHints[0].upper + mHints[0].lower);
+
 
 	}
 
@@ -185,12 +200,12 @@ public:
 
 						const TCandidate_Solution local_solution = Find_Extreme(effective_param_idx, best_solution.solution, mHints[val_idx]);
 
-						if (Compare_Solutions(local_solution.fitness, best_solution.fitness, mSetup.objectives_count, mFitness_Strategy)) {
+						if ((*this.*mFitness_Comparator)(local_solution.fitness, best_solution.fitness)) {
 
 							std::unique_lock write_lock{ best_mutex };
 
 							//do not be so rush! verify that this is still the better solution
-							if (Compare_Solutions(local_solution.fitness, best_solution.fitness, mSetup.objectives_count, mFitness_Strategy)) {
+							if ((*this.*mFitness_Comparator)(local_solution.fitness, best_solution.fitness)) {
 								best_solution.solution = local_solution.solution;
 								best_solution.fitness = local_solution.fitness;
 								progress.best_metric = local_solution.fitness;
