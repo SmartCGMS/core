@@ -580,8 +580,7 @@ public:
 					scgms::IDevice_Event* event_to_replay = nullptr;
 					failure_detected = !Succeeded(mEvents_To_Replay[i].Clone(&event_to_replay));
 					
-					if (!failure_detected) {
-						//std::lock_guard<std::mutex> lg{ mClone_Guard };	//TODO: this possibly masks some another bug
+					if (!failure_detected) {						
 						failure_detected = !Succeeded(composite_filter.Execute(event_to_replay));
 					}
 
