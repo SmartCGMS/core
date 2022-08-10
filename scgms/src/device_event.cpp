@@ -53,7 +53,7 @@
 #include <tuple>
 
 
-constexpr size_t Event_Pool_Size = 1024;
+constexpr size_t Event_Pool_Size = 100*1024;
 
 class CEvent_Pool {
 protected:
@@ -100,8 +100,9 @@ public:
 			mRecent_Allocated_Event_Idx.store(working_idx);
 			return &mEvents[working_idx];
 		}
-		else 			
-			return nullptr;		
+		else
+			return new CDevice_Event{};	//should be controlled with a flag for embedded devices
+			//return nullptr;		
 		
 	}
 
@@ -199,13 +200,12 @@ HRESULT IfaceCalling CDevice_Event::Raw(scgms::TDevice_Event **dst) noexcept {
 HRESULT IfaceCalling CDevice_Event::Clone(IDevice_Event** event) const noexcept {
 
 	auto clone = event_pool.Alloc_Event();
-	if (clone)
+	if (clone) {
 		Clone_Raw(mRaw, clone->mRaw);
-
-	*event = static_cast<scgms::IDevice_Event*>(clone);
-	
-
-	return *event ? S_OK : E_OUTOFMEMORY;
+		*event = static_cast<scgms::IDevice_Event*>(clone);
+		return S_OK;
+	} else
+		return E_OUTOFMEMORY;
 }
 
 //syntactic sugar 

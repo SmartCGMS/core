@@ -77,7 +77,7 @@ protected:
 
 
 	bool Prepare_Levels(const uint64_t segment_id, std::vector<double> &times, std::vector<double> &reference, std::vector<double> &error);
-	virtual void On_Level_Added(const uint64_t segment_id, const double device_time) {};
+	virtual HRESULT On_Level_Added(const uint64_t segment_id, const double device_time) { return S_OK; };
 	void Flush_Stats();
 protected:
 	virtual void Do_Flush_Stats(std::wofstream stats_file) = 0;

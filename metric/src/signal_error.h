@@ -61,8 +61,8 @@ protected:
 
 	double mLast_Emmitted_Time = std::numeric_limits<double>::quiet_NaN();
 	
-	virtual void On_Level_Added(const uint64_t segment_id, const double device_time) override final;
-	void Emit_Metric_Signal(const uint64_t segment_id, const double device_time);
+	virtual HRESULT On_Level_Added(const uint64_t segment_id, const double device_time) override final;
+	HRESULT Emit_Metric_Signal(const uint64_t segment_id, const double device_time);
 	
 	double Calculate_Metric(const uint64_t segment_id);	//returns metric or NaN if could not calculate
 

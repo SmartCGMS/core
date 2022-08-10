@@ -70,13 +70,17 @@ CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_i
 	mSync_To_Any = sync_to_any_signal;
 }
 
-void CNative_Segment::Emit_Info(const bool is_error, const std::wstring& msg) {
+HRESULT CNative_Segment::Emit_Info(const bool is_error, const std::wstring& msg) {
 	scgms::UDevice_Event event{ is_error ? scgms::NDevice_Event_Code::Error : scgms::NDevice_Event_Code::Information };
-	event.device_id() = native::native_filter_id;
-	event.info.set(msg.c_str());
-	event.segment_id() = mSegment_Id;
-	event.device_time() = mRecent_Time;
-	mOutput.Send(event);
+	if (event) {
+		event.device_id() = native::native_filter_id;
+		event.info.set(msg.c_str());
+		event.segment_id() = mSegment_Id;
+		event.device_time() = mRecent_Time;
+		return mOutput.Send(event);
+	}
+	else
+		return E_OUTOFMEMORY;
 }
 
 HRESULT CNative_Segment::Execute(const size_t signal_idx, GUID& signal_id, double& device_time, double& level) noexcept {
@@ -122,18 +126,24 @@ HRESULT CNative_Segment::Send_Event(const GUID* sig_id, const double device_time
 	if (msg == nullptr) {
 		//we are emitting a level event
 		scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
-		evt.device_id() = native::native_filter_id;
-		evt.device_time() = device_time;
-		evt.level() = level;
-		evt.segment_id() = mSegment_Id;
-		evt.signal_id() = *sig_id;
 
-		rc = mOutput.Send(evt);
+		if (evt) {
+
+			evt.device_id() = native::native_filter_id;
+			evt.device_time() = device_time;
+			evt.level() = level;
+			evt.segment_id() = mSegment_Id;
+			evt.signal_id() = *sig_id;
+
+			rc = mOutput.Send(evt);
+		}
+		else
+			rc = E_OUTOFMEMORY;
 	}
 	else {
 		//we are emitting an info event
 		std::wstring wmsg{ Widen_String(msg) };
-		Emit_Info(std::isnan(level), wmsg);
+		rc = Emit_Info(std::isnan(level), wmsg);
 	}
 
 	return rc;

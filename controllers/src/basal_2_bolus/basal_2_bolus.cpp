@@ -75,13 +75,13 @@ bool CBasal_2_Bolus::Schedule_Delivery(const double current_device_time, const d
 				event.device_id() = basal_2_bolus::filter_id;
 				event.segment_id() = segment_id;
 
-				mOutput.Send(event);
+				result = Succeeded(mOutput.Send(event));
 			}
 			//else we deliver on the original delivery time not to generate excess insulin doses
 		}
 			
 
-		result = mValid_Settings = true;
+		result &= mValid_Settings = true;
 	}
 	else {
 		//let's stop the insulin deliverys
@@ -97,16 +97,20 @@ bool CBasal_2_Bolus::Schedule_Delivery(const double current_device_time, const d
 HRESULT CBasal_2_Bolus::Deliver_Bolus(const double delivery_device_time, const uint64_t segment_id) {	
 
 	scgms::UDevice_Event event{ scgms::NDevice_Event_Code::Level };
-	event.device_time() = delivery_device_time;
-	event.level() = mInsulin_To_Deliver_Per_Period;
-	event.signal_id() = scgms::signal_Requested_Insulin_Bolus;
-	event.device_id() = basal_2_bolus::filter_id;
-	event.segment_id() = segment_id;
+	if (event) {
+		event.device_time() = delivery_device_time;
+		event.level() = mInsulin_To_Deliver_Per_Period;
+		event.signal_id() = scgms::signal_Requested_Insulin_Bolus;
+		event.device_id() = basal_2_bolus::filter_id;
+		event.segment_id() = segment_id;
 
 
-	mNext_Delivery_Time = delivery_device_time + mEffective_Period;
+		mNext_Delivery_Time = delivery_device_time + mEffective_Period;
 
-	return mOutput.Send(event);
+		return mOutput.Send(event);
+	}
+	else
+		return E_OUTOFMEMORY;
 }
 
 HRESULT CBasal_2_Bolus::Do_Execute(scgms::UDevice_Event event) {
