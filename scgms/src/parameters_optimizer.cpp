@@ -468,7 +468,7 @@ public:
 
 		if (!Fetch_Events_To_Replay(error_description)) return E_FAIL;
 		mObjectives_Count = Count_Objectives();
-		if (mObjectives_Count == 0) {
+		if ((mObjectives_Count == 0) || (mObjectives_Count>solver::Maximum_Objectives_Count)) {
 			error_description.push(dsUnsupported_Metric_Configuration);
 			return E_FAIL;
 		}
