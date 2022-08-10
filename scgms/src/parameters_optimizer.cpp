@@ -492,6 +492,12 @@ public:
 
 		HRESULT rc = solve_generic(&solver_id, &solver_setup, &progress);
 
+		//validate the returned fitness by re-computing the returned parameters
+		if (rc == S_OK) {
+			if (!Calculate_Fitness(1, mFound_Parameters.data(), progress.best_metric.data(), error_description))
+				rc = E_UNEXPECTED;	//cannot compute the validation fitness
+		}
+
 		//eventually, we need to copy the parameters to the original configuration - on success
 		if (rc == S_OK) {
 			for (size_t i = 0; i < mFilter_Indices.size(); i++) {
@@ -526,7 +532,8 @@ public:
 	bool Calculate_Fitness(const size_t solution_count, const double* solutions, double* const fitnesses, refcnt::Swstr_list empty_error_description) {
 		if (solution_count > 1) {
 			bool success_flag = true;
-			std::for_each(std::execution::par_unseq, solver::CInt_Iterator<size_t>{ 0 }, solver::CInt_Iterator<size_t>{ solution_count }, [=, &success_flag](const auto& id) {
+			std::for_each(std::execution::par/* par_unseq*/, solver::CInt_Iterator<size_t>{ 0 }, solver::CInt_Iterator<size_t>{ solution_count }, [=, &success_flag](const auto& id) {			
+				// we use execution::par only to avoid any possible problems with nested fitness calls, e.g. to OpenCL in the future
 				if (success_flag) {
 					if (!Calculate_Single_Fitness(solutions + id * mProblem_Size, fitnesses + id * solver::Maximum_Objectives_Count, empty_error_description))
 						success_flag = false;	//no need for locking because any thread may write the same value
@@ -545,7 +552,7 @@ public:
 
 		TFast_Configuration configuration = Clone_Configuration(mFirst_Effective_Filter_Index, empty_error_description);	//later on, we will replace this with a pool
 																								//or rather not as there might a be problem with filters,
-																								//which would keep, but not reset their states
+																								//which would keep, but not reset their states		
 
 		//set the experimental parameters
 		for (size_t i = 0; i < configuration.first_parameter_ptrs.size(); i++) {
@@ -555,7 +562,7 @@ public:
 
 		//Have the means to pickup the final metric
 		CError_Metric_Future error_metric_future{ mOn_Filter_Created, mOn_Filter_Created_Data };
-
+		
 		//run the configuration
 		std::recursive_mutex communication_guard;
 		CTerminal_Filter terminal_filter{ nullptr };
@@ -565,14 +572,18 @@ public:
 
 			if (composite_filter.Build_Filter_Chain(configuration.configuration.get(), &terminal_filter, On_Filter_Created_Wrapper, &error_metric_future, empty_error_description) != S_OK)
 				return std::numeric_limits<double>::quiet_NaN();
-
+			
 			//wait for the result
 			if (!mEvents_To_Replay.empty()) {
-				for (size_t i = 0; i < mEvents_To_Replay.size(); i++) {		//we can replay the pre-calculated events
+				for (size_t i = 0; i < mEvents_To_Replay.size(); i++) {		//we can replay the pre-calculated events					
+
 					scgms::IDevice_Event* event_to_replay = nullptr;
-					failure_detected = !Succeeded(mEvents_To_Replay[i].Clone(&event_to_replay));
+					failure_detected = !Succeeded(mEvents_To_Replay[i].Clone(&event_to_replay));					
+
 					if (!failure_detected)
 						failure_detected = !Succeeded(composite_filter.Execute(event_to_replay));
+					
+
 					if (failure_detected) {
 						//something has not gone well => break, but be that nice to issue the shutdown event first
 						scgms::IDevice_Event* shutdown_event = allocate_device_event(scgms::NDevice_Event_Code::Shut_Down );
