@@ -63,7 +63,7 @@ protected:
 	TNative_Execute_Wrapper mEntry_Point;
 
 	HRESULT Send_Event(const GUID* sig_id, const double device_time, const double level, const char* msg);
-	void Emit_Info(const bool is_error, const std::wstring& msg);
+	HRESULT Emit_Info(const bool is_error, const std::wstring& msg);
 protected:
 	friend HRESULT IfaceCalling Send_Handler(const GUID* sig_id, const double device_time, const double level, const char* msg, const void* context);
 public:

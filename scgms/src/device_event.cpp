@@ -52,23 +52,25 @@
 #include <atomic>
 #include <tuple>
 
-constexpr size_t Event_Pool_Size = 1024;
+
+constexpr size_t Event_Pool_Size = 100*1024;
 
 class CEvent_Pool {
 protected:
 	std::array<CDevice_Event, Event_Pool_Size> mEvents;
 	std::array<std::atomic<bool>, Event_Pool_Size > mAllocated_Flags{ false };
-	std::atomic<size_t> mFree_Event_Idx{ 0 };	
+	std::atomic<size_t> mRecent_Allocated_Event_Idx{ Event_Pool_Size - 1 };
 public:
 	CEvent_Pool() {		
 		for (size_t i = 0; i < Event_Pool_Size; i++) {
+			mEvents[i].Initialize(scgms::NDevice_Event_Code::Nothing);
 			mEvents[i].Set_Slot(i);
 			mAllocated_Flags[i] = false;
 		}
 	}
 	
 	~CEvent_Pool() {
-				for (size_t i = 0; i < Event_Pool_Size; i++) {
+		for (size_t i = 0; i < Event_Pool_Size; i++) {
 			if (mAllocated_Flags[i]) {
 
 				dprintf("Leaked device event; logical time: %d\n", mEvents[i].logical_clock());
@@ -80,37 +82,33 @@ public:
 
 
 	CDevice_Event* Alloc_Event() {
-
 		//obtain working index, but we need to do it as modulo spinlock
 
-		size_t working_idx = std::numeric_limits<size_t>::max();	//initializing to apparently wrong value to catch a bug
-		size_t expected_idx = working_idx;
+		size_t working_idx = mRecent_Allocated_Event_Idx;
 		bool locked = false;
 		size_t retries_count = Event_Pool_Size * 2;
 
 
 		while ((!locked) && (retries_count-- > 0)) {
-
-			do {
-				expected_idx = mFree_Event_Idx;
-				working_idx = (expected_idx + 1) % Event_Pool_Size;
-			} while (!mFree_Event_Idx.compare_exchange_weak(expected_idx, working_idx, std::memory_order_release, std::memory_order_relaxed));
-
-
-
-			//try to get the actual lock
-			if (working_idx < Event_Pool_Size) {	//testing to make the static analyzer happy
-				if (!mAllocated_Flags[working_idx])
-					locked = !mAllocated_Flags[working_idx].exchange(true);
-			}
+			working_idx = (working_idx + 1) % Event_Pool_Size;
+			if (!mAllocated_Flags[working_idx])
+				locked = !mAllocated_Flags[working_idx].exchange(true);
 		}
 
 
-		return locked ? &mEvents[working_idx] : nullptr;
+		if (locked) {
+			mRecent_Allocated_Event_Idx.store(working_idx);
+			return &mEvents[working_idx];
+		}
+		else
+			return new CDevice_Event{};	//should be controlled with a flag for embedded devices
+			//return nullptr;		
+		
 	}
 
 	void Free_Event(const size_t slot) {
-		mAllocated_Flags[slot] = false;
+		if (slot < Event_Pool_Size)
+			mAllocated_Flags[slot] = false;
 	}
 };
 
@@ -184,8 +182,12 @@ void CDevice_Event::Clean_Up() noexcept {
 }
 
 ULONG IfaceCalling CDevice_Event::Release() noexcept {
-	Clean_Up();
-	event_pool.Free_Event(mSlot);
+	if (mSlot != std::numeric_limits<size_t>::max()) {
+		Clean_Up();
+		event_pool.Free_Event(mSlot);
+	}
+	else
+		delete this;
 	return 0;
 }
 
@@ -195,16 +197,15 @@ HRESULT IfaceCalling CDevice_Event::Raw(scgms::TDevice_Event **dst) noexcept {
 }
 
 
-HRESULT IfaceCalling CDevice_Event::Clone(IDevice_Event** event) noexcept {	
+HRESULT IfaceCalling CDevice_Event::Clone(IDevice_Event** event) const noexcept {
 
 	auto clone = event_pool.Alloc_Event();
-	if (clone)
+	if (clone) {
 		Clone_Raw(mRaw, clone->mRaw);
-
-	*event = static_cast<scgms::IDevice_Event*>(clone);
-	
-
-	return *event ? S_OK : E_OUTOFMEMORY;
+		*event = static_cast<scgms::IDevice_Event*>(clone);
+		return S_OK;
+	} else
+		return E_OUTOFMEMORY;
 }
 
 //syntactic sugar 

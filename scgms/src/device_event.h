@@ -57,7 +57,7 @@ public:
 
 	virtual ULONG IfaceCalling Release() noexcept override;
 	virtual HRESULT IfaceCalling Raw(scgms::TDevice_Event** dst) noexcept override;
-	virtual HRESULT IfaceCalling Clone(IDevice_Event** event) noexcept override;
+	virtual HRESULT IfaceCalling Clone(IDevice_Event** event) const noexcept override;
 
 	//tiny helper for debugging
 	size_t logical_clock() noexcept { return mRaw.logical_time; }

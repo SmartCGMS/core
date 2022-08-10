@@ -70,22 +70,31 @@ HRESULT CTwo_Signals::Do_Execute(scgms::UDevice_Event event) {
 				mNew_Data_Logical_Clock++;
 			}
 
-			On_Level_Added(raw_event->segment_id, raw_event->device_time);
+			HRESULT rc = On_Level_Added(raw_event->segment_id, raw_event->device_time);
+			if (!Succeeded(rc))
+				return rc;
 		}
+
+		return S_OK;
 	};
 
 	auto add_segment = [&raw_event, this, add_level](const bool is_reference_signal) {		
 		auto signals = mSignal_Series.find(raw_event->segment_id);
 		if (signals == mSignal_Series.end()) {
 			TSegment_Signals signals;
-			add_level(signals, is_reference_signal);
-			mSignal_Series[raw_event->segment_id] = std::move(signals);
+			HRESULT rc = add_level(signals, is_reference_signal);
+			if (Succeeded(rc))
+				mSignal_Series[raw_event->segment_id] = std::move(signals);
+			else
+				return rc;
 		}
 		else {
-			add_level(signals->second, is_reference_signal);
+			HRESULT rc = add_level(signals->second, is_reference_signal);
+			if (!Succeeded(rc))
+				return rc;
 		}
 
-		
+		return S_OK;
 	};
 
 	if (event->Raw(&raw_event) == S_OK) {
@@ -97,7 +106,9 @@ HRESULT CTwo_Signals::Do_Execute(scgms::UDevice_Event event) {
 
 					if (!(std::isnan(event.level()) || std::isnan(event.device_time()))) {
 						std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
-						add_segment(is_reference_signal);
+						HRESULT rc = add_segment(is_reference_signal);
+						if (!Succeeded(rc))
+							return rc;
 					}
 				}
 
