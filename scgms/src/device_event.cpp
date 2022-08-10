@@ -82,9 +82,6 @@ public:
 
 
 	CDevice_Event* Alloc_Event() {
-
-		return new CDevice_Event();
-
 		//obtain working index, but we need to do it as modulo spinlock
 
 		size_t working_idx = mRecent_Allocated_Event_Idx;
@@ -184,8 +181,12 @@ void CDevice_Event::Clean_Up() noexcept {
 }
 
 ULONG IfaceCalling CDevice_Event::Release() noexcept {
-	Clean_Up();
-	event_pool.Free_Event(mSlot);
+	if (mSlot != std::numeric_limits<size_t>::max()) {
+		Clean_Up();
+		event_pool.Free_Event(mSlot);
+	}
+	else
+		delete this;
 	return 0;
 }
 
