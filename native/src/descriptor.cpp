@@ -140,7 +140,7 @@ namespace native {
 
 	const scgms::TFilter_Descriptor desc = {
 		native_filter_id,
-		scgms::NFilter_Flags::None,
+		scgms::NFilter_Flags::Encapsulated_Model,
 		L"Native Scripting",
 		param_count,
 		param_type,
