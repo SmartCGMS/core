@@ -139,7 +139,6 @@ namespace gct2_model
 			}
 
 			virtual double Get_Moderation_Input(double moderatorAmount) const override {
-				dprintf("Moderation with factor %llf\r\n", 1.0 + moderatorAmount * moderatorAmount * mModeration_Factor);
 				return 1.0 + moderatorAmount * moderatorAmount * mModeration_Factor;
 			}
 

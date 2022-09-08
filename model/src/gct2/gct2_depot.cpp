@@ -83,11 +83,6 @@ namespace gct2_model
 
 			const double amt = mods.function.get()->Get_Moderation_Input(mods.depot.get().Get_Quantity());
 
-			if (mModerators.size() == 2 && mSource.get().Get_Name() == L"Q1")
-			{
-				dprintf("Moderated amount %llf\r\n", amount * amt);
-			}
-
 			amount *= amt;
 			double eliminateAmount = -mods.function.get()->Get_Elimination_Input(mods.depot.get().Get_Quantity());
 			if (eliminateAmount != 0.0)

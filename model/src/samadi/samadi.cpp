@@ -115,7 +115,7 @@ double CSamadi_Discrete_Model::eq_dQ1(const double _T, const double _X) const
 	const double F01S = mParameters.F01 * mParameters.BW;
 	const double F01C = Gt >= Gthresh_F01 ? F01S : (F01S * Gt / Gthresh_F01);
 	const double FR = Gt >= Gthresh_FR ? 0.003 * (Gt - 9.0) * VgBW : 0;
-	const double UG = mState.D2 / mParameters.tmaxG +mState.DH2 / (mParameters.tmaxG / 2.0);
+	const double UG = mState.D2 / mParameters.tmaxG + mState.DH2 / (mParameters.tmaxG / 2.0);
 
 	const double ret = -/*(1 + mParameters.alpha * mState.E2 * mState.E2) **/ mState.x1 * _X + mParameters.k12 * mState.Q2 - F01C - FR + UG + EGP0BW * (1 - mState.x3);
 
