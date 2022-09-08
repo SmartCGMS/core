@@ -45,6 +45,7 @@
 #include "diffusion/Diffusion_Prediction.h"
 #include "constant/Constant_Model.h"
 #include "sensitivity/sensitivity.h"
+#include "p559/p559.h"
 #include "descriptor.h"
 
 #include <map>

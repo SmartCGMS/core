@@ -72,7 +72,7 @@ namespace logger
 
 	const scgms::TFilter_Descriptor Log_Descriptor = {
 		scgms::IID_Log_Filter,
-		scgms::NFilter_Flags::None,
+		scgms::NFilter_Flags::Presentation_Only,
 		dsLog_Filter,
 		param_count,
 		param_type,

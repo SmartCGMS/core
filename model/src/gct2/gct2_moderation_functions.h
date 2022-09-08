@@ -123,6 +123,32 @@ namespace gct2_model
 	};
 
 	/**
+	 * Transfer is moderated in proportionally to the second power of moderator quantity with the base of 1.0
+	 * Moderator does not get eliminated
+	 * e.g.; moderation of transfers, that would happen even without the presence of the moderator
+	 */
+	class CQuadratic_Moderation_No_Elimination_Function : public CModeration_Function {
+
+		protected:
+			double mModeration_Factor = 1.0;
+
+		public:
+			CQuadratic_Moderation_No_Elimination_Function(double modFactor)
+				: mModeration_Factor(modFactor) {
+				//
+			}
+
+			virtual double Get_Moderation_Input(double moderatorAmount) const override {
+				dprintf("Moderation with factor %llf\r\n", 1.0 + moderatorAmount * moderatorAmount * mModeration_Factor);
+				return 1.0 + moderatorAmount * moderatorAmount * mModeration_Factor;
+			}
+
+			virtual double Get_Elimination_Input(double moderatorAmount) const override {
+				return 0.0;
+			}
+	};
+
+	/**
 	 * Transfer is moderated proportionally to moderator, starting from certain threshold
 	 * Moderator does not get eliminated
 	 * e.g.; moderation of insulin production by glucose appearance
@@ -243,6 +269,56 @@ namespace gct2_model
 
 			virtual double Get_Moderation_Input(double moderatorAmount) const override {
 				return std::exp(-moderatorAmount * moderatorAmount / (2.0 * mModeration_Factor)); // mModeration_Factor is already considered to be squared (to save some operations)
+			}
+
+			virtual double Get_Elimination_Input(double moderatorAmount) const override {
+				return 0.0;
+			}
+	};
+
+	/**
+	 * Samadi physical exercise moderation function ( F(E1(t)) )
+	 */
+	class CSamadi_PA_Moderation_No_Elimination_Function : public CModeration_Function {
+
+		protected:
+			double mAlphaHRbase = 1.0;
+			double mN = 1.0;
+
+		public:
+			CSamadi_PA_Moderation_No_Elimination_Function(double alpha, double HRbase, double n)
+				: mAlphaHRbase(alpha * HRbase), mN(n) {
+				//
+			}
+
+			virtual double Get_Moderation_Input(double moderatorAmount) const override {
+				const double expFactor = std::pow(moderatorAmount / mAlphaHRbase, mN);
+
+				return expFactor / (1.0 + expFactor);
+			}
+
+			virtual double Get_Elimination_Input(double moderatorAmount) const override {
+				return 0.0;
+			}
+	};
+
+	/**
+	 * Transfer is inverse proportional to moderator
+	 * Moderator does not get eliminated
+	 */
+	class CInverse_Linear_Moderation_No_Elimination_Function : public CModeration_Function {
+
+		protected:
+			double mModeration_Factor = 1.0;
+
+		public:
+			CInverse_Linear_Moderation_No_Elimination_Function(double modFactor)
+				: mModeration_Factor(modFactor) {
+				//
+			}
+
+			virtual double Get_Moderation_Input(double moderatorAmount) const override {
+				return 1.0 / (moderatorAmount * mModeration_Factor);
 			}
 
 			virtual double Get_Elimination_Input(double moderatorAmount) const override {

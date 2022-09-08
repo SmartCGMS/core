@@ -93,6 +93,10 @@ namespace Utility
 		tm* midnight_before = nullptr;
 		_localtime(midnight_before, minDate);
 	#endif
+
+        if (!midnight_before)
+            return {};
+
 		midnight_before->tm_min = 0;
 		midnight_before->tm_sec = 0;
 		time_t before = mktime(midnight_before);
@@ -105,6 +109,10 @@ namespace Utility
 		tm* midnight_after = nullptr;
 		_localtime(midnight_after, maxDate);
 	#endif
+
+        if (!midnight_after)
+            return {};
+
 		midnight_after->tm_min = 0;
 		midnight_after->tm_sec = 0;
 		time_t after = mktime(midnight_after);
@@ -248,6 +256,9 @@ namespace Utility
         tm* timeinfo = nullptr;
         _localtime(timeinfo, t);
 #endif
+        if (!timeinfo)
+            return "???";
+
         std::ostringstream str;
         int min = timeinfo->tm_min;
 
@@ -269,6 +280,9 @@ namespace Utility
         tm* timeinfo = nullptr;
         _localtime(timeinfo, t);
 #endif
+        if (!timeinfo)
+            return "???";
+
         char buffer[80];
         strftime(buffer, sizeof(buffer), "%d-%m-%Y %I:%M:%S", timeinfo);
 

@@ -68,8 +68,13 @@ namespace sequential_convex_scan {
 	constexpr GUID id = { 0xfa42286b, 0x928c, 0x47bd, { 0xaa, 0xf3, 0x2f, 0xe4, 0x73, 0x77, 0x46, 0x6d } };	//{FA42286B-928C-47BD-AAF3-2FE47377466D}
 }
 
+namespace mutation {
+	constexpr GUID id = { 0x8187dbdc, 0x4394, 0x4cb0, { 0xae, 0xba, 0xa6, 0x86, 0x53, 0xc7, 0x7b, 0x98 } };	// {8187DBDC-4394-4CB0-AEBA-A68653C77B98}
+}
+
 namespace rumoropt {
 	constexpr GUID id = { 0x6bad021f, 0x6f68, 0x4246, { 0xa4, 0xe6, 0x7b, 0x19, 0x50, 0xca, 0x71, 0xcb } };	// {6BAD021F-6F68-4246-A4E6-7B1950CA71CB}
 }
+
 
 extern "C" HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end);

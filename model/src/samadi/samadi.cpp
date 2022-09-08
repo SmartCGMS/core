@@ -90,13 +90,13 @@ CSamadi_Discrete_Model::CSamadi_Discrete_Model(scgms::IModel_Parameter_Vector *p
 	mState.x1   = mParameters.x1_0;
 	mState.x2   = mParameters.x2_0;
 	mState.x3   = mParameters.x3_0;
-	mState.D1   = mParameters.D1_0;
-	mState.D2   = mParameters.D2_0;
-	mState.DH1  = mParameters.DH1_0;
-	mState.DH2  = mParameters.DH2_0;
-	mState.E1   = mParameters.E1_0;
-	mState.E2   = mParameters.E2_0;
-	mState.TE   = mParameters.TE_0;
+	mState.D1 = 0;  //mParameters.D1_0;
+	mState.D2 = 0;  //mParameters.D2_0;
+	mState.DH1 = 0; //mParameters.DH1_0;
+	mState.DH2 = 0; //mParameters.DH2_0;
+	mState.E1 = 0;// mParameters.E1_0;
+	mState.E2 = 0;// mParameters.E2_0;
+	mState.TE = 0;// mParameters.TE_0;
 
 	mSubcutaneous_Basal_Ext.Add_Uptake(0, std::numeric_limits<double>::max(), 0.0); // TODO: ScBasalRate0 as a parameter
 	mHeart_Rate.Add_Uptake(0, std::numeric_limits<double>::max(), mParameters.HRbase);
@@ -117,14 +117,14 @@ double CSamadi_Discrete_Model::eq_dQ1(const double _T, const double _X) const
 	const double FR = Gt >= Gthresh_FR ? 0.003 * (Gt - 9.0) * VgBW : 0;
 	const double UG = mState.D2 / mParameters.tmaxG +mState.DH2 / (mParameters.tmaxG / 2.0);
 
-	const double ret = -(1 + mParameters.alpha * mState.E2 * mState.E2) * mState.x1 * _X + mParameters.k12 * mState.Q2 - F01C - FR + UG + EGP0BW * (1 - mState.x3);
+	const double ret = -/*(1 + mParameters.alpha * mState.E2 * mState.E2) **/ mState.x1 * _X + mParameters.k12 * mState.Q2 - F01C - FR + UG + EGP0BW * (1 - mState.x3);
 
 	return ret;
 }
 
 double CSamadi_Discrete_Model::eq_dQ2(const double _T, const double _X) const
 {
-	return -(-1 + mParameters.alpha * mState.E2 * mState.E2) * mState.x1 * mState.Q1 - mParameters.k12 * _X - mState.x2 * _X * (1 + mParameters.alpha * mState.E2 * mState.E2 - mParameters.beta * mState.E1 / mParameters.HRbase);
+	return /*(1 + mParameters.alpha * mState.E2 * mState.E2) * */mState.x1 * mState.Q1 - mParameters.k12 * _X - mState.x2 * _X/* * (1 + mParameters.alpha * mState.E2 * mState.E2 - mParameters.beta * mState.E1 / mParameters.HRbase)*/;
 }
 
 double CSamadi_Discrete_Model::eq_dGsub(const double _T, const double _X) const
@@ -331,7 +331,7 @@ HRESULT CSamadi_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 
 				std::unique_lock<std::mutex> lck(mStep_Mtx);
 
-				mBolus_Insulin_Ext.Add_Uptake(event.device_time(), MinsBolusing * scgms::One_Minute, (event.level() / MinsBolusing));
+				mBolus_Insulin_Ext.Add_Uptake(event.device_time() + 5.0*scgms::One_Minute, MinsBolusing * scgms::One_Minute, (event.level() / MinsBolusing));
 
 				mRequested_Insulin_Boluses.push_back({
 					event.device_time(),
@@ -355,7 +355,7 @@ HRESULT CSamadi_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 				// Samadi/Hovorka model differentiates between regular and rescue CHO
 
 				if (event.signal_id() == scgms::signal_Carb_Intake)
-					mMeal_Ext.Add_Uptake(event.device_time(), MinsEating * scgms::One_Minute, InvMinsEating * 1000.0 * event.level());
+					mMeal_Ext.Add_Uptake(event.device_time() + 3.0*scgms::One_Minute, MinsEating * scgms::One_Minute, InvMinsEating * 1000.0 * event.level());
 				else if (event.signal_id() == scgms::signal_Carb_Rescue)
 					mRescue_Meal_Ext.Add_Uptake(event.device_time(), MinsEating * scgms::One_Minute, InvMinsEating * 1000.0 * event.level());
 

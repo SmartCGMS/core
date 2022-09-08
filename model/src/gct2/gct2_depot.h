@@ -84,6 +84,11 @@ namespace gct2_model
 			// list of moderators
 			std::list<TModerator> mModerators;
 
+			// coefficient for unit conversion during transfer
+			double mTransfer_Unit_Coefficient = 1.0;
+			// shift for unit conversion during transfer
+			double mTransfer_Unit_Shift = 0.0;
+
 		protected:
 			template<typename TTransferFnc, typename... Args>
 			CDepot_Link(std::unique_ptr<TTransferFnc> transferFunc, CDepot& source, CDepot& target)
@@ -105,7 +110,7 @@ namespace gct2_model
 
 			// move (to allow list/vector erase)
 			CDepot_Link(CDepot_Link&& other) noexcept : mTransfer_Function(std::move(other.mTransfer_Function)), mLast_Time(other.mLast_Time), mSource(other.mSource),
-				mTarget(other.mTarget), mModerators(std::move(other.mModerators)) {
+				mTarget(other.mTarget), mModerators(std::move(other.mModerators)), mTransfer_Unit_Coefficient(other.mTransfer_Unit_Coefficient), mTransfer_Unit_Shift(other.mTransfer_Unit_Shift) {
 				//
 			}
 			CDepot_Link& operator=(CDepot_Link&& other) noexcept {
@@ -114,13 +119,22 @@ namespace gct2_model
 				mSource = other.mSource;
 				mTarget = other.mTarget;
 				mModerators = std::move(other.mModerators);
+				mTransfer_Unit_Coefficient = other.mTransfer_Unit_Coefficient;
+				mTransfer_Unit_Shift = other.mTransfer_Unit_Shift;
 				return *this;
 			}
 
 			// adds moderator to this link
 			template<typename TModFunc, typename... Args>
-			void Add_Moderator(CDepot& moderator, Args... args) {
+			TModFunc& Add_Moderator(CDepot& moderator, Args... args) {
 				mModerators.push_back(TModerator{ moderator, std::make_unique<TModFunc>(std::forward<Args>(args)...) });
+				return *dynamic_cast<TModFunc*>(mModerators.rbegin()->function.get());
+			}
+
+			// adds unit conversion to this link - the transfered amount is modified half-way in the process; old value is subtracted, then converted and then added to destination depot
+			void Set_Unit_Converter(double coefficient, double shift = 0.0) {
+				mTransfer_Unit_Coefficient = coefficient;
+				mTransfer_Unit_Shift = shift;
 			}
 
 			void Init(const double currentTime) {
@@ -137,7 +151,12 @@ namespace gct2_model
 
 			// is this link expired? i.e.; has the transfer function reached its end?
 			bool Is_Expired(double time) const {
-				return mTransfer_Function->Is_Expired(time);
+				return false;// mTransfer_Function->Is_Expired(time);
+			}
+
+			CDepot_Link& Set_Source_Quantity_Dependent(bool dependent) {
+				mTransfer_Function->Set_Source_Quantity_Dependent(dependent);
+				return *this;
 			}
 	};
 
@@ -156,6 +175,9 @@ namespace gct2_model
 		private:
 			// current depot quantity
 			double mQuantity = 0.0;
+
+			// initial depot quantity
+			double mInitial_Quantity = 0.0;
 
 			// next step quantity
 			double mNext_Quantity = 0.0;
@@ -217,6 +239,7 @@ namespace gct2_model
 				if (mQuantity < 0 && !mAllow_Negative) {
 					mQuantity = 0;
 				}
+				mInitial_Quantity = mQuantity;
 				mNext_Quantity = mQuantity;
 			}
 
@@ -225,12 +248,13 @@ namespace gct2_model
 			CDepot& operator=(const CDepot& other) = delete;
 
 			// support move; try to respect conservation of mass even on architectural level
-			CDepot(CDepot&& other) noexcept : mQuantity(other.mQuantity), mNext_Quantity(other.mNext_Quantity), mAllow_Negative(other.mAllow_Negative), mPersistent(other.mPersistent), mSolution_Volume(other.mSolution_Volume), mCurrent_Time(other.mCurrent_Time) {
+			CDepot(CDepot&& other) noexcept : mQuantity(other.mQuantity), mInitial_Quantity(other.mInitial_Quantity), mNext_Quantity(other.mNext_Quantity), mAllow_Negative(other.mAllow_Negative), mPersistent(other.mPersistent), mSolution_Volume(other.mSolution_Volume), mCurrent_Time(other.mCurrent_Time) {
 				other.mQuantity = 0.0;
 				other.mNext_Quantity = 0.0;
 			}
 			CDepot& operator=(CDepot&& other) noexcept {
 				mQuantity = other.mQuantity;
+				mInitial_Quantity = other.mInitial_Quantity;
 				mNext_Quantity = other.mNext_Quantity;
 				mAllow_Negative = other.mAllow_Negative;
 				mPersistent = other.mPersistent;
@@ -242,8 +266,9 @@ namespace gct2_model
 			}
 
 			// marks depot as (non-)persistent; this means it does (not) get deleted after transfer ends
-			void Set_Persistent(bool state) {
+			CDepot& Set_Persistent(bool state) {
 				mPersistent = state;
+				return *this;
 			}
 
 			// is this depot marked as persistent?
@@ -252,8 +277,9 @@ namespace gct2_model
 			}
 
 			// sets volume of this solution (distribution volume of this depot)
-			void Set_Solution_Volume(double volume) {
+			CDepot& Set_Solution_Volume(double volume) {
 				mSolution_Volume = volume;
+				return *this;
 			}
 
 			// get volume of this solution
@@ -265,12 +291,17 @@ namespace gct2_model
 				return mQuantity;
 			}
 
+			virtual double Get_Initial_Quantity() const {
+				return mInitial_Quantity;
+			}
+
 			virtual double Get_Concentration() const override {
 				return mQuantity / mSolution_Volume;
 			}
 
-			void Set_Name(const std::wstring& name) {
+			CDepot& Set_Name(const std::wstring& name) {
 				mName = name;
+				return *this;
 			}
 
 			const std::wstring& Get_Name() const {
@@ -314,19 +345,19 @@ namespace gct2_model
 
 			// add link from this depot to another; first type argument represents type of transfer function, variable arguments are passed to its constructor
 			template<typename TTransferFnc, typename... Args>
-			bool Link_To(CDepot& target, Args... args) {
+			CDepot_Link& Link_To(CDepot& target, Args... args) {
 
 				auto link = CDepot_Link::Create<TTransferFnc, Args...>(*this, target, std::forward<Args>(args)...);
 				link.Init(mCurrent_Time);
 
 				mLinks.push_back(std::move(link));
 
-				return true;
+				return *mLinks.rbegin();
 			}
 
 			// adds moderated link from this depot to another; first type argument represents type of transfer function, variable arguments are passed to its constructor
 			template<typename TTransferFnc, typename... Args>
-			bool Moderated_Link_To(CDepot& target, TModerator_Add_Fnc addCallback, Args... args) {
+			CDepot_Link& Moderated_Link_To(CDepot& target, TModerator_Add_Fnc addCallback, Args... args) {
 
 				auto link = CDepot_Link::Create<TTransferFnc, Args...>(*this, target, std::forward<Args>(args)...);
 				link.Init(mCurrent_Time);
@@ -334,7 +365,7 @@ namespace gct2_model
 
 				mLinks.push_back(std::move(link));
 
-				return true;
+				return *mLinks.rbegin();
 			}
 
 			// should this depot be deleted?

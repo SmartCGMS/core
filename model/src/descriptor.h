@@ -553,6 +553,21 @@ namespace samadi_model {
 	}} };
 }
 
+
+namespace samadi_gct2_model {
+
+	constexpr GUID model_id = { 0x5752d01f, 0xde31, 0x4eca, { 0xbf, 0x97, 0x64, 0xff, 0x97, 0x1e, 0x33, 0x55 } };		// {5752D01F-DE31-4ECA-BF97-64FF971E3355}
+
+
+	constexpr GUID signal_IG = { 0xc190ad9e, 0xde82, 0x40d3, { 0xb0, 0xf2, 0x8a, 0xbe, 0x16, 0x68, 0x66, 0xdd } };		// {C190AD9E-DE82-40D3-B0F2-8ABE166866DD}
+	constexpr GUID signal_BG = { 0xd57b6630, 0xba55, 0x468a, { 0xad, 0xb3, 0x37, 0xd1, 0xf8, 0xa3, 0xab, 0xb } };		// {D57B6630-BA55-468A-ADB3-37D1F8A3AB0B}
+	constexpr GUID signal_Delivered_Insulin = { 0xc4b8017d, 0x205c, 0x4780, { 0x83, 0xec, 0x3e, 0x4c, 0x56, 0x49, 0x42, 0x70 } };	// {C4B8017D-205C-4780-83EC-3E4C56494270}
+	constexpr GUID signal_IOB = { 0x76470c10, 0xf4cf, 0x4b5d, { 0xb0, 0x94, 0x1e, 0xa1, 0xe3, 0x37, 0x95, 0xd7 } };		// {76470C10-F4CF-4B5D-B094-1EA1E33795D7}
+	constexpr GUID signal_COB = { 0xde20951f, 0x6a89, 0x447d, { 0x99, 0x32, 0x7c, 0xce, 0xb6, 0xc7, 0x16, 0xca } };		// {DE20951F-6A89-447D-9932-7CCEB6C716CA}
+
+	// parameters are the same as in the samadi_model case (TParameters, lower and upper bounds, default params)
+}
+
 namespace gct_model {
 
 	constexpr GUID model_id = { 0xc91e7deb, 0x285, 0x4fa0, { 0x83, 0x1e, 0x94, 0xf0, 0xf1, 0xa0, 0x96, 0x2e } };					// {C91E7DEB-0285-4FA0-831E-94F0F1A0962E}
@@ -688,10 +703,10 @@ namespace gct2_model {
 	constexpr GUID signal_IOB = { 0x1613dabc, 0x1aed, 0x46b0, { 0x98, 0x10, 0x7f, 0xd, 0xba, 0xc8, 0xb1, 0x80 } };					// {1613DABC-1AED-46B0-9810-7F0DBAC8B180}
 	constexpr GUID signal_COB = { 0x4a1d62fe, 0x9273, 0x4a73, { 0xa6, 0xfe, 0xb3, 0xcd, 0xe6, 0x4a, 0x2a, 0x9d } };					// {4A1D62FE-9273-4A73-A6FE-B3CDE64A2A9D}
 
-	constexpr size_t model_param_count = 42;
+	constexpr size_t model_param_count = 39;
 
 	/*
-	Q1_0 - D2_0 - initial values/quantities
+	Q1_0 - D1_0 - initial values/quantities
 
 	Vq - distribution volume of glucose molecules in plasma ("volume of plasma")
 	Vqsc - distribution volume of glucose molecules in subcutaneous tissue / interstitial fluid
@@ -704,9 +719,7 @@ namespace gct2_model {
 	q1sc - transfer rate of diffusion between Q1 and Qsc
 	ix - transfer rate I -> X
 	xq1 - moderation rate Q1 -(X)-> sink
-	d2q1 - transfer rate D2 -> Q1 (glucose absorption rate)
-	isc2i - transfer rate Isc2 -> I
-	isc2e - elimination rate of Isc2 insulin (local degradation, proposed by Hovorka, http://doi.org/10.1109/TBME.2004.839639 )
+	iscimod - transfer rate Isc -> I, bundled with local degradation (proposed by Hovorka, http://doi.org/10.1109/TBME.2004.839639 )
 
 	q1e - base elimination of Q1 glucose
 	q1ee - glucose elimination moderated by exercise
@@ -739,11 +752,11 @@ namespace gct2_model {
 		union {
 			struct {
 				// initial quantities
-				double Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0;
+				double Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0;
 				// patient quantity and base parameters
 				double Vq, Vqsc, Vi, Q1b, Gthr, GIthr;
 				// transfer parameters
-				double q12, q1sc, ix, xq1, d2q1, isc2i, isc2e;
+				double q12, q1sc, ix, xq1, iscimod;
 				// elimination parameters
 				double q1e, q1ee, q1e_thr, xe;
 				// production parameters
@@ -760,12 +773,12 @@ namespace gct2_model {
 	};
 
 	const gct2_model::TParameters lower_bounds = { {{
-		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0
-			0,    0,    0,     0,   0,     0,   0,    0,
+		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0,
+			0,    0,    0,     0,   0,     0,   0,
 		//	Vq,  Vqsc, Vi, Q1b, Gthr, GIthr,
 			3,   1,    3,  50,  8.0,  4.0,
-		//	q12,  q1sc, ix, xq1, d2q1, isc2i, isc2e
-			0.5, 1.4,   1,  5,   14.0, 20,    1,
+		//	q12,  q1sc, ix, xq1, iscimod
+			0.5, 1.4,   1,  5,   0.1,
 		//	q1e,   q1ee,  q1e_thr, xe,
 			0.144, 0.144, 0.001,   0.1,
 		//	q1p,     q1pe,   q1pi,    ip,
@@ -782,12 +795,12 @@ namespace gct2_model {
 	}} };
 
 	const gct2_model::TParameters default_parameters = { { {
-		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0
-			350,  65,   250,   0,   0,     0,   0,    0,
+		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0,
+			350,  65,   250,   0,   0,     0,   0,
 		//	Vq,  Vqsc, Vi, Q1b, Gthr, GIthr,
 			8,   5,    10, 240, 8.0, 5.0,
-		//	q12, q1sc, ix, xq1, d2q1,  isc2i, isc2e
-			0.8, 8,    5,  45,  144.0, 35,     2,
+		//	q12, q1sc, ix, xq1, iscimod
+			0.8, 8,    5,  45,  0.7,
 		//	q1e,     q1ee,    q1e_thr, xe,
 			0.38519, 0.38519, 0.8,     0.3,
 		//	q1p,  q1pe, q1pi,  ip,
@@ -804,12 +817,12 @@ namespace gct2_model {
 	}} };
 
 	const gct2_model::TParameters upper_bounds = { { {
-		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0, D2_0
-			500,  500,  500,   500, 500,   500, 200,  200,
+		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0,
+			500,  500,  500,   500, 500,   500, 200,
 		//	Vq,  Vqsc, Vi, Q1b,  Gthr, GIthr,
 			10,  10,   20, 1000, 14.0, 8.0,
-		//	q12, q1sc, ix,  xq1,   d2q1,  isc2i, isc2e
-			1.5, 24.0, 50,  120.0, 144.0, 50,    20,
+		//	q12, q1sc, ix,  xq1,   iscimod
+			1.5, 24.0, 50,  120.0, 1.0,
 		//	q1e,  q1ee, q1e_thr, xe,
 			14.4, 14.4, 0.8,     2.0,
 		//	q1p,  q1pe, q1pi, ip
@@ -898,6 +911,294 @@ namespace const_cr {
 	};
 }
 
+namespace p559_model
+{
+	constexpr const GUID model_id = { 0xbe1b3d7c, 0x302f, 0x4d78, { 0x89, 0x92, 0x6a, 0xe0, 0x72, 0xe0, 0x79, 0xa7 } };	// {BE1B3D7C-302F-4D78-8992-6AE072E079A7}
+	constexpr const GUID ig_signal_id = { 0xb81ea74d, 0x754b, 0x43a8, { 0x81, 0x1d, 0x6a, 0x85, 0x4f, 0x5, 0xc3, 0x74 } };	// {B81EA74D-754B-43A8-811D-6A854F05C374}
+
+	const size_t param_count = 2;
+	const double default_parameters[param_count] = { 6.6, 60.31 };
+	const double lower_bound[param_count] = { 2.0, 0.0 };
+	const double upper_bound[param_count] = { 22.0, 100.0 };
+
+	struct TParameters {
+		union {
+			struct {
+				double IG0;
+				double omega_shift;
+			};
+			double vector[param_count];
+		};
+	};
+}
+
+namespace aim_ge
+{
+	constexpr const GUID model_id = { 0xfad48b96, 0x56aa, 0x4f7a, { 0xab, 0x9f, 0x89, 0x12, 0x8d, 0x95, 0x3, 0x3c } };	// {FAD48B96-56AA-4F7A-AB9F-89128D95033C}
+	constexpr const GUID ig_id = { 0xc8dcd449, 0x22e6, 0x46db, { 0x9a, 0xa5, 0x1b, 0x23, 0xc6, 0x7c, 0x41, 0x97 } };	// {C8DCD449-22E6-46DB-9AA5-1B23C67C4197}
+
+	constexpr size_t codons_count = 9;
+	constexpr size_t param_count = 1 + codons_count;
+
+	struct TParameters {
+		union {
+			struct
+			{
+				double IG_0;
+				double codons[codons_count];
+			};
+			double vector[param_count];
+		};
+	};
+
+	constexpr const double Constant_Lower_Bound = -10.0;
+	constexpr const double Constant_Upper_Bound = 10.0;
+
+	const TParameters lower_bounds = {
+		2.0,
+		0,0,0,0,0,0,0,0,0
+	};
+	const TParameters default_parameters = {
+		6.6,
+		0,0,0,0,0,0,0,0,0
+	};
+	const TParameters upper_bounds = {
+		24.0,
+		1,1,1,1,1,1,1,1,1
+	};
+
+}
+
+namespace data_enhacement
+{
+	constexpr const GUID model_id = { 0x1f616ae9, 0xcec1, 0x427e, { 0xac, 0xdf, 0xf9, 0x45, 0x74, 0x67, 0x1, 0x3d } };		// {1F616AE9-CEC1-427E-ACDF-F9457467013D}
+	constexpr const GUID pos_signal_id = { 0x3b7fa13d, 0x22fb, 0x4159, { 0x88, 0xf, 0xc7, 0x2b, 0x9a, 0xba, 0xc4, 0x34 } };	// {3B7FA13D-22FB-4159-880F-C72B9ABAC434}
+	constexpr const GUID neg_signal_id = { 0xce78d527, 0xefc7, 0x4d19, { 0x86, 0x2, 0x39, 0xea, 0xd8, 0x45, 0x6, 0xbe } };	// {CE78D527-EFC7-4D19-8602-39EAD84506BE}
+
+	const size_t param_count = 6;
+
+	struct TParameters {
+		union {
+			struct {
+				double sampling_horizon;
+				double response_delay;
+				double pos_factor;
+				double neg_factor;
+				double pos_factor_shift;
+				double neg_factor_shift;
+			};
+			double vector[param_count];
+		};
+	};
+
+	const TParameters lower_bounds = {
+		scgms::One_Minute * 20.0,
+		scgms::One_Minute * 10.0,
+		0.1,
+		2.0,
+		0.5,
+		0.2,
+	};
+	const TParameters default_parameters = {
+		scgms::One_Minute * 30.0,
+		scgms::One_Minute * 15.0,
+		0.2,
+		3.5,
+		1.0,
+		0.5,
+	};
+	const TParameters upper_bounds = {
+		scgms::One_Minute * 50.0,
+		scgms::One_Minute * 40.0,
+		0.5,
+		5.0,
+		1.5,
+		1.0,
+	};
+}
+
+namespace cgp_pred
+{
+	constexpr size_t NumOfForecastValues = 4; // TMP: use 4, as for t+30, t+60, t+90, t+120 // 24 = 120 minutes, 1 value per 5 minutes
+
+	constexpr size_t MatrixWidth = 20;
+	constexpr size_t MatrixLength = 10;
+	constexpr size_t Arity = 2;
+
+	constexpr size_t TotalConstantCount = 4;
+
+	constexpr const GUID model_id = { 0x987afc1f, 0xe42, 0x40b1, { 0xae, 0xe6, 0xad, 0x57, 0x38, 0xdc, 0x67, 0x1d } };// {987AFC1F-0E42-40B1-AEE6-AD5738DC671D}
+	extern const GUID calculated_signal_ids[NumOfForecastValues];
+
+	const size_t param_count = MatrixWidth * MatrixLength * (Arity+1) + NumOfForecastValues + TotalConstantCount;
+
+	struct TParameters {
+		union {
+			struct
+			{
+				struct {
+					double function;
+					double operands[Arity];
+				} nodes[MatrixWidth * MatrixLength];
+
+				double outputs[NumOfForecastValues];
+				double constants[TotalConstantCount];
+			};
+			double vector[param_count];
+		};
+	};
+
+	struct TParameters_Converted {
+		union {
+			struct
+			{
+				struct {
+					size_t function;
+					size_t operands[Arity];
+				} nodes[MatrixWidth * MatrixLength];
+
+				size_t outputs[NumOfForecastValues];
+				double constants[TotalConstantCount];
+			};
+			double vector[param_count];
+		};
+	};
+
+	template<typename T, size_t size>
+	constexpr std::array<T, size> generateArray(T val)
+	{
+		std::array<T, size> result{};
+		for (int i = 0; i < size; ++i)
+			result[i] = val;
+		return result;
+	}
+
+	const std::array<double, param_count> lower_bounds{ generateArray<double, param_count>(0) };
+	const std::array<double, param_count> default_parameters{ generateArray<double, param_count>(0.5) };
+	const std::array<double, param_count> upper_bounds{ generateArray<double, param_count>(1.0) };
+}
+
+namespace bases_pred
+{
+	constexpr const GUID model_id = { 0x6bcaf380, 0x292a, 0x4aa8, { 0x85, 0x4a, 0x87, 0xe5, 0xa5, 0xba, 0x32, 0xc9 } };		// {6BCAF380-292A-4AA8-854A-87E5A5BA32C9}
+	constexpr const GUID ig_signal_id = { 0xe20fb63c, 0x9028, 0x4593, { 0x8f, 0x96, 0x6, 0xa7, 0xc5, 0xb, 0x66, 0xff } };	// {E20FB63C-9028-4593-8F96-06A7C50B66FF}
+
+	constexpr size_t Base_Functions_CHO = 4;
+	constexpr size_t Base_Functions_Ins = 4;
+	constexpr size_t Base_Functions_PA = 3;
+	constexpr size_t Base_Functions_PatternPred = 0;
+	constexpr size_t Base_Functions_Count = Base_Functions_CHO + Base_Functions_Ins + Base_Functions_PA + Base_Functions_PatternPred;
+
+	constexpr double Prediction_Horizon = 60.0_min;
+
+	const size_t param_count = Base_Functions_Count * 3 + 8 + 3;
+
+	struct TParameters {
+		union {
+			struct {
+				double curWeight;
+				double baseAvgTimeWindow;
+				double baseAvgOffset;
+				double carbContrib;
+				double insContrib;
+				double paContrib;
+				double carbPast;
+				double insPast;
+				struct {
+					double amplitude;
+					double tod_offset;
+					double variance;
+				} baseFunction[Base_Functions_Count];
+				double c;
+				double k;
+				double h;
+			};
+			double vector[param_count];
+		};
+	};
+
+	const TParameters lower_bounds = {
+		0.05,
+		scgms::One_Hour * 6.0,
+		-3.0,
+		0.01,
+		0.01,
+		0.01,
+		0,
+		0,
+
+		-10.0, 0.0, 0.05,
+		-10.0, 0.0, 0.05,
+		-10.0, 0.0, 0.05,
+		-10.0, 0.0, 0.05,
+		-10.0, 0.0, 0.05,
+		-10.0, 0.0, 0.05,
+		-10.0, 0.0, 0.05,
+		-10.0, 0.0, 0.05,
+		-10.0, 0.0, 0.05,
+		-10.0, 0.0, 0.05,
+		-10.0, 0.0, 0.05,
+		/*-10.0, 0.0, 0.05,
+		-10.0, 0.0, 0.05,
+		-10.0, 0.0, 0.05,
+		-10.0, 0.0, 0.05,*/
+		-5, -1, scgms::One_Minute * 5,
+	};
+	const TParameters default_parameters = {
+		0.3,
+		scgms::One_Hour * 12.0,
+		0.0,
+		0.5,
+		0.5,
+		0.5,
+		scgms::One_Hour,
+		scgms::One_Hour,
+
+		3, 0.3, 0.2,
+		5, 0.5, 0.2,
+		4, 0.7, 0.2,
+		4, 0.7, 0.2,
+		4, 0.7, 0.2,
+		4, 0.7, 0.2,
+		4, 0.7, 0.2,
+		4, 0.7, 0.2,
+		4, 0.7, 0.2,
+		4, 0.7, 0.2,
+		4, 0.7, 0.2,
+		/*4, 0.7, 0.2,
+		4, 0.7, 0.2,
+		4, 0.7, 0.2,
+		4, 0.7, 0.2,*/
+		0, -0.07, scgms::One_Minute * 5,
+	};
+	const TParameters upper_bounds = {
+		0.95,
+		scgms::One_Hour * 24.0,
+		3.0,
+		2.0,
+		2.0,
+		2.0,
+		scgms::One_Hour * 2.0,
+		scgms::One_Hour * 2.0,
+
+		10.0, 0.99, 0.5,
+		10.0, 0.99, 0.5,
+		10.0, 0.99, 0.5,
+		10.0, 0.99, 0.5,
+		10.0, 0.99, 0.5,
+		10.0, 0.99, 0.5,
+		10.0, 0.99, 0.5,
+		10.0, 0.99, 0.5,
+		10.0, 0.99, 0.5,
+		10.0, 0.99, 0.5,
+		10.0, 0.99, 0.5,
+		/*10.0, 0.99, 0.5,
+		10.0, 0.99, 0.5,
+		10.0, 0.99, 0.5,
+		10.0, 0.99, 0.5,*/
+		5, 0, scgms::One_Minute * 20,
+	};
+}
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end);
 extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end);

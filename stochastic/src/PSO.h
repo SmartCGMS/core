@@ -248,9 +248,9 @@ class CPSO
 		// inertia factor (how much velocity the particle retains from previous generation)
 		static constexpr double omega = 0.7298;
 		// local memory attraction (how much the particle wants to return to its best known position)
-		static constexpr double phi_p = 2.05;
+		static constexpr double phi_p = 1.55;
 		// global memory attraction (how much the particle wants to go to swarm's best known position)
-		static constexpr double phi_g = 1.55;
+		static constexpr double phi_g = 2.05;
 		// maximum velocity factor (the maximum length of velocity vector in fractions of search space)
 		static constexpr double max_velocity = 0.4;
 
@@ -288,14 +288,6 @@ class CPSO
 				mOverall_Best = mBest_Itr->best;
 				mOverall_Best_Fitness = mBest_Fitness;
 			}
-		}
-
-		inline void Print_Best_Candidate(size_t iter)
-		{
-			dprintf("%d; %llf; ", iter, mOverall_Best_Fitness);
-			for (size_t i = 0; i < mSetup.problem_size; i++)
-				dprintf("%llf; ", mOverall_Best[i]);
-			dprintf("\r\n");
 		}
 
 	protected:
@@ -404,11 +396,11 @@ class CPSO
 
 						if (repulsory_iterations > 0)
 						{
-							// repulse
+							// repulse (stronger in each repulsory iteration)
 							for (auto& repulsor : mRepulsors)
 								//candidate_solution.velocity -= phi_r * 1.0 / (repulsor.best - candidate_solution.current);
 								//candidate_solution.velocity -= phi_r * (repulsor.best - candidate_solution.current) * (1.0 / (repulsor.best_fitness * candidate_solution.best_fitness)) / std::sqrt((repulsor.best - candidate_solution.current).pow(2).sum());
-								candidate_solution.velocity -= phi_r * r_g * (repulsor.best - candidate_solution.current) / std::sqrt((repulsor.best - candidate_solution.current).pow(2).sum());
+								candidate_solution.velocity -= phi_r * r_g * (repulsor.best - candidate_solution.current) / std::pow((repulsor.best - candidate_solution.current).pow(static_cast<double>(mRepulsors.size())).sum(), 1.0 / static_cast<double>(mRepulsors.size()));
 								//candidate_solution.velocity -= phi_r * (repulsor.best - candidate_solution.current) * (repulsor.best_fitness / candidate_solution.best_fitness) / std::sqrt((repulsor.best - candidate_solution.current).pow(2).sum());
 						}
 						else
@@ -451,9 +443,6 @@ class CPSO
 
 				// update swarm-best candidate
 				Update_Best_Candidate();
-
-				// for debugging purposes
-				Print_Best_Candidate(progress.current_progress);
 			}
 
 			return mOverall_Best;

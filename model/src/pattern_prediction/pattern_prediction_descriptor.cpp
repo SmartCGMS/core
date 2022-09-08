@@ -50,7 +50,7 @@
 namespace pattern_prediction {	
 
 	scgms::TSignal_Descriptor get_sig_desc() {
-		const scgms::TSignal_Descriptor sig_desc{ signal_Pattern_Prediction, dsPattern_Prediction_Signal, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFF5BD1F, 0xFFF5BD1F, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr };
+		const scgms::TSignal_Descriptor sig_desc{ signal_Pattern_Prediction, dsPattern_Prediction_Signal, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFF5BD1F, 0xFFF5BD1F, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
 		return sig_desc;
 	}
@@ -65,7 +65,7 @@ namespace pattern_prediction {
 	scgms::TFilter_Descriptor get_filter_desc() {
 		const scgms::TFilter_Descriptor filter_desc = {
 				filter_id,
-				scgms::NFilter_Flags::None,
+				scgms::NFilter_Flags::Encapsulated_Model,
 				dsPattern_Prediction_Model,
 				filter_param_count,
 				filter_param_types,

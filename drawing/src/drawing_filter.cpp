@@ -148,7 +148,6 @@ CDrawing_Filter::CDrawing_Filter(scgms::IFilter *output) : CBase_Filter(output),
 }
 
 HRESULT IfaceCalling CDrawing_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
-	if (Internal_Query_Interface<scgms::IFilter>(scgms::IID_Drawing_Filter, *riid, ppvObj)) return S_OK;
 	if (Internal_Query_Interface<scgms::IDrawing_Filter_Inspection>(scgms::IID_Drawing_Filter_Inspection, *riid, ppvObj)) return S_OK;
 
 	return E_NOINTERFACE;

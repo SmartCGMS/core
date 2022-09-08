@@ -1,0 +1,5 @@
+LIBRARY drawing_v2.dll
+
+EXPORTS
+	do_get_filter_descriptors
+	do_create_filter

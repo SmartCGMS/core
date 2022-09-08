@@ -312,6 +312,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 
 	}
 
+	if (mNumber_Of_Segment_Specific_Parameters > 0)
 	{
 		size_t begin_offset = 0;
 
@@ -382,6 +383,8 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 						param_event.release();
 
 						HRESULT rc = mOutput->Execute(raw_event);	//mOutput will bypass the model as it is already configured with these parameters
+						if (!Succeeded(rc))
+							return;
 					}
 				}
 

@@ -352,7 +352,6 @@ class CRumor_Opt
 			}
 		}
 
-		/*
 		// creates a new noise candidate
 		void Create_Noise_Candidate() {
 			mNoise.resize(Eigen::NoChange, mSetup.problem_size);
@@ -361,7 +360,6 @@ class CRumor_Opt
 
 			mNoise = mLower_Bound + mNoise.cwiseProduct(mBounds_Range);
 		}
-		*/
 
 		// performs rumoring between two candidate solutions - updates 'a' ("from b to a")
 		void Rumor(rumoropt::TCandidate_Solution<TUsed_Solution>& a, const rumoropt::TCandidate_Solution<TUsed_Solution>& b, size_t incidenceIdx) {

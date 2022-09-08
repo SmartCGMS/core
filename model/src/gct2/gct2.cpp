@@ -41,10 +41,6 @@
 // draw debug plots to a file? define to draw
 //#define GCT_DEBUG_DRAWING
 
-// redirect incoming depots to a single persistent intermediate depot? This may come in handy in preliminary optimalization to speed things up
-#define GCT_SINGLE_ISC_INTERMEDIATE_DEPOT
-#define GCT_SINGLE_D_INTERMEDIATE_DEPOT
-
 #include "../../../../common/rtl/SolverLib.h"
 
 #ifdef GCT_DEBUG_DRAWING
@@ -290,67 +286,23 @@ CGCT2_Discrete_Model::CGCT2_Discrete_Model(scgms::IModel_Parameter_Vector* param
 
 CDepot& CGCT2_Discrete_Model::Add_To_D1(double amount, double start, double duration) {
 
-	CDepot& depot = mCompartments[NGCT_Compartment::Carbs_1].Create_Depot(amount, false);
-	CDepot& target = Add_To_D2(0, start, duration);
+	CDepot& depot = mCompartments[NGCT_Compartment::Carbs].Create_Depot(amount, false);
 
 	depot.Set_Name(std::wstring(L"D1 (") + std::to_wstring(amount) + L")");
 
-#ifdef GCT_SINGLE_D_INTERMEDIATE_DEPOT
-	depot.Link_To<CTriangular_Bounded_Transfer_Function>(target, start, duration, amount);
-#else
-	depot.Link_To<CConstant_Bounded_Transfer_Function>(target, start, duration, amount);
-#endif
-	return depot;
-}
-
-CDepot& CGCT2_Discrete_Model::Add_To_D2(double amount, double start, double duration) {
-
-#ifdef GCT_SINGLE_D_INTERMEDIATE_DEPOT
-	CDepot& depot = mCompartments[NGCT_Compartment::Glucose_1].Get_Persistent_Depot();
-#else
-	CDepot& depot = mCompartments[NGCT_Compartment::Carbs_2].Create_Depot(amount, false);
-
-	depot.Set_Name(std::wstring(L"D2 (") + std::to_wstring(amount) + L")");
-
-	// TODO: attempt to estimate correct duration (with acceptable cut-off)
-
-	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Glucose_1].Get_Persistent_Depot(), start, duration*20.0, mParameters.d2q1);
-#endif
+	depot.Link_To<CTriangular_Bounded_Transfer_Function>(mCompartments[NGCT_Compartment::Glucose_1].Get_Persistent_Depot(), start, duration, amount);
 
 	return depot;
 }
 
 CDepot& CGCT2_Discrete_Model::Add_To_Isc1(double amount, double start, double duration) {
 
-	CDepot& depot = mCompartments[NGCT_Compartment::Insulin_Subcutaneous_1].Create_Depot(amount, false);
-	CDepot& target = Add_To_Isc2(0, start, duration);
+	CDepot& depot = mCompartments[NGCT_Compartment::Insulin_Subcutaneous].Create_Depot(amount, false);
 
 	depot.Set_Name(std::wstring(L"Isc1 (") + std::to_wstring(amount) + L")");
 
-#ifdef GCT_SINGLE_ISC_INTERMEDIATE_DEPOT
 	// absorbed insulin is lowered by the ratio of absorption to elimination
-	depot.Link_To<CTriangular_Bounded_Transfer_Function>(target, start, duration, amount * (mParameters.isc2i / (mParameters.isc2i + mParameters.isc2e)));
-#else
-	depot.Link_To<CConstant_Bounded_Transfer_Function>(target, start, duration, amount);
-#endif
-
-	return depot;
-}
-
-CDepot& CGCT2_Discrete_Model::Add_To_Isc2(double amount, double start, double duration) {
-
-#ifdef GCT_SINGLE_ISC_INTERMEDIATE_DEPOT
-	CDepot& depot = mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot();
-#else
-	CDepot& depot = mCompartments[NGCT_Compartment::Insulin_Subcutaneous_2].Create_Depot(amount, false);
-
-	depot.Set_Name(std::wstring(L"Isc2 (") + std::to_wstring(amount) + L")");
-
-	// TODO: attempt to estimate correct duration (with acceptable cut-off)
-
-	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot(), start, duration * 10.0, mParameters.isc2i);
-	depot.Link_To<CConstant_Unbounded_Transfer_Function>(mInsulin_Sink, start, duration * 10.0, mParameters.isc2e);
-#endif
+	depot.Link_To<CConstant_Bounded_Transfer_Function>(mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot(), start, duration, amount * mParameters.iscimod);
 
 	return depot;
 }
@@ -373,10 +325,10 @@ void CGCT2_Discrete_Model::Emit_All_Signals(double time_advance_delta) {
 	 * Unabsorbed reservoirs (insulin/carbs on board)
 	 */
 
-	const double cob = mCompartments[NGCT_Compartment::Carbs_1].Get_Quantity() + mCompartments[NGCT_Compartment::Carbs_2].Get_Quantity(); // mmols of glucose
+	const double cob = mCompartments[NGCT_Compartment::Carbs].Get_Quantity(); // mmols of glucose
 	Emit_Signal_Level(gct2_model::signal_COB, _T, cob * Glucose_Molar_Weight / (mParameters.Ag * 1000.0));
 
-	const double iob = mCompartments[NGCT_Compartment::Insulin_Remote].Get_Quantity() + mCompartments[NGCT_Compartment::Insulin_Subcutaneous_1].Get_Quantity() + mCompartments[NGCT_Compartment::Insulin_Subcutaneous_2].Get_Quantity();
+	const double iob = mCompartments[NGCT_Compartment::Insulin_Remote].Get_Quantity() + mCompartments[NGCT_Compartment::Insulin_Subcutaneous].Get_Quantity();
 	Emit_Signal_Level(gct2_model::signal_IOB, _T, iob);
 
 	/*
@@ -407,7 +359,7 @@ HRESULT CGCT2_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 					constexpr double PortionTimeSpacing = 60_sec;
 					const double rate = event.level() / (60.0 * (60_sec / PortionTimeSpacing));
 
-					mInsulin_Pump.Set_Infusion_Parameter(rate, PortionTimeSpacing, mParameters.t_i);
+					mInsulin_Pump.Set_Infusion_Parameter(event.device_time(), rate, PortionTimeSpacing, mParameters.t_i);
 					mPending_Signals.push_back(TPending_Signal{ scgms::signal_Delivered_Insulin_Basal_Rate, event.device_time(), event.level() });
 
 					res = S_OK;
@@ -624,13 +576,11 @@ HRESULT IfaceCalling CGCT2_Discrete_Model::Step(const double time_advance_delta)
 				case NGCT_Compartment::Glucose_2: return L"Q2";
 				case NGCT_Compartment::Glucose_Peripheral: return L"Qp";
 				case NGCT_Compartment::Glucose_Subcutaneous: return L"Qsc";
-				case NGCT_Compartment::Carbs_1: return L"CHO1";
-				case NGCT_Compartment::Carbs_2: return L"CHO2";
+				case NGCT_Compartment::Carbs: return L"COB";
 				case NGCT_Compartment::Insulin_Base: return L"Ib";
 				case NGCT_Compartment::Insulin_Peripheral: return L"Ip";
 				case NGCT_Compartment::Insulin_Remote: return L"X";
-				case NGCT_Compartment::Insulin_Subcutaneous_1: return L"Isc1";
-				case NGCT_Compartment::Insulin_Subcutaneous_2: return L"Isc2";
+				case NGCT_Compartment::Insulin_Subcutaneous_1: return L"Isc";
 				case NGCT_Compartment::Physical_Activity: return L"PA";
 				case NGCT_Compartment::Physical_Activity_Glucose_Moderation_Short_Term: return L"PAmod_ST";
 				case NGCT_Compartment::Physical_Activity_Glucose_Moderation_Long_Term: return L"PAmod_LT";
@@ -650,7 +600,7 @@ HRESULT IfaceCalling CGCT2_Discrete_Model::Step(const double time_advance_delta)
 					continue;
 
 				/*
-				if (static_cast<NGCT_Compartment>(ci) == NGCT_Compartment::Insulin_Subcutaneous_1 || static_cast<NGCT_Compartment>(ci) == NGCT_Compartment::Carbs_1)
+				if (static_cast<NGCT_Compartment>(ci) == NGCT_Compartment::Insulin_Subcutaneous || static_cast<NGCT_Compartment>(ci) == NGCT_Compartment::Carbs)
 					continue;
 				*/
 
@@ -704,8 +654,6 @@ HRESULT IfaceCalling CGCT2_Discrete_Model::Initialize(const double current_time,
 
 		if (mParameters.D1_0 > 0)
 			Add_To_D1(mParameters.D1_0, mLast_Time, scgms::One_Minute * 15);
-		if (mParameters.D2_0 > 0)
-			Add_To_D2(mParameters.D2_0, mLast_Time, scgms::One_Minute * 15);
 		if (mParameters.Isc_0 > 0)
 			Add_To_Isc1(mParameters.Isc_0, mLast_Time, scgms::One_Minute * 15);
 
@@ -729,9 +677,13 @@ void CInfusion_Device::Initialize(double initialTime, double infusionRate, doubl
 	mAbsorption_Time = absorptionTime;
 }
 
-void CInfusion_Device::Set_Infusion_Parameter(double infusionRate, double infusionPeriod, double absorptionTime) {
+void CInfusion_Device::Set_Infusion_Parameter(double currentTime, double infusionRate, double infusionPeriod, double absorptionTime) {
 
 	if (!std::isnan(infusionRate)) {
+
+		if (mInfusion_Rate == 0.0)
+			mLast_Time = currentTime;
+
 		mInfusion_Rate = infusionRate;
 	}
 

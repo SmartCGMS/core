@@ -96,7 +96,7 @@ namespace drawing
 
 	const scgms::TFilter_Descriptor Drawing_Descriptor = {
 		scgms::IID_Drawing_Filter,
-		scgms::NFilter_Flags::None,
+		scgms::NFilter_Flags::Presentation_Only,
 		dsDrawing_Filter,
 		param_count,
 		param_type,

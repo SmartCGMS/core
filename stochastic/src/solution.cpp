@@ -59,7 +59,7 @@ enum class partial_ordering
 static inline partial_ordering Compare_Values(const double better, const double worse)
 {
 #if __has_threeway_cmp
-	return a <=> b;
+	return better <=> worse;
 #else
 	/*	nans are already checked for in CompareSolutions
 	if (std::isnan(better) || std::isnan(worse))

@@ -76,7 +76,6 @@ std::string Get_VS_Installation_Path(std::string vswhere, const char* tool, cons
 
 	return result;
 }
-#endif
 
 std::string Visual_Studio() {
 	std::string result;
@@ -110,10 +109,9 @@ std::string Visual_Studio() {
 #endif
 		}
 
-
-	
 	return result;
 }
+#endif // _WIN32
 
 std::string Get_Env_Init(const std::wstring& compiler_prefix) {
 	std::string result;
@@ -121,7 +119,7 @@ std::string Get_Env_Init(const std::wstring& compiler_prefix) {
 #ifdef _WIN32
 	if (compiler_prefix == L"cl") {
 		//Let's attempt to determine Visual Studio installation
-		result = Visual_Studio();		
+		result = Visual_Studio();
 	}
 #endif
 
