@@ -60,11 +60,14 @@ bool CBasal_2_Bolus::Schedule_Delivery(const double current_device_time, const d
 			mEffective_Period = mParameters.period * ratio;
 			mInsulin_To_Deliver_Per_Period *= ratio;
 		}
-			
-		
-		if (!mValid_Settings)
+
+
+		if (!mValid_Settings) {
 			mNext_Delivery_Time = current_device_time;		//we start delivering now
-		else {		
+			mValid_Settings = true;
+			result = true;
+		}
+		else {
 			const double delta = mInsulin_To_Deliver_Per_Period - old_delivery_per_period;
 			if (delta > mParameters.minimum_amount) {
 				//let's us just issue a compensation dose
@@ -77,14 +80,13 @@ bool CBasal_2_Bolus::Schedule_Delivery(const double current_device_time, const d
 
 				result = Succeeded(mOutput.Send(event));
 			}
+			else
+				result = true;
 			//else we deliver on the original delivery time not to generate excess insulin doses
-		}
-			
-
-		result &= mValid_Settings = true;
+		}		
 	}
 	else {
-		//let's stop the insulin deliverys
+		//let's stop the insulin deliveries
 		mValid_Settings = false;
 		result = target_rate == 0.0;	//let's report negative rates as errors
 	}
