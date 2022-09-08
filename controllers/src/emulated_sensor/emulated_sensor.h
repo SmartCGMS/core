@@ -50,7 +50,7 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CSensor_Filter : public virtual scgms::CBase_Filter
+class CEmulated_Sensor_Filter : public virtual scgms::CBase_Filter
 {
 	private:
 		// stored calibration record
@@ -111,8 +111,8 @@ class CSensor_Filter : public virtual scgms::CBase_Filter
 		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 
 	public:
-		CSensor_Filter(scgms::IFilter* output);
-		virtual ~CSensor_Filter();
+		CEmulated_Sensor_Filter(scgms::IFilter* output);
+		virtual ~CEmulated_Sensor_Filter();
 };
 
 #pragma warning( pop )

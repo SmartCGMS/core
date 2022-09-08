@@ -53,7 +53,7 @@
 #include "gege/gege.h"
 #include "flr_ge/flr_ge.h"
 #include "basal_2_bolus/basal_2_bolus.h"
-#include "sensor/sensor.h"
+#include "emulated_sensor/emulated_sensor.h"
 
 #include <vector>
 
@@ -626,7 +626,7 @@ HRESULT IfaceCalling do_create_filter(const GUID* id, scgms::IFilter* output, sc
 	if (*id == basal_2_bolus::filter_id)
 		return Manufacture_Object<CBasal_2_Bolus>(filter, output);
 	else if (*id == sensor::filter_id)
-		return Manufacture_Object<CSensor_Filter>(filter, output);
+		return Manufacture_Object<CEmulated_Sensor_Filter>(filter, output);
 
 	return E_NOTIMPL;
 }
