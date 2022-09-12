@@ -147,6 +147,8 @@ HRESULT IfaceCalling CLog_Filter::Do_Configure(scgms::SFilter_Configuration conf
 	//empty log file path just means that we simply do not write the log to the disk
 	 //but collect it in the memory, e.g.; for GUI	
 
+	mReduce_Log = configuration.Read_Bool(rsReduced_Log, mReduce_Log);
+
 
 	if (!mLog_Per_Segment && !mLog_Filename.empty()) {
 		mLog = Open_Log(mLog_Filename);
@@ -201,13 +203,17 @@ HRESULT IfaceCalling CLog_Filter::Do_Execute(scgms::UDevice_Event event) {
 
 
 void CLog_Filter::Log_Event(std::wofstream& log, const scgms::UDevice_Event& evt, const bool push_to_ui_container) {
+	const auto event_code = evt.event_code();
+	if (mReduce_Log && (event_code == scgms::NDevice_Event_Code::Nothing))
+		return;
+
 	const wchar_t *delim = L"; ";
 
 	std::wostringstream log_line;
 
 	log_line << evt.logical_time() << delim;
 	log_line << Rat_Time_To_Local_Time_WStr(evt.device_time(), rsLog_Date_Time_Format) << delim;
-	log_line << scgms::event_code_text[static_cast<size_t>(evt.event_code())] << delim;
+	log_line << scgms::event_code_text[static_cast<size_t>(event_code)] << delim;
 	if (evt.signal_id() != Invalid_GUID) log_line << mSignal_Names.Get_Name(evt.signal_id());
 	log_line << delim;
 	if (evt.is_level_event()) log_line << evt.level();
