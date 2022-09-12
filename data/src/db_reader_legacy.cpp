@@ -305,7 +305,10 @@ HRESULT IfaceCalling CDb_Reader_Legacy::Set_Connector(db::IDb_Connector *connect
 	mDb_Connector = refcnt::make_shared_reference_ext<db::SDb_Connector, db::IDb_Connector>(connector, true);
 	
 	// we need at least these parameters
-	HRESULT rc = (!(mDbHost.empty() || mDbProvider.empty() || mDbTimeSegmentIds.empty())) ? S_OK : E_INVALIDARG;
+	const bool essential_parameters_provided = !mDbProvider.empty() && !mDbTimeSegmentIds.empty() && !mDbDatabaseName.empty();
+	const bool db_path_provided = 	db::is_file_db(mDbProvider) ? true : !mDbHost.empty();
+
+	HRESULT rc = (essential_parameters_provided && db_path_provided) ? S_OK : E_INVALIDARG;
 	if (rc == S_OK)
 		mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader_Legacy::Db_Reader, this);
 

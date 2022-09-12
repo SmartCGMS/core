@@ -149,19 +149,51 @@ protected:
 		return rc;
 	}	
 
+	template <typename C, typename D>
+	HRESULT Get_Container_With_All_Level_Vars_Resolved(refcnt::SReferenced<C>& source_container, C** destination_container, TConvertor<D>  conv) {
+		//let's check whether str is or is not a variable
+		if (!mVariable_Name.empty()) {
+			//let us update re-parse the container
+
+			std::wstring current_value;
+			HRESULT local_rc = E_UAC_DISABLED;
+			std::tie(local_rc, current_value) = Evaluate_Variable(mVariable_Name);
+			if (!Succeeded(local_rc))
+				return local_rc;
+
+			if (!Parse_Container<C, D>(source_container, current_value, conv))
+				return E_FAIL;
+
+			return Get_Container(source_container, destination_container);
+
+		}
+		else if (mModel_Parameters) {
+			HRESULT rc = Update_Container_By_Vars<D>(source_container, conv);
+			return Succeeded(rc) ? Get_Container(source_container, destination_container) : rc;
+		}
+		else
+			return E_NOT_SET;
+	}
+
+	template <typename C, typename D>
+	bool Parse_Container(refcnt::SReferenced<C> &container, const std::wstring &str, TConvertor<D>  conv) {		//returns true of valid
+		container = refcnt::make_shared_reference_ext< refcnt::SReferenced<C>, C>(Parse_Array_String<D, C>(str, conv), false);
+		return container.operator bool();
+	}
 
 	template <typename D, typename R>
-	R* Parse_Array_String(const wchar_t* str, TConvertor<D>  conv) {
-		if (!str) return nullptr;
+	R* Parse_Array_String(const std::wstring &str, TConvertor<D>  conv) {
+		if (str.empty() || (str.size()==0)) return nullptr;
 
+		std::wstring effective_str{ str };	//wcstok modifies the input string		
 		std::vector<D> values;
 		mArray_Vars.clear();
 		mFirst_Array_Var_idx = std::numeric_limits<size_t>::max();
 
-		std::wstring str_copy{ str };	//wcstok modifies the input string
+		//std::wstring effective_str{ str };	//wcstok modifies the input string
 		const wchar_t* delimiters = L" ";	//string of chars, which designate individual delimiters
 		wchar_t* buffer = nullptr;
-		wchar_t* str_val = wcstok_s(const_cast<wchar_t*>(str_copy.data()), delimiters, &buffer);
+		wchar_t* str_val = wcstok_s(const_cast<wchar_t*>(effective_str.data()), delimiters, &buffer);
 
 		size_t counter = 0;
 		while (str_val != nullptr) {
