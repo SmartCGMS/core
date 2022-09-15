@@ -164,14 +164,14 @@ protected:
 			if (!Parse_Container<C, D>(source_container, current_value, conv))
 				return E_FAIL;
 
-			rc = Get_Container(source_container, destination_container);
+			HRESULT rc = Get_Container(source_container, destination_container);
 			return rc;
 
 		}
 		else if (mModel_Parameters) {
 			HRESULT rc = Update_Container_By_Vars<D>(source_container, conv);
 			if (Succeeded(rc)) {
-				rc = Get_Container(source_container, destination_container)
+				rc = Get_Container(source_container, destination_container);
 			}
 			return rc;
 		}
