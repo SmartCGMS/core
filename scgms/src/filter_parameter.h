@@ -164,12 +164,16 @@ protected:
 			if (!Parse_Container<C, D>(source_container, current_value, conv))
 				return E_FAIL;
 
-			return Get_Container(source_container, destination_container);
+			rc = Get_Container(source_container, destination_container);
+			return rc;
 
 		}
 		else if (mModel_Parameters) {
 			HRESULT rc = Update_Container_By_Vars<D>(source_container, conv);
-			return Succeeded(rc) ? Get_Container(source_container, destination_container) : rc;
+			if (Succeeded(rc)) {
+				rc = Get_Container(source_container, destination_container)
+			}
+			return rc;
 		}
 		else
 			return E_NOT_SET;

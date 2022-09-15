@@ -47,6 +47,7 @@ protected:
 	void Clean_Up() noexcept;
 public:
 	CDevice_Event() noexcept {};
+	CDevice_Event(CDevice_Event &&other) noexcept;
 	virtual ~CDevice_Event() noexcept;
 
 	void Set_Slot(const size_t slot) noexcept { mSlot = slot; };

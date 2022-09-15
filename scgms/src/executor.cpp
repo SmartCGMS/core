@@ -112,7 +112,7 @@ HRESULT IfaceCalling CTerminal_Filter::Execute(scgms::IDevice_Event *event) {
 };
 
 
-CCopying_Terminal_Filter::CCopying_Terminal_Filter(std::vector<CDevice_Event> &events) : CTerminal_Filter(nullptr), mEvents(events) {
+CCopying_Terminal_Filter::CCopying_Terminal_Filter(std::vector<CDevice_Event> &events, bool do_not_copy_info_events) : CTerminal_Filter(nullptr), mEvents(events), mDo_Not_Copy_Info_Events(do_not_copy_info_events) {
 
 }
 
@@ -121,12 +121,17 @@ HRESULT IfaceCalling CCopying_Terminal_Filter::Execute(scgms::IDevice_Event *eve
 		
 	const HRESULT rc = event->Raw(&raw_event);
 	if (Succeeded(rc)) {
-		CDevice_Event clone;
-		clone.Initialize(raw_event);
+
+		if (mDo_Not_Copy_Info_Events && (scgms::UDevice_Event_internal::major_type(raw_event->event_code) == scgms::UDevice_Event_internal::NDevice_Event_Major_Type::info)) {
+			return CTerminal_Filter::Execute(event);
+		} else {
+			CDevice_Event clone;
+			clone.Initialize(raw_event);		
 
 
-		mEvents.push_back(std::move(clone));
-		return CTerminal_Filter::Execute(event);
+			mEvents.push_back(std::move(clone));
+			return CTerminal_Filter::Execute(event);
+		}
 	}
 	else
 		return rc;

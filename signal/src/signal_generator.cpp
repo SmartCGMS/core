@@ -37,6 +37,8 @@
  */
 
 #include "signal_generator.h"
+#include "descriptor.h"
+
 #include "../../../common/rtl/rattime.h"
 #include "../../../common/rtl/UILib.h"
 #include "../../../common/lang/dstrings.h"
@@ -68,8 +70,20 @@ HRESULT IfaceCalling signal_generator_internal::CSynchronized_Generator::Configu
 	shared_configuration.Read_Parameters(rsParameters, lower, parameters, upper);
 	
 	mSync_Model = scgms::SDiscrete_Model{ model_id, parameters, this };
-	if (!mSync_Model)
+	if (!mSync_Model) {
+
+		std::wstring err = L"Cannot create model: ";
+		scgms::TModel_Descriptor desc = scgms::Null_Model_Descriptor;
+		if (scgms::get_model_descriptor_by_id(model_id, desc)) {			
+			err.append(desc.description);
+		} else {
+			err += GUID_To_WString(model_id);
+			err += L" (could not resolve model descriptor)";
+		}		
+		shared_error_description.push(err);		
+
 		return E_FAIL;
+	}
 
 	HRESULT rc = mSync_Model->Configure(configuration, error_description);
 	if (Succeeded(rc)) {
@@ -223,7 +237,12 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 
 
 				rc = sync_model->Configure(mSync_Configuration.get(), errs.get());
-				if (!Succeeded(rc)) return rc;
+				if (!Succeeded(rc)) {
+					errs.for_each([&](const std::wstring err) {
+						Emit_Info(scgms::NDevice_Event_Code::Error, err, event.segment_id());
+					});
+					return rc;
+				}
 
 				auto inserted_sync_model = mSync_Models.insert(std::pair<uint64_t, TSync_Model>(event.segment_id(), std::move(sync_model)));
 				sync_model_iter = inserted_sync_model.first;
@@ -435,19 +454,26 @@ HRESULT IfaceCalling CSignal_Generator::Name(wchar_t** const name) {
 
 
 void CSignal_Generator::Update_Sync_Configuration_Parameters() {
-	if (mCurrent_Segment_Idx >= mSegment_Specific_Parameters.size()) {
-		//new segment, for which we don't have the parameters => let us copy the most recent ones
+	std::vector<double> local_lower;
+	std::vector<double> local_parameters;
+	std::vector<double> local_upper;
 
-		const size_t last_index = mSegment_Specific_Parameters.size()-1;
-		mSegment_Specific_Lower_Bound.push_back(mSegment_Specific_Lower_Bound[last_index]);
-		mSegment_Specific_Parameters.push_back(mSegment_Specific_Parameters[last_index]);		
-		mSegment_Specific_Upper_Bound.push_back(mSegment_Specific_Upper_Bound[last_index]);
-	} 
 
-	//we have the parameters => let's assembly vectors with which we will update the configuration
-	std::vector<double> local_lower{ mSegment_Specific_Lower_Bound[mCurrent_Segment_Idx].begin(), mSegment_Specific_Lower_Bound[mCurrent_Segment_Idx].end() };
-	std::vector<double> local_parameters{ mSegment_Specific_Parameters[mCurrent_Segment_Idx].begin(), mSegment_Specific_Parameters[mCurrent_Segment_Idx].end() };
-	std::vector<double> local_upper{ mSegment_Specific_Upper_Bound[mCurrent_Segment_Idx].begin(), mSegment_Specific_Upper_Bound[mCurrent_Segment_Idx].end() };
+	if (!mSegment_Specific_Parameters.empty()) {
+		if (mCurrent_Segment_Idx >= mSegment_Specific_Parameters.size()) {
+			//new segment, for which we don't have the parameters => let us copy the most recent ones
+
+			const size_t last_index = mSegment_Specific_Parameters.size() - 1;
+			mSegment_Specific_Lower_Bound.push_back(mSegment_Specific_Lower_Bound[last_index]);
+			mSegment_Specific_Parameters.push_back(mSegment_Specific_Parameters[last_index]);
+			mSegment_Specific_Upper_Bound.push_back(mSegment_Specific_Upper_Bound[last_index]);
+		}
+
+		//we have the parameters => let's assembly vectors with which we will update the configuration
+		local_lower.insert(local_lower.end(),  mSegment_Specific_Lower_Bound[mCurrent_Segment_Idx].begin(), mSegment_Specific_Lower_Bound[mCurrent_Segment_Idx].end() );
+		local_parameters.insert(local_parameters.end(), mSegment_Specific_Parameters[mCurrent_Segment_Idx].begin(), mSegment_Specific_Parameters[mCurrent_Segment_Idx].end() );
+		local_upper.insert(local_upper.end(), mSegment_Specific_Upper_Bound[mCurrent_Segment_Idx].begin(), mSegment_Specific_Upper_Bound[mCurrent_Segment_Idx].end() );
+	}
 
 	local_lower.insert(local_lower.end(), mSegment_Agnostic_Lower_Bound.begin(), mSegment_Agnostic_Lower_Bound.end());
 	local_parameters.insert(local_parameters.end(), mSegment_Agnostic_Parameters.begin(), mSegment_Agnostic_Parameters.end());

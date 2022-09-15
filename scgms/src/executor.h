@@ -87,8 +87,9 @@ public:
 class CCopying_Terminal_Filter : public virtual CTerminal_Filter {
 protected:
 	std::vector<CDevice_Event> &mEvents;
+	bool mDo_Not_Copy_Info_Events = true;
 public:
-	CCopying_Terminal_Filter(std::vector<CDevice_Event> &events);
+	CCopying_Terminal_Filter(std::vector<CDevice_Event> &events, bool do_not_copy_info_events);
 	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
 };
 

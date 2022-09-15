@@ -64,6 +64,7 @@ protected:
 	double mStepped_Current_Time = std::numeric_limits<double>::quiet_NaN();
 	size_t mBolus_Index = std::numeric_limits<size_t>::max();
 	size_t mBasal_Index = std::numeric_limits<size_t>::max();
+
 	uint64_t mSegment_id = scgms::Invalid_Segment_Id;
 	bool mBasal_Rate_Issued = false;
 	bool mLGS_Active = false;
@@ -98,10 +99,7 @@ protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
 public:
-	CRates_Pack_Boluses(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output) :
-		CBase_Filter(output, rates_pack_boluses::model_id),
-		scgms::CDiscrete_Model<rates_pack_boluses::TParameters>(parameters, rates_pack_boluses::default_parameters, output, rates_pack_boluses::model_id)
-		{}
+	CRates_Pack_Boluses(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output);
 	virtual ~CRates_Pack_Boluses();
 
 	// scgms::IDiscrete_Model iface

@@ -217,7 +217,10 @@ protected:
 
 
 		std::recursive_mutex communication_guard;
-		CCopying_Terminal_Filter terminal_filter{ mEvents_To_Replay };
+		CCopying_Terminal_Filter terminal_filter{ mEvents_To_Replay, true };
+					//when copying, we avoid any info events as:
+					//	1 - it is a bad practice to controle anything with them
+					//  2 - we have no use for any text info, when optimizing
 		{
 			CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely
 																		//call its dtor to get the future error properly

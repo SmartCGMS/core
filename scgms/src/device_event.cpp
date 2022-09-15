@@ -125,10 +125,12 @@ void Clone_Raw(const scgms::TDevice_Event& src_raw, scgms::TDevice_Event& dst_ra
 	dst_raw.logical_time = global_logical_time.fetch_add(1);
 
 	switch (scgms::UDevice_Event_internal::major_type(dst_raw.event_code)) {
-		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::info:			dst_raw.info->AddRef();
+		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::info:			if (dst_raw.info) 
+																					   dst_raw.info->AddRef();
 			break;
 
-		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::parameters:	dst_raw.parameters->AddRef();
+		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::parameters:	if (dst_raw.parameters)
+			                                                                          dst_raw.parameters->AddRef();
 			break;
 
 		default: break;	//just keeping the checkers happy
@@ -136,6 +138,10 @@ void Clone_Raw(const scgms::TDevice_Event& src_raw, scgms::TDevice_Event& dst_ra
 }
 
 
+CDevice_Event::CDevice_Event(CDevice_Event&& other) noexcept {
+	memcpy(&mRaw, &other.mRaw, sizeof(mRaw));
+	memset(&other.mRaw, 0, sizeof(other.mRaw));
+}
 
 void CDevice_Event::Initialize(const scgms::NDevice_Event_Code code) noexcept {
 	memset(&mRaw, 0, sizeof(mRaw));
@@ -158,6 +164,7 @@ void CDevice_Event::Initialize(const scgms::NDevice_Event_Code code) noexcept {
 
 
 void CDevice_Event::Initialize(const scgms::TDevice_Event *event) noexcept {
+	Clean_Up();
 	Clone_Raw(*event, mRaw);
 }
 

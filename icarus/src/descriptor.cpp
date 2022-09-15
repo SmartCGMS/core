@@ -39,6 +39,7 @@
 #include "descriptor.h"
 #include "v1_boluses.h"
 #include "basal_and_bolus.h"
+#include "rates_pack_boluses.h"
 
 #include "../../../common/iface/DeviceIface.h"
 #include "../../../common/lang/dstrings.h"
@@ -101,7 +102,7 @@ namespace icarus_v1_boluses {
 		dsIcarus_v1_AI_Boluses,
 		rsIcarus_v1_AI_Boluses,
 		param_count,
-		1,
+		param_count,
 		param_types,
 		param_names,
 		param_columns,
@@ -130,7 +131,7 @@ namespace basal_and_bolus {
 		dsIcarus_Basal_And_Bolus,
 		rsIcarus_Basal_And_Bolus,
 		param_count,
-		1,
+		param_count,
 		param_types,
 		param_names,
 		param_columns,
@@ -147,6 +148,13 @@ namespace basal_and_bolus {
 namespace rates_pack_boluses {
 
 
+	bool Insulin_Setting_Compare(const TInsulin_Setting& a, const TInsulin_Setting& b) {
+		if (a.offset < b.offset) return true;
+		if (a.offset > b.offset) return false;
+		if (a.value > b.value) return false;
+		return true;
+	}
+
 	const double experiment_time = 601.0 * 5.0 * scgms::One_Minute;
 	const double meal_period = experiment_time / static_cast<double>(bolus_max_count);
 	const double rate_period = experiment_time / static_cast<double>(basal_change_max_count);
@@ -156,7 +164,7 @@ namespace rates_pack_boluses {
 	const scgms::NModel_Parameter_Value param_types[param_count] = { scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble };
 	const double lower_bound[param_count] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 	const double default_parameters[param_count] = { 1.5, 3.0, 30_min, 0.0 * meal_period, 10.0, 1.0 * meal_period, 10.0, 2.0 * meal_period, 10.0, 3.0 * meal_period, 10.0, 4.0 * meal_period, 10.0, 5.0 * meal_period, 10.0, 6.0 * meal_period, 10.0, 7.0 * meal_period, 10.0, 0.0 * rate_period, 10.0, 1.0 * rate_period, 10.0, 2.0 * rate_period, 10.0, 3.0 * rate_period, 10.0, 4.0 * rate_period, 10.0, 5.0 * rate_period, 10.0, 6.0 * rate_period, 10.0, 7.0 * rate_period, 10.0, 8.0 * rate_period, 10.0, 9.0 * rate_period, 10.0, 10.0 * rate_period, 10.0, 11.0 * rate_period, 10.0, 12.0 * rate_period, 10.0, 13.0 * rate_period, 10.0, 14.0 * rate_period, 10.0, 15.0 * rate_period, 10.0, 16.0 * rate_period, 10.0, 17.0 * rate_period, 10.0, 18.0 * rate_period, 10.0, 19.0 * rate_period, 10.0, 20.0 * rate_period, 10.0, 21.0 * rate_period, 10.0, 22.0 * rate_period, 10.0, 23.0 * rate_period, 10.0, 24.0 * rate_period, 10.0, 25.0 * rate_period, 10.0, 26.0 * rate_period, 10.0, 27.0 * rate_period, 10.0, 28.0 * rate_period, 10.0, 29.0 * rate_period, 10.0, 30.0 * rate_period, 10.0, 31.0 * rate_period, 10.0, 32.0 * rate_period, 10.0, 33.0 * rate_period, 10.0, 34.0 * rate_period, 10.0, 35.0 * rate_period, 10.0, 36.0 * rate_period, 10.0, 37.0 * rate_period, 10.0, 38.0 * rate_period, 10.0, 39.0 * rate_period, 10.0 };
-	const double upper_bound[param_count] = { 10.0, 5.0, 2_hr, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0, experiment_time, 100.0 };
+	const double upper_bound[param_count] = { 10.0, 5.0, 2_hr, experiment_time, 25.0, experiment_time, 25.0, experiment_time, 25.0, experiment_time, 25.0, experiment_time, 25.0, experiment_time, 25.0, experiment_time, 25.0, experiment_time, 25.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0, experiment_time, 12.0 };
 
 
 	const scgms::TModel_Descriptor desc = {
@@ -165,7 +173,7 @@ namespace rates_pack_boluses {
 		L"Icarus Rates Pack & Boluses & LGS",
 		L"Icarus_Rates_Pack_Boluses",
 		param_count,
-		1,
+		param_count,
 		param_types,
 		param_names,
 		config_names,
@@ -203,7 +211,7 @@ int main() {
 
 		lower << ", 0.0, 0.0";
 		def_params << ", " << i <<  ".0*meal_period, 10.0";
-		upper << ", experiment_time, 100.0";
+		upper << ", experiment_time, 25.0";
 	}
 
 	for (size_t i=0; i<basal_change_max_count; i++) {
@@ -213,7 +221,7 @@ int main() {
 
 		lower << ", 0.0, 0.0";
 		def_params << ", " << i <<  ".0*rate_period, 10.0";
-		upper << ", experiment_time, 100.0";
+		upper << ", experiment_time, 12.0";
 	}
 
 
@@ -257,6 +265,8 @@ HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IMode
 		return Manufacture_Object<CV1_Boluses>(model, parameters, output);
 	else if (*model_id == basal_and_bolus::model_id)
 		return Manufacture_Object<CBasal_And_Bolus> (model, parameters, output);
+	else if (*model_id == rates_pack_boluses::model_id)
+		return Manufacture_Object<CRates_Pack_Boluses>(model, parameters, output);
 
 
 	return E_NOTIMPL;

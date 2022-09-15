@@ -104,6 +104,9 @@ namespace rates_pack_boluses {
 		double value;
 	};
 
+
+	bool Insulin_Setting_Compare(const TInsulin_Setting& a, const TInsulin_Setting& b);
+
 	struct TParameters {
 		union {
 			struct {

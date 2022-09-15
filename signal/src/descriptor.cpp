@@ -380,7 +380,7 @@ namespace signal_generator {
 	};
 
 	scgms::TFilter_Descriptor desc = {
-		{ 0x9eeb3451, 0x2a9d, 0x49c1, { 0xba, 0x37, 0x2e, 0xc0, 0xb0, 0xe, 0x5e, 0x6d } },  // {9EEB3451-2A9D-49C1-BA37-2EC0B00E5E6D}
+		filter_id,
 		scgms::NFilter_Flags::None,
 		dsSignal_Generator,
 		filter_param_count,

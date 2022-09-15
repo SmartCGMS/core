@@ -51,6 +51,15 @@
 
 #include "../../../common/rtl/SolverLib.h"
 
+CRates_Pack_Boluses::CRates_Pack_Boluses(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output) :
+	CBase_Filter(output, rates_pack_boluses::model_id),
+	scgms::CDiscrete_Model<rates_pack_boluses::TParameters>(parameters, rates_pack_boluses::default_parameters, output, rates_pack_boluses::model_id) {
+
+	std::sort(std::begin(mParameters.boluses), std::end(mParameters.boluses), rates_pack_boluses::Insulin_Setting_Compare);
+	std::sort(std::begin(mParameters.rates), std::end(mParameters.rates), rates_pack_boluses::Insulin_Setting_Compare);
+}
+
+
 CRates_Pack_Boluses::~CRates_Pack_Boluses() {
 
 }
