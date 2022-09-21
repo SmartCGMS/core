@@ -496,7 +496,30 @@ public:
 			max_generations, population_size, std::numeric_limits<double>::min()
 		};
 
-		HRESULT rc = solve_generic(&solver_id, &solver_setup, &progress);
+
+		//as the configuration may hold some native filters, let us keep an over-subscription reduced instance to keep the libraries loaded
+		//run the configuration
+		HRESULT rc = E_UNEXPECTED;
+
+		{
+			std::recursive_mutex oversubscript_communication_guard;
+			CTerminal_Filter oversubscript_terminal_filter{ nullptr };
+			{
+				TFast_Configuration oversubscript_configuration = Clone_Configuration(mFirst_Effective_Filter_Index, error_description);
+				CComposite_Filter oversubscript_composite_filter{ oversubscript_communication_guard };
+				if (oversubscript_composite_filter.Build_Filter_Chain(oversubscript_configuration.configuration.get(), &oversubscript_terminal_filter, nullptr, nullptr, error_description) != S_OK) {
+					error_description.push(L"Cannot create the oversubscription configuration!");
+					return E_FAIL;
+				}
+
+				//optimizing now...
+				rc = solve_generic(&solver_id, &solver_setup, &progress);
+
+				scgms::IDevice_Event* oversubscript_shutdown_event = allocate_device_event(scgms::NDevice_Event_Code::Shut_Down);
+				if (Succeeded(oversubscript_composite_filter.Execute(oversubscript_shutdown_event)))
+					oversubscript_terminal_filter.Wait_For_Shutdown();	//wait only if the shutdown did go through succesfully			
+			}
+		}
 
 		//validate the returned fitness by re-computing the returned parameters
 		if (rc == S_OK) {
@@ -559,7 +582,7 @@ public:
 		TFast_Configuration configuration = Clone_Configuration(mFirst_Effective_Filter_Index, empty_error_description);	//later on, we will replace this with a pool
 																								//or rather not as there might a be problem with filters,
 																								//which would keep, but not reset their states		
-
+		
 		//set the experimental parameters
 		for (size_t i = 0; i < configuration.first_parameter_ptrs.size(); i++) {
 			const double* base = reinterpret_cast<const double*>(solution) + mFilter_Parameter_Offsets[i];
@@ -589,7 +612,7 @@ public:
 					if (!failure_detected) {						
 						failure_detected = !Succeeded(composite_filter.Execute(event_to_replay));
 					}
-
+					
 					if (failure_detected) {
 						//something has not gone well => break, but be that nice to issue the shutdown event first
 						scgms::IDevice_Event* shutdown_event = allocate_device_event(scgms::NDevice_Event_Code::Shut_Down );

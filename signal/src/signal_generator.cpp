@@ -69,7 +69,7 @@ HRESULT IfaceCalling signal_generator_internal::CSynchronized_Generator::Configu
 	std::vector<double> lower, parameters, upper;
 	shared_configuration.Read_Parameters(rsParameters, lower, parameters, upper);
 	
-	mSync_Model = scgms::SDiscrete_Model{ model_id, parameters, this };
+	mSync_Model = std::move(scgms::SDiscrete_Model{ model_id, parameters, this });
 	if (!mSync_Model) {
 
 		std::wstring err = L"Cannot create model: ";
@@ -244,7 +244,7 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 					return rc;
 				}
 
-				auto inserted_sync_model = mSync_Models.insert(std::pair<uint64_t, TSync_Model>(event.segment_id(), std::move(sync_model)));
+				auto inserted_sync_model = mSync_Models.insert(std::pair<uint64_t, TSync_Model>(event.segment_id(), std::move(sync_model)));				
 				sync_model_iter = inserted_sync_model.first;
 				mLast_Sync_Generator = sync_model_iter->second.get();
 			}

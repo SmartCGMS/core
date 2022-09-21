@@ -150,7 +150,7 @@ protected:
 	}	
 
 	template <typename C, typename D>
-	HRESULT Get_Container_With_All_Level_Vars_Resolved(refcnt::SReferenced<C>& source_container, C** destination_container, TConvertor<D>  conv) {
+	HRESULT Get_Container_With_All_Level_Vars_Resolved(refcnt::SReferenced<C> source_container, C** destination_container, TConvertor<D>  conv) {
 		//let's check whether str is or is not a variable
 		if (!mVariable_Name.empty()) {
 			//let us update re-parse the container
@@ -164,14 +164,14 @@ protected:
 			if (!Parse_Container<C, D>(source_container, current_value, conv))
 				return E_FAIL;
 
-			HRESULT rc = Get_Container(source_container, destination_container);
+			HRESULT rc = Get_Container<refcnt::SReferenced<C>, C**>(source_container, destination_container);
 			return rc;
 
 		}
-		else if (mModel_Parameters) {
-			HRESULT rc = Update_Container_By_Vars<D>(source_container, conv);
+		else if (source_container) {
+			HRESULT rc = Update_Container_By_Vars<D, refcnt::SReferenced<C>>(source_container, conv);
 			if (Succeeded(rc)) {
-				rc = Get_Container(source_container, destination_container);
+				rc = Get_Container<refcnt::SReferenced<C>, C**>(source_container, destination_container);
 			}
 			return rc;
 		}
@@ -181,7 +181,8 @@ protected:
 
 	template <typename C, typename D>
 	bool Parse_Container(refcnt::SReferenced<C> &container, const std::wstring &str, TConvertor<D>  conv) {		//returns true of valid
-		container = refcnt::make_shared_reference_ext< refcnt::SReferenced<C>, C>(Parse_Array_String<D, C>(str, conv), false);
+		auto new_container = refcnt::make_shared_reference_ext< refcnt::SReferenced<C>, C>(Parse_Array_String<D, C>(str, conv), false);
+		container = std::move(new_container);
 		return container.operator bool();
 	}
 
