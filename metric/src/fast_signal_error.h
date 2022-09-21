@@ -121,6 +121,15 @@ protected:
 		else
 			return false;
 	}
+
+	template<typename M, typename... MArgs>
+	bool Bind_Metric(const GUID& desired_metric_id, M& metric, MArgs&... margs) {
+		if (Bind_Metric(desired_metric_id, metric))
+			return true;
+
+		return Bind_Metric(desired_metric_id, margs...);
+	}
+
 protected:
 	fast_signal_metrics::CAvg_SD mAvg_SD{ mLevels_Counter };
 	fast_signal_metrics::CAvg mAvg{ mLevels_Counter };

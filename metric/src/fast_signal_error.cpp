@@ -78,7 +78,7 @@ namespace fast_signal_metrics {
 			return avg + std::sqrt(mVariance / divisor);
 		}
 		else
-			return avg; //zero variance	
+			return avg; //zero variance
 	}
 
 	void CAvg_SD::Clear_Counters() {
@@ -119,11 +119,11 @@ namespace fast_signal_metrics {
 
 
 CFast_Signal_Error::CFast_Signal_Error(scgms::IFilter *output) : CBase_Filter(output) {
-	
+	//
 }
 
 CFast_Signal_Error::~CFast_Signal_Error() {
-	if (mPromised_Metric) {		
+	if (mPromised_Metric) {
 		if (mLevels_Counter >= static_cast<double>(mLevels_Required)) {
 			double metric = mCalculate_Metric();
 			if (mPrefer_More_Levels)
@@ -132,7 +132,6 @@ CFast_Signal_Error::~CFast_Signal_Error() {
 		} else
 			*mPromised_Metric = std::numeric_limits<double>::quiet_NaN();
 	}
-
 }
 
 HRESULT CFast_Signal_Error::Do_Execute(scgms::UDevice_Event event) {
@@ -156,7 +155,6 @@ HRESULT CFast_Signal_Error::Do_Execute(scgms::UDevice_Event event) {
 		default:
 			break;
 	}
-	
 
 	return mOutput.Send(event);
 }
@@ -165,21 +163,19 @@ HRESULT CFast_Signal_Error::Do_Configure(scgms::SFilter_Configuration configurat
 	mReference_Signal_ID = configuration.Read_GUID(rsReference_Signal, Invalid_GUID);
 	mError_Signal_ID = configuration.Read_GUID(rsError_Signal, Invalid_GUID);
 	
-	if (Is_Invalid_GUID(mReference_Signal_ID, mError_Signal_ID)) return E_INVALIDARG;
+	if (Is_Invalid_GUID(mReference_Signal_ID, mError_Signal_ID))
+		return E_INVALIDARG;
 
 	const GUID metric_id = configuration.Read_GUID(rsSelected_Metric);
 
-	if (Bind_Metric(metric_id, mAvg_SD)) {}
-		else if (Bind_Metric(metric_id, mAvg)) {}
-			else {
-				error_description.push(dsUnsupported_Metric_Configuration);
-				return E_INVALIDARG;
-			}
+	if (!Bind_Metric(metric_id, mAvg_SD, mAvg)) {
+		error_description.push(dsUnsupported_Metric_Configuration);
+		return E_INVALIDARG;
+	}
 
 	mClear_Counters();
 	Clear_Signal_Info();
 
-	
 	mDescription = configuration.Read_String(rsDescription, true, GUID_To_WString(mReference_Signal_ID).append(L" - ").append(GUID_To_WString(mError_Signal_ID)));
 
 	mRelative_Error = configuration.Read_Bool(rsUse_Relative_Error, mRelative_Error);
@@ -189,8 +185,6 @@ HRESULT CFast_Signal_Error::Do_Configure(scgms::SFilter_Configuration configurat
 	
 	return S_OK;
 }
-
-	
 
 
 
@@ -207,14 +201,14 @@ HRESULT IfaceCalling CFast_Signal_Error::QueryInterface(const GUID* riid, void**
 }
 
 
-HRESULT IfaceCalling CFast_Signal_Error::Promise_Metric(const uint64_t segment_id, double* const metric_value, BOOL defer_to_dtor) {	
+HRESULT IfaceCalling CFast_Signal_Error::Promise_Metric(const uint64_t segment_id, double* const metric_value, BOOL defer_to_dtor) {
 
 	if ((segment_id == scgms::All_Segments_Id) && (defer_to_dtor == TRUE)) {
-		mPromised_Metric = metric_value;	
+		mPromised_Metric = metric_value;
 		return S_OK;
 	}
 	else
-		return E_INVALIDARG;	
+		return E_INVALIDARG;
 }
 
 
@@ -225,7 +219,7 @@ void CFast_Signal_Error::Clear_Signal_Info() {
 	}
 }
 
-void CFast_Signal_Error::Update_Signal_Info(const double level, const double device_time, const bool reference_signal) {	
+void CFast_Signal_Error::Update_Signal_Info(const double level, const double device_time, const bool reference_signal) {
 	mNew_Data_Logical_Clock++;
 
 	const size_t sig_idx = static_cast<size_t>(reference_signal);
@@ -251,7 +245,7 @@ void CFast_Signal_Error::Update_Signal_Info(const double level, const double dev
 		const double time_distance = device_time - other_info.device_time;
 		//we have slope for both signals => let's calculate the difference
 
-		if (time_distance > 0.0) {					
+		if (time_distance > 0.0) {
 		
 			const double other_level = other_info.level - other_info.slope * time_distance;
 			double difference = level - other_level;
@@ -271,12 +265,13 @@ void CFast_Signal_Error::Update_Signal_Info(const double level, const double dev
 
 			mUpdate_Counters(difference);
 		}
-	}	
+	}
 }
 
 
 HRESULT IfaceCalling CFast_Signal_Error::Logical_Clock(ULONG* clock) {
-	if (!clock) return E_INVALIDARG;
+	if (!clock)
+		return E_INVALIDARG;
 
 	const ULONG old_clock = *clock;
 	*clock = mNew_Data_Logical_Clock;
