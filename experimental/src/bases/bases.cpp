@@ -43,7 +43,7 @@
 
 #include "../../../../common/utils/DebugHelper.h"
 
-#include "../pattern_prediction/pattern_prediction_descriptor.h"
+//#include "../pattern_prediction/pattern_prediction_descriptor.h"
 
 enum class NIG_History_Mode
 {
@@ -106,10 +106,10 @@ HRESULT CBase_Functions_Predictor::Do_Execute(scgms::UDevice_Event event)
 		{
 			mLast_Physical_Activity_Index = event.level();
 		}
-		else if (event.signal_id() == pattern_prediction::signal_Pattern_Prediction)
+		/*else if (event.signal_id() == pattern_prediction::signal_Pattern_Prediction)
 		{
 			mLast_Pattern_Pred = event.level();
-		}
+		}*/
 	}
 
 	return mOutput.Send(event);

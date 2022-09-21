@@ -36,53 +36,25 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "factory.h"
-
-#include "p559/p559.h"
-#include "descriptor.h"
-
-#include <map>
-#include <functional>
+// dllmain.cpp : Defines the entry point for the DLL application.
 
 
-#include "../../../common/rtl/manufactory.h"
-#include "../../../common/rtl/DeviceLib.h"
+#include "../../../../common/utils/DebugHelper.h"
 
+#include <Windows.h>
 
-using TCreate_Signal = std::function<HRESULT(scgms::ITime_Segment *segment, scgms::ISignal **signal)>;
-
-class CId_Dispatcher {
-protected:
-	std::map <const GUID, TCreate_Signal, std::less<GUID>> id_map;
-
-	template <typename T>
-	HRESULT Create_X(scgms::ITime_Segment *segment, scgms::ISignal **signal) const {
-		scgms::WTime_Segment weak_segment{ segment };
-		return Manufacture_Object<T, scgms::ISignal>(signal, weak_segment);
+BOOL APIENTRY DllMain( HMODULE hModule,
+                       DWORD  ul_reason_for_call,
+                       LPVOID lpReserved
+					 )
+{
+	switch (ul_reason_for_call)	{
+		case DLL_PROCESS_ATTACH:		
+		case DLL_THREAD_ATTACH:
+		case DLL_THREAD_DETACH:	
+		case DLL_PROCESS_DETACH: 
+			break;
 	}
-
-	template <typename T>
-	void Add_Signal(const GUID &id) {
-		id_map[id] = std::bind(&CId_Dispatcher::Create_X<T>, this, std::placeholders::_1, std::placeholders::_2);
-	}
-public:
-	CId_Dispatcher() {
-		// placeholder, will be utilized in future
-		//Add_Signal<CDiffusion_v2_blood>(diffusion_v2_model::signal_Diffusion_v2_Blood);
-	}
-
-	HRESULT Create_Signal(const GUID &calc_id, scgms::ITime_Segment *segment, scgms::ISignal **signal) const {
-		const auto iter = id_map.find(calc_id);
-		if (iter != id_map.end())
-			return iter->second(segment, signal);
-		else
-			return E_NOTIMPL;
-	}
-};
-
-static CId_Dispatcher Id_Dispatcher;
-
-extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal) {
-	if ((calc_id ==nullptr) || (segment == nullptr)) return E_INVALIDARG;
-	return Id_Dispatcher.Create_Signal(*calc_id, segment, signal);
+	return TRUE;
 }
+
