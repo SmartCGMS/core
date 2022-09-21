@@ -220,7 +220,7 @@ HRESULT IfaceCalling CFilter_Parameter::Set_Model_Parameters(scgms::IModel_Param
 	mVariable_Name.clear();
 	mArray_Vars.clear();
 
-	mModel_Parameters = refcnt::make_shared_reference_ext<decltype(mModel_Parameters), scgms::IModel_Parameter_Vector>(parameters, true);
+	mModel_Parameters = std::move(refcnt::make_shared_reference_ext<decltype(mModel_Parameters), scgms::IModel_Parameter_Vector>(parameters, true));
 	return S_OK;
 }
 

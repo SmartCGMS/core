@@ -93,16 +93,18 @@ namespace basal_and_bolus {
 namespace rates_pack_boluses {
 	constexpr GUID model_id = { 0xa682f21e, 0x9f52, 0x41e6, { 0x90, 0x52, 0x23, 0xce, 0x44, 0xc7, 0x53, 0x35 } }; // {A682F21E-9F52-41E6-9052-23CE44C75335}
 
-
-
-	constexpr size_t bolus_max_count = 8;
-	constexpr size_t basal_change_max_count = 40;		//how many times we can change the basal rate settings
-	constexpr size_t param_count = 3 + 2 * bolus_max_count + 2*basal_change_max_count;	//basal rate + time & bolus for meals
-
 	struct TInsulin_Setting {
 		double offset;
 		double value;
 	};
+
+	constexpr size_t Insulin_Setting_Count = sizeof(TInsulin_Setting) / sizeof(double);
+
+	constexpr size_t bolus_max_count = 8;
+	constexpr size_t basal_change_max_count = 40;		//how many times we can change the basal rate settings
+	constexpr size_t param_count = 3 + Insulin_Setting_Count * (bolus_max_count + basal_change_max_count);	//basal rate + time & bolus for meals
+
+	
 
 
 	bool Insulin_Setting_Compare(const TInsulin_Setting& a, const TInsulin_Setting& b);

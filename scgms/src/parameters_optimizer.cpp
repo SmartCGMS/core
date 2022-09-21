@@ -323,17 +323,21 @@ protected:
 							return;
 						}
 					}
+					else
+						result.failed = true;
+
 				}
+				else 
+					result.failed = true;
+
+				if (result.failed)
+					return;
 
 				scgms::IFilter_Configuration_Link* raw_link_to_add = src_link.get();
 
 				for (size_t index = 0; index < mFilter_Indices.size(); index++) {
 
-					if (link_counter == mFilter_Indices[index]) {
-						if (filter_id == Invalid_GUID) {
-							result.failed = true;
-							return;
-						}
+					if (link_counter == mFilter_Indices[index]) {						
 
 						raw_link_to_add = static_cast<scgms::IFilter_Configuration_Link*>(new CFilter_Configuration_Link(filter_id)); //so far, zero RC which is correct right now because we do not call dtor here
 
@@ -359,22 +363,24 @@ protected:
 								//parameters - we need to create a new copy
 
 								raw_parameter = static_cast<scgms::IFilter_Parameter*>(new CFilter_Parameter{ scgms::NParameter_Type::ptDouble_Array, mParameters_Config_Names[index].c_str() });
-								scgms::IModel_Parameter_Vector *src_parameters, *dst_parameters;
+								scgms::IModel_Parameter_Vector *src_parameters = nullptr, *dst_parameters = nullptr;
 								if (src_parameter->Get_Model_Parameters(&src_parameters) == S_OK) {
 									dst_parameters = refcnt::Copy_Container<double>(src_parameters);
-									if (raw_parameter->Set_Model_Parameters(dst_parameters) != S_OK)
-										result.failed = true;	//increases RC by 1
-									src_parameters->Release();
-									dst_parameters->Release();
+									if (raw_parameter->Set_Model_Parameters(dst_parameters) == S_OK) { //increases RC by 1										
 
-									//find the very first number to overwrite later on with new values
-									double *begin, *end;
-									if (dst_parameters->get(&begin, &end) == S_OK) {
-										result.first_parameter_ptrs[index] = begin + mFilter_Parameter_Counts[index];
-										found_parameters = true;
-									}
-									else
+																									   //find the very first number to overwrite later on with new values
+										double* begin=nullptr, * end=nullptr;
+										if (dst_parameters->get(&begin, &end) == S_OK) {
+											result.first_parameter_ptrs[index] = begin;// +mFilter_Parameter_Counts[index]; - why?
+											found_parameters = true;
+										}
+										else
+											result.failed = true;
+									} else
 										result.failed = true;
+
+									if (src_parameters) src_parameters->Release();
+									if (dst_parameters) dst_parameters->Release();
 								}
 								else
 									result.failed = true;
@@ -419,7 +425,6 @@ public:
 		//having this with nullptr, no error write will actually occur
 		//actually, many errors may arise due to the use of genetic algorithm -> let's suppress them
 		//end user has the chance the debug the configuration first, by running a single isntance	
-
 	}
 
 
@@ -436,8 +441,8 @@ public:
 		mFound_Parameters.clear();
 		mUpper_Bound.clear();
 
-		mFilter_Parameter_Counts.resize(mFilter_Indices.size());
-		mFilter_Parameter_Offsets.resize(mFilter_Indices.size());
+		mFilter_Parameter_Counts.clear();
+		mFilter_Parameter_Offsets.clear();
 
 		for (size_t i = 0; i < mFilter_Indices.size(); i++) {
 
@@ -454,8 +459,8 @@ public:
 				return E_FAIL;
 			}
 
-			mFilter_Parameter_Offsets[i] = mFound_Parameters.size();	// where does the parameter set begin
-			mFilter_Parameter_Counts[i] = params.size();				// how many parameters does this parameter set have
+			mFilter_Parameter_Offsets.push_back(mFound_Parameters.size());	// where does the parameter set begin
+			mFilter_Parameter_Counts.push_back(params.size());				// how many parameters does this parameter set have
 
 			std::copy(lbound.begin(), lbound.end(), std::back_inserter(mLower_Bound));
 			std::copy(params.begin(), params.end(), std::back_inserter(mFound_Parameters));
@@ -517,7 +522,7 @@ public:
 
 				scgms::IDevice_Event* oversubscript_shutdown_event = allocate_device_event(scgms::NDevice_Event_Code::Shut_Down);
 				if (Succeeded(oversubscript_composite_filter.Execute(oversubscript_shutdown_event)))
-					oversubscript_terminal_filter.Wait_For_Shutdown();	//wait only if the shutdown did go through succesfully			
+					oversubscript_terminal_filter.Wait_For_Shutdown();	//wait only if the shutdown did go through succesfully
 			}
 		}
 
@@ -599,17 +604,20 @@ public:
 			CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely
 																		//call its dtor to get the future error properly
 
-			if (composite_filter.Build_Filter_Chain(configuration.configuration.get(), &terminal_filter, On_Filter_Created_Wrapper, &error_metric_future, empty_error_description) != S_OK)
-				return std::numeric_limits<double>::quiet_NaN();
+			{
+				std::lock_guard<std::mutex> lg{ mClone_Guard };	//note that part of the configuration is shared => may require mutex-protection
+				if (composite_filter.Build_Filter_Chain(configuration.configuration.get(), &terminal_filter, On_Filter_Created_Wrapper, &error_metric_future, empty_error_description) != S_OK)
+					return std::numeric_limits<double>::quiet_NaN();
+			}
 			
 			//wait for the result
 			if (!mEvents_To_Replay.empty()) {
-				for (size_t i = 0; i < mEvents_To_Replay.size(); i++) {		//we can replay the pre-calculated events					
+				for (size_t i = 0; i < mEvents_To_Replay.size(); i++) {		//we can replay the pre-calculated events
 
 					scgms::IDevice_Event* event_to_replay = nullptr;
 					failure_detected = !Succeeded(mEvents_To_Replay[i].Clone(&event_to_replay));
 					
-					if (!failure_detected) {						
+					if (!failure_detected) {
 						failure_detected = !Succeeded(composite_filter.Execute(event_to_replay));
 					}
 					
@@ -629,7 +637,7 @@ public:
 
 		//once implemented, we should return the configuration back to the pool
 
-		//pickup the fitnesses value/error metrics and return it		
+		//pickup the fitnesses value/error metrics and return it
 		return (!failure_detected) && (error_metric_future.Get_Error_Metric(fitness) == mObjectives_Count);	//we have to pick at as many metrics as promised
 	}
 };

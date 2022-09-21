@@ -245,8 +245,12 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 				}
 
 				auto inserted_sync_model = mSync_Models.insert(std::pair<uint64_t, TSync_Model>(event.segment_id(), std::move(sync_model)));				
-				sync_model_iter = inserted_sync_model.first;
-				mLast_Sync_Generator = sync_model_iter->second.get();
+				if (inserted_sync_model.second == true) {
+					sync_model_iter = inserted_sync_model.first;
+					mLast_Sync_Generator = sync_model_iter->second.get();
+				}
+				else
+					return E_OUTOFMEMORY;
 			}
 
 			rc = sync_model_iter->second->Execute_Sync(event);
@@ -318,6 +322,7 @@ HRESULT CSignal_Generator::Do_Configure(scgms::SFilter_Configuration configurati
 		mSegment_Agnostic_Parameters.assign(model_desc.default_values, model_desc.default_values + model_desc.total_number_of_parameters);
 		mSegment_Agnostic_Upper_Bound.assign(model_desc.upper_bound, model_desc.upper_bound + model_desc.total_number_of_parameters);
 	}
+	
     
 	mNumber_Of_Segment_Specific_Parameters = model_desc.number_of_segment_specific_parameters;
 	const size_t total_specific_parameters_in_doubles = mSegment_Agnostic_Parameters.size() - model_desc.total_number_of_parameters + mNumber_Of_Segment_Specific_Parameters;
