@@ -12,7 +12,7 @@ FILE(GLOB SRC_FILES "src/descriptor.cpp" "src/descriptor.h"
 					"src/gege/*.cpp" "src/gege/*.c" "src/gege/*.h"
 					"src/flr_ge/*.cpp" "src/flr_ge/*.c" "src/flr_ge/*.h"
 					"src/basal_2_bolus/*.cpp" "src/basal_2_bolus/*.c" "src/basal_2_bolus/*.h"
-					"src/sensor/*.cpp" "src/sensor/*.c" "src/sensor/*.h"
+					"src/emulated_sensor/*.cpp" "src/emulated_sensor/*.c" "src/emulated_sensor/*.h"
 )
 
 IF(WIN32)
