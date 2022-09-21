@@ -36,24 +36,24 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "sensor.h"
+#include "emulated_sensor.h"
 
 #include <numeric>
 #include <algorithm>
 #include <cmath>
 
-CSensor_Filter::CSensor_Filter(scgms::IFilter *output)
+CEmulated_Sensor_Filter::CEmulated_Sensor_Filter(scgms::IFilter *output)
 	: scgms::CBase_Filter(output)
 {
 	//
 }
 
-CSensor_Filter::~CSensor_Filter()
+CEmulated_Sensor_Filter::~CEmulated_Sensor_Filter()
 {
 	
 }
 
-HRESULT CSensor_Filter::Do_Execute(scgms::UDevice_Event evt)
+HRESULT CEmulated_Sensor_Filter::Do_Execute(scgms::UDevice_Event evt)
 {
 	// respond to measured signal value
 	if (evt.signal_id() == mSource_Id)
@@ -154,7 +154,7 @@ HRESULT CSensor_Filter::Do_Execute(scgms::UDevice_Event evt)
 }
 
 
-HRESULT CSensor_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description)
+HRESULT CEmulated_Sensor_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description)
 {
 	mSource_Id = configuration.Read_GUID(rsSignal_Source_Id, mSource_Id);
 	mDestination_Id = configuration.Read_GUID(rsSignal_Destination_Id, mDestination_Id);

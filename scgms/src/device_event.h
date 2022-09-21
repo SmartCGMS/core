@@ -47,6 +47,7 @@ protected:
 	void Clean_Up() noexcept;
 public:
 	CDevice_Event() noexcept {};
+	CDevice_Event(CDevice_Event &&other) noexcept;
 	virtual ~CDevice_Event() noexcept;
 
 	void Set_Slot(const size_t slot) noexcept { mSlot = slot; };
@@ -57,7 +58,7 @@ public:
 
 	virtual ULONG IfaceCalling Release() noexcept override;
 	virtual HRESULT IfaceCalling Raw(scgms::TDevice_Event** dst) noexcept override;
-	virtual HRESULT IfaceCalling Clone(IDevice_Event** event) noexcept override;
+	virtual HRESULT IfaceCalling Clone(IDevice_Event** event) const noexcept override;
 
 	//tiny helper for debugging
 	size_t logical_clock() noexcept { return mRaw.logical_time; }

@@ -73,23 +73,29 @@ HRESULT IfaceCalling CSignal_Error::QueryInterface(const GUID*  riid, void ** pp
 }
 
 
-void CSignal_Error::On_Level_Added(const uint64_t segment_id, const double device_time) {
+HRESULT CSignal_Error::On_Level_Added(const uint64_t segment_id, const double device_time) {
+	HRESULT rc = S_OK;
+
 	if (mEmit_Metric_As_Signal && !mEmit_Last_Value_Only) {
 		if (device_time != mLast_Emmitted_Time) {
 			//emit the signal only if the last time has changed to avoid emmiting duplicate values
 			if (!std::isnan(mLast_Emmitted_Time)) {
-				Emit_Metric_Signal(segment_id, mLast_Emmitted_Time);
+				rc = Emit_Metric_Signal(segment_id, mLast_Emmitted_Time);
 			}
 
 			mLast_Emmitted_Time = device_time;
 		}
 	}
+
+	return rc;
 }
 
 HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 	const auto device_time = event.device_time();
 	const auto segment_id = event.segment_id();
 	const auto event_code = event.event_code();
+
+	HRESULT rc = S_OK;
 	
 	switch (event_code) {
 			
@@ -99,8 +105,8 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 
 				auto signals = mSignal_Series.find(segment_id);
 				if (signals != mSignal_Series.end()) {
-					Emit_Metric_Signal(segment_id, device_time);
-					signals->second.last_value_emitted = true;
+					rc = Emit_Metric_Signal(segment_id, device_time);
+					signals->second.last_value_emitted = Succeeded(rc);
 				}
 			}
 			break;
@@ -128,24 +134,32 @@ HRESULT CSignal_Error::Do_Execute(scgms::UDevice_Event event) {
 				for (auto& signals: mSignal_Series) {
 
 					if (!signals.second.last_value_emitted) {
-						Emit_Metric_Signal(signals.first, device_time);
-						signals.second.last_value_emitted = true;
+						rc = Emit_Metric_Signal(signals.first, device_time);
+						if (Succeeded(rc))
+							signals.second.last_value_emitted = true;
+						else
+							break;
 					}
 				}
 
-				Emit_Metric_Signal(scgms::All_Segments_Id, device_time);
-			}
+				if (Succeeded(rc))
+					rc = Emit_Metric_Signal(scgms::All_Segments_Id, device_time);
+			}			
 				
 			break;
 
 		default:
+			rc = S_OK;
 			break;
 	}		
 	
 	//eventually, execute the terminal events
 	scgms::IDevice_Event* raw = event.get();
 	event.release();
-	return CTwo_Signals::Do_Execute(scgms::UDevice_Event{ raw });	//why just cannot we pass std::move(event)?
+	if (Succeeded(rc))
+		return CTwo_Signals::Do_Execute(scgms::UDevice_Event{ raw });	//why just cannot we pass std::move(event)?
+	else
+		return rc;
 }
 
 HRESULT CSignal_Error::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
@@ -266,15 +280,19 @@ HRESULT IfaceCalling CSignal_Error::Calculate_Signal_Error(const uint64_t segmen
 	else return E_FAIL;
 }
 
-void CSignal_Error::Emit_Metric_Signal(const uint64_t segment_id, const double device_time) {
+HRESULT CSignal_Error::Emit_Metric_Signal(const uint64_t segment_id, const double device_time) {
 	scgms::UDevice_Event event{scgms::NDevice_Event_Code::Level};
+	if (event) {
 
-	event.device_id() = event.signal_id() = signal_error::metric_signal_id;
-	event.level() = Calculate_Metric(segment_id);
-	event.segment_id() = segment_id;
-	event.device_time() = device_time;
+		event.device_id() = event.signal_id() = signal_error::metric_signal_id;
+		event.level() = Calculate_Metric(segment_id);
+		event.segment_id() = segment_id;
+		event.device_time() = device_time;
 
-	mOutput.Send(event);
+		return mOutput.Send(event);
+	}
+	else
+		return E_OUTOFMEMORY;
 }
 
 void CSignal_Error::Do_Flush_Stats(std::wofstream stats_file) {

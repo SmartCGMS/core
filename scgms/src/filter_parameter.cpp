@@ -148,12 +148,7 @@ HRESULT IfaceCalling CFilter_Parameter::Set_Parent_Path(const wchar_t* parent_pa
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Get_Time_Segment_Id_Container(scgms::time_segment_id_container **ids) {
-	if (mTime_Segment_ID) {
-		HRESULT rc = Update_Container_By_Vars<int64_t>(mTime_Segment_ID, str_2_int);
-		return Succeeded(rc) ? Get_Container(mTime_Segment_ID, ids) : rc;
-	}
-	else
-		return S_FALSE;
+	return Get_Container_With_All_Level_Vars_Resolved<scgms::time_segment_id_container, int64_t>(mTime_Segment_ID, ids, str_2_int);
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Time_Segment_Id_Container(scgms::time_segment_id_container *ids) {
@@ -216,12 +211,7 @@ HRESULT IfaceCalling CFilter_Parameter::Set_GUID(const GUID *id) {
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Get_Model_Parameters(scgms::IModel_Parameter_Vector **parameters) {
-	if (mModel_Parameters) {
-		HRESULT rc = Update_Container_By_Vars<double>(mModel_Parameters, str_2_rat_dbl);
-		return Succeeded(rc) ? Get_Container(mModel_Parameters, parameters) : rc;
-	}
-	else
-		return E_NOT_SET;
+	return Get_Container_With_All_Level_Vars_Resolved<scgms::IModel_Parameter_Vector, double>(mModel_Parameters, parameters, str_2_rat_dbl);
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Model_Parameters(scgms::IModel_Parameter_Vector *parameters) {
@@ -230,7 +220,7 @@ HRESULT IfaceCalling CFilter_Parameter::Set_Model_Parameters(scgms::IModel_Param
 	mVariable_Name.clear();
 	mArray_Vars.clear();
 
-	mModel_Parameters = refcnt::make_shared_reference_ext<decltype(mModel_Parameters), scgms::IModel_Parameter_Vector>(parameters, true);
+	mModel_Parameters = std::move(refcnt::make_shared_reference_ext<decltype(mModel_Parameters), scgms::IModel_Parameter_Vector>(parameters, true));
 	return S_OK;
 }
 
@@ -320,18 +310,13 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 		mDeferred_Path_Or_Var.clear();
 
 
-	//when converting an array, each variable reference represents just one value
-	if ((desired_type != scgms::NParameter_Type::ptDouble_Array) && (desired_type != scgms::NParameter_Type::ptInt64_Array)) {
-
-		auto [is_var, var_name] = scgms::Is_Variable_Name(effective_str);
-		if (is_var) {
-			mVariable_Name = var_name;
-			return true;
-		}
-		else
-			mVariable_Name.clear();
-	} else
-		mVariable_Name.clear();	//just for sanity, as array uses mArray_Vars
+	auto [is_var, var_name] = scgms::Is_Variable_Name(effective_str);
+	if (is_var) {
+		mVariable_Name = var_name;
+		return true;
+	}
+	else
+		mVariable_Name.clear();
 
 	bool valid = false;
 
@@ -343,10 +328,7 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 			break;
 
 		case scgms::NParameter_Type::ptInt64_Array:
-			{
-				mTime_Segment_ID = refcnt::make_shared_reference_ext<decltype(mTime_Segment_ID), scgms::time_segment_id_container>(Parse_Array_String<int64_t, scgms::time_segment_id_container>(effective_str, str_2_int), false);
-				valid = mTime_Segment_ID.operator bool();		
-			}
+			valid = Parse_Container<scgms::time_segment_id_container, int64_t>(mTime_Segment_ID, effective_str, str_2_int);
 			break;
 
 		case scgms::NParameter_Type::ptRatTime:	
@@ -396,11 +378,8 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 		break;
 
 		case scgms::NParameter_Type::ptDouble_Array:
-			{
-			mModel_Parameters =  refcnt::make_shared_reference_ext<decltype(mModel_Parameters), scgms::IModel_Parameter_Vector>( Parse_Array_String<double, scgms::IModel_Parameter_Vector>(effective_str, str_2_rat_dbl), false);
-			valid = mModel_Parameters.operator bool();
-		}
-		break;
+			valid = Parse_Container<scgms::IModel_Parameter_Vector, double>(mModel_Parameters, effective_str, str_2_rat_dbl);	
+			break;
 
 		default:
 			valid = false;

@@ -58,17 +58,17 @@
 class CLog_Replay_Filter : public virtual scgms::CBase_Filter {
 protected:
 	struct TLog_Entry {
-		double device_time;
-		size_t line_counter;		//this really is not the logical clock
+		double device_time = std::numeric_limits<double>::quiet_NaN();
+		size_t line_counter = std::numeric_limits<size_t>::max();		//this really is not the logical clock
 		std::wstring info;
-		uint64_t segment_id;
-		scgms::NDevice_Event_Code code;
+		uint64_t segment_id = scgms::Invalid_Segment_Id;
+		scgms::NDevice_Event_Code code = scgms::NDevice_Event_Code::Nothing;
 		std::wstring the_rest;
 	}; 
 protected:
 	struct TLog_Segment_id {
 		filesystem::path file_name;
-		uint64_t segment_id;
+		uint64_t segment_id = scgms::Invalid_Segment_Id;
 	};
 	std::vector<TLog_Segment_id> Enumerate_Log_Segments();
 protected:

@@ -173,7 +173,7 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 			evt.device_time() = measured_at;
 			evt.segment_id() = segment_id;
 
-			if (mOutput.Send(std::move(evt)) != S_OK)
+			if (mOutput.Send(evt) != S_OK)
 				return false;
 		}
 	}

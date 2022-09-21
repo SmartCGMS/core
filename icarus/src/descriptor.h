@@ -89,5 +89,44 @@ namespace basal_and_bolus {
 }
 
 
+
+namespace rates_pack_boluses {
+	constexpr GUID model_id = { 0xa682f21e, 0x9f52, 0x41e6, { 0x90, 0x52, 0x23, 0xce, 0x44, 0xc7, 0x53, 0x35 } }; // {A682F21E-9F52-41E6-9052-23CE44C75335}
+
+	struct TInsulin_Setting {
+		double offset;
+		double value;
+	};
+
+	constexpr size_t Insulin_Setting_Count = sizeof(TInsulin_Setting) / sizeof(double);
+
+	constexpr size_t bolus_max_count = 8;
+	constexpr size_t basal_change_max_count = 40;		//how many times we can change the basal rate settings
+	constexpr size_t param_count = 3 + Insulin_Setting_Count * (bolus_max_count + basal_change_max_count);	//basal rate + time & bolus for meals
+
+	
+
+
+	bool Insulin_Setting_Compare(const TInsulin_Setting& a, const TInsulin_Setting& b);
+
+	struct TParameters {
+		union {
+			struct {
+				double initial_basal_rate;
+				double lgs_threshold;		//on which glucose level to switch insulin rate off
+				double lgs_timeout;
+				TInsulin_Setting boluses[bolus_max_count];
+				TInsulin_Setting rates[basal_change_max_count];
+
+			};
+			double vector[param_count];
+		};
+	};
+
+	extern const double default_parameters[param_count];
+}
+
+
+
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end);
 extern "C" HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model);
