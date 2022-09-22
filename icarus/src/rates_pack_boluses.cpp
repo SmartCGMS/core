@@ -50,13 +50,11 @@
 #include "descriptor.h"
 
 #include "../../../common/rtl/SolverLib.h"
+#include "../../../common/utils/DebugHelper.h"
 
 CRates_Pack_Boluses::CRates_Pack_Boluses(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output) :
 	CBase_Filter(output, rates_pack_boluses::model_id),
-	scgms::CDiscrete_Model<rates_pack_boluses::TParameters>(parameters, rates_pack_boluses::default_parameters, output, rates_pack_boluses::model_id) {
-
-	std::sort(std::begin(mParameters.boluses), std::end(mParameters.boluses), rates_pack_boluses::Insulin_Setting_Compare);
-	std::sort(std::begin(mParameters.rates), std::end(mParameters.rates), rates_pack_boluses::Insulin_Setting_Compare);
+	scgms::CDiscrete_Model<rates_pack_boluses::TParameters>(parameters, rates_pack_boluses::default_parameters, output, rates_pack_boluses::model_id) {	
 }
 
 
@@ -71,15 +69,17 @@ void CRates_Pack_Boluses::Check_Insulin_Delivery(const double current_time) {
 		evt.device_id() = rates_pack_boluses::model_id;
 		evt.device_time() = mStepped_Current_Time;
 		evt.segment_id() = mSegment_id;
-		evt.level() = mParameters.initial_basal_rate;		
+		evt.level() = mParameters.initial_basal_rate;
 		mBasal_Rate_Issued = Succeeded(mOutput.Send(evt));
-	}
 
+		
+	}
+	return;
 	mLGS_Active &= current_time < mLGS_endtime;
 
 	if (!mLGS_Active) {
-		Deliver_Insulin<rates_pack_boluses::bolus_max_count>(current_time, mBolus_Index, mParameters.boluses, scgms::signal_Requested_Insulin_Bolus);
-		Deliver_Insulin<rates_pack_boluses::basal_change_max_count>(current_time, mBasal_Index, mParameters.rates, scgms::signal_Requested_Insulin_Basal_Rate);
+		Deliver_Insulin<rates_pack_boluses::bolus_max_count>(current_time, mNext_Bolus_Delivery_Time,  mBolus_Index, mParameters.boluses, scgms::signal_Requested_Insulin_Bolus);
+		Deliver_Insulin<rates_pack_boluses::basal_change_max_count>(current_time, mNext_Basal_Change_Time, mBasal_Index, mParameters.rates, scgms::signal_Requested_Insulin_Basal_Rate);
 	}
 }
 
@@ -116,12 +116,16 @@ HRESULT CRates_Pack_Boluses::Do_Configure(scgms::SFilter_Configuration configura
 }
 
 HRESULT IfaceCalling CRates_Pack_Boluses::Initialize(const double new_current_time, const uint64_t segment_id) {
-
+	dprintf("Ikar %d\n", mParameters.initial_basal_rate);
 	mStepped_Current_Time = mSimulation_Start = new_current_time;
 	mBolus_Index = 0;
 	mBasal_Index = 0;
 	mSegment_id = segment_id;
 	mBasal_Rate_Issued = false;
+	mLGS_Active = false;
+
+	mNext_Bolus_Delivery_Time = new_current_time + mParameters.boluses[mBolus_Index].offset;
+	mNext_Basal_Change_Time = new_current_time + mParameters.rates[mBasal_Index].offset;
 	
 	return S_OK;
 }

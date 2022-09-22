@@ -44,6 +44,7 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/utils/math_utils.h"
 #include "../../../common/utils/string_utils.h"
+#include "../../../common/utils/DebugHelper.h"
 
 #include <cmath>
 
@@ -69,7 +70,7 @@ HRESULT IfaceCalling signal_generator_internal::CSynchronized_Generator::Configu
 	std::vector<double> lower, parameters, upper;
 	shared_configuration.Read_Parameters(rsParameters, lower, parameters, upper);
 	
-	mSync_Model = std::move(scgms::SDiscrete_Model{ model_id, parameters, this });
+	mSync_Model = scgms::SDiscrete_Model{ model_id, parameters, this };
 	if (!mSync_Model) {
 
 		std::wstring err = L"Cannot create model: ";

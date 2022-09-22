@@ -148,13 +148,6 @@ namespace basal_and_bolus {
 namespace rates_pack_boluses {
 
 
-	bool Insulin_Setting_Compare(const TInsulin_Setting& a, const TInsulin_Setting& b) {
-		if (a.offset < b.offset) return true;
-		if (a.offset > b.offset) return false;
-		if (a.value > b.value) return false;
-		return true;
-	}
-
 	const double experiment_time = 601.0 * 5.0 * scgms::One_Minute;
 	const double meal_period = experiment_time / static_cast<double>(bolus_max_count);
 	const double rate_period = experiment_time / static_cast<double>(basal_change_max_count);

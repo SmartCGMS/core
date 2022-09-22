@@ -74,6 +74,7 @@ namespace fast_signal_metrics {
 	double CAvg_SD::Calculate_Metric() {
 		const double divisor = Avg_Divisor();
 		const double avg = mAccumulator / divisor;
+
 		if (mLevels_Counter > 1.0) {
 			return avg + std::sqrt(mVariance / divisor);
 		}
