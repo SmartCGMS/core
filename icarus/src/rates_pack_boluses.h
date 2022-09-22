@@ -65,6 +65,9 @@ protected:
 	size_t mBolus_Index = std::numeric_limits<size_t>::max();
 	size_t mBasal_Index = std::numeric_limits<size_t>::max();
 
+	double mNext_Bolus_Delivery_Time = std::numeric_limits<double>::quiet_NaN();
+	double mNext_Basal_Change_Time = std::numeric_limits<double>::quiet_NaN();
+
 	uint64_t mSegment_id = scgms::Invalid_Segment_Id;
 	bool mBasal_Rate_Issued = false;
 	bool mLGS_Active = false;
@@ -76,11 +79,10 @@ protected:
 
 
 	template <size_t max_count, typename T>
-	void Deliver_Insulin(const double current_time, size_t &index, const T &values, const GUID &signal_id) {
-		const double offset = current_time - mSimulation_Start;
+	void Deliver_Insulin(const double current_time, double &next_time, size_t &index, const T &values, const GUID &signal_id) {
 
 		if (index < max_count) {
-			if (offset >= values[index].offset) {
+			if (next_time >= current_time) {
 
 				scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
 				evt.signal_id() = signal_id;
@@ -89,8 +91,10 @@ protected:
 				evt.segment_id() = mSegment_id;
 				evt.level() = values[index].value;
 
-				if (Succeeded(mOutput.Send(evt)))
+				if (Succeeded(mOutput.Send(evt))) {
 					index++;
+					next_time = mSimulation_Start + values[index].offset;
+				}
 			}
 		}
 	}

@@ -76,7 +76,7 @@ struct TFast_Configuration {
 class CError_Metric_Future {
 protected:
 	const scgms::TOn_Filter_Created mOn_Filter_Created;
-	const void* mOn_Filter_Created_Data;		
+	const void* mOn_Filter_Created_Data;
 protected:
 	//bool mError_Metric_Available = false;
 	//double mError_Metric = std::numeric_limits<double>::quiet_NaN();
@@ -106,8 +106,8 @@ public:
 	size_t Get_Error_Metric(double * const fitness) const {
 		for (size_t i = 0; i < mError_Metric_Count; i++)	//we have to copy this in a reverse to order to make highest priority first
 			fitness[i] = mError_Metric[mError_Metric_Count - i - 1];
-		
-		return mError_Metric_Count;		
+
+		return mError_Metric_Count;
 	}
 
 	size_t Metric_Count() const {
@@ -145,7 +145,7 @@ protected:
 	std::vector<CDevice_Event> mEvents_To_Replay;
 
 	scgms::SFilter_Chain_Configuration Copy_Reduced_Configuration(const size_t end_index) {
-					
+
 		scgms::SFilter_Chain_Configuration reduced_filter_configuration = Empty_Chain();
 		bool success = reduced_filter_configuration.operator bool();
 
@@ -337,7 +337,7 @@ protected:
 
 				for (size_t index = 0; index < mFilter_Indices.size(); index++) {
 
-					if (link_counter == mFilter_Indices[index]) {						
+					if (link_counter == mFilter_Indices[index]) {
 
 						raw_link_to_add = static_cast<scgms::IFilter_Configuration_Link*>(new CFilter_Configuration_Link(filter_id)); //so far, zero RC which is correct right now because we do not call dtor here
 
@@ -366,14 +366,17 @@ protected:
 								scgms::IModel_Parameter_Vector *src_parameters = nullptr, *dst_parameters = nullptr;
 								if (src_parameter->Get_Model_Parameters(&src_parameters) == S_OK) {
 									dst_parameters = refcnt::Copy_Container<double>(src_parameters);
-									if (raw_parameter->Set_Model_Parameters(dst_parameters) == S_OK) { //increases RC by 1										
+									if (raw_parameter->Set_Model_Parameters(dst_parameters) == S_OK) { //increases RC by 1
 
 																									   //find the very first number to overwrite later on with new values
-										double* begin=nullptr, * end=nullptr;
+
+									if (raw_parameter->Get_Model_Parameters(&dst_parameters) == S_OK) {
+										double* begin = nullptr, * end = nullptr;
 										if (dst_parameters->get(&begin, &end) == S_OK) {
-											result.first_parameter_ptrs[index] = begin;// +mFilter_Parameter_Counts[index]; - why?
+											result.first_parameter_ptrs[index] = begin;// +mFilter_Parameter_Counts[index]; //- why?
 											found_parameters = true;
 										}
+									}
 										else
 											result.failed = true;
 									} else
@@ -605,7 +608,9 @@ public:
 																		//call its dtor to get the future error properly
 
 			{
-				std::lock_guard<std::mutex> lg{ mClone_Guard };	//note that part of the configuration is shared => may require mutex-protection
+				std::unique_lock<std::mutex> lg{ mClone_Guard};	//note that part of the configuration is shared => may require mutex-protection
+																//lock_guard looks like doing the job well done too, but triggers warnings "lock not held" 
+																//C26110 and C26017 with MSVS 2019 code analysis
 				if (composite_filter.Build_Filter_Chain(configuration.configuration.get(), &terminal_filter, On_Filter_Created_Wrapper, &error_metric_future, empty_error_description) != S_OK)
 					return std::numeric_limits<double>::quiet_NaN();
 			}

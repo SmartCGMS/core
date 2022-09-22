@@ -83,7 +83,8 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 
 		//1st round - create the filters
 		do {
-			scgms::IFilter_Configuration_Link* &link = *(link_end-1);
+			//scgms::IFilter_Configuration_Link* &link = *(link_end-1);	-- let's increase its ref count safely, because we are working with it
+			scgms::SFilter_Configuration_Link link = refcnt::make_shared_reference_ext< scgms::SFilter_Configuration_Link, scgms::IFilter_Configuration_Link>(*(link_end - 1), true);
 
 			GUID filter_id;
 			rc = link->Get_Filter_Id(&filter_id);
@@ -103,7 +104,7 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 			}
 
 
-			rc = new_executor->Configure(link, error_description.get());
+			rc = new_executor->Configure(link.get(), error_description.get());
 			if (!Succeeded(rc)) {
 				//if failed, we need to delete this, newly constructed filter first,
 				//i.e., before clearing mExecutors because it is tied to resources,

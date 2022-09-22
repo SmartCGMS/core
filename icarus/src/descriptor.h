@@ -104,10 +104,6 @@ namespace rates_pack_boluses {
 	constexpr size_t basal_change_max_count = 40;		//how many times we can change the basal rate settings
 	constexpr size_t param_count = 3 + Insulin_Setting_Count * (bolus_max_count + basal_change_max_count);	//basal rate + time & bolus for meals
 
-	
-
-
-	bool Insulin_Setting_Compare(const TInsulin_Setting& a, const TInsulin_Setting& b);
 
 	struct TParameters {
 		union {
