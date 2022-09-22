@@ -71,10 +71,8 @@ void CRates_Pack_Boluses::Check_Insulin_Delivery(const double current_time) {
 		evt.segment_id() = mSegment_id;
 		evt.level() = mParameters.initial_basal_rate;
 		mBasal_Rate_Issued = Succeeded(mOutput.Send(evt));
-
-		
 	}
-	return;
+
 	mLGS_Active &= current_time < mLGS_endtime;
 
 	if (!mLGS_Active) {
@@ -116,7 +114,6 @@ HRESULT CRates_Pack_Boluses::Do_Configure(scgms::SFilter_Configuration configura
 }
 
 HRESULT IfaceCalling CRates_Pack_Boluses::Initialize(const double new_current_time, const uint64_t segment_id) {
-	dprintf("Ikar %d\n", mParameters.initial_basal_rate);
 	mStepped_Current_Time = mSimulation_Start = new_current_time;
 	mBolus_Index = 0;
 	mBasal_Index = 0;

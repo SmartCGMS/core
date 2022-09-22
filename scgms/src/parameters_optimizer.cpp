@@ -370,13 +370,13 @@ protected:
 
 																									   //find the very first number to overwrite later on with new values
 
-									if (raw_parameter->Get_Model_Parameters(&dst_parameters) == S_OK) {
+									
 										double* begin = nullptr, * end = nullptr;
 										if (dst_parameters->get(&begin, &end) == S_OK) {
-											result.first_parameter_ptrs[index] = begin;// +mFilter_Parameter_Counts[index]; //- why?
+											result.first_parameter_ptrs[index] = begin +mFilter_Parameter_Counts[index]; //skipping lower bounds
 											found_parameters = true;
 										}
-									}
+									
 										else
 											result.failed = true;
 									} else
