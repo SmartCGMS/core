@@ -81,20 +81,21 @@ protected:
 	template <size_t max_count, typename T>
 	void Deliver_Insulin(const double current_time, double &next_time, size_t &index, const T &values, const GUID &signal_id) {
 
-		if (index < max_count) {
-			if (next_time >= current_time) {
+		if (next_time <= current_time) {
 
-				scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
-				evt.signal_id() = signal_id;
-				evt.device_id() = rates_pack_boluses::model_id;
-				evt.device_time() = current_time;
-				evt.segment_id() = mSegment_id;
-				evt.level() = values[index].value;
+			scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
+			evt.signal_id() = signal_id;
+			evt.device_id() = rates_pack_boluses::model_id;
+			evt.device_time() = current_time;
+			evt.segment_id() = mSegment_id;
+			evt.level() = values[index].value;
 
-				if (Succeeded(mOutput.Send(evt))) {
-					index++;
-					next_time = mSimulation_Start + values[index].offset;
-				}
+			if (Succeeded(mOutput.Send(evt))) {
+				index++;
+				if (index < max_count)
+					next_time = current_time + values[index].offset;
+				else
+					next_time = std::numeric_limits<double>::max();
 			}
 		}
 	}
