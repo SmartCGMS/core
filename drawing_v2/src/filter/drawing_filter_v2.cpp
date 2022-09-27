@@ -44,11 +44,13 @@
 #include <set>
 #include <cmath>
 
+
+
+constexpr scgms::TPlot_Descriptor Graph_v2 = { scgms::dcGraph, L"Graph (v2)" };
+constexpr scgms::TPlot_Descriptor CVGA_v2 = { scgms::dcCVGA, L"CVGA (v2)" };
+
 // vector of supported views
-std::vector<scgms::TPlot_Descriptor> CDrawing_Filter_v2::mAvailable_Plots = {
-	{ scgms::dcGraph, L"Graph (v2)" },
-	{ scgms::dcCVGA, L"CVGA (v2)"},
-};
+std::array<scgms::TPlot_Descriptor, 2> CDrawing_Filter_v2::mAvailable_Plots = { Graph_v2, CVGA_v2 };
 
 CDrawing_Filter_v2::CDrawing_Filter_v2(scgms::IFilter *output) : CBase_Filter(output) {
 
