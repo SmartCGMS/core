@@ -1,6 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 
-SET(PROJ "model")
+SET(PROJ "experimental")
 
 CONFIGURE_COMMON(${PROJ})
 
@@ -19,7 +19,7 @@ IF(WIN32)
 ENDIF()
 
 # grouping
-SET(SRC_GRPS "bergman" "bolus" "constant" "diffusion" "gct" "gct2" "ge" "neural_net" "pattern_prediction" "samadi" "sensitivity" "steil_rebrin" "uva_padova" "wma" "p559" "aim_ge" "enhacement" "cgp_pred" "bases")
+SET(SRC_GRPS "p559" "aim_ge" "enhacement" "cgp_pred" "bases")
 FOREACH(MODEL_DIR ${SRC_GRPS})
 	FILE(GLOB_RECURSE MDL_SOURCES "src/${MODEL_DIR}/*.cpp" "src/${MODEL_DIR}/*.h" "src/${MODEL_DIR}/*.c")
 	SOURCE_GROUP("model\\${MODEL_DIR}" FILES ${MDL_SOURCES})
