@@ -234,6 +234,7 @@ HRESULT IfaceCalling CFilter_Parameter::Clone(scgms::IFilter_Parameter **deep_co
 	clone->mTime_Segment_ID = refcnt::Copy_Container_shared<int64_t, decltype(mTime_Segment_ID)>(mTime_Segment_ID.get());
 	clone->mModel_Parameters = refcnt::Copy_Container_shared<double, decltype(mModel_Parameters)>(mModel_Parameters.get());
 	clone->mData = mData;
+	clone->mNon_OS_Variables = mNon_OS_Variables;
 
 	clone->mParent_Path = mParent_Path;
 	clone->mDeferred_Path_Or_Var = mDeferred_Path_Or_Var;
