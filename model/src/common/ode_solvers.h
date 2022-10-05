@@ -152,9 +152,13 @@ class CRunge_Kutta_ODE_Solver_Base
 
 			for (size_t j = 1; j <= N; j++)
 			{
-				double xacc = X;
+				double xacc = 0.0;
+				const auto& RK_Matrix_j_less_1 = mRKMatrix[j - 1];
 				for (size_t ki = 0; ki < j; ki++)
-					xacc += stepSize * (mRKMatrix[j - 1][ki] * kfunc[ki]);
+					xacc += RK_Matrix_j_less_1[ki] * kfunc[ki];
+				xacc *= stepSize;
+				xacc += X;
+
 
 				kfunc[j] = objectiveFnc(T + mNodes[j - 1] * stepSize, xacc);
 			}
