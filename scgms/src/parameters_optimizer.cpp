@@ -157,6 +157,9 @@ protected:
 	
 	TOptimizing_Configuration Pop_Optimizing_Configuration() {
 		std::lock_guard<std::mutex> lg{ mOptimizing_Pool_Guard };
+			//Note that modern mutexes already do have spinlocks, so to speed up, we would need to implement a TBB concurrent-queue alike with respecting cache line sizes.
+			//However, this would be a significant effort and adding TBB would harm our portability. Now, none of it seems to be a cost-effective benefit.
+
 
 		if (mOptimizing_Pool.empty()) {
 			//it is empty, we need to construct a new one (which still needs the lock as it accesses the master copies)
