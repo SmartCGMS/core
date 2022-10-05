@@ -767,11 +767,9 @@ public:
 			CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely
 																		//call its dtor to get the future error properly
 
-			{
-				if (composite_filter.Build_Filter_Chain(opt.optimizing_body.get(), &terminal_filter, On_Filter_Created_Wrapper, &error_metric_future, empty_error_description) != S_OK)
+			if (composite_filter.Build_Filter_Chain(opt.optimizing_body.get(), &terminal_filter, On_Filter_Created_Wrapper, &error_metric_future, empty_error_description) != S_OK)
 					return std::numeric_limits<double>::quiet_NaN();
-			}
-			
+						
 			//wait for the result
 			if (!opt.events_to_replay.empty()) {
 				for (size_t i = 0; i < opt.events_to_replay.size(); i++) {		//we can replay the pre-calculated events
