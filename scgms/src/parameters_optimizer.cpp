@@ -138,8 +138,8 @@ protected:
 
 		refcnt::wstr_container* parent_path = nullptr;
 		if (Succeeded(mConfiguration->Get_Parent_Path(&parent_path))) {
-                        const auto converted_path = refcnt::WChar_Container_To_WString(parent_path);
-                        if (!Succeeded(result->Set_Parent_Path(converted_path.c_str())))
+			const auto converted_path = refcnt::WChar_Container_To_WString(parent_path);
+			if (!Succeeded(result->Set_Parent_Path(converted_path.c_str())))
 				result.reset();
 			parent_path->Release();
 		}
@@ -153,7 +153,7 @@ protected:
 	std::vector<CDevice_Event> mEvents_To_Replay_Master_Copy;
 	scgms::SFilter_Chain_Configuration mOptimizing_Body_Master_Copy;
 
-	std::stack<TOptimizing_Configuration> mOptimizing_Pool;	
+	std::stack<TOptimizing_Configuration> mOptimizing_Pool;
 	
 	TOptimizing_Configuration Pop_Optimizing_Configuration() {
 		std::lock_guard<std::mutex> lg{ mOptimizing_Pool_Guard };
@@ -171,7 +171,7 @@ protected:
 				CDevice_Event dst_event;
 				dst_event.Initialize(&src_event);
 
-				result.events_to_replay.push_back(std::move(dst_event));								
+				result.events_to_replay.push_back(std::move(dst_event));
 			}
 
 
@@ -319,7 +319,7 @@ protected:
 					}
 
 					if (Succeeded(rc))
-						rc = param->Set_GUID(&id);									
+						rc = param->Set_GUID(&id);
 				}
 				break;
 
@@ -342,8 +342,8 @@ protected:
 			refcnt::wstr_container* parent_path = nullptr;
 			success = src_config->Get_Parent_Path(&parent_path) == S_OK;
 			if (success) {
-                const auto converted_path = refcnt::WChar_Container_To_WString(parent_path);
-                success = reduced_filter_configuration->Set_Parent_Path(converted_path.c_str()) == S_OK;
+				const auto converted_path = refcnt::WChar_Container_To_WString(parent_path);
+				success = reduced_filter_configuration->Set_Parent_Path(converted_path.c_str()) == S_OK;
 				parent_path->Release();
 			}
 
@@ -406,7 +406,7 @@ protected:
 		CTerminal_Filter terminal{ nullptr };
 
 		mConfiguration.for_each([&](scgms::SFilter_Configuration_Link link) {
-			//we need to traverse entire configuration to find both indices			
+			//we need to traverse entire configuration to find both indices
 			if (!ok)
 				return;
 
@@ -452,7 +452,7 @@ protected:
 				error_description.push(dsCannot_Resolve_Filter_Descriptor);
 			
 
-			filter_counter++;		
+			filter_counter++;
 		});
 		
 		
@@ -503,7 +503,7 @@ protected:
 		}
 	}
 
-	
+
 protected:
 	const scgms::TOn_Filter_Created mOn_Filter_Created;
 	const void* mOn_Filter_Created_Data;
@@ -759,17 +759,17 @@ public:
 
 		//Have the means to pickup the final metric
 		CError_Metric_Future error_metric_future{ mOn_Filter_Created, mOn_Filter_Created_Data };
-		
+
 		//run the configuration
 		std::recursive_mutex communication_guard;
 		CTerminal_Filter terminal_filter{ nullptr };
-		{			
+		{
 			CComposite_Filter composite_filter{ communication_guard };	//must be in the block that we can precisely
 																		//call its dtor to get the future error properly
 
 			if (composite_filter.Build_Filter_Chain(opt.optimizing_body.get(), &terminal_filter, On_Filter_Created_Wrapper, &error_metric_future, empty_error_description) != S_OK)
 					return std::numeric_limits<double>::quiet_NaN();
-						
+
 			//wait for the result
 			if (!opt.events_to_replay.empty()) {
 				for (size_t i = 0; i < opt.events_to_replay.size(); i++) {		//we can replay the pre-calculated events
@@ -786,7 +786,7 @@ public:
 						scgms::TDevice_Event* raw_event_to_replay = nullptr;
 						failure_detected = !Succeeded(event_to_replay->Raw(&raw_event_to_replay));
 
-						if (!failure_detected) {							
+						if (!failure_detected) {
 							if (raw_event_to_replay->parameters) {
 								scgms::IModel_Parameter_Vector* new_vector = refcnt::Copy_Container<double, scgms::IModel_Parameter_Vector>(raw_event_to_replay->parameters);
 								raw_event_to_replay->parameters->Release();	//copied
@@ -796,11 +796,11 @@ public:
 
 						//note we do not do the same for strings, because we already removed any string events from being replayed - see Fetch_Events_To_Replay
 					}
-					
+
 					if (!failure_detected) {
 						failure_detected = !Succeeded(composite_filter.Execute(event_to_replay));
 					}
-					
+
 					if (failure_detected) {
 						//something has not gone well => break, but be that nice to issue the shutdown event first
 						scgms::IDevice_Event* shutdown_event = allocate_device_event(scgms::NDevice_Event_Code::Shut_Down );
