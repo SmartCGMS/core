@@ -248,6 +248,17 @@ protected:
 
 	template <typename D, typename R>
 	std::tuple<HRESULT, std::wstring>  Array_To_String(R* container, const bool read_interpreted) {
+		if (!read_interpreted) {
+			if (!mDeferred_Path_Or_Var.empty()) {
+				const std::wstring deferred_path_string = mDeferred_Magic_String_Prefix + mDeferred_Path_Or_Var + mDeferred_Magic_String_Postfix;
+				return { S_OK, deferred_path_string };
+			}
+		}
+
+
+		if (!container)
+			return { S_FALSE, L"" };
+
 		std::tuple<HRESULT, std::wstring> result{ E_UNEXPECTED, L"" };
 		std::wstringstream converted;
 
