@@ -112,6 +112,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 		return E_FAIL;
 
 	bool loaded_all_filters = true;
+	bool encountered_E_NOT_SET = false;
 	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
 
 	const std::wstring parent_path = Get_Parent_Path();
@@ -158,12 +159,23 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 
 							std::unique_ptr<CFilter_Parameter> raw_filter_parameter = std::make_unique<CFilter_Parameter>(desc.parameter_type[i], desc.config_parameter_name[i]);
 							raw_filter_parameter->Set_Parent_Path(parent_path.c_str()); //needed to make the deferred parameters work
-							const bool valid = raw_filter_parameter->from_string(desc.parameter_type[i], str_value);							
+							const HRESULT valid_rc = raw_filter_parameter->from_string(desc.parameter_type[i], str_value);							
 
-							if (valid) {
+							if (Succeeded(valid_rc) || (valid_rc == E_NOT_SET)) {
 								scgms::IFilter_Parameter* raw_param = static_cast<scgms::IFilter_Parameter*>(raw_filter_parameter.get());								
 								if (Succeeded(filter_config->add(&raw_param, &raw_param + 1)))
 									raw_filter_parameter.release();
+
+								if (valid_rc == E_NOT_SET) {
+									encountered_E_NOT_SET = true;
+									std::wstring error_desc = dsVar_Not_Set_Filter_Parameter_Value;
+									error_desc.append(desc.description);
+									error_desc.append(L" (2)");
+									error_desc.append(desc.ui_parameter_name[i]);
+									error_desc.append(L" (3)");
+									error_desc.append(str_value);
+									shared_error_description.push(error_desc.c_str());
+								}
 							}
 							else {
 								std::wstring error_desc = dsMalformed_Filter_Parameter_Value;
@@ -217,7 +229,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 	if (!loaded_all_filters)
 		describe_loaded_filters(shared_error_description);
 
-	return loaded_all_filters ? S_OK : S_FALSE;
+	return (loaded_all_filters || encountered_E_NOT_SET) ? S_OK : S_FALSE;
 }
 
 HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t* file_path, refcnt::wstr_list* error_description) noexcept {
@@ -284,12 +296,24 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 			scgms::SFilter_Parameter param_shared = refcnt::make_shared_reference_ext<scgms::SFilter_Parameter, scgms::IFilter_Parameter>(*parameter_begin, true);
 
 			const wchar_t* config_name = param_shared.configuration_name();
-			if (!config_name) return E_UNEXPECTED;
+			if (!config_name) 
+				return E_UNEXPECTED;
 
 
 			//let the filter parameter to convert its value to the string				
 			std::wstring converted = param_shared.as_wstring(rc, false);
-			if (rc != S_OK) return rc;
+
+			if (rc == E_NOT_SET) {
+				std::wstring error_desc = dsVar_Not_Set_Filter_Parameter_Value;
+				error_desc.append(id_str);
+				error_desc.append(L" (2)");
+				error_desc.append(config_name);
+				error_desc.append(L" (3)");
+				error_desc.append(converted);
+				shared_error_description.push(error_desc.c_str());
+			} else 
+				if (rc != S_OK) 
+					return rc;
 				
 			std::wstring comment = L"";
 
