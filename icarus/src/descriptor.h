@@ -98,6 +98,9 @@ namespace rates_pack_boluses {
 		double value;
 	};
 
+	constexpr double Minimum_Bolus_Delay = 10.0 * scgms::One_Minute;	//aka minimum realistic offset
+	constexpr double Minimum_Rate_Change_Delay = 0.5 * scgms::One_Hour;	//aka minimum realistic offset
+
 	constexpr size_t Insulin_Setting_Count = sizeof(TInsulin_Setting) / sizeof(double);
 
 	constexpr size_t bolus_max_count = 8;

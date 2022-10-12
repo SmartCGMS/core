@@ -54,7 +54,7 @@ public:
 
 	void Initialize(const scgms::NDevice_Event_Code code) noexcept;
 	void Initialize(const scgms::TDevice_Event* event) noexcept;
-
+	scgms::TDevice_Event& Raw() { return mRaw; };
 
 	virtual ULONG IfaceCalling Release() noexcept override;
 	virtual HRESULT IfaceCalling Raw(scgms::TDevice_Event** dst) noexcept override;

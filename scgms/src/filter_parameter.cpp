@@ -148,7 +148,7 @@ HRESULT IfaceCalling CFilter_Parameter::Set_Parent_Path(const wchar_t* parent_pa
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Get_Time_Segment_Id_Container(scgms::time_segment_id_container **ids) {
-	return Get_Container_With_All_Level_Vars_Resolved<scgms::time_segment_id_container, int64_t>(mTime_Segment_ID, ids, str_2_int);
+	return Get_Container_With_All_Level_Vars_Evaluated<scgms::time_segment_id_container, int64_t>(mTime_Segment_ID, ids, str_2_int);
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Time_Segment_Id_Container(scgms::time_segment_id_container *ids) {
@@ -211,7 +211,7 @@ HRESULT IfaceCalling CFilter_Parameter::Set_GUID(const GUID *id) {
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Get_Model_Parameters(scgms::IModel_Parameter_Vector **parameters) {
-	return Get_Container_With_All_Level_Vars_Resolved<scgms::IModel_Parameter_Vector, double>(mModel_Parameters, parameters, str_2_rat_dbl);
+	return Get_Container_With_All_Level_Vars_Evaluated<scgms::IModel_Parameter_Vector, double>(mModel_Parameters, parameters, str_2_rat_dbl);
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Model_Parameters(scgms::IModel_Parameter_Vector *parameters) {
@@ -234,6 +234,7 @@ HRESULT IfaceCalling CFilter_Parameter::Clone(scgms::IFilter_Parameter **deep_co
 	clone->mTime_Segment_ID = refcnt::Copy_Container_shared<int64_t, decltype(mTime_Segment_ID)>(mTime_Segment_ID.get());
 	clone->mModel_Parameters = refcnt::Copy_Container_shared<double, decltype(mModel_Parameters)>(mModel_Parameters.get());
 	clone->mData = mData;
+	clone->mNon_OS_Variables = mNon_OS_Variables;
 
 	clone->mParent_Path = mParent_Path;
 	clone->mDeferred_Path_Or_Var = mDeferred_Path_Or_Var;
@@ -442,14 +443,25 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string(bool read_interpr
 		
 	};
 
+
 	switch (mType) {
 
 		case scgms::NParameter_Type::ptDouble_Array: 
-			std::tie(rc, converted) = Array_To_String<double>(mModel_Parameters.get(), read_interpreted);
+			{							
+				if (!mModel_Parameters && (!mDeferred_Path_Or_Var.empty()))	//if we have not evaluated the array yet
+						rc = S_OK;
+				else
+						std::tie(rc, converted) = Array_To_String<double>(mModel_Parameters.get(), read_interpreted);
+			}
 			break;
 
 		case scgms::NParameter_Type::ptInt64_Array:
-			std::tie(rc, converted) = Array_To_String<int64_t>(mTime_Segment_ID.get(), read_interpreted);
+			{
+				if (!mTime_Segment_ID && (!mDeferred_Path_Or_Var.empty()))
+					rc = S_OK;
+				else
+					std::tie(rc, converted) = Array_To_String<int64_t>(mTime_Segment_ID.get(), read_interpreted);
+			}
 			break;
 
 		default: convert_scalar();

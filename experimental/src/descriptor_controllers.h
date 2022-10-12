@@ -180,6 +180,123 @@ namespace physical_activity_detection
 	};
 }
 
+namespace gege
+{
+	constexpr const GUID model_id = { 0x7be59b46, 0xb5db, 0x412c, { 0x96, 0x16, 0x30, 0xe7, 0x88, 0x32, 0xf2, 0xf0 } };		// {7BE59B46-B5DB-412C-9616-30E78832F2F0}
+
+	constexpr const GUID ibr_id = { 0xac22fa49, 0x154f, 0x435e, { 0x9e, 0xdc, 0x36, 0xb, 0x87, 0x69, 0xec, 0x8b } };		// {AC22FA49-154F-435E-9EDC-360B8769EC8B}
+	constexpr const GUID bolus_id = { 0x6741202c, 0x247d, 0x4430, { 0xaf, 0x45, 0x17, 0xf2, 0xc0, 0xcf, 0x73, 0xa9 } };		// {6741202C-247D-4430-AF45-17F2C0CF73A9}
+
+	constexpr size_t param_count = 60;
+
+	struct TParameters {
+		union {
+			struct {
+				double codons[param_count];
+				// may be split to some logical units in the future (e.g.; codons coding the grammar and parameters of every node)
+			};
+			double vector[param_count];
+		};
+	};
+
+	const TParameters lower_bounds = {
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+	};
+	const TParameters default_parameters = {
+		0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,
+		0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,
+		0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,
+		0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,
+		0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,
+		0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,
+	};
+	const TParameters upper_bounds = {
+		1,1,1,1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1,1,1,1,
+	};
+
+}
+
+namespace flr_ge
+{
+	constexpr const GUID model_id = { 0xbf37b3fc, 0xb794, 0x46fc, { 0xae, 0xd0, 0xb, 0xf1, 0xea, 0x83, 0xdd, 0x4b } };		// {BF37B3FC-B794-46FC-AED0-0BF1EA83DD4B}
+	constexpr const GUID ibr_id = { 0xa2f6b465, 0x9f78, 0x421f, { 0x83, 0x98, 0x96, 0x7d, 0xc9, 0xd7, 0xc, 0xd8 } };		// {A2F6B465-9F78-421F-8398-967DC9D70CD8}
+	constexpr const GUID bolus_id = { 0xde4ca4f0, 0xddcf, 0x4974, { 0x8d, 0xab, 0x1b, 0x9e, 0xd, 0xb9, 0x45, 0xef } };		// {DE4CA4F0-DDCF-4974-8DAB-1B9E0DB945EF}
+
+	constexpr size_t rules_count = 20;
+	constexpr size_t rule_size = 4;
+	constexpr size_t constants_count = 20; // should be more
+
+	constexpr size_t param_count = rules_count * rule_size + constants_count;
+
+	struct TParameters {
+		union {
+			struct {
+				double rules[rules_count * rule_size];
+				double constants[constants_count];
+			};
+			double vector[param_count];
+		};
+	};
+
+	constexpr const double Constant_Lower_Bound = -10.0;
+	constexpr const double Constant_Upper_Bound = 10.0;
+
+	const TParameters lower_bounds = {
+		// rules
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		// constants
+		Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,
+		Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,Constant_Lower_Bound,
+	};
+	const TParameters default_parameters = {
+		// rules
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+		// constants
+		0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,
+	};
+	const TParameters upper_bounds = {
+		// rules
+		1,1,1,1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1,1,1,1,
+		// constants
+		Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,
+		Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,
+	};
+
+}
+
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end);
 extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end);
 extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal);
+extern "C" HRESULT IfaceCalling do_create_discrete_model(const GUID * model_id, scgms::IModel_Parameter_Vector * parameters, scgms::IFilter * output, scgms::IDiscrete_Model * *model);

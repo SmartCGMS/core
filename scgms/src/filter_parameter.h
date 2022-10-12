@@ -149,8 +149,19 @@ protected:
 		return rc;
 	}	
 
+
 	template <typename C, typename D>
-	HRESULT Get_Container_With_All_Level_Vars_Resolved(refcnt::SReferenced<C> source_container, C** destination_container, TConvertor<D>  conv) {
+	HRESULT Get_Container_With_All_Level_Vars_Evaluated(refcnt::SReferenced<C> source_container, C** destination_container, TConvertor<D> conv) {
+		HRESULT rc = Evaluate_Container_Variables(source_container, conv);
+		if (Succeeded(rc)) {
+			rc = Get_Container<refcnt::SReferenced<C>, C**>(source_container, destination_container);
+		}
+
+		return rc;
+	}
+
+	template <typename C, typename D>
+	HRESULT Evaluate_Container_Variables(refcnt::SReferenced<C> source_container, TConvertor<D> conv) {
 		//let's check whether str is or is not a variable
 		if (!mVariable_Name.empty()) {
 			//let us update re-parse the container
@@ -164,16 +175,11 @@ protected:
 			if (!Parse_Container<C, D>(source_container, current_value, conv))
 				return E_FAIL;
 
-			HRESULT rc = Get_Container<refcnt::SReferenced<C>, C**>(source_container, destination_container);
-			return rc;
+			return S_OK;
 
 		}
 		else if (source_container) {
-			HRESULT rc = Update_Container_By_Vars<D, refcnt::SReferenced<C>>(source_container, conv);
-			if (Succeeded(rc)) {
-				rc = Get_Container<refcnt::SReferenced<C>, C**>(source_container, destination_container);
-			}
-			return rc;
+			return Update_Container_By_Vars<D, refcnt::SReferenced<C>>(source_container, conv);			
 		}
 		else
 			return E_NOT_SET;
@@ -247,7 +253,10 @@ protected:
 
 
 	template <typename D, typename R>
-	std::tuple<HRESULT, std::wstring>  Array_To_String(R* container, const bool read_interpreted) {
+	std::tuple<HRESULT, std::wstring>  Array_To_String(R* container, const bool read_interpreted) {		
+		if (!container) 			
+			return { E_UNEXPECTED, L"" };
+
 		std::tuple<HRESULT, std::wstring> result{ E_UNEXPECTED, L"" };
 		std::wstringstream converted;
 

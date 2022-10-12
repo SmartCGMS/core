@@ -97,9 +97,9 @@ struct TDraw_Options_Local {
 
 	std::set<GUID> reference_signal_ids;
 
-	int width;
+	int width = 0;
 
-	int height;
+	int height = 0;
 };
 
 // utility namespace - this will be a subject of future restructuring (once there are more utility functions)
