@@ -161,7 +161,7 @@ protected:
 	}
 
 	template <typename C, typename D>
-	HRESULT Evaluate_Container_Variables(refcnt::SReferenced<C> source_container, TConvertor<D> conv) {
+	HRESULT Evaluate_Container_Variables(refcnt::SReferenced<C> &source_container, TConvertor<D> conv) {
 		//let's check whether str is or is not a variable
 		if (!mVariable_Name.empty()) {
 			//let us update re-parse the container
@@ -179,7 +179,7 @@ protected:
 
 		}
 		else if (source_container) {
-			return Update_Container_By_Vars<D, refcnt::SReferenced<C>>(source_container, conv);			
+			return Update_Container_By_Vars<D, refcnt::SReferenced<C>>(source_container, conv);
 		}
 		else
 			return E_NOT_SET;
