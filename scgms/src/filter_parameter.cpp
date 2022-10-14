@@ -114,31 +114,12 @@ HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** w
 		result_path = var_val;
 	}
 
-	std::wstring converted_path = Make_Absolute_Path(result_path);
+	std::wstring converted_path = Make_Absolute_Path(result_path, mParent_Path);
 	*wstr = refcnt::WString_To_WChar_Container(converted_path.c_str());
 
 	return S_OK;
 }
 
-std::wstring CFilter_Parameter::Make_Absolute_Path(filesystem::path src_path) {
-	if (src_path.is_relative()) {
-		std::error_code ec;
-		filesystem::path relative_part = src_path;
-		src_path = filesystem::canonical(mParent_Path / relative_part, ec);
-		if (ec) {
-			src_path = filesystem::weakly_canonical(mParent_Path / relative_part, ec);
-			if (ec)
-				src_path = mParent_Path / relative_part;
-		}
-	}
-
-
-	src_path = src_path.make_preferred();	//we know that make_preferred fails sometimes
-	std::wstring converted_path = src_path.wstring();
-	converted_path = Ensure_Uniform_Dir_Separator(converted_path);
-
-	return converted_path;
-}
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Parent_Path(const wchar_t* parent_path) {
 	if ((!parent_path) || (*parent_path == 0)) return E_INVALIDARG;
@@ -290,7 +271,7 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::Resolve_Deferred_Path() {
 	else
 		rc = S_OK;
 
-	return { rc, Succeeded(rc) ? Make_Absolute_Path(effective_deferred_path) : std::wstring{} };
+	return { rc, Succeeded(rc) ? Make_Absolute_Path(effective_deferred_path, mParent_Path) : std::wstring{} };
 }
 
 HRESULT CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, const wchar_t* str) {

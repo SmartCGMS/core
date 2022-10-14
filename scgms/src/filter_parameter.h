@@ -310,7 +310,6 @@ protected:
 	std::wstring mDeferred_Path_Or_Var;	//wstring so that we can pass its c_str when Get_Deffered_File gets called
 	const wchar_t* mDeferred_Magic_String_Prefix = L"$([[deferred to]]";
 	const wchar_t* mDeferred_Magic_String_Postfix = L")";
-	std::wstring Make_Absolute_Path(filesystem::path src_path);
 	std::tuple<bool, std::wstring> Is_Deferred_Parameter(const wchar_t* str_value); //returns true/false and filepath if true
 
 			//when resolving deferred path
