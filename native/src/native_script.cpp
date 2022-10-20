@@ -126,8 +126,7 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 		}
 
 
-		if (def.size() > native::max_parameter_count) {
-			def.resize(native::max_parameter_count);
+		if (def.size() > native::max_parameter_count) {			
 			std::wstring err_desc = L"NativeScript: There is an excessive number of parameters (loaded: ";
 			err_desc += std::to_wstring(def.size());
 			err_desc += L"; expected: ";
