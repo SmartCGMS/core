@@ -70,6 +70,8 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 		return rc;
 	}
 
+	
+
 	//we have to create the filter executors from the last one
 	{
 		auto send_shut_down = [this]() {
@@ -81,8 +83,12 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 				mExecutors[0]->Execute(shutdown_event);
 		};
 
+		size_t link_position = std::distance(link_begin, link_end);
+
 		//1st round - create the filters
 		do {
+			link_position--;
+
 			//scgms::IFilter_Configuration_Link* &link = *(link_end-1);	-- let's increase its ref count safely, because we are working with it
 			scgms::SFilter_Configuration_Link link = refcnt::make_shared_reference_ext< scgms::SFilter_Configuration_Link, scgms::IFilter_Configuration_Link>(*(link_end - 1), true);
 
@@ -114,6 +120,8 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 				//describe such an event anyway just in the case the filter would not do so - hence we would at least know the configuration-failing filter
 				std::wstring err_str{dsFailed_to_configure_filter};
 				err_str += GUID_To_WString(filter_id);
+				err_str += L"; position: ";
+				err_str += std::to_wstring(link_position);
 				
 				bool failed_to_resolve_descriptor = false;
 				{//try to obtain filter's name
