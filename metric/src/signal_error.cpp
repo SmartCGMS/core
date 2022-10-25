@@ -323,7 +323,7 @@ void CSignal_Error::Do_Flush_Stats(std::wofstream stats_file) {
 			else stats_file << std::to_wstring(segment_id);
 
 		stats_file << "; " << marker_string << tc_d
-			<< signal_stats.avg << "; " << signal_stats.stddev << "; " << signal_stats.count << tc_d
+			<< signal_stats.avg << "; " << signal_stats.stddev << "; " << signal_stats.exc_kurtosis << "; " << signal_stats.skewness << "; " << signal_stats.count << tc_d
 			<< signal_stats.ecdf[scgms::NECDF::min_value] << "; "
 			<< signal_stats.ecdf[scgms::NECDF::p25] << "; "
 			<< signal_stats.ecdf[scgms::NECDF::median] << "; "
@@ -353,5 +353,5 @@ void CSignal_Error::Do_Flush_Stats(std::wofstream stats_file) {
 	for (auto& signals: mSignal_Series) 
 		flush_segment(signals.first);
 	
-	flush_segment(scgms::All_Segments_Id);
+	flush_segment(scgms::All_Segments_Id);	
 }

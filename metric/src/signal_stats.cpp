@@ -147,7 +147,7 @@ void CSignal_Stats::Flush_Stats() {
             else stats_file << std::to_wstring(segment_id);
 
             stats_file << "; " << marker_string << ";; "
-                << signal_stats.avg << "; " << signal_stats.stddev << "; " << signal_stats.count << ";; "
+                << signal_stats.avg << "; " << signal_stats.stddev << "; " << signal_stats.exc_kurtosis << "; " << signal_stats.skewness << "; " << signal_stats.count << ";; "
                 << signal_stats.ecdf[scgms::NECDF::min_value] << "; "
                 << signal_stats.ecdf[scgms::NECDF::p25] << "; "
                 << signal_stats.ecdf[scgms::NECDF::median] << "; "
@@ -194,4 +194,13 @@ void CSignal_Stats::Flush_Stats() {
 
     if (flush_marker(scgms::All_Segments_Id, total_levels, dsLevel))
         flush_marker(scgms::All_Segments_Id, total_periods, dsPeriod);
+
+    stats_file << std::endl;
+    stats_file << std::endl;
+
+    stats_file << "Expected excessive kurtosis and skewness per distribution\n";
+    stats_file << "Uniform exc.kurt.:;" << -6.0 / 5.0 << "; Skewness; 0\n";
+    stats_file << "Normal exc.kurt:;0;Skewness;0\n";
+    stats_file << "Exponential exc.kurt:;6;Skewness;2\n";
+    stats_file << "Poisson exc.kurt:;1/std.dev;Skewness;1/std.dev^0.5\n";
 }

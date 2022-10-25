@@ -68,8 +68,8 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 	// find minimum and maximum time, and maximum and minimum Y value
 	double min_x = std::numeric_limits<double>::max();
 	double max_x = -std::numeric_limits<double>::max();
-	double min_y = 0; // default is 0
-	double max_y = min_y;
+	double min_y = 0.0;// std::numeric_limits<double>::max(); - not debugged yet
+	double max_y = -std::numeric_limits<double>::max();
 
 	for (const auto seg_id : opts.segment_ids) {
 		const TPlot_Segment& segment = source.Get_Segment(seg_id);
@@ -204,13 +204,16 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 					desc.visualization == scgms::NSignal_Visualization::smooth_with_mark)
 				{
 					drawing::PolyLine line;
-					line.Set_Position(mCanvas_WidthOff, mCanvas_HeightOff);
+					//line.Set_Position(mCanvas_WidthOff, mCanvas_HeightOff);
 					for (const auto& val : signal.second.mPlots_Values) {
 
 						line.Add_Point(
 							mCanvas_WidthOff + (opts.width - mCanvas_WidthOff) * ((val.device_time - min_x) / (max_x - min_x)),
-							mCanvas_HeightOff - (mCanvas_HeightOff * (val.value * desc.value_scale / (max_y - min_y))));
+							mCanvas_HeightOff - (mCanvas_HeightOff * ((val.value - min_y)* desc.value_scale / (max_y - min_y))));
 					}
+					const auto& all_points = line.Get_Points();
+					if (!all_points.empty())
+						line.Set_Position(all_points[0].x, all_points[0].y);
 
 					grp.Add<drawing::PolyLine>(line)
 						.Set_Stroke_Width(1.2)

@@ -319,10 +319,12 @@ HRESULT CFile_Reader::Extract(ExtractionResult &values)
 {
 	CFormat_Recognizer recognizer;
 	CExtractor extractor;
+	CDateTime_Recognizer dt_formats;
 
-	CFormat_Rule_Loader loader(recognizer, extractor);
+	CFormat_Rule_Loader loader(recognizer, extractor, dt_formats);
 	if (!loader.Load())
 		return E_FAIL;
+
 
 	values.Value_Count = 0;
 	values.SegmentValues.clear();
@@ -357,7 +359,7 @@ HRESULT CFile_Reader::Extract(ExtractionResult &values)
 		}
 
 		// extract data and fill extraction result
-		if (!extractor.Extract(format, sfile, values, fileIndex))
+		if (!extractor.Extract(format, sfile, dt_formats, values, fileIndex))
 		{
 			Emit_Info(scgms::NDevice_Event_Code::Error, L"Cannot extract: " + files_to_extract[fileIndex].wstring());
 			return E_FAIL;
@@ -373,7 +375,10 @@ HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration con
 
 	mFileName = configuration.Read_File_Path(rsInput_Values_File);
 	mMaximum_IG_Interval = configuration.Read_Double(rsMaximum_IG_Interval, mMaximum_IG_Interval);
-
+	if (std::isnan(mMaximum_IG_Interval) || (mMaximum_IG_Interval <= 0.0)) {
+		error_description.push(L"Maximum IG interval must be a positive number. 12 minutes is a default value.");
+		return E_INVALIDARG;
+	}
 
 	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
 	mMinimum_Required_IGs = static_cast<size_t>(configuration.Read_Int(rsMinimum_Required_IGs));

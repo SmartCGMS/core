@@ -120,7 +120,7 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 				//describe such an event anyway just in the case the filter would not do so - hence we would at least know the configuration-failing filter
 				std::wstring err_str{dsFailed_to_configure_filter};
 				err_str += GUID_To_WString(filter_id);
-				err_str += L"; position: ";
+				err_str += L"; filter zero-indexed position: ";
 				err_str += std::to_wstring(link_position);
 				
 				bool failed_to_resolve_descriptor = false;

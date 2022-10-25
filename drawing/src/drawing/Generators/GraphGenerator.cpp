@@ -171,8 +171,8 @@ void CGraph_Generator::Write_LinearCurve(const ValueVector& values, const Data& 
 			if (next == Invalid_Position)
 				break;
 
-			// disallow visual linear approximation of more than 15min gaps; split the line if the gap is bigger
-			if (values[next].date - values[previous].date > 15 * 60)
+			// disallow visual linear approximation of more than 20min gaps; split the line if the gap is bigger
+			if (values[next].date - values[previous].date > 20 * 60)
 			{
 				mSvg << "\"/>" << std::endl;
 				mSvg << "<path d =\"M " << Normalize_Time_X(values[next].date) << " " << Normalize_Y(values[next].value * dataMeta.valuesScale);

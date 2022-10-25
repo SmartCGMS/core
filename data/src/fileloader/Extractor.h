@@ -104,27 +104,17 @@ enum class ExtractionIterationType
 	ADDITIONAL,
 };
 
-// enumerator of known datetime formats
-//do we really need this enum? It makes us to sync it with KnownDateFormatFmtStrings, which should be enough.
-//also, the format should be configurable in the .ini file
-enum class NKnownDateFormat {
-	DATEFORMAT_DB_YYYYMMDD_T = 0,
-	DATEFORMAT_DB_YYYYMMDD,
-	DATEFORMAT_BGLP20_YYYYMMDD,
-	DATEFORMAT_DDMMYYYY,
-	DATEFORMAT_DM_DDMMYYYY,
-	DATEFORMAT_YYYYMMDD,
-	DATEFORMAT_CZ,
-	UNKNOWN_DATEFORMAT
-};
 
 // recognized datetime format formatter strings
-extern const std::array<const char*, static_cast<size_t>(NKnownDateFormat::UNKNOWN_DATEFORMAT)> KnownDateFormatFmtStrings;
+class CDateTime_Recognizer : public std::vector<std::string> {
+public:	
+	void finalize_pushes();
+	const char* recognize(const wchar_t* str) const;
+	const char* recognize(const std::string& str) const;
+};
 
-NKnownDateFormat Recognize_Date_Format(const std::string& str);
-NKnownDateFormat Recognize_Date_Format(const wchar_t *str);
-bool Str_Time_To_Unix_Time(const wchar_t *src, NKnownDateFormat fmtIdx, std::string outFormatStr, const char* outFormat, time_t& target);
-bool Str_Time_To_Unix_Time(const std::string& src, NKnownDateFormat fmtIdx, std::string outFormatStr, const char* outFormat, time_t& target);
+bool Str_Time_To_Unix_Time(const wchar_t *src, const char* src_fmt, std::string outFormatStr, const char* outFormat, time_t& target);
+bool Str_Time_To_Unix_Time(const std::string& src, const char* src_fmt, std::string outFormatStr, const char* outFormat, time_t& target);
 
 /*
  * Structure used as result of extraction
@@ -190,12 +180,12 @@ class CExtractor
 		ExtractorColumns Get_Conditional_Column(std::string& formatName, ExtractorColumns condColType, std::string& condValue) const;
 
 		// extracts information from supplied spreadsheet (csv, xls, xlsx, ..) file and stores all needed data to database; returns true on success
-		bool Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapter& source, ExtractionResult& result, size_t fileIndex = 0) const;
+		bool Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapter& source, const CDateTime_Recognizer& dt_formats, ExtractionResult& result, size_t fileIndex = 0) const;
 		// extracts information from supplied hierarchy file (xml, ..) and stores all needed data to database; returns true on success
-		bool Extract_Hierarchy_File(std::string& formatName, CFormat_Adapter& source, ExtractionResult& result, size_t fileIndex = 0) const;
+		bool Extract_Hierarchy_File(std::string& formatName, CFormat_Adapter& source, const CDateTime_Recognizer& dt_formats, ExtractionResult& result, size_t fileIndex = 0) const;
 
 		// extracts single stream of values from supplied file
-		bool Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosition& featurePos, TreePosition& datetimePos, TreePosition& datePos, TreePosition& timePos, ExtractionIterationType itrtype, std::string& formatName, CFormat_Adapter& source, ExtractionResult& result, size_t fileIndex = 0, ExtractorColumns extractionColumn = ExtractorColumns::NONE) const;
+		bool Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosition& featurePos, TreePosition& datetimePos, TreePosition& datePos, TreePosition& timePos, ExtractionIterationType itrtype, std::string& formatName, CFormat_Adapter& source, const CDateTime_Recognizer& dt_formats, ExtractionResult& result, size_t fileIndex = 0, ExtractorColumns extractionColumn = ExtractorColumns::NONE) const;
 
 		// extracts formatted double for specified column
 		bool Formatted_Read_Double(std::string& formatName, ExtractorColumns colType, std::string& source, double& target) const;
@@ -217,5 +207,5 @@ class CExtractor
 		bool Add_Format_Condition_Rule(const char* formatName, const char* condition, const char* headerRuleName);
 
 		// extracts information from supplied file and stores all needed data to database; returns true on success
-		bool Extract(std::string& formatName, CFormat_Adapter& source, ExtractionResult& result, size_t fileIndex = 0) const;
+		bool Extract(std::string& formatName, CFormat_Adapter& source, const CDateTime_Recognizer &dt_formats, ExtractionResult& result, size_t fileIndex = 0) const;
 };
