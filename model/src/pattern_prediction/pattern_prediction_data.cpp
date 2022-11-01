@@ -221,3 +221,11 @@ std::wstring CPattern_Prediction_Data::Learning_Data(const size_t sliding_window
 
     return converted.str();
 }
+
+void CPattern_Prediction_Data::Encounter() {
+    mEncountered = true;
+}
+
+bool CPattern_Prediction_Data::Was_Encountered() const {
+    return mEncountered;
+}
