@@ -206,7 +206,7 @@ void CDecoupling_Filter::Flush_Stats() {
             else stats_file << std::to_wstring(segment_id);
 
             stats_file << "; " << marker_string << ";; "
-                << signal_stats.avg << "; " << signal_stats.stddev << "; " << signal_stats.count << ";; "
+                << signal_stats.avg << "; " << signal_stats.stddev << "; " << signal_stats.exc_kurtosis << "; " << signal_stats.skewness << "; " << signal_stats.count << ";; "
                 << signal_stats.ecdf[scgms::NECDF::min_value] << "; "
                 << signal_stats.ecdf[scgms::NECDF::p25] << "; "
                 << signal_stats.ecdf[scgms::NECDF::median] << "; "
@@ -253,5 +253,4 @@ void CDecoupling_Filter::Flush_Stats() {
 
     if (flush_marker(scgms::All_Segments_Id, total_stats.episode_levels, total_stats, dsLevel))
         flush_marker(scgms::All_Segments_Id, total_stats.episode_period, total_stats, dsPeriod);
-
 }

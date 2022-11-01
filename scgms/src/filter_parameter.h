@@ -310,9 +310,15 @@ protected:
 	std::wstring mDeferred_Path_Or_Var;	//wstring so that we can pass its c_str when Get_Deffered_File gets called
 	const wchar_t* mDeferred_Magic_String_Prefix = L"$([[deferred to]]";
 	const wchar_t* mDeferred_Magic_String_Postfix = L")";
-	std::wstring Make_Absolute_Path(filesystem::path src_path);
 	std::tuple<bool, std::wstring> Is_Deferred_Parameter(const wchar_t* str_value); //returns true/false and filepath if true
-	std::wstring Resolve_Deferred_Path();
+
+			//when resolving deferred path
+			//HRESULT means:
+			//	S_OK - path resolved succesfully			
+			//  E_NOT_SET - syntax correct, but cannot resolve the system variable
+			//				we need to support this scenario, when editing the config
+			//wstring is the path
+	std::tuple<HRESULT, std::wstring> Resolve_Deferred_Path();			
 	std::tuple<HRESULT, std::wstring> Load_From_File(const wchar_t* path);
 	HRESULT Save_To_File(const std::wstring& text, const wchar_t* path);
 public:
@@ -320,7 +326,7 @@ public:
 	virtual ~CFilter_Parameter() {};	
 
 	//conversion
-	bool from_string(const scgms::NParameter_Type desired_type, const wchar_t* str);
+	HRESULT from_string(const scgms::NParameter_Type desired_type, const wchar_t* str);
 
 	virtual HRESULT IfaceCalling Get_Type(scgms::NParameter_Type *type) override final;
 	virtual HRESULT IfaceCalling Get_Config_Name(wchar_t **config_name) override final;

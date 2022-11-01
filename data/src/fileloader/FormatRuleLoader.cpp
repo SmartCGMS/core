@@ -125,6 +125,20 @@ bool CFormat_Rule_Loader::Load_Format_Rules(CSimpleIniA& ini) {
 }
 
 
+bool CFormat_Rule_Loader::Load_DateTime_Formats(CSimpleIniA& ini) {
+	static const std::string mask_name = "Mask";
+
+	auto add = [this](const char* formatName, const char* iiname, const char* datetime_mask) {
+		if (mask_name == iiname)
+			mDateTime_Recognizer.push_back(datetime_mask);			
+	};
+
+	const auto result = Add_Config_Keys(ini, add);
+	if (result)
+		mDateTime_Recognizer.finalize_pushes();
+	return result;
+}
+
 
 bool CFormat_Rule_Loader::Load_Format_Rule_Templates(CSimpleIniA& ini) {
 	CSimpleIniA::TNamesDepend sections;
@@ -166,8 +180,8 @@ bool CFormat_Rule_Loader::Load_Format_Rule_Templates(CSimpleIniA& ini) {
 	return true;
 }
 
-CFormat_Rule_Loader::CFormat_Rule_Loader(CFormat_Recognizer& recognizer, CExtractor& extractor)
-	: mFormatRecognizer(recognizer), mExtractor(extractor)
+CFormat_Rule_Loader::CFormat_Rule_Loader(CFormat_Recognizer& recognizer, CExtractor& extractor, CDateTime_Recognizer& datetime)
+	: mFormatRecognizer(recognizer), mExtractor(extractor), mDateTime_Recognizer(datetime)
 {
 	//
 }
@@ -176,15 +190,18 @@ CFormat_Rule_Loader::CFormat_Rule_Loader(CFormat_Recognizer& recognizer, CExtrac
 const wchar_t* dsPatternConfigurationFileName = L"patterns.ini";
 const wchar_t* dsFormatRuleTemplatesFileName = L"format_rule_templates.ini";
 const wchar_t* dsFormatRulesFileName = L"format_rules.ini";
+const wchar_t* dsDateTime_Formats_FileName = L"datetime_formats.ini";
 
 extern "C" const char default_patterns[];			//bin2c -n default_format_rules_templates -p 0,0 %(FullPath) > %(FullPath).c
 extern "C" const char default_format_rules[];
 extern "C" const char default_format_rules_templates[];
+extern "C" const char default_datetime_formats[];
 
 bool CFormat_Rule_Loader::Load() {	
 	
 	//order of the following loadings DOES MATTER!
 	return Load_Format_Config(default_patterns, dsPatternConfigurationFileName, std::bind(&CFormat_Rule_Loader::Load_Format_Pattern_Config, this, std::placeholders::_1)) &&
 		   Load_Format_Config(default_format_rules_templates, dsFormatRuleTemplatesFileName, std::bind(&CFormat_Rule_Loader::Load_Format_Rule_Templates, this, std::placeholders::_1)) &&
-		   Load_Format_Config(default_format_rules, dsFormatRulesFileName, std::bind(&CFormat_Rule_Loader::Load_Format_Rules, this, std::placeholders::_1));
+		   Load_Format_Config(default_format_rules, dsFormatRulesFileName, std::bind(&CFormat_Rule_Loader::Load_Format_Rules, this, std::placeholders::_1)) && 
+		   Load_Format_Config(default_datetime_formats, dsDateTime_Formats_FileName, std::bind(&CFormat_Rule_Loader::Load_DateTime_Formats, this, std::placeholders::_1));
 }

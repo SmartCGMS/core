@@ -156,7 +156,15 @@ HRESULT CTwo_Signals::Do_Configure(scgms::SFilter_Configuration configuration, r
 	mReference_Signal_ID = configuration.Read_GUID(rsReference_Signal, Invalid_GUID);
 	mError_Signal_ID = configuration.Read_GUID(rsError_Signal, Invalid_GUID);
 	
-	if (Is_Invalid_GUID(mReference_Signal_ID, mError_Signal_ID)) return E_INVALIDARG;
+	if (Is_Invalid_GUID(mReference_Signal_ID, mError_Signal_ID)) {
+		std::wstring err_desc = dsInvalid_GUID;
+		err_desc += L"; ";
+		err_desc += configuration.Read_String(rsReference_Signal);
+		err_desc += L"; ";
+		err_desc += configuration.Read_String(rsError_Signal);
+		error_description.push(err_desc);
+		return E_INVALIDARG;
+	}
 
 	mCSV_Path = configuration.Read_File_Path(rsOutput_CSV_File);
 

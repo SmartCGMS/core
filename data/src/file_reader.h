@@ -61,44 +61,44 @@ using TSegment_Limits = std::pair<size_t, size_t>;
  * Filter class for loading and extracting file, and sending values to chain
  */
 class CFile_Reader : public scgms::CBase_Filter {
-	protected:
-		// original filename from configuration
-		filesystem::path mFileName;
+protected:
+	// original filename from configuration
+	filesystem::path mFileName;
 		
-		double mMaximum_IG_Interval = 12.0 * scgms::One_Minute;	//maximum allowed interval between to IGs
+	double mMaximum_IG_Interval = 12.0 * scgms::One_Minute;	//maximum allowed interval between to IGs
 
 
-		// merged extracted values from given file
-		std::vector<TValue_Vector> mMergedValues;
-		// do we need to send shutdown after last value?
-		bool mShutdownAfterLast = false;
-		// minimum values in segment
-		size_t mMinimum_Required_IGs = 0;
-		// require both BG values in a segment
-		bool mRequire_BG = false;
+	// merged extracted values from given file
+	std::vector<TValue_Vector> mMergedValues;
+	// do we need to send shutdown after last value?
+	bool mShutdownAfterLast = false;
+	// minimum values in segment
+	size_t mMinimum_Required_IGs = 0;
+	// require both BG values in a segment
+	bool mRequire_BG = false;
 
-		// reader thread
-		std::unique_ptr<std::thread> mReaderThread;
+	// reader thread
+	std::unique_ptr<std::thread> mReaderThread;
 
-		// reader main method
-		void Run_Reader();	
+	// reader main method
+	void Run_Reader();	
 
-		// send event to filter chain
-		bool Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId = Invalid_GUID, double value = 0.0, const std::wstring& winfo = L"");
-		// extracts file to value vector container
-		HRESULT Extract(ExtractionResult &values);
-		// merge values from extraction result to internal vector
-		void Merge_Values(ExtractionResult& result);
+	// send event to filter chain
+	bool Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId = Invalid_GUID, double value = 0.0, const std::wstring& winfo = L"");
+	// extracts file to value vector container
+	HRESULT Extract(ExtractionResult &values);
+	// merge values from extraction result to internal vector
+	void Merge_Values(ExtractionResult& result);
 
-		// resolves segments of given value vector
-		void Resolve_Segments(TValue_Vector const& src, std::list<TSegment_Limits>& targetList) const;
-
-	protected:
-		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-		HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-	public:
-		CFile_Reader(scgms::IFilter *output);
-		virtual ~CFile_Reader();
+	// resolves segments of given value vector
+	void Resolve_Segments(TValue_Vector const& src, std::list<TSegment_Limits>& targetList) const;
+	
+protected:
+	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+	HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+public:
+	CFile_Reader(scgms::IFilter *output);
+	virtual ~CFile_Reader();
 };
 
 #pragma warning( pop )

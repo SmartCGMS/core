@@ -78,14 +78,14 @@ HRESULT IfaceCalling CFilter_Parameter::Get_Config_Name(wchar_t **config_name) {
 HRESULT IfaceCalling CFilter_Parameter::Get_WChar_Container(refcnt::wstr_container **wstr, BOOL read_interpreted) {
 	auto [rc, converted] = to_string(read_interpreted == TRUE);
 
-	if (rc == S_OK)
+	if ((rc == S_OK) || ((rc == E_NOT_SET) && (read_interpreted == FALSE)))
 		*wstr = refcnt::WString_To_WChar_Container(converted.c_str());
 	return rc;	
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_WChar_Container(refcnt::wstr_container *wstr) {
 	std::wstring tmp = WChar_Container_To_WString(wstr);
-	if (from_string(mType, tmp.c_str())) {
+	if (Succeeded(from_string(mType, tmp.c_str()))) {
 		mWChar_Container = refcnt::make_shared_reference_ext<decltype(mWChar_Container), refcnt::wstr_container>(wstr, true);
 		return S_OK;
 	}
@@ -97,7 +97,7 @@ HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** w
 	filesystem::path result_path;
 
 	if (mVariable_Name.empty()) {
-		if (mWChar_Container->empty() == S_OK) {
+		if (!mWChar_Container || (mWChar_Container->empty() == S_OK)) {
 			*wstr = nullptr;
 			return S_FALSE;
 		}
@@ -114,31 +114,12 @@ HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** w
 		result_path = var_val;
 	}
 
-	std::wstring converted_path = Make_Absolute_Path(result_path);
+	std::wstring converted_path = Make_Absolute_Path(result_path, mParent_Path);
 	*wstr = refcnt::WString_To_WChar_Container(converted_path.c_str());
 
 	return S_OK;
 }
 
-std::wstring CFilter_Parameter::Make_Absolute_Path(filesystem::path src_path) {
-	if (src_path.is_relative()) {
-		std::error_code ec;
-		filesystem::path relative_part = src_path;
-		src_path = filesystem::canonical(mParent_Path / relative_part, ec);
-		if (ec) {
-			src_path = filesystem::weakly_canonical(mParent_Path / relative_part, ec);
-			if (ec)
-				src_path = mParent_Path / relative_part;
-		}
-	}
-
-
-	src_path = src_path.make_preferred();	//we know that make_preferred fails sometimes
-	std::wstring converted_path = src_path.wstring();
-	converted_path = Ensure_Uniform_Dir_Separator(converted_path);
-
-	return converted_path;
-}
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Parent_Path(const wchar_t* parent_path) {
 	if ((!parent_path) || (*parent_path == 0)) return E_INVALIDARG;
@@ -278,7 +259,7 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::Evaluate_Variable(const std
 }
 
 
-std::wstring CFilter_Parameter::Resolve_Deferred_Path() {
+std::tuple<HRESULT, std::wstring> CFilter_Parameter::Resolve_Deferred_Path() {
 	std::wstring effective_deferred_path = mDeferred_Path_Or_Var;
 	HRESULT rc = E_UNEXPECTED;
 
@@ -290,10 +271,10 @@ std::wstring CFilter_Parameter::Resolve_Deferred_Path() {
 	else
 		rc = S_OK;
 
-	return Succeeded(rc) ? Make_Absolute_Path(effective_deferred_path) : std::wstring{};
+	return { rc, Succeeded(rc) ? Make_Absolute_Path(effective_deferred_path, mParent_Path) : std::wstring{} };
 }
 
-bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, const wchar_t* str) {
+HRESULT CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, const wchar_t* str) {
 	wchar_t* effective_str = const_cast<wchar_t*>(str);
 	std::wstring possibly_deferred_content = L"";
 
@@ -301,8 +282,12 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 	bool is_deferred = false;
 	std::tie(is_deferred, mDeferred_Path_Or_Var) = Is_Deferred_Parameter(str);
 	if (is_deferred) {
-		auto effective_deferred_path = Resolve_Deferred_Path();
-		HRESULT deferred_success = E_UNEXPECTED;
+		auto [deferred_success, effective_deferred_path] = Resolve_Deferred_Path();
+		
+		if (deferred_success == E_NOT_SET)
+			return E_NOT_SET;
+		
+		deferred_success = E_UNEXPECTED;
 		std::tie(deferred_success, possibly_deferred_content) = Load_From_File(effective_deferred_path.c_str());
 		if (Succeeded(deferred_success))
 			effective_str = const_cast<wchar_t*>(possibly_deferred_content.c_str());
@@ -314,7 +299,7 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 	auto [is_var, var_name] = scgms::Is_Variable_Name(effective_str);
 	if (is_var) {
 		mVariable_Name = var_name;
-		return true;
+		return S_OK;
 	}
 	else
 		mVariable_Name.clear();
@@ -386,7 +371,7 @@ bool CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type, c
 			valid = false;
 	} //switch (desc.parameter_type[i])	{
 
-	return valid;
+	return valid ? S_OK : E_FAIL;
 }
 
 std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string(bool read_interpreted) {
@@ -400,7 +385,8 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string(bool read_interpr
 
 			switch (mType) {
 				case scgms::NParameter_Type::ptWChar_Array:
-					converted = refcnt::WChar_Container_To_WString(mWChar_Container.get());
+					if (mWChar_Container)
+						converted = refcnt::WChar_Container_To_WString(mWChar_Container.get());
 					break;
 
 				case scgms::NParameter_Type::ptRatTime:
@@ -473,8 +459,14 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string(bool read_interpr
 
 	if ((rc == S_OK) && (!mDeferred_Path_Or_Var.empty()) && (read_interpreted == false)) {
 		//we actually have to save the content to a deferred file
-		auto effective_deffered_path = Resolve_Deferred_Path();
-		rc = Save_To_File(converted, effective_deffered_path.c_str());
+		auto [deffered_success, effective_deffered_path] = Resolve_Deferred_Path();
+
+		if (deffered_success != E_NOT_SET) {
+			if (Succeeded(deffered_success))
+				rc = Save_To_File(converted, effective_deffered_path.c_str());
+		} else
+			rc = deffered_success;
+				
 
 		//file has been saved succesfully => write the deferred file path
 		converted = mDeferred_Magic_String_Prefix;

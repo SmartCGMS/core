@@ -126,14 +126,22 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 		}
 
 
-		if (def.size() > native::max_parameter_count) {
-			def.resize(native::max_parameter_count);
-			error_description.push(L"NativeScript: There is an excessive number of parameters.");
+		if (def.size() > native::max_parameter_count) {			
+			std::wstring err_desc = L"NativeScript: There is an excessive number of parameters (loaded: ";
+			err_desc += std::to_wstring(def.size());
+			err_desc += L"; expected: ";
+			err_desc += std::to_wstring(native::max_parameter_count);
+			err_desc += L").";
+			error_description.push(err_desc);
+			return E_INVALIDARG;
 		}
 		else if (def.size() < native::max_parameter_count) {
-			while (def.size() < native::max_parameter_count)
-				def.push_back(std::numeric_limits<double>::quiet_NaN());
-			error_description.push(L"NativeScript: Not all parameters are present.");
+			std::wstring err_desc = L"NativeScript: There is an insufficient number of parameters (loaded: ";
+			err_desc += std::to_wstring(def.size());
+			err_desc += L"; expected: ";
+			err_desc += std::to_wstring(native::max_parameter_count);
+			err_desc += L").";
+			return E_INVALIDARG;
 		} //else the parameters have just the correct size
 
 		std::copy(def.begin(), def.end(), mParameters.begin());
