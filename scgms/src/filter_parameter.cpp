@@ -97,7 +97,7 @@ HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** w
 	filesystem::path result_path;
 
 	if (mVariable_Name.empty()) {
-		if (mWChar_Container->empty() == S_OK) {
+		if (!mWChar_Container || (mWChar_Container->empty() == S_OK)) {
 			*wstr = nullptr;
 			return S_FALSE;
 		}
@@ -385,7 +385,8 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string(bool read_interpr
 
 			switch (mType) {
 				case scgms::NParameter_Type::ptWChar_Array:
-					converted = refcnt::WChar_Container_To_WString(mWChar_Container.get());
+					if (mWChar_Container)
+						converted = refcnt::WChar_Container_To_WString(mWChar_Container.get());
 					break;
 
 				case scgms::NParameter_Type::ptRatTime:
