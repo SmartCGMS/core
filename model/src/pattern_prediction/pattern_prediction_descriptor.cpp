@@ -56,11 +56,11 @@ namespace pattern_prediction {
 	}
 
 
-	const size_t filter_param_count = 9;
-	const scgms::NParameter_Type filter_param_types[filter_param_count] = { scgms::NParameter_Type::ptRatTime, scgms::NParameter_Type::ptWChar_Array, scgms::NParameter_Type::ptBool, scgms::NParameter_Type::ptBool, scgms::NParameter_Type::ptBool, scgms::NParameter_Type::ptDouble_Array, scgms::NParameter_Type::ptNull, scgms::NParameter_Type::ptInt64, scgms::NParameter_Type::ptWChar_Array };
-	const wchar_t* filter_param_ui_names[filter_param_count] = { dsDt, dsParameters_File, dsDo_Not_Update_Parameters_File, dsDo_Not_Learn, dsUse_Config_parameters, dsParameters, dsExperimental, dsSliding_Window_Length, dsLearned_Data_Filename_Prefix };
-	const wchar_t* filter_param_config_names[filter_param_count] = { rsDt_Column, rsParameters_File, rsDo_Not_Update_Parameters_File, rsDo_Not_Learn, rsUse_Config_parameters, rsParameters, nullptr, rsSliding_Window_Length, rsLearned_Data_Filename_Prefix };
-	const wchar_t* filter_param_tooltips[filter_param_count] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
+	const size_t filter_param_count = 10;
+	const scgms::NParameter_Type filter_param_types[filter_param_count] = { scgms::NParameter_Type::ptRatTime, scgms::NParameter_Type::ptWChar_Array, scgms::NParameter_Type::ptBool, scgms::NParameter_Type::ptBool, scgms::NParameter_Type::ptBool, scgms::NParameter_Type::ptDouble_Array, scgms::NParameter_Type::ptBool, scgms::NParameter_Type::ptNull, scgms::NParameter_Type::ptInt64, scgms::NParameter_Type::ptWChar_Array };
+	const wchar_t* filter_param_ui_names[filter_param_count] = { dsDt, dsParameters_File, dsDo_Not_Update_Parameters_File, dsDo_Not_Learn, dsUse_Config_parameters, dsParameters, dsSanitize_Unused_Patterns, dsExperimental, dsSliding_Window_Length, dsLearned_Data_Filename_Prefix };
+	const wchar_t* filter_param_config_names[filter_param_count] = { rsDt_Column, rsParameters_File, rsDo_Not_Update_Parameters_File, rsDo_Not_Learn, rsUse_Config_parameters, rsParameters, rsSanitize_Unused_Patterns, nullptr, rsSliding_Window_Length, rsLearned_Data_Filename_Prefix };
+	const wchar_t* filter_param_tooltips[filter_param_count] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 
 	scgms::TFilter_Descriptor get_filter_desc() {
 		const scgms::TFilter_Descriptor filter_desc = {
@@ -95,8 +95,8 @@ namespace pattern_prediction {
 			upper_bound,
 
 			0,
-			& scgms::signal_Null,
-			& scgms::signal_Null
+			&scgms::signal_Null,
+			&scgms::signal_Null
 		};
 
 		return model_desc;

@@ -79,6 +79,7 @@ protected:
     bool mUpdate_Parameters_File = true;
     bool mUse_Config_Parameters = false;
     filesystem::path mParameters_File_Path;
+    bool mSanitize_Unused_Patterns = false;
 
     bool mUpdated_Levels = false;   //flag to eliminate unnecessary writes to the parameters file
 
@@ -89,6 +90,9 @@ protected:
     HRESULT Read_Parameters_File(scgms::SFilter_Configuration configuration, refcnt::Swstr_list error_description);
     HRESULT Read_Parameters_From_Config(scgms::SFilter_Configuration configuration, refcnt::Swstr_list error_description);
     void Write_Parameters_File() const;
+protected:
+    scgms::SFilter_Configuration mConfiguration;    //so that we can sanitize
+    void Sanitize_Parameters();
 protected:
     // scgms::CBase_Filter iface implementation
     virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;

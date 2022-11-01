@@ -56,6 +56,9 @@ CPattern_Prediction_Filter::~CPattern_Prediction_Filter() {
 	if (mUpdate_Parameters_File)
 		Write_Parameters_File();
 
+	if (mSanitize_Unused_Patterns)
+		Sanitize_Parameters();
+
 	if ((!mLearned_Data_Filename_Prefix.empty()) && (mSliding_Window_Length > 0)) 
 		Write_Learning_Data();
 }
@@ -126,6 +129,8 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 
 
 HRESULT CPattern_Prediction_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
+	mConfiguration = configuration;
+
 	mDt = configuration.Read_Double(rsDt_Column, mDt);
 	
 	if (Is_Any_NaN(mDt)) {
@@ -138,6 +143,7 @@ HRESULT CPattern_Prediction_Filter::Do_Configure(scgms::SFilter_Configuration co
 	mParameters_File_Path = configuration.Read_File_Path(rsParameters_File);
 	mUpdate_Parameters_File = !mParameters_File_Path.empty() &&
 		                      !configuration.Read_Bool(rsDo_Not_Update_Parameters_File, !mUpdate_Parameters_File);
+	mSanitize_Unused_Patterns = configuration.Read_Bool(rsSanitize_Unused_Patterns, mSanitize_Unused_Patterns);
 
 
 	//parameters loading must go as the last!
@@ -191,14 +197,16 @@ double CPattern_Prediction_Filter::Update_And_Predict(const uint64_t segment_id,
 
 void CPattern_Prediction_Filter::Update_Learn(scgms::SSignal& ist, const double current_time, const double current_ig_level) {
 	if (Succeeded(ist->Update_Levels(&current_time, &current_ig_level, 1))) {
-		auto [pattern, band_index, classified_ok] = Classify(ist, current_time - mDt);
+		auto [pattern_index, band_index, classified_ok] = Classify(ist, current_time - mDt);
 
-		if (!mDo_Not_Learn) {
+		if (classified_ok) {
+			auto& band = mPatterns[static_cast<size_t>(pattern_index)][band_index];
+			band.Encounter();	//mark this band as encountered one
 
-			if (classified_ok)
-				mPatterns[static_cast<size_t>(pattern)][band_index].push(current_time, current_ig_level);
-
-			mUpdated_Levels = true;
+			if (!mDo_Not_Learn) {
+				band.push(current_time, current_ig_level);
+				mUpdated_Levels = true;
+			}
 		}
 	}
 }
@@ -391,8 +399,10 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_From_Config(scgms::SFilter_C
 		for (size_t pattern_idx = 0; pattern_idx < mPatterns.size(); pattern_idx++) {			
 			for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {					
 				auto& pattern = mPatterns[pattern_idx][band_idx];
-
-				pattern.Set_State(def[def_idx]);
+				
+				const double state = def[def_idx];
+				if (!std::isnan(state))
+					pattern.Set_State(state);
 
 				def_idx++;
 			}
@@ -413,17 +423,21 @@ void CPattern_Prediction_Filter::Write_Parameters_File() const {
 	for (size_t pattern_idx = 0; pattern_idx < mPatterns.size(); pattern_idx++) {		
 		for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {
 
-			const auto& band = mPatterns[pattern_idx][band_idx];
+			const auto& band = mPatterns[pattern_idx][band_idx];			
 
 			if (band) {
-				const auto pattern_state = band.State_To_String();
+				const bool desired_to_save = !mSanitize_Unused_Patterns || (mSanitize_Unused_Patterns && !band.Was_Encountered());
+				if (desired_to_save) {
 
-				const std::wstring section_name = isPattern + std::to_wstring(pattern_idx) + isBand + std::to_wstring(band_idx);
-				const wchar_t* section_name_ptr = section_name.c_str();
-				ini.SetValue(section_name_ptr, iiState, pattern_state.c_str());
+					const auto pattern_state = band.State_To_String();
 
-				//diagnostic
-				//ini.SetLongValue(section_name_ptr, L"Predicted_Band", Level_2_Band_Index(pattern_state.running_median));
+					const std::wstring section_name = isPattern + std::to_wstring(pattern_idx) + isBand + std::to_wstring(band_idx);
+					const wchar_t* section_name_ptr = section_name.c_str();
+					ini.SetValue(section_name_ptr, iiState, pattern_state.c_str());
+
+					//diagnostic
+					//ini.SetLongValue(section_name_ptr, L"Predicted_Band", Level_2_Band_Index(pattern_state.running_median));
+				}
 			}
 		}
 	}
@@ -458,4 +472,33 @@ void CPattern_Prediction_Filter::Write_Learning_Data() const {
 		}
 	}
 
+}
+
+
+void CPattern_Prediction_Filter::Sanitize_Parameters() {
+	if (!mSanitize_Unused_Patterns)
+		return;
+
+
+	std::vector<double> lower, def, upper;
+
+	if (mConfiguration.Read_Parameters(rsParameters, lower, def, upper)) {
+		if (def.size() == pattern_prediction::model_param_count) {
+
+
+			size_t def_idx = 0;
+
+			for (size_t pattern_idx = 0; pattern_idx < mPatterns.size(); pattern_idx++) {
+				for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {
+					auto& band = mPatterns[pattern_idx][band_idx];
+					if (!band.Was_Encountered())
+						def[def_idx] = std::numeric_limits<double>::quiet_NaN();
+					def_idx++;
+				}
+			}
+
+
+			mConfiguration.Write_Parameters(rsParameters, lower, def, upper);
+		}
+	}
 }

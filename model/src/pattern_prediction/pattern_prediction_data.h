@@ -52,6 +52,7 @@ protected:
     bool mFull = false; //true if we have filled the entire buffer
                         //and we are overwriting the old values
 protected:
+    bool mEncountered = false;              //so that we are able to sanitize unused patterns
     bool mCollect_Learning_Data =false;
     struct TLevel { double device_time, level; };
     std::vector<TLevel> mLearning_Data;
@@ -74,4 +75,7 @@ public:
 
     void Start_Collecting_Learning_Data();
     std::wstring Learning_Data(const size_t sliding_window_length, const double dt) const;
+
+    void Encounter();
+    bool Was_Encountered() const;
 };
