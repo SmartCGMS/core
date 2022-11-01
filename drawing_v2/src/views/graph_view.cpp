@@ -39,6 +39,7 @@
 #include "graph_view.h"
 
 #include <iomanip>
+#include <unordered_set>
 
 #include "../../../../common/iface/UIIface.h"
 #include "../../../../common/rtl/UILib.h"
@@ -178,6 +179,8 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 			.Set_Stroke_Width(1);
 	}
 
+	std::unordered_set<GUID> usedSignals;
+
 	double descriptionY = 20;
 	for (const auto seg_id : opts.segment_ids) {
 
@@ -192,10 +195,15 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 
 			if (scgms::get_signal_descriptor_by_id(signal.second.signal_id, desc))
 			{
-				grp.Add<drawing::Text>(mCanvas_WidthOff + 20, descriptionY, Narrow_WChar(desc.signal_description) + " [" + Narrow_WChar(desc.unit_description) + "]")
-					.Set_Font_Size(10)
-					.Set_Anchor(drawing::Text::TextAnchor::START)
-					.Set_Fill_Color(RGBColor::From_UInt32(desc.fill_color, true));
+				// draw description text only on first appearance
+				if (usedSignals.find(desc.id) == usedSignals.end()) {
+					grp.Add<drawing::Text>(mCanvas_WidthOff + 20, descriptionY, Narrow_WChar(desc.signal_description) + " [" + Narrow_WChar(desc.unit_description) + "]")
+						.Set_Font_Size(10)
+						.Set_Anchor(drawing::Text::TextAnchor::START)
+						.Set_Fill_Color(RGBColor::From_UInt32(desc.fill_color, true));
+
+					usedSignals.insert(desc.id);
+				}
 
 				descriptionY += 20;
 
