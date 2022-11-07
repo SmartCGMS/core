@@ -200,10 +200,10 @@ void CDecoupling_Filter::Flush_Stats() {
         const bool result = Calculate_Signal_Stats(series, signal_stats);
 
         if (result) {
-            using et = std::underlying_type < scgms::NECDF>::type;
-
-            if (segment_id == scgms::All_Segments_Id)  stats_file << dsSelect_All_Segments;
-            else stats_file << std::to_wstring(segment_id);
+            if (segment_id == scgms::All_Segments_Id)
+                stats_file << dsSelect_All_Segments;
+            else
+                stats_file << std::to_wstring(segment_id);
 
             stats_file << "; " << marker_string << ";; "
                 << signal_stats.avg << "; " << signal_stats.stddev << "; " << signal_stats.exc_kurtosis << "; " << signal_stats.skewness << "; " << signal_stats.count << ";; "

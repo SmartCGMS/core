@@ -59,7 +59,7 @@ namespace file_reader
 	const GUID File_Reader_Device_GUID = { 0x78df0982, 0x705, 0x4c84, { 0xb0, 0xa3, 0xae, 0x40, 0xfe, 0x7e, 0x18, 0x7b } };	// {78DF0982-0705-4C84-B0A3-AE40FE7E187B}
 
 	// default value spacing in segments - this space determines when the segment ends and starts new
-	constexpr double Default_Segment_Spacing = 600.0 * 1000.0 * InvMSecsPerDay;
+	//constexpr double Default_Segment_Spacing = 600.0 * 1000.0 * InvMSecsPerDay; -- unused as there's no way to expose default config values so far
 }
 
 CFile_Reader::CFile_Reader(scgms::IFilter *output) : CBase_Filter(output) {
@@ -148,10 +148,10 @@ void CFile_Reader::Resolve_Segments(TValue_Vector const& src, std::list<TSegment
 			(!mRequire_BG || (mRequire_BG && bg_is_present)))		//BG is present, if required
 			segment_start_stop.push_back({ segment_begin, segment_end});
 
-		ig_counter = 0;
-		bg_is_present = false;
-		segment_begin = segment_end;			//at this level, new segment's start
-		recent_ig_time = std::numeric_limits<double>::quiet_NaN();
+		//ig_counter = 0;
+		//bg_is_present = false;
+		//segment_begin = segment_end;			//at this level, new segment's start
+		//recent_ig_time = std::numeric_limits<double>::quiet_NaN();
 	}
 }
 

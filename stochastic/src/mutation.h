@@ -138,8 +138,6 @@ class COne_To_N_Mutation
 			progress.current_progress = 0;
 			progress.max_progress = mSetup.max_generations;
 	
-			const size_t solution_size = mPopulation[0].current.cols();
-
 			while (progress.current_progress++ < mSetup.max_generations && (progress.cancelled == FALSE))
 			{
 				std::for_each(std::execution::par_unseq, mPopulation.begin() + 1, mPopulation.end(), [this](auto& candidate_solution) {

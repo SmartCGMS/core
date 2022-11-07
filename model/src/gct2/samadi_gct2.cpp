@@ -50,9 +50,11 @@ constexpr const double Glucose_Molar_Weight = 180.156; // [g/mol]
 
 constexpr bool Improved_Version = true;
 
+/*
 static inline void Ensure_Min_Value(double& target, double value) {
 	target = std::max(target, value);
 }
+*/
 
 /**
  * Samadi GCTv2 model implementation
@@ -86,9 +88,12 @@ CSamadi_GCT2_Discrete_Model::CSamadi_GCT2_Discrete_Model(scgms::IModel_Parameter
 	auto& D2 = mCompartments[NGCT_Compartment::D2].Create_Depot(0.0/*mParameters.D2_0*/, false).Set_Persistent(true).Set_Name(L"D2");
 	auto& DH2 = mCompartments[NGCT_Compartment::DH2].Create_Depot(0.0/*mParameters.DH2_0*/, false).Set_Persistent(true).Set_Name(L"DH2");
 
-	auto& E1 = mCompartments[NGCT_Compartment::E1].Create_Depot(0.0/*mParameters.E1_0*/, false).Set_Persistent(true).Set_Name(L"E1");
-	auto& E2 = mCompartments[NGCT_Compartment::E2].Create_Depot(0.0/*mParameters.E2_0*/, false).Set_Persistent(true).Set_Name(L"E2");
-	auto& TE = mCompartments[NGCT_Compartment::TE].Create_Depot(0.0/*mParameters.TE_0*/, false).Set_Persistent(true).Set_Name(L"TE");
+	auto& E1 = mCompartments[NGCT_Compartment::E1].Create_Depot(0.0/*mParameters.E1_0*/, false);
+	E1.Set_Persistent(true).Set_Name(L"E1");
+	auto& E2 = mCompartments[NGCT_Compartment::E2].Create_Depot(0.0/*mParameters.E2_0*/, false);
+	E2.Set_Persistent(true).Set_Name(L"E2");
+	auto& TE = mCompartments[NGCT_Compartment::TE].Create_Depot(0.0/*mParameters.TE_0*/, false);
+	TE.Set_Persistent(true).Set_Name(L"TE");
 
 	//// Insulin subsystem links
 
@@ -106,7 +111,7 @@ CSamadi_GCT2_Discrete_Model::CSamadi_GCT2_Discrete_Model(scgms::IModel_Parameter
 
 	// I-x1
 	mGlucose_Source.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(x1,
-		[&i, this](CDepot_Link& link) {
+		[&i](CDepot_Link& link) {
 			link.Add_Moderator<CLinear_Moderation_No_Elimination_Function>(i, 1.0);
 		},
 		CTransfer_Function::Start,
@@ -116,7 +121,7 @@ CSamadi_GCT2_Discrete_Model::CSamadi_GCT2_Discrete_Model(scgms::IModel_Parameter
 
 	// I-x2
 	mGlucose_Source.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(x2,
-		[&i, this](CDepot_Link& link) {
+		[&i](CDepot_Link& link) {
 			link.Add_Moderator<CLinear_Moderation_No_Elimination_Function>(i, 1.0);
 		},
 		CTransfer_Function::Start,
@@ -126,7 +131,7 @@ CSamadi_GCT2_Discrete_Model::CSamadi_GCT2_Discrete_Model(scgms::IModel_Parameter
 
 	// I-x3
 	mGlucose_Source.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(x3,
-		[&i, this](CDepot_Link& link) {
+		[&i](CDepot_Link& link) {
 			link.Add_Moderator<CLinear_Moderation_No_Elimination_Function>(i, 1.0);
 		},
 		CTransfer_Function::Start,
@@ -265,7 +270,7 @@ CSamadi_GCT2_Discrete_Model::CSamadi_GCT2_Discrete_Model(scgms::IModel_Parameter
 
 	// Q1-Q2
 	q1.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(q2,
-		[&E2, &x1, this](CDepot_Link& link) {
+		[&x1](CDepot_Link& link) {
 			// elimination with 1+alpha*E1^2 rate
 			//link.Add_Moderator<CQuadratic_Moderation_No_Elimination_Function>(E2, mParameters.alpha);
 			// also moderated by the presence of insulin
@@ -304,7 +309,7 @@ CSamadi_GCT2_Discrete_Model::CSamadi_GCT2_Discrete_Model(scgms::IModel_Parameter
 
 	// Q1-sink
 	q1.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(mSink,
-		[&x3, this](CDepot_Link& link) {
+		[&x3](CDepot_Link& link) {
 			// also moderated by the presence of insulin
 			link.Add_Moderator<CLinear_Moderation_No_Elimination_Function>(x3, 1.0);
 		},
@@ -322,7 +327,7 @@ CSamadi_GCT2_Discrete_Model::CSamadi_GCT2_Discrete_Model(scgms::IModel_Parameter
 
 	// Q2-sink
 	q2.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(mSink,
-		[&E2, &x2, this](CDepot_Link& link) {
+		[&x2](CDepot_Link& link) {
 			// elimination with 1+alpha*E1^2 rate
 			//link.Add_Moderator<CQuadratic_Moderation_No_Elimination_Function>(E2, mParameters.alpha);
 			// also moderated by the presence of insulin
@@ -335,7 +340,7 @@ CSamadi_GCT2_Discrete_Model::CSamadi_GCT2_Discrete_Model(scgms::IModel_Parameter
 
 	// Q2-sink
 	q2.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(mSink,
-		[&E1, this](CDepot_Link& link) {
+		[](CDepot_Link& link) {
 			// elimination based on exercise
 			//link.Add_Moderator<CLinear_Moderation_No_Elimination_Function>(E1, 1.0);
 		},
@@ -358,7 +363,7 @@ CSamadi_GCT2_Discrete_Model::CSamadi_GCT2_Discrete_Model(scgms::IModel_Parameter
 	{
 		// Q1-Qsc
 		mGlucose_Source.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(qsc,
-			[&q1, this](CDepot_Link& link) {
+			[&q1](CDepot_Link& link) {
 				// elimination based on exercise
 				link.Add_Moderator<CLinear_Moderation_No_Elimination_Function>(q1, 1.0);
 			},
@@ -486,8 +491,13 @@ HRESULT CSamadi_GCT2_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 
 				const double PortionSize = 1000.0 * event.level() * InvMinsEating;
 
-				for (double aoff = 0; aoff < MinsEating; aoff += 1.0)
-					Add_Carbs(PortionSize, event.device_time() + aoff * scgms::One_Minute, 2.0_hr, (event.signal_id() == scgms::signal_Carb_Rescue));
+				{
+					double aoff = 0;
+					do {						
+						Add_Carbs(PortionSize, event.device_time() + aoff * scgms::One_Minute, 2.0_hr, (event.signal_id() == scgms::signal_Carb_Rescue));
+						aoff += 1.0;
+					} while (aoff < MinsEating);
+				}
 
 				// res = S_OK; - do not unless we have another signal called consumed CHO
 			}

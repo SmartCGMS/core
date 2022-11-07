@@ -117,7 +117,7 @@ std::string Get_Env_Init(const std::wstring& compiler_prefix) {
 	std::string result;
 
 #ifdef _WIN32
-	if (compiler_prefix == L"cl") {
+	if ((compiler_prefix == L"cl") || (compiler_prefix == L"clang++")) {
 		//Let's attempt to determine Visual Studio installation
 		result = Visual_Studio();
 	}

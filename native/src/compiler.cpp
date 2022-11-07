@@ -50,10 +50,10 @@
 #include <fstream>
 
 #if defined(__AVX512BW__) || defined(__AVX512CD__) || defined(__AVX512DQ__) || defined(__AVX512F__) || defined(__AVX512VL__) || defined(__AVX512ER__) || defined(__AVX512PF__)
-#define AVX512
-#ifndef __AVX2__
-#define __AVX2__
-#endif
+	#define AVX512
+	#ifndef __AVX2__
+		#define __AVX2__
+	#endif
 #endif
 
 
@@ -72,7 +72,11 @@ const filesystem::path out_dir{ "out" };	//subdirectory where to place all the i
 
 const std::vector<TCompiler_Invokation> compilers = {
 	{L"g++",  "-O2 -fanalyzer -march=native -Weverything, -Wl,-rpath,. -fPIC -shared -save-temps=$(intermediate) -o $(output) -DSCGMS_SCRIPT -std=c++17 -lstdc++fs -lm -I $(include)  $(source)"},
-	{L"clang++",  "-O2 -march=native -Wall -Wextra -Wl,-rpath,. -fPIC -shared -save-temps=$(intermediate) -o $(output) -DSCGMS_SCRIPT -std=c++17 -lstdc++fs -lm -I $(include)  $(source)"},
+	#ifdef WIN32
+		{L"clang++",  "-O2 -march=native  -Wall -Wextra -shared -save-temps=$(intermediate) -o $(output) -DSCGMS_SCRIPT -std=c++17 -v -I $(include)  $(source)"},
+	#else
+		{L"clang++",  "-O2 -march=native -Wall -Wextra -Wl,-rpath,. -fPIC -shared -save-temps=$(intermediate) -o $(output) -DSCGMS_SCRIPT -std=c++17 -lstdc++fs -lm -I $(include)  $(source)"},
+	#endif
 #ifdef AVX512
 	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX512 /EHsc /D \"UNICODE\" /D \"SCGMS_SCRIPT\" /I $(include) /LD /Fe: $(output) /MD $(source) /Fo:$(intermediate) /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
 #elif __AVX2__
@@ -101,7 +105,11 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	filesystem::path effective_compiler = compiler;
 	if (compiler.empty()) {
 #if defined(_WIN32)
+	#if defined(__clang__)
+		effective_compiler = "clang++";
+	#else
 		effective_compiler = "cl";
+	#endif
 #elif defined(__APPLE__)
 		effective_compiler = "clang++";
 #else

@@ -244,7 +244,7 @@ namespace gct2_model
 
 		public:
 			CConcentration_Threshold_Disappearance_Unbounded_Transfer_Function(double timeStart, double duration, IQuantizable& source, double threshold, double transferFactor = 1.0, bool inverseDiff = false)
-				: CTransfer_Function(timeStart, duration), mTransfer_Factor(transferFactor), mThreshold(threshold), mSource(source), mInverse_Diff(inverseDiff) {
+				: CTransfer_Function(timeStart, duration), mTransfer_Factor(transferFactor), mThreshold(threshold), mInverse_Diff(inverseDiff), mSource(source) {
 				//
 			}
 
@@ -271,7 +271,7 @@ namespace gct2_model
 
 		public:
 			CConcentration_Threshold_Ratio_Disappearance_Unbounded_Transfer_Function(double timeStart, double duration, IQuantizable& source, double threshold, double transferFactor = 1.0, bool inverseThreshold = false)
-				: CTransfer_Function(timeStart, duration), mTransfer_Factor(transferFactor), mThreshold(threshold), mSource(source), mInverseThreshold(inverseThreshold) {
+				: CTransfer_Function(timeStart, duration), mTransfer_Factor(transferFactor), mThreshold(threshold), mInverseThreshold(inverseThreshold), mSource(source) {
 				//
 			}
 

@@ -142,7 +142,8 @@ std::wstring CPattern_Prediction_Data::State_To_String() const {
     std::wstringstream converted;
 
     //unused keeps static analysis happy about creating an unnamed object
-    auto unused = converted.imbue(std::locale(std::wcout.getloc(), new CDecimal_Separator<wchar_t>{ L'.' })); //locale takes owner ship of dec_sep
+    auto dec_sep = new CDecimal_Separator<wchar_t>{ L'.' };
+    auto unused = converted.imbue(std::locale{std::wcout.getloc(), std::move(dec_sep)}); //locale takes owner ship of dec_sep
     converted << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
 
 
@@ -169,7 +170,8 @@ void CPattern_Prediction_Data::Start_Collecting_Learning_Data() {
 std::wstring CPattern_Prediction_Data::Learning_Data(const size_t sliding_window_length, const double dt) const {
     std::wstringstream converted;
     //unused keeps static analysis happy about creating an unnamed object
-    auto unused = converted.imbue(std::locale(std::wcout.getloc(), new CDecimal_Separator<wchar_t>{ L'.' })); //locale takes owner ship of dec_sep
+    auto dec_sep = new CDecimal_Separator<wchar_t>{ L'.' };
+    auto unused = converted.imbue(std::locale{ std::wcout.getloc(), std::move(dec_sep) }); //locale takes owner ship of dec_sep
     converted << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
     
     {   //write csv header

@@ -43,9 +43,10 @@
 /*
  * Base view - basic time series plot of all signals
  */
-class CGraph_View : public IDrawing_View_Base
+class CGraph_View : public virtual CDrawing_View_Base
 {
 	public:
 		// IDrawing_View_Base iface
 		virtual NDrawing_Error Draw(std::string& target, const TDraw_Options_Local& opts, const IDrawing_Data_Source& source) override;
+		virtual ~CGraph_View() = default;
 };

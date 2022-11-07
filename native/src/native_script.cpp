@@ -181,7 +181,11 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 			//for building, we need the compiler
 			if (compiler_path.empty()) {
 #if defined(_WIN32)
+	#if defined(__clang__)
+				compiler_path = "clang++";
+	#else
 				compiler_path = "cl";
+	#endif
 #elif defined(__APPLE__)
 				compiler_path = "clang++";
 #elif defined(__linux__) || defined(__svr4__)

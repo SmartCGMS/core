@@ -69,7 +69,7 @@ class CDrawing_Filter_v2 : public scgms::CBase_Filter, public scgms::IDrawing_Fi
 		static std::array<scgms::TPlot_Descriptor, 2> mAvailable_Plots;
 
 		// registered view handlers (generators)
-		std::map<GUID, std::unique_ptr<IDrawing_View_Base>> mViews;
+		std::map<GUID, std::unique_ptr<CDrawing_View_Base>> mViews;
 
 		// stored data
 		std::map<uint64_t, TPlot_Segment> mPlots_Segments;

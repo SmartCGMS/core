@@ -51,7 +51,7 @@
 
 class CBasal_2_Bolus : public virtual scgms::CBase_Filter {
 protected:
-    basal_2_bolus::TParameters mParameters{ 0.0 };
+    basal_2_bolus::TParameters mParameters{ {{0.0, 0.0} } };
 
     bool mValid_Settings = false;    
     double mInsulin_To_Deliver_Per_Period = 0.0;

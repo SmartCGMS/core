@@ -45,7 +45,7 @@
 
 namespace {
 	constexpr double MaxHeartRate = 200.0; // computational upper limit of heart rate
-	constexpr double EDAThreshold = 0.0;
+	//constexpr double EDAThreshold = 0.0;	--currently unused
 }
 
 CPhysical_Activity_Detection_Model::CPhysical_Activity_Detection_Model(scgms::WTime_Segment segment)

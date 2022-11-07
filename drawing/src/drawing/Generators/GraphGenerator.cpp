@@ -421,8 +421,7 @@ void CGraph_Generator::Write_Normalized_Lines(ValueVector istVector, ValueVector
 }
 
 void CGraph_Generator::Write_Description()
-{
-    double my_y = Normalize_Y(5);
+{    
     const double my_x = startX - 15;
 
     // axis group scope
@@ -465,7 +464,7 @@ void CGraph_Generator::Write_Description()
         mSvg.Set_Stroke(1, "red", "none", 0.6, 0.6);
 
         // hyperglycemia
-        my_y = Normalize_Y(11.0);
+        double my_y = Normalize_Y(11.0);
 		mSvg.Draw_Text(startX + 5, my_y - 5, tr("hyperglycemia"), "start", "red", 12);
         mSvg.Line_Dash(startX, my_y, maxX, my_y);
 
@@ -678,7 +677,7 @@ void CGraph_Generator::Write_Body()
 		SVG::GroupGuard bloodCalibrationGrp(mSvg, "calcd_insulin", false);
 		mSvg.Link_Text_color(startX + 10, y, tr("calcd_insulin"), "", 12);
 
-		y += 20;
+		//y += 20; - no more used
 	}
 }
 

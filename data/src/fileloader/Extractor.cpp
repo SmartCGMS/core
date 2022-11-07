@@ -99,7 +99,7 @@ const char* dsDatabaseTimestampFormatShort = "%FT%T";
 void CDateTime_Recognizer::finalize_pushes() {
 	
 	//let us perform longest-prefix match first, just like with IP mask
-	std::sort(begin(), end(), [](const std::string& a, const std::string& b) {
+	std::sort(begin(), end(), [](const std::string a, const std::string b) {	//no reference, because it moves the object!
 		return a.size() > b.size();
 	});	
 

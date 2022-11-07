@@ -51,6 +51,14 @@
 #include <fstream>
 #include <exception>
 
+CPersistent_Chain_Configuration::CPersistent_Chain_Configuration() {
+	//
+}
+
+CPersistent_Chain_Configuration::~CPersistent_Chain_Configuration() noexcept {
+	//
+}
+
 std::wstring CPersistent_Chain_Configuration::Get_Parent_Path() noexcept {
 	std::wstring parent_path = mFile_Path.empty() ? Get_Dll_Dir().wstring() : mFile_Path.parent_path().wstring();
 	return parent_path;
@@ -59,12 +67,12 @@ std::wstring CPersistent_Chain_Configuration::Get_Parent_Path() noexcept {
 void CPersistent_Chain_Configuration::Advertise_Parent_Path() noexcept {
 	std::wstring parent_path = Get_Parent_Path();
 	
-	for (scgms::IFilter_Configuration_Link* link : *this) {
+	for (scgms::IFilter_Configuration_Link* link : mData) {
 		link->Set_Parent_Path(parent_path.c_str());
 	}
 }
 
-HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar_t* file_path, refcnt::wstr_list* error_description) noexcept {
+HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar_t* file_path, refcnt::wstr_list* error_description) noexcept {	
 	mFile_Path.clear();
 	HRESULT rc = E_UNEXPECTED;
 
@@ -163,6 +171,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 
 							if (Succeeded(valid_rc) || (valid_rc == E_NOT_SET)) {
 								scgms::IFilter_Parameter* raw_param = static_cast<scgms::IFilter_Parameter*>(raw_filter_parameter.get());								
+
 								if (Succeeded(filter_config->add(&raw_param, &raw_param + 1)))
 									raw_filter_parameter.release();
 
@@ -393,9 +402,9 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Parent_Path(const wcha
 	mFile_Path = parent_path;
 
 	if (Is_Directory(mFile_Path))
-		mFile_Path /= ".";
+		mFile_Path.append(".");
 
-	for (scgms::IFilter_Configuration_Link* link : *this) {
+	for (scgms::IFilter_Configuration_Link* link : mData) {
 		if (!Succeeded(link->Set_Parent_Path(parent_path)))
 			rc = E_UNEXPECTED;
 	}
@@ -411,7 +420,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Variable(const wchar_t
 
 	HRESULT rc = refcnt::internal::CVector_Container<scgms::IFilter_Configuration_Link*>::empty();
 	if (rc == S_FALSE) {
-		for (scgms::IFilter_Configuration_Link* link : *this) {
+		for (scgms::IFilter_Configuration_Link* link : mData) {
 			if (!Succeeded(link->Set_Variable(name, value)))
 				rc = E_UNEXPECTED;
 		}

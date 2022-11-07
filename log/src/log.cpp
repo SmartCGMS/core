@@ -184,7 +184,7 @@ HRESULT IfaceCalling CLog_Filter::Do_Execute(scgms::UDevice_Event event) {
 				filesystem::path seg_log_path = mLog_Filename;
 				seg_log_path.replace_filename(mLog_Filename.stem().concat("."+std::to_string(event.segment_id())));
 				seg_log_path += mLog_Filename.extension().string();
-				const auto insertion = mSegmented_Logs.insert(std::pair<uint64_t, std::wofstream>(event.segment_id(), std::move(Open_Log(seg_log_path))));
+				const auto insertion = mSegmented_Logs.insert(std::pair<uint64_t, std::wofstream>(event.segment_id(), Open_Log(seg_log_path)));
 				if (!insertion.second)
 					return E_OUTOFMEMORY;
 

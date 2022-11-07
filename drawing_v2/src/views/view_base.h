@@ -127,9 +127,10 @@ class IDrawing_Data_Source
 /*
  * Base for all drawing view handlers (generators)
  */
-class IDrawing_View_Base
+class CDrawing_View_Base
 {
 	public:
 		// draws signals and segments from given data source to target string (SVG); uses the local opts structure to parametrize the outputs
 		virtual NDrawing_Error Draw(std::string& target, const TDraw_Options_Local& opts, const IDrawing_Data_Source& source) = 0;
+		virtual ~CDrawing_View_Base() = default;
 };

@@ -49,7 +49,7 @@ thread_local scgms::SMetric CFitness::mMetric_Per_Thread;
 thread_local aligned_double_vector CFitness::mTemporal_Levels;
 
 CFitness::CFitness(const TSegment_Solver_Setup &setup, const size_t solution_size)
-	: mSolution_Size(solution_size), mLevels_Required(setup.levels_required) {
+	: mLevels_Required(setup.levels_required), mSolution_Size(solution_size) {
 
 	setup.metric->Get_Parameters(&mMetric_Params);	//shall it fail, it will fail down there
 

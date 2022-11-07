@@ -76,11 +76,11 @@ enum class FileOrganizationStructure
 struct SheetPosition
 {
 	// current row
-	int row;
+	int row = 0;
 	// current column
-	int column;
+	int column = 0;
 	// sheet index used
-	int sheetIndex;
+	int sheetIndex = -1;
 
 	// default constructor
 	SheetPosition() noexcept : sheetIndex(-1) { };

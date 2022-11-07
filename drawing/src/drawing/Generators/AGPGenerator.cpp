@@ -107,12 +107,16 @@ void CAGP_Generator::Write_Description()
         }
 
         // y-axis description
-        for (double i = 0; i <= AGP_Max_Mgdl; i += Utility::MmolL_To_MgDl(2.0))
         {
-            double y_d = Normalize_Y(floor(i));
-            mSvg.Line(startX - 10, y_d, startX, y_d);
-            mSvg.Draw_Text(startX - 25, y_d, mMmolFlag ? Utility::Format_Decimal(round(Utility::MgDl_To_MmolL(i)), 3) : std::to_string(i), "middle", "black", 12);
-            mSvg.Draw_Text(startX - 25, y_d, mMmolFlag ? Utility::Format_Decimal(round(Utility::MgDl_To_MmolL(i)), 3) : std::to_string(i), "middle", "black", 12);
+            double i = 0.0;
+            do {
+                double y_d = Normalize_Y(floor(i));
+                mSvg.Line(startX - 10, y_d, startX, y_d);
+                mSvg.Draw_Text(startX - 25, y_d, mMmolFlag ? Utility::Format_Decimal(round(Utility::MgDl_To_MmolL(i)), 3) : std::to_string(i), "middle", "black", 12);
+                mSvg.Draw_Text(startX - 25, y_d, mMmolFlag ? Utility::Format_Decimal(round(Utility::MgDl_To_MmolL(i)), 3) : std::to_string(i), "middle", "black", 12);
+
+                i += Utility::MmolL_To_MgDl(2.0);
+            } while (i <= AGP_Max_Mgdl);
         }
     }
 
@@ -177,7 +181,7 @@ void CAGP_Generator::Write_Legend(Data istData, Data bloodData, Data bloodCalibr
 			SVG::GroupGuard bloodGrp(mSvg, "bloodCalibration", true);
 			mSvg.Link_Text_color(startX + 10, y, tr("bloodCalibration"), "change_visibility_bloodCalibration()");
 
-			y += 20;
+			//y += 20; - no more used
 		}
 
         mSvg.Set_Default_Stroke();

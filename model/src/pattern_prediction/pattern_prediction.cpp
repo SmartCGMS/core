@@ -291,7 +291,6 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(scgms::SFilter_Configur
 
 
 					auto& pattern = mPatterns[pattern_idx][band_idx];
-					bool all_valid = true;
 
 					std::wstring state = ini.GetValue(section_name.pItem, iiState);
 					pattern.State_from_String(state);

@@ -302,10 +302,10 @@ class CPSO
 			mVelocity_Lower_Bound(- max_velocity * (mUpper_Bound - mLower_Bound)),
 			mVelocity_Upper_Bound(  max_velocity * (mUpper_Bound - mLower_Bound))
 		{
-			Init_PSO(true);
+			Init_PSO();
 		}
 
-		void Init_PSO(bool initial) {
+		void Init_PSO() {
 			mSwarm.resize(std::max(mSetup.population_size, static_cast<decltype(mSetup.population_size)>(5)));
 
 			// create the initial swarm using supplied hints; fill up to a half of a swarm with hints
@@ -319,7 +319,7 @@ class CPSO
 			gen.Generate_Swarm(mSwarm, initialized_count, mSwarm.size(), mSetup.problem_size, mLower_Bound, mUpper_Bound);
 
 			// calculate initial fitness
-			std::for_each(std::execution::par_unseq, mSwarm.begin(), mSwarm.end(), [this, initial](auto& candidate_solution) {
+			std::for_each(std::execution::par_unseq, mSwarm.begin(), mSwarm.end(), [this](auto& candidate_solution) {
 				if (mSetup.objective(mSetup.data, 1, candidate_solution.current.data(), candidate_solution.current_fitness.data()) != TRUE)
 				{
 					for (auto& elem : candidate_solution.current_fitness)
@@ -374,7 +374,7 @@ class CPSO
 
 						mRepulsors.push_back(*mBest_Itr);
 
-						Init_PSO(false);
+						Init_PSO();
 					}
 				}
 
