@@ -122,7 +122,7 @@ HRESULT CDMMS_Lib_Discrete_Model::Do_Configure(scgms::SFilter_Configuration conf
 
 	CXML_Parser<wchar_t> parser(manifest_path);
 	if (!parser.Is_Valid())
-		return false;
+		return E_FAIL;
 
 	mDMMS_Scenario_File = path_to_absolute(parser.Get_Parameter(L"manifest.dmms:scenario_file", L"dmms_scenario.xml"));
 	mDMMS_Out_File = path_to_absolute(parser.Get_Parameter(L"manifest.dmms:log_file", L"dmms_out.txt"));
