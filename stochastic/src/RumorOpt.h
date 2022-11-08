@@ -157,9 +157,9 @@ namespace rumoropt
 		size_t life_counter = 0;
 
 		// rumor strategy of this individual
-		NRumor_Strategy strategy;
+		NRumor_Strategy strategy = NRumor_Strategy::Naive;
 		// currently generated rumor weight
-		double rumor_weight;
+		double rumor_weight = std::numeric_limits<double>::quiet_NaN();
 	};
 
 	template<typename TUsed_Solution>
