@@ -154,7 +154,7 @@ namespace rumoropt
 		// best known parameter vector fitness
 		solver::TFitness best_fitness = solver::Nan_Fitness;
 		// remaining generation count; the element is discarded and overriden by a new one
-		size_t life_counter;
+		size_t life_counter = 0;
 
 		// rumor strategy of this individual
 		NRumor_Strategy strategy;
