@@ -150,7 +150,7 @@ void CFile_Reader::Resolve_Segments(TValue_Vector const& src, std::list<TSegment
 
 		//ig_counter = 0;
 		//bg_is_present = false;
-		//segment_begin = segment_end;			//at this level, new segment's start
+		segment_begin = segment_end;			//at this level, new segment's start
 		//recent_ig_time = std::numeric_limits<double>::quiet_NaN();
 	}
 }
