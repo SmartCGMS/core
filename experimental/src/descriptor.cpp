@@ -48,6 +48,8 @@
 #include "enhacement/data_enhacement.h"
 #include "cgp_pred/cgp_pred.h"
 #include "bases/bases.h"
+#include "gege/gege.h"
+#include "flr_ge/flr_ge.h"
 
 #include <vector>
 
@@ -377,18 +379,167 @@ namespace bases_pred {
 	const scgms::TSignal_Descriptor ig_desc{ ig_signal_id, L"BasesPred - IG", dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFff8c00, 0xFFff8c00, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 }
 
-const std::array<scgms::TModel_Descriptor, 5> model_descriptions = { {  p559_model::desc,
+namespace gege {
+
+	const wchar_t* model_param_ui_names[param_count] = {
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+	};
+
+	const scgms::NModel_Parameter_Value model_param_types[param_count] = {
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+	};
+
+	constexpr size_t number_of_calculated_signals = 2;
+
+	const GUID calculated_signal_ids[number_of_calculated_signals] = {
+		ibr_id,
+		bolus_id,
+	};
+
+	const wchar_t* calculated_signal_names[number_of_calculated_signals] = {
+		L"GEGE - IBR",
+		L"GEGE - Bolus",
+	};
+
+	const GUID reference_signal_ids[number_of_calculated_signals] = {
+		scgms::signal_Requested_Insulin_Basal_Rate,
+		scgms::signal_Requested_Insulin_Bolus,
+	};
+
+	scgms::TModel_Descriptor desc = {
+		model_id,
+		scgms::NModel_Flags::Discrete_Model,
+		L"GEGE",
+		nullptr,
+		param_count,
+		0,
+		model_param_types,
+		model_param_ui_names,
+		nullptr,
+		lower_bounds.vector,
+		default_parameters.vector,
+		upper_bounds.vector,
+
+		number_of_calculated_signals,
+		calculated_signal_ids,
+		reference_signal_ids,
+	};
+
+	const scgms::TSignal_Descriptor ibr_desc{ ibr_id, L"GEGE - IBR", dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0x0000FFFF, 0x0000FFFF, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr, 1.0 };
+	const scgms::TSignal_Descriptor bolus_desc{ bolus_id, L"GEGE - Bolus", dsU, scgms::NSignal_Unit::U_insulin, 0xFF00FFFF, 0xFF00FFFF, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::triangle, nullptr, 1.0 };
+}
+
+namespace flr_ge {
+
+	const wchar_t* model_param_ui_names[param_count] = {
+		// rules
+		L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",
+		L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",
+		L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",
+		L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",
+		L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",
+		L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",
+		L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",
+		L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",L"R",
+		// constants
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+		L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",L"C",
+	};
+
+	const scgms::NModel_Parameter_Value model_param_types[param_count] = {
+		// rules
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		// constants
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+	};
+
+	constexpr size_t number_of_calculated_signals = 2;
+
+	const GUID calculated_signal_ids[number_of_calculated_signals] = {
+		ibr_id,
+		bolus_id,
+	};
+
+	const wchar_t* calculated_signal_names[number_of_calculated_signals] = {
+		L"FLR GE - IBR",
+		L"FLR GE - Bolus",
+	};
+
+	const GUID reference_signal_ids[number_of_calculated_signals] = {
+		scgms::signal_Requested_Insulin_Basal_Rate,
+		scgms::signal_Requested_Insulin_Bolus,
+	};
+
+	scgms::TModel_Descriptor desc = {
+		model_id,
+		scgms::NModel_Flags::Discrete_Model,
+		L"FLR GE",
+		nullptr,
+		param_count,
+		1,
+		model_param_types,
+		model_param_ui_names,
+		nullptr,
+		lower_bounds.vector,
+		default_parameters.vector,
+		upper_bounds.vector,
+
+		number_of_calculated_signals,
+		calculated_signal_ids,
+		reference_signal_ids,
+	};
+
+	const scgms::TSignal_Descriptor ibr_desc{ ibr_id, L"FLR GE - IBR", dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0x0000FFFF, 0x0000FFFF, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr, 1.0 };
+	const scgms::TSignal_Descriptor bolus_desc{ bolus_id, L"FLR GE - Bolus", dsU, scgms::NSignal_Unit::U_insulin, 0xFF00FFFF, 0xFF00FFFF, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::triangle, nullptr, 1.0 };
+}
+
+const std::array<scgms::TModel_Descriptor, 7> model_descriptions = { {  p559_model::desc,
 																		 aim_ge::desc,
 																		 data_enhacement::desc,
 																		 cgp_pred::desc,
 																		 bases_pred::desc,
+																		 gege::desc, flr_ge::desc,
 																		} };
 
-const std::array<scgms::TSignal_Descriptor, 5+cgp_pred::number_of_calculated_signals> signals_descriptors = { {
+const std::array<scgms::TSignal_Descriptor, 9+cgp_pred::number_of_calculated_signals> signals_descriptors = { {
 																		 p559_model::ig_desc,
 																		 aim_ge::ig_desc,
 																		 data_enhacement::pos_desc, data_enhacement::neg_desc,
-	bases_pred::ig_desc,
+	bases_pred::ig_desc, gege::ibr_desc, gege::bolus_desc, flr_ge::ibr_desc, flr_ge::bolus_desc,
 
 	cgp_pred::signal_descs[0],cgp_pred::signal_descs[1],cgp_pred::signal_descs[2],cgp_pred::signal_descs[3],/*cgp_pred::signal_descs[4],cgp_pred::signal_descs[5],cgp_pred::signal_descs[6],cgp_pred::signal_descs[7],
 	cgp_pred::signal_descs[8],cgp_pred::signal_descs[9],cgp_pred::signal_descs[10],cgp_pred::signal_descs[11],cgp_pred::signal_descs[12],cgp_pred::signal_descs[13],cgp_pred::signal_descs[14],cgp_pred::signal_descs[15],
@@ -408,12 +559,22 @@ HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begi
 }
 
 HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
-	if (*model_id == p559_model::model_id) return Manufacture_Object<CP559_Model>(model, parameters, output);
-	else if (*model_id == aim_ge::model_id) return Manufacture_Object<CAIM_GE_Model>(model, parameters, output);
-	else if (*model_id == data_enhacement::model_id) return Manufacture_Object<CData_Enhacement_Model>(model, parameters, output);
-	else if (*model_id == cgp_pred::model_id) return Manufacture_Object<CCGP_Prediction>(model, parameters, output);
-	else if (*model_id == bases_pred::model_id) return Manufacture_Object<CBase_Functions_Predictor>(model, parameters, output);
-		else return E_NOTIMPL;
+	if (*model_id == p559_model::model_id)
+		return Manufacture_Object<CP559_Model>(model, parameters, output);
+	else if (*model_id == aim_ge::model_id)
+		return Manufacture_Object<CAIM_GE_Model>(model, parameters, output);
+	else if (*model_id == data_enhacement::model_id)
+		return Manufacture_Object<CData_Enhacement_Model>(model, parameters, output);
+	else if (*model_id == cgp_pred::model_id)
+		return Manufacture_Object<CCGP_Prediction>(model, parameters, output);
+	else if (*model_id == bases_pred::model_id)
+		return Manufacture_Object<CBase_Functions_Predictor>(model, parameters, output);
+	else if (*model_id == gege::model_id)
+		return Manufacture_Object<CGEGE_Model>(model, parameters, output);
+	else if (*model_id == flr_ge::model_id)
+		return Manufacture_Object<CFLR_GE_Model>(model, parameters, output);
+	else
+		return E_NOTIMPL;
 }
 
 HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {

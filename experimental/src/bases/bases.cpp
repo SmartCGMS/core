@@ -230,12 +230,12 @@ HRESULT IfaceCalling CBase_Functions_Predictor::Step(const double time_advance_d
 			if (Is_Any_NaN(mLast_Physical_Activity_Index))
 				mLast_Physical_Activity_Index = 0;
 
-			if (Is_Any_NaN(mLast_Pattern_Pred))
-				mLast_Pattern_Pred = 0;
+			//if (Is_Any_NaN(mLast_Pattern_Pred))
+				//mLast_Pattern_Pred = 0;
 
 			const double choContribFactor = (1.0 + mParameters.carbContrib * Calc_COB_At(mCurrent_Time + mParameters.carbPast));
 			const double insContribFactor = (1.0 + mParameters.insContrib  * Calc_IOB_At(mCurrent_Time + mParameters.insPast) );
-			const double paContribFactor =  (0.0 + mLast_Pattern_Pred * mParameters.paContrib * mLast_Physical_Activity_Index);
+			const double paContribFactor =  (0.0 + mParameters.paContrib * mLast_Physical_Activity_Index);
 
 			double basisFunctionContrib = 0;
 			double unfactoredBasisFunctionContrib = 0;
@@ -252,6 +252,8 @@ HRESULT IfaceCalling CBase_Functions_Predictor::Step(const double time_advance_d
 					baseContribFactor = paContribFactor;
 				else if (fnc.idx >= bases_pred::Base_Functions_CHO)
 					baseContribFactor = insContribFactor;
+				else if (fnc.idx >= bases_pred::Base_Functions_Count)
+					break;
 
 				const auto& pars = mParameters.baseFunction[fnc.idx];
 				double tval = pars.amplitude * std::exp(-std::pow(mCurrent_Time + bases_pred::Prediction_Horizon - fnc.toff, 2.0) / (2 * pars.variance * pars.variance));
