@@ -58,9 +58,20 @@
 class CDrawing_Filter_v2 : public scgms::CBase_Filter, public scgms::IDrawing_Filter_Inspection_v2, public IDrawing_Data_Source {
 
 	private:
+		// container of registered view
+		struct TRegistered_View {
+			GUID id;
+			std::unique_ptr<IDrawing_View_Base> handler;
+			std::wstring output_filename_config_option_name;
+		};
+
+	private:
 		// default canvas size
 		int mDefault_Canvas_Width = 800;
 		int mDefault_Canvas_Height = 600;
+
+		// filenames for SVG outputs
+		std::map<GUID, std::wstring> mOutput_Files;
 
 		// Lamport clock of drawings
 		ULONG mLogical_Clock = 0;
@@ -69,7 +80,7 @@ class CDrawing_Filter_v2 : public scgms::CBase_Filter, public scgms::IDrawing_Fi
 		static std::array<scgms::TPlot_Descriptor, 2> mAvailable_Plots;
 
 		// registered view handlers (generators)
-		std::map<GUID, std::unique_ptr<IDrawing_View_Base>> mViews;
+		std::map<GUID, TRegistered_View> mViews;
 
 		// stored data
 		std::map<uint64_t, TPlot_Segment> mPlots_Segments;
@@ -77,10 +88,10 @@ class CDrawing_Filter_v2 : public scgms::CBase_Filter, public scgms::IDrawing_Fi
 	private:
 		// registers a view handler (instantiates the handler)
 		template<typename T, typename... Args>
-		void Register_View(const GUID& id, Args... args)
+		void Register_View(const GUID& id, const std::wstring& filename_option_name, Args... args)
 		{
 			mViews.insert({
-				id, std::make_unique<T>(std::forward<Args>(args)...)
+				id, TRegistered_View{ id, std::make_unique<T>(std::forward<Args>(args)...), filename_option_name }
 			});
 		}
 
@@ -88,6 +99,9 @@ class CDrawing_Filter_v2 : public scgms::CBase_Filter, public scgms::IDrawing_Fi
 		// scgms::CBase_Filter iface
 		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+
+		void Render_All_To_File_Default();
+		void Log_Error(const std::wstring& error_str);
 
 	public:
 		CDrawing_Filter_v2(scgms::IFilter *output);

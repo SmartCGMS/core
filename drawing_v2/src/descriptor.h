@@ -44,4 +44,7 @@ namespace drawing_filter_v2 {
 
 	extern const wchar_t* rsConfig_Drawing_Width;
 	extern const wchar_t* rsConfig_Drawing_Height;
+
+	extern const wchar_t* rsConfig_Save_Filename_Graph_View;
+	extern const wchar_t* rsConfig_Save_Filename_CVGA;
 }

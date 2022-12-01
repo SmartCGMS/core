@@ -53,29 +53,40 @@
 
 namespace drawing_filter_v2 {
 
-	constexpr size_t param_count = 2;
+	constexpr size_t param_count = 4;
 
 	const scgms::NParameter_Type param_type[param_count] = {
 		scgms::NParameter_Type::ptInt64,
-		scgms::NParameter_Type::ptInt64
+		scgms::NParameter_Type::ptInt64,
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptWChar_Array,
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
 		L"Default canvas width",
-		L"Default canvas height"
+		L"Default canvas height",
+		L"Graph view filename",
+		L"CVGA filename",
 	};
 
 	const wchar_t* rsConfig_Drawing_Width = L"default_width";
 	const wchar_t* rsConfig_Drawing_Height = L"default_height";
 
+	const wchar_t* rsConfig_Save_Filename_Graph_View = L"graph_view_filename";
+	const wchar_t* rsConfig_Save_Filename_CVGA = L"cvga_filename";
+
 	const wchar_t* config_param_name[param_count] = {
 		rsConfig_Drawing_Width,
-		rsConfig_Drawing_Height
+		rsConfig_Drawing_Height,
+		rsConfig_Save_Filename_Graph_View,
+		rsConfig_Save_Filename_CVGA,
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
 		L"Default width of drawing canvas",
-		L"Default height of drawing canvas"
+		L"Default height of drawing canvas",
+		L"Save graph view to this file on Shut_Down",
+		L"Save CVGA to this file on Shut_Down",
 	};
 
 	const wchar_t* filter_name = L"Drawing filter v2";
