@@ -334,6 +334,144 @@ namespace bases_pred
 	};
 }
 
+namespace bases_standalone
+{
+	constexpr const GUID model_id = { 0x862fa905, 0x19da, 0x4e2f, { 0x9c, 0xc2, 0x2c, 0x2c, 0x8c, 0x80, 0x68, 0x9f } };// {862FA905-19DA-4E2F-9CC2-2C2C8C80689F}
+	constexpr const GUID ig_signal_id = { 0x22609887, 0xd4a9, 0x44a7, { 0xad, 0xa, 0xd0, 0x51, 0x94, 0xf1, 0x34, 0xc0 } };// {22609887-D4A9-44A7-AD0A-D05194F134C0}
+
+	constexpr size_t Base_Functions_CHO = 4;
+	constexpr size_t Base_Functions_Ins = 4;
+	constexpr size_t Base_Functions_PA = 3;
+	constexpr size_t Base_Functions_Count = Base_Functions_CHO + Base_Functions_Ins + Base_Functions_PA;
+
+	const size_t param_count = Base_Functions_Count * 3 + 9 + 4 + 2 + 6;
+
+	struct TParameters {
+		union {
+			struct {
+				double curWeight;
+				double baseWeight;
+				double baseAvgTimeWindow;
+				double baseAvgOffset;
+				double carbContrib;
+				double insContrib;
+				double paContrib;
+				double carbPast;
+				double insPast;
+				struct {
+					double amplitude;
+					double tod_offset;
+					double variance;
+				} baseFunction[Base_Functions_Count];
+				double c;
+				double baseValue;
+				double k1;
+				double h1;
+				double initCarbs, initIns;
+				double Ag, t_maxI, t_maxD, vi, ke, pa_decay;
+			};
+			double vector[param_count];
+		};
+	};
+
+	const TParameters lower_bounds = {
+		0.05,					// curWeight
+		0.05,					// baseWeight
+		scgms::One_Hour * 6.0,	// baseAvgTimeWindow
+		-3.0,					// baseAvgOffset
+		0.0001,					// carbContrib
+		0.001,					// insContrib
+		0.001,					// paContrib
+		-scgms::One_Minute * 15,// carbPast
+		-scgms::One_Minute * 15,// insPast
+
+		// CHO bases
+		-2.0, 0.1, 0.05,
+		-2.0, 0.1, 0.05,
+		-2.0, 0.1, 0.05,
+		-2.0, 0.1, 0.05,
+		// Insulin bases
+		-2.0, 0.1, 0.05,
+		-2.0, 0.1, 0.05,
+		-2.0, 0.1, 0.05,
+		-2.0, 0.1, 0.05,
+		// PA bases
+		-2.0, 0.1, 0.05,
+		-2.0, 0.1, 0.05,
+		-2.0, 0.1, 0.05,
+		// c, baseValue, k1, h1
+		0, 3.0, -1, 0,
+		// initCarbs, initIns
+		0, 0,
+		// Ag, t_maxI, t_maxD, vi, ke, pa_decay
+		0.75, 35, 30, 0.10, 0.12, 0.4,
+	};
+	const TParameters default_parameters = {
+		0.3,					// curWeight
+		0.2,					// baseWeight
+		scgms::One_Hour * 12.0,	// baseAvgTimeWindow
+		0.0,					// baseAvgOffset
+		0.002,					// carbContrib
+		0.5,					// insContrib
+		0.1,					// paContrib
+		0,						// carbPast
+		0,						// insPast
+
+		// CHO bases
+		1, 0.7, 0.2,
+		1, 0.7, 0.2,
+		1, 0.7, 0.2,
+		1, 0.7, 0.2,
+		// Insulin bases
+		-1, 0.7, 0.2,
+		-1, 0.7, 0.2,
+		-1, 0.7, 0.2,
+		-1, 0.7, 0.2,
+		// PA bases
+		1, 0.7, 0.2,
+		1, 0.7, 0.2,
+		1, 0.7, 0.2,
+		// c, baseValue, k1, h1
+		6, 12.0, 0, 1,
+		// initCarbs, initIns
+		0, 0,
+		// Ag, t_maxI, t_maxD, vi, ke, pa_decay
+		0.85, 55, 40, 0.12, 0.138, 0.6,
+	};
+	const TParameters upper_bounds = {
+		0.75,					// curWeight
+		0.7,					// baseWeight
+		scgms::One_Hour * 24.0,	// baseAvgTimeWindow
+		3.0,					// baseAvgOffset
+		1.0,					// carbContrib
+		2.0,					// insContrib
+		0.5,					// paContrib
+		scgms::One_Hour * 1.0,	// carbPast
+		scgms::One_Hour * 1.0,	// insPast
+
+		// CHO bases
+		2.0, 0.9, 0.3,
+		2.0, 0.9, 0.3,
+		2.0, 0.9, 0.3,
+		2.0, 0.9, 0.3,
+		// Insulin bases
+		2.0, 0.9, 0.3,
+		2.0, 0.9, 0.3,
+		2.0, 0.9, 0.3,
+		2.0, 0.9, 0.3,
+		// PA bases
+		2.0, 0.9, 0.3,
+		2.0, 0.9, 0.3,
+		2.0, 0.9, 0.3,
+		// c, baseValue, k1, h1
+		15, 25.0, 1, 10,
+		// initCarbs, initIns
+		50, 10,
+		// Ag, t_maxI, t_maxD, vi, ke, pa_decay
+		0.9, 65, 50, 0.145, 0.15, 0.85,
+	};
+}
+
 
 namespace gege
 {

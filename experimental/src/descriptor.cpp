@@ -48,6 +48,7 @@
 #include "enhacement/data_enhacement.h"
 #include "cgp_pred/cgp_pred.h"
 #include "bases/bases.h"
+#include "bases_standalone/bases_standalone.h"
 #include "gege/gege.h"
 #include "flr_ge/flr_ge.h"
 
@@ -379,6 +380,86 @@ namespace bases_pred {
 	const scgms::TSignal_Descriptor ig_desc{ ig_signal_id, L"BasesPred - IG", dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFff8c00, 0xFFff8c00, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 }
 
+namespace bases_standalone {
+
+	const wchar_t* model_param_ui_names[param_count] = {
+		L"W_g", L"W_b", L"b_win", L"b_off", L"Cc", L"Ic", L"PAc", L"c_hist", L"i_hist",
+
+		L"b1_a", L"b1_toff", L"b1_var",
+		L"b2_a", L"b2_toff", L"b2_var",
+		L"b3_a", L"b3_toff", L"b3_var",
+		L"b4_a", L"b4_toff", L"b4_var",
+		L"b5_a", L"b5_toff", L"b5_var",
+		L"b6_a", L"b6_toff", L"b6_var",
+		L"b7_a", L"b7_toff", L"b7_var",
+		L"b8_a", L"b8_toff", L"b8_var",
+		L"b9_a", L"b9_toff", L"b9_var",
+		L"b10_a", L"b10_toff", L"b10_var",
+		L"b11_a", L"b11_toff", L"b11_var",
+
+		L"c", L"c_base", L"k", L"h",
+		L"C0", L"I0",
+		L"Ag",L"t_maxI",L"t_maxD",L"Vi",L"ke",L"pa_decay",
+	};
+
+	const scgms::NModel_Parameter_Value model_param_types[param_count] = {
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptTime,
+
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,
+
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+	};
+
+	constexpr size_t number_of_calculated_signals = 1;
+
+	const GUID calculated_signal_ids[number_of_calculated_signals] = {
+		ig_signal_id,
+	};
+
+	const wchar_t* calculated_signal_names[number_of_calculated_signals] = {
+		L"BasesSAPred - IG",
+	};
+
+	const GUID reference_signal_ids[number_of_calculated_signals] = {
+		scgms::signal_IG,
+	};
+
+	scgms::TModel_Descriptor desc = {
+		model_id,
+		scgms::NModel_Flags::Discrete_Model,
+		L"BasesSAPred",
+		nullptr,
+		param_count,
+		param_count,
+		model_param_types,
+		model_param_ui_names,
+		nullptr,
+		lower_bounds.vector,
+		default_parameters.vector,
+		upper_bounds.vector,
+
+		number_of_calculated_signals,
+		calculated_signal_ids,
+		reference_signal_ids,
+	};
+
+	const scgms::TSignal_Descriptor ig_desc{ ig_signal_id, L"BasesSAPred - IG", dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFff8c00, 0xFFff8c00, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+}
+
 namespace gege {
 
 	const wchar_t* model_param_ui_names[param_count] = {
@@ -527,19 +608,20 @@ namespace flr_ge {
 	const scgms::TSignal_Descriptor bolus_desc{ bolus_id, L"FLR GE - Bolus", dsU, scgms::NSignal_Unit::U_insulin, 0xFF00FFFF, 0xFF00FFFF, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::triangle, nullptr, 1.0 };
 }
 
-const std::array<scgms::TModel_Descriptor, 7> model_descriptions = { {  p559_model::desc,
+const std::array<scgms::TModel_Descriptor, 8> model_descriptions = { {  p559_model::desc,
 																		 aim_ge::desc,
 																		 data_enhacement::desc,
 																		 cgp_pred::desc,
 																		 bases_pred::desc,
+																		 bases_standalone::desc,
 																		 gege::desc, flr_ge::desc,
 																		} };
 
-const std::array<scgms::TSignal_Descriptor, 9+cgp_pred::number_of_calculated_signals> signals_descriptors = { {
+const std::array<scgms::TSignal_Descriptor, 10+cgp_pred::number_of_calculated_signals> signals_descriptors = { {
 																		 p559_model::ig_desc,
 																		 aim_ge::ig_desc,
 																		 data_enhacement::pos_desc, data_enhacement::neg_desc,
-	bases_pred::ig_desc, gege::ibr_desc, gege::bolus_desc, flr_ge::ibr_desc, flr_ge::bolus_desc,
+	bases_pred::ig_desc, bases_standalone::ig_desc, gege::ibr_desc, gege::bolus_desc, flr_ge::ibr_desc, flr_ge::bolus_desc,
 
 	cgp_pred::signal_descs[0],cgp_pred::signal_descs[1],cgp_pred::signal_descs[2],cgp_pred::signal_descs[3],/*cgp_pred::signal_descs[4],cgp_pred::signal_descs[5],cgp_pred::signal_descs[6],cgp_pred::signal_descs[7],
 	cgp_pred::signal_descs[8],cgp_pred::signal_descs[9],cgp_pred::signal_descs[10],cgp_pred::signal_descs[11],cgp_pred::signal_descs[12],cgp_pred::signal_descs[13],cgp_pred::signal_descs[14],cgp_pred::signal_descs[15],
@@ -569,6 +651,8 @@ HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IMode
 		return Manufacture_Object<CCGP_Prediction>(model, parameters, output);
 	else if (*model_id == bases_pred::model_id)
 		return Manufacture_Object<CBase_Functions_Predictor>(model, parameters, output);
+	else if (*model_id == bases_standalone::model_id)
+		return Manufacture_Object<CBase_Functions_Standalone>(model, parameters, output);
 	else if (*model_id == gege::model_id)
 		return Manufacture_Object<CGEGE_Model>(model, parameters, output);
 	else if (*model_id == flr_ge::model_id)
