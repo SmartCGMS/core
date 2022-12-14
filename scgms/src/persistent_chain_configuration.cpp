@@ -108,12 +108,15 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const char* memory, const size_t len, refcnt::wstr_list* error_description) noexcept {
 	CSimpleIniW mIni;
 
-	if (mIni.LoadData(memory, len) != SI_Error::SI_OK)
+	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
+
+	if (mIni.LoadData(memory, len) != SI_Error::SI_OK) {
+		shared_error_description.push(L"Could not load INI file from memory");
 		return E_FAIL;
+	}
 
 	bool loaded_all_filters = true;
 	bool encountered_E_NOT_SET = false;
-	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
 
 	const std::wstring parent_path = Get_Parent_Path();
 
