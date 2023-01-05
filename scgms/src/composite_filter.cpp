@@ -101,7 +101,7 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 				return rc;
 			}
 
-			std::unique_ptr<CFilter_Executor> new_executor = std::make_unique<CFilter_Executor>(filter_id, mCommunication_Guard, last_filter, on_filter_created, on_filter_created_data);
+			std::unique_ptr<CFilter_Executor> new_executor{ std::make_unique<CFilter_Executor>(filter_id, mCommunication_Guard, last_filter, on_filter_created, on_filter_created_data) };
 			//try to configure the filter 
 			if (!new_executor) {
 				send_shut_down();

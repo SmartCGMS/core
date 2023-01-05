@@ -133,7 +133,7 @@ protected:
 			std::tie(rc, var_val) = Evaluate_Variable(mVariable_Name);
 
 			if (Succeeded(rc)) {
-				bool ok;
+				bool ok = false;
 				*value = conv(var_val, ok);
 
 				if (!ok) {
@@ -261,7 +261,8 @@ protected:
 		std::wstringstream converted;
 
 		//unused keeps static analysis happy about creating an unnamed object
-		auto unused = converted.imbue(std::locale(std::wcout.getloc(), new CDecimal_Separator<wchar_t>{ L'.' })); //locale takes ownership of dec_sep
+		auto dec_sep = new CDecimal_Separator<wchar_t>{ L'.' };
+		auto unused = converted.imbue(std::locale{ std::wcout.getloc(), std::move(dec_sep)}); //locale takes ownership of dec_sep
 		converted << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
 
 		bool not_empty = false;
@@ -363,6 +364,7 @@ public:
 public:
 	static const std::wstring mUnused_Variable_Name;
 };
+
 
 #pragma warning( pop )
 

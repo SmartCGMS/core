@@ -154,12 +154,12 @@ namespace rumoropt
 		// best known parameter vector fitness
 		solver::TFitness best_fitness = solver::Nan_Fitness;
 		// remaining generation count; the element is discarded and overriden by a new one
-		size_t life_counter;
+		size_t life_counter = 0;
 
 		// rumor strategy of this individual
-		NRumor_Strategy strategy;
+		NRumor_Strategy strategy = NRumor_Strategy::Naive;
 		// currently generated rumor weight
-		double rumor_weight;
+		double rumor_weight = std::numeric_limits<double>::quiet_NaN();
 	};
 
 	template<typename TUsed_Solution>
@@ -349,6 +349,7 @@ class CRumor_Opt
 				case rumoropt::NRumor_Strategy::Realist: itr->rumor_weight = rumoropt::w_Realist_start + mUniform_Distribution_dbl(mRandom_Generator) * (rumoropt::w_Realist_end - rumoropt::w_Realist_start); break;
 				case rumoropt::NRumor_Strategy::Naive:   itr->rumor_weight = rumoropt::w_Naive_start + mUniform_Distribution_dbl(mRandom_Generator) * (rumoropt::w_Naive_end - rumoropt::w_Naive_start); break;
 				case rumoropt::NRumor_Strategy::Gossiper:itr->rumor_weight = rumoropt::w_Gossiper_start + mUniform_Distribution_dbl(mRandom_Generator) * (rumoropt::w_Gossiper_end - rumoropt::w_Gossiper_start); break;
+				default: break;
 			}
 		}
 
@@ -415,6 +416,9 @@ class CRumor_Opt
 					}
 					break;
 				}
+
+				default:
+					break;
 			}
 
 			// update "next" candidate vector
@@ -480,7 +484,6 @@ class CRumor_Opt
 
 			size_t cur_progress = 0;
 	
-			const size_t solution_size = mPopulation[0].current.cols();
 			const size_t incidence_per_epoch = static_cast<size_t>(rumoropt::f_Indicence_Cnt * static_cast<double>(mPopulation.size()));
 
 			// prepare epoch slice map

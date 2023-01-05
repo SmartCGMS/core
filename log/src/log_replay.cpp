@@ -119,7 +119,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 		return trim(retstr);
 	};
 
-	auto emit_parsing_exception_w = [this, &log_filename, line_counter](const std::wstring& what) {
+	auto emit_parsing_exception_w = [this, &log_filename](const std::wstring& what, const size_t line_counter) {
 
 		std::wstring msg{ dsUnexpected_Error_While_Parsing };
 		msg += log_filename.wstring();
@@ -130,18 +130,18 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 		if (!what.empty()) Emit_Info(scgms::NDevice_Event_Code::Error, what);
 	};
 
-	auto emit_parsing_exception = [&emit_parsing_exception_w](const char* what) {
-		emit_parsing_exception_w(Widen_Char(what));
+	auto emit_parsing_exception = [&emit_parsing_exception_w](const char* what, const size_t line_counter) {
+		emit_parsing_exception_w(Widen_Char(what), line_counter);
 	};
 
-	auto read_segment_id = [&cut_column, &emit_parsing_exception_w]()->uint64_t {
+	auto read_segment_id = [&cut_column, &emit_parsing_exception_w](size_t line_counter)->uint64_t {
 		bool ok;
 		const auto str = cut_column();
 		uint64_t result = str_2_uint(str.c_str(), ok);
 		if (!ok) {
 			std::wstring msg{ dsError_In_Number_Format };
 			msg.append(str);
-			emit_parsing_exception_w(msg);
+			emit_parsing_exception_w(msg, line_counter);
 			result = std::numeric_limits<uint64_t>::max();
 		}
 
@@ -172,7 +172,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			if (std::isnan(device_time)) {
 				std::wstring msg{ dsUnknown_Date_Time_Format };
 				msg.append(specificval);
-				emit_parsing_exception_w(msg);
+				emit_parsing_exception_w(msg, line_counter);
 				return;
 			}
 
@@ -181,8 +181,8 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			// skip; signal name
 			specificval = cut_column();
 
-			const auto info_str = std::move(cut_column());
-			const uint64_t original_segment_id = read_segment_id();
+			const auto info_str = cut_column();
+			const uint64_t original_segment_id = read_segment_id(line_counter);
 
 			if ((original_segment_id != scgms::Invalid_Segment_Id) && (original_segment_id != scgms::All_Segments_Id))
 				segment_id_map[original_segment_id] = original_segment_id;
@@ -192,13 +192,13 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			log_lines.push_back(TLog_Entry{ device_time, line_counter, info_str, original_segment_id, code, line });
 		}
 		catch (const std::exception& ex) {
-			emit_parsing_exception(ex.what());
+			emit_parsing_exception(ex.what(), line_counter);
 			return;
 		}
 		catch (...) {
 			// any parsing error causes parser to abort
 			// this should not happen, when the log was correctly written and not manually modified ever since
-			emit_parsing_exception(nullptr);
+			emit_parsing_exception(nullptr, line_counter);
 			return;
 		}
 	}
@@ -258,7 +258,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 				else {
 					std::wstring msg{ dsError_In_Number_Format };
 					msg.append(info_str);
-					emit_parsing_exception_w(msg);
+					emit_parsing_exception_w(msg, line_counter);
 					return;
 				}
 			}
@@ -278,7 +278,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			evt.device_id() = WString_To_GUID(cut_column(), device_id_ok);
 			evt.signal_id() = WString_To_GUID(cut_column(), signal_id_ok);
 			if (!device_id_ok || !signal_id_ok) {
-				emit_parsing_exception_w(dsInvalid_GUID);
+				emit_parsing_exception_w(dsInvalid_GUID, line_counter);
 				return;
 			}
 
@@ -287,13 +287,13 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 				return;
 		}
 		catch (const std::exception& ex) {
-			emit_parsing_exception(ex.what());
+			emit_parsing_exception(ex.what(), line_counter);
 			return;
 		}
 		catch (...) {
 			// any parsing error causes parser to abort
 			// this should not happen, when the log was correctly written and not manually modified ever since
-			emit_parsing_exception(nullptr);
+			emit_parsing_exception(nullptr, line_counter);
 			return;
 		}
 	}

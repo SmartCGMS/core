@@ -69,7 +69,7 @@ struct DMMS_Engine_Deletor
 class CDMMS_Lib_Discrete_Model : public scgms::CBase_Filter, public virtual scgms::IDiscrete_Model, public dmms::ISimCallbacks
 {
 	private:
-		dmms_model::TParameters mParameters;
+		dmms_model::TParameters mParameters{ {} };
 
 		// placeholder for output signal names; unused for now
 		static std::array<char*, 0> mDmms_Out_Signal_Names;
@@ -84,14 +84,14 @@ class CDMMS_Lib_Discrete_Model : public scgms::CBase_Filter, public virtual scgm
 		std::wstring mDMMS_Results_Dir;
 
 		bool mRunning = false;
-		double mLastTime = -1;
-		double mTimeStart = -1;
+		double mLastTime = std::numeric_limits<double>::quiet_NaN();
+		double mTimeStart = std::numeric_limits<double>::quiet_NaN();
 
 		std::unique_ptr<std::thread> mDmmsSimThread;
 		std::mutex mDmmsSimMtx;
 		std::condition_variable mDmmsSimCv;
 
-		TDMMS_To_SmartCGMS mToSmartCGMS;
+		TDMMS_To_SmartCGMS mToSmartCGMS{{}};
 		TSmartCGMS_To_DMMS mToDMMS;
 		bool mToDMMSValuesReady = false;
 		bool mToSmartCGMSValuesReady = false;

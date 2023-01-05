@@ -55,7 +55,7 @@ class CWhite_Noise_Generator_Filter : public virtual scgms::CBase_Filter
 		// source signal ID (what signal will be mapped)
 		GUID mSignal_Id = Invalid_GUID;
 		// generator seed
-		long mSeed;
+		long mSeed = 0;
 
 		std::random_device mRandom_Device;
 		std::default_random_engine mRandom_Engine;

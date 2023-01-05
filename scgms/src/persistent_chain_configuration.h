@@ -48,14 +48,15 @@
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
 class CPersistent_Chain_Configuration : public virtual scgms::IPersistent_Filter_Chain_Configuration, public virtual refcnt::internal::CVector_Container<scgms::IFilter_Configuration_Link*> {
-protected:
+protected:		
 	filesystem::path mFile_Path;
 	std::wstring Get_Parent_Path() noexcept;
 	void Advertise_Parent_Path() noexcept;
 protected:
-	wchar_t* Describe_GUID(const GUID& val, const scgms::NParameter_Type param_type, const scgms::CSignal_Description& signal_descriptors) const noexcept;
+	wchar_t* Describe_GUID(const GUID& val, const scgms::NParameter_Type param_type, const scgms::CSignal_Description& signal_descriptors) const noexcept;	
 public:
-	virtual ~CPersistent_Chain_Configuration() noexcept {};
+	CPersistent_Chain_Configuration();
+	virtual ~CPersistent_Chain_Configuration() noexcept override;
 
 	virtual HRESULT IfaceCalling add(scgms::IFilter_Configuration_Link** begin, scgms::IFilter_Configuration_Link** end) noexcept override;
 
@@ -69,5 +70,6 @@ public:
 };
 
 #pragma warning( pop )
+
 
 extern "C" HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersistent_Filter_Chain_Configuration **configuration) noexcept;

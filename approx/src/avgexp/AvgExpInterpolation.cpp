@@ -30,10 +30,7 @@ HRESULT Enum2Vector(scgms::WSignal src, bool AllowPhantom, TControlVector *dst, 
 
 	*/
 
-	size_t index, j;
 	
-	
-
 	//make allocation faster by pre-allocating space fo cca expected number of points
 	size_t src_cnt;
 	HRESULT rc = src.Get_Discrete_Bounds(nullptr, nullptr, &src_cnt);
@@ -46,10 +43,9 @@ HRESULT Enum2Vector(scgms::WSignal src, bool AllowPhantom, TControlVector *dst, 
 
 	dst->reserve(src_cnt);
 
-	index = 0;
-	
 
-	for(j=0; j<src_cnt; j++) {
+
+	for(size_t j=0; j<src_cnt; j++) {
 		//just copy the points, do not add any phantom point
 		TControlPoint cpt;
 
@@ -69,7 +65,7 @@ HRESULT Enum2Vector(scgms::WSignal src, bool AllowPhantom, TControlVector *dst, 
 	//OK, this won't be the fastest method, but the addion occur so infrequently
 	//that we take it as an excuse for non-optimalized code
 	if (AllowPhantom) {
-		index = dst->size()-1;
+		size_t index = dst->size()-1;
 		double k;
 
 		while (index-->1) {

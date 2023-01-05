@@ -235,7 +235,7 @@ std::time_t from_iso8601(const std::wstring &descriptor) {
 		{
 			if (swscanf_s(c, L"%2d", &tz_minutes) == 1)
 			{
-				c += 2;
+				//c += 2; we longer read from the input
 			}
 			else
 			{

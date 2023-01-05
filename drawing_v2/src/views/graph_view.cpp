@@ -135,24 +135,33 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 
 	const double firstFullDay = std::floor(min_x + 1.0);
 	const double firstFullHour = std::floor(min_x / scgms::One_Hour) * scgms::One_Hour;
-	for (double fdx = firstFullHour; fdx < max_x; fdx += scgms::One_Hour)
-	{
-		double xpos = mCanvas_WidthOff + (opts.width - mCanvas_WidthOff) * ((max_x - fdx) / (max_x - min_x));
 
-		grp.Add<drawing::Line>(xpos, mCanvas_HeightOff, xpos, 0)
-			.Set_Stroke_Color(RGBColor::From_HTML_Color("#F8F8F8"))
-			.Set_Stroke_Opacity(1.0)
-			.Set_Stroke_Width(1.0);
+	{
+		double fdx = firstFullHour;		
+		do {
+			double xpos = mCanvas_WidthOff + (opts.width - mCanvas_WidthOff) * ((max_x - fdx) / (max_x - min_x));
+
+			grp.Add<drawing::Line>(xpos, mCanvas_HeightOff, xpos, 0)
+				.Set_Stroke_Color(RGBColor::From_HTML_Color("#F8F8F8"))
+				.Set_Stroke_Opacity(1.0)
+				.Set_Stroke_Width(1.0);
+
+			fdx += scgms::One_Hour;
+		} while (fdx < max_x);
 	}
 
-	for (double fdx = firstFullDay; fdx < max_x; fdx += 1.0)
 	{
-		double xpos = mCanvas_WidthOff + (opts.width - mCanvas_WidthOff) * ((max_x - fdx) / (max_x - min_x));
+		double fdx = firstFullDay;
+		do {
+			double xpos = mCanvas_WidthOff + (opts.width - mCanvas_WidthOff) * ((max_x - fdx) / (max_x - min_x));
 
-		grp.Add<drawing::Line>(xpos, mCanvas_HeightOff, xpos, 0)
-			.Set_Stroke_Color(RGBColor::From_HTML_Color("#D8D8D8"))
-			.Set_Stroke_Opacity(1.0)
-			.Set_Stroke_Width(1.0);
+			grp.Add<drawing::Line>(xpos, mCanvas_HeightOff, xpos, 0)
+				.Set_Stroke_Color(RGBColor::From_HTML_Color("#D8D8D8"))
+				.Set_Stroke_Opacity(1.0)
+				.Set_Stroke_Width(1.0);
+
+			fdx += 1.0;
+		} while (fdx < max_x);
 	}
 
 	grp.Add<drawing::Text>(mCanvas_WidthOff + (opts.width - mCanvas_WidthOff) / 2, mCanvas_HeightOff + 50, "Time [day.month.year hour:minute]")
@@ -162,22 +171,27 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 	const double y_step = (max_y - min_y < 10.0) ? 1.0 : 2.0;
 
 	// descriptions on Y axis
-	for (double yf = y_step; yf <= max_y; yf += y_step) {
-
-		grp.Add<drawing::Text>(
+	{
+		
+		double yf = y_step;
+		do {
+			grp.Add<drawing::Text>(
 				mCanvas_WidthOff - 20,
 				mCanvas_HeightOff - (yf / (max_y - min_y)) * mCanvas_HeightOff,
 				utility::Format_Decimal(yf, 1)
-			)
-			.Set_Font_Size(12) // TODO: font scaling proportionally to drawing size
-			.Set_Anchor(drawing::Text::TextAnchor::MIDDLE);
+				)
+				.Set_Font_Size(12) // TODO: font scaling proportionally to drawing size
+				.Set_Anchor(drawing::Text::TextAnchor::MIDDLE);
 
-		grp.Add<drawing::Line>(
-			mCanvas_WidthOff, mCanvas_HeightOff - (yf / (max_y - min_y)) * mCanvas_HeightOff,
-			opts.width, mCanvas_HeightOff - (yf / (max_y - min_y)) * mCanvas_HeightOff
-			)
-			.Set_Stroke_Color(RGBColor::From_HTML_Color("#D8D8D8"))
-			.Set_Stroke_Width(1);
+			grp.Add<drawing::Line>(
+				mCanvas_WidthOff, mCanvas_HeightOff - (yf / (max_y - min_y)) * mCanvas_HeightOff,
+				opts.width, mCanvas_HeightOff - (yf / (max_y - min_y)) * mCanvas_HeightOff
+				)
+				.Set_Stroke_Color(RGBColor::From_HTML_Color("#D8D8D8"))
+				.Set_Stroke_Width(1);
+
+			yf += y_step;
+		} while (yf <= max_y);
 	}
 
 	std::unordered_set<GUID> usedSignals;

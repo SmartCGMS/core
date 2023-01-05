@@ -312,7 +312,7 @@ protected:
 				case scgms::NParameter_Type::ptSolver_Id:
 				{
 					GUID id;
-					HRESULT rc = param->Get_GUID(&id);
+					rc = param->Get_GUID(&id);
 					if (rc == E_NOT_SET) {
 						id = Invalid_GUID;
 						rc = S_FALSE;
@@ -671,8 +671,7 @@ public:
 
 
 		//as the configuration may hold some native filters, let us keep an over-subscription reduced instance to keep the libraries loaded
-		//run the configuration
-		rc = E_UNEXPECTED;
+		//run the configuration		
 
 		{
 			std::recursive_mutex oversubscript_communication_guard;

@@ -64,11 +64,20 @@ TDMMS_IPC Establish_DMMS_IPC(const DWORD process_id) {
     id_str = make_id(eventName_DataFromSmartCGMS);
     result.event_DataFromSmartCGMS = CreateEventW(NULL, TRUE, FALSE, id_str.c_str());
 
-    result.filebuf_DataToSmartCGMS = reinterpret_cast<LPTSTR>(MapViewOfFile(result.file_DataToSmartCGMS, FILE_MAP_ALL_ACCESS, 0, 0, 256));
-    result.filebuf_DataFromSmartCGMS = reinterpret_cast<LPTSTR>(MapViewOfFile(result.file_DataFromSmartCGMS, FILE_MAP_ALL_ACCESS, 0, 0, 256));
+    if (result.file_DataToSmartCGMS != NULL)
+        result.filebuf_DataToSmartCGMS = reinterpret_cast<decltype(result.filebuf_DataToSmartCGMS)>(MapViewOfFile(result.file_DataToSmartCGMS, FILE_MAP_ALL_ACCESS, 0, 0, 256));
+    else
+        result.filebuf_DataToSmartCGMS = nullptr;
 
-    ResetEvent(result.event_DataToSmartCGMS);
-    ResetEvent(result.event_DataFromSmartCGMS);
+    if (result.file_DataFromSmartCGMS != NULL)
+        result.filebuf_DataFromSmartCGMS = reinterpret_cast<decltype(result.filebuf_DataFromSmartCGMS)>(MapViewOfFile(result.file_DataFromSmartCGMS, FILE_MAP_ALL_ACCESS, 0, 0, 256));
+    else
+        result.filebuf_DataFromSmartCGMS = nullptr;
+
+    if (result.event_DataToSmartCGMS != NULL)
+        ResetEvent(result.event_DataToSmartCGMS);
+    if (result.event_DataFromSmartCGMS != NULL)
+        ResetEvent(result.event_DataFromSmartCGMS);
 
     return result;
 }

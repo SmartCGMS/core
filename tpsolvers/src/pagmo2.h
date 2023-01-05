@@ -53,7 +53,7 @@ namespace pagmo2 {
 	protected:
 		pagmo::vector_double mRemapped_solution, mRemapped_Lower, mRemapped_Upper;	//must be initialized to the default solution as only the remapped elements will be replaced	
 		std::vector<size_t> mDimension_Remap;
-		const solver::TSolver_Setup mSetup;
+		const solver::TSolver_Setup mSetup = solver::Default_Solver_Setup;
 	public:
 		CRemap(const solver::TSolver_Setup& setup) : mSetup(setup) {
 
@@ -107,15 +107,15 @@ namespace pagmo2 {
 	//	https ://esa.github.io/pagmo2/docs/cpp/problem.html#classpagmo_1_1problem
 	//	a UDP must also be default, copy and move constructible.
 
-		TProblem(const solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) : mSetup(setup), mProgress(progress), mRemap(setup) { 
+		TProblem(const solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) : mSetup(setup), mRemap(setup), mProgress(progress) {
 		}
 			
 		TProblem() : 
-			mSetup(solver::Default_Solver_Setup), mProgress(mVoid_Progress), mRemap(solver::Default_Solver_Setup) {		//should not never occur, but default ctor is just required					
+			mSetup(solver::Default_Solver_Setup), mRemap(solver::Default_Solver_Setup), mProgress(mVoid_Progress) {		//should not never occur, but default ctor is just required					
 		};
 
 		TProblem(const TProblem &other) : 
-			mSetup(other.mSetup), mProgress(other.mProgress), mRemap(other.mRemap)  {
+			mSetup(other.mSetup), mRemap(other.mRemap), mProgress(other.mProgress) {
 
 		}
 

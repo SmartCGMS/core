@@ -78,7 +78,7 @@ class CDMMS_Proc_Discrete_Model : public virtual scgms::CBase_Filter, public vir
 		// SmartCGMS time
 		double mLastTime = -1;
 		// starting time
-		double mTimeStart;
+		double mTimeStart = std::numeric_limits<double>::quiet_NaN();
 
 
 		bool Configure_DMMS();

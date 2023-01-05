@@ -10,7 +10,7 @@
 #include <cmath>
 
 const size_t apxmAverageExponential = 1;		//so far, only exp has the derivation implemented
-const size_t apxmAverageLine = 2;			//currently disabled as not derivation is not implemented for the line
+//const size_t apxmAverageLine = 2;			//currently disabled as not derivation is not implemented for the line
 
 
 const TApproximationParams dfApproximationParams = {

@@ -142,7 +142,7 @@ void CAkima::Compute_Coefficients() {
 		fdPrev = fd;
 		firstDerivatives[i] = fd;
 
-		d1 = d2;
+		//d1 = d2; - actually, it's never used then
 		d2 = d3;
 		d3 = d4;
 		d4 = (mInputLevels[3 + i] - mInputLevels[2 + i]) / (mInputTimes[3 + i] - mInputTimes[2 + i]);

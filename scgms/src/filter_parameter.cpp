@@ -249,9 +249,17 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::Evaluate_Variable(const std
 	//try OS variables
 	{
 		std::string ansi = Narrow_WString(var_name);
-		const char* sys = std::getenv(ansi.c_str());
-		if (sys)
-			return std::tuple<bool, std::wstring>{S_OK, Widen_Char(sys)};
+		
+		size_t assumed_len = 0;
+		auto var_os_err = getenv_s(&assumed_len, nullptr, 0, ansi.c_str());
+		if ((var_os_err == 0) && (assumed_len > 0)) {
+			std::vector<char> var_buf(assumed_len);				
+			auto var_os_err = getenv_s(&assumed_len, var_buf.data(), assumed_len, ansi.c_str());	//with clang, 1st param cannot be nullptr
+			if (var_os_err == 0) {
+				var_buf.push_back(0);	//make sure its ASCIIZ
+				return std::tuple<bool, std::wstring>{S_OK, Widen_Char(var_buf.data())};
+			}
+		}			
 	}
 		
 
