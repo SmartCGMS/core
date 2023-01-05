@@ -324,7 +324,7 @@ class CRumor_Opt
 			});
 
 			// sort the bank - best members first
-			std::sort(std::execution::par_unseq, mBank.begin(), mBank.end(), [](const rumoropt::TSlice<TUsed_Solution>& a, const rumoropt::TSlice<TUsed_Solution>& b) {
+			std::sort(mBank.begin(), mBank.end(), [](const rumoropt::TSlice<TUsed_Solution>& a, const rumoropt::TSlice<TUsed_Solution>& b) {
 				return a.delta > b.delta;
 			});
 
@@ -573,7 +573,7 @@ class CRumor_Opt
 					Update_Bank(mEpoch_Slice_Map[i]);
 
 				// 4) sort the bank - best bank members first
-				std::sort(std::execution::par_unseq, mBank.begin(), mBank.end(), [](const rumoropt::TSlice<TUsed_Solution>& a, const rumoropt::TSlice<TUsed_Solution>& b) {
+				std::sort(mBank.begin(), mBank.end(), [](const rumoropt::TSlice<TUsed_Solution>& a, const rumoropt::TSlice<TUsed_Solution>& b) {
 					return a.delta > b.delta;
 				});
 

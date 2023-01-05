@@ -246,10 +246,10 @@ bool Compare_Solutions(const solver::TFitness& better, const solver::TFitness& w
 
 
 	//4. Is the comparison clearly decided?
-	if (comparison == partial_ordering::less)
+	if (std::is_lt(comparison))
 		return true;
 
-	if (comparison == partial_ordering::greater)
+	if (std::is_gt(comparison))
 		return false;
 
 	

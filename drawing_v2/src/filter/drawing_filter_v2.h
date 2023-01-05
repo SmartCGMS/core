@@ -61,7 +61,7 @@ class CDrawing_Filter_v2 : public scgms::CBase_Filter, public scgms::IDrawing_Fi
 		// container of registered view
 		struct TRegistered_View {
 			GUID id;
-			std::unique_ptr<IDrawing_View_Base> handler;
+			std::unique_ptr<CDrawing_View_Base> handler;
 			std::wstring output_filename_config_option_name;
 		};
 
