@@ -40,6 +40,7 @@
 
 #include <iomanip>
 #include <unordered_set>
+#include <cmath>
 
 #include "../../../../common/iface/UIIface.h"
 #include "../../../../common/rtl/UILib.h"

@@ -301,7 +301,7 @@ void CDrawing_Filter_v2::Render_All_To_File_Default()
 			continue;
 		}
 
-		std::ofstream ofs(of_itr->second);
+		std::ofstream ofs(Narrow_WString(of_itr->second));
 		if (!ofs.is_open())
 		{
 			Log_Error(L"Could not open file " + of_itr->second + L" to render drawing " + GUID_To_WString(v.first));
