@@ -132,7 +132,7 @@ HRESULT CEmulated_Sensor_Filter::Do_Execute(scgms::UDevice_Event evt)
 		{
 			scgms::UDevice_Event evt2{ scgms::NDevice_Event_Code::Level };
 			evt2.device_time() = evt.device_time();
-			evt2.level() = sensedValue - (mCal_K * (evt.device_time() - mStart_Time) + mCal_Q); // subtract the calibration
+			evt2.level() = std::max(0.0, sensedValue - (mCal_K * (evt.device_time() - mStart_Time) + mCal_Q)); // subtract the calibration
 			evt2.signal_id() = mDestination_Id;
 			evt2.device_id() = sensor::filter_id;
 			evt2.segment_id() = evt.segment_id();

@@ -446,8 +446,8 @@ namespace bases_standalone
 		1.0,					// carbContrib
 		2.0,					// insContrib
 		0.5,					// paContrib
-		scgms::One_Hour * 1.0,	// carbPast
-		scgms::One_Hour * 1.0,	// insPast
+		scgms::One_Minute * 15.0,	// carbPast
+		scgms::One_Minute * 15.0,	// insPast
 
 		// CHO bases
 		2.0, 0.9, 0.3,
@@ -455,10 +455,10 @@ namespace bases_standalone
 		2.0, 0.9, 0.3,
 		2.0, 0.9, 0.3,
 		// Insulin bases
-		2.0, 0.9, 0.3,
-		2.0, 0.9, 0.3,
-		2.0, 0.9, 0.3,
-		2.0, 0.9, 0.3,
+		-0.2, 0.9, 0.3,
+		-0.2, 0.9, 0.3,
+		-0.2, 0.9, 0.3,
+		-0.2, 0.9, 0.3,
 		// PA bases
 		2.0, 0.9, 0.3,
 		2.0, 0.9, 0.3,
@@ -587,6 +587,26 @@ namespace flr_ge
 		Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,Constant_Upper_Bound,
 	};
 
+}
+
+namespace ideg {
+
+	namespace riskfinder {
+		constexpr const GUID id = { 0x2662aafb, 0x5009, 0x4e54, { 0xb2, 0x3, 0x46, 0xd1, 0x14, 0xe5, 0x4b, 0x49 } }; // {2662AAFB-5009-4E54-B203-46D114E54B49}
+
+		constexpr const GUID risk_hyper_signal_id = { 0xa348cf3f, 0x2667, 0x40c2, { 0x8e, 0x8e, 0x76, 0x4d, 0xe5, 0xc2, 0x95, 0x91 } }; // {A348CF3F-2667-40C2-8E8E-764DE5C29591}
+		constexpr const GUID risk_hypo_signal_id = { 0xfe4ed8db, 0xc1c0, 0x411c, { 0x85, 0xe5, 0x78, 0xa4, 0x49, 0xf3, 0xf1, 0x8a } };  // {FE4ED8DB-C1C0-411C-85E5-78A449F3F18A}
+		constexpr const GUID risk_avg_signal_id = { 0xa42391dc, 0x398a, 0x4e0e, { 0x9a, 0xe8, 0x65, 0x5e, 0xca, 0xd3, 0x7b, 0x4c } };   // {A42391DC-398A-4E0E-9AE8-655ECAD37B4C}
+
+		extern const wchar_t* rsFind_Hyper;
+		extern const wchar_t* rsFind_Hypo;
+	}
+
+	namespace logstopper {
+		constexpr const GUID id = { 0x7ff5a2f5, 0xe37e, 0x4464, { 0xb5, 0x4a, 0xaf, 0x94, 0xe, 0xbe, 0xde, 0x40 } }; // {7FF5A2F5-E37E-4464-B54A-AF940EBEDE40}
+
+		extern const wchar_t* rsStop_Time;
+	}
 }
 
 extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end);

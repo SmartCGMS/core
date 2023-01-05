@@ -52,6 +52,9 @@
 #include "gege/gege.h"
 #include "flr_ge/flr_ge.h"
 
+#include "ideg_riskfinder/riskfinder.h"
+#include "ideg_logstopper/logstopper.h"
+
 #include <vector>
 
 namespace p559_model {
@@ -608,25 +611,113 @@ namespace flr_ge {
 	const scgms::TSignal_Descriptor bolus_desc{ bolus_id, L"FLR GE - Bolus", dsU, scgms::NSignal_Unit::U_insulin, 0xFF00FFFF, 0xFF00FFFF, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::triangle, nullptr, 1.0 };
 }
 
-const std::array<scgms::TModel_Descriptor, 8> model_descriptions = { {  p559_model::desc,
-																		 aim_ge::desc,
-																		 data_enhacement::desc,
-																		 cgp_pred::desc,
-																		 bases_pred::desc,
-																		 bases_standalone::desc,
-																		 gege::desc, flr_ge::desc,
-																		} };
+namespace ideg {
 
-const std::array<scgms::TSignal_Descriptor, 10+cgp_pred::number_of_calculated_signals> signals_descriptors = { {
-																		 p559_model::ig_desc,
-																		 aim_ge::ig_desc,
-																		 data_enhacement::pos_desc, data_enhacement::neg_desc,
+	namespace riskfinder {
+
+		const wchar_t* rsFind_Hyper = L"Find_Hyper";
+		const wchar_t* rsFind_Hypo = L"Find_Hypo";
+
+		constexpr size_t param_count = 2;
+
+		constexpr scgms::NParameter_Type param_type[param_count] = {
+			scgms::NParameter_Type::ptBool,
+			scgms::NParameter_Type::ptBool
+		};
+
+		const wchar_t* ui_param_name[param_count] = {
+			L"Find hyperglycemic episodes",
+			L"Find hypoglycemic episodes",
+		};
+
+		const wchar_t* config_param_name[param_count] = {
+			rsFind_Hyper,
+			rsFind_Hypo,
+		};
+
+		const wchar_t* ui_param_tooltips[param_count] = {
+			L"Should the finder look for hyperglycemic episodes?",
+			L"Should the finder look for hypoglycemic episodes?",
+		};
+
+		const scgms::TFilter_Descriptor descriptor = {
+			id,
+			scgms::NFilter_Flags::None,
+			L"IDEG - risk finder filter",
+			param_count,
+			param_type,
+			ui_param_name,
+			config_param_name,
+			ui_param_tooltips
+		};
+
+		const scgms::TSignal_Descriptor hyper_desc{ risk_hyper_signal_id, L"IDEG riskfinder - hyper risk", L"", scgms::NSignal_Unit::datetime, 0x00FF0000, 0x00FF0000, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::diamond, nullptr, 1.0 };
+		const scgms::TSignal_Descriptor hypo_desc{ risk_hypo_signal_id, L"IDEG riskfinder - hypo risk", L"", scgms::NSignal_Unit::datetime, 0x00FF00FF, 0x00FF00FF, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::rectangle, nullptr, 1.0 };
+		const scgms::TSignal_Descriptor riskavg_desc{ risk_avg_signal_id, L"IDEG riskfinder - risk average glycemia", L"", scgms::NSignal_Unit::mmol_per_L, 0x00AAAA00, 0x00AAAA00, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::star, nullptr, 1.0 };
+	}
+
+	namespace logstopper {
+
+		const wchar_t* rsStop_Time = L"Stop_Time";
+
+		constexpr size_t param_count = 1;
+
+		constexpr scgms::NParameter_Type param_type[param_count] = {
+			scgms::NParameter_Type::ptRatTime,
+		};
+
+		const wchar_t* ui_param_name[param_count] = {
+			L"Stop time",
+		};
+
+		const wchar_t* config_param_name[param_count] = {
+			rsStop_Time
+		};
+
+		const wchar_t* ui_param_tooltips[param_count] = {
+			L"At what time the logstopper should stop the log replay?",
+		};
+
+		const scgms::TFilter_Descriptor descriptor = {
+			id,
+			scgms::NFilter_Flags::None,
+			L"IDEG - log stopper filter",
+			param_count,
+			param_type,
+			ui_param_name,
+			config_param_name,
+			ui_param_tooltips
+		};
+
+	}
+
+}
+
+const std::array<scgms::TModel_Descriptor, 8> model_descriptions = { {
+	p559_model::desc,
+	aim_ge::desc,
+	data_enhacement::desc,
+	cgp_pred::desc,
+	bases_pred::desc,
+	bases_standalone::desc,
+	gege::desc, flr_ge::desc,
+} };
+
+const std::array<scgms::TSignal_Descriptor, 13 + cgp_pred::number_of_calculated_signals> signals_descriptors = { {
+	p559_model::ig_desc,
+	aim_ge::ig_desc,
+	data_enhacement::pos_desc, data_enhacement::neg_desc,
 	bases_pred::ig_desc, bases_standalone::ig_desc, gege::ibr_desc, gege::bolus_desc, flr_ge::ibr_desc, flr_ge::bolus_desc,
+	ideg::riskfinder::hyper_desc, ideg::riskfinder::hypo_desc, ideg::riskfinder::riskavg_desc,
 
-	cgp_pred::signal_descs[0],cgp_pred::signal_descs[1],cgp_pred::signal_descs[2],cgp_pred::signal_descs[3],/*cgp_pred::signal_descs[4],cgp_pred::signal_descs[5],cgp_pred::signal_descs[6],cgp_pred::signal_descs[7],
-	cgp_pred::signal_descs[8],cgp_pred::signal_descs[9],cgp_pred::signal_descs[10],cgp_pred::signal_descs[11],cgp_pred::signal_descs[12],cgp_pred::signal_descs[13],cgp_pred::signal_descs[14],cgp_pred::signal_descs[15],
-	cgp_pred::signal_descs[16],cgp_pred::signal_descs[17],cgp_pred::signal_descs[18],cgp_pred::signal_descs[19],cgp_pred::signal_descs[20],cgp_pred::signal_descs[21],cgp_pred::signal_descs[22],cgp_pred::signal_descs[23],
-*/																		}};
+	// CGP signal group (total of cgp_pred::number_of_calculated_signals)
+	cgp_pred::signal_descs[0],cgp_pred::signal_descs[1],cgp_pred::signal_descs[2],cgp_pred::signal_descs[3],
+} };
+
+const std::array<scgms::TFilter_Descriptor, 2> filter_descriptors = { {
+	ideg::riskfinder::descriptor,
+	ideg::logstopper::descriptor,
+} };
 
 HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
 	*begin = const_cast<scgms::TModel_Descriptor*>(model_descriptions.data());
@@ -662,13 +753,16 @@ HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IMode
 }
 
 HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
-	// placeholder, will be utilized in future
-	*begin = nullptr;
-	*end = *begin;
+	*begin = const_cast<scgms::TFilter_Descriptor*>(filter_descriptors.data());
+	*end = *begin + filter_descriptors.size();
 	return S_OK;
 }
 
 HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
-	// placeholder, will be utilized in future
+	if (*id == ideg::riskfinder::id)
+		return Manufacture_Object<CRisk_Finder_Filter>(filter, output);
+	else if (*id == ideg::logstopper::id)
+		return Manufacture_Object<CLog_Stopper_Filter>(filter, output);
+
 	return E_NOTIMPL;
 }

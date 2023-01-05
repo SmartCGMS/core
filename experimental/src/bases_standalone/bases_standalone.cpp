@@ -104,6 +104,8 @@ HRESULT CBase_Functions_Standalone::Do_Execute(scgms::UDevice_Event event)
 				static_cast<double>(event.device_time() + 5.0_hr),
 				event.level()
 			});
+
+			event.signal_id() = scgms::signal_Delivered_Insulin_Bolus;
 		}
 		else if (event.signal_id() == scgms::signal_Physical_Activity)
 		{
@@ -239,8 +241,8 @@ HRESULT IfaceCalling CBase_Functions_Standalone::Step(const double time_advance_
 			if (Is_Any_NaN(mLast_Physical_Activity_Index))
 				mLast_Physical_Activity_Index = 0;
 
-			const double choContribFactor = (0.0 + mParameters.carbContrib * Calc_COB_At(mCurrent_Time - mParameters.carbPast));
-			const double insContribFactor = (0.0 + mParameters.insContrib * Calc_IOB_At(mCurrent_Time - mParameters.insPast));
+			const double choContribFactor = (1.0 + mParameters.carbContrib * Calc_COB_At(mCurrent_Time - mParameters.carbPast));
+			const double insContribFactor = (1.0 + mParameters.insContrib * Calc_IOB_At(mCurrent_Time - mParameters.insPast));
 			const double paContribFactor = (0.0 + mParameters.paContrib * mLast_Physical_Activity_Index);
 
 			double basisFunctionContrib = 0;
@@ -280,28 +282,9 @@ HRESULT IfaceCalling CBase_Functions_Standalone::Step(const double time_advance_
 
 			basisFunctionContrib += mParameters.h1 * std::log(std::abs(mParameters.k1 * mPhysical_Activity_Decaying_Index) + 1.0);
 
-			// emit the basis function contribution
-			/*
-			{
-				scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
-				evt.signal_id() = scgms::signal_Steps;
-				evt.device_id() = bases_standalone::model_id;
-				evt.device_time() = mCurrent_Time;
-				evt.segment_id() = mSegment_Id;
-				evt.level() = choContribFactor *20;
-				mOutput.Send(evt);
-			}
-			{
-				scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
-				evt.signal_id() = scgms::signal_Acceleration;
-				evt.device_id() = bases_standalone::model_id;
-				evt.device_time() = mCurrent_Time;
-				evt.segment_id() = mSegment_Id;
-				evt.level() = insBasesContrib;
-				mOutput.Send(evt);
-			}*/
-
 			est += basisFunctionContrib;
+
+			est = std::max(est, 0.0); // always non-negative
 
 			Store_IG(mCurrent_Time, est);
 

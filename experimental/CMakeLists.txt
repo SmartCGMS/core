@@ -21,7 +21,7 @@ IF(COMPONENT_EXPERIMENTAL_MODULES)
 	ENDIF()
 
 	# grouping
-	SET(SRC_GRPS "p559" "aim_ge" "enhacement" "cgp_pred" "bases" "bases_standalone")
+	SET(SRC_GRPS "p559" "aim_ge" "enhacement" "cgp_pred" "bases" "bases_standalone" "ideg_riskfinder" "ideg_logstopper")
 	FOREACH(MODEL_DIR ${SRC_GRPS})
 		FILE(GLOB_RECURSE MDL_SOURCES "src/${MODEL_DIR}/*.cpp" "src/${MODEL_DIR}/*.h" "src/${MODEL_DIR}/*.c")
 		SOURCE_GROUP("model\\${MODEL_DIR}" FILES ${MDL_SOURCES})
