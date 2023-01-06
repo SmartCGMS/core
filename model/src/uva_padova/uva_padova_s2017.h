@@ -101,7 +101,7 @@ struct CDiffusion_Compartments_State
 			quantity.resize(count);
 	}
 
-	size_t solverStateIdx; // currently solved index
+	size_t solverStateIdx = std::numeric_limits<size_t>::max(); // currently solved index
 };
 
 // state of UVa/Padova S2017 model equation system
@@ -109,27 +109,27 @@ struct CUVa_Padova_S2017_State
 {
 	double lastTime = 0.0;
 
-	double Gp;
-	double Gt;
-	double Ip;
-	double Il;
-	double Qsto1;
-	double Qsto2;
-	double Qgut;
-	double XL;
-	double I;
-	double XH;
-	double X;
-	double Isc1;
-	double Isc2;
-	double Iid1;
-	double Iid2;
-	double Iih;
-	double Gsc;
-	double H;
-	double SRHS;
-	double Hsc1;
-	double Hsc2;
+	double Gp = std::numeric_limits<double>::quiet_NaN();
+	double Gt = std::numeric_limits<double>::quiet_NaN();
+	double Ip = std::numeric_limits<double>::quiet_NaN();
+	double Il = std::numeric_limits<double>::quiet_NaN();
+	double Qsto1 = std::numeric_limits<double>::quiet_NaN();
+	double Qsto2 = std::numeric_limits<double>::quiet_NaN();
+	double Qgut = std::numeric_limits<double>::quiet_NaN();
+	double XL = std::numeric_limits<double>::quiet_NaN();
+	double I = std::numeric_limits<double>::quiet_NaN();
+	double XH = std::numeric_limits<double>::quiet_NaN();
+	double X = std::numeric_limits<double>::quiet_NaN();
+	double Isc1 = std::numeric_limits<double>::quiet_NaN();
+	double Isc2 = std::numeric_limits<double>::quiet_NaN();
+	double Iid1 = std::numeric_limits<double>::quiet_NaN();
+	double Iid2 = std::numeric_limits<double>::quiet_NaN();
+	double Iih = std::numeric_limits<double>::quiet_NaN();
+	double Gsc = std::numeric_limits<double>::quiet_NaN();
+	double H = std::numeric_limits<double>::quiet_NaN();
+	double SRHS = std::numeric_limits<double>::quiet_NaN();
+	double Hsc1 = std::numeric_limits<double>::quiet_NaN();
+	double Hsc2 = std::numeric_limits<double>::quiet_NaN();
 
 	CDiffusion_Compartments_State idt1;
 	CDiffusion_Compartments_State idt2;

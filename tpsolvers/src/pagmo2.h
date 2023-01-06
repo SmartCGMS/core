@@ -153,100 +153,112 @@ protected:
 	solver::TSolver_Setup mSetup;
 protected:
 	pagmo2::CRemap mRemap;
+protected:
+	template <typename TSolver>
+	std::tuple<bool, pagmo::vector_double> Execute_Solver(solver::TSolver_Progress& progress, TSolver &&solver) {
+
+		pagmo::vector_double champion_x(mRemap.problem_size(), std::numeric_limits<double>::quiet_NaN());
+		bool succeeded = false;
+
+		auto my_problem = pagmo2::TProblem{ mSetup, progress };
+
+		pagmo::problem prob{ std::move(my_problem) };
+
+		pagmo::algorithm algo{ solver };
+		algo.set_verbosity(10/*0*/);
+
+
+		//isle population must be greater at least and divisable by 4
+		size_t isle_population = std::max(static_cast<size_t>(8), mSetup.population_size / std::thread::hardware_concurrency());
+		isle_population += isle_population % 4;
+
+		pagmo::archipelago archi{ std::thread::hardware_concurrency(), algo, prob, isle_population };
+		///pagmo::archipelago archi{ 2, algo, prob, 8 };
+		//pagmo::archipelago archi{ 1, algo, prob, mSetup.population_size };
+
+		if (mSetup.hint_count > 0) {
+			//insert the hints into the population
+			for (auto& isle : archi) {
+				auto population = isle.get_population();
+				const size_t pop_size = population.size();
+				for (size_t i = 0; i < std::min(mSetup.hint_count, pop_size); i++) {
+					population.set_x(i, mRemap.Reduce_Solution(mSetup.hints[i]));
+				}
+				isle.set_population(population);
+			}
+		}
+
+		archi.evolve();
+		archi.wait_check();
+
+		succeeded = archi.status() == pagmo::evolve_status::idle;
+
+
+		//with a single-objective, we could just call get_champion_x
+		//but this code works with both single- and multi-objective
+		std::vector<pagmo::vector_double> all_solutions, all_fitnesses;
+		for (size_t i = 0; i < archi.size(); i++) {
+			auto population = archi[i].get_population();
+			auto solutions = population.get_x();
+			all_solutions.insert(all_solutions.end(), solutions.begin(), solutions.end());
+
+			auto fitnesses = population.get_f();
+			all_fitnesses.insert(all_fitnesses.end(), fitnesses.begin(), fitnesses.end());
+		}
+
+
+
+		std::vector<size_t> indexes(all_solutions.size());
+		std::iota(indexes.begin(), indexes.end(), 0);
+
+		if (mSetup.objectives_count > 1) {
+			std::vector<double> scalar_fitnesses;
+			for (size_t j = 0; j < all_fitnesses.size(); j++)
+				scalar_fitnesses.push_back(solver::Solution_Distance(mSetup.objectives_count, all_fitnesses[j]));
+			std::sort(indexes.begin(), indexes.end(), [&](const size_t a, const size_t b) {return scalar_fitnesses[a] < scalar_fitnesses[b]; });
+
+		}
+		else
+			std::sort(indexes.begin(), indexes.end(), [&](const size_t a, const size_t b) {return all_fitnesses[a][0] < all_fitnesses[b][0]; });
+
+		champion_x = mRemap.Expand_Solution(all_solutions[indexes[0]]);
+
+
+		return { succeeded, std::move(champion_x) };
+	}
+
 public:
 	CPagmo2(const solver::TSolver_Setup &setup) : mSetup(solver::Check_Default_Parameters(setup, 100'000, 100)), mRemap(setup) {			
 		//
 	};
-
-	bool Solve(solver::TSolver_Progress &progress) {
+	bool Solve(solver::TSolver_Progress& progress) {
 		pagmo::vector_double champion_x(mRemap.problem_size(), std::numeric_limits<double>::quiet_NaN());
-		bool succeded = false;
-
-		auto ps = [this, &progress, &champion_x, &succeded](auto solver) {			
-
-			auto my_problem = pagmo2::TProblem{ mSetup, progress };
-
-			pagmo::problem prob{ std::move(my_problem) };
-
-			pagmo::algorithm algo{ solver };
-			algo.set_verbosity(10/*0*/);
-			
-
-			//isle population must be greater at least and divisable by 4
-			size_t isle_population = std::max(static_cast<size_t>(8), mSetup.population_size / std::thread::hardware_concurrency());
-			isle_population += isle_population % 4;
-
-			pagmo::archipelago archi{ std::thread::hardware_concurrency(), algo, prob, isle_population };
-			///pagmo::archipelago archi{ 2, algo, prob, 8 };
-			//pagmo::archipelago archi{ 1, algo, prob, mSetup.population_size };
-
-			if (mSetup.hint_count > 0) {
-				//insert the hints into the population
-				for (auto& isle : archi) {
-					auto population = isle.get_population();
-					const size_t pop_size = population.size();
-					for (size_t i = 0; i < std::min(mSetup.hint_count, pop_size); i++) {
-						population.set_x(i, mRemap.Reduce_Solution(mSetup.hints[i]));
-					}
-					isle.set_population(population);
-				}
-			}
-			
-			archi.evolve();
-			archi.wait_check();
-
-			succeded = archi.status() == pagmo::evolve_status::idle;
-
-
-			//with a single-objective, we could just call get_champion_x
-			//but this code works with both single- and multi-objective
-			std::vector<pagmo::vector_double> all_solutions, all_fitnesses;
-			for (size_t i = 0; i < archi.size(); i++) {
-				auto population = archi[i].get_population();
-				auto solutions = population.get_x();
-				all_solutions.insert(all_solutions.end(), solutions.begin(), solutions.end());
-				
-				auto fitnesses = population.get_f();
-				all_fitnesses.insert(all_fitnesses.end(), fitnesses.begin(), fitnesses.end());
-			}
-			
-
-
-			std::vector<size_t> indexes(all_solutions.size());
-			std::iota(indexes.begin(), indexes.end(), 0);
-
-			if (mSetup.objectives_count > 1) {
-				std::vector<double> scalar_fitnesses;				
-				for (size_t j=0; j<all_fitnesses.size(); j++)
-					scalar_fitnesses.push_back(solver::Solution_Distance(mSetup.objectives_count, all_fitnesses[j]));
-				std::sort(indexes.begin(), indexes.end(), [&](const size_t a, const size_t b) {return scalar_fitnesses[a] < scalar_fitnesses[b]; });
-
-			} else
-				std::sort(indexes.begin(), indexes.end(), [&](const size_t a, const size_t b) {return all_fitnesses[a][0] < all_fitnesses[b][0]; });
-	
-			champion_x = mRemap.Expand_Solution(all_solutions[indexes[0]]);
-
-		};
+		bool succeeded = false;
 
 		switch (mAlgo) {
-			case pagmo2::NPagmo_Algo::PSO:		ps(pagmo::pso{ static_cast<unsigned int>(mSetup.max_generations) }); break;
-			case pagmo2::NPagmo_Algo::SADE:		ps(pagmo::sade{ static_cast<unsigned int>(mSetup.max_generations), 2, 1, mSetup.tolerance }); break;
-			case pagmo2::NPagmo_Algo::DE1220:	ps(pagmo::de1220{ static_cast<unsigned int>(mSetup.max_generations), pagmo::de1220_statics<void>::allowed_variants, 1, mSetup.tolerance }); break;
-			case pagmo2::NPagmo_Algo::ABC:		ps(pagmo::bee_colony{ static_cast<unsigned int>(mSetup.max_generations) });  break;
-			case pagmo2::NPagmo_Algo::CMAES:	ps(pagmo::cmaes{ static_cast<unsigned int>(mSetup.max_generations), -1.0, -1.0, -1.0, -1.0, 0.5, mSetup.tolerance });  break;
-			case pagmo2::NPagmo_Algo::xNES:		ps(pagmo::xnes{ static_cast<unsigned int>(mSetup.max_generations), -1.0, -1.0, -1.0, -1.0, mSetup.tolerance }); break;
-			case pagmo2::NPagmo_Algo::GPSO:		ps(pagmo::pso_gen{ static_cast<unsigned int>(mSetup.max_generations) }); break;
+			case pagmo2::NPagmo_Algo::PSO:		std::tie<bool, pagmo::vector_double>(succeeded, champion_x) = Execute_Solver(progress, pagmo::pso{ static_cast<unsigned int>(mSetup.max_generations) }); break;
+			case pagmo2::NPagmo_Algo::SADE:		std::tie<bool, pagmo::vector_double>(succeeded, champion_x) = Execute_Solver(progress, pagmo::sade{ static_cast<unsigned int>(mSetup.max_generations), 2, 1, mSetup.tolerance }); break;
+			case pagmo2::NPagmo_Algo::DE1220:	std::tie<bool, pagmo::vector_double>(succeeded, champion_x) = Execute_Solver(progress, pagmo::de1220{ static_cast<unsigned int>(mSetup.max_generations), pagmo::de1220_statics<void>::allowed_variants, 1, mSetup.tolerance }); break;
+			case pagmo2::NPagmo_Algo::ABC:		std::tie<bool, pagmo::vector_double>(succeeded, champion_x) = Execute_Solver(progress, pagmo::bee_colony{ static_cast<unsigned int>(mSetup.max_generations) });  break;
+			case pagmo2::NPagmo_Algo::CMAES:	std::tie<bool, pagmo::vector_double>(succeeded, champion_x) = Execute_Solver(progress, pagmo::cmaes{ static_cast<unsigned int>(mSetup.max_generations), -1.0, -1.0, -1.0, -1.0, 0.5, mSetup.tolerance });  break;
+			case pagmo2::NPagmo_Algo::xNES:		std::tie<bool, pagmo::vector_double>(succeeded, champion_x) = Execute_Solver(progress, pagmo::xnes{ static_cast<unsigned int>(mSetup.max_generations), -1.0, -1.0, -1.0, -1.0, mSetup.tolerance }); break;
+			case pagmo2::NPagmo_Algo::GPSO:		std::tie<bool, pagmo::vector_double>(succeeded, champion_x) = Execute_Solver(progress, pagmo::pso_gen{ static_cast<unsigned int>(mSetup.max_generations) }); break;
 			
-			case pagmo2::NPagmo_Algo::IHS:		ps(pagmo::ihs{ static_cast<unsigned int>(mSetup.max_generations) }); break;
-			case pagmo2::NPagmo_Algo::NSGA2:	ps(pagmo::nsga2{ static_cast<unsigned int>(mSetup.max_generations) }); break;			
-			case pagmo2::NPagmo_Algo::MOEAD:	ps(pagmo::moead{ static_cast<unsigned int>(mSetup.max_generations), "random" }); break;
-			case pagmo2::NPagmo_Algo::MACO:		ps(pagmo::maco{ static_cast<unsigned int>(mSetup.max_generations) }); break;
-			case pagmo2::NPagmo_Algo::NSPSO:	ps(pagmo::nspso{ static_cast<unsigned int>(mSetup.max_generations) }); break;
+			case pagmo2::NPagmo_Algo::IHS:		std::tie<bool, pagmo::vector_double>(succeeded, champion_x) = Execute_Solver(progress, pagmo::ihs{ static_cast<unsigned int>(mSetup.max_generations) }); break;
+			case pagmo2::NPagmo_Algo::NSGA2:	std::tie<bool, pagmo::vector_double>(succeeded, champion_x) = Execute_Solver(progress, pagmo::nsga2{ static_cast<unsigned int>(mSetup.max_generations) }); break;
+			case pagmo2::NPagmo_Algo::MOEAD:	std::tie<bool, pagmo::vector_double>(succeeded, champion_x) = Execute_Solver(progress, pagmo::moead{ static_cast<unsigned int>(mSetup.max_generations), "random" }); break;
+			case pagmo2::NPagmo_Algo::MACO:		std::tie<bool, pagmo::vector_double>(succeeded, champion_x) = Execute_Solver(progress, pagmo::maco{ static_cast<unsigned int>(mSetup.max_generations) }); break;
+			case pagmo2::NPagmo_Algo::NSPSO:	std::tie<bool, pagmo::vector_double>(succeeded, champion_x) = Execute_Solver(progress, pagmo::nspso{ static_cast<unsigned int>(mSetup.max_generations) }); break;
+
+			default:
+				succeeded = false;
+				break;
 		}
 		
-		std::copy(champion_x.begin(), champion_x.end(), mSetup.solution);
+		if (succeeded)
+			std::copy(champion_x.begin(), champion_x.end(), mSetup.solution);
 		
-		return succeded;
+		return succeeded;
 	}
 
 };

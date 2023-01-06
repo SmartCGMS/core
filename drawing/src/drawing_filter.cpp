@@ -672,13 +672,16 @@ HRESULT IfaceCalling CDrawing_Filter::Draw(scgms::TDrawing_Image_Type type, scgm
 			{
 				case scgms::TDiagnosis::Type1:
 					return Get_Plot(mParkes_type1_SVG, svg);
-				case scgms::TDiagnosis::Type2:
+				case scgms::TDiagnosis::Type2: 
+					[[fallthrough]];
 				case scgms::TDiagnosis::Gestational:
 					return Get_Plot(mParkes_type2_SVG, svg);
 					// TODO: Parkes error grid for gestational diabetes
 				default:
 					break;
 			}
+
+			break;	//keeping compiler happy
 		}
 		case scgms::TDrawing_Image_Type::ECDF:
 			return Get_Plot(mECDF_SVG, svg);
