@@ -46,22 +46,31 @@
 #endif
 
 #if __has_threeway_cmp
+//once we drop C++17 support, only this ifdef branch will remain
+
 using partial_ordering = std::partial_ordering;
+
+constexpr bool is_lt(partial_ordering cmp) noexcept {
+	return std::is_lt(cmp);
+}
+
+constexpr bool is_gt(partial_ordering cmp) noexcept {
+	return std::is_lt(cmp);
+}
+
 #else
-enum class partial_ordering
-{
+enum class partial_ordering {
 	unordered,
 	less,
 	greater
 };
 
-namespace std {
-	constexpr bool is_lt(const ::partial_ordering _Comp) noexcept {
-		return _Comp == ::partial_ordering::less;
-	}
-	constexpr bool is_gt(const ::partial_ordering _Comp) noexcept {
-		return _Comp == ::partial_ordering::greater;
-	}
+constexpr bool is_lt(partial_ordering cmp) noexcept {
+	return cmp == partial_ordering::less;
+}
+
+constexpr bool is_gt(partial_ordering cmp) noexcept {
+	return cmp == partial_ordering::greater;
 }
 #endif
 
@@ -255,10 +264,10 @@ bool Compare_Solutions(const solver::TFitness& better, const solver::TFitness& w
 
 
 	//4. Is the comparison clearly decided?
-	if (std::is_lt(comparison))
+	if (is_lt(comparison))
 		return true;
 
-	if (std::is_gt(comparison))
+	if (is_gt(comparison))
 		return false;
 
 	
