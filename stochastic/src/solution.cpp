@@ -54,6 +54,15 @@ enum class partial_ordering
 	less,
 	greater
 };
+
+namespace std {
+	constexpr bool is_lt(const ::partial_ordering _Comp) noexcept {
+		return _Comp == ::partial_ordering::less;
+	}
+	constexpr bool is_gt(const ::partial_ordering _Comp) noexcept {
+		return _Comp == ::partial_ordering::greater;
+	}
+}
 #endif
 
 static inline partial_ordering Compare_Values(const double better, const double worse)

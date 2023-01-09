@@ -60,7 +60,7 @@ Total = 75
 */
 
 template<typename TType, typename... T>
-static inline constexpr std::array<typename TType, sizeof...(T)> make_array(T &&...t)
+static inline constexpr std::array<TType, sizeof...(T)> make_array(T &&...t)
 {
 	return { std::forward<T>(t)... };
 }

@@ -150,7 +150,7 @@ namespace signal_error {
 
 
 	const scgms::TSignal_Descriptor signal_desc {
-		metric_signal_id, dsSignal_GUI_Name_Error_Metric, L"", scgms::NSignal_Unit::Other, 0xFF000000, 0xFF000000, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::none, nullptr};
+		metric_signal_id, dsSignal_GUI_Name_Error_Metric, L"", scgms::NSignal_Unit::Other, 0xFF000000, 0xFF000000, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::none, nullptr, 1.0};
 }
 
 
