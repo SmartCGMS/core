@@ -65,7 +65,7 @@ namespace basal_2_bolus {
 
 	const scgms::TFilter_Descriptor filter_desc = {
 				filter_id,
-				scgms::NFilter_Flags::None,
+				scgms::NFilter_Flags::Encapsulated_Model,
 				dsBasal_2_Bolus,
 				filter_param_count,
 				filter_param_types,
