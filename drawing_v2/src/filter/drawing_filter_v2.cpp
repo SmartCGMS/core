@@ -87,7 +87,7 @@ HRESULT IfaceCalling CDrawing_Filter_v2::Do_Configure(scgms::SFilter_Configurati
 
 	std::wstring tmpFilename;
 	for (const auto& view : mViews) {
-		tmpFilename = configuration.Read_String(view.second.output_filename_config_option_name.c_str());
+		tmpFilename = configuration.Read_File_Path(view.second.output_filename_config_option_name.c_str()).wstring();
 		if (!tmpFilename.empty())
 			mOutput_Files.insert({ view.second.id, tmpFilename });
 	}
