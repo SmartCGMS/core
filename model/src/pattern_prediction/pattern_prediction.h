@@ -72,8 +72,9 @@ protected:
     double Predict(scgms::SSignal &ist, const double current_time);
 protected:
     filesystem::path mLearned_Data_Filename_Prefix;
-    size_t mSliding_Window_Length = 0;
+    size_t mSliding_Window_Length = 0;  //how much past levels we remember per pattern and band
     void Write_Learning_Data() const;
+    void Write_Full_Learning_Level_Series() const;
 protected:
     bool mDo_Not_Learn = false;    
     bool mUpdate_Parameters_File = true;

@@ -231,3 +231,19 @@ void CPattern_Prediction_Data::Encounter() {
 bool CPattern_Prediction_Data::Was_Encountered() const {
     return mEncountered;
 }
+
+std::stringstream CPattern_Prediction_Data::Level_Series() const {
+    std::stringstream result;
+
+
+    bool fired_once = false;
+    for (const auto e : mLearning_Data) {
+        if (fired_once)
+            result << " ";
+         fired_once = true;
+
+         result << dbl_2_str(e.level);
+    }
+
+    return result;
+}

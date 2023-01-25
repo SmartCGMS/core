@@ -59,8 +59,12 @@ CPattern_Prediction_Filter::~CPattern_Prediction_Filter() {
 	if (mSanitize_Unused_Patterns)
 		Sanitize_Parameters();
 
-	if ((!mLearned_Data_Filename_Prefix.empty()) && (mSliding_Window_Length > 0)) 
-		Write_Learning_Data();
+	if (!mLearned_Data_Filename_Prefix.empty()) {
+		Write_Full_Learning_Level_Series();
+
+		if (mSliding_Window_Length > 0)
+			Write_Learning_Data();
+	}	
 }
 
 HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
@@ -164,7 +168,7 @@ HRESULT CPattern_Prediction_Filter::Do_Configure(scgms::SFilter_Configuration co
 
 	mLearned_Data_Filename_Prefix = configuration.Read_File_Path(rsLearned_Data_Filename_Prefix);
 	mSliding_Window_Length = configuration.Read_Int(rsSliding_Window_Length);
-	if ((!mLearned_Data_Filename_Prefix.empty()) && (mSliding_Window_Length>0)) {
+	if (!mLearned_Data_Filename_Prefix.empty()) {
 		for (auto& pattern : mPatterns) {
 			for (auto& band : pattern)
 				band.Start_Collecting_Learning_Data();
@@ -471,6 +475,32 @@ void CPattern_Prediction_Filter::Write_Learning_Data() const {
 		}
 	}
 
+}
+
+void CPattern_Prediction_Filter::Write_Full_Learning_Level_Series() const {
+	const filesystem::path fpath = mLearned_Data_Filename_Prefix.string() + "level_series.csv";
+
+	std::ofstream band_data_file(fpath, std::ofstream::binary);
+	if (band_data_file.is_open()) {
+		band_data_file << "pattern; band; dst idx; levels...";
+
+		size_t dst_idx = 0;
+		for (size_t pattern_idx = 0; pattern_idx < mPatterns.size(); pattern_idx++) {
+			for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {
+
+				band_data_file << std::endl << pattern_idx << "; " << band_idx << "; " << dst_idx << "; ";
+
+				const auto& band = mPatterns[pattern_idx][band_idx];
+				const std::stringstream band_data = band.Level_Series();
+
+				band_data_file << band_data.str();
+
+
+				dst_idx++;
+			}
+		}
+		band_data_file << std::endl;
+	}	
 }
 
 

@@ -42,6 +42,7 @@
 
 #include <array>
 #include <tuple>
+#include <sstream>
 
 class CPattern_Prediction_Data {
 protected:
@@ -75,6 +76,7 @@ public:
 
     void Start_Collecting_Learning_Data();
     std::wstring Learning_Data(const size_t sliding_window_length, const double dt) const;
+    std::stringstream Level_Series() const;
 
     void Encounter();
     bool Was_Encountered() const;
