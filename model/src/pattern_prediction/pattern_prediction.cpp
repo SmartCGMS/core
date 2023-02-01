@@ -157,12 +157,18 @@ HRESULT CPattern_Prediction_Filter::Do_Configure(scgms::SFilter_Configuration co
 		//loading parameters from the external .ini file
 		if (!mParameters_File_Path.empty()) {
 			const HRESULT rc = Read_Parameters_File(configuration, error_description);
-			if (Succeeded(rc))
+			if (!Succeeded(rc)) {
+				error_description.push(L"Failed to load parameters from a file.");
 				return rc;
+			}
 		}
 	} else {
 		//using parameters supplied by scgms, e.g.; by a solver
-		return Read_Parameters_From_Config(configuration, error_description);
+		const HRESULT rc = Read_Parameters_From_Config(configuration, error_description);
+		if (!Succeeded(rc)) {
+			error_description.push(L"Failed to load parameters from config.");
+			return rc;
+		}
 	}
 
 

@@ -80,7 +80,7 @@ double CPattern_Prediction_Data::predict() {
         if (is_mard_small_enough) {
 
             double full_set_avg = 0.0;
-            for (size_t i = 0; i < full_set_n; i++) {
+            for (size_t i = 0; i < full_set_n; i++) {               
                 full_set_avg += mState[i];
             }
             full_set_avg /= static_cast<double>(full_set_n);
@@ -99,7 +99,7 @@ double CPattern_Prediction_Data::predict() {
             double MARD_n = 0.0;
             for (size_t i = 0; i < full_set_n; i++) {
                 const double current_level = mState[i];
-                if (current_level > 0.0) {
+                if (std::isgreater(current_level, 0.0)) {
 
                     const double inv_current_level = 1.0 / current_level;
                     for (size_t j = 0; j < candidate_prediction.size(); j++)
