@@ -86,10 +86,10 @@ double CPattern_Prediction_Data::predict() {
             full_set_avg /= static_cast<double>(full_set_n);
             //full_set_avg provides the best absolute-error fit
             //let's use it, if its MARD does not exceed a specific threshold
-
-            constexpr size_t candidate_count = 8;   //8 to support auto vectorization
-            constexpr std::array<double, candidate_count> candidate_offsets = { {0.985, 0.990, 0.995, 1.000, 1.005, 1.010, 1.015, 1.020} };
-            std::array<double, candidate_count> candidate_prediction, mards;
+            
+            //constexpr std::array<double, pattern_prediction::Relative_Error_Guess_Candidate_Count> candidate_offsets = { {0.985, 0.990, 0.995, 1.000, 1.005, 1.010, 1.015, 1.020} };
+            constexpr std::array<double, pattern_prediction::Relative_Error_Guess_Candidate_Count> candidate_offsets = { {0.910, 0.948, 0.966, 0.975, 0.982, 0.991, 1.000, 1.008} };
+            std::array<double, pattern_prediction::Relative_Error_Guess_Candidate_Count> candidate_prediction, mards;
             for (size_t i = 0; i < candidate_offsets.size(); i++) {
                 candidate_prediction[i] = candidate_offsets[i] * full_set_avg;
                 mards[i] = 0.0;

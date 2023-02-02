@@ -47,6 +47,7 @@
 
 namespace pattern_prediction {        
     static constexpr double Relative_Error_Correct_Prediction_Threshold = 0.15;
+    static constexpr size_t Relative_Error_Guess_Candidate_Count = 8;   //8 to support vectorization
 
     static constexpr double Low_Threshold = 3.0;			//mmol/L below which a medical attention is needed
     static constexpr double High_Threshold = 13.0;			//dtto above
