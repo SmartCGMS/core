@@ -64,6 +64,7 @@ protected:
     bool mInvalidated = true;   //true, when ::predict must recalculate mRecent_Prediction
 protected:
     double predict_doi_10_dot_1016_slash_j_compbiomed_dot_2022_dot_105388();
+    double predict_experimental();
 public:
     CPattern_Prediction_Data();
 

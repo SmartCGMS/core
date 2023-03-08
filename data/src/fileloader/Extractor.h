@@ -119,14 +119,18 @@ bool Str_Time_To_Unix_Time(const std::string& src, const char* src_fmt, std::str
 /*
  * Structure used as result of extraction
  */
-struct ExtractionResult
-{
+struct ExtractionResult {
+
+	std::vector<std::vector<CMeasured_Values_At_Single_Time>> mValues;
+
+	/*TODO: remove
 	// ordered measured values of files, initially IST-only, then used for merging blood glucose levels; primary index: file index, secondary index: value position
 	std::vector<std::vector<CMeasured_Value*>> SegmentValues;
 	// ordered measured BG values of files; primary index: file index, secondary index: value position
 	std::vector<std::vector<CMeasured_Value*>> SegmentBloodValues;
 	// ordered measured values of miscellanous quantities; primary index: file index, secondary index: value position
 	std::vector<std::vector<CMeasured_Value*>> SegmentMiscValues;
+	*/
 	// segment file index assigned
 	std::vector<size_t> SegmentFileIndex;
 	// recognized device for each file; index: file index, value: device name; empty string if not recognized
@@ -136,12 +140,12 @@ struct ExtractionResult
 	uint32_t Value_Count =  0;
 };
 
-typedef std::map<std::string, ExtractorColumns> ExtractorRuleMap;
-typedef std::map<std::string, double> ExtractorMultiplierMap;
-typedef std::map<std::string, std::string> ExtractorStringFormatMap;
-typedef std::map<std::string, std::string> ExtractorFormatRuleMap;
-typedef std::map<std::string, ExtractorColumns> ExtractorConditionMap;
-typedef std::map<std::string, std::string> ExtractorConditionRuleMap;
+using ExtractorRuleMap = std::map<std::string, ExtractorColumns>;
+using ExtractorMultiplierMap = std::map<std::string, double>;
+using ExtractorStringFormatMap = std::map<std::string, std::string>;
+using ExtractorFormatRuleMap = std::map<std::string, std::string>;
+using ExtractorConditionMap = std::map<std::string, ExtractorColumns>;
+using ExtractorConditionRuleMap = std::map<std::string, std::string>;
 
 /*
  * Extractor class used for managing extract (header) template rules and format-specific rules for data extraction

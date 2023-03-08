@@ -691,7 +691,8 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 		Fill_TreePosition_For(formatName, ExtractorColumns::COL_EVENT_CONDITION, condPos);
 
 	std::string tmp;
-	CMeasured_Value* mval = nullptr;
+	
+
 	char* dateformat = nullptr; // will be recognized after first date read
 	char* addValueDateformat = nullptr;
 	time_t curTime;
@@ -705,16 +706,11 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 		valuePos.ToNext(); featurePos.ToNext(); datetimePos.ToNext(); datePos.ToNext(); timePos.ToNext(); condPos.ToNext();
 	};
 
-	while (valuePos.Valid())
-	{
-		// in case of reuse (i.e. failed to parse all columns), no need to reallocate
-		if (!mval)
-			mval = new CMeasured_Value();
-		else
-			mval->reuse();
+	while (valuePos.Valid()) {
+		//TODO: Why is there no blood calibration for XML/hierarchical?
 
-		validValue = false;
-
+		CMeasured_Values_At_Single_Time mval;
+		
 		sval = source.Read(valuePos);
 
 		switch (itrtype)
@@ -726,8 +722,7 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 					if (!Formatted_Read_Double(formatName, ExtractorColumns::COL_BLOOD, sval, dval))
 						break;
 
-					mval->mBlood = dval * bloodMultiplier;
-					validValue = true;
+					mval.push(scgms::signal_BG, dval * bloodMultiplier);
 				}
 				break;
 			}
@@ -752,19 +747,19 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 				{
 					case ExtractorColumns::COL_INSULIN_BOLUS:
 					{
-						mval->mInsulinBolus = dval;
+						mval.push(scgms::signal_Requested_Insulin_Bolus, dval);
 						validValue = true;
 						break;
 					}
 					case ExtractorColumns::COL_INSULIN_BASAL_RATE:
 					{
-						mval->mInsulinBasalRate = dval;
+						mval.push(scgms::signal_Requested_Insulin_Basal_Rate, dval);
 						validValue = true;
 						break;
 					}
 					case ExtractorColumns::COL_CARBOHYDRATES:
 					{
-						mval->mCarbohydrates = dval;
+						mval.push(scgms::signal_Carb_Intake, dval);
 						validValue = true;
 						break;
 					}
@@ -779,7 +774,7 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 				if (featurePos.Valid())
 				{
 					if (source.Read(featurePos).length())
-						mval->mIsig = source.Read_Double(featurePos) * isigMultiplier;
+						mval.push(scgms::signal_ISIG, source.Read_Double(featurePos) * isigMultiplier);						
 				}
 
 				if (sval.length())
@@ -787,7 +782,7 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 					if (!Formatted_Read_Double(formatName, ExtractorColumns::COL_IST, sval, dval))
 						break;
 
-					mval->mIst = dval * istMultiplier;
+					mval.push(scgms::signal_IG, dval * istMultiplier);
 					validValue = true;
 				}
 
@@ -849,17 +844,17 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 				{
 					switch (extractionColumn)
 					{
-						case ExtractorColumns::COL_CARBOHYDRATES:
-							mval->mCarbohydrates = dval * miscMultiplier;
+						case ExtractorColumns::COL_CARBOHYDRATES:							
+							mval.push(scgms::signal_Carb_Intake, dval* miscMultiplier);
 							break;
 						case ExtractorColumns::COL_ELECTRODERMAL_ACTIVITY:
-							mval->mElectrodermalActivity = dval * miscMultiplier;
+							mval.push(scgms::signal_Electrodermal_Activity, dval * miscMultiplier);
 							break;
 						case ExtractorColumns::COL_HEARTRATE:
-							mval->mHeartrate = dval * miscMultiplier;
+							mval.push(scgms::signal_Heartbeat, dval * miscMultiplier);
 							break;
-						case ExtractorColumns::COL_INSULIN_BASAL_RATE:
-							mval->mInsulinBasalRate = dval * miscMultiplier;
+						case ExtractorColumns::COL_INSULIN_BASAL_RATE:							
+							mval.push(scgms::signal_Requested_Insulin_Basal_Rate, dval* miscMultiplier);
 							break;
 						case ExtractorColumns::COL_INSULIN_TEMP_BASAL_RATE:
 							if (!readDatetimeAddValue())
@@ -867,11 +862,11 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 								validValue = false;
 								break;
 							}
-							mval->mInsulinTempBasalRate = dval * miscMultiplier;
-							mval->mInsulinTempBasalRateEnd = addValue; // already in rattime
+							mval.push(signal_Insulin_Temp_Rate, dval* miscMultiplier);
+							mval.push(signal_Insulin_Temp_Rate_Endtime, addValue);	// already in rattime
 							break;
 						case ExtractorColumns::COL_INSULIN_BOLUS:
-							mval->mInsulinBolus = dval * miscMultiplier;
+							mval.push(scgms::signal_Requested_Insulin_Bolus, dval * miscMultiplier);							
 							break;
 						case ExtractorColumns::COL_PHYSICAL_ACTIVITY:
 							if (!readDoubleAddValue())
@@ -879,21 +874,21 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 								validValue = false;
 								break;
 							}
-							mval->mPhysicalActivity = dval * miscMultiplier;
-							mval->mPhysicalActivityDuration = (scgms::One_Minute * addValue) * addValueMultiplier;
+							mval.push(scgms::signal_Physical_Activity, dval * miscMultiplier);
+							mval.push(signal_Physical_Activity_Duration, scgms::One_Minute * addValue * addValueMultiplier);
 							break;
 						case ExtractorColumns::COL_SKIN_TEMPERATURE:
 							// TODO: remove this, after implementing value convertors
-							dval = (dval - 32) * 5.0 / 9.0; // Ohio dataset gives everything in Fahrenheit degrees; convert to Celsius
-							mval->mSkinTemperature = dval * miscMultiplier;
+							dval = (dval - 32) * 5.0 / 9.0; // Ohio dataset gives everything in Fahrenheit degrees; convert to Celsius							
+							mval.push(scgms::signal_Skin_Temperature, dval* miscMultiplier);
 							break;
 						case ExtractorColumns::COL_AIR_TEMPERATURE:
 							// TODO: remove this, after implementing value convertors
 							dval = (dval - 32) * 5.0 / 9.0; // Ohio dataset gives everything in Fahrenheit degrees; convert to Celsius
-							mval->mAirTemperature = dval * miscMultiplier;
+							mval.push(scgms::signal_Air_Temperature, dval* miscMultiplier);
 							break;
 						case ExtractorColumns::COL_STEPS:
-							mval->mSteps = dval * miscMultiplier;
+							mval.push(scgms::signal_Steps, dval * miscMultiplier);
 							break;
 						case ExtractorColumns::COL_SLEEP:
 							if (!readDatetimeAddValue())
@@ -908,12 +903,12 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 							// somewhere above 10, so this may serve as a detection criteria
 							if (dval > 1.0)
 								miscMultiplier = 0.01;
-
-							mval->mSleepQuality = dval * miscMultiplier;
-							mval->mSleepEnd = addValue; // already in rattime
+							
+							mval.push(scgms::signal_Sleep_Quality, dval* miscMultiplier); 
+							mval.push(signal_Sleep_Endtime, addValue); // already in rattime
 							break;
 						case ExtractorColumns::COL_ACCELERATION_MAGNITUDE:
-							mval->mAccelerationMagnitude = dval * miscMultiplier;
+							mval.push(scgms::signal_Acceleration, dval* miscMultiplier);
 							break;
 						default:
 							validValue = false;
@@ -965,10 +960,14 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 			continue;
 		}
 
-		mval->mMeasuredAt = Unix_Time_To_Rat_Time(curTime);
+		mval.set_measured_at(Unix_Time_To_Rat_Time(curTime));
 
 		// if the row is valid (didn't reach end of file, ist or blood value is greater than zero)
-		if (!source.Is_EOF() && validValue)
+		if (!source.Is_EOF() && validValue && mval.valid())
+			result.mValues[fileIndex].push_back(std::move(mval));
+		
+		
+		/*TODO: some strange logic for IST(+BG) - retest & review
 		{
 			// separate IST(+BG) and BG-only values; BG-only values will be merged into IST to obtain single vector of values
 			if (mval->mIst > 0.0)
@@ -980,13 +979,12 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 
 			mval = nullptr; // do not reuse
 		}
+		*/
+
 
 		posInc();
 	}
 
-	// last value is always invalid and never used - delete it
-	if (mval)
-		delete mval;
 
 	return true;
 }
@@ -1074,8 +1072,7 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 
 	// NOTE: we assume equal count of rows for each column
 
-	std::string tmp;
-	CMeasured_Value* mval = nullptr;
+	std::string tmp;	 
 	char* dateformat = nullptr; // will be recognized after first date read
 	time_t curTime;
 
@@ -1083,6 +1080,9 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 
 	do
 	{
+		//TODO: Why is there no temp basal in csv reads?
+		CMeasured_Values_At_Single_Time mval;
+
 		if (separatedInputStreams && (source.Is_EOF() ||
 			(phase == ExtractionIterationType::IST && !istPos.Valid())
 			|| (phase == ExtractionIterationType::EVENT && !eventPos.Valid())
@@ -1104,12 +1104,7 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 			source.Reset_EOF();
 		}
 
-		// in case of reuse (i.e. failed to parse all columns), no need to reallocate
-		if (!mval)
-			mval = new CMeasured_Value();
-		else
-			mval->reuse();
-
+	
 		validValue = false;
 
 		if (!separatedInputStreams || phase == ExtractionIterationType::BLOOD)
@@ -1118,18 +1113,19 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 			{
 				if (source.Read(bloodPos.row, bloodPos.column, bloodPos.sheetIndex).length())
 				{
-					mval->mBlood = source.Read_Double(bloodPos.row, bloodPos.column, bloodPos.sheetIndex) * bloodMultiplier;
+					mval.push(scgms::signal_BG, source.Read_Double(bloodPos.row, bloodPos.column, bloodPos.sheetIndex) * bloodMultiplier);
 					validValue = true;
 				}
 			}
 			if (bloodCalPos.Valid())
 			{
 				if (source.Read(bloodCalPos.row, bloodCalPos.column, bloodCalPos.sheetIndex).length())
-				{
-					mval->mCalibration = source.Read_Double(bloodCalPos.row, bloodCalPos.column, bloodCalPos.sheetIndex) * bloodCalMultiplier;
+				{					
+					const double dval = source.Read_Double(bloodCalPos.row, bloodCalPos.column, bloodCalPos.sheetIndex) * bloodCalMultiplier;
+					mval.push(scgms::signal_BG_Calibration, dval);
 					// calibration value can be used also as regular blood-glucose value
-					if (!mval->mBlood.has_value())
-						mval->mBlood = mval->mCalibration.value();
+					if (!mval.has_value(scgms::signal_BG))
+						mval.push(scgms::signal_BG, dval);
 					validValue = true;
 				}
 			}
@@ -1140,24 +1136,24 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 			if (isigPos.Valid())
 			{
 				if (source.Read(isigPos.row, isigPos.column, isigPos.sheetIndex).length())
-				{
-					mval->mIsig = source.Read_Double(isigPos.row, isigPos.column, isigPos.sheetIndex) * isigMultiplier;
+				{					
+					mval.push(scgms::signal_ISIG, source.Read_Double(isigPos.row, isigPos.column, isigPos.sheetIndex) * isigMultiplier);
 					validValue = true;
 				}
 			}
 			if (istPos.Valid())
 			{
 				if (source.Read(istPos.row, istPos.column, istPos.sheetIndex).length())
-				{
-					mval->mIst = source.Read_Double(istPos.row, istPos.column, istPos.sheetIndex) * istMultiplier;
+				{					
+					mval.push(scgms::signal_IG, source.Read_Double(istPos.row, istPos.column, istPos.sheetIndex) * istMultiplier);
 					validValue = true;
 				}
 			}
 			if (insulinBolusPos.Valid())
 			{
 				if (source.Read(insulinBolusPos.row, insulinBolusPos.column, insulinBolusPos.sheetIndex).length())
-				{
-					mval->mInsulinBolus = source.Read_Double(insulinBolusPos.row, insulinBolusPos.column, insulinBolusPos.sheetIndex) * insulinBolusMultiplier;
+				{					
+					mval.push(scgms::signal_Requested_Insulin_Bolus, source.Read_Double(insulinBolusPos.row, insulinBolusPos.column, insulinBolusPos.sheetIndex)* insulinBolusMultiplier);
 					validValue = true;
 				}
 			}
@@ -1165,7 +1161,7 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 			{
 				if (source.Read(insulinBasalRatePos.row, insulinBasalRatePos.column, insulinBasalRatePos.sheetIndex).length())
 				{
-					mval->mInsulinBasalRate = source.Read_Double(insulinBasalRatePos.row, insulinBasalRatePos.column, insulinBasalRatePos.sheetIndex) * insulinBasalRateMultiplier;
+					mval.push(scgms::signal_Requested_Insulin_Basal_Rate, source.Read_Double(insulinBasalRatePos.row, insulinBasalRatePos.column, insulinBasalRatePos.sheetIndex) * insulinBasalRateMultiplier);
 					validValue = true;
 				}
 			}
@@ -1173,7 +1169,7 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 			{
 				if (source.Read(carbsPos.row, carbsPos.column, carbsPos.sheetIndex).length())
 				{
-					mval->mCarbohydrates = source.Read_Double(carbsPos.row, carbsPos.column, carbsPos.sheetIndex) * carbsMultiplier;
+					mval.push(scgms::signal_Carb_Intake, source.Read_Double(carbsPos.row, carbsPos.column, carbsPos.sheetIndex) * carbsMultiplier);
 					validValue = true;
 				}
 			}
@@ -1220,37 +1216,39 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 					{
 						case ExtractorColumns::COL_INSULIN_BOLUS:
 						{
-							mval->mInsulinBolus = dval;
+							mval.push(scgms::signal_Requested_Insulin_Bolus, dval);
 							validValue = true;
 							break;
 						}
 						case ExtractorColumns::COL_INSULIN_BASAL_RATE:
 						{
-							mval->mInsulinBasalRate = dval;
+							mval.push(scgms::signal_Requested_Insulin_Basal_Rate, dval);
 							validValue = true;
 							break;
 						}
 						case ExtractorColumns::COL_CARBOHYDRATES:
 						{
-							mval->mCarbohydrates = dval;
+							mval.push(scgms::signal_Carb_Intake, dval);
 							validValue = true;
 							break;
 						}
 						case ExtractorColumns::COL_PHYSICAL_ACTIVITY:
 						{
-							// TODO: figure out columns with ambiguous values
+							//TODO: figure out columns with ambiguous values
 
-							mval->mPhysicalActivity = 0.3;
-							if (!mval->mPhysicalActivityDuration.has_value())
-								mval->mPhysicalActivityDuration = dval * scgms::One_Minute;
+							mval.push(scgms::signal_Physical_Activity, 0.3);	//TODO: why 0.3?
+							if (mval.has_value(signal_Physical_Activity_Duration))
+								mval.push(signal_Physical_Activity_Duration, dval * scgms::One_Minute);
+
 							validValue = true;
 							break;
 						}
 						case ExtractorColumns::COL_MISC_NOTE:
 						{
 							std::string sval_fmt;
-							if (Formatted_Read_String(formatName, ccol, sval, sval_fmt))
-								mval->mStringNote = sval_fmt;
+							if (Formatted_Read_String(formatName, ccol, sval, sval_fmt))								
+								mval.push(signal_Comment, sval_fmt);
+
 							validValue = true;
 							break;
 						}
@@ -1293,7 +1291,7 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 			}
 		}
 
-		// just sanity check
+		// just a sanity check
 		if (tmp.length() < 6)
 		{
 			posInc();
@@ -1319,10 +1317,14 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 			continue;
 		}
 
-		mval->mMeasuredAt = Unix_Time_To_Rat_Time(curTime);
+		mval.set_measured_at(Unix_Time_To_Rat_Time(curTime));
 
 		// if the row is valid (didn't reach end of file, ist or blood value is greater than zero)
-		if (!source.Is_EOF() && validValue)
+		if (!source.Is_EOF() && validValue && mval.valid())
+			result.mValues[fileIndex].push_back(std::move(mval));
+		
+		/*  check the ist+bg logic
+		
 		{
 			// separate IST(+BG) and BG-only values; BG-only values will be merged into IST to obtain single vector of values
 			if (mval->mIst > 0.0)
@@ -1334,14 +1336,11 @@ bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapt
 
 			mval = nullptr; // do not reuse
 		}
+		*/
 
 		posInc();
 
 	} while (!source.Is_EOF() || (separatedInputStreams && phase != ExtractionIterationType::BLOOD /* blood is ending iteration */));
-
-	// last value is always invalid and never used - delete it
-	if (mval)
-		delete mval;
-
+	
 	return true;
 }

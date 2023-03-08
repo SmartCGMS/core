@@ -73,6 +73,10 @@ void CPattern_Prediction_Data::push(const double device_time, const double level
 
 
 double CPattern_Prediction_Data::predict() {
+    return predict_doi_10_dot_1016_slash_j_compbiomed_dot_2022_dot_105388();
+}
+   
+double CPattern_Prediction_Data::predict_experimental() {
     if (mInvalidated) {
         const size_t full_set_n = mFull ? mState.size() : mHead;
 

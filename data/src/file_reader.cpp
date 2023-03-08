@@ -53,6 +53,7 @@
 #include <chrono>
 #include <string>
 #include <cmath>
+#include <set>
 
 namespace file_reader
 {
@@ -69,17 +70,10 @@ CFile_Reader::CFile_Reader(scgms::IFilter *output) : CBase_Filter(output) {
 CFile_Reader::~CFile_Reader() {
 
 	if (mReaderThread && mReaderThread->joinable())
-		mReaderThread->join();
-
-	// cleanup loaded values
-	for (auto& vals : mMergedValues)
-	{
-		for (CMeasured_Value* cur : vals)
-			delete cur;
-	}
+		mReaderThread->join();	
 }
 
-bool CFile_Reader::Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId, double value, const std::wstring& winfo)
+bool CFile_Reader::Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId, const double value, const std::wstring& winfo)
 {
 	scgms::UDevice_Event evt{ code };
 
@@ -117,27 +111,34 @@ void CFile_Reader::Resolve_Segments(TValue_Vector const& src, std::list<TSegment
 		
 		for (size_t current = segment_begin; current < src.size(); current++) {
 			
+			const auto& current_levels = src[current];
+
 			//if recent_ig_time is nan, then we consume any value as we wait for the first IG
-			const bool is_in_allowed_interval = std::isnan(recent_ig_time) || (recent_ig_time + mMaximum_IG_Interval >= src[current]->mMeasuredAt);
+			const double current_measured_time = current_levels.measured_at();
+			if (!std::isnan(current_measured_time)) {
+				const bool is_in_allowed_interval = std::isnan(recent_ig_time) || (recent_ig_time + mMaximum_IG_Interval >= current_measured_time);
 
-			if (is_in_allowed_interval) {
-				if (src[current]->mIst.has_value()) {
-					//we've got IG level so that the segment looks OK
-					ig_counter++;
-					recent_ig_time = src[current]->mMeasuredAt;
-				}
+				if (is_in_allowed_interval) {
+					const auto ig_val = current_levels.get<double>(scgms::signal_IG);
 
-				//do not forget that src[current] may hold more than one signal
-				//this level still falls into the maximum allowed interval between consecutive IGs
-					if (src[current]->mBlood.has_value() || src[current]->mCalibration.has_value())
+					if (ig_val) {
+						//we've got IG level so that the segment looks OK
+						ig_counter++;
+						recent_ig_time = is_in_allowed_interval;
+					}
+
+					//do not forget that src[current] may hold more than one signal
+					//this level still falls into the maximum allowed interval between consecutive IGs
+					if (current_levels.has_value(scgms::signal_BG) || current_levels.has_value(scgms::signal_BG_Calibration))
 						bg_is_present = true;
-			}
-			else {
-				//this level has exceeded the maximum allowed interval between consecutive IGs
-				//=>push it as the segment's end
+				}
+				else {
+					//this level has exceeded the maximum allowed interval between consecutive IGs
+					//=>push it as the segment's end
 
-				segment_end = current - 1; //move one back as this level belongs to the following segment
-				break;
+					segment_end = current - 1; //move one back as this level belongs to the following segment
+					break;
+				}
 			}
 		}
 
@@ -164,9 +165,9 @@ void CFile_Reader::Run_Reader() {
 		bool isError = false;
 		uint32_t currentSegmentId = 0;
 
-		double nextPhysicalActivityEnd = -1; // negative value = invalid
-		double nextTempBasalEnd = -1;
-		double nextSleepEnd = -1;
+		double nextPhysicalActivityEnd = -1.0; // negative value = invalid
+		double nextTempBasalEnd = -1.0;
+		double nextSleepEnd = -1.0;
 		double lastBasalRateSetting = 0.0;
 
 		// for each file loaded...
@@ -179,90 +180,102 @@ void CFile_Reader::Run_Reader() {
 			for (const TSegment_Limits& seg : resolvedSegments)
 			{
 				currentSegmentId++;
-				Send_Event(scgms::NDevice_Event_Code::Time_Segment_Start, vals[seg.first]->mMeasuredAt, currentSegmentId);
+				Send_Event(scgms::NDevice_Event_Code::Time_Segment_Start, vals[seg.first].measured_at(), currentSegmentId);
 
-				for (size_t i = seg.first; i < seg.second; i++)
-				{
-					const CMeasured_Value* cur = vals[i];
+				for (size_t i = seg.first; i < seg.second; i++) {
 
-					const double valDate = cur->mMeasuredAt;
-
+					const auto& current_values = vals[i];
+					if (!current_values.valid())
+						continue;
+					const double current_measured_time = current_values.measured_at();
+					
 					bool errorRes = false;
 
-					if (nextPhysicalActivityEnd > 0 && nextPhysicalActivityEnd <= valDate)
-					{
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextPhysicalActivityEnd, currentSegmentId, scgms::signal_Physical_Activity, 0);
-						nextPhysicalActivityEnd = -1;
-					}
-					if (nextTempBasalEnd > 0 && nextTempBasalEnd <= valDate)
-					{
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextTempBasalEnd, currentSegmentId, scgms::signal_Requested_Insulin_Basal_Rate, lastBasalRateSetting);
-						nextTempBasalEnd = -1;
-					}
-					if (nextSleepEnd > 0 && nextSleepEnd < valDate)
-					{
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextSleepEnd, currentSegmentId, scgms::signal_Sleep_Quality, 0);
-						nextSleepEnd = -1;
-					}
+					current_values.enumerate([=, &errorRes, &nextPhysicalActivityEnd, &nextTempBasalEnd, &lastBasalRateSetting, &nextSleepEnd](const GUID& signal_id, const CMeasured_Values_At_Single_Time::TValue& val) {
+						const std::set<GUID> silenced_signals = { signal_Physical_Activity_Duration, signal_Insulin_Temp_Rate, signal_Insulin_Temp_Rate_Endtime, signal_Sleep_Endtime, signal_Comment };
 
-					// now go through every field, check for value presence, and send it to chain
-					// NOTE: the extractor should be reworked to suit the new architecture; extractor code is not compatible by design
-					//       this bridging code would then be discarded in favor of new, clean code
+						const double* current_level = std::get_if<double>(&val);
 
-					if (cur->mIst.has_value())
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_IG, cur->mIst.value());
-					if (cur->mIsig.has_value())
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_ISIG, cur->mIsig.value());
-					if (cur->mBlood.has_value())
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_BG, cur->mBlood.value());
-					if (cur->mInsulinBolus.has_value())
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Requested_Insulin_Bolus, cur->mInsulinBolus.value());
+						//handle the known, special cases which use helper signals 					
+						if (signal_id == signal_Physical_Activity_Duration) {
+							if (current_level != nullptr)
+								nextPhysicalActivityEnd = current_measured_time + *current_level;
+							//note that we do not set the activity itself here, because it will be done in the generic part of the code
+						}
 
-					if (cur->mInsulinTempBasalRate.has_value() && cur->mInsulinTempBasalRateEnd.has_value())
-					{
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Requested_Insulin_Basal_Rate, cur->mInsulinTempBasalRate.value());
-						nextTempBasalEnd = cur->mInsulinTempBasalRateEnd.value();
-					}
+						else if (signal_id == signal_Insulin_Temp_Rate_Endtime) {
+							//note that we drive the temp by the end-time, becuase the temp basal must have the temp time - otherwise, it won't be a temporarily change
+							if (current_level != nullptr) {
+								//check the temp basal  rate
+								const auto new_temp_basal = current_values.get<double>(signal_Insulin_Temp_Rate);
+								if (new_temp_basal) {
 
-					if (cur->mInsulinBasalRate.has_value())
-					{
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Requested_Insulin_Basal_Rate, cur->mInsulinBasalRate.value());
-						// cancel all temp basal settings - a new basal rate settings immediatelly overrides all temp basal rates
-						lastBasalRateSetting = cur->mInsulinBasalRate.value();
-						nextTempBasalEnd = -1;
-					}
-					if (cur->mCarbohydrates.has_value())
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Carb_Intake, cur->mCarbohydrates.value());
-					if (cur->mCalibration.has_value())
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Calibration, cur->mCalibration.value());
+									errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, current_measured_time, currentSegmentId, scgms::signal_Requested_Insulin_Basal_Rate, new_temp_basal.value());
+									nextTempBasalEnd = *current_level;
+								}
+							}						
+						}
 
-					if (cur->mElectrodermalActivity.has_value())
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Electrodermal_Activity, cur->mElectrodermalActivity.value());
-					if (cur->mHeartrate.has_value())
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Heartbeat, cur->mHeartrate.value());
-					if (cur->mPhysicalActivity.has_value() && cur->mPhysicalActivityDuration.has_value())
-					{
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Physical_Activity, cur->mPhysicalActivity.value());
-						// physical activity gets "cancelled" after given duration
-						nextPhysicalActivityEnd = valDate + cur->mPhysicalActivityDuration.value();
-					}
-					if (cur->mSkinTemperature.has_value())
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Skin_Temperature, cur->mSkinTemperature.value());
-					if (cur->mAirTemperature.has_value())
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Air_Temperature, cur->mAirTemperature.value());
-					if (cur->mSteps.has_value())
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Steps, cur->mSteps.value());
-					if (cur->mSleepQuality.has_value() && cur->mSleepEnd.has_value())
-					{
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Sleep_Quality, cur->mSleepQuality.value());
-						nextSleepEnd = cur->mSleepEnd.value();
-					}
-					if (cur->mAccelerationMagnitude.has_value())
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, valDate, currentSegmentId, scgms::signal_Acceleration, cur->mAccelerationMagnitude.value());
-					if (cur->mStringNote.has_value()) {
-						const auto note_val = cur->mStringNote.value();
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Information, valDate, currentSegmentId, Invalid_GUID, std::numeric_limits<double>::infinity(), Widen_String(note_val));
-					}
+						else if (signal_id == scgms::signal_Requested_Insulin_Basal_Rate) {
+							if (current_level != nullptr) {
+								lastBasalRateSetting = *current_level;
+								// cancel all temp basal settings - a new basal rate settings immediatelly overrides all temp basal rates
+								nextTempBasalEnd = -1.0;
+
+								//note that the new basal rate will be sent in the generic part of the code
+							}						
+						}
+						
+						else if (signal_id == signal_Sleep_Endtime) {
+							//just like with the temp basal, we require the sleep end time to prevent the patient falling asleep forever
+							if (current_level != nullptr) {
+								const auto sleep_quality = current_values.get<double>(scgms::signal_Sleep_Quality);
+								if (sleep_quality) {
+									errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, current_measured_time, currentSegmentId, scgms::signal_Sleep_Quality, *current_level);
+									nextSleepEnd = *current_level;	//yes, this is given in absolute time
+								}
+							}
+						}
+
+
+						else if (signal_id == signal_Comment) {
+							const std::string *comment = std::get_if<std::string>(&val);
+							if (comment != nullptr) {
+								std::wstring wstr = Widen_String(*comment);
+								errorRes |= !Send_Event(scgms::NDevice_Event_Code::Information, current_measured_time, currentSegmentId, Invalid_GUID, std::numeric_limits<double>::infinity(), wstr);
+							}
+						}
+
+						
+						//send all the non-helper signals, which we do not suppress
+						if (silenced_signals.find(signal_id) == silenced_signals.end()) {												
+							if (current_level != nullptr)
+								errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, current_measured_time, currentSegmentId, signal_id, *current_level);
+						}					
+
+
+
+						//switch off the physical activity, once ended
+						if ((nextPhysicalActivityEnd > 0.0) && (nextPhysicalActivityEnd <= current_measured_time)) {
+							errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextPhysicalActivityEnd, currentSegmentId, scgms::signal_Physical_Activity, 0.0);
+							nextPhysicalActivityEnd = -1.0;
+						}
+
+						//restore the insulin basal rate settings if the basal temp has ended
+						if ((nextTempBasalEnd > 0.0) && (nextTempBasalEnd <= current_measured_time)) {
+							errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextTempBasalEnd, currentSegmentId, scgms::signal_Requested_Insulin_Basal_Rate, lastBasalRateSetting);
+							nextTempBasalEnd = -1.0;
+						}
+
+
+						//wake up the patient
+						if ((nextSleepEnd > 0.0) && (nextSleepEnd < current_measured_time))
+						{
+							errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextSleepEnd, currentSegmentId, scgms::signal_Sleep_Quality, 0.0);
+							nextSleepEnd = -1.0;
+						}
+					});
+
 
 					if (errorRes)
 					{
@@ -271,7 +284,7 @@ void CFile_Reader::Run_Reader() {
 					}
 				}
 
-				if (!Send_Event(scgms::NDevice_Event_Code::Time_Segment_Stop, vals[seg.second - 1]->mMeasuredAt, currentSegmentId))
+				if (!Send_Event(scgms::NDevice_Event_Code::Time_Segment_Stop, vals[seg.second - 1].measured_at(), currentSegmentId))
 					isError = true;
 
 				if (isError)
@@ -296,22 +309,15 @@ void CFile_Reader::Run_Reader() {
 void CFile_Reader::Merge_Values(ExtractionResult& result)
 {
 	// prepare output vector
-	mMergedValues.resize(result.SegmentValues.size());
+	mMergedValues.resize(result.mValues.size());	//resize to the number of segments
 
-	// go through all loaded values and push them to single vector containing all values
-	for (size_t i = 0; i < result.SegmentValues.size(); i++)
-	{
-		for (size_t j = 0; j < result.SegmentValues[i].size(); j++)
-			mMergedValues[i].push_back(result.SegmentValues[i][j]);
-
-		for (size_t j = 0; j < result.SegmentBloodValues[i].size(); j++)
-			mMergedValues[i].push_back(result.SegmentBloodValues[i][j]);
-
-		for (size_t j = 0; j < result.SegmentMiscValues[i].size(); j++)
-			mMergedValues[i].push_back(result.SegmentMiscValues[i][j]);
+	// go through all loaded values and push them to single vector containing all values	
+	for (size_t i = 0; i < result.mValues.size(); i++) {
+		for (size_t j = 0; j < result.mValues[i].size(); j++)
+			mMergedValues[i].push_back(result.mValues[i][j]);
 
 		// sort values by timestamp from ascending
-		std::sort(mMergedValues[i].begin(), mMergedValues[i].end(), [](CMeasured_Value* a, CMeasured_Value* b) { return a->mMeasuredAt < b->mMeasuredAt; });
+		std::sort(mMergedValues[i].begin(), mMergedValues[i].end(), [](CMeasured_Values_At_Single_Time &a, CMeasured_Values_At_Single_Time &b) { return a.measured_at() < b.measured_at(); });
 	}
 }
 
@@ -327,7 +333,7 @@ HRESULT CFile_Reader::Extract(ExtractionResult &values)
 
 
 	values.Value_Count = 0;
-	values.SegmentValues.clear();
+	values.mValues.clear();
 
 	std::vector<filesystem::path> files_to_extract;
 
@@ -342,12 +348,9 @@ HRESULT CFile_Reader::Extract(ExtractionResult &values)
 	else
 		files_to_extract.push_back(mFileName);
 
-	values.SegmentValues.resize(files_to_extract.size());
-	values.SegmentBloodValues.resize(files_to_extract.size());
-	values.SegmentMiscValues.resize(files_to_extract.size());
+	values.mValues.resize(files_to_extract.size());
 
-	for (size_t fileIndex = 0; fileIndex < files_to_extract.size(); fileIndex++)
-	{
+	for (size_t fileIndex = 0; fileIndex < files_to_extract.size(); fileIndex++) {
 		CFormat_Adapter sfile;
 		std::string format = recognizer.Recognize_And_Open(files_to_extract[fileIndex], sfile);
 

@@ -477,7 +477,7 @@ namespace network_signal_generator {
 
 namespace signal_descriptor {
 	const scgms::TSignal_Descriptor bg_desc { scgms::signal_BG, dsSignal_GUI_Name_BG, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0000, 0xFFFF0000, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::rectangle, nullptr, 1.0 };
-	const scgms::TSignal_Descriptor bg_cal_desc{ scgms::signal_Calibration, dsSignal_GUI_Name_Calibration, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF4040, 0xFFFF4040, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::rectangle, nullptr, 1.0 };
+	const scgms::TSignal_Descriptor bg_cal_desc{ scgms::signal_BG_Calibration, dsSignal_GUI_Name_Calibration, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF4040, 0xFFFF4040, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::rectangle, nullptr, 1.0 };
 	const scgms::TSignal_Descriptor ig_desc { scgms::signal_IG, dsSignal_GUI_Name_IG, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF0000FF, 0xFF0000FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 	const scgms::TSignal_Descriptor isig_desc{ scgms::signal_ISIG, dsSignal_GUI_Name_ISIG, dsA, scgms::NSignal_Unit::A, 0xFF8080FF, 0xFF8080FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 0.1 };
 	const scgms::TSignal_Descriptor req_bolus_desc{ scgms::signal_Requested_Insulin_Bolus, dsSignal_Requested_Insulin_Bolus, dsU, scgms::NSignal_Unit::U_insulin, 0xFF40FFFF, 0xFF40FFFF, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::dot, nullptr, 1.0 };

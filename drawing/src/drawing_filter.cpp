@@ -71,7 +71,7 @@
 const std::map<GUID, const char*, std::less<GUID>> Signal_Mapping = {
 	{ scgms::signal_IG, "ist" },
 	{ scgms::signal_BG, "blood" },
-	{ scgms::signal_Calibration, "bloodCalibration" },
+	{ scgms::signal_BG_Calibration, "bloodCalibration" },
 	{ scgms::signal_ISIG, "isig" },
 	{ scgms::signal_Delivered_Insulin_Bolus, "insulin" },
 	{ scgms::signal_Requested_Insulin_Bolus, "calcd_insulin" },
