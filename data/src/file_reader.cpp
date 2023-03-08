@@ -107,14 +107,14 @@ void CFile_Reader::Resolve_Segments(TValue_Vector const& src, std::list<TSegment
 		size_t segment_end = src.size() - 1;
 		size_t ig_counter = 0;
 		bool bg_is_present = false;
-		double recent_ig_time = std::numeric_limits<double>::quiet_NaN();//src[segment_begin]->mMeasuredAt;
+		double recent_ig_time = std::numeric_limits<double>::quiet_NaN();
 		
 		for (size_t current = segment_begin; current < src.size(); current++) {
 			
 			const auto& current_levels = src[current];
+			const double current_measured_time = current_levels.measured_at();
 
 			//if recent_ig_time is nan, then we consume any value as we wait for the first IG
-			const double current_measured_time = current_levels.measured_at();
 			if (!std::isnan(current_measured_time)) {
 				const bool is_in_allowed_interval = std::isnan(recent_ig_time) || (recent_ig_time + mMaximum_IG_Interval >= current_measured_time);
 
@@ -124,7 +124,7 @@ void CFile_Reader::Resolve_Segments(TValue_Vector const& src, std::list<TSegment
 					if (ig_val) {
 						//we've got IG level so that the segment looks OK
 						ig_counter++;
-						recent_ig_time = is_in_allowed_interval;
+						recent_ig_time = current_measured_time;
 					}
 
 					//do not forget that src[current] may hold more than one signal
@@ -300,7 +300,10 @@ void CFile_Reader::Run_Reader() {
 
 	if (mShutdownAfterLast)	{
 		scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Shut_Down };
-
+		
+		const auto& last_seg = mMergedValues[mMergedValues.size() - 1];
+		evt.device_time() = last_seg[last_seg.size() - 1].measured_at() + std::numeric_limits<double>::epsilon();
+		
 		evt.device_id() = file_reader::File_Reader_Device_GUID;
 		mOutput.Send(evt);
 	}

@@ -711,6 +711,7 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 
 		CMeasured_Values_At_Single_Time mval;
 		
+		validValue = false;
 		sval = source.Read(valuePos);
 
 		switch (itrtype)
@@ -723,6 +724,7 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 						break;
 
 					mval.push(scgms::signal_BG, dval * bloodMultiplier);
+					validValue = true;
 				}
 				break;
 			}
