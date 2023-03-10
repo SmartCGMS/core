@@ -254,13 +254,6 @@ bool CFile_Format_Rules::Load_Series_Descriptors(CSimpleIniA& ini) {
 	return true;
 }
 
-CFile_Format_Rules::CFile_Format_Rules(CFile_Format_Detector& recognizer, CExtractor& extractor, CDateTime_Detector& datetime)
-	: mFormat_Detection_Rules(recognizer), mExtractor(extractor), mDateTime_Recognizer(datetime)
-{
-	//
-}
-
-
 const wchar_t* dsFormat_Detection_Configuration_Filename = L"format_detection.ini";
 const wchar_t* dsSeries_Definitions_Filename = L"format_series.ini";
 const wchar_t* dsFormat_Layout_Filename = L"format_layout.ini";

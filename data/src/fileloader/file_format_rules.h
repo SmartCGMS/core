@@ -71,11 +71,11 @@ public:
 
 class CFile_Format_Rules {
 protected:
-	CFile_Format_Detector& mFormat_Detection_Rules;
-	CDateTime_Detector& mDateTime_Recognizer;
+	CFile_Format_Detector mFormat_Detection_Rules;
+	CDateTime_Detector mDateTime_Recognizer;
 
 
-	std::map<std::string, TSeries_Descriptor> mSeries;	//organized as <id, desc>
+	std::map<std::string, TSeries_Descriptor> mSeries;			//organized as <id, desc>
 	std::map<std::string, CFormat_Layout> mFormat_Layouts;		//organized as <format_name, cells info>
 
 	bool Load_Format_Pattern_Config(CSimpleIniA& ini);
@@ -86,11 +86,7 @@ protected:
     bool Add_Config_Keys(CSimpleIniA& ini, std::function<void(const char*, const char*, const char*)> func);
     bool Load_Format_Config(const char* default_config, const wchar_t* file_name, std::function<bool(CSimpleIniA&)> func);
 protected:
-	CExtractor& mExtractor;
-protected:
 	std::vector<std::wstring> mErrors;		//container for errors encountered during parsing
 public:
-	CFile_Format_Rules(CFile_Format_Detector& recognizer, CExtractor& extractor, CDateTime_Detector& datetime);
-
 	bool Load();
 };
