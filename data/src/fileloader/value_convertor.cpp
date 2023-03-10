@@ -36,61 +36,40 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
-
-#include "../../../../common/rtl/hresult.h"
-#include "../../../../common/utils/SimpleIni.h"
-
-
 #include "value_convertor.h"
-#include "FormatRecognizer.h"
-#include "Extractor.h"
-
-#include <string>
-#include <map>
-
-	//TSeries_Descriptor gives a unique
-struct TSeries_Descriptor {
-	std::string format;				//id and string format used to extract the values
-	GUID target_signal;
-	CValue_Convertor conversion;		//we support expressions to e.g.; make Fahrenheit to Celsius converion easy	
-};
 
 
-struct TCell_Descriptor {
-	std::string location;
-	TSeries_Descriptor series;
-};
+bool CValue_Convertor::init(const std::string& expression_string) {
+	mExpression_String = expression_string;
 
-class CFormat_Layout {
-protected:
-	std::vector<TCell_Descriptor> mCells;
-public:
-	void push(const TCell_Descriptor& cell);
-};
-
-class CFormat_Rule_Loader {
-protected:
-	CFormat_Recognizer& mFormatRecognizer;	
-	CDateTime_Recognizer& mDateTime_Recognizer;
+	mValid = mSymbol_Table.add_variable("x", mValue);
+	if (mValid) {
+		mExpression_Tree.register_symbol_table(mSymbol_Table);
+		mValid = mParser.compile(expression_string, mExpression_Tree);
+	}
 
 
-	std::map<std::string, TSeries_Descriptor> mSeries;	//organized as <id, desc>
-	std::map<std::string, CFormat_Layout> mFormats;		//organized as <format_name, cells info>
+}
+double CValue_Convertor::eval(const double val) {
+	double result = std::numeric_limits<double>::quiet_NaN();
 
-	bool Load_Format_Pattern_Config(CSimpleIniA& ini);
-	bool Load_Series_Descriptors(CSimpleIniA& ini);
-	bool Load_Format_Layout(CSimpleIniA& ini);
-	bool Load_DateTime_Formats(CSimpleIniA& ini);
+	if (mValid) {
+		mValue = val;
+		result = mExpression_Tree.value();
+	}
 
-    bool Add_Config_Keys(CSimpleIniA& ini, std::function<void(const char*, const char*, const char*)> func);
-    bool Load_Format_Config(const char* default_config, const wchar_t* file_name, std::function<bool(CSimpleIniA&)> func);
-protected:
-	CExtractor& mExtractor;
-protected:
-	std::vector<std::wstring> mErrors;		//container for errors encountered during parsing
-public:
-	CFormat_Rule_Loader(CFormat_Recognizer& recognizer, CExtractor& extractor, CDateTime_Recognizer& datetime);
+	return result;
+}
 
-	bool Load();
-};
+bool CValue_Convertor::valid() const {
+	return mValid;
+}
+
+CValue_Convertor& CValue_Convertor::operator=(const CValue_Convertor& other) {
+	mSymbol_Table = other.mSymbol_Table;
+	mExpression_Tree = other.mExpression_Tree;
+	mExpression_String = other.mExpression_String;
+	mValid = mParser.compile(mExpression_String, mExpression_Tree);
+
+	return *this;
+}

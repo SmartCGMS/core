@@ -38,59 +38,22 @@
 
 #pragma once
 
-#include "../../../../common/rtl/hresult.h"
-#include "../../../../common/utils/SimpleIni.h"
+#include "../third party/exprtk.hpp"
 
-
-#include "value_convertor.h"
-#include "FormatRecognizer.h"
-#include "Extractor.h"
-
-#include <string>
-#include <map>
-
-	//TSeries_Descriptor gives a unique
-struct TSeries_Descriptor {
-	std::string format;				//id and string format used to extract the values
-	GUID target_signal;
-	CValue_Convertor conversion;		//we support expressions to e.g.; make Fahrenheit to Celsius converion easy	
-};
-
-
-struct TCell_Descriptor {
-	std::string location;
-	TSeries_Descriptor series;
-};
-
-class CFormat_Layout {
+class CValue_Convertor {
 protected:
-	std::vector<TCell_Descriptor> mCells;
+	bool mValid = false;
+protected:
+	exprtk::symbol_table<double> mSymbol_Table;
+	exprtk::expression<double>   mExpression_Tree;
+	exprtk::parser<double>       mParser;
+protected:
+	std::string mExpression_String;
+	double mValue = std::numeric_limits<double>::quiet_NaN();		//eval value placeholder due to the expretk lib design
 public:
-	void push(const TCell_Descriptor& cell);
-};
+	bool init(const std::string& expression);
+	double eval(const double val);	//may return nan if cannot eval
+	bool valid() const;						//true if expression is correct	
 
-class CFormat_Rule_Loader {
-protected:
-	CFormat_Recognizer& mFormatRecognizer;	
-	CDateTime_Recognizer& mDateTime_Recognizer;
-
-
-	std::map<std::string, TSeries_Descriptor> mSeries;	//organized as <id, desc>
-	std::map<std::string, CFormat_Layout> mFormats;		//organized as <format_name, cells info>
-
-	bool Load_Format_Pattern_Config(CSimpleIniA& ini);
-	bool Load_Series_Descriptors(CSimpleIniA& ini);
-	bool Load_Format_Layout(CSimpleIniA& ini);
-	bool Load_DateTime_Formats(CSimpleIniA& ini);
-
-    bool Add_Config_Keys(CSimpleIniA& ini, std::function<void(const char*, const char*, const char*)> func);
-    bool Load_Format_Config(const char* default_config, const wchar_t* file_name, std::function<bool(CSimpleIniA&)> func);
-protected:
-	CExtractor& mExtractor;
-protected:
-	std::vector<std::wstring> mErrors;		//container for errors encountered during parsing
-public:
-	CFormat_Rule_Loader(CFormat_Recognizer& recognizer, CExtractor& extractor, CDateTime_Recognizer& datetime);
-
-	bool Load();
-};
+	CValue_Convertor& operator=(const CValue_Convertor& other);
+};		

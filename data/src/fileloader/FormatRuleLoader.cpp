@@ -43,7 +43,9 @@
 #include "FormatRecognizer.h"
 #include "Extractor.h"
 
-
+void CFormat_Layout::push(const TCell_Descriptor& cell) {
+	mCells.push_back(cell);
+}
 
 bool CFormat_Rule_Loader::Load_Format_Config(const char *default_config, const wchar_t* file_name, std::function<bool(CSimpleIniA&)> func) {
 
@@ -116,12 +118,66 @@ bool CFormat_Rule_Loader::Load_Format_Pattern_Config(CSimpleIniA& ini) {
 }
 	
 
-bool CFormat_Rule_Loader::Load_Format_Rules(CSimpleIniA& ini) {
-	auto add = [this](const char* formatName, const char* cellLocation, const char* content) {
-		mExtractor.Add_Format_Rule(formatName, cellLocation, content);
-	};
+bool CFormat_Rule_Loader::Load_Format_Layout(CSimpleIniA& ini) {
+	CSimpleIniA::TNamesDepend sections;
+	ini.GetAllSections(sections);
 
-	return Add_Config_Keys(ini, add);
+	const char* value = nullptr;
+	for (const auto& section : sections) {
+		const std::string layout_name = section.pItem;
+
+		//check duplicity
+		if (mFormats.find(layout_name) != mFormats.end()) {
+			std::wstring msg = L"Found a duplicity format layout, \"";
+			msg += Widen_String(layout_name);
+			msg += L"\"! Skiping...";
+			mErrors.push_back(msg);
+
+			continue;
+		}
+
+		CFormat_Layout layout;
+
+		CSimpleIniA::TNamesDepend cell_locations;
+		ini.GetAllKeys(section.pItem, cell_locations);
+
+		for (const auto& cell_location : cell_locations) {
+			const auto series_name = ini.GetValue(section.pItem, cell_location.pItem);
+			if (series_name) {
+				const auto series_iter = mSeries.find(series_name);
+				if (series_iter != mSeries.end()) {
+					TCell_Descriptor cell;
+					cell.location = cell_location.pItem;
+					cell.series = series_iter->second;
+					layout.push(cell);
+				}
+				else {
+					std::wstring msg = L"Format layout, \"";
+					msg += Widen_String(layout_name);
+					msg += L"\" references a non-exisiting series descriptor \"";
+					msg += series_name ? Widen_String(series_name) : L"none_value";
+					msg += L"\"!";
+					mErrors.push_back(msg);
+					continue;
+				}			
+			}
+			else {
+				std::wstring msg = L"There is an orphan cell-location\"";
+				msg += cell_location.pItem ? Widen_String(cell_location.pItem) : L"none_value";
+				msg += L"\" in the format layout  \"";
+				msg += Widen_String(layout_name);
+				msg += L"\"!";
+				mErrors.push_back(msg);
+				continue;
+			}
+		}
+
+		//now, the layout should have all its keys recorded => push it
+		mFormats[layout_name] = layout;
+
+	}
+
+	return true;	
 }
 
 
@@ -140,42 +196,60 @@ bool CFormat_Rule_Loader::Load_DateTime_Formats(CSimpleIniA& ini) {
 }
 
 
-bool CFormat_Rule_Loader::Load_Format_Rule_Templates(CSimpleIniA& ini) {
+bool CFormat_Rule_Loader::Load_Series_Descriptors(CSimpleIniA& ini) {
 	CSimpleIniA::TNamesDepend sections;
 	ini.GetAllSections(sections);
 	
-	const char* value;
-	for (const auto &section : sections) {
-		value = ini.GetValue(section.pItem, "replace");
-		if (value)
-		{
-			// we don't load replace rules, these are for anonymizer - we don't anonymize temporarily loaded files
+	const char* value = nullptr;
+	for (const auto& section : sections) {
+		const std::string series_name = section.pItem;
+		//check duplicity
+		if (mSeries.find(series_name) != mSeries.end()) {
+			std::wstring msg = L"Found a duplicity series name, \"";
+			msg += Widen_String(series_name);
+			msg += L"\"! Skiping...";
+			mErrors.push_back(msg);
+
+			continue;
 		}
 
-		value = ini.GetValue(section.pItem, "header");
+		TSeries_Descriptor desc;
+		value = ini.GetValue(section.pItem, "format");
 		if (value)
-		{
-			mExtractor.Add_Template(section.pItem, value);
+			desc.format = value;
 
-			const char* multvalue = ini.GetValue(section.pItem, "multiplier");
-			if (multvalue)
-			{
-				try
-				{
-					const double d = std::stod(multvalue);
-					mExtractor.Add_Template_Multiplier(section.pItem, value, d);
-				}
-				catch (...)
-				{
-					//
-				}
+		value = ini.GetValue(section.pItem, "conversion");
+		if (value) {
+			if (!desc.conversion.init(value)) {
+				std::wstring msg = L"Cannot parse \"";
+				msg += value ? Widen_String(value) : L"none_value";
+				msg += L"\" for time series \"";
+				msg += Widen_String(series_name);
+				msg += L"\"";
+				mErrors.push_back(msg);
+				continue;
 			}
-
-			const char* strformatvalue = ini.GetValue(section.pItem, "stringformat");
-			if (strformatvalue)
-				mExtractor.Add_Template_String_Format(section.pItem, value, strformatvalue);
 		}
-	}
+
+		bool valid_signal_id = false;
+		value = ini.GetValue(section.pItem, "signal");
+		if (value)
+			desc.target_signal = WString_To_GUID(Widen_String(value), valid_signal_id);
+		if (!valid_signal_id) {
+			std::wstring msg = L"Cannot convert \"";
+			msg += value ? Widen_String(value) : L"none_value";
+			msg += L"\" to a valid signal GUID for time series \"";
+			msg += Widen_String(series_name);
+			msg += L"\"";
+			mErrors.push_back(msg);
+
+			continue;
+		}
+
+
+		//once we are here, we have initialized the desc successfully => let's push it
+		mSeries[series_name] = std::move(desc);
+	}	
 
 	return true;
 }
@@ -201,7 +275,7 @@ bool CFormat_Rule_Loader::Load() {
 	
 	//order of the following loadings DOES MATTER!
 	return Load_Format_Config(default_patterns, dsPatternConfigurationFileName, std::bind(&CFormat_Rule_Loader::Load_Format_Pattern_Config, this, std::placeholders::_1)) &&
-		   Load_Format_Config(default_format_rules_templates, dsFormatRuleTemplatesFileName, std::bind(&CFormat_Rule_Loader::Load_Format_Rule_Templates, this, std::placeholders::_1)) &&
-		   Load_Format_Config(default_format_rules, dsFormatRulesFileName, std::bind(&CFormat_Rule_Loader::Load_Format_Rules, this, std::placeholders::_1)) && 
+		   Load_Format_Config(default_format_rules_templates, dsFormatRuleTemplatesFileName, std::bind(&CFormat_Rule_Loader::Load_Series_Descriptors, this, std::placeholders::_1)) &&
+		   Load_Format_Config(default_format_rules, dsFormatRulesFileName, std::bind(&CFormat_Rule_Loader::Load_Format_Layout, this, std::placeholders::_1)) && 
 		   Load_Format_Config(default_datetime_formats, dsDateTime_Formats_FileName, std::bind(&CFormat_Rule_Loader::Load_DateTime_Formats, this, std::placeholders::_1));
 }
