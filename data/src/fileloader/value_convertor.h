@@ -51,6 +51,9 @@ protected:
 	std::string mExpression_String;
 	double mValue = std::numeric_limits<double>::quiet_NaN();		//eval value placeholder due to the expretk lib design
 public:
+	CValue_Convertor() {};
+	CValue_Convertor(const CValue_Convertor& other);
+
 	bool init(const std::string& expression);
 	double eval(const double val);	//may return nan if cannot eval
 	bool valid() const;						//true if expression is correct	

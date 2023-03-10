@@ -36,74 +36,38 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "FormatRecognizer.h"
-#include "Misc.h"
+#pragma once
 
-#include <algorithm>
+#include <map>
+#include <fstream>
+#include <list>
 
-CFormat_Recognizer::CFormat_Recognizer()
+#include "FormatAdapter.h"
+#include "../../../../common/rtl/FilesystemLib.h"
+
+using File_Format_Detect_Map = std::map<std::string, std::list<std::string>>;
+
+/*
+ * Class used to recognize data format (not file format)
+ */
+class CFile_Format_Detector
 {
-	//
-}
+	private:
+		// all rules for all formats; primary key = format name, secondary key = cellspec, value = matched value
+		std::map<std::string, File_Format_Detect_Map> mRuleSet;
 
-void CFormat_Recognizer::Add_Pattern(const char* formatName, const char* cellLocation, const char* content)
-{
-	std::string istr(content);
-	size_t offset = 0, base;
-	// localized formats - pattern may contain "%%" string to delimit localizations
-	while ((base = istr.find("%%", offset)))
-	{
-		if (base == std::string::npos)
-		{
-			mRuleSet[formatName][cellLocation].push_back(istr.substr(offset));
-			break;
-		}
+	protected:
+		// try to match file contents to data format
+		bool Match(std::string format, CFormat_Adapter& file) const;
 
-		mRuleSet[formatName][cellLocation].push_back(istr.substr(offset, base - offset));
-		offset = base + 2;
-	}
-}
+	public:
+		CFile_Format_Detector();
 
-bool CFormat_Recognizer::Match(std::string format, CFormat_Adapter& file) const
-{
-	// find format to be matched
-	auto itr = mRuleSet.find(format);
-	if (itr == mRuleSet.end())
-		return false;
+		// adds new format recognition pattern
+		void Add_Pattern(const char* formatName, const char* cellLocation, const char* content);
 
-	// try all rules, all rules need to be matched
-	for (auto const& rulePair : itr->second)
-	{
-		const std::string rVal = file.Read(rulePair.first.c_str());
-
-		if (!Contains_Element(rulePair.second, rVal) || file.Get_Error() != 0)
-			return false;
-	}
-
-	return true;
-}
-
-std::string CFormat_Recognizer::Recognize_And_Open(filesystem::path path, CFormat_Adapter& target) const
-{
-	return Recognize_And_Open(path, path, target);
-}
-
-std::string CFormat_Recognizer::Recognize_And_Open(filesystem::path originalPath, filesystem::path path, CFormat_Adapter& target) const
-{
-	// recognize file format at first
-	target.Init(path, originalPath);
-
-	if (target.Get_Error() != 0)
-		return "";
-
-	// try to recognize data format
-	for (auto const& fpair : mRuleSet)
-	{
-		target.Clear_Error();
-
-		if (Match(fpair.first, target))
-			return fpair.first;
-	}
-
-	return "";
-}
+		// recognize data format from supplied path
+		std::string Recognize_And_Open(filesystem::path path, CFormat_Adapter& target) const;
+		// recognize data format from supplied originalPath (to recognize file format as well) and path
+		std::string Recognize_And_Open(filesystem::path originalPath, filesystem::path path, CFormat_Adapter& target) const;
+};

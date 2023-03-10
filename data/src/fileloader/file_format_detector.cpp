@@ -36,44 +36,74 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "value_convertor.h"
+#include "file_format_detector.h"
+#include "Misc.h"
 
-CValue_Convertor::CValue_Convertor(const CValue_Convertor& other) {
-	operator=(other);
+#include <algorithm>
+
+CFile_Format_Detector::CFile_Format_Detector()
+{
+	//
 }
 
-bool CValue_Convertor::init(const std::string& expression_string) {
-	mExpression_String = expression_string;
+void CFile_Format_Detector::Add_Pattern(const char* formatName, const char* cellLocation, const char* content)
+{
+	std::string istr(content);
+	size_t offset = 0, base;
+	// localized formats - pattern may contain "%%" string to delimit localizations
+	while ((base = istr.find("%%", offset)))
+	{
+		if (base == std::string::npos)
+		{
+			mRuleSet[formatName][cellLocation].push_back(istr.substr(offset));
+			break;
+		}
 
-	mValid = mSymbol_Table.add_variable("x", mValue);
-	if (mValid) {
-		mExpression_Tree.register_symbol_table(mSymbol_Table);
-		mValid = mParser.compile(expression_string, mExpression_Tree);
+		mRuleSet[formatName][cellLocation].push_back(istr.substr(offset, base - offset));
+		offset = base + 2;
+	}
+}
+
+bool CFile_Format_Detector::Match(std::string format, CFormat_Adapter& file) const
+{
+	// find format to be matched
+	auto itr = mRuleSet.find(format);
+	if (itr == mRuleSet.end())
+		return false;
+
+	// try all rules, all rules need to be matched
+	for (auto const& rulePair : itr->second)
+	{
+		const std::string rVal = file.Read(rulePair.first.c_str());
+
+		if (!Contains_Element(rulePair.second, rVal) || file.Get_Error() != 0)
+			return false;
 	}
 
-	return mValid;
+	return true;
 }
 
-double CValue_Convertor::eval(const double val) {
-	double result = std::numeric_limits<double>::quiet_NaN();
+std::string CFile_Format_Detector::Recognize_And_Open(filesystem::path path, CFormat_Adapter& target) const
+{
+	return Recognize_And_Open(path, path, target);
+}
 
-	if (mValid) {
-		mValue = val;
-		result = mExpression_Tree.value();
+std::string CFile_Format_Detector::Recognize_And_Open(filesystem::path originalPath, filesystem::path path, CFormat_Adapter& target) const
+{
+	// recognize file format at first
+	target.Init(path, originalPath);
+
+	if (target.Get_Error() != 0)
+		return "";
+
+	// try to recognize data format
+	for (auto const& fpair : mRuleSet)
+	{
+		target.Clear_Error();
+
+		if (Match(fpair.first, target))
+			return fpair.first;
 	}
 
-	return result;
-}
-
-bool CValue_Convertor::valid() const {
-	return mValid;
-}
-
-CValue_Convertor& CValue_Convertor::operator=(const CValue_Convertor& other) {
-	mSymbol_Table = other.mSymbol_Table;
-	mExpression_Tree = other.mExpression_Tree;
-	mExpression_String = other.mExpression_String;
-	mValid = mParser.compile(mExpression_String, mExpression_Tree);
-
-	return *this;
+	return "";
 }

@@ -45,8 +45,8 @@
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/utils/string_utils.h"
 
-#include "fileloader/FormatRuleLoader.h"
-#include "fileloader/FormatRecognizer.h"
+#include "fileloader/file_format_rules.h"
+#include "fileloader/file_format_detector.h"
 #include "fileloader/Extractor.h"
 
 #include <iostream>
@@ -192,7 +192,8 @@ void CFile_Reader::Run_Reader() {
 					bool errorRes = false;
 
 					current_values.enumerate([=, &errorRes, &nextPhysicalActivityEnd, &nextTempBasalEnd, &lastBasalRateSetting, &nextSleepEnd](const GUID& signal_id, const CMeasured_Values_At_Single_Time::TValue& val) {
-						const std::set<GUID> silenced_signals = { signal_Physical_Activity_Duration, signal_Insulin_Temp_Rate, signal_Insulin_Temp_Rate_Endtime, signal_Sleep_Endtime, signal_Comment };
+						const std::set<GUID> silenced_signals = { signal_Physical_Activity_Duration, signal_Insulin_Temp_Rate, signal_Insulin_Temp_Rate_Endtime, signal_Sleep_Endtime, signal_Comment,
+																  signal_Date_Only, signal_Time_Only, signal_Date_Time };
 
 						const double* current_level = std::get_if<double>(&val);
 
@@ -326,11 +327,11 @@ void CFile_Reader::Merge_Values(ExtractionResult& result)
 
 HRESULT CFile_Reader::Extract(ExtractionResult &values)
 {
-	CFormat_Recognizer recognizer;
+	CFile_Format_Detector recognizer;
 	CExtractor extractor;
-	CDateTime_Recognizer dt_formats;
+	CDateTime_Detector dt_formats;
 
-	CFormat_Rule_Loader loader(recognizer, extractor, dt_formats);
+	CFile_Format_Rules loader(recognizer, extractor, dt_formats);
 	if (!loader.Load())
 		return E_FAIL;
 

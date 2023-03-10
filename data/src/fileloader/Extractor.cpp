@@ -39,7 +39,7 @@
 #include "../../../../common/lang/dstrings.h"
 #include "../../../../common/iface/DeviceIface.h"
 #include "Extractor.h"
-#include "TimeRoutines.h"
+#include "time_utils.h"
 #include "../../../../common/rtl/rattime.h"
 #include "../../../../common/utils/string_utils.h"
 
@@ -96,54 +96,7 @@ const char* rsExtractorColumnMiscNote = "misc-note";
 const char* dsDatabaseTimestampFormatShort = "%FT%T";
 
 
-void CDateTime_Recognizer::finalize_pushes() {
-	
-	//let us perform longest-prefix match first, just like with IP mask
-	std::sort(begin(), end(), [](const std::string a, const std::string b) {	//no reference, because it moves the object!
-		return a.size() > b.size();
-	});	
 
-}
-
-const char* CDateTime_Recognizer::recognize(const wchar_t* str) const {
-	char* result = nullptr;
-	if ((str != nullptr) && (*str != 0)) {
-		std::string date_time_str{ Narrow_WChar(str) };
-		return recognize(date_time_str);
-	}
-
-	return result;
-}
-
-const char* CDateTime_Recognizer::recognize(const std::string& str) const {	
-	size_t i;
-	/*std::tm temp;
-	memset(&temp, 0, sizeof(std::tm));
-	*/
-
-	// TODO: slightly rework this method to safely check for parse failure even in debug mode
-
-	for (i = 0; i < size(); i++) {	//no for each, to traverse from longest prefix to shortest one
-		time_t temp;
-		std::string dst;
-		const auto& mask_candidate = operator[](i);
-		// is conversion result valid? if not, try next line
-		if (Str_Time_To_Unix_Time(str, mask_candidate.c_str(), dst, nullptr, temp))
-			return mask_candidate.c_str();
-	}
-
-	return nullptr;
-}
-
-bool Str_Time_To_Unix_Time(const wchar_t *src, const char* src_fmt, std::string outFormatStr, const char* outFormat, time_t& target) {
-	if (src == nullptr) return false;
-	std::string tmp{ Narrow_WChar(src)};
-	return Str_Time_To_Unix_Time(tmp, src_fmt, outFormatStr, outFormat, target);
-}
-
-bool Str_Time_To_Unix_Time(const std::string& src, const char* src_fmt, std::string outFormatStr, const char* outFormat, time_t& target) {
-	return Convert_Timestamp(src, src_fmt, outFormatStr, outFormat, &target);
-}
 
 CExtractor::CExtractor()
 {
@@ -567,7 +520,7 @@ bool CExtractor::Formatted_Read_String(std::string& formatName, ExtractorColumns
 	return true;
 }
 
-bool CExtractor::Extract(std::string& formatName, CFormat_Adapter& source, const CDateTime_Recognizer &dt_formats, ExtractionResult& result,size_t fileIndex) const
+bool CExtractor::Extract(std::string& formatName, CFormat_Adapter& source, const CDateTime_Detector &dt_formats, ExtractionResult& result,size_t fileIndex) const
 {
 	source.Reset_EOF();
 
@@ -582,7 +535,7 @@ bool CExtractor::Extract(std::string& formatName, CFormat_Adapter& source, const
 	}
 }
 
-bool CExtractor::Extract_Hierarchy_File(std::string& formatName, CFormat_Adapter& source, const CDateTime_Recognizer& dt_formats, ExtractionResult& result, size_t fileIndex) const
+bool CExtractor::Extract_Hierarchy_File(std::string& formatName, CFormat_Adapter& source, const CDateTime_Detector& dt_formats, ExtractionResult& result, size_t fileIndex) const
 {
 	TreePosition datePos, timePos, datetimePos, dateBloodPos, timeBloodPos, datetimeBloodPos, isigPos, istPos, bloodPos,
 		eventPos, dateEventPos, timeEventPos, datetimeEventPos;
@@ -672,7 +625,7 @@ bool CExtractor::Extract_Hierarchy_File(std::string& formatName, CFormat_Adapter
 	return status;
 }
 
-bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosition& featurePos, TreePosition& datetimePos, TreePosition& datePos, TreePosition& timePos, ExtractionIterationType itrtype, std::string& formatName, CFormat_Adapter& source, const CDateTime_Recognizer& dt_formats, ExtractionResult& result, size_t fileIndex, ExtractorColumns extractionColumn) const
+bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosition& featurePos, TreePosition& datetimePos, TreePosition& datePos, TreePosition& timePos, ExtractionIterationType itrtype, std::string& formatName, CFormat_Adapter& source, const CDateTime_Detector& dt_formats, ExtractionResult& result, size_t fileIndex, ExtractorColumns extractionColumn) const
 {
 	double bloodMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_BLOOD);
 	double istMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_IST);
@@ -991,7 +944,7 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 	return true;
 }
 
-bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapter& source, const CDateTime_Recognizer& dt_formats, ExtractionResult& result, size_t fileIndex) const
+bool CExtractor::Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapter& source, const CDateTime_Detector& dt_formats, ExtractionResult& result, size_t fileIndex) const
 {
 	SheetPosition datePos, timePos, datetimePos, isigPos, istPos, bloodPos, bloodCalPos, insulinBolusPos, insulinBasalRatePos, carbsPos,
 		bloodDatePos, bloodTimePos, bloodDatetimePos, eventPos, eventDatePos, eventTimePos, eventDateTimePos, eventCondPos;

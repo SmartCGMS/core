@@ -38,36 +38,59 @@
 
 #pragma once
 
+#include "../../../../common/rtl/hresult.h"
+#include "../../../../common/utils/SimpleIni.h"
+
+
+#include "file_format_detector.h"
+#include "value_convertor.h"
+#include "Extractor.h"
+
+#include <string>
 #include <map>
-#include <fstream>
-#include <list>
 
-#include "FormatAdapter.h"
-#include "../../../../common/rtl/FilesystemLib.h"
+	//TSeries_Descriptor gives a unique
+struct TSeries_Descriptor {
+	std::string format;				//id and string format used to extract the values
+	GUID target_signal;
+	CValue_Convertor conversion;		//we support expressions to e.g.; make Fahrenheit to Celsius converion easy	
+};
 
-using FormatRecognizerRuleMap = std::map<std::string, std::list<std::string>>;
 
-/*
- * Class used to recognize data format (not file format)
- */
-class CFormat_Recognizer
-{
-	private:
-		// all rules for all formats; primary key = format name, secondary key = cellspec, value = matched value
-		std::map<std::string, FormatRecognizerRuleMap> mRuleSet;
+struct TCell_Descriptor {
+	std::string location;
+	TSeries_Descriptor series;
+};
 
-	protected:
-		// try to match file contents to data format
-		bool Match(std::string format, CFormat_Adapter& file) const;
+class CFormat_Layout {
+protected:
+	std::vector<TCell_Descriptor> mCells;
+public:
+	void push(const TCell_Descriptor& cell);
+};
 
-	public:
-		CFormat_Recognizer();
+class CFile_Format_Rules {
+protected:
+	CFile_Format_Detector& mFormat_Detection_Rules;
+	CDateTime_Detector& mDateTime_Recognizer;
 
-		// adds new format recognition pattern
-		void Add_Pattern(const char* formatName, const char* cellLocation, const char* content);
 
-		// recognize data format from supplied path
-		std::string Recognize_And_Open(filesystem::path path, CFormat_Adapter& target) const;
-		// recognize data format from supplied originalPath (to recognize file format as well) and path
-		std::string Recognize_And_Open(filesystem::path originalPath, filesystem::path path, CFormat_Adapter& target) const;
+	std::map<std::string, TSeries_Descriptor> mSeries;	//organized as <id, desc>
+	std::map<std::string, CFormat_Layout> mFormat_Layouts;		//organized as <format_name, cells info>
+
+	bool Load_Format_Pattern_Config(CSimpleIniA& ini);
+	bool Load_Series_Descriptors(CSimpleIniA& ini);
+	bool Load_Format_Layout(CSimpleIniA& ini);
+	bool Load_DateTime_Formats(CSimpleIniA& ini);
+
+    bool Add_Config_Keys(CSimpleIniA& ini, std::function<void(const char*, const char*, const char*)> func);
+    bool Load_Format_Config(const char* default_config, const wchar_t* file_name, std::function<bool(CSimpleIniA&)> func);
+protected:
+	CExtractor& mExtractor;
+protected:
+	std::vector<std::wstring> mErrors;		//container for errors encountered during parsing
+public:
+	CFile_Format_Rules(CFile_Format_Detector& recognizer, CExtractor& extractor, CDateTime_Detector& datetime);
+
+	bool Load();
 };

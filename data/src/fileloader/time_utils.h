@@ -38,59 +38,31 @@
 
 #pragma once
 
-#include "../../../../common/rtl/hresult.h"
-#include "../../../../common/utils/SimpleIni.h"
-
-
-#include "value_convertor.h"
-#include "FormatRecognizer.h"
-#include "Extractor.h"
-
+#include <ctime>
 #include <string>
-#include <map>
-
-	//TSeries_Descriptor gives a unique
-struct TSeries_Descriptor {
-	std::string format;				//id and string format used to extract the values
-	GUID target_signal;
-	CValue_Convertor conversion;		//we support expressions to e.g.; make Fahrenheit to Celsius converion easy	
-};
+#include <vector>
 
 
-struct TCell_Descriptor {
-	std::string location;
-	TSeries_Descriptor series;
-};
-
-class CFormat_Layout {
-protected:
-	std::vector<TCell_Descriptor> mCells;
+ // recognized datetime format formatter strings
+class CDateTime_Detector : public std::vector<std::string> {
 public:
-	void push(const TCell_Descriptor& cell);
+	void finalize_pushes();
+	const char* recognize(const wchar_t* str) const;
+	const char* recognize(const std::string& str) const;
 };
 
-class CFormat_Rule_Loader {
-protected:
-	CFormat_Recognizer& mFormatRecognizer;	
-	CDateTime_Recognizer& mDateTime_Recognizer;
+bool Str_Time_To_Unix_Time(const wchar_t* src, const char* src_fmt, std::string outFormatStr, const char* outFormat, time_t& target);
+bool Str_Time_To_Unix_Time(const std::string& src, const char* src_fmt, std::string outFormatStr, const char* outFormat, time_t& target);
 
 
-	std::map<std::string, TSeries_Descriptor> mSeries;	//organized as <id, desc>
-	std::map<std::string, CFormat_Layout> mFormats;		//organized as <format_name, cells info>
+// Validates date conversion result
+bool Is_Valid_Tm(std::tm& v);
 
-	bool Load_Format_Pattern_Config(CSimpleIniA& ini);
-	bool Load_Series_Descriptors(CSimpleIniA& ini);
-	bool Load_Format_Layout(CSimpleIniA& ini);
-	bool Load_DateTime_Formats(CSimpleIniA& ini);
+// Converts timestamp from one format to another; returns true on success
+bool Convert_Timestamp(std::string source, const char* sourceFormat, std::string &dest, const char* destFormat, time_t* unixTimeDst = nullptr);
 
-    bool Add_Config_Keys(CSimpleIniA& ini, std::function<void(const char*, const char*, const char*)> func);
-    bool Load_Format_Config(const char* default_config, const wchar_t* file_name, std::function<bool(CSimpleIniA&)> func);
-protected:
-	CExtractor& mExtractor;
-protected:
-	std::vector<std::wstring> mErrors;		//container for errors encountered during parsing
-public:
-	CFormat_Rule_Loader(CFormat_Recognizer& recognizer, CExtractor& extractor, CDateTime_Recognizer& datetime);
+// Converts timestamp from source format to unix timestamp
+bool Convert_TimeString_To_UnixTime(std::string source, const char* sourceFormat, time_t& unixTimeDst);
 
-	bool Load();
-};
+// Converts unix timestamp to string in destination format
+bool Convert_UnixTime_To_TimeString(time_t source, const char* destFormat, std::string& dest);

@@ -36,18 +36,18 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "FormatRuleLoader.h"
+#include "file_format_rules.h"
+
 #include "../../../../common/rtl/FilesystemLib.h"
 #include "../../../../common/utils/string_utils.h"
 
-#include "FormatRecognizer.h"
 #include "Extractor.h"
 
 void CFormat_Layout::push(const TCell_Descriptor& cell) {
 	mCells.push_back(cell);
 }
 
-bool CFormat_Rule_Loader::Load_Format_Config(const char *default_config, const wchar_t* file_name, std::function<bool(CSimpleIniA&)> func) {
+bool CFile_Format_Rules::Load_Format_Config(const char *default_config, const wchar_t* file_name, std::function<bool(CSimpleIniA&)> func) {
 
 	auto resolve_config_file_path = [](const wchar_t* filename) {
 		auto path = Get_Application_Dir();
@@ -91,7 +91,7 @@ bool CFormat_Rule_Loader::Load_Format_Config(const char *default_config, const w
 
 
 
-bool CFormat_Rule_Loader::Add_Config_Keys(CSimpleIniA & ini, std::function<void(const char*, const char*, const char*)> func) {
+bool CFile_Format_Rules::Add_Config_Keys(CSimpleIniA & ini, std::function<void(const char*, const char*, const char*)> func) {
 	CSimpleIniA::TNamesDepend sections;
 	ini.GetAllSections(sections);
 
@@ -109,16 +109,16 @@ bool CFormat_Rule_Loader::Add_Config_Keys(CSimpleIniA & ini, std::function<void(
 }
 
 
-bool CFormat_Rule_Loader::Load_Format_Pattern_Config(CSimpleIniA& ini) {
+bool CFile_Format_Rules::Load_Format_Pattern_Config(CSimpleIniA& ini) {
 	auto add = [this](const char* formatName, const char* cellLocation, const char* content) {
-		mFormatRecognizer.Add_Pattern(formatName, cellLocation, content);
+		mFormat_Detection_Rules.Add_Pattern(formatName, cellLocation, content);
 	};
 
 	return Add_Config_Keys(ini, add);
 }
 	
 
-bool CFormat_Rule_Loader::Load_Format_Layout(CSimpleIniA& ini) {
+bool CFile_Format_Rules::Load_Format_Layout(CSimpleIniA& ini) {
 	CSimpleIniA::TNamesDepend sections;
 	ini.GetAllSections(sections);
 
@@ -127,7 +127,7 @@ bool CFormat_Rule_Loader::Load_Format_Layout(CSimpleIniA& ini) {
 		const std::string layout_name = section.pItem;
 
 		//check duplicity
-		if (mFormats.find(layout_name) != mFormats.end()) {
+		if (mFormat_Layouts.find(layout_name) != mFormat_Layouts.end()) {
 			std::wstring msg = L"Found a duplicity format layout, \"";
 			msg += Widen_String(layout_name);
 			msg += L"\"! Skiping...";
@@ -173,7 +173,7 @@ bool CFormat_Rule_Loader::Load_Format_Layout(CSimpleIniA& ini) {
 		}
 
 		//now, the layout should have all its keys recorded => push it
-		mFormats[layout_name] = layout;
+		mFormat_Layouts[layout_name] = layout;
 
 	}
 
@@ -181,7 +181,7 @@ bool CFormat_Rule_Loader::Load_Format_Layout(CSimpleIniA& ini) {
 }
 
 
-bool CFormat_Rule_Loader::Load_DateTime_Formats(CSimpleIniA& ini) {
+bool CFile_Format_Rules::Load_DateTime_Formats(CSimpleIniA& ini) {
 	static const std::string mask_name = "Mask";
 
 	auto add = [this](const char* formatName, const char* iiname, const char* datetime_mask) {
@@ -196,7 +196,7 @@ bool CFormat_Rule_Loader::Load_DateTime_Formats(CSimpleIniA& ini) {
 }
 
 
-bool CFormat_Rule_Loader::Load_Series_Descriptors(CSimpleIniA& ini) {
+bool CFile_Format_Rules::Load_Series_Descriptors(CSimpleIniA& ini) {
 	CSimpleIniA::TNamesDepend sections;
 	ini.GetAllSections(sections);
 	
@@ -254,28 +254,28 @@ bool CFormat_Rule_Loader::Load_Series_Descriptors(CSimpleIniA& ini) {
 	return true;
 }
 
-CFormat_Rule_Loader::CFormat_Rule_Loader(CFormat_Recognizer& recognizer, CExtractor& extractor, CDateTime_Recognizer& datetime)
-	: mFormatRecognizer(recognizer), mExtractor(extractor), mDateTime_Recognizer(datetime)
+CFile_Format_Rules::CFile_Format_Rules(CFile_Format_Detector& recognizer, CExtractor& extractor, CDateTime_Detector& datetime)
+	: mFormat_Detection_Rules(recognizer), mExtractor(extractor), mDateTime_Recognizer(datetime)
 {
 	//
 }
 
 
-const wchar_t* dsPatternConfigurationFileName = L"patterns.ini";
-const wchar_t* dsFormatRuleTemplatesFileName = L"format_rule_templates.ini";
-const wchar_t* dsFormatRulesFileName = L"format_rules.ini";
+const wchar_t* dsFormat_Detection_Configuration_Filename = L"format_detection.ini";
+const wchar_t* dsSeries_Definitions_Filename = L"format_series.ini";
+const wchar_t* dsFormat_Layout_Filename = L"format_layout.ini";
 const wchar_t* dsDateTime_Formats_FileName = L"datetime_formats.ini";
 
-extern "C" const char default_patterns[];			//bin2c -n default_format_rules_templates -p 0,0 %(FullPath) > %(FullPath).c
-extern "C" const char default_format_rules[];
-extern "C" const char default_format_rules_templates[];
+extern "C" const char default_format_detection[];			//bin2c -n default_format_rules_templates -p 0,0 %(FullPath) > %(FullPath).c
+extern "C" const char default_format_layout[];
+extern "C" const char default_format_series[];
 extern "C" const char default_datetime_formats[];
 
-bool CFormat_Rule_Loader::Load() {	
+bool CFile_Format_Rules::Load() {	
 	
 	//order of the following loadings DOES MATTER!
-	return Load_Format_Config(default_patterns, dsPatternConfigurationFileName, std::bind(&CFormat_Rule_Loader::Load_Format_Pattern_Config, this, std::placeholders::_1)) &&
-		   Load_Format_Config(default_format_rules_templates, dsFormatRuleTemplatesFileName, std::bind(&CFormat_Rule_Loader::Load_Series_Descriptors, this, std::placeholders::_1)) &&
-		   Load_Format_Config(default_format_rules, dsFormatRulesFileName, std::bind(&CFormat_Rule_Loader::Load_Format_Layout, this, std::placeholders::_1)) && 
-		   Load_Format_Config(default_datetime_formats, dsDateTime_Formats_FileName, std::bind(&CFormat_Rule_Loader::Load_DateTime_Formats, this, std::placeholders::_1));
+	return Load_Format_Config(default_format_detection, dsFormat_Detection_Configuration_Filename, std::bind(&CFile_Format_Rules::Load_Format_Pattern_Config, this, std::placeholders::_1)) &&
+		   Load_Format_Config(default_format_series, dsSeries_Definitions_Filename, std::bind(&CFile_Format_Rules::Load_Series_Descriptors, this, std::placeholders::_1)) &&
+		   Load_Format_Config(default_format_layout, dsFormat_Layout_Filename, std::bind(&CFile_Format_Rules::Load_Format_Layout, this, std::placeholders::_1)) &&
+		   Load_Format_Config(default_datetime_formats, dsDateTime_Formats_FileName, std::bind(&CFile_Format_Rules::Load_DateTime_Formats, this, std::placeholders::_1));
 }
