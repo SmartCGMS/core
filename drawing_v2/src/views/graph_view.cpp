@@ -95,6 +95,9 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 		}
 	}
 
+	if (max_x < min_y || max_y < min_y)
+		return NDrawing_Error::Not_Enough_Values;
+
 	max_y += 2.0; // always move the maximum value, so there's still room for descriptions, etc.
 
 	size_t total_x_label_cnt = static_cast<size_t>( (static_cast<double>(opts.width) - mCanvas_WidthOff) / 150.0 );
@@ -137,7 +140,7 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 	const double firstFullHour = std::floor(min_x / scgms::One_Hour) * scgms::One_Hour;
 
 	{
-		double fdx = firstFullHour;		
+		double fdx = firstFullHour;
 		do {
 			double xpos = mCanvas_WidthOff + (opts.width - mCanvas_WidthOff) * ((max_x - fdx) / (max_x - min_x));
 

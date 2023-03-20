@@ -83,6 +83,7 @@ enum class NDrawing_Error
 	Ok = 0,
 	Unspecified_Error,
 	Invalid_Options,
+	Not_Enough_Values,
 
 	// TODO: more error codes
 };

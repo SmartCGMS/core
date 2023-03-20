@@ -242,10 +242,15 @@ HRESULT IfaceCalling CDrawing_Filter_v2::Draw(const GUID* plot_id, refcnt::str_c
 
 		// render
 		std::string drawing;
-		if (view_generator->second.handler->Draw(drawing, opts, *this) != NDrawing_Error::Ok)
-			return E_FAIL;
+		auto err = view_generator->second.handler->Draw(drawing, opts, *this);
+		if (err == NDrawing_Error::Ok) {
+			return svg->set(drawing.data(), drawing.data() + drawing.size());
+		}
 
-		return svg->set(drawing.data(), drawing.data() + drawing.size());
+		if (err == NDrawing_Error::Not_Enough_Values)
+			return S_FALSE;
+
+		return E_FAIL;
 	}
 
 	// we don't know such plot
@@ -295,19 +300,22 @@ void CDrawing_Filter_v2::Render_All_To_File_Default()
 
 		// render
 		std::string drawing;
-		if (v.second.handler->Draw(drawing, opts, *this) != NDrawing_Error::Ok)
+		auto err = v.second.handler->Draw(drawing, opts, *this);
+		if (err != NDrawing_Error::Ok)
 		{
 			Log_Error(L"Could not render drawing " + GUID_To_WString(v.first));
 			continue;
 		}
 
-		std::ofstream ofs(Narrow_WString(of_itr->second));
-		if (!ofs.is_open())
 		{
-			Log_Error(L"Could not open file " + of_itr->second + L" to render drawing " + GUID_To_WString(v.first));
-			continue;
-		}
+			std::ofstream ofs(Narrow_WString(of_itr->second));
+			if (!ofs.is_open())
+			{
+				Log_Error(L"Could not open file " + of_itr->second + L" to render drawing " + GUID_To_WString(v.first));
+				continue;
+			}
 
-		ofs << drawing;
+			ofs << drawing;
+		}
 	}
 }
