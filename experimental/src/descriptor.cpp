@@ -51,6 +51,7 @@
 #include "bases_standalone/bases_standalone.h"
 #include "gege/gege.h"
 #include "flr_ge/flr_ge.h"
+#include "ann/ann.h"
 
 #include "ideg_riskfinder/riskfinder.h"
 #include "ideg_logstopper/logstopper.h"
@@ -693,7 +694,55 @@ namespace ideg {
 
 }
 
-const std::array<scgms::TModel_Descriptor, 8> model_descriptions = { {
+namespace ann {
+
+	const std::array<const wchar_t*, param_count> model_param_ui_names = { []() constexpr {
+		std::array<const wchar_t*, param_count> tmp;
+		for (size_t i = 0; i < param_count; i++)
+			tmp[i] = L"W";
+		return tmp;
+	}() };
+
+	const std::array<scgms::NModel_Parameter_Value, param_count> model_param_types = { []() constexpr {
+		std::array<scgms::NModel_Parameter_Value, param_count> tmp;
+		for (size_t i = 0; i < param_count; i++)
+			tmp[i] = scgms::NModel_Parameter_Value::mptDouble;
+		return tmp;
+	}()	};
+
+	constexpr size_t number_of_calculated_signals = 1;
+
+	const GUID calculated_signal_ids[number_of_calculated_signals] = {
+		signal_id
+	};
+
+	const GUID reference_signal_ids[number_of_calculated_signals] = {
+		scgms::signal_All,
+	};
+
+	scgms::TModel_Descriptor desc = {
+		model_id,
+		scgms::NModel_Flags::Discrete_Model,
+		L"ANN prediction",
+		nullptr,
+		param_count,
+		1,
+		model_param_types.data(),
+		(const wchar_t**)model_param_ui_names.data(),
+		nullptr,
+		lower_bounds.data(),
+		default_parameters.data(),
+		upper_bounds.data(),
+
+		number_of_calculated_signals,
+		calculated_signal_ids,
+		reference_signal_ids,
+	};
+
+	const scgms::TSignal_Descriptor pred_desc{ signal_id, L"ANN prediction", dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0x00666666, 0x00666666, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+}
+
+const std::array<scgms::TModel_Descriptor, 9> model_descriptions = { {
 	p559_model::desc,
 	aim_ge::desc,
 	data_enhacement::desc,
@@ -701,14 +750,16 @@ const std::array<scgms::TModel_Descriptor, 8> model_descriptions = { {
 	bases_pred::desc,
 	bases_standalone::desc,
 	gege::desc, flr_ge::desc,
+	ann::desc,
 } };
 
-const std::array<scgms::TSignal_Descriptor, 13 + cgp_pred::number_of_calculated_signals> signals_descriptors = { {
+const std::array<scgms::TSignal_Descriptor, 14 + cgp_pred::number_of_calculated_signals> signals_descriptors = { {
 	p559_model::ig_desc,
 	aim_ge::ig_desc,
 	data_enhacement::pos_desc, data_enhacement::neg_desc,
 	bases_pred::ig_desc, bases_standalone::ig_desc, gege::ibr_desc, gege::bolus_desc, flr_ge::ibr_desc, flr_ge::bolus_desc,
 	ideg::riskfinder::hyper_desc, ideg::riskfinder::hypo_desc, ideg::riskfinder::riskavg_desc,
+	ann::pred_desc,
 
 	// CGP signal group (total of cgp_pred::number_of_calculated_signals)
 	cgp_pred::signal_descs[0],cgp_pred::signal_descs[1],cgp_pred::signal_descs[2],cgp_pred::signal_descs[3],
@@ -748,6 +799,8 @@ HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IMode
 		return Manufacture_Object<CGEGE_Model>(model, parameters, output);
 	else if (*model_id == flr_ge::model_id)
 		return Manufacture_Object<CFLR_GE_Model>(model, parameters, output);
+	else if (*model_id == ann::model_id)
+		return Manufacture_Object<CANN_Model>(model, parameters, output);
 	else
 		return E_NOTIMPL;
 }

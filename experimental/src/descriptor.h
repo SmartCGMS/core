@@ -589,6 +589,57 @@ namespace flr_ge
 
 }
 
+namespace ann
+{
+	constexpr const GUID model_id = { 0xdde6dd27, 0xc7b7, 0x4f53, { 0xa6, 0x23, 0x34, 0x5, 0x5b, 0x9e, 0x51, 0xbb } };	// {DDE6DD27-C7B7-4F53-A623-34055B9E51BB}
+	constexpr const GUID signal_id = { 0x37d8c64c, 0x79cb, 0x4b6b, { 0xa6, 0x0, 0xcd, 0x7, 0x4, 0x46, 0x2d, 0x5e } };	// {37D8C64C-79CB-4B6B-A600-CD0704462D5E}
+
+	constexpr const size_t ig_history = 6;
+	constexpr const size_t ig_trend_history = 2;
+	constexpr const size_t iob_history = 6;
+	constexpr const size_t cob_history = 6;
+	constexpr const size_t pa_history = 3;
+
+	constexpr const size_t inputs_size = ig_history + ig_trend_history + iob_history + cob_history + pa_history; // 6x IG, 2x IoB, 2x CoB, 2x PA
+	constexpr const size_t hidden_1_size = 4;
+	constexpr const size_t hidden_2_size = 4;
+
+	constexpr const size_t param_count = inputs_size * hidden_1_size + 1 + hidden_1_size * hidden_2_size + 1 + hidden_2_size + 1;
+
+	struct TParameters {
+		union {
+			struct {
+				double w_input_to_1[inputs_size * hidden_1_size + 1];
+				double w_1_to_2[hidden_1_size * hidden_2_size + 1];
+				double w_2_to_output[hidden_2_size + 1];
+			};
+			double vector[param_count];
+		};
+	};
+
+	const std::array<double, param_count> lower_bounds = { []() constexpr { 
+		std::array<double, param_count> tmp;
+		for (size_t i = 0; i < param_count; i++)
+			tmp[i] = -1;
+		return tmp;
+	}()};
+
+	const std::array<double, param_count> default_parameters = { []() constexpr {
+		std::array<double, param_count> tmp;
+		for (size_t i = 0; i < param_count; i++)
+			tmp[i] = 0.1;
+		return tmp;
+	}() };
+
+	const std::array<double, param_count> upper_bounds = { []() constexpr {
+		std::array<double, param_count> tmp;
+		for (size_t i = 0; i < param_count; i++)
+			tmp[i] = 1.0;
+		return tmp;
+	}() };
+
+}
+
 namespace ideg {
 
 	namespace riskfinder {
