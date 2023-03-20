@@ -416,7 +416,7 @@ protected:
 				scgms::SFilter filter = create_filter(id, &terminal);
 				ok = filter.operator bool();
 				if (ok) {
-					if (first_feedback_receiver_idx != std::numeric_limits<size_t>::max()) {
+					if (first_feedback_receiver_idx == std::numeric_limits<size_t>::max()) {
 						//try feedback receiver, if have not already found it
 						std::shared_ptr<scgms::IFilter_Feedback_Receiver> feedback_receiver;
 						refcnt::Query_Interface<scgms::IFilter, scgms::IFilter_Feedback_Receiver>(filter.get(), scgms::IID_Filter_Feedback_Receiver, feedback_receiver);
