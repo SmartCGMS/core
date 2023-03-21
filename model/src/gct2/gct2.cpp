@@ -556,12 +556,12 @@ HRESULT IfaceCalling CGCT2_Discrete_Model::Step(const double time_advance_delta)
 					Add_To_Isc1(dosage.amount, dosage.start, dosage.duration);
 
 				// step all compartments
-				std::for_each(std::execution::seq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
+				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
 					comp.Step(mLast_Time);
 				});
 
 				// commit all compartments
-				std::for_each(std::execution::seq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
+				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
 					comp.Commit(mLast_Time);
 				});
 

@@ -54,6 +54,47 @@ namespace gct2_model
 {
 	class CDepot;
 
+	// Simspon's 1/3 rule for integration
+	class CSimpson_1_3_Rule_Integrator {
+		public:
+			inline double Integrate(const CTransfer_Function& fnc, double time_start, double time_end) const {
+				const double y_diff = time_end - time_start;
+				const double x0 = fnc.Calculate_Transfer_Input(time_start);
+				const double x1 = fnc.Calculate_Transfer_Input((time_start + time_end) / 2.0);
+				const double x2 = fnc.Calculate_Transfer_Input(time_end);
+
+				return (y_diff / 6.0) * (x0 + 4 * x1 + x2);
+			}
+	};
+
+	// Gaussian quadrature rule for integration
+	class CGaussian_Quadrature_Integrator {
+		private:
+			// transform to <-1;1> interval
+			inline double Transform(const CTransfer_Function& fnc, double y_diff_half, double y_sum_half, double t) const {
+				return fnc.Calculate_Transfer_Input(y_sum_half + y_diff_half * t) * y_diff_half;
+			}
+
+		public:
+			inline double Integrate(const CTransfer_Function& fnc, double time_start, double time_end) const {
+
+				const double y_diff = time_end - time_start;
+				const double y_sum = time_end + time_start;
+
+				const double y_diff_half = y_diff * 0.5;
+				const double y_sum_half = y_sum * 0.5;
+
+				const double x0 = 0.555555556 * Transform(fnc, y_diff_half, y_sum_half, 0.7745966692);
+				const double x1 = 0.888888889 * Transform(fnc, y_diff_half, y_sum_half, 0.0);
+				const double x2 = 0.555555556 * Transform(fnc, y_diff_half, y_sum_half, -0.7745966692);
+
+				return (x0 + x1 + x2);
+			}
+	};
+
+	// select integrator
+	using TDefault_Integrator = CGaussian_Quadrature_Integrator;
+
 	/**
 	 * Link between two depots
 	 */
@@ -88,6 +129,9 @@ namespace gct2_model
 			double mTransfer_Unit_Coefficient = 1.0;
 			// shift for unit conversion during transfer
 			double mTransfer_Unit_Shift = 0.0;
+
+			// selected integrator
+			TDefault_Integrator mIntegrator;
 
 		protected:
 			template<typename TTransferFnc, typename... Args>
@@ -151,7 +195,7 @@ namespace gct2_model
 
 			// is this link expired? i.e.; has the transfer function reached its end?
 			bool Is_Expired(double time) const {
-				return false;// mTransfer_Function->Is_Expired(time);
+				return mTransfer_Function->Is_Expired(time);
 			}
 
 			CDepot_Link& Set_Source_Quantity_Dependent(bool dependent) {

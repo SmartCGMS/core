@@ -67,16 +67,9 @@ namespace gct2_model
 		if (fnc_future_time - fnc_past_time < std::numeric_limits<double>::epsilon())
 			return;
 
-		// Simpson's 1/3 rule for integration
-
-		const double y_diff = fnc_future_time - fnc_past_time;
-		const double x0 = transfer_fnc.Calculate_Transfer_Input(fnc_past_time);
-		const double x1 = transfer_fnc.Calculate_Transfer_Input((fnc_past_time + fnc_future_time) / 2.0);
-		const double x2 = transfer_fnc.Calculate_Transfer_Input(fnc_future_time);
-
 		double baseAmount = transfer_fnc.Get_Transfer_Amount(mSource.get().Get_Quantity());
 
-		double amount = -(y_diff / 6.0) * (x0 + 4 * x1 + x2) * baseAmount;
+		double amount = -baseAmount * mIntegrator.Integrate(transfer_fnc, fnc_past_time, fnc_future_time);
 
 		// transfer moderation
 		for (const auto& mods : mModerators) {
