@@ -38,12 +38,14 @@
 
 #pragma once
 
+#include "../../../../common/rtl/referencedImpl.h"
 #include "../../../../common/rtl/hresult.h"
 #include "../../../../common/utils/SimpleIni.h"
 
 
 #include "file_format_detector.h"
 #include "value_convertor.h"
+#include "FormatAdapter.h"
 #include "Extractor.h"
 
 #include <string>
@@ -87,6 +89,16 @@ protected:
     bool Load_Format_Config(const char* default_config, const wchar_t* file_name, std::function<bool(CSimpleIniA&)> func);
 protected:
 	std::vector<std::wstring> mErrors;		//container for errors encountered during parsing
-public:
+	bool mValid = false;
 	bool Load();
+public:
+	CFile_Format_Rules();
+
+	bool Are_Rules_Valid(refcnt::Swstr_list& error_description);	//pushes any error occured during the load and returns mValid
+
+	std::unique_ptr<CFormat_Adapter> Open_File(const filesystem::path &path);
 };
+
+//let there be global format rules because if someone would declare us in optimization setup, which wuould be instantiated many times per sec
+//than OS may refuse to open the files so many times concurrently - a lesson learned with the log replay
+extern CFile_Format_Rules global_format_rules;

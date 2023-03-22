@@ -83,12 +83,12 @@ bool CFile_Format_Detector::Match(std::string format, CFormat_Adapter& file) con
 	return true;
 }
 
-std::string CFile_Format_Detector::Recognize_And_Open(filesystem::path path, CFormat_Adapter& target) const
+std::unique_ptr<CFormat_Adapter> CFile_Format_Detector::Recognize_And_Open(filesystem::path path) const
 {
-	return Recognize_And_Open(path, path, target);
+	return Recognize_And_Open(path, path);
 }
 
-std::string CFile_Format_Detector::Recognize_And_Open(filesystem::path originalPath, filesystem::path path, CFormat_Adapter& target) const
+std::unique_ptr<CFormat_Adapter> CFile_Format_Detector::Recognize_And_Open(filesystem::path originalPath, filesystem::path path) const
 {
 	// recognize file format at first
 	target.Init(path, originalPath);

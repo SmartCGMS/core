@@ -67,7 +67,7 @@ class CFile_Format_Detector
 		void Add_Pattern(const char* formatName, const char* cellLocation, const char* content);
 
 		// recognize data format from supplied path
-		std::string Recognize_And_Open(filesystem::path path, CFormat_Adapter& target) const;
+		std::unique_ptr<CFormat_Adapter> Recognize_And_Open(filesystem::path path) const;
 		// recognize data format from supplied originalPath (to recognize file format as well) and path
-		std::string Recognize_And_Open(filesystem::path originalPath, filesystem::path path, CFormat_Adapter& target) const;
+		std::unique_ptr<CFormat_Adapter> Recognize_And_Open(filesystem::path originalPath, filesystem::path path) const;
 };

@@ -43,20 +43,19 @@
 #include <algorithm>
 #include <cstring>
 
-CFormat_Adapter::CFormat_Adapter()
+/*CFormat_Adapter::CFormat_Adapter()
 {
 	//
 }
-
-CFormat_Adapter::CFormat_Adapter(const filesystem::path filename, const filesystem::path originalFilename)
-{
+*/
+CFormat_Adapter::CFormat_Adapter(const std::string format_name, const filesystem::path filename, const filesystem::path originalFilename) : mFormat_Name(format_name) {
 	Init(filename, originalFilename);
 }
 
 CFormat_Adapter::~CFormat_Adapter()
 {
-	if (mFormat)
-		mFormat->Finalize();
+	if (mStorage)
+		mStorage->Finalize();
 }
 
 void CFormat_Adapter::Init(const filesystem::path filename, filesystem::path originalFilename)
@@ -111,24 +110,24 @@ void CFormat_Adapter::Init(const filesystem::path filename, filesystem::path ori
 	{
 		case KnownFileFormats::FORMAT_CSV:
 		{
-			mFormat = std::make_unique<CCsv_File>();
+			mStorage = std::make_unique<CCsv_File>();
 			break;
 		}
 #ifndef NO_BUILD_EXCELSUPPORT
 		case KnownFileFormats::FORMAT_XLS:
 		{
-			mFormat = std::make_unique<CXls_File>();
+			mStorage = std::make_unique<CXls_File>();
 			break;
 		}
 		case KnownFileFormats::FORMAT_XLSX:
 		{
-			mFormat = std::make_unique<CXlsx_File>();
+			mStorage = std::make_unique<CXlsx_File>();
 			break;
 		}
 #endif
 		case KnownFileFormats::FORMAT_XML:
 		{
-			mFormat = std::make_unique<CXml_File>();
+			mStorage = std::make_unique<CXml_File>();
 			break;
 		}
 		default:
@@ -136,17 +135,17 @@ void CFormat_Adapter::Init(const filesystem::path filename, filesystem::path ori
 			return;
 	}
 
-	mFormat->Init(mOriginalPath);
+	mStorage->Init(mOriginalPath);
 }
 
 ISpreadsheet_File* CFormat_Adapter::ToSpreadsheetFile() const
 {
-	return dynamic_cast<ISpreadsheet_File*>(mFormat.get());
+	return dynamic_cast<ISpreadsheet_File*>(mStorage.get());
 }
 
 IHierarchy_File* CFormat_Adapter::ToHierarchyFile() const
 {
-	return dynamic_cast<IHierarchy_File*>(mFormat.get());
+	return dynamic_cast<IHierarchy_File*>(mStorage.get());
 }
 
 std::string CFormat_Adapter::Read(const char* cellSpec) const
@@ -323,17 +322,17 @@ void CFormat_Adapter::Clear_Error()
 
 bool CFormat_Adapter::Is_EOF() const
 {
-	return mFormat->Is_EOF();
+	return mStorage->Is_EOF();
 }
 
 void CFormat_Adapter::Reset_EOF()
 {
-	mFormat->Reset_EOF();
+	mStorage->Reset_EOF();
 }
 
 FileOrganizationStructure CFormat_Adapter::Get_File_Organization() const
 {
-	return mFormat->Get_File_Organization();
+	return mStorage->Get_File_Organization();
 }
 
 void CFormat_Adapter::CellSpec_To_RowCol(const char* cellSpec, int& row, int& col, int& sheetIndex)

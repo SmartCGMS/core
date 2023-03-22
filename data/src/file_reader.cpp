@@ -325,16 +325,10 @@ void CFile_Reader::Merge_Values(ExtractionResult& result)
 	}
 }
 
-HRESULT CFile_Reader::Extract(ExtractionResult &values)
-{
+HRESULT CFile_Reader::Extract(ExtractionResult &values) {
 	CFile_Format_Detector recognizer;
 	CExtractor extractor;
 	CDateTime_Detector dt_formats;
-
-	CFile_Format_Rules loader(recognizer, extractor, dt_formats);
-	if (!loader.Load())
-		return E_FAIL;
-
 
 	values.Value_Count = 0;
 	values.mValues.clear();
@@ -380,25 +374,31 @@ HRESULT CFile_Reader::Extract(ExtractionResult &values)
 HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	HRESULT rc = E_UNEXPECTED;
 
-	mFileName = configuration.Read_File_Path(rsInput_Values_File);
-	mMaximum_IG_Interval = configuration.Read_Double(rsMaximum_IG_Interval, mMaximum_IG_Interval);
-	if (std::isnan(mMaximum_IG_Interval) || (mMaximum_IG_Interval <= 0.0)) {
-		error_description.push(L"Maximum IG interval must be a positive number. 12 minutes is a default value.");
-		return E_INVALIDARG;
-	}
+	//before doing anything else, make sure that we have the format rules loaded and ready
+	if (global_format_rules.Are_Rules_Valid(error_description)) {
+		mFileName = configuration.Read_File_Path(rsInput_Values_File);
+		mMaximum_IG_Interval = configuration.Read_Double(rsMaximum_IG_Interval, mMaximum_IG_Interval);
+		if (std::isnan(mMaximum_IG_Interval) || (mMaximum_IG_Interval <= 0.0)) {
+			error_description.push(L"Maximum IG interval must be a positive number. 12 minutes is a default value.");
+			rc = E_INVALIDARG;
+		}
 
-	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
-	mMinimum_Required_IGs = static_cast<size_t>(configuration.Read_Int(rsMinimum_Required_IGs));
-	mRequire_BG = configuration.Read_Bool(rsRequire_BG);
+		if (Succeeded(rc)) {
+			mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
+			mMinimum_Required_IGs = static_cast<size_t>(configuration.Read_Int(rsMinimum_Required_IGs));
+			mRequire_BG = configuration.Read_Bool(rsRequire_BG);
 
-	std::error_code ec;
-	if ((Is_Regular_File_Or_Symlink(mFileName) || Is_Directory(mFileName)) && filesystem::exists(mFileName, ec)) {
-		mReaderThread = std::make_unique<std::thread>(&CFile_Reader::Run_Reader, this);
-		rc = S_OK;
-	} else {		
-		error_description.push(dsCannot_Open_File + mFileName.wstring());
-		rc = E_NOTIMPL;
-	}
+			std::error_code ec;
+			if ((Is_Regular_File_Or_Symlink(mFileName) || Is_Directory(mFileName)) && filesystem::exists(mFileName, ec)) {
+				mReaderThread = std::make_unique<std::thread>(&CFile_Reader::Run_Reader, this);
+				rc = S_OK;
+			}
+			else {
+				error_description.push(dsCannot_Open_File + mFileName.wstring());
+				rc = E_NOTIMPL;
+			}
+		}
+	}	
 	
 	return rc;
 }

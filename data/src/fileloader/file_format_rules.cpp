@@ -41,7 +41,9 @@
 #include "../../../../common/rtl/FilesystemLib.h"
 #include "../../../../common/utils/string_utils.h"
 
-#include "Extractor.h"
+
+
+CFile_Format_Rules global_format_rules;
 
 void CFormat_Layout::push(const TCell_Descriptor& cell) {
 	mCells.push_back(cell);
@@ -264,6 +266,16 @@ extern "C" const char default_format_layout[];
 extern "C" const char default_format_series[];
 extern "C" const char default_datetime_formats[];
 
+CFile_Format_Rules::CFile_Format_Rules() {
+	mValid = Load();
+}
+
+bool CFile_Format_Rules::Are_Rules_Valid(refcnt::Swstr_list& error_description) {
+	for (const auto& err : mErrors)
+		error_description.push(err);
+	return mValid;
+}
+
 bool CFile_Format_Rules::Load() {	
 	
 	//order of the following loadings DOES MATTER!
@@ -271,4 +283,9 @@ bool CFile_Format_Rules::Load() {
 		   Load_Format_Config(default_format_series, dsSeries_Definitions_Filename, std::bind(&CFile_Format_Rules::Load_Series_Descriptors, this, std::placeholders::_1)) &&
 		   Load_Format_Config(default_format_layout, dsFormat_Layout_Filename, std::bind(&CFile_Format_Rules::Load_Format_Layout, this, std::placeholders::_1)) &&
 		   Load_Format_Config(default_datetime_formats, dsDateTime_Formats_FileName, std::bind(&CFile_Format_Rules::Load_DateTime_Formats, this, std::placeholders::_1));
+}
+
+
+std::unique_ptr<CFormat_Adapter> CFile_Format_Rules::Open_File(const filesystem::path& path) {
+
 }
