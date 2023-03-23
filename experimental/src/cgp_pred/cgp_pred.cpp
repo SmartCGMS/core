@@ -113,7 +113,7 @@ CCGP_Prediction::CCGP_Prediction(scgms::IModel_Parameter_Vector* parameters, scg
 	Fill_Evaluation_Vector();
 }
 
-const size_t Rescale(const double in, const size_t numClasses)
+constexpr inline size_t Rescale(const double in, const size_t numClasses)
 {
 	return static_cast<size_t>(in * static_cast<double>(numClasses) - 0.00001);
 }
@@ -201,10 +201,12 @@ HRESULT CCGP_Prediction::Do_Execute(scgms::UDevice_Event event) {
 			else if (input < cgp_pred::TotalConstantCount + TotalGlucoseValues + TotalInsulinValues + TotalCarbValues)
 			{
 				const size_t valIdx = input - (cgp_pred::TotalConstantCount + TotalGlucoseValues + TotalInsulinValues);
-				return "C(t+" + std::to_string(valIdx *5) + ")";
+				return "C(t+" + std::to_string(valIdx * 5) + ")";
 			}
-			else
+			else if (input < cgp_pred::TotalConstantCount)
 				return std::to_string(mConverted_Params.constants[input]);
+			else
+				return "0";
 		};
 
 		std::function<std::string(size_t)> resolve = [&resolve, &transcribeInput, this](size_t p) -> std::string {
@@ -403,7 +405,6 @@ double CCGP_Prediction::Calc_COB_At(const std::vector<double>& time, std::vector
 
 	constexpr double GlucMolar = 180.16; // glucose molar weight (g/mol)
 	constexpr double gCHO_to_mmol = (1000 / GlucMolar); // 1000 -> g to mg, 180.16 - molar weight of glucose; g -> mmol
-	constexpr double mmol_to_gCHO = 1.0 / gCHO_to_mmol;
 
 	std::fill(result.begin(), result.end(), 0);
 

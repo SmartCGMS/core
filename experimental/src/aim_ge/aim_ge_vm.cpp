@@ -21,6 +21,7 @@ namespace aim_ge
 					//case NInstruction::FUNC:
 						//return std::make_unique<CFunction_Rule>();
 						//break;
+					default: return nullptr;
 				}
 
 				return nullptr;
@@ -48,14 +49,15 @@ namespace aim_ge
 			auto switch_and_apply = [](NInstruction type) -> std::unique_ptr<CRule> {
 				switch (type)
 				{
-				case NInstruction::E_GLUC:
-				case NInstruction::E_INS:
-				case NInstruction::E_CHO:
-					return std::make_unique<CQuantity_Term_Rule>(type);
-					break;
-					//case NInstruction::FUNC:
-						//return std::make_unique<CFunction_Rule>();
-						//break;
+					case NInstruction::E_GLUC:
+					case NInstruction::E_INS:
+					case NInstruction::E_CHO:
+						return std::make_unique<CQuantity_Term_Rule>(type);
+						break;
+						//case NInstruction::FUNC:
+							//return std::make_unique<CFunction_Rule>();
+							//break;
+					default: return nullptr;
 				}
 
 				return nullptr;

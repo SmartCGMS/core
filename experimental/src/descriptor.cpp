@@ -697,14 +697,14 @@ namespace ideg {
 namespace ann {
 
 	const std::array<const wchar_t*, param_count> model_param_ui_names = { []() constexpr {
-		std::array<const wchar_t*, param_count> tmp;
+		std::array<const wchar_t*, param_count> tmp{};
 		for (size_t i = 0; i < param_count; i++)
 			tmp[i] = L"W";
 		return tmp;
 	}() };
 
 	const std::array<scgms::NModel_Parameter_Value, param_count> model_param_types = { []() constexpr {
-		std::array<scgms::NModel_Parameter_Value, param_count> tmp;
+		std::array<scgms::NModel_Parameter_Value, param_count> tmp{};
 		for (size_t i = 0; i < param_count; i++)
 			tmp[i] = scgms::NModel_Parameter_Value::mptDouble;
 		return tmp;

@@ -173,6 +173,7 @@ namespace aim_ge
 			case NOperator::ADD: return "+";
 			case NOperator::SUB: return "-";
 			case NOperator::MUL: return "*";
+			default: return "?";
 		}
 		return "?";
 	}
@@ -184,6 +185,7 @@ namespace aim_ge
 			case NInput_Quantity::GLUC: return "G";
 			case NInput_Quantity::INS: return "I";
 			case NInput_Quantity::CHO: return "C";
+			default: return "?";
 		}
 		return "?";
 	}
@@ -401,7 +403,7 @@ namespace aim_ge
 	{
 		private:
 			NFunction mFunction = NFunction::count;
-			NInstruction mOperand;
+			NInstruction mOperand = NInstruction::count;
 			std::unique_ptr<CRule> mOperand_Rule;
 
 		public:
@@ -435,6 +437,7 @@ namespace aim_ge
 						return std::sin(operand_val);
 					case NFunction::TANH:
 						return std::tanh(operand_val);
+					default: return 0;
 				}
 
 				return 0;
@@ -453,7 +456,7 @@ namespace aim_ge
 	{
 		private:
 			NInput_Quantity mQuantity;
-			size_t mTime_Offset_Mins;
+			size_t mTime_Offset_Mins = 0;
 
 		public:
 			CInput_Quantity_Rule(NInput_Quantity q)
@@ -479,6 +482,7 @@ namespace aim_ge
 					case NInput_Quantity::CHO:
 						mTime_Offset_Mins = classify_and_rescale(input, 1 + CHO_Future_Mins / Step_Size_Mins);
 						break;
+					default: break;
 				}
 
 				return true;
@@ -503,6 +507,7 @@ namespace aim_ge
 					case NInput_Quantity::CHO:
 						target.push_back("+" + std::to_string(mTime_Offset_Mins * Step_Size_Mins));
 						break;
+					default: break;
 				}
 
 				target.push_back(")");

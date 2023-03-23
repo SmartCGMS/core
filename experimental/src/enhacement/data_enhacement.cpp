@@ -201,7 +201,7 @@ void CData_Enhacement_Model::Detect()
 		insulinAccumulator += sig.value;
 	}
 
-	constexpr double CarbToInsRatio = 0.2; // 1U for approx 15g of glucose
+	//constexpr double CarbToInsRatio = 0.2; // 1U for approx 15g of glucose
 
 	/*
 	constexpr double PosFactorShift = 1.0;
