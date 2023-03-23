@@ -839,6 +839,160 @@ namespace gct2_model {
 	}} };
 }
 
+namespace gct3_model {
+
+	constexpr GUID model_id = { 0xe8e30624, 0xc632, 0x44a1, { 0x8d, 0xdd, 0xed, 0xe2, 0x29, 0x93, 0x5, 0x70 } };					// {E8E30624-C632-44A1-8DDD-EDE229930570}
+
+	constexpr GUID signal_IG = { 0x4111f7bc, 0x360c, 0x4bc5, { 0xbb, 0xd9, 0xda, 0xc, 0x78, 0x61, 0xcb, 0x49 } };					// {4111F7BC-360C-4BC5-BBD9-DA0C7861CB49}
+	constexpr GUID signal_BG = { 0xe1b1847d, 0x7741, 0x4550, { 0xaa, 0xf2, 0x56, 0xca, 0x57, 0x71, 0x3a, 0x6 } };					// {E1B1847D-7741-4550-AAF2-56CA57713A06}
+	constexpr GUID signal_Delivered_Insulin = { 0x8cd7d226, 0x4bbd, 0x49fc, { 0x9a, 0xe2, 0x86, 0x9, 0x4, 0xbc, 0xa0, 0x8d } };		// {8CD7D226-4BBD-49FC-9AE2-860904BCA08D}
+	constexpr GUID signal_IOB = { 0x905b72fd, 0x54ff, 0x4592, { 0x92, 0x43, 0x4e, 0xfa, 0xcc, 0xd3, 0x4f, 0xde } };					// {905B72FD-54FF-4592-9243-4EFACCD34FDE}
+	constexpr GUID signal_COB = { 0x60da8b75, 0x1195, 0x4d20, { 0x81, 0xb3, 0x3c, 0xed, 0x30, 0x18, 0xd1, 0xdf } };					// {60DA8B75-1195-4D20-81B3-3CED3018D1DF}
+
+	constexpr size_t model_param_count = 41;
+
+	/*
+	Q1_0 - D1_0 - initial values/quantities
+
+	Vq - distribution volume of glucose molecules in plasma ("volume of plasma")
+	Vqsc - distribution volume of glucose molecules in subcutaneous tissue / interstitial fluid
+	Vi - insulin distribution volume
+	Q1b - basal glucose amount in primary distribution volume
+	Gthr - glycosuria threshold [mmol/L]
+	GIthr - insulin production glucose threshold (above this level, beta cells start to produce insulin) [mmol/L]
+
+	q12 - transfer rate of diffusion between Q1 and Q2
+	q1sc - transfer rate of diffusion between Q1 and Qsc
+	ix - transfer rate I -> X
+	xq1 - moderation rate Q1 -(X)-> sink
+	iscimod - transfer rate Isc -> I, bundled with local degradation (proposed by Hovorka, http://doi.org/10.1109/TBME.2004.839639 )
+
+	q1e - base elimination of Q1 glucose
+	q1ee - glucose elimination moderated by exercise
+	q1e_thr - glycosuria elimination of Q1 glucose (over threshold)
+	xe - elimination rate of X by glucose utilization moderation (coupled with xq1)
+
+	q1p - glucose appearance rate from glycogen and miscellanous sources
+	q1pe - glucose appearance moderated by exercise effects
+	q1pi - glucose appearance inhibition by insulin presence
+	ip - insulin production factor (how glucose stimulates insulin production)
+
+	e_pa - exercise-production virtual modulator appearance
+	e_ua - exercise-utilization virtual modulator appearance
+	e_pe - exercise-production virtual modulator elimination rate
+	e_ue - exercise-utilization virtual modulator elimination rate
+	q_ep - glucose production modulation rate by exercise
+	q_eu - glucose utilization modulation rate by exercise
+
+	e_lta - long-term excercise effect virtual modulator appearance
+	e_lte - long-term excercise effect virtual modulator elimination rate
+	e_Si - long-term exercise insulin sensitivity coefficient
+
+	Aq - CHO bioavailability (how many % of glucose from meal is absorbed); TODO: this should be a parameter of CHO intake
+	t_d - meal absorption time; TODO: this should be a parameter of CHO intake
+	t_i - subcutaneous insulin absorption time; TODO: this should be a parameter of insulin dosage
+	t_id - bolus spreading - a fraction of a single bolus will be dosed every minute of this time interval
+	*/
+
+	struct TParameters {
+		union {
+			struct {
+				// initial quantities
+				double Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0;
+				// patient quantity and base parameters
+				double Vq, Vqsc, Vi, Q1b, Gthr, GIthr;
+				// transfer parameters
+				double q12, q1sc, ix, xq1, iscimod;
+				// elimination parameters
+				double q1e, q1ee, q1e_thr, xe;
+				// production parameters
+				double q1p, q1pe, q1pi, ip;
+				// exercise-related parameters
+				double e_pa, e_ua, e_pe, e_ue, q_ep, q_eu;
+				// exercise-related long-term parameters
+				double e_lta, e_lte, e_Si;
+				// misc parameters
+				double Ag, t_d, t_i, t_id;
+				// effect of IG on absorption
+				double dqscm, iqscm;
+			};
+			double vector[model_param_count];
+		};
+	};
+
+	const TParameters lower_bounds = { {{
+		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0,
+			0,    0,    0,     0,   0,     0,   0,
+		//	Vq,  Vqsc, Vi, Q1b, Gthr, GIthr,
+			3,   2,    3,  50,  10.0,  4.0,
+		//	q12,  q1sc, ix, xq1, iscimod
+			0.5, 1.4,   1,  3,   0.9,
+		//	q1e,   q1ee,  q1e_thr, xe,
+			0.044, 0.044, 0.001,   0.1,
+		//	q1p,     q1pe,   q1pi,    ip,
+			0.00001, 0.0001, 0.00001, 0.0,
+		//	e_pa, e_ua, e_pe, e_ue, q_ep, q_eu
+			100,  100,  100,  100,  50,   50,
+		//	e_lta, e_lte, e_Si
+			1,     0.2,   0.02,
+		//	Ag,  t_d,    t_i
+			0.8, 10_min, 5_min,
+
+		//	t_id
+			1_min,
+		//	dqscm, iqscm
+			-1,    -1,
+	}} };
+
+	const TParameters default_parameters = { { {
+		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0,
+			350,  65,   250,   0,   0,     0,   0,
+		//	Vq,  Vqsc, Vi, Q1b, Gthr, GIthr,
+			8,   5,    10, 240, 8.0, 5.0,
+		//	q12, q1sc, ix, xq1, iscimod
+			0.8, 8,    5,  45,  0.99,
+		//	q1e,     q1ee,    q1e_thr, xe,
+			0.38519, 0.38519, 0.8,     0.3,
+		//	q1p,  q1pe, q1pi,  ip,
+			0.01, 0.1,  0.001, 0.0,
+		//	e_pa, e_ua, e_pe, e_ue, q_ep, q_eu
+			200, 200, 342, 200, 180, 100,
+		//	e_lta, e_lte, e_Si
+			20,    0.5,   0.03,
+		//	Ag,   t_d,    t_i
+			0.98, 44_min, 60_min,
+
+		//	t_id
+			5_min,
+		//	dqscm, iqscm
+			0,     0,
+	}} };
+
+	const TParameters upper_bounds = { { {
+		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, D1_0,
+			500,  500,  500,   500, 500,   500, 200,
+		//	Vq,  Vqsc, Vi, Q1b,  Gthr, GIthr,
+			10,  10,   20, 1000, 14.0, 8.0,
+		//	q12, q1sc, ix,  xq1,   iscimod
+			8,   80.0, 100, 120.0, 1.0,
+		//	q1e,  q1ee, q1e_thr, xe,
+			14.4, 14.4, 0.8,     3.0,
+		//	q1p,  q1pe, q1pi, ip
+			0.01, 0.1,  0.1,  0.05,
+		//	e_pa, e_ua, e_pe, e_ue, q_ep, q_eu
+			500,  500,  500,  500,  250,  250,
+		//	e_lta, e_lte, e_Si
+			50,    10,    0.1,
+		//	Ag,   t_d,  t_i
+			0.95, 2_hr, 3_hr,
+
+		//	t_id
+			2_hr,
+		//	dqscm, iqscm
+			1,     1,
+	}} };
+}
+
 namespace insulin_bolus
 {
 	const size_t param_count = 1;

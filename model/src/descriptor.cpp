@@ -55,6 +55,7 @@
 #include "gct2/samadi_gct2.h"
 #include "gct/gct.h"
 #include "gct2/gct2.h"
+#include "gct3/gct3.h"
 
 
 #include <vector>
@@ -715,6 +716,93 @@ namespace gct2_model {
 	const scgms::TSignal_Descriptor cob_desc{ gct2_model::signal_COB, dsGCT_Model_v2_COB, dsU, scgms::NSignal_Unit::g, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 0.1 };
 }
 
+namespace gct3_model {
+
+	const wchar_t* model_param_ui_names[model_param_count] = {
+		// TODO: move to dstrings
+		L"Q1_0", L"Q2_0", L"Qsc_0", L"I_0", L"Isc_0", L"X_0", L"D1_0",
+		L"Vq", L"Vqsc", L"Vi", L"Q1b", L"Gthr", L"GIthr",
+		L"q12", L"q1sc", L"ix", L"xq1", L"iscimod",
+		L"q1e", L"q1ee", L"q1e_thr", L"xe",
+		L"q1p", L"q1pe", L"q1pi", L"ip",
+		L"e_pa", L"e_ua", L"e_pe", L"e_ue", L"q_ep", L"q_eu",
+		L"e_lta", L"e_lte", L"e_Si",
+		L"Ag", L"t_d", L"t_i",
+		L"t_id",
+		L"dqscm", L"iqscm",
+	};
+
+	const wchar_t* dsGCT_Model_v3 = L"GCT model v3";
+	const wchar_t* dsGCT_Model_v3_IG = L"GCT model v3 - Interstitial glucose";
+	const wchar_t* dsGCT_Model_v3_BG = L"GCT model v3 - Blood glucose";
+	const wchar_t* dsGCT_Model_v3_Delivered_Insulin = L"GCT model v3 - Delivered insulin";
+	const wchar_t* dsGCT_Model_v3_IOB = L"GCT model v3 - IOB";
+	const wchar_t* dsGCT_Model_v3_COB = L"GCT model v3 - COB";
+
+	const scgms::NModel_Parameter_Value model_param_types[model_param_count] = {
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+	};
+
+	constexpr size_t number_of_calculated_signals = 5;
+
+	const GUID calculated_signal_ids[number_of_calculated_signals] = {
+		gct3_model::signal_IG,
+		gct3_model::signal_BG,
+		gct3_model::signal_Delivered_Insulin,
+		gct3_model::signal_IOB,
+		gct3_model::signal_COB,
+	};
+
+	const wchar_t* calculated_signal_names[number_of_calculated_signals] = {
+		dsGCT_Model_v3_IG,
+		dsGCT_Model_v3_BG,
+		dsGCT_Model_v3_Delivered_Insulin,
+		dsGCT_Model_v3_IOB,
+		dsGCT_Model_v3_COB,
+	};
+
+	const GUID reference_signal_ids[number_of_calculated_signals] = {
+		scgms::signal_IG,
+		scgms::signal_BG,
+		scgms::signal_Delivered_Insulin_Total,
+		scgms::signal_IOB,
+		scgms::signal_COB,
+	};
+
+	scgms::TModel_Descriptor desc = {
+		model_id,
+		scgms::NModel_Flags::Discrete_Model,
+		dsGCT_Model_v3,
+		nullptr,
+		model_param_count,
+		7,
+		model_param_types,
+		model_param_ui_names,
+		nullptr,
+		lower_bounds.vector,
+		default_parameters.vector,
+		upper_bounds.vector,
+
+		number_of_calculated_signals,
+		calculated_signal_ids,
+		reference_signal_ids,
+	};
+
+	const scgms::TSignal_Descriptor ig_desc{ gct3_model::signal_IG, dsGCT_Model_v3_IG, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF00A0FF, 0xFF00A0FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+	const scgms::TSignal_Descriptor bg_desc{ gct3_model::signal_BG, dsGCT_Model_v3_BG, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+	const scgms::TSignal_Descriptor ins_desc{ gct3_model::signal_Delivered_Insulin, dsGCT_Model_v3_Delivered_Insulin, dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+	const scgms::TSignal_Descriptor iob_desc{ gct3_model::signal_IOB, dsGCT_Model_v3_IOB, dsU, scgms::NSignal_Unit::U_insulin, 0xFF456898, 0xFF456898, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+	const scgms::TSignal_Descriptor cob_desc{ gct3_model::signal_COB, dsGCT_Model_v3_COB, dsU, scgms::NSignal_Unit::g, 0xFF45CC98, 0xFF45CC98, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 0.1 };
+}
+
 namespace insulin_bolus {
 	const GUID model_id = { 0x17f68d4, 0x5161, 0x454c, { 0x93, 0xd9, 0x96, 0x9d, 0xe5, 0x78, 0x4d, 0xd9 } };// {017F68D4-5161-454C-93D9-969DE5784DD9}
 
@@ -967,7 +1055,7 @@ namespace samadi_gct2_model { // DOI: 10.1016/j.compchemeng.2019.106565
 
 const std::array<const scgms::TFilter_Descriptor, 1> filter_descriptions = { { pattern_prediction::get_filter_desc()} };
 
-const std::array<scgms::TModel_Descriptor, 16> model_descriptions = { { diffusion_v2_model::desc,
+const std::array<scgms::TModel_Descriptor, 17> model_descriptions = { { diffusion_v2_model::desc,
 																		 steil_rebrin::desc, steil_rebrin_diffusion_prediction::desc, diffusion_prediction::desc,
 																		 constant_model::desc,
 																		 bergman_model::desc,
@@ -978,10 +1066,11 @@ const std::array<scgms::TModel_Descriptor, 16> model_descriptions = { { diffusio
 																		 samadi_model::desc, samadi_gct2_model::desc,
 																		 gct_model::desc,
 																		 gct2_model::desc,
-																		 pattern_prediction::get_model_desc(),																		 
+																		 gct3_model::desc,
+																		 pattern_prediction::get_model_desc(),
 																		} };
 
-const std::array<scgms::TSignal_Descriptor, 41> signals_descriptors = { {diffusion_v2_model::bg_desc, diffusion_v2_model::ig_desc, steil_rebrin::bg_desc,
+const std::array<scgms::TSignal_Descriptor, 46> signals_descriptors = { {diffusion_v2_model::bg_desc, diffusion_v2_model::ig_desc, steil_rebrin::bg_desc,
 																		 steil_rebrin_diffusion_prediction::ig_desc, diffusion_prediction::ig_desc, 
 																		 constant_model::const_desc,
 																		 bergman_model::bg_desc, bergman_model::ig_desc, bergman_model::iob_desc, bergman_model::cob_desc, bergman_model::basal_insulin_desc, bergman_model::insulin_activity_desc,
@@ -991,6 +1080,7 @@ const std::array<scgms::TSignal_Descriptor, 41> signals_descriptors = { {diffusi
 																		 samadi_gct2_model::ig_desc, samadi_gct2_model::bg_desc, samadi_gct2_model::ins_desc, samadi_gct2_model::iob_desc, samadi_gct2_model::cob_desc,
 																		 gct_model::ig_desc, gct_model::bg_desc, gct_model::ins_desc, gct_model::iob_desc, gct_model::cob_desc,
 																		 gct2_model::ig_desc, gct2_model::bg_desc, gct2_model::ins_desc, gct2_model::iob_desc, gct2_model::cob_desc,
+																		 gct3_model::ig_desc, gct3_model::bg_desc, gct3_model::ins_desc, gct3_model::iob_desc, gct3_model::cob_desc,
 																		 pattern_prediction::get_sig_desc(),
 																		 }};
 
@@ -1015,6 +1105,7 @@ HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IMode
 	else if (*model_id == samadi_gct2_model::model_id) return Manufacture_Object<CSamadi_GCT2_Discrete_Model>(model, parameters, output);
 	else if (*model_id == gct_model::model_id) return Manufacture_Object<CGCT_Discrete_Model>(model, parameters, output);
 	else if (*model_id == gct2_model::model_id) return Manufacture_Object<CGCT2_Discrete_Model>(model, parameters, output);
+	else if (*model_id == gct3_model::model_id) return Manufacture_Object<CGCT3_Discrete_Model>(model, parameters, output);
 		else return E_NOTIMPL;
 }
 
