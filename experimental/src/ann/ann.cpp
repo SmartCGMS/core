@@ -43,6 +43,20 @@
 
 #include "../../../../common/utils/DebugHelper.h"
 
+#if !defined(__cplusplus) || __cplusplus < 202002L
+template<typename TItr>
+void shift_right_single(TItr begin, const TItr end) {
+	for (TItr itr = begin; itr != end && (itr + 1) != end; itr++) {
+		std::swap(*begin, *(itr + 1));
+	}
+}
+#else
+template<typename TItr>
+void shift_right_single(TItr begin, const TItr end) {
+	std::shift_right(begin, end, 1);
+}
+#endif
+
 CANN_Model::CANN_Model(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output)
 	: CBase_Filter(output), mParameters(scgms::Convert_Parameters<ann::TParameters>(parameters, ann::default_parameters.data())) {
 
@@ -65,7 +79,7 @@ CANN_Model::CANN_Model(scgms::IModel_Parameter_Vector* parameters, scgms::IFilte
 HRESULT CANN_Model::Do_Execute(scgms::UDevice_Event event)
 {
 	auto shift_input_in = [this](size_t begin, size_t end, double val) {
-		std::shift_right(mActivations[0].begin() + begin, mActivations[0].begin() + end, 1);
+		shift_right_single(mActivations[0].begin() + begin, mActivations[0].begin() + end);
 		mActivations[0][begin] = val;
 	};
 

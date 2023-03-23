@@ -134,6 +134,7 @@ namespace aim_ge
 			case NInstruction::E_INS: return "E_INS";
 			case NInstruction::E_CHO: return "E_CHO";
 			case NInstruction::NUMBER: return "NUMBER";
+			default: return "???";
 		}
 		return "???";
 	}
@@ -145,6 +146,7 @@ namespace aim_ge
 			case NInstruction::E_GLUC: return NInput_Quantity::GLUC;
 			case NInstruction::E_INS: return NInput_Quantity::INS;
 			case NInstruction::E_CHO: return NInput_Quantity::CHO;
+			default: return NInput_Quantity::count;
 		}
 
 		return NInput_Quantity::count;
@@ -159,6 +161,7 @@ namespace aim_ge
 			case NFunction::SIN: return "sin";
 			case NFunction::TANH: return "tanh";
 			case NFunction::EXP: return "exp";
+			default: return "?";
 		}
 		return "?";
 	}
@@ -332,6 +335,7 @@ namespace aim_ge
 						return lhs - rhs;
 					case NOperator::MUL:
 						return lhs * rhs;
+					default: break;
 				}
 
 				return 0;
@@ -348,6 +352,7 @@ namespace aim_ge
 						target.push_back(Operator_To_String(mOperator));
 						mRHS_Rule->Transcribe(ctx, target);
 						break;
+					default: break;
 				}
 			}
 	};

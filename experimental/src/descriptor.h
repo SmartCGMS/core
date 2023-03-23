@@ -202,7 +202,7 @@ namespace cgp_pred
 	constexpr std::array<T, size> generateArray(T val)
 	{
 		std::array<T, size> result{};
-		for (int i = 0; i < size; ++i)
+		for (size_t i = 0; i < size; ++i)
 			result[i] = val;
 		return result;
 	}
@@ -618,21 +618,21 @@ namespace ann
 	};
 
 	const std::array<double, param_count> lower_bounds = { []() constexpr { 
-		std::array<double, param_count> tmp;
+		std::array<double, param_count> tmp{};
 		for (size_t i = 0; i < param_count; i++)
 			tmp[i] = -1;
 		return tmp;
 	}()};
 
 	const std::array<double, param_count> default_parameters = { []() constexpr {
-		std::array<double, param_count> tmp;
+		std::array<double, param_count> tmp{};
 		for (size_t i = 0; i < param_count; i++)
 			tmp[i] = 0.1;
 		return tmp;
 	}() };
 
 	const std::array<double, param_count> upper_bounds = { []() constexpr {
-		std::array<double, param_count> tmp;
+		std::array<double, param_count> tmp{};
 		for (size_t i = 0; i < param_count; i++)
 			tmp[i] = 1.0;
 		return tmp;

@@ -248,9 +248,6 @@ HRESULT IfaceCalling CBase_Functions_Standalone::Step(const double time_advance_
 			double basisFunctionContrib = 0;
 			double unfactoredBasisFunctionContrib = 0;
 
-			double insBasesContrib = 0;
-			double choBasesContrib = 0;
-
 			for (auto itr = mActive_Bases.begin(); itr != mActive_Bases.end(); )
 			{
 				const auto& fnc = *itr;

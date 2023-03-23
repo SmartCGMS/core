@@ -40,6 +40,7 @@
 
 #include <cmath>
 #include <limits>
+#include <memory>
 
 #include "gct3_common.h"
 #include "gct3_integrators.h"

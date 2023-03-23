@@ -51,8 +51,8 @@ class CANN_Model : public scgms::CBase_Filter, public scgms::IDiscrete_Model
 	protected:
 		ann::TParameters mParameters;
 
-		double mCurrent_Time;
-		uint64_t mSegment_Id;
+		double mCurrent_Time = 0;
+		uint64_t mSegment_Id = scgms::Invalid_Segment_Id;
 
 		std::array<std::vector<double>, 4> mActivations; // inputs, layer1 activations, layer2 activations, output activation
 		double* mWeights[3];

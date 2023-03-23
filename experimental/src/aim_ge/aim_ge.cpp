@@ -96,6 +96,8 @@ double CAIM_GE_Model::Get_Input_Quantity(aim_ge::NInput_Quantity q, size_t timeO
 			return Calc_IOB_At(mCurrent_Time + static_cast<double>(timeOffset) * 5.0 * scgms::One_Minute);
 		case aim_ge::NInput_Quantity::CHO:
 			return Calc_COB_At(mCurrent_Time + static_cast<double>(timeOffset) * 5.0 * scgms::One_Minute);
+		default:
+			return 0;
 	}
 
 	return 0;
