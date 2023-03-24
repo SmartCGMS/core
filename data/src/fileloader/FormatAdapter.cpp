@@ -37,7 +37,9 @@
  */
 
 #include "FormatAdapter.h"
+
 #include "CSVFormat.h"
+#include "Misc.h"
 
 #include <sstream>
 #include <algorithm>
@@ -48,8 +50,11 @@
 	//
 }
 */
-CFormat_Adapter::CFormat_Adapter(const std::string format_name, const filesystem::path filename, const filesystem::path originalFilename) : mFormat_Name(format_name) {
-	Init(filename, originalFilename);
+CFormat_Adapter::CFormat_Adapter(const TFormat_Detection_Rules& rules, const filesystem::path filename, const filesystem::path originalFilename) {
+	mValid = Init(filename, originalFilename);
+	if (mValid) {
+		mValid = Detect_Format_Layout(rules);
+	}
 }
 
 CFormat_Adapter::~CFormat_Adapter()
@@ -58,28 +63,66 @@ CFormat_Adapter::~CFormat_Adapter()
 		mStorage->Finalize();
 }
 
-void CFormat_Adapter::Init(const filesystem::path filename, filesystem::path originalFilename)
-{
-	mError = 0;
+
+bool CFormat_Adapter::Valid() const {
+	return mValid;
+}
+
+std::string CFormat_Adapter::Format_Name() const {
+	return mFormat_Name;
+}
+
+bool CFormat_Adapter::Detect_Format_Layout(const TFormat_Detection_Rules& layout_rules) {
+
+	bool format_found = false;
+
+	auto match = [&](std::string data_format)->bool {
+
+		// find format to be matched
+		auto itr = layout_rules.find(data_format);
+		if (itr == layout_rules.end())
+			return false;
+
+		// try all rules, all rules need to be matched
+		for (auto const& rulePair : itr->second)
+		{
+			const std::string rVal = Read(rulePair.first.c_str());
+
+			if (!Contains_Element(rulePair.second, rVal))
+				return false;
+		}
+
+		return true;
+	};
+
+	// try to recognize data format
+	for (auto const& fpair : layout_rules) {
+		if (match(fpair.first)) {
+			mFormat_Name = fpair.first;
+			format_found = true;
+			break;
+		}
+	}
+
+	return format_found;
+}
+
+bool CFormat_Adapter::Init(const filesystem::path filename, filesystem::path originalFilename) {
 	if (originalFilename.empty())
 		originalFilename = filename;
 
 	// at first, try to recognize file format from extension
 
-	KnownFileFormats format;
+	NStorage_Format data_format = NStorage_Format::unknown;
 	std::wstring path = originalFilename.wstring();
-	if (path.length() < 4)
-	{
-		mError = 1;
-		return;
+	if (path.length() < 4) {		
+		return false;
 	}
 
 	// find dot
 	size_t dotpos = path.find_last_of('.');
-	if (dotpos == std::wstring::npos)
-	{
-		mError = 1;
-		return;
+	if (dotpos == std::wstring::npos) {		
+		return false;
 	}
 	// extract extension
 	std::wstring ext = path.substr(dotpos + 1);
@@ -88,54 +131,52 @@ void CFormat_Adapter::Init(const filesystem::path filename, filesystem::path ori
 
 	// extract format name
 	if (ext == L"csv" || ext == L"txt")
-		format = KnownFileFormats::FORMAT_CSV;
+		data_format = NStorage_Format::csv;
 #ifndef NO_BUILD_EXCELSUPPORT
 	else if (ext == L"xls")
-		format = KnownFileFormats::FORMAT_XLS;
+		data_format = NStorage_Format::xls;
 	else if (ext == L"xlsx")
-		format = KnownFileFormats::FORMAT_XLSX;
+		data_format = NStorage_Format::xlsx;
 #endif
 	else if (ext == L"xml")
-		format = KnownFileFormats::FORMAT_XML;
-	else
-	{
-		mError = 2;
-		return;
+		data_format = NStorage_Format::xml;
+	else {
+		return false;
 	}
 
 	mOriginalPath = filename;
 
 	// create appropriate format adapter
-	switch (format)
+	switch (data_format)
 	{
-		case KnownFileFormats::FORMAT_CSV:
+		case NStorage_Format::csv:
 		{
 			mStorage = std::make_unique<CCsv_File>();
 			break;
 		}
 #ifndef NO_BUILD_EXCELSUPPORT
-		case KnownFileFormats::FORMAT_XLS:
+		case NStorage_Format::xls:
 		{
 			mStorage = std::make_unique<CXls_File>();
 			break;
 		}
-		case KnownFileFormats::FORMAT_XLSX:
+		case NStorage_Format::xlsx:
 		{
 			mStorage = std::make_unique<CXlsx_File>();
 			break;
 		}
 #endif
-		case KnownFileFormats::FORMAT_XML:
+		case NStorage_Format::xml:
 		{
 			mStorage = std::make_unique<CXml_File>();
 			break;
 		}
 		default:
 			assert("Unsupported format supplied as argument to CFormat_Adapter constructor" && false);
-			return;
+			return false;
 	}
 
-	mStorage->Init(mOriginalPath);
+	return mStorage->Init(mOriginalPath);
 }
 
 ISpreadsheet_File* CFormat_Adapter::ToSpreadsheetFile() const
@@ -154,7 +195,7 @@ std::string CFormat_Adapter::Read(const char* cellSpec) const
 
 	switch (Get_File_Organization())
 	{
-		case FileOrganizationStructure::SPREADSHEET:
+		case NFile_Organization_Structure::SPREADSHEET:
 		{
 			int row, col, sheet;
 			CellSpec_To_RowCol(cellSpec, row, col, sheet);
@@ -162,7 +203,7 @@ std::string CFormat_Adapter::Read(const char* cellSpec) const
 			ret = Read(row, col, sheet);
 			break;
 		}
-		case FileOrganizationStructure::HIERARCHY:
+		case NFile_Organization_Structure::HIERARCHY:
 		{
 			TreePosition pos;
 			CellSpec_To_TreePosition(cellSpec, pos);
@@ -279,7 +320,7 @@ void CFormat_Adapter::Write(const char* cellSpec, std::string value)
 {
 	switch (Get_File_Organization())
 	{
-		case FileOrganizationStructure::SPREADSHEET:
+		case NFile_Organization_Structure::SPREADSHEET:
 		{
 			int row, col, sheet;
 			CellSpec_To_RowCol(cellSpec, row, col, sheet);
@@ -287,7 +328,7 @@ void CFormat_Adapter::Write(const char* cellSpec, std::string value)
 			Write(row, col, value, sheet);
 			break;
 		}
-		case FileOrganizationStructure::HIERARCHY:
+		case NFile_Organization_Structure::HIERARCHY:
 		{
 			TreePosition pos;
 			CellSpec_To_TreePosition(cellSpec, pos);
@@ -310,16 +351,6 @@ void CFormat_Adapter::Write(TreePosition& position, std::string value)
 	ToHierarchyFile()->Write(position, value);
 }
 
-int CFormat_Adapter::Get_Error() const
-{
-	return mError;
-}
-
-void CFormat_Adapter::Clear_Error()
-{
-	mError = 0;
-}
-
 bool CFormat_Adapter::Is_EOF() const
 {
 	return mStorage->Is_EOF();
@@ -330,7 +361,7 @@ void CFormat_Adapter::Reset_EOF()
 	mStorage->Reset_EOF();
 }
 
-FileOrganizationStructure CFormat_Adapter::Get_File_Organization() const
+NFile_Organization_Structure CFormat_Adapter::Get_File_Organization() const
 {
 	return mStorage->Get_File_Organization();
 }

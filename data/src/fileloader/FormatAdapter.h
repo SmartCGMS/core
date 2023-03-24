@@ -42,6 +42,8 @@
 #include <functional>
 #include <assert.h>
 
+#include "file_format_rules.h"
+
 #include "FormatImpl.h"
 #include "../../../../common/rtl/FilesystemLib.h"
 
@@ -52,13 +54,17 @@
 class CFormat_Adapter {
 private:
 	// format we use
+	NStorage_Format mStorage_Fromat = NStorage_Format::unknown;
 	std::unique_ptr<IStorage_File> mStorage;
-	// error flag
-	int mError;
 	// original path to file
 	filesystem::path mOriginalPath;
+	// initializes adapter - creates appropriate structures, ..
+	bool Init(const filesystem::path filename, filesystem::path originalFilename = {});
+
+	bool mValid = false;
 protected:
-	const std::string mFormat_Name;
+	std::string mFormat_Name;
+	bool Detect_Format_Layout(const TFormat_Detection_Rules& rules);
 protected:
 	// converts format pointer to spreadsheet file
 	ISpreadsheet_File * ToSpreadsheetFile() const;
@@ -66,12 +72,12 @@ protected:
 	IHierarchy_File* ToHierarchyFile() const;
 
 public:
-	CFormat_Adapter(const std::string format_name, const filesystem::path filename, const filesystem::path originalFilename = {});
-	CFormat_Adapter();
+	CFormat_Adapter(const TFormat_Detection_Rules&rules, const filesystem::path filename, const filesystem::path originalFilename = {});
+	//CFormat_Adapter();
 	virtual ~CFormat_Adapter();
 
-	// initializes adapter - recognizes file format, creates appropriate structures, ..
-	void Init(const filesystem::path filename, filesystem::path originalFilename = {});
+	bool Valid() const;
+	std::string Format_Name() const;
 
 	// reads from cell using cellspec
 	std::string Read(const char* cellSpec) const;
@@ -105,7 +111,7 @@ public:
 	std::string Read_Datetime(TreePosition& position) const;
 
 	// retrieves data organization structure enum value
-	FileOrganizationStructure Get_File_Organization() const;
+	NFile_Organization_Structure Get_File_Organization() const;
 
 	// writes to cell using cellspec
 	void Write(const char* cellSpec, std::string value);
@@ -114,11 +120,6 @@ public:
 	// writes to cell using tree position
 	void Write(TreePosition& position, std::string value);
 
-	// retrieves error flag
-	int Get_Error() const;
-	// clears error flag
-	void Clear_Error();
-	// retrieves EOF flag
 	bool Is_EOF() const;
 	// resets EOF flag
 	void Reset_EOF();

@@ -43,18 +43,29 @@ CValue_Convertor::CValue_Convertor(const CValue_Convertor& other) {
 }
 
 bool CValue_Convertor::init(const std::string& expression_string) {
-	mExpression_String = expression_string;
 
-	mValid = mSymbol_Table.add_variable("x", mValue);
-	if (mValid) {
-		mExpression_Tree.register_symbol_table(mSymbol_Table);
-		mValid = mParser.compile(expression_string, mExpression_Tree);
+	if (expression_string.empty()) {		
+		mValid = true;
+	}
+	else {
+		mExpression_String = expression_string;
+
+		mValid = mSymbol_Table.add_variable("x", mValue);
+		if (mValid) {
+			mExpression_Tree.register_symbol_table(mSymbol_Table);
+			mValid = mParser.compile(expression_string, mExpression_Tree);
+		}
 	}
 
 	return mValid;
 }
 
 double CValue_Convertor::eval(const double val) {
+	//check the most frequent short-cut aka default no-conversion
+	if (mExpression_String.empty()) {
+		return val;
+	}
+
 	double result = std::numeric_limits<double>::quiet_NaN();
 
 	if (mValid) {
@@ -69,7 +80,7 @@ bool CValue_Convertor::valid() const {
 	return mValid;
 }
 
-CValue_Convertor& CValue_Convertor::operator=(const CValue_Convertor& other) {
+CValue_Convertor& CValue_Convertor::operator=(const CValue_Convertor& other) {	
 	mSymbol_Table = other.mSymbol_Table;
 	mExpression_Tree = other.mExpression_Tree;
 	mExpression_String = other.mExpression_String;

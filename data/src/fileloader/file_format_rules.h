@@ -43,17 +43,16 @@
 #include "../../../../common/utils/SimpleIni.h"
 
 
-#include "file_format_detector.h"
 #include "value_convertor.h"
-#include "FormatAdapter.h"
-#include "Extractor.h"
+#include "time_utils.h"
 
 #include <string>
 #include <map>
+#include <optional>
 
 	//TSeries_Descriptor gives a unique
 struct TSeries_Descriptor {
-	std::string format;				//id and string format used to extract the values
+	std::string data_format;				//string format used to extract the values
 	GUID target_signal;
 	CValue_Convertor conversion;		//we support expressions to e.g.; make Fahrenheit to Celsius converion easy	
 };
@@ -69,15 +68,24 @@ protected:
 	std::vector<TCell_Descriptor> mCells;
 public:
 	void push(const TCell_Descriptor& cell);
+	bool empty();
+
+	std::vector<TCell_Descriptor>::iterator begin() { return mCells.begin(); };
+	std::vector<TCell_Descriptor>::iterator end() { return mCells.begin(); };
 };
+
+
+
+using TFormat_Detection_Map = std::map<std::string, std::list<std::string>>;
+using TFormat_Detection_Rules = std::map<std::string, TFormat_Detection_Map>;
 
 class CFile_Format_Rules {
 protected:
-	CFile_Format_Detector mFormat_Detection_Rules;
+	TFormat_Detection_Rules mFormat_Detection_Rules; // all rules for all formats; primary key = format name, secondary key = cellspec, value = matched value
 	CDateTime_Detector mDateTime_Recognizer;
 
 
-	std::map<std::string, TSeries_Descriptor> mSeries;			//organized as <id, desc>
+	std::map<std::string, TSeries_Descriptor> mSeries;			//organized as <series_name, desc>
 	std::map<std::string, CFormat_Layout> mFormat_Layouts;		//organized as <format_name, cells info>
 
 	bool Load_Format_Pattern_Config(CSimpleIniA& ini);
@@ -94,9 +102,10 @@ protected:
 public:
 	CFile_Format_Rules();
 
-	bool Are_Rules_Valid(refcnt::Swstr_list& error_description);	//pushes any error occured during the load and returns mValid
-
-	std::unique_ptr<CFormat_Adapter> Open_File(const filesystem::path &path);
+	bool Are_Rules_Valid(refcnt::Swstr_list& error_description) const;	//pushes any error occured during the load and returns mValid
+	TFormat_Detection_Rules Format_Detection_Rules() const;	
+	std::optional<CFormat_Layout> Format_Layout(const std::string& format_name) const;
+	CDateTime_Detector DateTime_Detector() const;
 };
 
 //let there be global format rules because if someone would declare us in optimization setup, which wuould be instantiated many times per sec

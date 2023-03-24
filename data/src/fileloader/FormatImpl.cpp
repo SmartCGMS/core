@@ -85,9 +85,9 @@ std::string ISpreadsheet_File::Read_Datetime(int row, int col)
 	return Read(row, col);
 }
 
-FileOrganizationStructure ISpreadsheet_File::Get_File_Organization() const
+NFile_Organization_Structure ISpreadsheet_File::Get_File_Organization() const
 {
-	return FileOrganizationStructure::SPREADSHEET;
+	return NFile_Organization_Structure::SPREADSHEET;
 }
 
 IHierarchy_File::~IHierarchy_File()
@@ -112,9 +112,9 @@ std::string IHierarchy_File::Read_Datetime(TreePosition& position)
 	return Read(position);
 }
 
-FileOrganizationStructure IHierarchy_File::Get_File_Organization() const
+NFile_Organization_Structure IHierarchy_File::Get_File_Organization() const
 {
-	return FileOrganizationStructure::HIERARCHY;
+	return NFile_Organization_Structure::HIERARCHY;
 }
 
 // converts codepage encoded string to unicode; needed due to mixed mode XLS files
@@ -212,10 +212,11 @@ static double stod_custom(std::string& in)
 
 /** CSV format interface implementation **/
 
-void CCsv_File::Init(filesystem::path &path)
+bool CCsv_File::Init(filesystem::path &path)
 {
 	mOriginalPath = path;
-	mFile = std::make_unique<CCSV_Format>(path);
+	mFile = std::make_unique<CCSV_Format>(path);	
+	return mFile.operator bool();
 }
 
 void CCsv_File::Select_Worksheet(int sheetIndex)
@@ -269,13 +270,17 @@ const int assumedCodepage = 1250;
 
 /** XLS format interface implementation **/
 
-void CXls_File::Init(filesystem::path &path)
-{
+bool CXls_File::Init(filesystem::path &path) {
 	mSelectedSheetIndex = 0;
 	mOriginalPath = path;
 	mFile = std::make_unique<ExcelFormat::BasicExcel>();
-        const auto converted_path = path.wstring();
-        mFile->Load(converted_path.c_str());
+	bool result = mFile.operator bool();
+	if (result) {
+		const auto converted_path = path.wstring();
+		result = mFile->Load(converted_path.c_str());
+	}	
+	
+	return result;
 }
 
 void CXls_File::Select_Worksheet(int sheetIndex)
@@ -383,13 +388,15 @@ void CXls_File::Finalize()
 
 /** XLSX format interface implementation **/
 
-void CXlsx_File::Init(filesystem::path &path)
-{
+bool CXlsx_File::Init(filesystem::path &path) {
 	mSelectedSheetIndex = 0;
 	mOriginalPath = path;
 	mFile = std::make_unique<xlnt::workbook>();
+	bool result = mFile.operator bool();
+	if (result)
+		mFile->load(path.string());
 
-	mFile->load(path.string());
+	return result;
 }
 
 void CXlsx_File::Select_Worksheet(int sheetIndex)
@@ -538,10 +545,11 @@ void CXlsx_File::Finalize()
 
 /** XML format interface implementation **/
 
-void CXml_File::Init(filesystem::path &path)
+bool CXml_File::Init(filesystem::path &path)
 {
 	mOriginalPath = path;
 	mFile = std::make_unique<CXML_Format>(path);
+	return mFile.operator bool();
 }
 
 std::string CXml_File::Read(TreePosition& position)

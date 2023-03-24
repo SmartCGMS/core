@@ -48,7 +48,7 @@
 #include "../../../common/utils/string_utils.h"
 #include "../../../common/utils/DebugHelper.h"
 #include "../../../common/rtl/rattime.h"
-#include "fileloader/TimeRoutines.h"
+#include "fileloader/time_utils.h"
 
 namespace healthkit_dump_reader_filter
 {

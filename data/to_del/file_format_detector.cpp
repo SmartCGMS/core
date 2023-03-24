@@ -40,6 +40,7 @@
 #include "Misc.h"
 
 #include <algorithm>
+#include <optional>
 
 CFile_Format_Detector::CFile_Format_Detector()
 {
@@ -64,46 +65,3 @@ void CFile_Format_Detector::Add_Pattern(const char* formatName, const char* cell
 	}
 }
 
-bool CFile_Format_Detector::Match(std::string format, CFormat_Adapter& file) const
-{
-	// find format to be matched
-	auto itr = mRuleSet.find(format);
-	if (itr == mRuleSet.end())
-		return false;
-
-	// try all rules, all rules need to be matched
-	for (auto const& rulePair : itr->second)
-	{
-		const std::string rVal = file.Read(rulePair.first.c_str());
-
-		if (!Contains_Element(rulePair.second, rVal) || file.Get_Error() != 0)
-			return false;
-	}
-
-	return true;
-}
-
-std::unique_ptr<CFormat_Adapter> CFile_Format_Detector::Recognize_And_Open(filesystem::path path) const
-{
-	return Recognize_And_Open(path, path);
-}
-
-std::unique_ptr<CFormat_Adapter> CFile_Format_Detector::Recognize_And_Open(filesystem::path originalPath, filesystem::path path) const
-{
-	// recognize file format at first
-	target.Init(path, originalPath);
-
-	if (target.Get_Error() != 0)
-		return "";
-
-	// try to recognize data format
-	for (auto const& fpair : mRuleSet)
-	{
-		target.Clear_Error();
-
-		if (Match(fpair.first, target))
-			return fpair.first;
-	}
-
-	return "";
-}

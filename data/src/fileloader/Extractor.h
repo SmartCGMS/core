@@ -45,6 +45,7 @@
 #include "FormatAdapter.h"
 #include "Structures.h"
 #include "time_utils.h"
+#include "FormatImpl.h"
 
 // enumerator of recognized columns
 enum class ExtractorColumns
@@ -106,13 +107,12 @@ enum class ExtractionIterationType
 };
 
 
-
 /*
  * Structure used as result of extraction
  */
-struct ExtractionResult {
+struct TExtracted_Series {
 
-	std::vector<std::vector<CMeasured_Values_At_Single_Time>> mValues;
+	std::vector<CMeasured_Segment> mValues;
 
 	/*TODO: remove
 	// ordered measured values of files, initially IST-only, then used for merging blood glucose levels; primary index: file index, secondary index: value position
@@ -128,7 +128,7 @@ struct ExtractionResult {
 	std::vector<std::string> FileDeviceNames;
 
 	// total value count within all segments
-	uint32_t Value_Count =  0;
+	size_t Value_Count =  0;
 };
 
 using ExtractorRuleMap = std::map<std::string, ExtractorColumns>;
@@ -151,7 +151,7 @@ class CExtractor
 		// map of header multipliers, key = rule name, value = string format
 		ExtractorStringFormatMap mRuleStringFormats;
 		// map of header rules for cells, primary key = format name, secondary key = cell spec, value = rule name
-		std::map<std::string, ExtractorFormatRuleMap> mRuleSet;
+		std::map<std::string, ExtractorFormatRuleMap> mLayout_Detection_Rules;
 		// map of conditions, primary key = format name, secondary key = condition rule identifier, tertiary key = condition value, value = conditional resolution
 		std::map<std::string, std::map<ExtractorColumns, ExtractorConditionMap>> mConditionRuleSet;
 		// map of conditions, primary key = format name, secondary key = condition rule identifier, tertiary key = condition value, value = conditional resolution rule name
@@ -175,12 +175,12 @@ class CExtractor
 		ExtractorColumns Get_Conditional_Column(std::string& formatName, ExtractorColumns condColType, std::string& condValue) const;
 
 		// extracts information from supplied spreadsheet (csv, xls, xlsx, ..) file and stores all needed data to database; returns true on success
-		bool Extract_Spreadsheet_File(std::string& formatName, CFormat_Adapter& source, const CDateTime_Detector& dt_formats, ExtractionResult& result, size_t fileIndex = 0) const;
+		CMeasured_Segment Extract_Spreadsheet_File(CFormat_Adapter &source, CFormat_Layout& layout, const CDateTime_Detector& dt_formats) const;
 		// extracts information from supplied hierarchy file (xml, ..) and stores all needed data to database; returns true on success
-		bool Extract_Hierarchy_File(std::string& formatName, CFormat_Adapter& source, const CDateTime_Detector& dt_formats, ExtractionResult& result, size_t fileIndex = 0) const;
+		CMeasured_Segment Extract_Hierarchy_File(CFormat_Adapter& source, CFormat_Layout& layout, const CDateTime_Detector& dt_formats) const;
 
 		// extracts single stream of values from supplied file
-		bool Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosition& featurePos, TreePosition& datetimePos, TreePosition& datePos, TreePosition& timePos, ExtractionIterationType itrtype, std::string& formatName, CFormat_Adapter& source, const CDateTime_Detector& dt_formats, ExtractionResult& result, size_t fileIndex = 0, ExtractorColumns extractionColumn = ExtractorColumns::NONE) const;
+		bool Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosition& featurePos, TreePosition& datetimePos, TreePosition& datePos, TreePosition& timePos, ExtractionIterationType itrtype, std::string& formatName, CFormat_Adapter& source, const CDateTime_Detector& dt_formats, TExtracted_Series& result, size_t fileIndex = 0, ExtractorColumns extractionColumn = ExtractorColumns::NONE) const;
 
 		// extracts formatted double for specified column
 		bool Formatted_Read_Double(std::string& formatName, ExtractorColumns colType, std::string& source, double& target) const;
@@ -202,5 +202,5 @@ class CExtractor
 		bool Add_Format_Condition_Rule(const char* formatName, const char* condition, const char* headerRuleName);
 
 		// extracts information from supplied file and stores all needed data to database; returns true on success
-		bool Extract(std::string& formatName, CFormat_Adapter& source, const CDateTime_Detector &dt_formats, ExtractionResult& result, size_t fileIndex = 0) const;
+		CMeasured_Segment Extract(CFormat_Adapter& source) const;
 };

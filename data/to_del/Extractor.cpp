@@ -520,29 +520,22 @@ bool CExtractor::Formatted_Read_String(std::string& formatName, ExtractorColumns
 	return true;
 }
 
-CMeasured_Segment CExtractor::Extract(CFormat_Adapter& source) const {
+TExtracted_Series CExtractor::Extract(CFormat_Adapter& source, const CDateTime_Detector &dt_formats, size_t fileIndex) const
+{
+	source.Reset_EOF();
 
-	const CDateTime_Detector& dt_formats = global_format_rules.DateTime_Detector();
-
-	auto layout = global_format_rules.Format_Layout(source.Format_Name());
-	if (layout.has_value()) {
-		source.Reset_EOF();
-
-		switch (source.Get_File_Organization()) 	{
-			case NFile_Organization_Structure::SPREADSHEET:
-				return Extract_Spreadsheet_File(source, layout.value(), dt_formats);
-			case NFile_Organization_Structure::HIERARCHY:
-				return Extract_Hierarchy_File(source, layout.value(), dt_formats);
-			default:
-				return CMeasured_Segment{};	//empty object means no data
-		}
-	}
-	else {		
-		return CMeasured_Segment{};	//error, which we detect while loading the format descriptors
+	switch (source.Get_File_Organization())
+	{
+		case NFile_Organization_Structure::SPREADSHEET:
+			return Extract_Spreadsheet_File(source, dt_formats, fileIndex);
+		case NFile_Organization_Structure::HIERARCHY:
+			return Extract_Hierarchy_File(source, dt_formats, fileIndex);
+		default:
+			return TExtracted_Series{};	//empty object means no data
 	}
 }
 
-CMeasured_Segment CExtractor::Extract_Hierarchy_File(CFormat_Adapter& source, CFormat_Layout& layout, const CDateTime_Detector& dt_formats) const {
+TExtracted_Series CExtractor::Extract_Hierarchy_File(CFormat_Adapter& source, const CDateTime_Detector& dt_formats, size_t fileIndex) const {
 	
 	TreePosition datePos, timePos, datetimePos, dateBloodPos, timeBloodPos, datetimeBloodPos, isigPos, istPos, bloodPos,
 		eventPos, dateEventPos, timeEventPos, datetimeEventPos;
@@ -951,92 +944,357 @@ bool CExtractor::Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosit
 	return true;
 }
 
-CMeasured_Segment CExtractor::Extract_Spreadsheet_File(CFormat_Adapter& source, CFormat_Layout& layout, const CDateTime_Detector& dt_formats) const {
+TExtracted_Series CExtractor::Extract_Spreadsheet_File(CFormat_Adapter& source, const CDateTime_Detector& dt_formats, size_t fileIndex) const {
+	SheetPosition datePos, timePos, datetimePos, isigPos, istPos, bloodPos, bloodCalPos, insulinBolusPos, insulinBasalRatePos, carbsPos,
+		bloodDatePos, bloodTimePos, bloodDatetimePos, eventPos, eventDatePos, eventTimePos, eventDateTimePos, eventCondPos;
 
-	CMeasured_Segment result;
-	std::string datetime_format;
-	std::string date_str, time_str, datetime_str;
+	// find positions of important columns in current format
+	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_DATE, datePos);
+	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_TIME, timePos);
+	// we prefer having separate date and time columns, but if not available, use datetime column
+	if (!datePos.Valid() || !timePos.Valid())
+		Fill_SheetPosition_For(formatName, ExtractorColumns::COL_DATETIME, datetimePos);
+	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_ISIG, isigPos);
+	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_IST, istPos);
+	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_BLOOD, bloodPos);
+	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_BLOOD_DATE, bloodDatePos);
+	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_BLOOD_TIME, bloodTimePos);
+	// we prefer having separate date and time columns, but if not available, use datetime column
+	if (!bloodDatePos.Valid() || !bloodTimePos.Valid())
+		Fill_SheetPosition_For(formatName, ExtractorColumns::COL_BLOOD_DATETIME, bloodDatetimePos);
+	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_BLOOD_CALIBRATION, bloodCalPos);
+	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_INSULIN_BOLUS, insulinBolusPos);
+	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_INSULIN_BASAL_RATE, insulinBasalRatePos);
+	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_CARBOHYDRATES, carbsPos);
 
+	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_EVENT, eventPos);
+	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_EVENT_CONDITION, eventCondPos);
+	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_EVENT_DATE, eventDatePos);
+	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_EVENT_TIME, eventTimePos);
+	if (!eventDatePos.Valid() || !eventTimePos.Valid())
+		Fill_SheetPosition_For(formatName, ExtractorColumns::COL_EVENT_DATETIME, eventDateTimePos);
 
-	struct TSeries_Source {
-		int row_idx = 0, col_idx = -1, sheet_idx = -1;
-		TCell_Descriptor &cell;
+	if (result.FileDeviceNames.size() < fileIndex + 1)
+		result.FileDeviceNames.resize(fileIndex + 1);
+
+	// extract device name if available
+	SheetPosition devName;
+	Fill_SheetPosition_For(formatName, ExtractorColumns::COL_DEVICE, devName);
+	if (devName.Valid())
+		result.FileDeviceNames[fileIndex] = source.Read(devName.row, devName.column, devName.sheetIndex);
+	else
+		result.FileDeviceNames[fileIndex] = "";
+
+	double bloodMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_BLOOD);
+	double bloodCalMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_BLOOD_CALIBRATION);
+	double istMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_IST);
+	double isigMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_ISIG);
+	double insulinBolusMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_INSULIN_BOLUS);
+	double insulinBasalRateMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_INSULIN_BASAL_RATE);
+	double carbsMultiplier = Get_Column_Multiplier(formatName, ExtractorColumns::COL_CARBOHYDRATES);
+
+	// we need at least one type to be fully available (either datetime or date AND time)
+	if (!datetimePos.Valid() && !(datePos.Valid() && timePos.Valid()))
+		return false;
+
+	// if IST and blood have separate columns specified, check if they're the same - if not, they are separate and should be extracted independently
+	const bool separatedInputStreams = ((bloodDatePos.Valid() && bloodTimePos.Valid() && bloodDatePos != datePos && bloodTimePos != timePos)
+		|| (bloodDatetimePos.Valid() && bloodDatetimePos != datetimePos));
+	ExtractionIterationType phase = ExtractionIterationType::IST;
+
+	// declare lambdas for all row position incrementation
+	auto posInc_ist = [&]() {
+		datePos.row++; timePos.row++; datetimePos.row++; isigPos.row++; istPos.row++; insulinBolusPos.row++; insulinBasalRatePos.row++; carbsPos.row++;
+	};
+	auto posInc_blood = [&]() {
+		bloodPos.row++; bloodCalPos.row++; bloodDatePos.row++; bloodTimePos.row++; bloodDatetimePos.row++;
+	};
+	auto posInc_event = [&]() {
+		eventPos.row++; eventCondPos.row++; eventDatePos.row++; eventTimePos.row++; eventDateTimePos.row++;
+	};
+	auto posInc = [&]() {
+		if (!separatedInputStreams || phase == ExtractionIterationType::IST)
+			posInc_ist();
+		if (!separatedInputStreams || phase == ExtractionIterationType::EVENT)
+			posInc_event();
+		if (!separatedInputStreams || phase == ExtractionIterationType::BLOOD)
+			posInc_blood();
 	};
 
-	std::vector<TSeries_Source> columns;
-	for (auto elem : layout) {
-		int row, col, sheet;
-		CFormat_Adapter::CellSpec_To_RowCol(elem.location.c_str(), row, col, sheet);
-		columns.push_back(TSeries_Source{row, col, sheet, elem});
-	}
+	// initial incrementation - the collspec points to table header
+	posInc();
 
-	
-	int row_offset = 0;
-	while (!source.Is_EOF()) {
+	// NOTE: we assume equal count of rows for each column
+
+	std::string tmp;	 
+	char* dateformat = nullptr; // will be recognized after first date read
+	time_t curTime;
+
+	bool validValue;
+
+	do
+	{
+		//TODO: Why is there no temp basal in csv reads?
 		CMeasured_Values_At_Single_Time mval;
 
-		for (auto elem : columns) {
-			const GUID& sig = elem.cell.series.target_signal;
-
-			if (sig == signal_Comment) {
-				mval.push(signal_Comment, source.Read(elem.row_idx+row_offset, elem.col_idx, elem.sheet_idx));
+		if (separatedInputStreams && (source.Is_EOF() ||
+			(phase == ExtractionIterationType::IST && !istPos.Valid())
+			|| (phase == ExtractionIterationType::EVENT && !eventPos.Valid())
+			|| (phase == ExtractionIterationType::BLOOD && !bloodPos.Valid())
+			))
+		{
+			switch (phase)
+			{
+				case ExtractionIterationType::IST:
+					phase = ExtractionIterationType::EVENT;
+					break;
+				case ExtractionIterationType::EVENT:
+					phase = ExtractionIterationType::BLOOD;
+					break;
+				case ExtractionIterationType::BLOOD:
+				default:
+					break;
 			}
-			else if (sig == signal_Date_Only) {
-				date_str = source.Read_Date(elem.row_idx + row_offset, elem.col_idx, elem.sheet_idx);
-			}
-			else if (sig == signal_Date_Time) {
-				datetime_str = source.Read_Date(elem.row_idx + row_offset, elem.col_idx, elem.sheet_idx);
-			}
-			else if (sig == signal_Time_Only) {
-				time_str = source.Read_Date(elem.row_idx + row_offset, elem.col_idx, elem.sheet_idx);
-			}
-			else {
-				//we are reading a generic signal, double value
-				double val = source.Read_Double(elem.row_idx + row_offset, elem.col_idx, elem.sheet_idx);
-				val = elem.cell.series.conversion.eval(val);
-				if (!std::isnan(val))
-					mval.push(sig, val);
-			}
-			
+			source.Reset_EOF();
 		}
 
-		//handle the time
-		if (datetime_str.empty())
-			datetime_str = date_str + " " + time_str;
+	
+		validValue = false;
 
-		if (datetime_format.empty()) {
-			const char* raw_format = dt_formats.recognize(datetime_str);
-			if (raw_format != nullptr)
-				datetime_format = raw_format;
-		}
-
-		//re-eval, because it might have been assigned
-		if (!datetime_format.empty()) {
-			std::string dst;
-			time_t curTime;
-			// is conversion result valid? if not, try next line
-			if (Str_Time_To_Unix_Time(datetime_str, datetime_format.c_str(), dst, dsDatabaseTimestampFormatShort, curTime)) {
-				mval.set_measured_at(Unix_Time_To_Rat_Time(curTime));
-
-				//check that mval actually contains any value other than the time, which is always required
-				if (mval.valid()) {
-					//unlikely, but we may need to update via removal due to the const iterators
-					auto iter = result.find(mval);
-					if (iter != result.end()) {
-						CMeasured_Values_At_Single_Time tmp = *iter;
-						mval.update(tmp);
-						result.erase(iter);
-					}
-
-					result.insert(mval);
+		if (!separatedInputStreams || phase == ExtractionIterationType::BLOOD)
+		{
+			if (bloodPos.Valid())
+			{
+				if (source.Read(bloodPos.row, bloodPos.column, bloodPos.sheetIndex).length())
+				{
+					mval.push(scgms::signal_BG, source.Read_Double(bloodPos.row, bloodPos.column, bloodPos.sheetIndex) * bloodMultiplier);
+					validValue = true;
 				}
-			}		
-			
+			}
+			if (bloodCalPos.Valid())
+			{
+				if (source.Read(bloodCalPos.row, bloodCalPos.column, bloodCalPos.sheetIndex).length())
+				{					
+					const double dval = source.Read_Double(bloodCalPos.row, bloodCalPos.column, bloodCalPos.sheetIndex) * bloodCalMultiplier;
+					mval.push(scgms::signal_BG_Calibration, dval);
+					// calibration value can be used also as regular blood-glucose value
+					if (!mval.has_value(scgms::signal_BG))
+						mval.push(scgms::signal_BG, dval);
+					validValue = true;
+				}
+			}
 		}
 
-		row_offset++;
-	}
+		if (!separatedInputStreams || phase == ExtractionIterationType::IST)
+		{
+			if (isigPos.Valid())
+			{
+				if (source.Read(isigPos.row, isigPos.column, isigPos.sheetIndex).length())
+				{					
+					mval.push(scgms::signal_ISIG, source.Read_Double(isigPos.row, isigPos.column, isigPos.sheetIndex) * isigMultiplier);
+					validValue = true;
+				}
+			}
+			if (istPos.Valid())
+			{
+				if (source.Read(istPos.row, istPos.column, istPos.sheetIndex).length())
+				{					
+					mval.push(scgms::signal_IG, source.Read_Double(istPos.row, istPos.column, istPos.sheetIndex) * istMultiplier);
+					validValue = true;
+				}
+			}
+			if (insulinBolusPos.Valid())
+			{
+				if (source.Read(insulinBolusPos.row, insulinBolusPos.column, insulinBolusPos.sheetIndex).length())
+				{					
+					mval.push(scgms::signal_Requested_Insulin_Bolus, source.Read_Double(insulinBolusPos.row, insulinBolusPos.column, insulinBolusPos.sheetIndex)* insulinBolusMultiplier);
+					validValue = true;
+				}
+			}
+			if (insulinBasalRatePos.Valid())
+			{
+				if (source.Read(insulinBasalRatePos.row, insulinBasalRatePos.column, insulinBasalRatePos.sheetIndex).length())
+				{
+					mval.push(scgms::signal_Requested_Insulin_Basal_Rate, source.Read_Double(insulinBasalRatePos.row, insulinBasalRatePos.column, insulinBasalRatePos.sheetIndex) * insulinBasalRateMultiplier);
+					validValue = true;
+				}
+			}
+			if (carbsPos.Valid())
+			{
+				if (source.Read(carbsPos.row, carbsPos.column, carbsPos.sheetIndex).length())
+				{
+					mval.push(scgms::signal_Carb_Intake, source.Read_Double(carbsPos.row, carbsPos.column, carbsPos.sheetIndex) * carbsMultiplier);
+					validValue = true;
+				}
+			}
 
+			// prefer separate date and time columns
+			if (datePos.Valid() && timePos.Valid())
+				tmp = source.Read_Date(datePos.row, datePos.column, datePos.sheetIndex) + " " + source.Read_Time(timePos.row, timePos.column, timePos.sheetIndex);
+			// if not available, try datetime column
+			else if (datetimePos.Valid())
+				tmp = source.Read_Datetime(datetimePos.row, datetimePos.column, datetimePos.sheetIndex);
+			else // date+time is mandatory - if not present, go to next row
+			{
+				posInc();
+				continue;
+			}
+		}
 
-	return result;
+		if (!separatedInputStreams || phase == ExtractionIterationType::EVENT)
+		{
+			std::string condition;
+			std::string sval;
+			double dval;
+			ExtractorColumns condColType = ExtractorColumns::COL_EVENT_CONDITION;
+
+			if (eventPos.Valid())
+			{
+
+				sval = source.Read(eventPos.row, eventPos.column, eventPos.sheetIndex);
+
+				if (eventCondPos.Valid())
+					condition = source.Read(eventCondPos.row, eventCondPos.column, eventCondPos.sheetIndex);
+				else
+				{
+					condition = sval;
+					condColType = ExtractorColumns::COL_EVENT;
+				}
+
+				// resolve condition - retrieve column based on condition value
+				ExtractorColumns ccol = Get_Conditional_Column(formatName, condColType, condition);
+				// unknown condition value - no column? try to read formatted input value
+				if (ccol != ExtractorColumns::NONE && (ccol == ExtractorColumns::COL_MISC_NOTE || Formatted_Read_Double(formatName, ccol, sval, dval)))
+				{
+					switch (ccol)
+					{
+						case ExtractorColumns::COL_INSULIN_BOLUS:
+						{
+							mval.push(scgms::signal_Requested_Insulin_Bolus, dval);
+							validValue = true;
+							break;
+						}
+						case ExtractorColumns::COL_INSULIN_BASAL_RATE:
+						{
+							mval.push(scgms::signal_Requested_Insulin_Basal_Rate, dval);
+							validValue = true;
+							break;
+						}
+						case ExtractorColumns::COL_CARBOHYDRATES:
+						{
+							mval.push(scgms::signal_Carb_Intake, dval);
+							validValue = true;
+							break;
+						}
+						case ExtractorColumns::COL_PHYSICAL_ACTIVITY:
+						{
+							//TODO: figure out columns with ambiguous values
+
+							mval.push(scgms::signal_Physical_Activity, 0.3);	//TODO: why 0.3?
+							if (mval.has_value(signal_Physical_Activity_Duration))
+								mval.push(signal_Physical_Activity_Duration, dval * scgms::One_Minute);
+
+							validValue = true;
+							break;
+						}
+						case ExtractorColumns::COL_MISC_NOTE:
+						{
+							std::string sval_fmt;
+							if (Formatted_Read_String(formatName, ccol, sval, sval_fmt))								
+								mval.push(signal_Comment, sval_fmt);
+
+							validValue = true;
+							break;
+						}
+						default:
+							break;
+					}
+				}
+			}
+		}
+
+		if (separatedInputStreams)
+		{
+			if (phase == ExtractionIterationType::BLOOD)
+			{
+				// prefer separate date and time columns
+				if (bloodDatePos.Valid() && bloodTimePos.Valid())
+					tmp = source.Read_Date(bloodDatePos.row, bloodDatePos.column, bloodDatePos.sheetIndex) + " " + source.Read_Time(bloodTimePos.row, bloodTimePos.column, bloodTimePos.sheetIndex);
+				// if not available, try datetime column
+				else if (bloodDatetimePos.Valid())
+					tmp = source.Read_Datetime(bloodDatetimePos.row, bloodDatetimePos.column, bloodDatetimePos.sheetIndex);
+				else // date+time is mandatory - if not present, go to next row
+				{
+					posInc();
+					continue;
+				}
+			}
+			else if (phase == ExtractionIterationType::EVENT)
+			{
+				// prefer separate date and time columns
+				if (eventDatePos.Valid() && eventTimePos.Valid())
+					tmp = source.Read_Date(eventDatePos.row, eventDatePos.column, eventDatePos.sheetIndex) + " " + source.Read_Time(eventTimePos.row, eventTimePos.column, eventTimePos.sheetIndex);
+				// if not available, try datetime column
+				else if (eventDateTimePos.Valid())
+					tmp = source.Read_Datetime(eventDateTimePos.row, eventDateTimePos.column, eventDateTimePos.sheetIndex);
+				else // date+time is mandatory - if not present, go to next row
+				{
+					posInc();
+					continue;
+				}
+			}
+		}
+
+		// just a sanity check
+		if (tmp.length() < 6)
+		{
+			posInc();
+			continue;
+		}
+
+		// recognize date format if not already known
+		if (!dateformat)
+		{
+			dateformat = const_cast<char*>(dt_formats.recognize(tmp));
+			if (!dateformat)
+			{
+				posInc();
+				continue;
+			}
+		}
+
+		std::string dst;
+		// is conversion result valid? if not, try next line
+		if (!Str_Time_To_Unix_Time(tmp, dateformat, dst, dsDatabaseTimestampFormatShort, curTime))
+		{
+			posInc();
+			continue;
+		}
+
+		mval.set_measured_at(Unix_Time_To_Rat_Time(curTime));
+
+		// if the row is valid (didn't reach end of file, ist or blood value is greater than zero)
+		if (!source.Is_EOF() && validValue && mval.valid())
+			result.mValues[fileIndex].push_back(std::move(mval));
+		
+		/*  check the ist+bg logic
+		
+		{
+			// separate IST(+BG) and BG-only values; BG-only values will be merged into IST to obtain single vector of values
+			if (mval->mIst > 0.0)
+				result.SegmentValues[fileIndex].push_back(mval);
+			else if (mval->mBlood.has_value())
+				result.SegmentBloodValues[fileIndex].push_back(mval);
+			else
+				result.SegmentMiscValues[fileIndex].push_back(mval);
+
+			mval = nullptr; // do not reuse
+		}
+		*/
+
+		posInc();
+
+	} while (!source.Is_EOF() || (separatedInputStreams && phase != ExtractionIterationType::BLOOD /* blood is ending iteration */));
+	
+	return true;
 }

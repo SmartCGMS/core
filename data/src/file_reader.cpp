@@ -46,7 +46,6 @@
 #include "../../../common/utils/string_utils.h"
 
 #include "fileloader/file_format_rules.h"
-#include "fileloader/file_format_detector.h"
 #include "fileloader/Extractor.h"
 
 #include <iostream>
@@ -157,7 +156,7 @@ void CFile_Reader::Resolve_Segments(TValue_Vector const& src, std::list<TSegment
 }
 
 void CFile_Reader::Run_Reader() {
-	ExtractionResult values;	
+	TExtracted_Series values;	
 	if (Extract(values) == S_OK) {
 
 		Merge_Values(values);
@@ -310,25 +309,23 @@ void CFile_Reader::Run_Reader() {
 	}
 }
 
-void CFile_Reader::Merge_Values(ExtractionResult& result)
+void CFile_Reader::Merge_Values(TExtracted_Series& result)
 {
 	// prepare output vector
 	mMergedValues.resize(result.mValues.size());	//resize to the number of segments
 
 	// go through all loaded values and push them to single vector containing all values	
 	for (size_t i = 0; i < result.mValues.size(); i++) {
-		for (size_t j = 0; j < result.mValues[i].size(); j++)
-			mMergedValues[i].push_back(result.mValues[i][j]);
+		for (auto &elem: result.mValues[i])		
+			mMergedValues[i].push_back(elem);
 
 		// sort values by timestamp from ascending
 		std::sort(mMergedValues[i].begin(), mMergedValues[i].end(), [](CMeasured_Values_At_Single_Time &a, CMeasured_Values_At_Single_Time &b) { return a.measured_at() < b.measured_at(); });
 	}
 }
 
-HRESULT CFile_Reader::Extract(ExtractionResult &values) {
-	CFile_Format_Detector recognizer;
-	CExtractor extractor;
-	CDateTime_Detector dt_formats;
+HRESULT CFile_Reader::Extract(TExtracted_Series &values) {	
+	CExtractor extractor;	
 
 	values.Value_Count = 0;
 	values.mValues.clear();
@@ -345,24 +342,26 @@ HRESULT CFile_Reader::Extract(ExtractionResult &values) {
 	}
 	else
 		files_to_extract.push_back(mFileName);
-
-	values.mValues.resize(files_to_extract.size());
+	
 
 	for (size_t fileIndex = 0; fileIndex < files_to_extract.size(); fileIndex++) {
-		CFormat_Adapter sfile;
-		std::string format = recognizer.Recognize_And_Open(files_to_extract[fileIndex], sfile);
+		CFormat_Adapter sfile{ global_format_rules.Format_Detection_Rules() , files_to_extract[fileIndex] };
 
 		// unrecognized format or error loading file
-		if (format == "" || sfile.Get_Error())
+		if (!sfile.Valid())
 		{
 			Emit_Info(scgms::NDevice_Event_Code::Error, L"Unknown format: " + files_to_extract[fileIndex].wstring());
 			return E_FAIL;
 		}
 
 		// extract data and fill extraction result
-		if (!extractor.Extract(format, sfile, dt_formats, values, fileIndex))
-		{
-			Emit_Info(scgms::NDevice_Event_Code::Error, L"Cannot extract: " + files_to_extract[fileIndex].wstring());
+		auto extracted_data = extractor.Extract(sfile);
+		if (!extracted_data.empty()) {
+			values.Value_Count += extracted_data.size();
+			values.mValues.push_back(extracted_data);
+
+		} else 	{
+			Emit_Info(scgms::NDevice_Event_Code::Error, L"No data extracted from: " + files_to_extract[fileIndex].wstring());
 			return E_FAIL;
 		}
 	}

@@ -54,17 +54,18 @@
 #endif
 
 // all known file formats
-enum class KnownFileFormats
+enum class NStorage_Format
 {
-	FORMAT_CSV,
+	csv,
 #ifndef NO_BUILD_EXCELSUPPORT
-	FORMAT_XLS,
-	FORMAT_XLSX,
+	xls,
+	xlsx,
 #endif
-	FORMAT_XML,
+	xml,
+	unknown
 };
 
-enum class FileOrganizationStructure
+enum class NFile_Organization_Structure
 {
 	SPREADSHEET,
 	HIERARCHY
@@ -114,7 +115,7 @@ class IStorage_File
 		virtual ~IStorage_File();
 
 		// initializes format, loads from file, etc.
-		virtual void Init(filesystem::path &path) = 0;
+		virtual bool Init(filesystem::path &path) = 0;
 		// finalizes working with file
 		virtual void Finalize() = 0;
 		// retrieves EOF flag
@@ -123,7 +124,7 @@ class IStorage_File
 		virtual void Reset_EOF();
 
 		// retrieves file data organization structure
-		virtual FileOrganizationStructure Get_File_Organization() const = 0;
+		virtual NFile_Organization_Structure Get_File_Organization() const = 0;
 };
 
 /*
@@ -142,7 +143,7 @@ class ISpreadsheet_File : public IStorage_File
 		virtual ~ISpreadsheet_File();
 
 		// initializes format, loads from file, etc.
-		virtual void Init(filesystem::path &path) = 0;
+		//virtual bool Init(filesystem::path &path) = 0;
 		// selects worksheet to work with
 		virtual void Select_Worksheet(int sheetIndex) = 0;
 		// reads cell contents (string)
@@ -161,7 +162,7 @@ class ISpreadsheet_File : public IStorage_File
 		virtual void Finalize() = 0;
 
 		// retrieves file data organization structure
-		virtual FileOrganizationStructure Get_File_Organization() const;
+		virtual NFile_Organization_Structure Get_File_Organization() const;
 };
 
 /*
@@ -181,7 +182,7 @@ class IHierarchy_File : public IStorage_File
 		virtual ~IHierarchy_File();
 
 		// initializes format, loads from file, etc.
-		virtual void Init(filesystem::path &path) = 0;
+		//virtual bool Init(filesystem::path &path) = 0;
 		// reads cell contents (string)
 		virtual std::string Read(TreePosition& position) = 0;
 		// reads cell contents (double)
@@ -198,7 +199,7 @@ class IHierarchy_File : public IStorage_File
 		virtual void Finalize() = 0;
 
 		// retrieves file data organization structure
-		FileOrganizationStructure Get_File_Organization() const;
+		NFile_Organization_Structure Get_File_Organization() const;
 };
 
 /*
@@ -210,7 +211,7 @@ class CCsv_File : public ISpreadsheet_File
 		std::unique_ptr<CCSV_Format> mFile;
 
 	public:
-		virtual void Init(filesystem::path &path);
+		virtual bool Init(filesystem::path &path);
 		virtual void Select_Worksheet(int sheetIndex);
 		virtual std::string Read(int row, int col);
 		virtual double Read_Double(int row, int col);
@@ -230,7 +231,7 @@ class CXls_File : public ISpreadsheet_File
 		int mSelectedSheetIndex;
 
 	public:
-		virtual void Init(filesystem::path &path);
+		virtual bool Init(filesystem::path &path);
 		virtual void Select_Worksheet(int sheetIndex);
 		virtual std::string Read(int row, int col);
 		virtual double Read_Double(int row, int col);
@@ -248,7 +249,7 @@ class CXlsx_File : public ISpreadsheet_File
 		int mSelectedSheetIndex;
 
 	public:
-		virtual void Init(filesystem::path &path);
+		virtual bool Init(filesystem::path &path);
 		virtual void Select_Worksheet(int sheetIndex);
 		virtual std::string Read(int row, int col);
 		virtual double Read_Double(int row, int col);
@@ -270,7 +271,7 @@ class CXml_File : public IHierarchy_File
 		std::unique_ptr<CXML_Format> mFile;
 
 	public:
-		virtual void Init(filesystem::path &path);
+		virtual bool Init(filesystem::path &path);
 		virtual std::string Read(TreePosition& position);
 		virtual double Read_Double(TreePosition& position);
 		virtual void Write(TreePosition& position, std::string value);

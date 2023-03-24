@@ -49,6 +49,10 @@ void CFormat_Layout::push(const TCell_Descriptor& cell) {
 	mCells.push_back(cell);
 }
 
+bool CFormat_Layout::empty() {
+	return mCells.empty();
+}
+
 bool CFile_Format_Rules::Load_Format_Config(const char *default_config, const wchar_t* file_name, std::function<bool(CSimpleIniA&)> func) {
 
 	auto resolve_config_file_path = [](const wchar_t* filename) {
@@ -112,8 +116,21 @@ bool CFile_Format_Rules::Add_Config_Keys(CSimpleIniA & ini, std::function<void(c
 
 
 bool CFile_Format_Rules::Load_Format_Pattern_Config(CSimpleIniA& ini) {
-	auto add = [this](const char* formatName, const char* cellLocation, const char* content) {
-		mFormat_Detection_Rules.Add_Pattern(formatName, cellLocation, content);
+	auto add = [this](const char* formatName, const char* cellLocation, const char* content) {		
+		std::string istr(content);
+		size_t offset = 0, base;
+		// localized formats - pattern may contain "%%" string to delimit localizations
+		while ((base = istr.find("%%", offset)))
+		{
+			if (base == std::string::npos)
+			{
+				mFormat_Detection_Rules[formatName][cellLocation].push_back(istr.substr(offset));
+				break;
+			}
+
+			mFormat_Detection_Rules[formatName][cellLocation].push_back(istr.substr(offset, base - offset));
+			offset = base + 2;
+		}
 	};
 
 	return Add_Config_Keys(ini, add);
@@ -174,6 +191,16 @@ bool CFile_Format_Rules::Load_Format_Layout(CSimpleIniA& ini) {
 			}
 		}
 
+
+		if (layout.empty()) {
+			std::wstring msg = L"Format layout, \"";
+			msg += Widen_String(layout_name);
+			msg += L"\" references an empty series descriptor \"";
+			msg += Widen_String(layout_name);
+			msg += L"\"!";
+			mErrors.push_back(msg);
+			continue;
+		} 
 		//now, the layout should have all its keys recorded => push it
 		mFormat_Layouts[layout_name] = layout;
 
@@ -218,7 +245,7 @@ bool CFile_Format_Rules::Load_Series_Descriptors(CSimpleIniA& ini) {
 		TSeries_Descriptor desc;
 		value = ini.GetValue(section.pItem, "format");
 		if (value)
-			desc.format = value;
+			desc.data_format = value;
 
 		value = ini.GetValue(section.pItem, "conversion");
 		if (value) {
@@ -247,13 +274,24 @@ bool CFile_Format_Rules::Load_Series_Descriptors(CSimpleIniA& ini) {
 
 			continue;
 		}
-
-
+	
 		//once we are here, we have initialized the desc successfully => let's push it
 		mSeries[series_name] = std::move(desc);
 	}	
 
 	return true;
+}
+
+TFormat_Detection_Rules CFile_Format_Rules::Format_Detection_Rules() const {
+	return mFormat_Detection_Rules;
+}
+
+std::optional<CFormat_Layout> CFile_Format_Rules::Format_Layout(const std::string& format_name) const {
+	auto iter = mFormat_Layouts.find(format_name);
+	if (iter != mFormat_Layouts.end())
+		return iter->second;
+	else
+		return std::nullopt;
 }
 
 const wchar_t* dsFormat_Detection_Configuration_Filename = L"format_detection.ini";
@@ -270,7 +308,7 @@ CFile_Format_Rules::CFile_Format_Rules() {
 	mValid = Load();
 }
 
-bool CFile_Format_Rules::Are_Rules_Valid(refcnt::Swstr_list& error_description) {
+bool CFile_Format_Rules::Are_Rules_Valid(refcnt::Swstr_list& error_description) const {
 	for (const auto& err : mErrors)
 		error_description.push(err);
 	return mValid;
@@ -286,6 +324,6 @@ bool CFile_Format_Rules::Load() {
 }
 
 
-std::unique_ptr<CFormat_Adapter> CFile_Format_Rules::Open_File(const filesystem::path& path) {
-
+CDateTime_Detector CFile_Format_Rules::DateTime_Detector() const {
+	return mDateTime_Recognizer;
 }

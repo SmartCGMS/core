@@ -86,9 +86,9 @@ protected:
 	// send event to filter chain
 	bool Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId = Invalid_GUID, const double value = 0.0, const std::wstring& winfo = L"");
 	// extracts file to value vector container
-	HRESULT Extract(ExtractionResult &values);
+	HRESULT Extract(TExtracted_Series &values);
 	// merge values from extraction result to internal vector
-	void Merge_Values(ExtractionResult& result);
+	void Merge_Values(TExtracted_Series& result);
 
 	// resolves segments of given value vector
 	void Resolve_Segments(TValue_Vector const& src, std::list<TSegment_Limits>& targetList) const;

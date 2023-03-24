@@ -48,6 +48,7 @@
 #include <functional>
 #include <string>
 #include <cmath>
+#include <set>
 
 
 //helper signals
@@ -105,4 +106,16 @@ public:
 			func(val.first, TValue{ val.second });
 		}
 	}
+
+	void update(CMeasured_Values_At_Single_Time& other) {
+		other.enumerate([this](const GUID sig, const TValue& val) {
+			this->push(sig, val);
+		});
+	}
 };
+
+
+
+auto Measured_Value_Comparator = [](const CMeasured_Values_At_Single_Time& a, const CMeasured_Values_At_Single_Time& b) { return a.measured_at() < b.measured_at(); };
+using CMeasured_Segment = std::set<CMeasured_Values_At_Single_Time, decltype(Measured_Value_Comparator)>;
+
