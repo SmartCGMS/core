@@ -33,6 +33,8 @@
 #ifndef INCLUDE_EXPRTK_HPP
 #define INCLUDE_EXPRTK_HPP
 
+#define LEAN_AND_MEAN_EXPR
+
 
 #include <algorithm>
 #include <cassert>
@@ -16970,6 +16972,7 @@ namespace exprtk
          #define register_op(Symbol, Type, Args)                                             \
          m.insert(std::make_pair(std::string(Symbol),details::base_operation_t(Type,Args))); \
 
+#ifndef LEAN_AND_MEAN_EXPR
          register_op("abs"       , e_abs     , 1)
          register_op("acos"      , e_acos    , 1)
          register_op("acosh"     , e_acosh   , 1)
@@ -17022,6 +17025,7 @@ namespace exprtk
          register_op("clamp"     , e_clamp   , 3)
          register_op("iclamp"    , e_iclamp  , 3)
          register_op("inrange"   , e_inrange , 3)
+#endif
          #undef register_op
       }
 
@@ -37221,6 +37225,8 @@ namespace exprtk
          m.insert(std::make_pair(Op,UnaryFunctor<T>::process)); \
 
          register_unary_op(details::e_abs   , details::abs_op  )
+
+#ifndef LEAN_AND_MEAN_EXPR
          register_unary_op(details::e_acos  , details::acos_op )
          register_unary_op(details::e_acosh , details::acosh_op)
          register_unary_op(details::e_asin  , details::asin_op )
@@ -37259,6 +37265,7 @@ namespace exprtk
          register_unary_op(details::e_ncdf  , details::ncdf_op )
          register_unary_op(details::e_frac  , details::frac_op )
          register_unary_op(details::e_trunc , details::trunc_op)
+#endif
          #undef register_unary_op
       }
 
@@ -40909,6 +40916,7 @@ namespace exprtk
             return false;                                                             \
          }                                                                            \
 
+#ifndef LEAN_AND_MEAN_EXPR
          exprtk_register_function("all_true"     , at       )
          exprtk_register_function("all_false"    , af       )
          exprtk_register_function("any_true"     , nt       )
@@ -40932,6 +40940,7 @@ namespace exprtk
          exprtk_register_function("axpbz"        , b1_axpbz )
          exprtk_register_function("dot"          , dt       )
          exprtk_register_function("dotk"         , dtk      )
+#endif
          #undef exprtk_register_function
 
          return true;

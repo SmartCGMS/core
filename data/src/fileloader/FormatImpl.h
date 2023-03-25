@@ -74,7 +74,7 @@ enum class NFile_Organization_Structure
 /*
  * Structure encapsulating position in workbook
  */
-struct SheetPosition
+struct TSheet_Position
 {
 	// current row
 	int row = 0;
@@ -84,19 +84,33 @@ struct SheetPosition
 	int sheetIndex = -1;
 
 	// default constructor
-	SheetPosition() noexcept : sheetIndex(-1) { };
+	TSheet_Position() noexcept : sheetIndex(-1) { };
 	// copy constructor
-	SheetPosition(const SheetPosition& other) : row(other.row), column(other.column), sheetIndex(other.sheetIndex) { };
-	// is sheet position valid?
-	bool Valid() const { return sheetIndex >= 0; };
+	TSheet_Position(const TSheet_Position& other) : row(other.row), column(other.column), sheetIndex(other.sheetIndex) { };
+	
 
-	bool operator==(SheetPosition const& other) const
+	bool operator==(TSheet_Position const& other) const
 	{
 		return ((row == other.row) && (column == other.column) && (sheetIndex == other.sheetIndex));
 	}
-	bool operator!=(SheetPosition const& other) const
+	bool operator!=(TSheet_Position const& other) const
 	{
 		return !((row == other.row) && (column == other.column) && (sheetIndex == other.sheetIndex));
+	}
+
+	// is sheet position valid?
+	bool Valid() const 	{
+		return (row >= 0) && (column >= 0) && (sheetIndex >= 0);
+	};
+
+	void Reset() { 
+		row = 0;
+		column = 0;
+		sheetIndex = -1;
+	};
+	
+	void Forward() {
+		column++;
 	}
 };
 
@@ -184,17 +198,17 @@ class IHierarchy_File : public IStorage_File
 		// initializes format, loads from file, etc.
 		//virtual bool Init(filesystem::path &path) = 0;
 		// reads cell contents (string)
-		virtual std::string Read(TreePosition& position) = 0;
+		virtual std::string Read(TXML_Position& position) = 0;
 		// reads cell contents (double)
-		virtual double Read_Double(TreePosition& position) = 0;
+		virtual double Read_Double(TXML_Position& position) = 0;
 		// reads cell contents (date string)
-		virtual std::string Read_Date(TreePosition& position);
+		virtual std::string Read_Date(TXML_Position& position);
 		// reads cell contents (time string)
-		virtual std::string Read_Time(TreePosition& position);
+		virtual std::string Read_Time(TXML_Position& position);
 		// reads cell contents (datetime string)
-		virtual std::string Read_Datetime(TreePosition& position);
+		virtual std::string Read_Datetime(TXML_Position& position);
 		// writes cell contents
-		virtual void Write(TreePosition& position, std::string value) = 0;
+		virtual void Write(TXML_Position& position, std::string value) = 0;
 		// finalizes working with file
 		virtual void Finalize() = 0;
 
@@ -272,8 +286,8 @@ class CXml_File : public IHierarchy_File
 
 	public:
 		virtual bool Init(filesystem::path &path);
-		virtual std::string Read(TreePosition& position);
-		virtual double Read_Double(TreePosition& position);
-		virtual void Write(TreePosition& position, std::string value);
+		virtual std::string Read(TXML_Position& position);
+		virtual double Read_Double(TXML_Position& position);
+		virtual void Write(TXML_Position& position, std::string value);
 		virtual void Finalize();
 };

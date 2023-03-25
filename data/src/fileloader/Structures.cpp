@@ -36,55 +36,45 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "value_convertor.h"
+#pragma once
 
-CValue_Convertor::CValue_Convertor(const CValue_Convertor& other) {
-	operator=(other);
-}
+#include "Structures.h"
 
-bool CValue_Convertor::init(const std::string& expression_string) {
-	mValid = true;
-	mExpression_String = expression_string;
-	return mValid;
-}
 
-double CValue_Convertor::eval(const double val) {
-	//check the most frequent short-cut aka default no-conversion
-	if (mExpression_String.empty()) {
-		return val;
-	}
+bool Measured_Value_Comparator(const CMeasured_Values_At_Single_Time& a, const CMeasured_Values_At_Single_Time& b) {
+	return a.measured_at() < b.measured_at(); 
+};
 
-	double result = std::numeric_limits<double>::quiet_NaN();
 
-	//we do lazy initialization because the engine used so far is incredibly slow when initializing in the debug mode
-	if (!mEngine) {
-		mValid = false;
-		mEngine = std::make_unique<TExpression_Engine>();
-		if (mEngine) {
-			if (mEngine->mSymbol_Table.add_variable("x", mValue)) {
-				mEngine->mExpression_Tree.register_symbol_table(mEngine->mSymbol_Table);
-				mValid = mEngine->mParser.compile(mExpression_String, mEngine->mExpression_Tree);
-			}
+bool CMeasured_Levels::update(const CMeasured_Values_At_Single_Time& val) {
+	if (val.valid()) {
+		//unlikely, but we may need to update via removal due to the const iterators
+		auto iter = mLevels.find(val);
+		if (iter != mLevels.end()) {
+			CMeasured_Values_At_Single_Time tmp = *iter;
+			tmp.update(val);
+			mLevels.erase(iter);
 
-			if (!mValid)
-				mEngine.reset();
+			mLevels.insert(tmp);
 		}
-	}
+		else
+			mLevels.insert(val);
+		
 
-	if (mValid) {
-		mValue = val;
-		result = mEngine->mExpression_Tree.value();
-	}
+		return true;
+	} 
 
-	return result;
+	return false;
 }
 
-bool CValue_Convertor::valid() const {
-	return mValid;
+CMeasured_Levels::TSet::iterator CMeasured_Levels::begin() {
+	return mLevels.begin();
 }
 
-CValue_Convertor& CValue_Convertor::operator=(const CValue_Convertor& other) {	
-	init(other.mExpression_String);
-	
-	return *this;
+CMeasured_Levels::TSet::iterator CMeasured_Levels::end() {
+	return mLevels.end();
+}
+
+bool CMeasured_Levels::empty() const {
+	return mLevels.empty();
 }

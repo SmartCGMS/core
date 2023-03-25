@@ -82,33 +82,36 @@ public:
 	// reads from cell using cellspec
 	std::string Read(const char* cellSpec) const;
 	// reads from cell using coordinates
+	std::string Read(const TSheet_Position &position) const;
 	std::string Read(int row, int column, int sheetIndex = -1) const;
 	// reads from cell using tree position
-	std::string Read(TreePosition& position) const;
+	std::string Read(TXML_Position& position) const;
+	double Read_Double(const TSheet_Position & position) const;
 	// reads floating point value from cell using cellspec
 	double Read_Double(const char* cellSpec) const;
 	// reads floating point value from cell using coordinates
 	double Read_Double(int row, int column, int sheetIndex = -1) const;
 	// reads floating point value from cell using tree position
-	double Read_Double(TreePosition& position) const;
+	double Read_Double(TXML_Position& position) const;
+	std::string Read_Date(const TSheet_Position& position) const;
 	// reads date from cell using cellspec
 	std::string Read_Date(const char* cellSpec) const;
 	// reads date from cell using coordinates
 	std::string Read_Date(int row, int column, int sheetIndex = -1) const;
 	// reads date from cell using tree position
-	std::string Read_Date(TreePosition& position) const;
+	std::string Read_Date(TXML_Position& position) const;
 	// reads time from cell using cellspec
 	std::string Read_Time(const char* cellSpec) const;
 	// reads time from cell using coordinates
 	std::string Read_Time(int row, int column, int sheetIndex = -1) const;
 	// reads time from cell using tree position
-	std::string Read_Time(TreePosition& position) const;
+	std::string Read_Time(TXML_Position& position) const;
 	// reads datetime string from cell using cellspec
 	std::string Read_Datetime(const char* cellSpec) const;
 	// reads datetime string from cell using coordinates
 	std::string Read_Datetime(int row, int column, int sheetIndex = -1) const;
 	// reads datetime string from cell using tree position
-	std::string Read_Datetime(TreePosition& position) const;
+	std::string Read_Datetime(TXML_Position& position) const;
 
 	// retrieves data organization structure enum value
 	NFile_Organization_Structure Get_File_Organization() const;
@@ -118,19 +121,19 @@ public:
 	// writes to cell using coordinates
 	void Write(int row, int column, std::string value, int sheetIndex = -1);
 	// writes to cell using tree position
-	void Write(TreePosition& position, std::string value);
+	void Write(TXML_Position& position, std::string value);
 
 	bool Is_EOF() const;
 	// resets EOF flag
 	void Reset_EOF();
 
-	// convert cellspec to coordinates
+	// convert cellspec to coordinates	
 	static void CellSpec_To_RowCol(const char* cellSpec, int& row, int& col, int& sheetIndex);
 	// convert coordinates to cellspec
 	static void RowCol_To_CellSpec(int row, int col, std::string& cellSpec);
 
 	// convert cellspec to tree position structure
-	static void CellSpec_To_TreePosition(const char* cellSpec, TreePosition& pos);
+	static void CellSpec_To_TreePosition(const char* cellSpec, TXML_Position& pos);
 	// convert tree position structure to cellspec
-	static void TreePosition_To_CellSpec(TreePosition& pos, std::string& cellSpec);
+	static void TreePosition_To_CellSpec(TXML_Position& pos, std::string& cellSpec);
 };

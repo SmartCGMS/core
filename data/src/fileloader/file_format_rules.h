@@ -71,7 +71,7 @@ public:
 	bool empty();
 
 	std::vector<TCell_Descriptor>::iterator begin() { return mCells.begin(); };
-	std::vector<TCell_Descriptor>::iterator end() { return mCells.begin(); };
+	std::vector<TCell_Descriptor>::iterator end() { return mCells.end(); };
 };
 
 

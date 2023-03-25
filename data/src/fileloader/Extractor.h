@@ -112,7 +112,7 @@ enum class ExtractionIterationType
  */
 struct TExtracted_Series {
 
-	std::vector<CMeasured_Segment> mValues;
+	std::vector<CMeasured_Levels> mValues;
 
 	/*TODO: remove
 	// ordered measured values of files, initially IST-only, then used for merging blood glucose levels; primary index: file index, secondary index: value position
@@ -131,76 +131,4 @@ struct TExtracted_Series {
 	size_t Value_Count =  0;
 };
 
-using ExtractorRuleMap = std::map<std::string, ExtractorColumns>;
-using ExtractorMultiplierMap = std::map<std::string, double>;
-using ExtractorStringFormatMap = std::map<std::string, std::string>;
-using ExtractorFormatRuleMap = std::map<std::string, std::string>;
-using ExtractorConditionMap = std::map<std::string, ExtractorColumns>;
-using ExtractorConditionRuleMap = std::map<std::string, std::string>;
-
-/*
- * Extractor class used for managing extract (header) template rules and format-specific rules for data extraction
- */
-class CExtractor
-{
-	private:
-		// map of header schemes, key = rule name, value = column (value) identifier
-		ExtractorRuleMap mRuleTemplates;
-		// map of header multipliers, key = rule name, value = multiplier
-		ExtractorMultiplierMap mRuleMultipliers;
-		// map of header multipliers, key = rule name, value = string format
-		ExtractorStringFormatMap mRuleStringFormats;
-		// map of header rules for cells, primary key = format name, secondary key = cell spec, value = rule name
-		std::map<std::string, ExtractorFormatRuleMap> mLayout_Detection_Rules;
-		// map of conditions, primary key = format name, secondary key = condition rule identifier, tertiary key = condition value, value = conditional resolution
-		std::map<std::string, std::map<ExtractorColumns, ExtractorConditionMap>> mConditionRuleSet;
-		// map of conditions, primary key = format name, secondary key = condition rule identifier, tertiary key = condition value, value = conditional resolution rule name
-		std::map<std::string, std::map<ExtractorColumns, ExtractorConditionRuleMap>> mConditionReverseRuleSet;
-
-		// map of header transcriptions to internal identifier
-		std::map<std::string, ExtractorColumns> mColumnTypes;
-
-	protected:
-		// finds colspec for specified column value and file format; returns nullptr if not found
-		const char* Find_ColSpec_For_Column(const std::string& formatName, ExtractorColumns colType) const;
-		// fills SheetPosition structure with parsed collspec for specified format and column value
-		void Fill_SheetPosition_For(std::string& formatName, ExtractorColumns colType, SheetPosition& target) const;
-		// fills TreePosition structure with parsed collspec for specified format and column value
-		void Fill_TreePosition_For(std::string& formatName, ExtractorColumns colType, TreePosition& target) const;
-		// retrieves multiplier for numeric column
-		double Get_Column_Multiplier(std::string& formatName, ExtractorColumns colType) const;
-		// retrieves string format for column
-		const char* Get_Column_String_Format(std::string& formatName, ExtractorColumns colType) const;
-		// resolves conditional column based on inputs
-		ExtractorColumns Get_Conditional_Column(std::string& formatName, ExtractorColumns condColType, std::string& condValue) const;
-
-		// extracts information from supplied spreadsheet (csv, xls, xlsx, ..) file and stores all needed data to database; returns true on success
-		CMeasured_Segment Extract_Spreadsheet_File(CFormat_Adapter &source, CFormat_Layout& layout, const CDateTime_Detector& dt_formats) const;
-		// extracts information from supplied hierarchy file (xml, ..) and stores all needed data to database; returns true on success
-		CMeasured_Segment Extract_Hierarchy_File(CFormat_Adapter& source, CFormat_Layout& layout, const CDateTime_Detector& dt_formats) const;
-
-		// extracts single stream of values from supplied file
-		bool Extract_Hierarchy_File_Stream(TreePosition& valuePos, TreePosition& featurePos, TreePosition& datetimePos, TreePosition& datePos, TreePosition& timePos, ExtractionIterationType itrtype, std::string& formatName, CFormat_Adapter& source, const CDateTime_Detector& dt_formats, TExtracted_Series& result, size_t fileIndex = 0, ExtractorColumns extractionColumn = ExtractorColumns::NONE) const;
-
-		// extracts formatted double for specified column
-		bool Formatted_Read_Double(std::string& formatName, ExtractorColumns colType, std::string& source, double& target) const;
-		// extracts formatted string for specified column
-		bool Formatted_Read_String(std::string& formatName, ExtractorColumns colType, std::string& source, std::string& target) const;
-
-	public:
-		CExtractor();
-
-		// adds new header template rule; format independent
-		void Add_Template(const char* rule, const char* header);
-		// adds header template rule multiplier
-		void Add_Template_Multiplier(const char* rule, const char* header, double multiplier);
-		// adds header template rule string format
-		void Add_Template_String_Format(const char* rule, const char* header, const char* stringFormat);
-		// adds format-specific header rule; returns true on success, false when no such rule found
-		bool Add_Format_Rule(const char* formatName, const char* cellLocation, const char* ruleName);
-		// adds format-specific condition rule
-		bool Add_Format_Condition_Rule(const char* formatName, const char* condition, const char* headerRuleName);
-
-		// extracts information from supplied file and stores all needed data to database; returns true on success
-		CMeasured_Segment Extract(CFormat_Adapter& source) const;
-};
+CMeasured_Levels Extract_From_File(CFormat_Adapter& source);

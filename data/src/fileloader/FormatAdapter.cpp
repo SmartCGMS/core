@@ -113,7 +113,7 @@ bool CFormat_Adapter::Init(const filesystem::path filename, filesystem::path ori
 
 	// at first, try to recognize file format from extension
 
-	NStorage_Format data_format = NStorage_Format::unknown;
+	mStorage_Fromat = NStorage_Format::unknown;
 	std::wstring path = originalFilename.wstring();
 	if (path.length() < 4) {		
 		return false;
@@ -131,15 +131,15 @@ bool CFormat_Adapter::Init(const filesystem::path filename, filesystem::path ori
 
 	// extract format name
 	if (ext == L"csv" || ext == L"txt")
-		data_format = NStorage_Format::csv;
+		mStorage_Fromat = NStorage_Format::csv;
 #ifndef NO_BUILD_EXCELSUPPORT
 	else if (ext == L"xls")
-		data_format = NStorage_Format::xls;
+		mStorage_Fromat = NStorage_Format::xls;
 	else if (ext == L"xlsx")
-		data_format = NStorage_Format::xlsx;
+		mStorage_Fromat = NStorage_Format::xlsx;
 #endif
 	else if (ext == L"xml")
-		data_format = NStorage_Format::xml;
+		mStorage_Fromat = NStorage_Format::xml;
 	else {
 		return false;
 	}
@@ -147,7 +147,7 @@ bool CFormat_Adapter::Init(const filesystem::path filename, filesystem::path ori
 	mOriginalPath = filename;
 
 	// create appropriate format adapter
-	switch (data_format)
+	switch (mStorage_Fromat)
 	{
 		case NStorage_Format::csv:
 		{
@@ -205,7 +205,7 @@ std::string CFormat_Adapter::Read(const char* cellSpec) const
 		}
 		case NFile_Organization_Structure::HIERARCHY:
 		{
-			TreePosition pos;
+			TXML_Position pos;
 			CellSpec_To_TreePosition(cellSpec, pos);
 
 			ret = Read(pos);
@@ -219,6 +219,10 @@ std::string CFormat_Adapter::Read(const char* cellSpec) const
 	return ret;
 }
 
+std::string CFormat_Adapter::Read(const TSheet_Position& position) const {
+	return Read(position.row, position.column, position.sheetIndex);
+}
+
 std::string CFormat_Adapter::Read(int row, int column, int sheetIndex) const
 {
 	if (sheetIndex >= 0)
@@ -227,7 +231,7 @@ std::string CFormat_Adapter::Read(int row, int column, int sheetIndex) const
 	return ToSpreadsheetFile()->Read(row, column);
 }
 
-std::string CFormat_Adapter::Read(TreePosition& position) const
+std::string CFormat_Adapter::Read(TXML_Position& position) const
 {
 	return ToHierarchyFile()->Read(position);
 }
@@ -240,6 +244,10 @@ double CFormat_Adapter::Read_Double(const char* cellSpec) const
 	return Read_Double(row, col, sheet);
 }
 
+double CFormat_Adapter::Read_Double(const TSheet_Position& position) const {
+	return Read_Double(position.row, position.column, position.sheetIndex);
+}
+
 double CFormat_Adapter::Read_Double(int row, int column, int sheetIndex) const
 {
 	if (sheetIndex >= 0)
@@ -248,9 +256,14 @@ double CFormat_Adapter::Read_Double(int row, int column, int sheetIndex) const
 	return ToSpreadsheetFile()->Read_Double(row, column);
 }
 
-double CFormat_Adapter::Read_Double(TreePosition& position) const
+double CFormat_Adapter::Read_Double(TXML_Position& position) const
 {
 	return ToHierarchyFile()->Read_Double(position);
+}
+
+
+std::string CFormat_Adapter::Read_Date(const TSheet_Position& position) const {
+	return Read_Date(position.row, position.column, position.sheetIndex);
 }
 
 std::string CFormat_Adapter::Read_Date(const char* cellSpec) const
@@ -269,7 +282,7 @@ std::string CFormat_Adapter::Read_Date(int row, int column, int sheetIndex) cons
 	return ToSpreadsheetFile()->Read_Date(row, column);
 }
 
-std::string CFormat_Adapter::Read_Date(TreePosition& position) const
+std::string CFormat_Adapter::Read_Date(TXML_Position& position) const
 {
 	return ToHierarchyFile()->Read_Date(position);
 }
@@ -290,7 +303,7 @@ std::string CFormat_Adapter::Read_Time(int row, int column, int sheetIndex) cons
 	return ToSpreadsheetFile()->Read_Time(row, column);
 }
 
-std::string CFormat_Adapter::Read_Time(TreePosition& position) const
+std::string CFormat_Adapter::Read_Time(TXML_Position& position) const
 {
 	return ToHierarchyFile()->Read_Time(position);
 }
@@ -311,7 +324,7 @@ std::string CFormat_Adapter::Read_Datetime(int row, int column, int sheetIndex) 
 	return ToSpreadsheetFile()->Read_Datetime(row, column);
 }
 
-std::string CFormat_Adapter::Read_Datetime(TreePosition& position) const
+std::string CFormat_Adapter::Read_Datetime(TXML_Position& position) const
 {
 	return ToHierarchyFile()->Read_Datetime(position);
 }
@@ -330,7 +343,7 @@ void CFormat_Adapter::Write(const char* cellSpec, std::string value)
 		}
 		case NFile_Organization_Structure::HIERARCHY:
 		{
-			TreePosition pos;
+			TXML_Position pos;
 			CellSpec_To_TreePosition(cellSpec, pos);
 
 			return Write(pos, value);
@@ -346,7 +359,7 @@ void CFormat_Adapter::Write(int row, int column, std::string value, int sheetInd
 	ToSpreadsheetFile()->Write(row, column, value);
 }
 
-void CFormat_Adapter::Write(TreePosition& position, std::string value)
+void CFormat_Adapter::Write(TXML_Position& position, std::string value)
 {
 	ToHierarchyFile()->Write(position, value);
 }
@@ -435,11 +448,11 @@ void CFormat_Adapter::RowCol_To_CellSpec(int row, int col, std::string& cellSpec
 	cellSpec += std::to_string(row);
 }
 
-void CFormat_Adapter::CellSpec_To_TreePosition(const char* cellSpec, TreePosition& pos)
+void CFormat_Adapter::CellSpec_To_TreePosition(const char* cellSpec, TXML_Position& pos)
 {
 	// Example structure: /rootelement/childelement:0/valueelement:5.Value
 
-	pos.Clear();
+	pos.Reset();
 
 	// correct cellspec always contains '/' at the beginning and at least one letter
 	if (strlen(cellSpec) <= 1 || cellSpec[0] != '/')
@@ -458,7 +471,7 @@ void CFormat_Adapter::CellSpec_To_TreePosition(const char* cellSpec, TreePositio
 				// invalid - nothing between current character and colon
 				if (i - lastcolon <= 1)
 				{
-					pos.Clear();
+					pos.Reset();
 					return;
 				}
 
@@ -468,7 +481,7 @@ void CFormat_Adapter::CellSpec_To_TreePosition(const char* cellSpec, TreePositio
 				}
 				catch (...) // invalid - non-numeric ordinal specifier
 				{
-					pos.Clear();
+					pos.Reset();
 					return;
 				}
 			}
@@ -476,7 +489,7 @@ void CFormat_Adapter::CellSpec_To_TreePosition(const char* cellSpec, TreePositio
 			// invalid - two hierarchy splitters without level spec
 			if (i - lastbl <= 1)
 			{
-				pos.Clear();
+				pos.Reset();
 				return;
 			}
 
@@ -501,7 +514,7 @@ void CFormat_Adapter::CellSpec_To_TreePosition(const char* cellSpec, TreePositio
 			{
 				if (i == len - 1)
 				{
-					pos.Clear();
+					pos.Reset();
 					return;
 				}
 
@@ -512,7 +525,7 @@ void CFormat_Adapter::CellSpec_To_TreePosition(const char* cellSpec, TreePositio
 	}
 }
 
-void CFormat_Adapter::TreePosition_To_CellSpec(TreePosition& pos, std::string& cellSpec)
+void CFormat_Adapter::TreePosition_To_CellSpec(TXML_Position& pos, std::string& cellSpec)
 {
 	std::ostringstream os;
 

@@ -44,9 +44,14 @@ class CValue_Convertor {
 protected:
 	bool mValid = false;
 protected:
-	exprtk::symbol_table<double> mSymbol_Table;
-	exprtk::expression<double>   mExpression_Tree;
-	exprtk::parser<double>       mParser;
+	//most of the time, there won't by any conversion => it is worth to allocate it only when needed to save the overall init time
+	struct TExpression_Engine {
+		exprtk::symbol_table<double> mSymbol_Table;
+		exprtk::expression<double>   mExpression_Tree;
+		exprtk::parser<double>       mParser;
+	};
+
+	std::unique_ptr<TExpression_Engine> mEngine;
 protected:
 	std::string mExpression_String;
 	double mValue = std::numeric_limits<double>::quiet_NaN();		//eval value placeholder due to the expretk lib design

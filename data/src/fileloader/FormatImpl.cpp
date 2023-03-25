@@ -97,17 +97,17 @@ IHierarchy_File::~IHierarchy_File()
 
 // several read methods falls back to string read, if not supported by format library
 
-std::string IHierarchy_File::Read_Date(TreePosition& position)
+std::string IHierarchy_File::Read_Date(TXML_Position& position)
 {
 	return Read(position);
 }
 
-std::string IHierarchy_File::Read_Time(TreePosition& position)
+std::string IHierarchy_File::Read_Time(TXML_Position& position)
 {
 	return Read(position);
 }
 
-std::string IHierarchy_File::Read_Datetime(TreePosition& position)
+std::string IHierarchy_File::Read_Datetime(TXML_Position& position)
 {
 	return Read(position);
 }
@@ -552,18 +552,18 @@ bool CXml_File::Init(filesystem::path &path)
 	return mFile.operator bool();
 }
 
-std::string CXml_File::Read(TreePosition& position)
+std::string CXml_File::Read(TXML_Position& position)
 {
 	return mFile->Read(position);
 }
 
-double CXml_File::Read_Double(TreePosition& position)
+double CXml_File::Read_Double(TXML_Position& position)
 {
 	std::string str(Read(position));
 	return stod_custom(str);
 }
 
-void CXml_File::Write(TreePosition& position, std::string value)
+void CXml_File::Write(TXML_Position& position, std::string value)
 {
 	mFile->Write(position, value);
 }

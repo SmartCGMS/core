@@ -63,7 +63,7 @@ struct TreeLevelSpec
 /*
  * Structure encapsulating position within hierarchy
  */
-struct TreePosition
+struct TXML_Position
 {
 	// wrapper elements sequence
 	std::vector<TreeLevelSpec> hierarchy;
@@ -85,10 +85,10 @@ struct TreePosition
 		return true;
 	};
 	// clears position records
-	void Clear() { hierarchy.clear(); parameter = ""; };
+	void Reset() { hierarchy.clear(); parameter = ""; };
 
 	// move to next element within last wrapper element
-	void ToNext() { if (hierarchy.empty()) return; hierarchy[hierarchy.size() - 1].position++; };
+	void Forward() { if (hierarchy.empty()) return; hierarchy[hierarchy.size() - 1].position++; };
 };
 
 /*
@@ -132,7 +132,7 @@ class CXML_Format
 		void Parse_Tags(XMLElement& target, std::string& contents);
 
 		// finds element in tree; returns nullptr if not found
-		XMLElement* Find_Element(TreePosition& pos);
+		XMLElement* Find_Element(TXML_Position& pos);
 
 		// strips input from quotes, if present
 		std::string Strip_Quotes(std::string& input);
@@ -146,9 +146,9 @@ class CXML_Format
 		virtual ~CXML_Format();
 
 		// reads from position using specifier
-		std::string Read(TreePosition& pos);
+		std::string Read(TXML_Position& pos);
 		// writes to position using specifier
-		void Write(TreePosition& pos, std::string value);
+		void Write(TXML_Position& pos, std::string value);
 
 		// was there any error?
 		bool Is_Error() const;
