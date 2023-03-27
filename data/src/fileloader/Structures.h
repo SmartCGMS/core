@@ -128,3 +128,4 @@ public:
 	bool empty() const;
 };
 
+using TExtracted_Series = std::vector<CMeasured_Levels>;

@@ -40,6 +40,7 @@
 
 #include <string>
 #include <memory>
+#include <optional>
 
 #include "../../../../common/rtl/guid.h"
 #include "../../../../common/rtl/FilesystemLib.h"
@@ -114,6 +115,11 @@ struct TSheet_Position
 	}
 };
 
+//helper functions
+TSheet_Position CellSpec_To_RowCol(const std::string& cellSpec);
+TXML_Position CellSpec_To_TreePosition(const std::string& cellSpec);
+
+
 /*
  * Base storage file interface
  */
@@ -139,12 +145,16 @@ class IStorage_File
 
 		// retrieves file data organization structure
 		virtual NFile_Organization_Structure Get_File_Organization() const = 0;
+
+		virtual std::optional<std::string> Read(const std::string& position) = 0; 			
+		virtual std::optional<std::string> Read(TSheet_Position  &position) { return std::nullopt; };
+		virtual std::optional<std::string> Read(TXML_Position& position) { return std::nullopt; }			//read may modify position to allow sanitization
 };
 
 /*
  * Spreadsheet format adapter interface; encapsulates all needed operations on table file types
  */
-class ISpreadsheet_File : public IStorage_File
+class ISpreadsheet_File : public virtual IStorage_File
 {
 	private:
 		//
@@ -155,34 +165,26 @@ class ISpreadsheet_File : public IStorage_File
 	public:
 		// virtual destructor due to need of calling derived ones
 		virtual ~ISpreadsheet_File();
-
-		// initializes format, loads from file, etc.
-		//virtual bool Init(filesystem::path &path) = 0;
-		// selects worksheet to work with
-		virtual void Select_Worksheet(int sheetIndex) = 0;
-		// reads cell contents (string)
-		virtual std::string Read(int row, int col) = 0;
-		// reads cell contents (double)
-		virtual double Read_Double(int row, int col) = 0;
-		// reads cell contents (date string)
-		virtual std::string Read_Date(int row, int col);
-		// reads cell contents (time string)
-		virtual std::string Read_Time(int row, int col);
-		// reads cell contents (datetime string)
-		virtual std::string Read_Datetime(int row, int col);
-		// writes cell contents
-		virtual void Write(int row, int col, std::string value) = 0;
+		
+		// writes cell contents	
+		virtual void Write(int row, int col, int sheetIndex, const std::string& value) = 0;
 		// finalizes working with file
 		virtual void Finalize() = 0;
 
 		// retrieves file data organization structure
 		virtual NFile_Organization_Structure Get_File_Organization() const;
+
+		virtual std::optional<std::string> Read(TSheet_Position& position) = 0;
+		virtual std::optional<std::string> Read(const std::string& position) override final {
+			TSheet_Position pos = CellSpec_To_RowCol(position);
+			return Read(pos);
+		}
 };
 
 /*
  * Hierarchy format adapter interface; encapsulates all needed operations on tree hierarchy file types
  */
-class IHierarchy_File : public IStorage_File
+class IHierarchy_File : public virtual IStorage_File
 {
 	private:
 		//
@@ -195,18 +197,6 @@ class IHierarchy_File : public IStorage_File
 		// virtual destructor due to need of calling derived ones
 		virtual ~IHierarchy_File();
 
-		// initializes format, loads from file, etc.
-		//virtual bool Init(filesystem::path &path) = 0;
-		// reads cell contents (string)
-		virtual std::string Read(TXML_Position& position) = 0;
-		// reads cell contents (double)
-		virtual double Read_Double(TXML_Position& position) = 0;
-		// reads cell contents (date string)
-		virtual std::string Read_Date(TXML_Position& position);
-		// reads cell contents (time string)
-		virtual std::string Read_Time(TXML_Position& position);
-		// reads cell contents (datetime string)
-		virtual std::string Read_Datetime(TXML_Position& position);
 		// writes cell contents
 		virtual void Write(TXML_Position& position, std::string value) = 0;
 		// finalizes working with file
@@ -223,14 +213,14 @@ class CCsv_File : public ISpreadsheet_File
 {
 	private:
 		std::unique_ptr<CCSV_Format> mFile;
-
 	public:
-		virtual bool Init(filesystem::path &path);
-		virtual void Select_Worksheet(int sheetIndex);
-		virtual std::string Read(int row, int col);
-		virtual double Read_Double(int row, int col);
-		virtual void Write(int row, int col, std::string value);
-		virtual void Finalize();
+		virtual ~CCsv_File() = default;
+
+		virtual bool Init(filesystem::path &path) override;
+		virtual void Write(int row, int col, int sheetIndex, const std::string& value);
+		virtual void Finalize() override;
+
+		virtual std::optional<std::string> Read(TSheet_Position& position) override final;
 };
 
 #ifndef NO_BUILD_EXCELSUPPORT
@@ -238,40 +228,36 @@ class CCsv_File : public ISpreadsheet_File
 /*
  * XLS file format adapter
  */
-class CXls_File : public ISpreadsheet_File
+class CXls_File : public virtual ISpreadsheet_File
 {
 	private:
-		std::unique_ptr<ExcelFormat::BasicExcel> mFile;
-		int mSelectedSheetIndex;
-
+		std::unique_ptr<ExcelFormat::BasicExcel> mFile;		
 	public:
-		virtual bool Init(filesystem::path &path);
-		virtual void Select_Worksheet(int sheetIndex);
-		virtual std::string Read(int row, int col);
-		virtual double Read_Double(int row, int col);
-		virtual void Write(int row, int col, std::string value);
-		virtual void Finalize();
+		virtual ~CXls_File() = default;
+
+		virtual bool Init(filesystem::path &path) override;
+		virtual void Write(int row, int col, int sheetIndex, const std::string& value);
+		virtual void Finalize() override;
+
+		virtual std::optional<std::string> Read(TSheet_Position& position) override final;
 };
 
 /*
  * XLSX file format adapter
  */
-class CXlsx_File : public ISpreadsheet_File
+class CXlsx_File : public virtual ISpreadsheet_File
 {
 	private:
-		std::unique_ptr<xlnt::workbook> mFile;
-		int mSelectedSheetIndex;
-
+		std::unique_ptr<xlnt::workbook> mFile;		
+		std::optional<std::string> Read_Datetime(TSheet_Position &position);
 	public:
-		virtual bool Init(filesystem::path &path);
-		virtual void Select_Worksheet(int sheetIndex);
-		virtual std::string Read(int row, int col);
-		virtual double Read_Double(int row, int col);
-		virtual std::string Read_Date(int row, int col);
-		virtual std::string Read_Time(int row, int col);
-		virtual std::string Read_Datetime(int row, int col);
-		virtual void Write(int row, int col, std::string value);
-		virtual void Finalize();
+		virtual ~CXlsx_File() = default;
+
+		virtual bool Init(filesystem::path &path) override;
+		virtual void Write(int row, int col, int sheetIndex, const std::string& value);
+		virtual void Finalize() override;
+
+		virtual std::optional<std::string> Read(TSheet_Position& position) override final;
 };
 
 #endif
@@ -279,15 +265,19 @@ class CXlsx_File : public ISpreadsheet_File
 /*
  * XML format adapter
  */
-class CXml_File : public IHierarchy_File
+class CXml_File : public virtual IHierarchy_File
 {
 	private:
 		std::unique_ptr<CXML_Format> mFile;
 
 	public:
-		virtual bool Init(filesystem::path &path);
-		virtual std::string Read(TXML_Position& position);
-		virtual double Read_Double(TXML_Position& position);
-		virtual void Write(TXML_Position& position, std::string value);
-		virtual void Finalize();
+		virtual ~CXml_File() = default;
+
+		virtual bool Init(filesystem::path &path) override;
+		virtual void Write(TXML_Position& position, const std::string &value);
+		virtual void Finalize() override;
+
+
+		virtual std::optional<std::string> Read(const std::string& position) override final;
+		virtual std::optional<std::string> Read(TXML_Position& position) override final;	//read may modify position
 };

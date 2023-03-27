@@ -40,11 +40,181 @@
 
 #include <memory>
 #include <cmath>
+#include <sstream>
+
 #ifdef _WIN32
 	#include <windows.h>
 #endif
 
 #include "../../../../common/utils/string_utils.h"
+
+
+//helper functions
+TSheet_Position CellSpec_To_RowCol(const std::string &cellSpec) {
+	int row = 0, col =0, sheetIndex = 0;
+
+	bool specTypeFlag = false;
+	size_t i = 0;
+
+	while (cellSpec[i] >= 'A' && cellSpec[i] <= 'Z')
+	{
+		col *= 'Z' - 'A' + 1;
+		col += cellSpec[i] - 'A';
+		i++;
+	}
+
+	// in case of non-Excel cellspec (not beginning with letter), set flag
+	if (i == 0)
+		specTypeFlag = true;
+	
+	while (cellSpec[i] >= '0' && cellSpec[i] <= '9')
+	{
+		row *= 10;
+		row += cellSpec[i] - '0';
+		i++;
+	}
+
+	// besides standard Excell cellspec (B8, ..) we recognize also comma-separated cellspec (1,7)
+	if (specTypeFlag)
+	{
+		i++;
+		col = 0;
+		while (cellSpec[i] >= '0' && cellSpec[i] <= '9')
+		{
+			col *= 10;
+			col += cellSpec[i] - '0';
+			i++;
+		}
+	}
+	else
+		row--; // decrease row to be universal
+
+	// parse sheet index in case of multisheet workbook (XLS, XLSX)
+	if (cellSpec[i] == ':')
+	{
+		i++;
+		sheetIndex = 0;
+		while (cellSpec[i] >= '0' && cellSpec[i] <= '9')
+		{
+			sheetIndex *= 10;
+			sheetIndex += cellSpec[i] - '0';
+			i++;
+		}
+	}
+
+	return TSheet_Position{ row, col, sheetIndex };
+}
+
+
+void RowCol_To_CellSpec(int row, int col, std::string& cellSpec)
+{
+	cellSpec = "";
+
+	while (col > 0)
+	{
+		cellSpec += 'A' + (col % ('Z' - 'A' + 1));
+		col /= ('Z' - 'A' + 1);
+	}
+
+	cellSpec += std::to_string(row);
+}
+
+TXML_Position CellSpec_To_TreePosition(const std::string &cellSpec) {
+	// Example structure: /rootelement/childelement:0/valueelement:5.Value
+	TXML_Position pos;
+	pos.Reset();
+
+	// correct cellspec always contains '/' at the beginning and at least one letter
+	if (cellSpec.size() <= 1 || cellSpec[0] != '/')
+		return pos;
+
+	size_t i = 1, lastbl = 0, lastcolon = 0;
+	size_t len = cellSpec.size();
+	size_t levelOrdinal = 0;
+
+	for (; i <= len; i++)
+	{
+		if (i == len || cellSpec[i] == '/' || cellSpec[i] == '.')
+		{
+			if (lastcolon)
+			{
+				// invalid - nothing between current character and colon
+				if (i - lastcolon <= 1)
+				{
+					pos.Reset();
+					return pos;
+				}
+
+				try
+				{
+					levelOrdinal = std::stoul(std::string(cellSpec).substr(lastcolon + 1, i - lastcolon - 1));
+				}
+				catch (...) // invalid - non-numeric ordinal specifier
+				{
+					pos.Reset();
+					return pos;
+				}
+			}
+
+			// invalid - two hierarchy splitters without level spec
+			if (i - lastbl <= 1)
+			{
+				pos.Reset();
+				return pos;
+			}
+
+			std::string tagName = std::string(cellSpec).substr(lastbl + 1, (lastcolon ? lastcolon : i) - lastbl - 1);
+
+			pos.hierarchy.push_back(TreeLevelSpec(tagName, levelOrdinal));
+
+			lastcolon = 0;
+			levelOrdinal = 0;
+
+			if (i != len && cellSpec[i] == '/')
+				lastbl = i;
+		}
+
+		if (i != len)
+		{
+			if (cellSpec[i] == ':')
+			{
+				lastcolon = i;
+			}
+			else if (cellSpec[i] == '.')
+			{
+				if (i == len - 1)
+				{
+					pos.Reset();
+					return pos;
+				}
+
+				pos.parameter = std::string(cellSpec).substr(i + 1);
+				break;
+			}
+		}
+	}
+
+	return pos;
+}
+
+void TreePosition_To_CellSpec(TXML_Position& pos, std::string& cellSpec)
+{
+	std::ostringstream os;
+
+	for (size_t i = 0; i < pos.hierarchy.size(); i++)
+	{
+		os << "/" << pos.hierarchy[i].tagName;
+
+		if (pos.hierarchy[i].position != 0)
+			os << ":" << pos.hierarchy[i].position;
+	}
+
+	if (!pos.parameter.empty())
+		os << "." << pos.parameter;
+
+	cellSpec = os.str();
+}
+
 
 /** Generic implementations **/
 
@@ -68,22 +238,6 @@ ISpreadsheet_File::~ISpreadsheet_File()
 	//
 }
 
-// several read methods falls back to string read, if not supported by format library
-
-std::string ISpreadsheet_File::Read_Date(int row, int col)
-{
-	return Read(row, col);
-}
-
-std::string ISpreadsheet_File::Read_Time(int row, int col)
-{
-	return Read(row, col);
-}
-
-std::string ISpreadsheet_File::Read_Datetime(int row, int col)
-{
-	return Read(row, col);
-}
 
 NFile_Organization_Structure ISpreadsheet_File::Get_File_Organization() const
 {
@@ -95,22 +249,6 @@ IHierarchy_File::~IHierarchy_File()
 	//
 }
 
-// several read methods falls back to string read, if not supported by format library
-
-std::string IHierarchy_File::Read_Date(TXML_Position& position)
-{
-	return Read(position);
-}
-
-std::string IHierarchy_File::Read_Time(TXML_Position& position)
-{
-	return Read(position);
-}
-
-std::string IHierarchy_File::Read_Datetime(TXML_Position& position)
-{
-	return Read(position);
-}
 
 NFile_Organization_Structure IHierarchy_File::Get_File_Organization() const
 {
@@ -219,14 +357,9 @@ bool CCsv_File::Init(filesystem::path &path)
 	return mFile.operator bool();
 }
 
-void CCsv_File::Select_Worksheet(int sheetIndex)
-{
-	// CSV does not have worksheets, do nothing here
-}
 
-std::string CCsv_File::Read(int row, int col)
-{
-	std::string rd = mFile->Read(row, col);
+std::optional<std::string> CCsv_File::Read(TSheet_Position& position) {
+	const auto rd = mFile->Read(position.row, position.column);
 
 	if (mFile->Is_UnkCell_Flag())
 		mEOF = true;
@@ -234,27 +367,7 @@ std::string CCsv_File::Read(int row, int col)
 	return rd;
 }
 
-double CCsv_File::Read_Double(int row, int col)
-{
-	double rd;
-	try
-	{
-		std::string str = mFile->Read(row, col);
-		rd = stod_custom(str);
-	}
-	catch (std::exception&)
-	{
-		rd = 0.0;
-	}
-
-	if (mFile->Is_UnkCell_Flag())
-		mEOF = true;
-
-	return rd;
-}
-
-void CCsv_File::Write(int row, int col, std::string value)
-{
+void CCsv_File::Write(int row, int col, int sheetIndex, const std::string& value) {
 	mFile->Write(row, col, value);
 }
 
@@ -271,7 +384,6 @@ const int assumedCodepage = 1250;
 /** XLS format interface implementation **/
 
 bool CXls_File::Init(filesystem::path &path) {
-	mSelectedSheetIndex = 0;
 	mOriginalPath = path;
 	mFile = std::make_unique<ExcelFormat::BasicExcel>();
 	bool result = mFile.operator bool();
@@ -283,25 +395,19 @@ bool CXls_File::Init(filesystem::path &path) {
 	return result;
 }
 
-void CXls_File::Select_Worksheet(int sheetIndex)
-{
-	mSelectedSheetIndex = sheetIndex;
-}
-
-std::string CXls_File::Read(int row, int col)
-{
-	ExcelFormat::BasicExcelWorksheet* ws = mFile->GetWorksheet(mSelectedSheetIndex);
+std::optional<std::string> CXls_File::Read(TSheet_Position& position) {
+	ExcelFormat::BasicExcelWorksheet* ws = mFile->GetWorksheet(position.sheetIndex);
 	if (!ws)
 	{
 		mEOF = true;
-		return std::string("");
+		return std::nullopt;
 	}
 
-	ExcelFormat::BasicExcelCell* cell = ws->Cell(row, col);
+	ExcelFormat::BasicExcelCell* cell = ws->Cell(position.row, position.column);
 	if (!cell || cell->Type() == ExcelFormat::BasicExcelCell::UNDEFINED)
 	{
 		mEOF = true;
-		return std::string("");
+		return std::nullopt;
 	}
 
 	// type disambiguation; convert if needed
@@ -320,60 +426,16 @@ std::string CXls_File::Read(int row, int col)
 		}
 		case ExcelFormat::BasicExcelCell::DOUBLE:
 			return std::to_string(cell->GetDouble());
-		case ExcelFormat::BasicExcelCell::INT:
+		case ExcelFormat::BasicExcelCell::INT:		
 			return std::to_string(cell->GetInteger());
 	}
 
-	return std::string("");
+	return std::nullopt;
 }
 
-double CXls_File::Read_Double(int row, int col)
+void CXls_File::Write(int row, int col, int sheetIndex, const std::string& value)
 {
-	ExcelFormat::BasicExcelWorksheet* ws = mFile->GetWorksheet(mSelectedSheetIndex);
-	if (!ws)
-	{
-		mEOF = true;
-		return 0.0;
-	}
-
-	ExcelFormat::BasicExcelCell* cell = ws->Cell(row, col);
-	if (!cell)
-	{
-		mEOF = true;
-		return 0.0;
-	}
-
-	try
-	{
-		switch (cell->Type())
-		{
-			case ExcelFormat::BasicExcelCell::STRING:
-			{
-				std::string str(cell->GetString());
-				return stod_custom(str);
-			}
-			case ExcelFormat::BasicExcelCell::WSTRING:
-			{
-				std::string str(Narrow_WString(std::wstring(cell->GetWString())));
-				return stod_custom(str);
-			}
-			case ExcelFormat::BasicExcelCell::DOUBLE:
-				return cell->GetDouble();
-			case ExcelFormat::BasicExcelCell::INT:
-				return (double)cell->GetInteger();
-		}
-	}
-	catch (std::exception&)
-	{
-		// could happen basically only on conversion error
-	}
-
-	return 0.0;
-}
-
-void CXls_File::Write(int row, int col, std::string value)
-{
-	ExcelFormat::BasicExcelWorksheet* ws = mFile->GetWorksheet(mSelectedSheetIndex);
+	ExcelFormat::BasicExcelWorksheet* ws = mFile->GetWorksheet(sheetIndex);
 	if (!ws)
 		return;
 
@@ -388,8 +450,7 @@ void CXls_File::Finalize()
 
 /** XLSX format interface implementation **/
 
-bool CXlsx_File::Init(filesystem::path &path) {
-	mSelectedSheetIndex = 0;
+bool CXlsx_File::Init(filesystem::path &path) {	
 	mOriginalPath = path;
 	mFile = std::make_unique<xlnt::workbook>();
 	bool result = mFile.operator bool();
@@ -399,51 +460,39 @@ bool CXlsx_File::Init(filesystem::path &path) {
 	return result;
 }
 
-void CXlsx_File::Select_Worksheet(int sheetIndex)
-{
-	mSelectedSheetIndex = sheetIndex;
-}
-
-std::string CXlsx_File::Read(int row, int col)
-{
+std::optional<std::string> CXlsx_File::Read(TSheet_Position& position) {
 	try
 	{
-		xlnt::worksheet ws = mFile->sheet_by_index(mSelectedSheetIndex);
+		xlnt::worksheet ws = mFile->sheet_by_index(static_cast<size_t>(position.sheetIndex));
 
-		xlnt::cell const& cl = ws.cell(col + 1, row + 1);
+		xlnt::cell const& cl = ws.cell(position.column + 1, position.row + 1);
 
 		if (cl.data_type() == xlnt::cell_type::formula_string)
 			return cl.value<std::string>();
 		else if (cl.data_type() == xlnt::cell_type::number)
 			return cl.to_string();
+
+		else if (cl.data_type() == xlnt::cell_type::date)
+			return Read_Datetime(position);
+
 		else if (cl.data_type() == xlnt::cell_type::error)
 		{
 			mEOF = true;
-			return "";
+			return std::nullopt;
 		}
 		else
-			return "";
+			return std::nullopt;
 	}
 	catch (std::exception&)
 	{
 		mEOF = true;
-		return "";
+		return std::nullopt;
 	}
 }
 
-double CXlsx_File::Read_Double(int row, int col)
-{
-	try
-	{
-		xlnt::worksheet ws = mFile->sheet_by_index(mSelectedSheetIndex);
-		return ws.cell(col + 1, row + 1).value<double>();
-	}
-	catch (std::exception&)
-	{
-		mEOF = true;
-		return 0.0;
-	}
-}
+/*
+* 
+* legacy methods, which we hope we won't need in future, but who knows... so, we rather keep them
 
 std::string CXlsx_File::Read_Date(int row, int col)
 {
@@ -496,21 +545,21 @@ std::string CXlsx_File::Read_Time(int row, int col)
 		return "";
 	}
 }
+*/
 
-std::string CXlsx_File::Read_Datetime(int row, int col)
+std::optional<std::string> CXlsx_File::Read_Datetime(TSheet_Position& position)
 {
 	try
 	{
-		xlnt::worksheet ws = mFile->sheet_by_index(mSelectedSheetIndex);
-		xlnt::cell const& cl = ws.cell(col + 1, row + 1);
+		xlnt::worksheet ws = mFile->sheet_by_index(position.sheetIndex);
+		xlnt::cell const& cl = ws.cell(position.column + 1, position.row + 1);
 
 		if (cl.data_type() == xlnt::cell_type::error || cl.data_type() == xlnt::cell_type::empty)
 		{
 			mEOF = true;
-			return "";
+			return std::nullopt;
 		}
-		else
-		{
+		else {			
 			xlnt::datetime dtm = cl.value<xlnt::datetime>();
 			return dtm.to_string();
 		}
@@ -518,15 +567,15 @@ std::string CXlsx_File::Read_Datetime(int row, int col)
 	catch (std::exception&)
 	{
 		mEOF = true;
-		return "";
+		return std::nullopt;
 	}
 }
 
-void CXlsx_File::Write(int row, int col, std::string value)
+void CXlsx_File::Write(int row, int col, int sheetIndex, const std::string &value)
 {
 	try
 	{
-		xlnt::worksheet ws = mFile->sheet_by_index(mSelectedSheetIndex);
+		xlnt::worksheet ws = mFile->sheet_by_index(sheetIndex);
 		ws.cell(col + 1, row + 1).value(value);
 	}
 	catch (std::exception&)
@@ -552,18 +601,19 @@ bool CXml_File::Init(filesystem::path &path)
 	return mFile.operator bool();
 }
 
-std::string CXml_File::Read(TXML_Position& position)
+std::optional<std::string> CXml_File::Read(const std::string & position) {
+	TXML_Position pos = CellSpec_To_TreePosition(position);
+	return Read(pos);
+}
+
+
+std::optional<std::string> CXml_File::Read(TXML_Position& position)
 {
 	return mFile->Read(position);
 }
 
-double CXml_File::Read_Double(TXML_Position& position)
-{
-	std::string str(Read(position));
-	return stod_custom(str);
-}
 
-void CXml_File::Write(TXML_Position& position, std::string value)
+void CXml_File::Write(TXML_Position& position, const std::string &value)
 {
 	mFile->Write(position, value);
 }

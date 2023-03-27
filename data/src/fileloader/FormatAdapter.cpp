@@ -86,9 +86,11 @@ bool CFormat_Adapter::Detect_Format_Layout(const TFormat_Detection_Rules& layout
 		// try all rules, all rules need to be matched
 		for (auto const& rulePair : itr->second)
 		{
-			const std::string rVal = Read(rulePair.first.c_str());
+			const auto rVal = Read<std::string>(rulePair.first);
+			if (!rVal.has_value())
+				return false;			 
 
-			if (!Contains_Element(rulePair.second, rVal))
+			if (!Contains_Element(rulePair.second, rVal.value()))
 				return false;
 		}
 
@@ -189,146 +191,8 @@ IHierarchy_File* CFormat_Adapter::ToHierarchyFile() const
 	return dynamic_cast<IHierarchy_File*>(mStorage.get());
 }
 
-std::string CFormat_Adapter::Read(const char* cellSpec) const
-{
-	std::string ret = "";
 
-	switch (Get_File_Organization())
-	{
-		case NFile_Organization_Structure::SPREADSHEET:
-		{
-			int row, col, sheet;
-			CellSpec_To_RowCol(cellSpec, row, col, sheet);
-
-			ret = Read(row, col, sheet);
-			break;
-		}
-		case NFile_Organization_Structure::HIERARCHY:
-		{
-			TXML_Position pos;
-			CellSpec_To_TreePosition(cellSpec, pos);
-
-			ret = Read(pos);
-
-			if (!pos.Valid())
-				ret = "<INVALID TREE POSITION>";
-			break;
-		}
-	}
-
-	return ret;
-}
-
-std::string CFormat_Adapter::Read(const TSheet_Position& position) const {
-	return Read(position.row, position.column, position.sheetIndex);
-}
-
-std::string CFormat_Adapter::Read(int row, int column, int sheetIndex) const
-{
-	if (sheetIndex >= 0)
-		ToSpreadsheetFile()->Select_Worksheet(sheetIndex);
-
-	return ToSpreadsheetFile()->Read(row, column);
-}
-
-std::string CFormat_Adapter::Read(TXML_Position& position) const
-{
-	return ToHierarchyFile()->Read(position);
-}
-
-double CFormat_Adapter::Read_Double(const char* cellSpec) const
-{
-	int row, col, sheet;
-	CellSpec_To_RowCol(cellSpec, row, col, sheet);
-
-	return Read_Double(row, col, sheet);
-}
-
-double CFormat_Adapter::Read_Double(const TSheet_Position& position) const {
-	return Read_Double(position.row, position.column, position.sheetIndex);
-}
-
-double CFormat_Adapter::Read_Double(int row, int column, int sheetIndex) const
-{
-	if (sheetIndex >= 0)
-		ToSpreadsheetFile()->Select_Worksheet(sheetIndex);
-
-	return ToSpreadsheetFile()->Read_Double(row, column);
-}
-
-double CFormat_Adapter::Read_Double(TXML_Position& position) const
-{
-	return ToHierarchyFile()->Read_Double(position);
-}
-
-
-std::string CFormat_Adapter::Read_Date(const TSheet_Position& position) const {
-	return Read_Date(position.row, position.column, position.sheetIndex);
-}
-
-std::string CFormat_Adapter::Read_Date(const char* cellSpec) const
-{
-	int row, col, sheet;
-	CellSpec_To_RowCol(cellSpec, row, col, sheet);
-
-	return Read_Date(row, col, sheet);
-}
-
-std::string CFormat_Adapter::Read_Date(int row, int column, int sheetIndex) const
-{
-	if (sheetIndex >= 0)
-		ToSpreadsheetFile()->Select_Worksheet(sheetIndex);
-
-	return ToSpreadsheetFile()->Read_Date(row, column);
-}
-
-std::string CFormat_Adapter::Read_Date(TXML_Position& position) const
-{
-	return ToHierarchyFile()->Read_Date(position);
-}
-
-std::string CFormat_Adapter::Read_Time(const char* cellSpec) const
-{
-	int row, col, sheet;
-	CellSpec_To_RowCol(cellSpec, row, col, sheet);
-
-	return Read_Time(row, col, sheet);
-}
-
-std::string CFormat_Adapter::Read_Time(int row, int column, int sheetIndex) const
-{
-	if (sheetIndex >= 0)
-		ToSpreadsheetFile()->Select_Worksheet(sheetIndex);
-
-	return ToSpreadsheetFile()->Read_Time(row, column);
-}
-
-std::string CFormat_Adapter::Read_Time(TXML_Position& position) const
-{
-	return ToHierarchyFile()->Read_Time(position);
-}
-
-std::string CFormat_Adapter::Read_Datetime(const char* cellSpec) const
-{
-	int row, col, sheet;
-	CellSpec_To_RowCol(cellSpec, row, col, sheet);
-
-	return Read_Datetime(row, col, sheet);
-}
-
-std::string CFormat_Adapter::Read_Datetime(int row, int column, int sheetIndex) const
-{
-	if (sheetIndex >= 0)
-		ToSpreadsheetFile()->Select_Worksheet(sheetIndex);
-
-	return ToSpreadsheetFile()->Read_Datetime(row, column);
-}
-
-std::string CFormat_Adapter::Read_Datetime(TXML_Position& position) const
-{
-	return ToHierarchyFile()->Read_Datetime(position);
-}
-
+/*/
 void CFormat_Adapter::Write(const char* cellSpec, std::string value)
 {
 	switch (Get_File_Organization())
@@ -363,7 +227,7 @@ void CFormat_Adapter::Write(TXML_Position& position, std::string value)
 {
 	ToHierarchyFile()->Write(position, value);
 }
-
+*/
 bool CFormat_Adapter::Is_EOF() const
 {
 	return mStorage->Is_EOF();
@@ -377,168 +241,4 @@ void CFormat_Adapter::Reset_EOF()
 NFile_Organization_Structure CFormat_Adapter::Get_File_Organization() const
 {
 	return mStorage->Get_File_Organization();
-}
-
-void CFormat_Adapter::CellSpec_To_RowCol(const char* cellSpec, int& row, int& col, int& sheetIndex)
-{
-	bool specTypeFlag = false;
-	size_t i = 0;
-
-	sheetIndex = 0;
-
-	col = 0;
-	while (cellSpec[i] >= 'A' && cellSpec[i] <= 'Z')
-	{
-		col *= 'Z' - 'A' + 1;
-		col += cellSpec[i] - 'A';
-		i++;
-	}
-
-	// in case of non-Excel cellspec (not beginning with letter), set flag
-	if (i == 0)
-		specTypeFlag = true;
-
-	row = 0;
-	while (cellSpec[i] >= '0' && cellSpec[i] <= '9')
-	{
-		row *= 10;
-		row += cellSpec[i] - '0';
-		i++;
-	}
-
-	// besides standard Excell cellspec (B8, ..) we recognize also comma-separated cellspec (1,7)
-	if (specTypeFlag)
-	{
-		i++;
-		col = 0;
-		while (cellSpec[i] >= '0' && cellSpec[i] <= '9')
-		{
-			col *= 10;
-			col += cellSpec[i] - '0';
-			i++;
-		}
-	}
-	else
-		row--; // decrease row to be universal
-
-	// parse sheet index in case of multisheet workbook (XLS, XLSX)
-	if (cellSpec[i] == ':')
-	{
-		i++;
-		sheetIndex = 0;
-		while (cellSpec[i] >= '0' && cellSpec[i] <= '9')
-		{
-			sheetIndex *= 10;
-			sheetIndex += cellSpec[i] - '0';
-			i++;
-		}
-	}
-}
-
-void CFormat_Adapter::RowCol_To_CellSpec(int row, int col, std::string& cellSpec)
-{
-	cellSpec = "";
-
-	while (col > 0)
-	{
-		cellSpec += 'A' + (col % ('Z' - 'A' + 1));
-		col /= ('Z' - 'A' + 1);
-	}
-
-	cellSpec += std::to_string(row);
-}
-
-void CFormat_Adapter::CellSpec_To_TreePosition(const char* cellSpec, TXML_Position& pos)
-{
-	// Example structure: /rootelement/childelement:0/valueelement:5.Value
-
-	pos.Reset();
-
-	// correct cellspec always contains '/' at the beginning and at least one letter
-	if (strlen(cellSpec) <= 1 || cellSpec[0] != '/')
-		return;
-
-	size_t i = 1, lastbl = 0, lastcolon = 0;
-	size_t len = strlen(cellSpec);
-	size_t levelOrdinal = 0;
-
-	for (; i <= len; i++)
-	{
-		if (i == len || cellSpec[i] == '/' || cellSpec[i] == '.')
-		{
-			if (lastcolon)
-			{
-				// invalid - nothing between current character and colon
-				if (i - lastcolon <= 1)
-				{
-					pos.Reset();
-					return;
-				}
-
-				try
-				{
-					levelOrdinal = std::stoul(std::string(cellSpec).substr(lastcolon + 1, i - lastcolon - 1));
-				}
-				catch (...) // invalid - non-numeric ordinal specifier
-				{
-					pos.Reset();
-					return;
-				}
-			}
-
-			// invalid - two hierarchy splitters without level spec
-			if (i - lastbl <= 1)
-			{
-				pos.Reset();
-				return;
-			}
-
-			std::string tagName = std::string(cellSpec).substr(lastbl + 1, (lastcolon ? lastcolon : i) - lastbl - 1);
-
-			pos.hierarchy.push_back(TreeLevelSpec(tagName, levelOrdinal));
-
-			lastcolon = 0;
-			levelOrdinal = 0;
-
-			if (i != len && cellSpec[i] == '/')
-				lastbl = i;
-		}
-
-		if (i != len)
-		{
-			if (cellSpec[i] == ':')
-			{
-				lastcolon = i;
-			}
-			else if (cellSpec[i] == '.')
-			{
-				if (i == len - 1)
-				{
-					pos.Reset();
-					return;
-				}
-
-				pos.parameter = std::string(cellSpec).substr(i + 1);
-				break;
-			}
-		}
-	}
-}
-
-void CFormat_Adapter::TreePosition_To_CellSpec(TXML_Position& pos, std::string& cellSpec)
-{
-	std::ostringstream os;
-
-	for (size_t i = 0; i < pos.hierarchy.size(); i++)
-	{
-		os << "/" << pos.hierarchy[i].tagName;
-
-		if (pos.hierarchy[i].position != 0)
-			os << ":" << pos.hierarchy[i].position;
-	}
-
-	if (!pos.parameter.empty())
-		os << "." << pos.parameter;
-
-	cellSpec = os.str();
 }

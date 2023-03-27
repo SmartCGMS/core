@@ -98,14 +98,17 @@ XMLElement* CXML_Format::Find_Element(TXML_Position& pos)
 
 	XMLElement* el = &mRootElement;
 
+	
 	// verify root element name
-	if (pos.hierarchy[0].tagName != el->tagName) {
+	if ((pos.hierarchy[0].tagName != el->tagName) || (pos.hierarchy[0].position == TreeLevelSpec::npos)) {
 		pos.hierarchy[0].position = TreeLevelSpec::npos;
 		return nullptr;
 	}
-
-
+	
 	for (size_t i = 1; i < pos.hierarchy.size(); i++) {
+		if (pos.hierarchy[i].position == TreeLevelSpec::npos)
+			return nullptr;
+
 		auto iter = el->children.find(pos.hierarchy[i].tagName);
 		if (iter == el->children.end()) {
 			pos.hierarchy[i].position = TreeLevelSpec::npos;	
@@ -113,7 +116,7 @@ XMLElement* CXML_Format::Find_Element(TXML_Position& pos)
 		}
 		
 		auto& children = iter->second;
-		if (children.size() < pos.hierarchy[i].position)
+		if (pos.hierarchy[i].position < children.size())
 			el = &children[pos.hierarchy[i].position];
 		else {
 			pos.hierarchy[i].position = TreeLevelSpec::npos;
@@ -126,17 +129,17 @@ XMLElement* CXML_Format::Find_Element(TXML_Position& pos)
 	return el;
 }
 
-std::string CXML_Format::Read(TXML_Position& pos)
+std::optional<std::string> CXML_Format::Read(TXML_Position& pos)
 {
 	if (pos.hierarchy.size() == 0)
-		return "";
+		return std::nullopt;
 
 	XMLElement* el = Find_Element(pos);
 
 	if (!el)
 	{
 		pos.hierarchy[pos.hierarchy.size() - 1].position = TreeLevelSpec::npos;
-		return "";
+		return std::nullopt;
 	}
 
 	// probe reading; no value should be returned, but still valid attempt
@@ -146,13 +149,13 @@ std::string CXML_Format::Read(TXML_Position& pos)
 	if (el->parameters.find(pos.parameter) == el->parameters.end())
 	{
 		pos.hierarchy[pos.hierarchy.size() - 1].position = TreeLevelSpec::npos;
-		return "";
+		return std::nullopt;
 	}
 
 	return el->parameters[pos.parameter];
 }
 
-void CXML_Format::Write(TXML_Position& pos, std::string value)
+void CXML_Format::Write(TXML_Position& pos, const std::string &value)
 {
 	if (pos.hierarchy.size() == 0)
 		return;

@@ -40,6 +40,7 @@
 
 #include <vector>
 #include <fstream>
+#include <optional>
 
 #include "../../../../common/rtl/FilesystemLib.h"
 
@@ -77,7 +78,7 @@ class CCSV_Format
 		virtual ~CCSV_Format();
 
 		// reads contents of specified cell; always string since we don't convert inputs at load time
-		std::string Read(int row, int column);
+		std::optional<std::string> Read(int row, int column);
 		// write to specified cell
 		void Write(int row, int column, std::string value);
 

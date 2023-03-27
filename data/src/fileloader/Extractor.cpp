@@ -51,11 +51,11 @@
 
 //CellSpec_To_Position is a helper function to allow templating of Extract_Series
 void CellSpec_To_Position(const std::string &spec, TSheet_Position &pos) {	
-	CFormat_Adapter::CellSpec_To_RowCol(spec.c_str(), pos.row, pos.column, pos.sheetIndex);
+	pos = CellSpec_To_RowCol(spec);
 }
 
 void CellSpec_To_Position(const std::string& spec, TXML_Position& pos) {
-	CFormat_Adapter::CellSpec_To_TreePosition(spec.c_str(), pos);
+	pos = CellSpec_To_TreePosition(spec);
 }
 
 
@@ -72,38 +72,47 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, CFormat_Layout& layout,
 		TCell_Descriptor &cell;
 	};
 
-	std::vector<TSeries_Source> series;
+	std::vector<TSeries_Source> cursor;
 	for (auto elem : layout) {
 		TPosition pos;
 		CellSpec_To_Position(elem.location, pos);
-		series.push_back(TSeries_Source{pos, elem});
+		cursor.push_back(TSeries_Source{pos, elem});
 	}
 
 		
 	while (!source.Is_EOF()) {
 		CMeasured_Values_At_Single_Time mval;
 
-		for (auto elem : series) {
+		for (auto elem : cursor) {
 			const GUID& sig = elem.cell.series.target_signal;
 
-			if (sig == signal_Comment) {
-				mval.push(signal_Comment, source.Read(elem.position));
-			}
-			else if (sig == signal_Date_Only) {
-				date_str = source.Read_Date(elem.position);
-			}
-			else if (sig == signal_Date_Time) {
-				datetime_str = source.Read_Date(elem.position);
-			}
-			else if (sig == signal_Time_Only) {
-				time_str = source.Read_Date(elem.position);
-			}
-			else {
-				//we are reading a generic signal, double value
-				double val = source.Read_Double(elem.position);
-				val = elem.cell.series.conversion.eval(val);
-				if (!std::isnan(val))
-					mval.push(sig, val);
+			const auto str_val_opt = source.Read<TPosition>(elem.position);
+
+			if (str_val_opt.has_value()) {				
+
+				if (sig == signal_Comment) {
+					mval.push(signal_Comment, str_val_opt.value());
+				}
+				else if (sig == signal_Date_Only) {
+					date_str = str_val_opt.value();
+				}
+				else if (sig == signal_Date_Time) {
+					datetime_str = str_val_opt.value();
+				}
+				else if (sig == signal_Time_Only) {
+					time_str = str_val_opt.value();
+				}
+				else {
+					//we are reading a generic signal, double value
+					bool ok = false;
+					auto str_val = str_val_opt.value();
+					double val = str_2_dbl(str_val.c_str(), ok);
+					if (ok) {
+						val = elem.cell.series.conversion.eval(val);
+						if (!std::isnan(val))
+							mval.push(sig, val);
+					}
+				}
 			}
 			
 			elem.position.Forward();

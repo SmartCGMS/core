@@ -294,8 +294,8 @@ void CFile_Reader::Run_Reader() {
 
 	if (mShutdownAfterLast)	{
 		scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Shut_Down };		
-		values could be empty
-		evt.device_time() = values[values.size() - 1].measured_at() + std::numeric_limits<double>::epsilon();		
+		if (!values.empty())
+			evt.device_time() = values[values.size() - 1].measured_at() + std::numeric_limits<double>::epsilon();		
 		evt.device_id() = file_reader::File_Reader_Device_GUID;
 		mOutput.Send(evt);
 	}

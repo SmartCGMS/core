@@ -41,6 +41,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <optional>
 
 /*
  * Structure encapsulating single level of hierarchy (in tree)
@@ -146,9 +147,9 @@ class CXML_Format
 		virtual ~CXML_Format();
 
 		// reads from position using specifier
-		std::string Read(TXML_Position& pos);
+		std::optional<std::string> Read(TXML_Position& pos);
 		// writes to position using specifier
-		void Write(TXML_Position& pos, std::string value);
+		void Write(TXML_Position& pos, const std::string &value);
 
 		// was there any error?
 		bool Is_Error() const;
