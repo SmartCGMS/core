@@ -115,11 +115,13 @@ public:
 };
 
 
+bool Measured_Value_Comparator(const CMeasured_Values_At_Single_Time& a, const CMeasured_Values_At_Single_Time& b);
+
 class CMeasured_Levels {
 protected:
 	using TMeasured_Value_Comparator = std::function<bool(const CMeasured_Values_At_Single_Time&, const CMeasured_Values_At_Single_Time&)>;
 	using TSet = std::set<CMeasured_Values_At_Single_Time, TMeasured_Value_Comparator>;
-	TSet mLevels;
+	TSet mLevels{ Measured_Value_Comparator };
 public:
 	bool update(const CMeasured_Values_At_Single_Time& val);
 

@@ -82,43 +82,10 @@ public:
 
 	template <typename R, typename P>
 	std::optional<std::string> Read(P& position) const {
-
-		std::string ret = "";
-
-		switch (Get_File_Organization()) {
-			case NFile_Organization_Structure::SPREADSHEET:
-			{
-				ret = mStorage->Read<P>(position);	//must be non-empty string, empty-cell is not allowed as a format indicator as it could match anything
-				if (ret.empty())
-					return std::nullopt;
-				break;
-			}
-
-			case NFile_Organization_Structure::HIERARCHY:
-			{
-				ret = mStorage->Read<P>(position);	//can be empty string, e.g.; when testing path existence
-
-				if (!position.Valid())
-					return std::nullopt;
-				break;
-			}
-		}
-
-		return ret;
+		return mStorage->Read(position);
 	}
-	
 
-	// retrieves data organization structure enum value
 	NFile_Organization_Structure Get_File_Organization() const;
-
-/* actually, these are unused
-	// writes to cell using cellspec
-	void Write(const char* cellSpec, const std::string &value);
-	// writes to cell using coordinates
-	void Write(int row, int column, const std::string &value, int sheetIndex = -1);
-	// writes to cell using tree position
-	void Write(TXML_Position& position, const std::string &value);
-*/
 	bool Is_EOF() const;
 	// resets EOF flag
 	void Reset_EOF();

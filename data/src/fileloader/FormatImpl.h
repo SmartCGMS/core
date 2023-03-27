@@ -89,6 +89,7 @@ struct TSheet_Position
 	// copy constructor
 	TSheet_Position(const TSheet_Position& other) : row(other.row), column(other.column), sheetIndex(other.sheetIndex) { };
 	
+	TSheet_Position(int r, int c, int s) : row(r), column(c), sheetIndex(s) {};
 
 	bool operator==(TSheet_Position const& other) const
 	{
@@ -147,8 +148,8 @@ class IStorage_File
 		virtual NFile_Organization_Structure Get_File_Organization() const = 0;
 
 		virtual std::optional<std::string> Read(const std::string& position) = 0; 			
-		virtual std::optional<std::string> Read(TSheet_Position  &position) { return std::nullopt; };
-		virtual std::optional<std::string> Read(TXML_Position& position) { return std::nullopt; }			//read may modify position to allow sanitization
+		virtual std::optional<std::string> Read(const TSheet_Position &position) { return std::nullopt; };
+		virtual std::optional<std::string> Read(const TXML_Position& position) { return std::nullopt; }			//read may modify position to allow sanitization
 };
 
 /*
@@ -174,9 +175,9 @@ class ISpreadsheet_File : public virtual IStorage_File
 		// retrieves file data organization structure
 		virtual NFile_Organization_Structure Get_File_Organization() const;
 
-		virtual std::optional<std::string> Read(TSheet_Position& position) = 0;
+		virtual std::optional<std::string> Read(const TSheet_Position& position) = 0;
 		virtual std::optional<std::string> Read(const std::string& position) override final {
-			TSheet_Position pos = CellSpec_To_RowCol(position);
+			const TSheet_Position pos = CellSpec_To_RowCol(position);
 			return Read(pos);
 		}
 };
@@ -198,7 +199,7 @@ class IHierarchy_File : public virtual IStorage_File
 		virtual ~IHierarchy_File();
 
 		// writes cell contents
-		virtual void Write(TXML_Position& position, std::string value) = 0;
+		virtual void Write(TXML_Position& position, const std::string &value) = 0;		
 		// finalizes working with file
 		virtual void Finalize() = 0;
 
@@ -220,7 +221,7 @@ class CCsv_File : public ISpreadsheet_File
 		virtual void Write(int row, int col, int sheetIndex, const std::string& value);
 		virtual void Finalize() override;
 
-		virtual std::optional<std::string> Read(TSheet_Position& position) override final;
+		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;
 };
 
 #ifndef NO_BUILD_EXCELSUPPORT
@@ -239,7 +240,7 @@ class CXls_File : public virtual ISpreadsheet_File
 		virtual void Write(int row, int col, int sheetIndex, const std::string& value);
 		virtual void Finalize() override;
 
-		virtual std::optional<std::string> Read(TSheet_Position& position) override final;
+		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;
 };
 
 /*
@@ -249,7 +250,7 @@ class CXlsx_File : public virtual ISpreadsheet_File
 {
 	private:
 		std::unique_ptr<xlnt::workbook> mFile;		
-		std::optional<std::string> Read_Datetime(TSheet_Position &position);
+		std::optional<std::string> Read_Datetime(const TSheet_Position &position);
 	public:
 		virtual ~CXlsx_File() = default;
 
@@ -257,7 +258,7 @@ class CXlsx_File : public virtual ISpreadsheet_File
 		virtual void Write(int row, int col, int sheetIndex, const std::string& value);
 		virtual void Finalize() override;
 
-		virtual std::optional<std::string> Read(TSheet_Position& position) override final;
+		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;
 };
 
 #endif
@@ -274,10 +275,10 @@ class CXml_File : public virtual IHierarchy_File
 		virtual ~CXml_File() = default;
 
 		virtual bool Init(filesystem::path &path) override;
-		virtual void Write(TXML_Position& position, const std::string &value);
+		virtual void Write(TXML_Position& position, const std::string &value) override final;
 		virtual void Finalize() override;
 
 
 		virtual std::optional<std::string> Read(const std::string& position) override final;
-		virtual std::optional<std::string> Read(TXML_Position& position) override final;	//read may modify position
+		virtual std::optional<std::string> Read(const TXML_Position& position) override final;	//read may modify position
 };

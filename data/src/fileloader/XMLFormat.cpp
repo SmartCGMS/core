@@ -91,7 +91,7 @@ std::string CXML_Format::Build_Tag_Parameters_String(XMLElement const& element) 
 	return out;
 }
 
-XMLElement* CXML_Format::Find_Element(TXML_Position& pos)
+XMLElement* CXML_Format::Find_Element(const TXML_Position& pos)
 {
 	if (!pos.Valid())
 		return nullptr;
@@ -101,7 +101,7 @@ XMLElement* CXML_Format::Find_Element(TXML_Position& pos)
 	
 	// verify root element name
 	if ((pos.hierarchy[0].tagName != el->tagName) || (pos.hierarchy[0].position == TreeLevelSpec::npos)) {
-		pos.hierarchy[0].position = TreeLevelSpec::npos;
+		//pos.hierarchy[0].position = TreeLevelSpec::npos;
 		return nullptr;
 	}
 	
@@ -111,7 +111,7 @@ XMLElement* CXML_Format::Find_Element(TXML_Position& pos)
 
 		auto iter = el->children.find(pos.hierarchy[i].tagName);
 		if (iter == el->children.end()) {
-			pos.hierarchy[i].position = TreeLevelSpec::npos;	
+			//pos.hierarchy[i].position = TreeLevelSpec::npos;	
 			return nullptr;	//not found
 		}
 		
@@ -119,7 +119,7 @@ XMLElement* CXML_Format::Find_Element(TXML_Position& pos)
 		if (pos.hierarchy[i].position < children.size())
 			el = &children[pos.hierarchy[i].position];
 		else {
-			pos.hierarchy[i].position = TreeLevelSpec::npos;
+			//pos.hierarchy[i].position = TreeLevelSpec::npos;
 			return nullptr;
 		}
 
@@ -129,7 +129,7 @@ XMLElement* CXML_Format::Find_Element(TXML_Position& pos)
 	return el;
 }
 
-std::optional<std::string> CXML_Format::Read(TXML_Position& pos)
+std::optional<std::string> CXML_Format::Read(const TXML_Position& pos)
 {
 	if (pos.hierarchy.size() == 0)
 		return std::nullopt;
@@ -138,7 +138,7 @@ std::optional<std::string> CXML_Format::Read(TXML_Position& pos)
 
 	if (!el)
 	{
-		pos.hierarchy[pos.hierarchy.size() - 1].position = TreeLevelSpec::npos;
+		//pos.hierarchy[pos.hierarchy.size() - 1].position = TreeLevelSpec::npos;
 		return std::nullopt;
 	}
 
@@ -148,7 +148,7 @@ std::optional<std::string> CXML_Format::Read(TXML_Position& pos)
 
 	if (el->parameters.find(pos.parameter) == el->parameters.end())
 	{
-		pos.hierarchy[pos.hierarchy.size() - 1].position = TreeLevelSpec::npos;
+		//pos.hierarchy[pos.hierarchy.size() - 1].position = TreeLevelSpec::npos;
 		return std::nullopt;
 	}
 

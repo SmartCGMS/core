@@ -191,43 +191,6 @@ IHierarchy_File* CFormat_Adapter::ToHierarchyFile() const
 	return dynamic_cast<IHierarchy_File*>(mStorage.get());
 }
 
-
-/*/
-void CFormat_Adapter::Write(const char* cellSpec, std::string value)
-{
-	switch (Get_File_Organization())
-	{
-		case NFile_Organization_Structure::SPREADSHEET:
-		{
-			int row, col, sheet;
-			CellSpec_To_RowCol(cellSpec, row, col, sheet);
-
-			Write(row, col, value, sheet);
-			break;
-		}
-		case NFile_Organization_Structure::HIERARCHY:
-		{
-			TXML_Position pos;
-			CellSpec_To_TreePosition(cellSpec, pos);
-
-			return Write(pos, value);
-		}
-	}
-}
-
-void CFormat_Adapter::Write(int row, int column, std::string value, int sheetIndex)
-{
-	if (sheetIndex >= 0)
-		ToSpreadsheetFile()->Select_Worksheet(sheetIndex);
-
-	ToSpreadsheetFile()->Write(row, column, value);
-}
-
-void CFormat_Adapter::Write(TXML_Position& position, std::string value)
-{
-	ToHierarchyFile()->Write(position, value);
-}
-*/
 bool CFormat_Adapter::Is_EOF() const
 {
 	return mStorage->Is_EOF();
@@ -238,7 +201,6 @@ void CFormat_Adapter::Reset_EOF()
 	mStorage->Reset_EOF();
 }
 
-NFile_Organization_Structure CFormat_Adapter::Get_File_Organization() const
-{
+NFile_Organization_Structure CFormat_Adapter::Get_File_Organization() const {
 	return mStorage->Get_File_Organization();
 }

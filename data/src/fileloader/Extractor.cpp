@@ -69,7 +69,7 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, CFormat_Layout& layout,
 
 	struct TSeries_Source {
 		TPosition position;
-		TCell_Descriptor &cell;
+		TCell_Descriptor cell;
 	};
 
 	std::vector<TSeries_Source> cursor;
@@ -79,16 +79,19 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, CFormat_Layout& layout,
 		cursor.push_back(TSeries_Source{pos, elem});
 	}
 
-		
-	while (!source.Is_EOF()) {
+	
+	bool read_anything = false;	//keeping compiler happy
+	do {
+		read_anything = false;	//clear the cursor-watchdog
 		CMeasured_Values_At_Single_Time mval;
 
-		for (auto elem : cursor) {
+		for (auto &elem : cursor) {	//this has to be non-const reference, otherwise we will be creating the expression convertor on and on as there's lazy init
 			const GUID& sig = elem.cell.series.target_signal;
 
 			const auto str_val_opt = source.Read<TPosition>(elem.position);
 
 			if (str_val_opt.has_value()) {				
+				read_anything = true;	//signal the cursor-watchdog
 
 				if (sig == signal_Comment) {
 					mval.push(signal_Comment, str_val_opt.value());
@@ -142,7 +145,8 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, CFormat_Layout& layout,
 			}		
 			
 		}
-	}
+	} while (read_anything);	//EOF proved to be a bad choice due to XML where we disabled adverse effect of modifying xml pos on reading, which should be const only
+								//so, we check if the cursors provided at least one value
 
 
 	return result;

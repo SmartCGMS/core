@@ -67,9 +67,6 @@ protected:
 		
 	double mMaximum_IG_Interval = 12.0 * scgms::One_Minute;	//maximum allowed interval between to IGs
 
-
-	// merged extracted values from given file
-	std::vector<TValue_Vector> mMergedValues;
 	// do we need to send shutdown after last value?
 	bool mShutdownAfterLast = false;
 	// minimum values in segment

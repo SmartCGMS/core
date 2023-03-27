@@ -101,7 +101,7 @@ TSheet_Position CellSpec_To_RowCol(const std::string &cellSpec) {
 			i++;
 		}
 	}
-
+	
 	return TSheet_Position{ row, col, sheetIndex };
 }
 
@@ -358,7 +358,7 @@ bool CCsv_File::Init(filesystem::path &path)
 }
 
 
-std::optional<std::string> CCsv_File::Read(TSheet_Position& position) {
+std::optional<std::string> CCsv_File::Read(const TSheet_Position& position) {
 	const auto rd = mFile->Read(position.row, position.column);
 
 	if (mFile->Is_UnkCell_Flag())
@@ -395,7 +395,7 @@ bool CXls_File::Init(filesystem::path &path) {
 	return result;
 }
 
-std::optional<std::string> CXls_File::Read(TSheet_Position& position) {
+std::optional<std::string> CXls_File::Read(const TSheet_Position& position) {
 	ExcelFormat::BasicExcelWorksheet* ws = mFile->GetWorksheet(position.sheetIndex);
 	if (!ws)
 	{
@@ -460,7 +460,7 @@ bool CXlsx_File::Init(filesystem::path &path) {
 	return result;
 }
 
-std::optional<std::string> CXlsx_File::Read(TSheet_Position& position) {
+std::optional<std::string> CXlsx_File::Read(const TSheet_Position& position) {
 	try
 	{
 		xlnt::worksheet ws = mFile->sheet_by_index(static_cast<size_t>(position.sheetIndex));
@@ -547,7 +547,7 @@ std::string CXlsx_File::Read_Time(int row, int col)
 }
 */
 
-std::optional<std::string> CXlsx_File::Read_Datetime(TSheet_Position& position)
+std::optional<std::string> CXlsx_File::Read_Datetime(const TSheet_Position& position)
 {
 	try
 	{
@@ -607,7 +607,7 @@ std::optional<std::string> CXml_File::Read(const std::string & position) {
 }
 
 
-std::optional<std::string> CXml_File::Read(TXML_Position& position)
+std::optional<std::string> CXml_File::Read(const TXML_Position& position)
 {
 	return mFile->Read(position);
 }
