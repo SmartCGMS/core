@@ -211,10 +211,16 @@ void CLog_Filter::Log_Event(std::wofstream& log, const scgms::UDevice_Event& evt
 
 	std::wostringstream log_line;
 
-	log_line << evt.logical_time() << delim;
+	if (!mReduce_Log) log_line << evt.logical_time();
+	log_line << delim;
+
 	log_line << Rat_Time_To_Local_Time_WStr(evt.device_time(), rsLog_Date_Time_Format) << delim;
-	log_line << scgms::event_code_text[static_cast<size_t>(event_code)] << delim;
-	if (evt.signal_id() != Invalid_GUID) log_line << mSignal_Names.Get_Name(evt.signal_id());
+	if (!mReduce_Log) log_line << scgms::event_code_text[static_cast<size_t>(event_code)];
+	log_line << delim;
+
+	if (!mReduce_Log)
+		if (evt.signal_id() != Invalid_GUID) log_line << mSignal_Names.Get_Name(evt.signal_id());
+
 	log_line << delim;
 	if (evt.is_level_event()) log_line << evt.level();
 	else if (evt.is_info_event()) log_line << refcnt::WChar_Container_To_WString(evt.info.get());

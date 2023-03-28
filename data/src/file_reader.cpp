@@ -111,7 +111,7 @@ std::list<TSegment_Limits> CFile_Reader::Resolve_Segments(const TValue_Vector& s
 		double recent_ig_time = std::numeric_limits<double>::quiet_NaN();
 		
 		for (size_t current = segment_begin; current < src.size(); current++) {
-			
+
 			const auto& current_levels = src[current];
 			const double current_measured_time = current_levels.measured_at();
 
@@ -137,7 +137,7 @@ std::list<TSegment_Limits> CFile_Reader::Resolve_Segments(const TValue_Vector& s
 					//this level has exceeded the maximum allowed interval between consecutive IGs
 					//=>push it as the segment's end
 
-					segment_end = current - 1; //move one back as this level belongs to the following segment
+					segment_end = current - 1; //move one back as this level belongs to the following segment					
 					break;
 				}
 			}
@@ -150,10 +150,7 @@ std::list<TSegment_Limits> CFile_Reader::Resolve_Segments(const TValue_Vector& s
 			(!mRequire_BG || (mRequire_BG && bg_is_present)))		//BG is present, if required
 			segment_start_stop.push_back({ segment_begin, segment_end});
 
-		//ig_counter = 0;
-		//bg_is_present = false;
 		segment_begin = segment_end;			//at this level, new segment's start
-		//recent_ig_time = std::numeric_limits<double>::quiet_NaN();
 	}
 
 	return segment_start_stop;

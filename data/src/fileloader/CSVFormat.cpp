@@ -141,9 +141,9 @@ void CCSV_Format::Write(int row, int column, std::string value)
 
 	// resize if needed
 	if (static_cast<int>(mContents.size()) <= row)
-		mContents.resize(row + 1);
+		mContents.resize(static_cast<size_t>(row) + 1);
 	if (static_cast<int>(mContents[row].size()) <= column)
-		mContents[row].resize(column + 1);
+		mContents[row].resize(static_cast<size_t>(column) + 1);
 
 	// write only if needed
 	if (mContents[row][column] != value)

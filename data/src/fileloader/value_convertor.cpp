@@ -38,49 +38,99 @@
 
 #include "value_convertor.h"
 
+#include "../../../../common/iface/DeviceIface.h"
+
 CValue_Convertor::CValue_Convertor(const CValue_Convertor& other) {
 	operator=(other);
 }
 
 bool CValue_Convertor::init(const std::string& expression_string) {
-	mValid = true;
+
+	//the following are known conversions, which we detect to speed things up
+	//must be spaceless!
+	const std::string conv_F_2_C = "(x-32)/1.8";
+	const std::string conv_Mg_dL_2_mmol_L = "x/18.0182";
+	const std::string conv_Sleep_Quality = "0.01*x";
+
+	std::string spaceless_expression = expression_string;
+	spaceless_expression.erase(std::remove_if(spaceless_expression.begin(), spaceless_expression.end(), isspace), spaceless_expression.end());
+
+	if (expression_string.empty())
+		mConversion = NValue_Conversion::identity;
+	else if (expression_string == conv_F_2_C)
+		mConversion = NValue_Conversion::f_2_c;
+	else if (expression_string == conv_Mg_dL_2_mmol_L)
+		mConversion = NValue_Conversion::mg_dl_2_mmol_l;
+	else if (expression_string == conv_Sleep_Quality)
+		mConversion = NValue_Conversion::sleep_quality;
+	else
+		mConversion = NValue_Conversion::general;
+
 	mExpression_String = expression_string;
-	return mValid;
+
+	return true;
 }
 
 double CValue_Convertor::eval(const double val) {
-	//check the most frequent short-cut aka default no-conversion
-	if (mExpression_String.empty()) {
-		return val;
-	}
-
 	double result = std::numeric_limits<double>::quiet_NaN();
 
-	//we do lazy initialization because the engine used so far is incredibly slow when initializing in the debug mode
-	if (!mEngine) {
-		mValid = false;
-		mEngine = std::make_unique<TExpression_Engine>();
-		if (mEngine) {
-			if (mEngine->mSymbol_Table.add_variable("x", mValue)) {
-				mEngine->mExpression_Tree.register_symbol_table(mEngine->mSymbol_Table);
-				mValid = mEngine->mParser.compile(mExpression_String, mEngine->mExpression_Tree);
+	auto do_general_conversion = [this, val, &result]() {
+
+		//we do lazy initialization because the engine used so far is incredibly slow when initializing in the debug mode
+		if (!mEngine) {
+			mConversion = NValue_Conversion::invalid;
+			mEngine = std::make_unique<TExpression_Engine>();
+			if (mEngine) {
+				if (mEngine->mSymbol_Table.add_variable("x", mValue)) {
+					mEngine->mExpression_Tree.register_symbol_table(mEngine->mSymbol_Table);
+					if (mEngine->mParser.compile(mExpression_String, mEngine->mExpression_Tree))
+						mConversion = NValue_Conversion::general;
+				}
+
+				if (mConversion == NValue_Conversion::invalid)
+					mEngine.reset();
 			}
-
-			if (!mValid)
-				mEngine.reset();
 		}
+
+		if (mConversion == NValue_Conversion::general) {
+			mValue = val;
+			result = mEngine->mExpression_Tree.value();
+		}		
+	};
+
+	switch (mConversion) {
+		case NValue_Conversion::identity:
+			result = val;
+			break;
+
+		case NValue_Conversion::f_2_c:
+			result = (val - 32.0) * 5.0 / 9.0;
+			break;
+
+		case NValue_Conversion::mg_dl_2_mmol_l:
+			result = val * scgms::mgdL_2_mmolL;
+			break;
+
+		case NValue_Conversion::sleep_quality:
+			result = val * 0.01;
+			break;
+
+		case NValue_Conversion::general:
+			do_general_conversion();
+			break;
+
+		default:
+			break;	//result is already set to nan
+
 	}
 
-	if (mValid) {
-		mValue = val;
-		result = mEngine->mExpression_Tree.value();
-	}
+	
 
 	return result;
 }
 
 bool CValue_Convertor::valid() const {
-	return mValid;
+	return mConversion != NValue_Conversion::invalid;
 }
 
 CValue_Convertor& CValue_Convertor::operator=(const CValue_Convertor& other) {	

@@ -38,11 +38,22 @@
 
 #pragma once
 
+#include <string>
+
 #include "../third party/exprtk.hpp"
 
 class CValue_Convertor {
 protected:
-	bool mValid = false;
+	enum class NValue_Conversion {
+		identity,
+		f_2_c,
+		mg_dl_2_mmol_l,
+		sleep_quality,
+		general,
+		invalid,
+	};
+
+	NValue_Conversion mConversion = NValue_Conversion::invalid;	
 protected:
 	//most of the time, there won't by any conversion => it is worth to allocate it only when needed to save the overall init time
 	struct TExpression_Engine {

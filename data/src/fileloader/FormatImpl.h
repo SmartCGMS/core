@@ -128,11 +128,11 @@ class IStorage_File
 {
 	protected:
 		// end of file flag
-		bool mEOF;
+		bool mEOF = false;
 		// original path to file
 		filesystem::path mOriginalPath;
 
-		public:
+	public:
 		virtual ~IStorage_File();
 
 		// initializes format, loads from file, etc.

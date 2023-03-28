@@ -164,7 +164,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 
 		try
 		{
-			// skip; logical time is not modifiable, and there's not a point in loading it anyways
+			// skip; logical time is not modifiable, and there's no point in loading it anyway
 			auto specificval = cut_column();
 			// device time is parsed as-is using the same format as used when saving
 			specificval = cut_column();
