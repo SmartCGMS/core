@@ -294,13 +294,11 @@ std::optional<CFormat_Layout> CFile_Format_Rules::Format_Layout(const std::strin
 		return std::nullopt;
 }
 
-const wchar_t* dsFormat_Detection_Configuration_Filename = L"format_detection.ini";
 const wchar_t* dsSeries_Definitions_Filename = L"format_series.ini";
 const wchar_t* dsFormat_Layout_Filename = L"format_layout.ini";
 const wchar_t* dsDateTime_Formats_FileName = L"datetime_formats.ini";
 
-extern "C" const char default_format_detection[];			//bin2c -n default_format_rules_templates -p 0,0 %(FullPath) > %(FullPath).c
-extern "C" const char default_format_layout[];
+extern "C" const char default_format_layout[];			//bin2c -n default_format_rules_templates -p 0,0 %(FullPath) > %(FullPath).c
 extern "C" const char default_format_series[];
 extern "C" const char default_datetime_formats[];
 
