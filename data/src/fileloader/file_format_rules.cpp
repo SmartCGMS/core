@@ -131,7 +131,7 @@ bool CFile_Format_Rules::Load_Format_Definition(CSimpleIniA& ini) {
 	CSimpleIniA::TNamesDepend sections;
 	ini.GetAllSections(sections);
 
-
+	bool loaded_anything = false;
 	for (auto& section : sections) {
 		const std::string section_name = section.pItem;
 		if (ends_with(section_name, signature_suffix)) {
@@ -160,6 +160,8 @@ bool CFile_Format_Rules::Load_Format_Definition(CSimpleIniA& ini) {
 
 				mFormat_Signatures[format_name] = signature;
 				mFormat_Layouts[format_name] = layout;
+
+				loaded_anything = true;
 			}
 			else {
 				std::wstring msg = L"Warning: Format ";
@@ -171,7 +173,7 @@ bool CFile_Format_Rules::Load_Format_Definition(CSimpleIniA& ini) {
 		}
 	}
 
-	return true;
+	return loaded_anything;
 }
 	
 TFormat_Signature_Map CFile_Format_Rules::Load_Format_Signature(const CSimpleIniA& ini, const CSimpleIniA::Entry& section) {

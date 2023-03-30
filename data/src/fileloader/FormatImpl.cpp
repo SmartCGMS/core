@@ -286,67 +286,6 @@ std::wstring CodePageToUnicode(int codePage, const char *src)
 #endif
 }
 
-// custom function for parsing floating point values
-static double stod_custom(std::string& in)
-{
-	size_t i = 0;
-	int expon = 0;
-	double ret = 0.0;
-
-	// base
-	while (i < in.length() && in[i] >= '0' && in[i] <= '9')
-	{
-		ret *= 10.0;
-		ret += in[i] - '0';
-		i++;
-	}
-
-	// decimal part
-	if (i < in.length() && (in[i] == ',' || in[i] == '.'))
-	{
-		i++;
-		while (i < in.length() && in[i] >= '0' && in[i] <= '9')
-		{
-			ret *= 10.0;
-			ret += in[i] - '0';
-			expon--;
-			i++;
-		}
-	}
-
-	// scientific notation
-	if (i < in.length() && (in[i] == 'e' || in[i] == 'E'))
-	{
-		i++;
-		bool signflag = true;
-		int totExp = 0;
-		// parse sign
-		if (i < in.length())
-		{
-			if (in[i] == '-')
-			{
-				signflag = false;
-				i++;
-			}
-			else if (in[i] == '+')
-				i++;
-		}
-
-		while (i < in.length() && in[i] >= '0' && in[i] <= '9')
-		{
-			totExp *= 10;
-			totExp += in[i] - '0';
-			i++;
-		}
-
-		expon += (signflag ? -1 : 1)*totExp;
-	}
-
-	// final alignment
-	ret *= std::pow(10.0, (double)expon);
-
-	return ret;
-}
 
 /** CSV format interface implementation **/
 

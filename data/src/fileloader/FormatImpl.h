@@ -192,7 +192,7 @@ class IHierarchy_File : public virtual IStorage_File
 
 	protected:
 		// end of file flag
-		bool mEOF;
+		bool mEOF = false;
 
 	public:
 		// virtual destructor due to need of calling derived ones

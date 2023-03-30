@@ -339,7 +339,7 @@ namespace file_reader
 		rsShutdown_After_Last,
 		rsMinimum_Required_IGs,
 		rsRequire_BG,
-		dsAdditional_Rules
+		rsAdditional_Rules
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
