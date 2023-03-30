@@ -43,8 +43,6 @@
 
 
 
-CFile_Format_Rules global_format_rules;
-
 void CFormat_Layout::push(const TCell_Descriptor& cell) {
 	mCells.push_back(cell);
 }
@@ -86,12 +84,21 @@ bool CFile_Format_Rules::Load_Format_Config(const char *default_config, const wc
 	};
 
 	
-	//first, load default configs from memory, then update with file config if they are present
-	bool result = load_config(default_config, load_config_from_memory);
-	const std::string path_to_load = resolve_config_file_path(file_name).make_preferred().string();
-	load_config(path_to_load.c_str(), load_config_from_file);	//optionally, load external configs
+	bool default_result = false;
+	if (default_config != nullptr)
+		default_result = load_config(default_config, load_config_from_memory);
+
+	if (file_name != nullptr) {
+		const std::string path_to_load = resolve_config_file_path(file_name).make_preferred().string();
+		const bool file_result = load_config(path_to_load.c_str(), load_config_from_file);	//optionally, load external configs
+		if ((default_config != nullptr) && (default_result)) {
+			//with succesfully loaded default config, file result does not matter
+		}
+		else
+			default_result = file_result;
+	}
 	
-	return result;
+	return default_result;
 }
 
 
@@ -115,98 +122,131 @@ bool CFile_Format_Rules::Add_Config_Keys(CSimpleIniA & ini, std::function<void(c
 }
 
 
-bool CFile_Format_Rules::Load_Format_Pattern_Config(CSimpleIniA& ini) {
-	auto add = [this](const char* formatName, const char* cellLocation, const char* content) {		
-		std::string istr(content);
-		size_t offset = 0, base;
-		// localized formats - pattern may contain "%%" string to delimit localizations
-		while ((base = istr.find("%%", offset)))
-		{
-			if (base == std::string::npos)
-			{
-				mFormat_Detection_Rules[formatName][cellLocation].push_back(istr.substr(offset));
-				break;
-			}
 
-			mFormat_Detection_Rules[formatName][cellLocation].push_back(istr.substr(offset, base - offset));
-			offset = base + 2;
-		}
-	};
 
-	return Add_Config_Keys(ini, add);
-}
+bool CFile_Format_Rules::Load_Format_Definition(CSimpleIniA& ini) {
+	const std::string signature_suffix = ".signature";
+	const std::string cursors_suffix = ".cursors";
 	
-
-bool CFile_Format_Rules::Load_Format_Layout(CSimpleIniA& ini) {
 	CSimpleIniA::TNamesDepend sections;
 	ini.GetAllSections(sections);
 
-	const char* value = nullptr;
-	for (const auto& section : sections) {
-		const std::string layout_name = section.pItem;
 
-		//check duplicity
-		if (mFormat_Layouts.find(layout_name) != mFormat_Layouts.end()) {
-			std::wstring msg = L"Found a duplicity format layout, \"";
-			msg += Widen_String(layout_name);
-			msg += L"\"! Skiping...";
-			mErrors.push_back(msg);
+	for (auto& section : sections) {
+		const std::string section_name = section.pItem;
+		if (ends_with(section_name, signature_suffix)) {
+			const std::string format_name = section_name.substr(0, section_name.size() - signature_suffix.size());
+			const std::string cursors_section_name = format_name + cursors_suffix;
 
-			continue;
-		}
 
-		CFormat_Layout layout;
+			auto signature = Load_Format_Signature(ini, section);
+			auto layout = Load_Format_Layout(ini, cursors_section_name);
 
-		CSimpleIniA::TNamesDepend cell_locations;
-		ini.GetAllKeys(section.pItem, cell_locations);
 
-		for (const auto& cell_location : cell_locations) {
-			const auto series_name = ini.GetValue(section.pItem, cell_location.pItem);
-			if (series_name) {
-				const auto series_iter = mSeries.find(series_name);
-				if (series_iter != mSeries.end()) {
-					TCell_Descriptor cell;
-					cell.location = cell_location.pItem;
-					cell.series = series_iter->second;
-					layout.push(cell);
-				}
-				else {
-					std::wstring msg = L"Format layout, \"";
-					msg += Widen_String(layout_name);
-					msg += L"\" references a non-exisiting series descriptor \"";
-					msg += series_name ? Widen_String(series_name) : L"none_value";
-					msg += L"\"!";
-					mErrors.push_back(msg);
-					continue;
-				}			
+			if (!signature.empty() && !layout.empty()) {
+
+				auto check_override = [this](auto container, const std::string& format_name) {
+					auto iter = container.find(format_name);
+					if (iter != container.end()) {
+						std::wstring msg = L"Warning: Overriding ";
+						msg += Widen_String(format_name);
+						msg += L" with new definition!";
+						mErrors.push_back(msg);
+					}
+				};
+
+				check_override(mFormat_Signatures, format_name);
+				check_override(mFormat_Layouts, format_name);
+
+				mFormat_Signatures[format_name] = signature;
+				mFormat_Layouts[format_name] = layout;
 			}
 			else {
-				std::wstring msg = L"There is an orphan cell-location\"";
-				msg += cell_location.pItem ? Widen_String(cell_location.pItem) : L"none_value";
-				msg += L"\" in the format layout  \"";
-				msg += Widen_String(layout_name);
+				std::wstring msg = L"Warning: Format ";
+				msg += Widen_String(format_name);
+				msg += L" was not loaded! Check if you have defined both signatures and cursors properly.";
+				mErrors.push_back(msg);
+			}
+
+		}
+	}
+
+	return true;
+}
+	
+TFormat_Signature_Map CFile_Format_Rules::Load_Format_Signature(const CSimpleIniA& ini, const CSimpleIniA::Entry& section) {
+	TFormat_Signature_Map result;
+
+	CSimpleIniA::TNamesDepend signature_cursors;
+	ini.GetAllKeys(section.pItem, signature_cursors);
+
+	for (const auto& cursors_position : signature_cursors) {
+		const auto value = ini.GetValue(section.pItem, cursors_position.pItem);
+		
+
+		std::string istr(value);
+		size_t offset = 0;
+		std::list<std::string> localized_names;
+
+		// localized formats - pattern may contain "%%" string to delimit localizations
+		const std::string localization_delimiter = "%%";
+		while (offset < istr.size()) {			
+			size_t base = istr.find(localization_delimiter, offset);
+			
+
+			if (base == std::string::npos) {
+				localized_names.push_back(istr.substr(offset));
+				break;
+			}
+
+			localized_names.push_back(istr.substr(offset, base - offset));
+			offset = base + localization_delimiter.size();
+		}
+
+		result[cursors_position.pItem] = localized_names;
+	}
+
+	return result;
+}
+
+
+CFormat_Layout CFile_Format_Rules::Load_Format_Layout(const CSimpleIniA& ini, const std::string& section_name) {
+	CFormat_Layout layout;
+	CSimpleIniA::TNamesDepend cursor_init_positions;
+	ini.GetAllKeys(section_name.c_str(), cursor_init_positions);
+
+	for (const auto& cursor_position : cursor_init_positions) {
+		const auto series_name = ini.GetValue(section_name.c_str(), cursor_position.pItem);
+		if (series_name) {
+			const auto series_iter = mSeries.find(series_name);
+			if (series_iter != mSeries.end()) {
+				TCell_Descriptor cell;
+				cell.cursor_position = cursor_position.pItem;
+				cell.series = series_iter->second;
+				layout.push(cell);
+			}
+			else {
+				std::wstring msg = L"Format layout, \"";
+				msg += Widen_String(section_name.c_str());
+				msg += L"\" references a non-exisiting series descriptor \"";
+				msg += series_name ? Widen_String(series_name) : L"none_value";
 				msg += L"\"!";
 				mErrors.push_back(msg);
 				continue;
 			}
 		}
-
-
-		if (layout.empty()) {
-			std::wstring msg = L"Format layout, \"";
-			msg += Widen_String(layout_name);
-			msg += L"\" references an empty series descriptor \"";
-			msg += Widen_String(layout_name);
+		else {
+			std::wstring msg = L"There is an orphan cursor position\"";
+			msg += cursor_position.pItem ? Widen_String(cursor_position.pItem) : L"none_value";
+			msg += L"\" in the format layout  \"";
+			msg += Widen_String(section_name);
 			msg += L"\"!";
 			mErrors.push_back(msg);
 			continue;
-		} 
-		//now, the layout should have all its keys recorded => push it
-		mFormat_Layouts[layout_name] = layout;
-
+		}
 	}
 
-	return true;	
+	return layout;
 }
 
 
@@ -282,8 +322,8 @@ bool CFile_Format_Rules::Load_Series_Descriptors(CSimpleIniA& ini) {
 	return true;
 }
 
-TFormat_Detection_Rules CFile_Format_Rules::Format_Detection_Rules() const {
-	return mFormat_Detection_Rules;
+TFormat_Signature_Rules CFile_Format_Rules::Signature_Rules() const {
+	return mFormat_Signatures;
 }
 
 std::optional<CFormat_Layout> CFile_Format_Rules::Format_Layout(const std::string& format_name) const {
@@ -315,13 +355,25 @@ bool CFile_Format_Rules::Are_Rules_Valid(refcnt::Swstr_list& error_description) 
 bool CFile_Format_Rules::Load() {	
 	
 	//order of the following loadings DOES MATTER!
-	return Load_Format_Config(default_format_detection, dsFormat_Detection_Configuration_Filename, std::bind(&CFile_Format_Rules::Load_Format_Pattern_Config, this, std::placeholders::_1)) &&
-		   Load_Format_Config(default_format_series, dsSeries_Definitions_Filename, std::bind(&CFile_Format_Rules::Load_Series_Descriptors, this, std::placeholders::_1)) &&
-		   Load_Format_Config(default_format_layout, dsFormat_Layout_Filename, std::bind(&CFile_Format_Rules::Load_Format_Layout, this, std::placeholders::_1)) &&
+	return Load_Format_Config(default_format_series, dsSeries_Definitions_Filename, std::bind(&CFile_Format_Rules::Load_Series_Descriptors, this, std::placeholders::_1)) &&
+		   Load_Format_Config(default_format_layout, dsFormat_Layout_Filename, std::bind(&CFile_Format_Rules::Load_Format_Definition, this, std::placeholders::_1)) &&
 		   Load_Format_Config(default_datetime_formats, dsDateTime_Formats_FileName, std::bind(&CFile_Format_Rules::Load_DateTime_Formats, this, std::placeholders::_1));
 }
 
 
 CDateTime_Detector CFile_Format_Rules::DateTime_Detector() const {
 	return mDateTime_Recognizer;
+}
+
+bool CFile_Format_Rules::Load_Additional_Format_Layout(const filesystem::path& path) {
+	CSimpleIniA ini;
+
+	ini.SetUnicode();
+	
+	
+	if (ini.LoadFile(path.c_str()) != SI_Error::SI_OK)
+		return false;
+
+	return Load_Format_Definition(ini);
+
 }

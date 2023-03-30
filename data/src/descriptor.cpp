@@ -313,7 +313,7 @@ namespace db_writer_legacy {
 
 namespace file_reader
 {
-	constexpr size_t param_count = 5;
+	constexpr size_t param_count = 10;
 
 	constexpr scgms::NParameter_Type param_type[param_count] = {
 		scgms::NParameter_Type::ptWChar_Array,
@@ -321,6 +321,7 @@ namespace file_reader
 		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptInt64,
 		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptWChar_Array
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
@@ -328,7 +329,8 @@ namespace file_reader
 		dsMaximum_IG_Interval,
 		dsShutdown_After_Last,
 		dsMinimum_Required_IGs,
-		dsRequire_BG
+		dsRequire_BG,
+		dsAdditional_Rules,
 	};
 
 	const wchar_t* config_param_name[param_count] = {
@@ -336,7 +338,8 @@ namespace file_reader
 		rsMaximum_IG_Interval,
 		rsShutdown_After_Last,
 		rsMinimum_Required_IGs,
-		rsRequire_BG
+		rsRequire_BG,
+		dsAdditional_Rules
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
@@ -344,7 +347,8 @@ namespace file_reader
 		dsInput_Segment_Spacing_Tooltip,
 		dsShutdown_After_Last_Tooltip,
 		dsMinimum_Segment_Levels_Tooltip,
-		dsRequire_IG_BG_Tooltip
+		dsRequire_IG_BG_Tooltip,
+		nullptr
 	};
 
 	const scgms::TFilter_Descriptor File_Reader_Descriptor = {

@@ -311,10 +311,9 @@ TValue_Vector CFile_Reader::Extract() {
 		}
 	} else
 		files_to_extract.push_back(mFileName);
-	
-
+		
 	for (size_t fileIndex = 0; fileIndex < files_to_extract.size(); fileIndex++) {
-		CFormat_Adapter sfile{ global_format_rules.Format_Detection_Rules() , files_to_extract[fileIndex] };
+		CFormat_Adapter sfile{ mFile_Format_Rules.Signature_Rules() , files_to_extract[fileIndex] };
 
 		// unrecognized format or error loading file
 		if (!sfile.Valid()) {
@@ -324,7 +323,7 @@ TValue_Vector CFile_Reader::Extract() {
 
 		// extract data and fill extraction result
 		//now, we do a partial extraction to reduce the number of possible collisions
-		CMeasured_Levels extracted_data = Extract_From_File(sfile);
+		CMeasured_Levels extracted_data = Extract_From_File(sfile, mFile_Format_Rules);
 
 		//a then, we merge the locally extracted data to the master CMeasured_Levels
 		if (!extracted_data.empty()) {
@@ -344,28 +343,45 @@ HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration con
 	HRESULT rc = E_UNEXPECTED;
 
 	//before doing anything else, make sure that we have the format rules loaded and ready
-	if (global_format_rules.Are_Rules_Valid(error_description)) {
+	if (mFile_Format_Rules.Are_Rules_Valid(error_description)) {
+
 		rc = S_OK;
-		mFileName = configuration.Read_File_Path(rsInput_Values_File);
-		mMaximum_IG_Interval = configuration.Read_Double(rsMaximum_IG_Interval, mMaximum_IG_Interval);
-		if (std::isnan(mMaximum_IG_Interval) || (mMaximum_IG_Interval <= 0.0)) {
-			error_description.push(L"Maximum IG interval must be a positive number. 12 minutes is a default value.");
-			rc = E_INVALIDARG;
-		}
 
-		if (Succeeded(rc)) {
-			mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
-			mMinimum_Required_IGs = static_cast<size_t>(configuration.Read_Int(rsMinimum_Required_IGs));
-			mRequire_BG = configuration.Read_Bool(rsRequire_BG);
-
-			std::error_code ec;
-			if ((Is_Regular_File_Or_Symlink(mFileName) || Is_Directory(mFileName)) && filesystem::exists(mFileName, ec)) {
-				mReaderThread = std::make_unique<std::thread>(&CFile_Reader::Run_Reader, this);
-				rc = S_OK;
+		const auto additional_file_format_rules_path = configuration.Read_File_Path(rsAdditional_Rules);
+		if (!additional_file_format_rules_path.empty()) {
+			if (!mFile_Format_Rules.Load_Additional_Format_Layout(additional_file_format_rules_path)) {
+				std::wstring msg = L"Cannot load additional file format rules from: ";
+				msg += additional_file_format_rules_path.wstring();
+				error_description.push(msg);
+				rc = MK_E_CANTOPENFILE;
 			}
-			else {
-				error_description.push(dsCannot_Open_File + mFileName.wstring());
-				rc = E_NOTIMPL;
+		}
+			
+
+		
+
+		if(Succeeded(rc)) {
+			mFileName = configuration.Read_File_Path(rsInput_Values_File);
+			mMaximum_IG_Interval = configuration.Read_Double(rsMaximum_IG_Interval, mMaximum_IG_Interval);
+			if (std::isnan(mMaximum_IG_Interval) || (mMaximum_IG_Interval <= 0.0)) {
+				error_description.push(L"Maximum IG interval must be a positive number. 12 minutes is a default value.");
+				rc = E_INVALIDARG;
+			}
+
+			if (Succeeded(rc)) {
+				mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
+				mMinimum_Required_IGs = static_cast<size_t>(configuration.Read_Int(rsMinimum_Required_IGs));
+				mRequire_BG = configuration.Read_Bool(rsRequire_BG);
+
+				std::error_code ec;
+				if ((Is_Regular_File_Or_Symlink(mFileName) || Is_Directory(mFileName)) && filesystem::exists(mFileName, ec)) {
+					mReaderThread = std::make_unique<std::thread>(&CFile_Reader::Run_Reader, this);
+					rc = S_OK;
+				}
+				else {
+					error_description.push(dsCannot_Open_File + mFileName.wstring());
+					rc = E_NOTIMPL;
+				}
 			}
 		}
 	}	

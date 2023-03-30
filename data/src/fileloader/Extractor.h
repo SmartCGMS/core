@@ -40,5 +40,6 @@
 
 #include "FormatAdapter.h"
 #include "Structures.h"
+#include "file_format_rules.h"
 
-CMeasured_Levels Extract_From_File(CFormat_Adapter& source);
+CMeasured_Levels Extract_From_File(CFormat_Adapter& source, const CFile_Format_Rules& format_rules);

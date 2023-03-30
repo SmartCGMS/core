@@ -65,7 +65,7 @@ private:
 	bool mValid = false;
 protected:
 	std::string mFormat_Name;
-	bool Detect_Format_Layout(const TFormat_Detection_Rules& rules);
+	bool Detect_Format_Layout(const TFormat_Signature_Rules& rules);
 protected:
 	// converts format pointer to spreadsheet file
 	ISpreadsheet_File * ToSpreadsheetFile() const;
@@ -73,8 +73,7 @@ protected:
 	IHierarchy_File* ToHierarchyFile() const;
 
 public:
-	CFormat_Adapter(const TFormat_Detection_Rules&rules, const filesystem::path filename, const filesystem::path originalFilename = {});
-	//CFormat_Adapter();
+	CFormat_Adapter(const TFormat_Signature_Rules&rules, const filesystem::path filename, const filesystem::path originalFilename = {});	
 	virtual ~CFormat_Adapter();
 
 	bool Valid() const;

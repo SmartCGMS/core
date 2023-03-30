@@ -45,6 +45,7 @@
 #include "fileloader/Structures.h"
 #include "fileloader/FormatAdapter.h"
 #include "fileloader/Extractor.h"
+#include "fileloader/file_format_rules.h"
 
 #include <memory>
 #include <thread>
@@ -76,16 +77,14 @@ protected:
 
 	// reader thread
 	std::unique_ptr<std::thread> mReaderThread;
+	CFile_Format_Rules mFile_Format_Rules;	
 
 	// reader main method
 	void Run_Reader();	
-
 	// send event to filter chain
-	bool Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId = Invalid_GUID, const double value = 0.0, const std::wstring& winfo = L"");
-	
+	bool Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId = Invalid_GUID, const double value = 0.0, const std::wstring& winfo = L"");	
 	// extracts files to value vector container
 	TValue_Vector Extract();
-
 	// resolves segments of given value vector
 	std::list<TSegment_Limits> Resolve_Segments(const TValue_Vector& src) const;
 	

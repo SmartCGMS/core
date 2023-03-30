@@ -65,7 +65,7 @@ using TCursors = std::vector<TCursor<TPosition>>;
 TCursors<TSheet_Position> Break_Sheet_Layout_To_Cursors(CFormat_Layout& layout) {
 	TCursor<TSheet_Position> cursor;
 	for (auto elem : layout) {
-		TSheet_Position pos = CellSpec_To_RowCol(elem.location);		
+		TSheet_Position pos = CellSpec_To_RowCol(elem.cursor_position);		
 		cursor.push_back(TSeries_Source<TSheet_Position>{ pos, elem });
 	}
 
@@ -80,7 +80,7 @@ TCursors<TXML_Position> Break_XML_Layout_To_Cursors(CFormat_Layout& layout) {
 
 	std::map<std::string, std::vector<TCell_Descriptor>> cells;
 	for (auto elem : layout) {
-		auto key = elem.location;	//remove everything after the last dot as dot delimits the parameter
+		auto key = elem.cursor_position;	//remove everything after the last dot as dot delimits the parameter
 		auto offset = key.find_last_of('.');
 		if (offset != key.npos)
 			key.resize(offset);
@@ -91,7 +91,7 @@ TCursors<TXML_Position> Break_XML_Layout_To_Cursors(CFormat_Layout& layout) {
 		TCursor<TXML_Position> local_cursor;
 
 		for (auto elem : precursor.second) {
-			TXML_Position pos = CellSpec_To_TreePosition(elem.location);
+			TXML_Position pos = CellSpec_To_TreePosition(elem.cursor_position);
 			local_cursor.push_back(TSeries_Source<TXML_Position>{ pos, elem });
 		}
 
@@ -188,11 +188,11 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 }
 
 
-CMeasured_Levels Extract_From_File(CFormat_Adapter& source) {
+CMeasured_Levels Extract_From_File(CFormat_Adapter& source, const CFile_Format_Rules& format_rules) {
 
-	const CDateTime_Detector& dt_formats = global_format_rules.DateTime_Detector();
+	const CDateTime_Detector& dt_formats = format_rules.DateTime_Detector();
 
-	auto layout = global_format_rules.Format_Layout(source.Format_Name());
+	auto layout = format_rules.Format_Layout(source.Format_Name());
 	if (layout.has_value()) {
 		source.Reset_EOF();
 

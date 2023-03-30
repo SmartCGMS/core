@@ -45,12 +45,7 @@
 #include <algorithm>
 #include <cstring>
 
-/*CFormat_Adapter::CFormat_Adapter()
-{
-	//
-}
-*/
-CFormat_Adapter::CFormat_Adapter(const TFormat_Detection_Rules& rules, const filesystem::path filename, const filesystem::path originalFilename) {
+CFormat_Adapter::CFormat_Adapter(const TFormat_Signature_Rules& rules, const filesystem::path filename, const filesystem::path originalFilename) {
 	mValid = Init(filename, originalFilename);
 	if (mValid) {
 		mValid = Detect_Format_Layout(rules);
@@ -72,7 +67,7 @@ std::string CFormat_Adapter::Format_Name() const {
 	return mFormat_Name;
 }
 
-bool CFormat_Adapter::Detect_Format_Layout(const TFormat_Detection_Rules& layout_rules) {
+bool CFormat_Adapter::Detect_Format_Layout(const TFormat_Signature_Rules& layout_rules) {
 
 	bool format_found = false;
 
@@ -90,8 +85,13 @@ bool CFormat_Adapter::Detect_Format_Layout(const TFormat_Detection_Rules& layout
 			if (!rVal.has_value())
 				return false;			 
 
-			if (!Contains_Element(rulePair.second, rVal.value()))
-				return false;
+			if (!rulePair.second.empty()) {
+				//check the containment only if it is defined
+				//we may be just checking a path existince only!
+
+				if (!Contains_Element(rulePair.second, rVal.value()))
+					return false;
+			}
 		}
 
 		return true;
