@@ -197,11 +197,13 @@ TFormat_Signature_Map CFile_Format_Rules::Load_Format_Signature(const CSimpleIni
 			
 
 			if (base == std::string::npos) {
-				localized_names.push_back(istr.substr(offset));
+				const auto substr = istr.substr(offset);
+				const auto trimmed = trim(substr);
+				localized_names.push_back(trimmed);
 				break;
 			}
 
-			localized_names.push_back(istr.substr(offset, base - offset));
+			localized_names.push_back(trim(istr.substr(offset, base - offset)));
 			offset = base + localization_delimiter.size();
 		}
 
@@ -223,7 +225,7 @@ CFormat_Layout CFile_Format_Rules::Load_Format_Layout(const CSimpleIniA& ini, co
 			const auto series_iter = mSeries.find(series_name);
 			if (series_iter != mSeries.end()) {
 				TCell_Descriptor cell;
-				cell.cursor_position = cursor_position.pItem;
+				cell.cursor_position = trim(cursor_position.pItem);
 				cell.series = series_iter->second;
 				layout.push(cell);
 			}
@@ -257,7 +259,7 @@ bool CFile_Format_Rules::Load_DateTime_Formats(CSimpleIniA& ini) {
 
 	auto add = [this](const char* formatName, const char* iiname, const char* datetime_mask) {
 		if (mask_name == iiname)
-			mDateTime_Recognizer.push_back(datetime_mask);			
+			mDateTime_Recognizer.push_back(trim(datetime_mask));
 	};
 
 	const auto result = Add_Config_Keys(ini, add);
@@ -287,11 +289,11 @@ bool CFile_Format_Rules::Load_Series_Descriptors(CSimpleIniA& ini) {
 		TSeries_Descriptor desc;
 		value = ini.GetValue(section.pItem, "format");
 		if (value)
-			desc.data_format = value;
+			desc.data_format = trim(value);
 
 		value = ini.GetValue(section.pItem, "conversion");
 		if (value) {
-			if (!desc.conversion.init(value)) {
+			if (!desc.conversion.init(trim(value))) {
 				std::wstring msg = L"Cannot parse \"";
 				msg += value ? Widen_String(value) : L"none_value";
 				msg += L"\" for time series \"";

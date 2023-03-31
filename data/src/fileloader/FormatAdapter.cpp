@@ -38,6 +38,8 @@
 
 #include "FormatAdapter.h"
 
+#include "../../../../common/utils/string_utils.h"
+
 #include "CSVFormat.h"
 #include "Misc.h"
 
@@ -71,15 +73,9 @@ bool CFormat_Adapter::Detect_Format_Layout(const TFormat_Signature_Rules& layout
 
 	bool format_found = false;
 
-	auto match = [&](std::string data_format)->bool {
-
-		// find format to be matched
-		auto itr = layout_rules.find(data_format);
-		if (itr == layout_rules.end())
-			return false;
-
+	auto match = [&](const TFormat_Signature_Map &signature)->bool {
 		// try all rules, all rules need to be matched
-		for (auto const& rulePair : itr->second)
+		for (auto const& rulePair : signature)
 		{
 			const auto rVal = Read<std::string>(rulePair.first);
 			if (!rVal.has_value())
@@ -89,7 +85,10 @@ bool CFormat_Adapter::Detect_Format_Layout(const TFormat_Signature_Rules& layout
 				//check the containment only if it is defined
 				//we may be just checking a path existince only!
 
-				if (!Contains_Element(rulePair.second, rVal.value()))
+				const auto trimmed_value = trim(rVal.value());
+					//note it can contain excessive spaces due to delimiter-identifier separations
+
+				if (!Contains_Element(rulePair.second, trimmed_value))
 					return false;
 			}
 		}
@@ -99,7 +98,7 @@ bool CFormat_Adapter::Detect_Format_Layout(const TFormat_Signature_Rules& layout
 
 	// try to recognize data format
 	for (auto const& fpair : layout_rules) {
-		if (match(fpair.first)) {
+		if (match(fpair.second)) {
 			mFormat_Name = fpair.first;
 			format_found = true;
 			break;
@@ -115,7 +114,7 @@ bool CFormat_Adapter::Init(const filesystem::path filename, filesystem::path ori
 
 	// at first, try to recognize file format from extension
 
-	mStorage_Fromat = NStorage_Format::unknown;
+	mStorage_Format = NStorage_Format::unknown;
 	std::wstring path = originalFilename.wstring();
 	if (path.length() < 4) {		
 		return false;
@@ -133,15 +132,15 @@ bool CFormat_Adapter::Init(const filesystem::path filename, filesystem::path ori
 
 	// extract format name
 	if (ext == L"csv" || ext == L"txt")
-		mStorage_Fromat = NStorage_Format::csv;
+		mStorage_Format = NStorage_Format::csv;
 #ifndef NO_BUILD_EXCELSUPPORT
 	else if (ext == L"xls")
-		mStorage_Fromat = NStorage_Format::xls;
+		mStorage_Format = NStorage_Format::xls;
 	else if (ext == L"xlsx")
-		mStorage_Fromat = NStorage_Format::xlsx;
+		mStorage_Format = NStorage_Format::xlsx;
 #endif
 	else if (ext == L"xml")
-		mStorage_Fromat = NStorage_Format::xml;
+		mStorage_Format = NStorage_Format::xml;
 	else {
 		return false;
 	}
@@ -149,7 +148,7 @@ bool CFormat_Adapter::Init(const filesystem::path filename, filesystem::path ori
 	mOriginalPath = filename;
 
 	// create appropriate format adapter
-	switch (mStorage_Fromat)
+	switch (mStorage_Format)
 	{
 		case NStorage_Format::csv:
 		{

@@ -112,7 +112,7 @@ struct TSheet_Position
 	};
 	
 	void Forward() {
-		column++;
+		row++;
 	}
 };
 

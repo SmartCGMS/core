@@ -40,6 +40,7 @@
 
 #include "../../../../common/utils/winapi_mapping.h"
 #include "../../../../common/utils/string_utils.h"
+#include "../../../../common/rtl/rattime.h"
 
 #include <iostream>
 #include <sstream>
@@ -67,19 +68,11 @@ const char* CDateTime_Detector::recognize(const wchar_t* str) const {
 }
 
 const char* CDateTime_Detector::recognize(const std::string& str) const {
-	size_t i;
-	/*std::tm temp;
-	memset(&temp, 0, sizeof(std::tm));
-	*/
-
-	// TODO: slightly rework this method to safely check for parse failure even in debug mode
-
-	for (i = 0; i < size(); i++) {	//no for each, to traverse from longest prefix to shortest one
-		time_t temp;
-		std::string dst;
+	for (size_t i = 0; i < size(); i++) {	//no for each, to traverse from longest prefix to shortest one
 		const auto& mask_candidate = operator[](i);
 		// is conversion result valid? if not, try next line
-		if (Str_Time_To_Unix_Time(str, mask_candidate.c_str(), dst, nullptr, temp))
+
+		if (!std::isnan(Local_Time_Str_To_Rat_Time(str, mask_candidate.c_str())))
 			return mask_candidate.c_str();
 	}
 

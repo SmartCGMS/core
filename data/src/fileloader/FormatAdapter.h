@@ -55,7 +55,7 @@
 class CFormat_Adapter {
 private:
 	// format we use
-	NStorage_Format mStorage_Fromat = NStorage_Format::unknown;
+	NStorage_Format mStorage_Format = NStorage_Format::unknown;
 	std::unique_ptr<IStorage_File> mStorage;
 	// original path to file
 	filesystem::path mOriginalPath;

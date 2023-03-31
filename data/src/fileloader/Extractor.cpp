@@ -167,13 +167,11 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 			}
 
 			//re-eval, because it might have been assigned
-			if (!datetime_format.empty()) {
-				std::string dst;
-				time_t curTime;
-				// is conversion result valid? if not, try next line
-				static const char* dsDatabaseTimestampFormatShort = "%FT%T";
-				if (Str_Time_To_Unix_Time(datetime_str, datetime_format.c_str(), dst, dsDatabaseTimestampFormatShort, curTime)) {
-					mval.set_measured_at(Unix_Time_To_Rat_Time(curTime));
+			if (!datetime_format.empty()) {				
+
+				const double converted_time = Local_Time_Str_To_Rat_Time(datetime_str, datetime_format.c_str());
+				if (!std::isnan(converted_time)) {
+					mval.set_measured_at(converted_time);
 
 					//check that mval actually contains any value other than the time, which is always required - done in CMeasuredLevels::update
 					result.update(mval);

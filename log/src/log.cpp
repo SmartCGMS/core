@@ -148,6 +148,7 @@ HRESULT IfaceCalling CLog_Filter::Do_Configure(scgms::SFilter_Configuration conf
 	 //but collect it in the memory, e.g.; for GUI	
 
 	mReduce_Log = configuration.Read_Bool(rsReduced_Log, mReduce_Log);
+	mSecond_Threshold = configuration.Read_Double(rsSecond_Threshold, mSecond_Threshold);
 
 
 	if (!mLog_Per_Segment && !mLog_Filename.empty()) {
@@ -214,7 +215,7 @@ void CLog_Filter::Log_Event(std::wofstream& log, const scgms::UDevice_Event& evt
 	if (!mReduce_Log) log_line << evt.logical_time();
 	log_line << delim;
 
-	log_line << Rat_Time_To_Local_Time_WStr(evt.device_time(), rsLog_Date_Time_Format) << delim;
+	log_line << Rat_Time_To_Local_Time_WStr(evt.device_time(), rsLog_Date_Time_Format, mSecond_Threshold) << delim;
 	if (!mReduce_Log) log_line << scgms::event_code_text[static_cast<size_t>(event_code)];
 	log_line << delim;
 
