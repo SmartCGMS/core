@@ -730,6 +730,7 @@ namespace gct3_model {
 		L"Ag", L"t_d", L"t_i",
 		L"t_id",
 		L"dqscm", L"iqscm",
+		L"ci_0", L"ci_1", L"ci_2",
 	};
 
 	const wchar_t* dsGCT_Model_v3 = L"GCT model v3";
@@ -749,6 +750,7 @@ namespace gct3_model {
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 	};
 
 	constexpr size_t number_of_calculated_signals = 5;

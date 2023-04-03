@@ -66,6 +66,9 @@ namespace gct3_model
 		Physical_Activity_Glucose_Moderation_Short_Term,	// virtual compartment for holding the increased glucose utilization and production moderator
 		Physical_Activity_Glucose_Moderation_Long_Term,		// virtual compartment for holding the increased glucose utilization and production moderator
 
+		// circadian state compartments
+		Circadian_Insulin,
+
 		count
 	};
 

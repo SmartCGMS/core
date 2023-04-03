@@ -849,7 +849,7 @@ namespace gct3_model {
 	constexpr GUID signal_IOB = { 0x905b72fd, 0x54ff, 0x4592, { 0x92, 0x43, 0x4e, 0xfa, 0xcc, 0xd3, 0x4f, 0xde } };					// {905B72FD-54FF-4592-9243-4EFACCD34FDE}
 	constexpr GUID signal_COB = { 0x60da8b75, 0x1195, 0x4d20, { 0x81, 0xb3, 0x3c, 0xed, 0x30, 0x18, 0xd1, 0xdf } };					// {60DA8B75-1195-4D20-81B3-3CED3018D1DF}
 
-	constexpr size_t model_param_count = 41;
+	constexpr size_t model_param_count = 44;
 
 	/*
 	Q1_0 - D1_0 - initial values/quantities
@@ -915,6 +915,8 @@ namespace gct3_model {
 				double Ag, t_d, t_i, t_id;
 				// effect of IG on absorption
 				double dqscm, iqscm;
+				// circadian insulin response
+				double ci_0, ci_1, ci_2;
 			};
 			double vector[model_param_count];
 		};
@@ -942,6 +944,8 @@ namespace gct3_model {
 			1_min,
 		//	dqscm, iqscm
 			-1,    -1,
+		//	ci_0, ci_1, ci_2
+			-1,   -1,   -1
 	}} };
 
 	const TParameters default_parameters = { { {
@@ -966,6 +970,8 @@ namespace gct3_model {
 			5_min,
 		//	dqscm, iqscm
 			0,     0,
+		//	ci_0, ci_1, ci_2
+			0,    0,    0,
 	}} };
 
 	const TParameters upper_bounds = { { {
@@ -990,6 +996,8 @@ namespace gct3_model {
 			2_hr,
 		//	dqscm, iqscm
 			1,     1,
+		//	ci_0, ci_1, ci_2
+			1,    1,    1
 	}} };
 }
 

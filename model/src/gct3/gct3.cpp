@@ -105,6 +105,8 @@ CGCT3_Discrete_Model::CGCT3_Discrete_Model(scgms::IModel_Parameter_Vector* param
 	auto& emu = mCompartments[NGCT_Compartment::Physical_Activity_Glucose_Moderation_Short_Term].Create_Depot(0.0, false);
 	auto& elt = mCompartments[NGCT_Compartment::Physical_Activity_Glucose_Moderation_Long_Term].Create_Depot(0.0, false);
 
+	auto& cins = mCompartments[NGCT_Compartment::Circadian_Insulin].Create_Depot<CExternal_Circadian_State_Depot>(0.0, true);
+
 	q1.Set_Persistent(true);
 	q1.Set_Solution_Volume(mParameters.Vq);
 	q1.Set_Name(L"Q1");
@@ -146,6 +148,13 @@ CGCT3_Discrete_Model::CGCT3_Discrete_Model(scgms::IModel_Parameter_Vector* param
 	elt.Set_Persistent(true);
 	elt.Set_Name(L"Elt");
 
+	cins.Set_Persistent(true);
+	cins.Set_Name(L"Circadian Is");
+
+	cins.Add_Knot(0.25, mParameters.ci_0);
+	cins.Add_Knot(0.5, mParameters.ci_1);
+	cins.Add_Knot(0.75, mParameters.ci_2);
+
 	//// Glucose subsystem links
 
 	// two glucose compartments diffusion flux
@@ -186,9 +195,11 @@ CGCT3_Discrete_Model::CGCT3_Discrete_Model(scgms::IModel_Parameter_Vector* param
 
 	// glucose elimination due to basal and peripheral needs
 	q1.Moderated_Link_To<CDifference_Unbounded_Transfer_Function>(q_sink,
-		[&q1, &x, &elt, this](CDepot_Link& link) {
+		[&q1, &x, &elt, &cins, this](CDepot_Link& link) {
 			// glucose elimination is moderated by insulin
 			link.Add_Moderator<CLinear_Moderation_Linear_Elimination_Function>(x, mParameters.xq1, mParameters.xe);
+			// glucose elimination moderated by insulin and circadian response
+			link.Add_Moderator<CLinear_Base_Moderation_No_Elimination_Function>(cins, 1.0);
 			// glucose elimination moderated by itself
 			link.Add_Moderator<CLinear_Base_Moderation_No_Elimination_Function>(q1, mParameters.iqscm);
 			// insulin sensitivity change as a result of physical activity

@@ -316,6 +316,10 @@ namespace gct3_model
 				return mName;
 			}
 
+			double Get_Current_Time() const {
+				return mCurrent_Time;
+			}
+
 			void Init(const double currentTime) {
 
 				mCurrent_Time = currentTime;
@@ -427,6 +431,81 @@ namespace gct3_model
 		public:
 			void Set_Quantity(double quantity) {
 				Internal_Set_Quantity(quantity);
+			}
+
+			using CDepot::CDepot;
+	};
+
+	/**
+	 * Externally driven source depot, that changes the amount based on time of the day (circadian cycle depots)
+	 */
+	class CExternal_Circadian_State_Depot : public CDepot {
+
+		private:
+			std::vector<std::pair<double, double>> mKnots;
+
+		protected:
+			virtual void Mod_Quantity(double& total) override {
+				total = -total;
+			}
+
+		public:
+			CExternal_Circadian_State_Depot(double default_quantity, bool allow_negative) : CDepot(default_quantity, allow_negative) {
+				//
+			}
+
+			void Clear_Knots() {
+				mKnots.clear();
+			}
+
+			void Add_Knot(double timeOfTheDay, double value) {
+				mKnots.push_back({ timeOfTheDay, value });
+
+				std::sort(mKnots.begin(), mKnots.end(), [](const auto& a, const auto& b) {
+					return a.first < b.first;
+				});
+			}
+
+			virtual double Get_Quantity() const override {
+				if (mKnots.size() < 2)
+					return CDepot::Get_Quantity();
+
+				const double curTime = Get_Current_Time();
+				double tod = curTime - static_cast<long>(curTime);
+
+				// for now, interpolate linearly between knots; we require 2 knots at minimum
+
+				size_t low = 0;
+				size_t high = 0;
+
+				for (size_t i = 0; i < mKnots.size() - 1; i++) {
+					if (mKnots[i].first <= tod && mKnots[i + 1].first >= tod) {
+						low = i;
+						high = i + 1;
+						break;
+					}
+				}
+
+				if (low == high) {
+					if (tod <= mKnots[0].first || tod >= mKnots[mKnots.size() - 1].first) {
+						low = mKnots.size() - 1;
+						high = 0;
+					}
+					else // should not happen
+						return CDepot::Get_Quantity();
+				}
+
+				const double tstart = mKnots[low].first;
+				double tend = mKnots[high].first;
+				const double vstart = mKnots[low].second, vend = mKnots[high].second;
+
+				if (tstart > tend) {
+					tend += 1.0;
+					if (tod < tstart)
+						tod += 1.0;
+				}
+
+				return vstart + (vend - vstart) * ( (tod - tstart) / (tend - tstart) );
 			}
 
 			using CDepot::CDepot;

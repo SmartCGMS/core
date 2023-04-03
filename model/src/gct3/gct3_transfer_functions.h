@@ -47,7 +47,6 @@
 
 namespace gct3_model
 {
-
 	/**
 	 * Base for all transfer functions between two depots
 	 */
@@ -236,6 +235,40 @@ namespace gct3_model
 
 				// negative difference does not matter, the outer code manages that well (in fact in other direction)
 				const double diff = (mSource.Get_Concentration() - mTarget.Get_Concentration());
+
+				return mTransfer_Factor * diff;
+			}
+	};
+
+	/**
+	 * Two-way "cubic" diffusion unbounded transfer function
+	 * 
+	 * Similar to CTwo_Way_Diffusion_Unbounded_Transfer_Function, but the concentration gradient is raised to the power of 3
+	 */
+	class CTwo_Way_Cubic_Diffusion_Unbounded_Transfer_Function final : public CTransfer_Function {
+
+		private:
+			// this much of a substance is transferred each time unit
+			const double mTransfer_Factor = 1.0;
+
+			const IQuantizable& mSource;
+			const IQuantizable& mTarget;
+
+		public:
+			CTwo_Way_Cubic_Diffusion_Unbounded_Transfer_Function(double timeStart, double duration, IQuantizable& source, IQuantizable& target, double transferFactor = 1.0)
+				: CTransfer_Function(timeStart, duration), mTransfer_Factor(transferFactor), mSource(source), mTarget(target) {
+				//
+			}
+
+			double Get_Transfer_Amount(double defaultInput) const override {
+				// diffusion always transfers from depot with higher concentration
+				return (mSource.Get_Concentration() > mTarget.Get_Concentration()) ? mSource.Get_Quantity() : mTarget.Get_Quantity();
+			}
+
+			double Calculate_Transfer_Input(double time) const override {
+
+				// negative difference does not matter, the outer code manages that well (in fact in other direction)
+				const double diff = std::pow(mSource.Get_Concentration() - mTarget.Get_Concentration(), 3.0);
 
 				return mTransfer_Factor * diff;
 			}
