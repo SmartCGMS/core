@@ -42,27 +42,5 @@
 #include <string>
 #include <vector>
 
-
- // recognized datetime format formatter strings
-class CDateTime_Detector : public std::vector<std::string> {
-public:
-	void finalize_pushes();
-	const char* recognize(const wchar_t* str) const;
-	const char* recognize(const std::string& str) const;
-};
-
-bool Str_Time_To_Unix_Time(const wchar_t* src, const char* src_fmt, std::string outFormatStr, const char* outFormat, time_t& target);
-bool Str_Time_To_Unix_Time(const std::string& src, const char* src_fmt, std::string outFormatStr, const char* outFormat, time_t& target);
-
-
-// Validates date conversion result
-bool Is_Valid_Tm(std::tm& v);
-
 // Converts timestamp from one format to another; returns true on success
 bool Convert_Timestamp(std::string source, const char* sourceFormat, std::string &dest, const char* destFormat, time_t* unixTimeDst = nullptr);
-
-// Converts timestamp from source format to unix timestamp
-bool Convert_TimeString_To_UnixTime(std::string source, const char* sourceFormat, time_t& unixTimeDst);
-
-// Converts unix timestamp to string in destination format
-bool Convert_UnixTime_To_TimeString(time_t source, const char* destFormat, std::string& dest);

@@ -105,20 +105,21 @@ TCursors<TXML_Position> Break_XML_Layout_To_Cursors(CFormat_Layout& layout) {
 
 
 template <typename TPosition>
-CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cursors, const CDateTime_Detector& dt_formats)  {
+CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cursors)  {
 
 	CMeasured_Levels result;
-	std::string datetime_format;
+	double datetime = std::numeric_limits<double>::quiet_NaN();
+	double date_part = 0.0, time_part = 0.0;
 
-
+	
 
 	for (auto& cursor : cursors) {
 
 		bool read_anything = false;	//keeping compiler happy
 		do {
 			read_anything = false;	//clear the cursor-watchdog
-			CMeasured_Values_At_Single_Time mval;
-			std::string date_str, time_str, datetime_str;
+			CMeasured_Values_At_Single_Time mval;			
+			std::string comments;	//comments aggregation
 
 			for (auto& elem : cursor) {	//this has to be non-const reference, otherwise we will be creating the expression convertor on and on as there's lazy init
 				const GUID& sig = elem.cell.series.target_signal;
@@ -127,57 +128,62 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 
 				if (str_val_opt.has_value()) {
 					read_anything = true;	//signal the cursor-watchdog
+					const std::string str_val = str_val_opt.value();
 
 					if (sig == signal_Comment) {
-						mval.push(signal_Comment, str_val_opt.value());
+						if (!comments.empty())
+							comments += "; ";
+						comments += elem.cell.series.comment_name;
+						comments += ": ";
+						comments += str_val;						
 					}
 					else if (sig == signal_Date_Only) {
-						date_str = str_val_opt.value();
+						date_part = Local_Time_Str_To_Rat_Time(str_val, elem.cell.series.datetime_format.c_str());
 					}
 					else if (sig == signal_Date_Time) {
-						datetime_str = str_val_opt.value();
+						datetime = Local_Time_Str_To_Rat_Time(str_val, elem.cell.series.datetime_format.c_str());
 					}
 					else if (sig == signal_Time_Only) {
-						time_str = str_val_opt.value();
+						time_part = Local_Time_Str_To_Rat_Time(str_val, elem.cell.series.datetime_format.c_str());
 					}
 					else {
-						//we are reading a generic signal, double value
-						bool ok = false;
-						auto str_val = str_val_opt.value();
-						double val = str_2_dbl(str_val.c_str(), ok);
-						if (ok) {
-							val = elem.cell.series.conversion.eval(val);
-							if (!std::isnan(val))
-								mval.push(sig, val);
+						double val = std::numeric_limits<double>::quiet_NaN();
+
+						//are we reading a time marker?
+						if (!elem.cell.series.datetime_format.empty()) {
+							val = Local_Time_Str_To_Rat_Time(str_val, elem.cell.series.datetime_format.c_str());							
+						} else {
+							//we are reading a generic signal, double value
+							bool ok = false;
+							val = str_2_dbl(str_val.c_str(), ok);
+							if (ok) 
+								val = elem.cell.series.conversion.eval(val);														
 						}
+
+						if (!std::isnan(val))
+							mval.push(sig, val);
 					}
 				}
 
 				elem.position.Forward();
 			}
 
-			//handle the time
-			if (datetime_str.empty())
-				datetime_str = date_str + " " + time_str;
+			if (!comments.empty())
+				mval.push(signal_Comment, comments);
 
-			if (datetime_format.empty()) {
-				const char* raw_format = dt_formats.recognize(datetime_str);
-				if (raw_format != nullptr)
-					datetime_format = raw_format;
+			if (std::isnan(datetime)) {	//some formats give date and time in separate series
+				datetime = date_part + time_part;
+				if (datetime == 0.0) //did we got at least one of the date & time series?
+					datetime = std::numeric_limits<double>::quiet_NaN();
 			}
 
-			//re-eval, because it might have been assigned
-			if (!datetime_format.empty()) {				
+			if (!std::isnan(datetime)) {
+				mval.set_measured_at(datetime);
 
-				const double converted_time = Local_Time_Str_To_Rat_Time(datetime_str, datetime_format.c_str());
-				if (!std::isnan(converted_time)) {
-					mval.set_measured_at(converted_time);
-
-					//check that mval actually contains any value other than the time, which is always required - done in CMeasuredLevels::update
-					result.update(mval);
-				}
-
+				//check that mval actually contains any value other than the time, which is always required - done in CMeasuredLevels::update
+				result.update(mval);
 			}
+			
 		} while (read_anything);	//EOF proved to be a bad choice due to XML where we disabled adverse effect of modifying xml pos on reading, which should be const only
 		//so, we check if the cursors provided at least one value
 	}
@@ -188,8 +194,6 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 
 CMeasured_Levels Extract_From_File(CFormat_Adapter& source, const CFile_Format_Rules& format_rules) {
 
-	const CDateTime_Detector& dt_formats = format_rules.DateTime_Detector();
-
 	auto layout = format_rules.Format_Layout(source.Format_Name());
 	if (layout.has_value()) {
 		source.Reset_EOF();
@@ -197,12 +201,12 @@ CMeasured_Levels Extract_From_File(CFormat_Adapter& source, const CFile_Format_R
 		switch (source.Get_File_Organization()) {
 			case NFile_Organization_Structure::SPREADSHEET: {
 				auto cursors = Break_Sheet_Layout_To_Cursors(layout.value());
-				return Extract_Series<TSheet_Position>(source, cursors, dt_formats);
+				return Extract_Series<TSheet_Position>(source, cursors);
 			
 			}
 			case NFile_Organization_Structure::HIERARCHY: {
 				auto cursors = Break_XML_Layout_To_Cursors(layout.value());
-				return Extract_Series<TXML_Position>(source, cursors, dt_formats);
+				return Extract_Series<TXML_Position>(source, cursors);
 			}
 			default:
 				return CMeasured_Levels{};	//empty object means no data

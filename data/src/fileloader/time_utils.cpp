@@ -48,47 +48,6 @@
 #include <ctime>
 #include <algorithm>
 
-void CDateTime_Detector::finalize_pushes() {
-
-	//let us perform longest-prefix match first, just like with IP mask
-	std::sort(begin(), end(), [](const std::string a, const std::string b) {	//no reference, because it moves the object!
-		return a.size() > b.size();
-		});
-
-}
-
-const char* CDateTime_Detector::recognize(const wchar_t* str) const {
-	char* result = nullptr;
-	if ((str != nullptr) && (*str != 0)) {
-		std::string date_time_str{ Narrow_WChar(str) };
-		return recognize(date_time_str);
-	}
-
-	return result;
-}
-
-const char* CDateTime_Detector::recognize(const std::string& str) const {
-	for (size_t i = 0; i < size(); i++) {	//no for each, to traverse from longest prefix to shortest one
-		const auto& mask_candidate = operator[](i);
-		// is conversion result valid? if not, try next line
-
-		if (!std::isnan(Local_Time_Str_To_Rat_Time(str, mask_candidate.c_str())))
-			return mask_candidate.c_str();
-	}
-
-	return nullptr;
-}
-
-bool Str_Time_To_Unix_Time(const wchar_t* src, const char* src_fmt, std::string outFormatStr, const char* outFormat, time_t& target) {
-	if (src == nullptr) return false;
-	std::string tmp{ Narrow_WChar(src) };
-	return Str_Time_To_Unix_Time(tmp, src_fmt, outFormatStr, outFormat, target);
-}
-
-bool Str_Time_To_Unix_Time(const std::string& src, const char* src_fmt, std::string outFormatStr, const char* outFormat, time_t& target) {
-	return Convert_Timestamp(src, src_fmt, outFormatStr, outFormat, &target);
-}
-
 bool Is_Valid_Tm(std::tm& v)
 {
 	// TODO: tweak this to truly validate result (i.e. day and month range, ..)
@@ -124,36 +83,3 @@ bool Convert_Timestamp(std::string source, const char* sourceFormat, std::string
 		return false;
 }
 
-bool Convert_TimeString_To_UnixTime(std::string source, const char* sourceFormat, time_t& unixTimeDst)
-{
-	std::tm convtime = {};
-	std::istringstream ss(source);
-
-	if (ss >> std::get_time(&convtime, sourceFormat))
-	{
-		if (!Is_Valid_Tm(convtime))
-			return false;
-
-		unixTimeDst = mktime(&convtime);
-
-		return true;
-	}
-	else
-		return false;
-}
-
-bool Convert_UnixTime_To_TimeString(time_t source, const char* destFormat, std::string& dest)
-{
-	std::tm convtime;
-	localtime_s(&convtime, &source);
-
-	if (!Is_Valid_Tm(convtime))
-		return false;
-
-	std::stringstream timestr;
-	timestr << std::put_time(&convtime, destFormat);
-
-	dest = timestr.str();
-
-	return true;
-}

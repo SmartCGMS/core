@@ -48,7 +48,6 @@
 #include "../../../common/utils/string_utils.h"
 #include "../../../common/utils/DebugHelper.h"
 #include "../../../common/rtl/rattime.h"
-#include "fileloader/time_utils.h"
 
 namespace healthkit_dump_reader_filter
 {
@@ -107,12 +106,7 @@ HRESULT IfaceCalling CHealthKit_Dump_Reader::Do_Configure(scgms::SFilter_Configu
 	try
 	{
 		auto dateToRat = [](const std::wstring& str) -> double {
-			std::string dst;
-			time_t tim;
-			if (Convert_Timestamp(Narrow_WString(str), "%Y-%m-%d %H:%M:%S", dst, "%Y-%m-%d %H:%M:%S", &tim))
-				return Unix_Time_To_Rat_Time(tim);
-			else
-				return 0.0;
+			return Local_Time_WStr_To_Rat_Time(str, L"%Y-%m-%d %H:%M:%S");
 		};
 
 		CXML_Parser<wchar_t> parser(configuration.Read_File_Path(rsFile_Path));

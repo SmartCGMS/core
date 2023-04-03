@@ -131,7 +131,6 @@ bool CFile_Format_Rules::Load_Format_Definition(CSimpleIniA& ini) {
 	CSimpleIniA::TNamesDepend sections;
 	ini.GetAllSections(sections);
 
-	bool loaded_anything = false;
 	for (auto& section : sections) {
 		const std::string section_name = section.pItem;
 		if (ends_with(section_name, signature_suffix)) {
@@ -160,8 +159,6 @@ bool CFile_Format_Rules::Load_Format_Definition(CSimpleIniA& ini) {
 
 				mFormat_Signatures[format_name] = signature;
 				mFormat_Layouts[format_name] = layout;
-
-				loaded_anything = true;
 			}
 			else {
 				std::wstring msg = L"Warning: Format ";
@@ -173,7 +170,9 @@ bool CFile_Format_Rules::Load_Format_Definition(CSimpleIniA& ini) {
 		}
 	}
 
-	return loaded_anything;
+	//note that the default ini file could be empty and all formats could be specified later, in a separate file
+	//=>we just return true
+	return true;
 }
 	
 TFormat_Signature_Map CFile_Format_Rules::Load_Format_Signature(const CSimpleIniA& ini, const CSimpleIniA::Entry& section) {
@@ -254,21 +253,6 @@ CFormat_Layout CFile_Format_Rules::Load_Format_Layout(const CSimpleIniA& ini, co
 }
 
 
-bool CFile_Format_Rules::Load_DateTime_Formats(CSimpleIniA& ini) {
-	static const std::string mask_name = "Mask";
-
-	auto add = [this](const char* formatName, const char* iiname, const char* datetime_mask) {
-		if (mask_name == iiname)
-			mDateTime_Recognizer.push_back(trim(datetime_mask));
-	};
-
-	const auto result = Add_Config_Keys(ini, add);
-	if (result)
-		mDateTime_Recognizer.finalize_pushes();
-	return result;
-}
-
-
 bool CFile_Format_Rules::Load_Series_Descriptors(CSimpleIniA& ini) {
 	CSimpleIniA::TNamesDepend sections;
 	ini.GetAllSections(sections);
@@ -287,9 +271,13 @@ bool CFile_Format_Rules::Load_Series_Descriptors(CSimpleIniA& ini) {
 		}
 
 		TSeries_Descriptor desc;
-		value = ini.GetValue(section.pItem, "format");
+		value = ini.GetValue(section.pItem, "datetime_format");
 		if (value)
-			desc.data_format = trim(value);
+			desc.datetime_format = trim(value);
+
+		value = ini.GetValue(section.pItem, "comment_name");
+		if (value)
+			desc.comment_name= trim(value);
 
 		value = ini.GetValue(section.pItem, "conversion");
 		if (value) {
@@ -340,11 +328,9 @@ std::optional<CFormat_Layout> CFile_Format_Rules::Format_Layout(const std::strin
 
 const wchar_t* dsSeries_Definitions_Filename = L"format_series.ini";
 const wchar_t* dsFormat_Layout_Filename = L"format_layout.ini";
-const wchar_t* dsDateTime_Formats_FileName = L"datetime_formats.ini";
 
 extern "C" const char default_format_layout[];			//bin2c -n default_format_rules_templates -p 0,0 %(FullPath) > %(FullPath).c
 extern "C" const char default_format_series[];
-extern "C" const char default_datetime_formats[];
 
 CFile_Format_Rules::CFile_Format_Rules() {
 	mValid = Load();
@@ -360,13 +346,7 @@ bool CFile_Format_Rules::Load() {
 	
 	//order of the following loadings DOES MATTER!
 	return Load_Format_Config(default_format_series, dsSeries_Definitions_Filename, std::bind(&CFile_Format_Rules::Load_Series_Descriptors, this, std::placeholders::_1)) &&
-		   Load_Format_Config(default_format_layout, dsFormat_Layout_Filename, std::bind(&CFile_Format_Rules::Load_Format_Definition, this, std::placeholders::_1)) &&
-		   Load_Format_Config(default_datetime_formats, dsDateTime_Formats_FileName, std::bind(&CFile_Format_Rules::Load_DateTime_Formats, this, std::placeholders::_1));
-}
-
-
-CDateTime_Detector CFile_Format_Rules::DateTime_Detector() const {
-	return mDateTime_Recognizer;
+		   Load_Format_Config(default_format_layout, dsFormat_Layout_Filename, std::bind(&CFile_Format_Rules::Load_Format_Definition, this, std::placeholders::_1));
 }
 
 bool CFile_Format_Rules::Load_Additional_Format_Layout(const filesystem::path& path) {

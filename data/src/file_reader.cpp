@@ -162,18 +162,20 @@ void CFile_Reader::Run_Reader() {
 		bool isError = false;
 		uint32_t currentSegmentId = 0;
 
-		double nextPhysicalActivityEnd = -1.0; // negative value = invalid
-		double nextTempBasalEnd = -1.0;
-		double nextSleepEnd = -1.0;
-		double lastBasalRateSetting = 0.0;
+		
 
 		std::list<TSegment_Limits> resolvedSegments = Resolve_Segments(values);
 
 		// for every segment resolved...
-		for (const TSegment_Limits& seg : resolvedSegments)
-		{
+		for (const TSegment_Limits& seg : resolvedSegments) 		{
 			currentSegmentId++;
 			Send_Event(scgms::NDevice_Event_Code::Time_Segment_Start, values[seg.first].measured_at(), currentSegmentId);
+
+			//reset segment limits
+			double nextPhysicalActivityEnd = -1.0; // negative value = invalid
+			double nextTempBasalEnd = -1.0;
+			double nextSleepEnd = -1.0;
+			double lastBasalRateSetting = 0.0;
 
 			for (size_t i = seg.first; i < seg.second; i++) {
 
@@ -184,10 +186,8 @@ void CFile_Reader::Run_Reader() {
 					
 				bool errorRes = false;
 
+				//first, set up the end time and levels for various temporal activites
 				current_values.enumerate([=, &errorRes, &nextPhysicalActivityEnd, &nextTempBasalEnd, &lastBasalRateSetting, &nextSleepEnd](const GUID& signal_id, const CMeasured_Values_At_Single_Time::TValue& val) {
-					const std::set<GUID> silenced_signals = { signal_Physical_Activity_Duration, signal_Insulin_Temp_Rate, signal_Insulin_Temp_Rate_Endtime, signal_Sleep_Endtime, signal_Comment,
-																signal_Date_Only, signal_Time_Only, signal_Date_Time };
-
 					const double* current_level = std::get_if<double>(&val);
 
 					//handle the known, special cases which use helper signals 					
@@ -230,25 +230,33 @@ void CFile_Reader::Run_Reader() {
 							}
 						}
 					}
+				});
 
 
-					else if (signal_id == signal_Comment) {
+				//second, send the signals 
+				current_values.enumerate([=, &errorRes, &nextPhysicalActivityEnd, &nextTempBasalEnd, &lastBasalRateSetting, &nextSleepEnd](const GUID& signal_id, const CMeasured_Values_At_Single_Time::TValue& val) {
+						const std::set<GUID> silenced_signals = { signal_Physical_Activity_Duration, signal_Insulin_Temp_Rate, signal_Insulin_Temp_Rate_Endtime, signal_Sleep_Endtime, signal_Comment,
+																	signal_Date_Only, signal_Time_Only, signal_Date_Time };
+					const double* current_level = std::get_if<double>(&val);
+
+					if (signal_id == signal_Comment) {
 						const std::string *comment = std::get_if<std::string>(&val);
 						if (comment != nullptr) {
 							std::wstring wstr = Widen_String(*comment);
 							errorRes |= !Send_Event(scgms::NDevice_Event_Code::Information, current_measured_time, currentSegmentId, Invalid_GUID, std::numeric_limits<double>::infinity(), wstr);
 						}
 					}
-
-						
+				
+								
 					//send all the non-helper signals, which we do not suppress
 					if (silenced_signals.find(signal_id) == silenced_signals.end()) {												
 						if (current_level != nullptr)
 							errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, current_measured_time, currentSegmentId, signal_id, *current_level);
 					}					
 
+				});
 
-
+				{//third, switch off the temporal activites, which have ended
 					//switch off the physical activity, once ended
 					if ((nextPhysicalActivityEnd > 0.0) && (nextPhysicalActivityEnd <= current_measured_time)) {
 						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextPhysicalActivityEnd, currentSegmentId, scgms::signal_Physical_Activity, 0.0);
@@ -268,7 +276,7 @@ void CFile_Reader::Run_Reader() {
 						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextSleepEnd, currentSegmentId, scgms::signal_Sleep_Quality, 0.0);
 						nextSleepEnd = -1.0;
 					}
-				});
+				}
 
 
 				if (errorRes)
