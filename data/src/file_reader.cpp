@@ -349,7 +349,8 @@ TValue_Vector CFile_Reader::Extract() {
 				master.update(elem);
 		} else 	{
 			Emit_Info(scgms::NDevice_Event_Code::Error, L"No data extracted from: " + files_to_extract[fileIndex].wstring());
-			return TValue_Vector{};
+			//return TValue_Vector{}; do not return as some datasets such as D1NAMO may contain excessive files in the directory
+			//so, we will just ignore them with a message of such an action
 		}
 	}
 
