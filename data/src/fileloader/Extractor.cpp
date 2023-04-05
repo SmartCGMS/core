@@ -133,8 +133,11 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 					if (sig == signal_Comment) {
 						if (!comments.empty())
 							comments += "; ";
-						comments += elem.cell.series.comment_name;
-						comments += ": ";
+						
+						if (!elem.cell.series.comment_name.empty()) {
+							comments += elem.cell.series.comment_name;
+							comments += ": ";
+						}
 						comments += str_val;						
 					}
 					else if (sig == signal_Date_Only) {

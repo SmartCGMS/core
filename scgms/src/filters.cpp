@@ -113,10 +113,6 @@ HRESULT IfaceCalling create_approximator(const GUID *approx_id, scgms::ISignal *
 	return loaded_filters.create_approximator(approx_id, signal, approx);
 }
 
-HRESULT IfaceCalling add_filters(const scgms::TFilter_Descriptor *begin, const scgms::TFilter_Descriptor *end, const scgms::TCreate_Filter create_filter) {
-	return loaded_filters.add_filters(begin, end, create_filter);
-}
-
 void CLoaded_Filters::load_libraries() {
 #ifndef ANDROID
 	const auto filters_dir = Get_Dll_Dir() / std::wstring{rsSolversDir};
@@ -152,22 +148,6 @@ void CLoaded_Filters::load_libraries() {
 			}
 		}
 	}
-}
-
-HRESULT CLoaded_Filters::add_filters(const scgms::TFilter_Descriptor *begin, const scgms::TFilter_Descriptor *end, const scgms::TCreate_Filter create_filter) {
-	if ((begin == end) || (begin == nullptr) || (end == nullptr) || (create_filter == nullptr)) return E_INVALIDARG;
-	imported::TLibraryInfo lib;	
-	lib.create_approximator = nullptr;
-	lib.create_signal = nullptr;
-	lib.create_metric = nullptr;	
-	lib.create_discrete_model = nullptr;
-	lib.create_filter = create_filter;	
-
-	mLibraries.push_back(std::move(lib));
-
-	std::copy(begin, end, std::back_inserter(mFilter_Descriptors));
-
-	return S_OK;
 }
 
 
