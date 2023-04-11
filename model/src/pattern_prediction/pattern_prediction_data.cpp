@@ -73,103 +73,23 @@ void CPattern_Prediction_Data::push(const double device_time, const double level
 
 
 double CPattern_Prediction_Data::predict() {
-    return predict_doi_10_dot_1016_slash_j_compbiomed_dot_2022_dot_105388();
+    //this is a stub for the future, shall we ever find a reliable way for on-line learning
+    //for now, we just repeat the recent prediction or the configured level - depending on the do_not_learn switch
+    
+    if (mInvalidated) {
+        const size_t full_set_n = mFull ? mState.size() : mHead;
+        if (full_set_n > 0) {
+            const size_t last_write_position = mHead > 0 ? mHead - 1 : mState.size() - 1;
+            mRecent_Prediction = mState[last_write_position];
+            mInvalidated = false;
+        }
+        else
+            mRecent_Prediction = std::numeric_limits<double>::quiet_NaN();
+    }
+
+    return mRecent_Prediction;
 }
    
-double CPattern_Prediction_Data::predict_experimental() {
-    if (mInvalidated) {
-        const size_t full_set_n = mFull ? mState.size() : mHead;
-
-        bool is_mard_small_enough = full_set_n >= 2;
-        if (is_mard_small_enough) {
-
-            double full_set_avg = 0.0;
-            for (size_t i = 0; i < full_set_n; i++) {               
-                full_set_avg += mState[i];
-            }
-            full_set_avg /= static_cast<double>(full_set_n);
-            //full_set_avg provides the best absolute-error fit
-            //let's use it, if its MARD does not exceed a specific threshold
-            
-            //constexpr std::array<double, pattern_prediction::Relative_Error_Guess_Candidate_Count> candidate_offsets = { {0.985, 0.990, 0.995, 1.000, 1.005, 1.010, 1.015, 1.020} };
-            constexpr std::array<double, pattern_prediction::Relative_Error_Guess_Candidate_Count> candidate_offsets = { {0.910, 0.948, 0.966, 0.975, 0.982, 0.991, 1.000, 1.008} };
-            std::array<double, pattern_prediction::Relative_Error_Guess_Candidate_Count> candidate_prediction, mards;
-            for (size_t i = 0; i < candidate_offsets.size(); i++) {
-                candidate_prediction[i] = candidate_offsets[i] * full_set_avg;
-                mards[i] = 0.0;
-            }
-
-            //compute candidate mard sums - actually, we mimic a more sophisticated solver by computing hard-coded guess solutions
-            double MARD_n = 0.0;
-            for (size_t i = 0; i < full_set_n; i++) {
-                const double current_level = mState[i];
-                if (std::isgreater(current_level, 0.0)) {
-
-                    const double inv_current_level = 1.0 / current_level;
-                    for (size_t j = 0; j < candidate_prediction.size(); j++)
-                        mards[j] += fabs(current_level - candidate_prediction[j]) * inv_current_level;
-
-                    MARD_n += 1.0;
-                }
-            }
-
-            //find the least sum
-            is_mard_small_enough = MARD_n >= 1.9;   //if there are enough data --1.9 accounts rounding errors
-            if (is_mard_small_enough) {
-                const auto least_mard_iter = std::min_element(mards.begin(), mards.end());
-                //check that the least mard is really small enough
-                is_mard_small_enough = *least_mard_iter < MARD_n* pattern_prediction::Relative_Error_Correct_Prediction_Threshold;  //multiplication is cheaper
-
-                if (is_mard_small_enough) {
-                    mRecent_Prediction = candidate_prediction[std::distance(mards.begin(), least_mard_iter)];
-                }
-            }
-        }
-
-        if (!is_mard_small_enough) 
-            mRecent_Prediction = mState[full_set_n - 1];    //relative error is too big, let's reuse the recent level
-           
-
-        mInvalidated = false;
-    }
-
-    return mRecent_Prediction;
-}
-
-double CPattern_Prediction_Data::predict_doi_10_dot_1016_slash_j_compbiomed_dot_2022_dot_105388() {
-    if (mInvalidated) {
-
-        const size_t full_set_n = mFull ? mState.size() : mHead;
-        
-
-        double full_set_avg = 0.0;
-        for (size_t i = 0; i < full_set_n; i++) {
-            full_set_avg += mState[i];
-        }
-        full_set_avg /= static_cast<double>(full_set_n);    
-        
-        double trusted_region_avg = 0.0;
-        double trusted_region_n = 0.0;
-
-        for (size_t i = 0; i < full_set_n; i++) {
-            const double tmp = fabs(mState[i] - full_set_avg);
-            if (tmp <= mTrusted_Perimeter) {
-                trusted_region_avg += mState[i];
-                trusted_region_n += 1.0;
-            }
-        }
-
-        
-        mRecent_Prediction = trusted_region_n > 0.0 ?
-            trusted_region_avg / trusted_region_n :
-            full_set_avg;
-        
-        mInvalidated = false;
-    }
-
-    return mRecent_Prediction;
-}
-
 CPattern_Prediction_Data::operator bool() const {
     return (mHead > 0) || mFull;
 }
@@ -186,19 +106,12 @@ void CPattern_Prediction_Data::Set_State(const double& level) {
 }
 
 void CPattern_Prediction_Data::State_from_String(const std::wstring& state) {
-    std::wstring str_copy{ state };	//wcstok modifies the input string
-    const wchar_t* delimiters = L" ";	//string of chars, which designate individual delimiters
-    wchar_t* buffer = nullptr;
-    wchar_t* str_val = wcstok_s(const_cast<wchar_t*>(str_copy.data()), delimiters, &buffer);
     
-    while (str_val != nullptr) {
-         //and store the real value
-         bool ok;
-         const double value = str_2_dbl(str_val, ok);
-         if (ok) push(0.0, value);
-         else break;
-
-        str_val = wcstok_s(nullptr, delimiters, &buffer);
+    bool ok = false;
+    const auto converted = str_2_dbls(state.c_str(), ok);
+    if (ok) {
+        for (const auto value : converted)
+            push(0.0, value);
     }
 }
 
