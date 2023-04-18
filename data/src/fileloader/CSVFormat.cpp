@@ -108,10 +108,10 @@ CCSV_Format::~CCSV_Format()
 {
 }
 
-std::string CCSV_Format::Read(int row, int column)
+std::optional<std::string> CCSV_Format::Read(int row, int column)
 {
 	if (mError)
-		return "";
+		return std::nullopt;
 
 	// lazyload if needed
 	Load_To_Row(row);
@@ -121,11 +121,11 @@ std::string CCSV_Format::Read(int row, int column)
 	if (static_cast<int>(mContents.size()) <= row || static_cast<int>(mMaxColumn) <= column)
 	{
 		mUnkCell = true;
-		return "";
+		return std::nullopt;
 	}
 
 	if (static_cast<int>(mContents[row].size()) <= column)
-		return "";
+		return std::nullopt;
 
 	mUnkCell = false;
 	return mContents[row][column];
@@ -141,9 +141,9 @@ void CCSV_Format::Write(int row, int column, std::string value)
 
 	// resize if needed
 	if (static_cast<int>(mContents.size()) <= row)
-		mContents.resize(row + 1);
+		mContents.resize(static_cast<size_t>(row) + 1);
 	if (static_cast<int>(mContents[row].size()) <= column)
-		mContents[row].resize(column + 1);
+		mContents[row].resize(static_cast<size_t>(column) + 1);
 
 	// write only if needed
 	if (mContents[row][column] != value)

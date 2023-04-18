@@ -36,74 +36,45 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "FormatRecognizer.h"
-#include "Misc.h"
+#pragma once
 
-#include <algorithm>
+#include "Structures.h"
 
-CFormat_Recognizer::CFormat_Recognizer()
-{
-	//
-}
 
-void CFormat_Recognizer::Add_Pattern(const char* formatName, const char* cellLocation, const char* content)
-{
-	std::string istr(content);
-	size_t offset = 0, base;
-	// localized formats - pattern may contain "%%" string to delimit localizations
-	while ((base = istr.find("%%", offset)))
-	{
-		if (base == std::string::npos)
-		{
-			mRuleSet[formatName][cellLocation].push_back(istr.substr(offset));
-			break;
+bool Measured_Value_Comparator(const CMeasured_Values_At_Single_Time& a, const CMeasured_Values_At_Single_Time& b) {
+	return a.measured_at() < b.measured_at(); 
+};
+
+
+bool CMeasured_Levels::update(const CMeasured_Values_At_Single_Time& val) {
+	if (val.valid()) {
+		//unlikely, but we may need to update via removal due to the const iterators
+		auto iter = mLevels.find(val);
+		if (iter != mLevels.end()) {
+			CMeasured_Values_At_Single_Time tmp = *iter;
+			tmp.update(val);
+			mLevels.erase(iter);
+
+			mLevels.insert(tmp);
 		}
+		else
+			mLevels.insert(val);
+		
 
-		mRuleSet[formatName][cellLocation].push_back(istr.substr(offset, base - offset));
-		offset = base + 2;
-	}
+		return true;
+	} 
+
+	return false;
 }
 
-bool CFormat_Recognizer::Match(std::string format, CFormat_Adapter& file) const
-{
-	// find format to be matched
-	auto itr = mRuleSet.find(format);
-	if (itr == mRuleSet.end())
-		return false;
-
-	// try all rules, all rules need to be matched
-	for (auto const& rulePair : itr->second)
-	{
-		const std::string rVal = file.Read(rulePair.first.c_str());
-
-		if (!Contains_Element(rulePair.second, rVal) || file.Get_Error() != 0)
-			return false;
-	}
-
-	return true;
+CMeasured_Levels::TSet::iterator CMeasured_Levels::begin() {
+	return mLevels.begin();
 }
 
-std::string CFormat_Recognizer::Recognize_And_Open(filesystem::path path, CFormat_Adapter& target) const
-{
-	return Recognize_And_Open(path, path, target);
+CMeasured_Levels::TSet::iterator CMeasured_Levels::end() {
+	return mLevels.end();
 }
 
-std::string CFormat_Recognizer::Recognize_And_Open(filesystem::path originalPath, filesystem::path path, CFormat_Adapter& target) const
-{
-	// recognize file format at first
-	target.Init(path, originalPath);
-
-	if (target.Get_Error() != 0)
-		return "";
-
-	// try to recognize data format
-	for (auto const& fpair : mRuleSet)
-	{
-		target.Clear_Error();
-
-		if (Match(fpair.first, target))
-			return fpair.first;
-	}
-
-	return "";
+bool CMeasured_Levels::empty() const {
+	return mLevels.empty();
 }

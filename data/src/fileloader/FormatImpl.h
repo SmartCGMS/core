@@ -40,6 +40,7 @@
 
 #include <string>
 #include <memory>
+#include <optional>
 
 #include "../../../../common/rtl/guid.h"
 #include "../../../../common/rtl/FilesystemLib.h"
@@ -54,17 +55,18 @@
 #endif
 
 // all known file formats
-enum class KnownFileFormats
+enum class NStorage_Format
 {
-	FORMAT_CSV,
+	csv,
 #ifndef NO_BUILD_EXCELSUPPORT
-	FORMAT_XLS,
-	FORMAT_XLSX,
+	xls,
+	xlsx,
 #endif
-	FORMAT_XML,
+	xml,
+	unknown
 };
 
-enum class FileOrganizationStructure
+enum class NFile_Organization_Structure
 {
 	SPREADSHEET,
 	HIERARCHY
@@ -73,7 +75,7 @@ enum class FileOrganizationStructure
 /*
  * Structure encapsulating position in workbook
  */
-struct SheetPosition
+struct TSheet_Position
 {
 	// current row
 	int row = 0;
@@ -83,21 +85,41 @@ struct SheetPosition
 	int sheetIndex = -1;
 
 	// default constructor
-	SheetPosition() noexcept : sheetIndex(-1) { };
+	TSheet_Position() noexcept : sheetIndex(-1) { };
 	// copy constructor
-	SheetPosition(const SheetPosition& other) : row(other.row), column(other.column), sheetIndex(other.sheetIndex) { };
-	// is sheet position valid?
-	bool Valid() const { return sheetIndex >= 0; };
+	TSheet_Position(const TSheet_Position& other) : row(other.row), column(other.column), sheetIndex(other.sheetIndex) { };
+	
+	TSheet_Position(int r, int c, int s) : row(r), column(c), sheetIndex(s) {};
 
-	bool operator==(SheetPosition const& other) const
+	bool operator==(TSheet_Position const& other) const
 	{
 		return ((row == other.row) && (column == other.column) && (sheetIndex == other.sheetIndex));
 	}
-	bool operator!=(SheetPosition const& other) const
+	bool operator!=(TSheet_Position const& other) const
 	{
 		return !((row == other.row) && (column == other.column) && (sheetIndex == other.sheetIndex));
 	}
+
+	// is sheet position valid?
+	bool Valid() const 	{
+		return (row >= 0) && (column >= 0) && (sheetIndex >= 0);
+	};
+
+	void Reset() { 
+		row = 0;
+		column = 0;
+		sheetIndex = -1;
+	};
+	
+	void Forward() {
+		row++;
+	}
 };
+
+//helper functions
+TSheet_Position CellSpec_To_RowCol(const std::string& cellSpec);
+TXML_Position CellSpec_To_TreePosition(const std::string& cellSpec);
+
 
 /*
  * Base storage file interface
@@ -106,15 +128,15 @@ class IStorage_File
 {
 	protected:
 		// end of file flag
-		bool mEOF;
+		bool mEOF = false;
 		// original path to file
 		filesystem::path mOriginalPath;
 
-		public:
+	public:
 		virtual ~IStorage_File();
 
 		// initializes format, loads from file, etc.
-		virtual void Init(filesystem::path &path) = 0;
+		virtual bool Init(filesystem::path &path) = 0;
 		// finalizes working with file
 		virtual void Finalize() = 0;
 		// retrieves EOF flag
@@ -123,13 +145,17 @@ class IStorage_File
 		virtual void Reset_EOF();
 
 		// retrieves file data organization structure
-		virtual FileOrganizationStructure Get_File_Organization() const = 0;
+		virtual NFile_Organization_Structure Get_File_Organization() const = 0;
+
+		virtual std::optional<std::string> Read(const std::string& position) = 0; 			
+		virtual std::optional<std::string> Read(const TSheet_Position &position) { return std::nullopt; };
+		virtual std::optional<std::string> Read(const TXML_Position& position) { return std::nullopt; }			//read may modify position to allow sanitization
 };
 
 /*
  * Spreadsheet format adapter interface; encapsulates all needed operations on table file types
  */
-class ISpreadsheet_File : public IStorage_File
+class ISpreadsheet_File : public virtual IStorage_File
 {
 	private:
 		//
@@ -140,65 +166,45 @@ class ISpreadsheet_File : public IStorage_File
 	public:
 		// virtual destructor due to need of calling derived ones
 		virtual ~ISpreadsheet_File();
-
-		// initializes format, loads from file, etc.
-		virtual void Init(filesystem::path &path) = 0;
-		// selects worksheet to work with
-		virtual void Select_Worksheet(int sheetIndex) = 0;
-		// reads cell contents (string)
-		virtual std::string Read(int row, int col) = 0;
-		// reads cell contents (double)
-		virtual double Read_Double(int row, int col) = 0;
-		// reads cell contents (date string)
-		virtual std::string Read_Date(int row, int col);
-		// reads cell contents (time string)
-		virtual std::string Read_Time(int row, int col);
-		// reads cell contents (datetime string)
-		virtual std::string Read_Datetime(int row, int col);
-		// writes cell contents
-		virtual void Write(int row, int col, std::string value) = 0;
+		
+		// writes cell contents	
+		virtual void Write(int row, int col, int sheetIndex, const std::string& value) = 0;
 		// finalizes working with file
 		virtual void Finalize() = 0;
 
 		// retrieves file data organization structure
-		virtual FileOrganizationStructure Get_File_Organization() const;
+		virtual NFile_Organization_Structure Get_File_Organization() const;
+
+		virtual std::optional<std::string> Read(const TSheet_Position& position) = 0;
+		virtual std::optional<std::string> Read(const std::string& position) override final {
+			const TSheet_Position pos = CellSpec_To_RowCol(position);
+			return Read(pos);
+		}
 };
 
 /*
  * Hierarchy format adapter interface; encapsulates all needed operations on tree hierarchy file types
  */
-class IHierarchy_File : public IStorage_File
+class IHierarchy_File : public virtual IStorage_File
 {
 	private:
 		//
 
 	protected:
 		// end of file flag
-		bool mEOF;
+		bool mEOF = false;
 
 	public:
 		// virtual destructor due to need of calling derived ones
 		virtual ~IHierarchy_File();
 
-		// initializes format, loads from file, etc.
-		virtual void Init(filesystem::path &path) = 0;
-		// reads cell contents (string)
-		virtual std::string Read(TreePosition& position) = 0;
-		// reads cell contents (double)
-		virtual double Read_Double(TreePosition& position) = 0;
-		// reads cell contents (date string)
-		virtual std::string Read_Date(TreePosition& position);
-		// reads cell contents (time string)
-		virtual std::string Read_Time(TreePosition& position);
-		// reads cell contents (datetime string)
-		virtual std::string Read_Datetime(TreePosition& position);
 		// writes cell contents
-		virtual void Write(TreePosition& position, std::string value) = 0;
+		virtual void Write(TXML_Position& position, const std::string &value) = 0;		
 		// finalizes working with file
 		virtual void Finalize() = 0;
 
 		// retrieves file data organization structure
-		FileOrganizationStructure Get_File_Organization() const;
+		NFile_Organization_Structure Get_File_Organization() const;
 };
 
 /*
@@ -208,14 +214,14 @@ class CCsv_File : public ISpreadsheet_File
 {
 	private:
 		std::unique_ptr<CCSV_Format> mFile;
-
 	public:
-		virtual void Init(filesystem::path &path);
-		virtual void Select_Worksheet(int sheetIndex);
-		virtual std::string Read(int row, int col);
-		virtual double Read_Double(int row, int col);
-		virtual void Write(int row, int col, std::string value);
-		virtual void Finalize();
+		virtual ~CCsv_File() = default;
+
+		virtual bool Init(filesystem::path &path) override;
+		virtual void Write(int row, int col, int sheetIndex, const std::string& value);
+		virtual void Finalize() override;
+
+		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;
 };
 
 #ifndef NO_BUILD_EXCELSUPPORT
@@ -223,40 +229,36 @@ class CCsv_File : public ISpreadsheet_File
 /*
  * XLS file format adapter
  */
-class CXls_File : public ISpreadsheet_File
+class CXls_File : public virtual ISpreadsheet_File
 {
 	private:
-		std::unique_ptr<ExcelFormat::BasicExcel> mFile;
-		int mSelectedSheetIndex;
-
+		std::unique_ptr<ExcelFormat::BasicExcel> mFile;		
 	public:
-		virtual void Init(filesystem::path &path);
-		virtual void Select_Worksheet(int sheetIndex);
-		virtual std::string Read(int row, int col);
-		virtual double Read_Double(int row, int col);
-		virtual void Write(int row, int col, std::string value);
-		virtual void Finalize();
+		virtual ~CXls_File() = default;
+
+		virtual bool Init(filesystem::path &path) override;
+		virtual void Write(int row, int col, int sheetIndex, const std::string& value);
+		virtual void Finalize() override;
+
+		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;
 };
 
 /*
  * XLSX file format adapter
  */
-class CXlsx_File : public ISpreadsheet_File
+class CXlsx_File : public virtual ISpreadsheet_File
 {
 	private:
-		std::unique_ptr<xlnt::workbook> mFile;
-		int mSelectedSheetIndex;
-
+		std::unique_ptr<xlnt::workbook> mFile;		
+		std::optional<std::string> Read_Datetime(const TSheet_Position &position);
 	public:
-		virtual void Init(filesystem::path &path);
-		virtual void Select_Worksheet(int sheetIndex);
-		virtual std::string Read(int row, int col);
-		virtual double Read_Double(int row, int col);
-		virtual std::string Read_Date(int row, int col);
-		virtual std::string Read_Time(int row, int col);
-		virtual std::string Read_Datetime(int row, int col);
-		virtual void Write(int row, int col, std::string value);
-		virtual void Finalize();
+		virtual ~CXlsx_File() = default;
+
+		virtual bool Init(filesystem::path &path) override;
+		virtual void Write(int row, int col, int sheetIndex, const std::string& value);
+		virtual void Finalize() override;
+
+		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;
 };
 
 #endif
@@ -264,15 +266,19 @@ class CXlsx_File : public ISpreadsheet_File
 /*
  * XML format adapter
  */
-class CXml_File : public IHierarchy_File
+class CXml_File : public virtual IHierarchy_File
 {
 	private:
 		std::unique_ptr<CXML_Format> mFile;
 
 	public:
-		virtual void Init(filesystem::path &path);
-		virtual std::string Read(TreePosition& position);
-		virtual double Read_Double(TreePosition& position);
-		virtual void Write(TreePosition& position, std::string value);
-		virtual void Finalize();
+		virtual ~CXml_File() = default;
+
+		virtual bool Init(filesystem::path &path) override;
+		virtual void Write(TXML_Position& position, const std::string &value) override final;
+		virtual void Finalize() override;
+
+
+		virtual std::optional<std::string> Read(const std::string& position) override final;
+		virtual std::optional<std::string> Read(const TXML_Position& position) override final;	//read may modify position
 };

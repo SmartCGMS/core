@@ -36,10 +36,32 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
+#include "file_format_detector.h"
+#include "Misc.h"
 
-#include "FormatAdapter.h"
-#include "Structures.h"
-#include "file_format_rules.h"
+#include <algorithm>
+#include <optional>
 
-CMeasured_Levels Extract_From_File(CFormat_Adapter& source, const CFile_Format_Rules& format_rules);
+CFile_Format_Detector::CFile_Format_Detector()
+{
+	//
+}
+
+void CFile_Format_Detector::Add_Pattern(const char* formatName, const char* cellLocation, const char* content)
+{
+	std::string istr(content);
+	size_t offset = 0, base;
+	// localized formats - pattern may contain "%%" string to delimit localizations
+	while ((base = istr.find("%%", offset)))
+	{
+		if (base == std::string::npos)
+		{
+			mRuleSet[formatName][cellLocation].push_back(istr.substr(offset));
+			break;
+		}
+
+		mRuleSet[formatName][cellLocation].push_back(istr.substr(offset, base - offset));
+		offset = base + 2;
+	}
+}
+

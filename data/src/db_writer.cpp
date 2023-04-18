@@ -174,7 +174,7 @@ void CDb_Writer::Flush_Levels()
         sigCondBind(scgms::signal_Requested_Insulin_Bolus);
         sigCondBind(scgms::signal_Requested_Insulin_Basal_Rate);
         sigCondBind(scgms::signal_Carb_Intake);
-        sigCondBind(scgms::signal_Calibration);
+        sigCondBind(scgms::signal_BG_Calibration);
 
         qr.Bind_Parameters(val.segmentId);
 

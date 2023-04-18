@@ -40,6 +40,7 @@
 
 #include <vector>
 #include <fstream>
+#include <optional>
 
 #include "../../../../common/rtl/FilesystemLib.h"
 
@@ -54,19 +55,19 @@ class CCSV_Format
 		// opened file stream
 		std::ifstream mFile;
 		// number of loaded rows
-		size_t mRowsLoaded;
+		size_t mRowsLoaded = 0;
 		// error indicator
-		bool mError;
+		bool mError = false;
 		// original filename
 		filesystem::path mFileName;
 		// were contents changed? (do we need to write file?)
 		bool mWriteFlag;
 		// did we recently accessed cell, which is out of range?
-		bool mUnkCell;
+		bool mUnkCell = false;
 		// maximum column number
-		size_t mMaxColumn;
+		size_t mMaxColumn = 0;
 		// column separator
-		char mSeparator;
+		char mSeparator = ';';
 
 	protected:
 		// lazyloading method; loads to supplied row number, if needed
@@ -77,7 +78,7 @@ class CCSV_Format
 		virtual ~CCSV_Format();
 
 		// reads contents of specified cell; always string since we don't convert inputs at load time
-		std::string Read(int row, int column);
+		std::optional<std::string> Read(int row, int column);
 		// write to specified cell
 		void Write(int row, int column, std::string value);
 

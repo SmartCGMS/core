@@ -42,6 +42,7 @@
 
 #include <array>
 #include <tuple>
+#include <sstream>
 
 class CPattern_Prediction_Data {
 protected:
@@ -58,9 +59,9 @@ protected:
     std::vector<TLevel> mLearning_Data;
 protected:
     //prediction helpers
-    const double mTrusted_Perimeter = 2.0;
     double mRecent_Prediction = std::numeric_limits<double>::quiet_NaN();
     bool mInvalidated = true;   //true, when ::predict must recalculate mRecent_Prediction
+protected:
 public:
     CPattern_Prediction_Data();
 
@@ -75,6 +76,7 @@ public:
 
     void Start_Collecting_Learning_Data();
     std::wstring Learning_Data(const size_t sliding_window_length, const double dt) const;
+    std::stringstream Level_Series() const;
 
     void Encounter();
     bool Was_Encountered() const;

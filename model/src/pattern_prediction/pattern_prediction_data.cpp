@@ -72,40 +72,24 @@ void CPattern_Prediction_Data::push(const double device_time, const double level
 }
 
 
-double CPattern_Prediction_Data::predict() {       
+double CPattern_Prediction_Data::predict() {
+    //this is a stub for the future, shall we ever find a reliable way for on-line learning
+    //for now, we just repeat the recent prediction or the configured level - depending on the do_not_learn switch
+    
     if (mInvalidated) {
-
         const size_t full_set_n = mFull ? mState.size() : mHead;
-        
-
-        double full_set_avg = 0.0;
-        for (size_t i = 0; i < full_set_n; i++) {
-            full_set_avg += mState[i];
+        if (full_set_n > 0) {
+            const size_t last_write_position = mHead > 0 ? mHead - 1 : mState.size() - 1;
+            mRecent_Prediction = mState[last_write_position];
+            mInvalidated = false;
         }
-        full_set_avg /= static_cast<double>(full_set_n);    
-        
-        double trusted_region_avg = 0.0;
-        double trusted_region_n = 0.0;
-
-        for (size_t i = 0; i < full_set_n; i++) {
-            const double tmp = fabs(mState[i] - full_set_avg);
-            if (tmp <= mTrusted_Perimeter) {
-                trusted_region_avg += mState[i];
-                trusted_region_n += 1.0;
-            }
-        }
-
-        
-        mRecent_Prediction = trusted_region_n > 0.0 ?
-            trusted_region_avg / trusted_region_n :
-            full_set_avg;
-        
-        mInvalidated = false;
+        else
+            mRecent_Prediction = std::numeric_limits<double>::quiet_NaN();
     }
 
     return mRecent_Prediction;
 }
-
+   
 CPattern_Prediction_Data::operator bool() const {
     return (mHead > 0) || mFull;
 }
@@ -122,19 +106,12 @@ void CPattern_Prediction_Data::Set_State(const double& level) {
 }
 
 void CPattern_Prediction_Data::State_from_String(const std::wstring& state) {
-    std::wstring str_copy{ state };	//wcstok modifies the input string
-    const wchar_t* delimiters = L" ";	//string of chars, which designate individual delimiters
-    wchar_t* buffer = nullptr;
-    wchar_t* str_val = wcstok_s(const_cast<wchar_t*>(str_copy.data()), delimiters, &buffer);
     
-    while (str_val != nullptr) {
-         //and store the real value
-         bool ok;
-         const double value = str_2_dbl(str_val, ok);
-         if (ok) push(0.0, value);
-         else break;
-
-        str_val = wcstok_s(nullptr, delimiters, &buffer);
+    bool ok = false;
+    const auto converted = str_2_dbls(state.c_str(), ok);
+    if (ok) {
+        for (const auto value : converted)
+            push(0.0, value);
     }
 }
 
@@ -230,4 +207,20 @@ void CPattern_Prediction_Data::Encounter() {
 
 bool CPattern_Prediction_Data::Was_Encountered() const {
     return mEncountered;
+}
+
+std::stringstream CPattern_Prediction_Data::Level_Series() const {
+    std::stringstream result;
+
+
+    bool fired_once = false;
+    for (const auto e : mLearning_Data) {
+        if (fired_once)
+            result << " ";
+        fired_once = true;
+
+        result << dbl_2_str(e.level);
+    }
+
+    return result;
 }

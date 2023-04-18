@@ -38,28 +38,41 @@
 
 #pragma once
 
-#include "../../../../common/rtl/hresult.h"
-#include "../../../../common/utils/SimpleIni.h"
+#include <string>
 
-#include "FormatRecognizer.h"
-#include "Extractor.h"
+#include "../third party/exprtk.hpp"
 
-
-class CFormat_Rule_Loader {
+class CValue_Convertor {
 protected:
-	CFormat_Recognizer& mFormatRecognizer;
-	CExtractor& mExtractor;
-	CDateTime_Recognizer& mDateTime_Recognizer;
+	enum class NValue_Conversion {
+		identity,
+		f_2_c,
+		mg_dl_2_mmol_l,
+		sleep_quality,
+		general,
+		invalid,
+	};
 
-	bool Load_Format_Pattern_Config(CSimpleIniA& ini);
-	bool Load_Format_Rule_Templates(CSimpleIniA& ini);
-	bool Load_Format_Rules(CSimpleIniA& ini);
-	bool Load_DateTime_Formats(CSimpleIniA& ini);
+	NValue_Conversion mConversion = NValue_Conversion::invalid;	
+protected:
+	//most of the time, there won't by any conversion => it is worth to allocate it only when needed to save the overall init time
+	struct TExpression_Engine {
+		exprtk::symbol_table<double> mSymbol_Table;
+		exprtk::expression<double>   mExpression_Tree;
+		exprtk::parser<double>       mParser;
+	};
 
-    bool Add_Config_Keys(CSimpleIniA& ini, std::function<void(const char*, const char*, const char*)> func);
-    bool Load_Format_Config(const char* default_config, const wchar_t* file_name, std::function<bool(CSimpleIniA&)> func);
+	std::unique_ptr<TExpression_Engine> mEngine;
+protected:
+	std::string mExpression_String;
+	double mValue = std::numeric_limits<double>::quiet_NaN();		//eval value placeholder due to the expretk lib design
 public:
-	CFormat_Rule_Loader(CFormat_Recognizer& recognizer, CExtractor& extractor, CDateTime_Recognizer& datetime);
+	CValue_Convertor() {};
+	CValue_Convertor(const CValue_Convertor& other);
 
-	bool Load();
-};
+	bool init(const std::string& expression);
+	double eval(const double val);	//may return nan if cannot eval
+	bool valid() const;						//true if expression is correct	
+
+	CValue_Convertor& operator=(const CValue_Convertor& other);
+};		

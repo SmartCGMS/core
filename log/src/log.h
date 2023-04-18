@@ -63,6 +63,7 @@ protected:
 	std::map<uint64_t, std::wofstream> mSegmented_Logs;
 	bool mLog_Per_Segment = false;
 	bool mReduce_Log = false;
+	double mSecond_Threshold = 0.0;
 
 	scgms::CSignal_Description mSignal_Names;
 	filesystem::path mLog_Filename;

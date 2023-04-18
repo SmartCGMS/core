@@ -45,29 +45,26 @@
 #include "FormatAdapter.h"
 #include "../../../../common/rtl/FilesystemLib.h"
 
-using FormatRecognizerRuleMap = std::map<std::string, std::list<std::string>>;
+using TFile_Format_Detect_Map = std::map<std::string, std::list<std::string>>;
+
+using TFile_Format_Rules = std::map<std::string, TFile_Format_Detect_Map>;
 
 /*
  * Class used to recognize data format (not file format)
  */
-class CFormat_Recognizer
+class CFile_Format_Detector
 {
 	private:
 		// all rules for all formats; primary key = format name, secondary key = cellspec, value = matched value
-		std::map<std::string, FormatRecognizerRuleMap> mRuleSet;
+		TFile_Format_Rules mRuleSet;
 
 	protected:
 		// try to match file contents to data format
 		bool Match(std::string format, CFormat_Adapter& file) const;
 
 	public:
-		CFormat_Recognizer();
+		CFile_Format_Detector();
 
 		// adds new format recognition pattern
 		void Add_Pattern(const char* formatName, const char* cellLocation, const char* content);
-
-		// recognize data format from supplied path
-		std::string Recognize_And_Open(filesystem::path path, CFormat_Adapter& target) const;
-		// recognize data format from supplied originalPath (to recognize file format as well) and path
-		std::string Recognize_And_Open(filesystem::path originalPath, filesystem::path path, CFormat_Adapter& target) const;
 };
