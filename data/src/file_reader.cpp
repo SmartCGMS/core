@@ -69,7 +69,7 @@ CFile_Reader::CFile_Reader(scgms::IFilter *output) : CBase_Filter(output) {
 CFile_Reader::~CFile_Reader() {
 
 	if (mReaderThread && mReaderThread->joinable())
-		mReaderThread->join();	
+		mReaderThread->join();
 }
 
 bool CFile_Reader::Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId, const double value, const std::wstring& winfo)
@@ -130,14 +130,15 @@ std::list<TSegment_Limits> CFile_Reader::Resolve_Segments(const TValue_Vector& s
 
 					//do not forget that src[current] may hold more than one signal
 					//this level still falls into the maximum allowed interval between consecutive IGs
-					if (current_levels.has_value(scgms::signal_BG) || current_levels.has_value(scgms::signal_BG_Calibration))
+					if (current_levels.has_value(scgms::signal_BG) || current_levels.has_value(scgms::signal_BG_Calibration)) {
 						bg_is_present = true;
+					}
 				}
 				else {
 					//this level has exceeded the maximum allowed interval between consecutive IGs
 					//=>push it as the segment's end
 
-					segment_end = current - 1; //move one back as this level belongs to the following segment					
+					segment_end = current - 1; //move one back as this level belongs to the following segment
 					break;
 				}
 			}
@@ -146,9 +147,10 @@ std::list<TSegment_Limits> CFile_Reader::Resolve_Segments(const TValue_Vector& s
 
 		segment_end++;
 		
-		if ((ig_counter >= mMinimum_Required_IGs) &&					//minimum number of IG levels met
-			(!mRequire_BG || (mRequire_BG && bg_is_present)))		//BG is present, if required
-			segment_start_stop.push_back({ segment_begin, segment_end});
+		if ((ig_counter >= mMinimum_Required_IGs) &&				//minimum number of IG levels met
+			(!mRequire_BG || (mRequire_BG && bg_is_present))) {		//BG is present, if required
+			segment_start_stop.push_back({ segment_begin, segment_end });
+		}
 
 		segment_begin = segment_end;			//at this level, new segment's start
 	}
@@ -156,18 +158,16 @@ std::list<TSegment_Limits> CFile_Reader::Resolve_Segments(const TValue_Vector& s
 	return segment_start_stop;
 }
 
-void CFile_Reader::Run_Reader() {	
+void CFile_Reader::Run_Reader() {
 	TValue_Vector values = Extract();
 	if (!values.empty()) {
 		bool isError = false;
 		uint32_t currentSegmentId = 0;
 
-		
-
 		std::list<TSegment_Limits> resolvedSegments = Resolve_Segments(values);
 
 		// for every segment resolved...
-		for (const TSegment_Limits& seg : resolvedSegments) 		{
+		for (const TSegment_Limits& seg : resolvedSegments) {
 			currentSegmentId++;
 			Send_Event(scgms::NDevice_Event_Code::Time_Segment_Start, values[seg.first].measured_at(), currentSegmentId);
 
@@ -183,20 +183,19 @@ void CFile_Reader::Run_Reader() {
 				if (!current_values.valid())
 					continue;
 				const double current_measured_time = current_values.measured_at();
-					
+
 				bool errorRes = false;
 
 				//first, set up the end time and levels for various temporal activites
 				current_values.enumerate([=, &errorRes, &nextPhysicalActivityEnd, &nextTempBasalEnd, &lastBasalRateSetting, &nextSleepEnd](const GUID& signal_id, const CMeasured_Values_At_Single_Time::TValue& val) {
 					const double* current_level = std::get_if<double>(&val);
 
-					//handle the known, special cases which use helper signals 					
+					//handle the known, special cases which use helper signals
 					if (signal_id == signal_Physical_Activity_Duration) {
 						if (current_level != nullptr)
 							nextPhysicalActivityEnd = current_measured_time + *current_level;
 						//note that we do not set the activity itself here, because it will be done in the generic part of the code
 					}
-
 					else if (signal_id == signal_Insulin_Temp_Rate_Endtime) {
 						//note that we drive the temp by the end-time, becuase the temp basal must have the temp time - otherwise, it won't be a temporarily change
 						if (current_level != nullptr) {
@@ -207,7 +206,8 @@ void CFile_Reader::Run_Reader() {
 								errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, current_measured_time, currentSegmentId, scgms::signal_Requested_Insulin_Basal_Rate, new_temp_basal.value());
 								nextTempBasalEnd = *current_level;
 
-								{	//try to emit additional info so we have some info whether the user played with the temp or not
+								//try to emit additional info so we have some info whether the user played with the temp or not
+								{
 									std::wstring msg = L"Requested temporal insulin basal rate ";
 									msg += dbl_2_wstr(new_temp_basal.value());
 									msg += L" until ";
@@ -215,7 +215,7 @@ void CFile_Reader::Run_Reader() {
 									Send_Event(scgms::NDevice_Event_Code::Information, current_measured_time, currentSegmentId, Invalid_GUID, std::numeric_limits<double>::quiet_NaN(), msg);
 								}
 							}
-						}						
+						}
 					}
 
 					else if (signal_id == scgms::signal_Requested_Insulin_Basal_Rate) {
@@ -225,9 +225,9 @@ void CFile_Reader::Run_Reader() {
 							nextTempBasalEnd = std::numeric_limits<double>::quiet_NaN();
 
 							//note that the new basal rate will be sent in the generic part of the code
-						}						
+						}
 					}
-						
+
 					else if (signal_id == signal_Sleep_Endtime) {
 						//just like with the temp basal, we require the sleep end time to prevent the patient falling asleep forever
 						if (current_level != nullptr) {
@@ -246,7 +246,7 @@ void CFile_Reader::Run_Reader() {
 						const std::set<GUID> silenced_signals = { signal_Physical_Activity_Duration, signal_Insulin_Temp_Rate, signal_Insulin_Temp_Rate_Endtime, signal_Sleep_Endtime, signal_Comment,
 																	signal_Date_Only, signal_Time_Only, signal_Date_Time, scgms::signal_Sleep_Quality };
 
-									//as regards scgms::signal_Sleep_Quality, see the signal_id == signal_Sleep_Endtime comments/reasoning
+					//as regards scgms::signal_Sleep_Quality, see the signal_id == signal_Sleep_Endtime comments/reasoning
 					const double* current_level = std::get_if<double>(&val);
 
 					if (signal_id == signal_Comment) {
@@ -256,21 +256,21 @@ void CFile_Reader::Run_Reader() {
 							errorRes |= !Send_Event(scgms::NDevice_Event_Code::Information, current_measured_time, currentSegmentId, Invalid_GUID, std::numeric_limits<double>::infinity(), wstr);
 						}
 					}
-				
-								
+
 					//send all the non-helper signals, which we do not suppress
-					if (silenced_signals.find(signal_id) == silenced_signals.end()) {												
+					if (silenced_signals.find(signal_id) == silenced_signals.end()) {
 						if (current_level != nullptr)
 							errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, current_measured_time, currentSegmentId, signal_id, *current_level);
-					}					
+					}
 
 				});
 
-				{//third, switch off the temporal activites, which have ended
+				//third, switch off the temporal activites, which have ended
+				{
 					//switch off the physical activity, once ended
 					if (!std::isnan(nextPhysicalActivityEnd) && (nextPhysicalActivityEnd <= current_measured_time)) {
 						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextPhysicalActivityEnd, currentSegmentId, scgms::signal_Physical_Activity, 0.0);
-						nextPhysicalActivityEnd = std::numeric_limits<double>::quiet_NaN();;
+						nextPhysicalActivityEnd = std::numeric_limits<double>::quiet_NaN();
 					}
 
 					//restore the insulin basal rate settings if the basal temp has ended
@@ -278,7 +278,6 @@ void CFile_Reader::Run_Reader() {
 						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextTempBasalEnd, currentSegmentId, scgms::signal_Requested_Insulin_Basal_Rate, lastBasalRateSetting);
 						nextTempBasalEnd = std::numeric_limits<double>::quiet_NaN();
 					}
-
 
 					//wake up the patient
 					if (!std::isnan(nextSleepEnd) && (nextSleepEnd < current_measured_time))
@@ -301,16 +300,16 @@ void CFile_Reader::Run_Reader() {
 
 			if (isError)
 				break;
-		}		
+		}
 		
 	} else {
 		 Emit_Info(scgms::NDevice_Event_Code::Error, dsUnexpected_Error_While_Parsing + mFileName.wstring());
 	}
 
 	if (mShutdownAfterLast)	{
-		scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Shut_Down };		
+		scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Shut_Down };
 		if (!values.empty())
-			evt.device_time() = values[values.size() - 1].measured_at() + std::numeric_limits<double>::epsilon();		
+			evt.device_time() = values[values.size() - 1].measured_at() + std::numeric_limits<double>::epsilon();
 		evt.device_id() = file_reader::File_Reader_Device_GUID;
 		mOutput.Send(evt);
 	}
@@ -376,11 +375,8 @@ HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration con
 				rc = MK_E_CANTOPENFILE;
 			}
 		}
-			
 
-		
-
-		if(Succeeded(rc)) {
+		if (Succeeded(rc)) {
 			mFileName = configuration.Read_File_Path(rsInput_Values_File);
 			mMaximum_IG_Interval = configuration.Read_Double(rsMaximum_IG_Interval, mMaximum_IG_Interval);
 			if (std::isnan(mMaximum_IG_Interval) || (mMaximum_IG_Interval <= 0.0)) {
@@ -404,11 +400,11 @@ HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration con
 				}
 			}
 		}
-	}	
-	
+	}
+
 	return rc;
 }
 
-HRESULT IfaceCalling CFile_Reader::Do_Execute(scgms::UDevice_Event event) {	
+HRESULT IfaceCalling CFile_Reader::Do_Execute(scgms::UDevice_Event event) {
 	return mOutput.Send(event);
 }

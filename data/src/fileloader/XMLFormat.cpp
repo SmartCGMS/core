@@ -111,7 +111,7 @@ XMLElement* CXML_Format::Find_Element(const TXML_Position& pos)
 
 		auto iter = el->children.find(pos.hierarchy[i].tagName);
 		if (iter == el->children.end()) {
-			//pos.hierarchy[i].position = TreeLevelSpec::npos;	
+			//pos.hierarchy[i].position = TreeLevelSpec::npos;
 			return nullptr;	//not found
 		}
 		
@@ -125,7 +125,6 @@ XMLElement* CXML_Format::Find_Element(const TXML_Position& pos)
 
 	}
 
-	
 	return el;
 }
 
@@ -188,7 +187,7 @@ bool CXML_Format::Is_Error() const
 }
 
 bool CXML_Format::Load(const filesystem::path path)
-{	
+{
 	std::ifstream f(path);
 
 	if (!f.is_open())

@@ -65,7 +65,7 @@ using TCursors = std::vector<TCursor<TPosition>>;
 TCursors<TSheet_Position> Break_Sheet_Layout_To_Cursors(CFormat_Layout& layout) {
 	TCursor<TSheet_Position> cursor;
 	for (auto elem : layout) {
-		TSheet_Position pos = CellSpec_To_RowCol(elem.cursor_position);		
+		TSheet_Position pos = CellSpec_To_RowCol(elem.cursor_position);
 		cursor.push_back(TSeries_Source<TSheet_Position>{ pos, elem });
 	}
 
@@ -111,14 +111,12 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 	double datetime = std::numeric_limits<double>::quiet_NaN();
 	double date_part = 0.0, time_part = 0.0;
 
-	
-
 	for (auto& cursor : cursors) {
 
 		bool read_anything = false;	//keeping compiler happy
 		do {
 			read_anything = false;	//clear the cursor-watchdog
-			CMeasured_Values_At_Single_Time mval;			
+			CMeasured_Values_At_Single_Time mval;
 			std::string comments;	//comments aggregation
 
 			for (auto& elem : cursor) {	//this has to be non-const reference, otherwise we will be creating the expression convertor on and on as there's lazy init
@@ -138,7 +136,7 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 							comments += elem.cell.series.comment_name;
 							comments += ": ";
 						}
-						comments += str_val;						
+						comments += str_val;
 					}
 					else if (sig == signal_Date_Only) {
 						date_part = Local_Time_Str_To_Rat_Time(str_val, elem.cell.series.datetime_format.c_str());
@@ -154,13 +152,13 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 
 						//are we reading a time marker?
 						if (!elem.cell.series.datetime_format.empty()) {
-							val = Local_Time_Str_To_Rat_Time(str_val, elem.cell.series.datetime_format.c_str());							
+							val = Local_Time_Str_To_Rat_Time(str_val, elem.cell.series.datetime_format.c_str());
 						} else {
 							//we are reading a generic signal, double value
 							bool ok = false;
 							val = str_2_dbl(str_val.c_str(), ok);
 							if (ok) 
-								val = elem.cell.series.conversion.eval(val);														
+								val = elem.cell.series.conversion.eval(val);
 						}
 
 						if (!std::isnan(val))

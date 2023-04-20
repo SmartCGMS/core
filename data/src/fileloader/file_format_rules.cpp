@@ -83,7 +83,6 @@ bool CFile_Format_Rules::Load_Format_Config(const char *default_config, const wc
 		return ini.LoadData(data);
 	};
 
-	
 	bool default_result = false;
 	if (default_config != nullptr)
 		default_result = load_config(default_config, load_config_from_memory);
@@ -94,15 +93,13 @@ bool CFile_Format_Rules::Load_Format_Config(const char *default_config, const wc
 		if ((default_config != nullptr) && (default_result)) {
 			//with succesfully loaded default config, file result does not matter
 		}
-		else
+		else {
 			default_result = file_result;
+		}
 	}
-	
+
 	return default_result;
 }
-
-
-
 
 bool CFile_Format_Rules::Add_Config_Keys(CSimpleIniA & ini, std::function<void(const char*, const char*, const char*)> func) {
 	CSimpleIniA::TNamesDepend sections;
@@ -115,14 +112,11 @@ bool CFile_Format_Rules::Add_Config_Keys(CSimpleIniA & ini, std::function<void(c
 		for (const auto &key : keys) {
 			const auto value = ini.GetValue(section.pItem, key.pItem);
 			func(section.pItem, key.pItem, value);
-		}		
+		}
 	}
 
 	return true;
 }
-
-
-
 
 bool CFile_Format_Rules::Load_Format_Definition(CSimpleIniA& ini) {
 	const std::string signature_suffix = ".signature";
@@ -174,7 +168,7 @@ bool CFile_Format_Rules::Load_Format_Definition(CSimpleIniA& ini) {
 	//=>we just return true
 	return true;
 }
-	
+
 TFormat_Signature_Map CFile_Format_Rules::Load_Format_Signature(const CSimpleIniA& ini, const CSimpleIniA::Entry& section) {
 	TFormat_Signature_Map result;
 
@@ -183,7 +177,6 @@ TFormat_Signature_Map CFile_Format_Rules::Load_Format_Signature(const CSimpleIni
 
 	for (const auto& cursors_position : signature_cursors) {
 		const auto value = ini.GetValue(section.pItem, cursors_position.pItem);
-		
 
 		std::string istr(value);
 		size_t offset = 0;
@@ -191,9 +184,8 @@ TFormat_Signature_Map CFile_Format_Rules::Load_Format_Signature(const CSimpleIni
 
 		// localized formats - pattern may contain "%%" string to delimit localizations
 		const std::string localization_delimiter = "%%";
-		while (offset < istr.size()) {			
+		while (offset < istr.size()) {
 			size_t base = istr.find(localization_delimiter, offset);
-			
 
 			if (base == std::string::npos) {
 				const auto substr = istr.substr(offset);
@@ -309,7 +301,7 @@ bool CFile_Format_Rules::Load_Series_Descriptors(CSimpleIniA& ini) {
 	
 		//once we are here, we have initialized the desc successfully => let's push it
 		mSeries[series_name] = std::move(desc);
-	}	
+	}
 
 	return true;
 }
@@ -342,7 +334,7 @@ bool CFile_Format_Rules::Are_Rules_Valid(refcnt::Swstr_list& error_description) 
 	return mValid;
 }
 
-bool CFile_Format_Rules::Load() {	
+bool CFile_Format_Rules::Load() {
 	
 	//order of the following loadings DOES MATTER!
 	return Load_Format_Config(default_format_series, dsSeries_Definitions_Filename, std::bind(&CFile_Format_Rules::Load_Series_Descriptors, this, std::placeholders::_1)) &&
@@ -353,11 +345,9 @@ bool CFile_Format_Rules::Load_Additional_Format_Layout(const filesystem::path& p
 	CSimpleIniA ini;
 
 	ini.SetUnicode();
-	
-	
+
 	if (ini.LoadFile(path.c_str()) != SI_Error::SI_OK)
 		return false;
 
 	return Load_Format_Definition(ini);
-
 }
