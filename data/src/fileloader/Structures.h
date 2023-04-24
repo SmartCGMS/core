@@ -81,15 +81,20 @@ public:
 	}	
 
 	template <typename T>
-	std::optional<T> get(const GUID &signal_ID) const {
+	const std::optional<T> get(const GUID &signal_ID) const {
 		T* val = nullptr;
 
 		const auto iter = mValues.find(signal_ID);
 		if (iter != mValues.end()) {
-			val = const_cast<double*>(std::get_if<T>(&iter->second));
+			val = const_cast<T*>(std::get_if<T>(&iter->second));
 		}
 
-		return val != nullptr ? *val : std::optional<T>{};
+		if (val != nullptr)
+			return *val;
+		else
+			return std::nullopt;
+
+		//return val != nullptr ? (*val) : std::nullopt; // std::optional<T>{};
 	}
 
 	bool valid() const {

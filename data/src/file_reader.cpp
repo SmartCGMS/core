@@ -150,6 +150,7 @@ std::list<TSegment_Limits> CFile_Reader::Resolve_Segments(const TValue_Vector& s
 			(!mRequire_BG || (mRequire_BG && bg_is_present)))		//BG is present, if required
 			segment_start_stop.push_back({ segment_begin, segment_end});
 
+
 		segment_begin = segment_end;			//at this level, new segment's start
 	}
 
