@@ -50,6 +50,8 @@ protected:
 		mg_dl_2_mmol_l,
 		sleep_quality,
 		general,
+		minutes,
+		seconds,
 		invalid,
 	};
 

@@ -270,8 +270,8 @@ void CFile_Reader::Run_Reader() {
 				{//third, switch off the temporal activites, which have ended
 					//switch off the physical activity, once ended
 					if (!std::isnan(nextPhysicalActivityEnd) && (nextPhysicalActivityEnd <= current_measured_time)) {
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextPhysicalActivityEnd, currentSegmentId, scgms::signal_Physical_Activity, 0.0);
-						nextPhysicalActivityEnd = std::numeric_limits<double>::quiet_NaN();;
+						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextPhysicalActivityEnd, currentSegmentId, scgms::signal_Physical_Activity, 1.0);	//1.0 is the basal metabolism
+						nextPhysicalActivityEnd = std::numeric_limits<double>::quiet_NaN();
 					}
 
 					//restore the insulin basal rate settings if the basal temp has ended

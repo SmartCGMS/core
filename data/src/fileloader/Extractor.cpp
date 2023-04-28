@@ -128,7 +128,7 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 
 				if (str_val_opt.has_value()) {
 					read_anything = true;	//signal the cursor-watchdog
-					const std::string str_val = str_val_opt.value();
+					const std::string str_val = trim(str_val_opt.value());
 
 					if (sig == signal_Comment) {
 						if (!comments.empty())

@@ -51,6 +51,8 @@ bool CValue_Convertor::init(const std::string& expression_string) {
 	const std::string conv_F_2_C = "(x-32)/1.8";
 	const std::string conv_Mg_dL_2_mmol_L = "x/18.0182";
 	const std::string conv_Sleep_Quality = "0.01*x";
+	const std::string conv_minutes = "x/(24*60)";
+	const std::string conv_seconds = "x/(24*60*60)";
 
 	std::string spaceless_expression = expression_string;
 	spaceless_expression.erase(std::remove_if(spaceless_expression.begin(), spaceless_expression.end(), isspace), spaceless_expression.end());
@@ -63,6 +65,10 @@ bool CValue_Convertor::init(const std::string& expression_string) {
 		mConversion = NValue_Conversion::mg_dl_2_mmol_l;
 	else if (expression_string == conv_Sleep_Quality)
 		mConversion = NValue_Conversion::sleep_quality;
+	else if (expression_string == conv_minutes)
+		mConversion = NValue_Conversion::minutes;
+	else if (expression_string == conv_seconds)
+		mConversion = NValue_Conversion::seconds;
 	else
 		mConversion = NValue_Conversion::general;
 
@@ -113,6 +119,14 @@ double CValue_Convertor::eval(const double val) {
 
 		case NValue_Conversion::sleep_quality:
 			result = val * 0.01;
+			break;
+
+		case NValue_Conversion::minutes:
+			result = val * scgms::One_Minute;
+			break;
+
+		case NValue_Conversion::seconds:
+			result = val * scgms::One_Second;
 			break;
 
 		case NValue_Conversion::general:
