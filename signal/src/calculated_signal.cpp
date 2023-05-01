@@ -287,7 +287,8 @@ void CCalculate_Filter::Schedule_Solving(const GUID &level_signal_id) {
 		mSolving_Scheduled = true;
 	}
 
-	if ((level_signal_id == scgms::signal_Calibration) && mSolve_On_Calibration) mSolving_Scheduled = true;
+	if ((level_signal_id == scgms::signal_BG_Calibration) && mSolve_On_Calibration) 
+		mSolving_Scheduled = true;
 }
 
 double CCalculate_Filter::Calculate_Fitness(scgms::ITime_Segment **segments, const size_t segment_count, scgms::SMetric metric, scgms::IModel_Parameter_Vector *parameters) {

@@ -135,6 +135,8 @@ namespace expression {
 
     DSpecialized_Variable(level, dval)
     DSpecialized_Variable(is_level_event, bval)
+    DSpecialized_Variable(is_info_event, bval)
+    DSpecialized_Variable(is_control_event, bval)
 
 }
 

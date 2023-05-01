@@ -46,7 +46,7 @@
 
 thread_local TVector1D CSteil_Rebrin_blood::mPresent_Ist, CSteil_Rebrin_blood::mDerived_Ist, CSteil_Rebrin_blood::mCalibration_Offsets;
 
-CSteil_Rebrin_blood::CSteil_Rebrin_blood(scgms::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(scgms::signal_IG)), mCalibration(segment.Get_Signal(scgms::signal_Calibration)) {
+CSteil_Rebrin_blood::CSteil_Rebrin_blood(scgms::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(scgms::signal_IG)), mCalibration(segment.Get_Signal(scgms::signal_BG_Calibration)) {
 	if (!refcnt::Shared_Valid_All(mIst, mCalibration)) throw std::exception{};
 }
 

@@ -37,50 +37,93 @@
  */
 
 #include "FormatAdapter.h"
+
+#include "../../../../common/utils/string_utils.h"
+
 #include "CSVFormat.h"
+#include "Misc.h"
 
 #include <sstream>
 #include <algorithm>
 #include <cstring>
 
-CFormat_Adapter::CFormat_Adapter()
-{
-	//
-}
-
-CFormat_Adapter::CFormat_Adapter(const filesystem::path filename, const filesystem::path originalFilename)
-{
-	Init(filename, originalFilename);
+CFormat_Adapter::CFormat_Adapter(const TFormat_Signature_Rules& rules, const filesystem::path filename, const filesystem::path originalFilename) {
+	mValid = Init(filename, originalFilename);
+	if (mValid) {
+		mValid = Detect_Format_Layout(rules);
+	}
 }
 
 CFormat_Adapter::~CFormat_Adapter()
 {
-	if (mFormat)
-		mFormat->Finalize();
+	if (mStorage)
+		mStorage->Finalize();
 }
 
-void CFormat_Adapter::Init(const filesystem::path filename, filesystem::path originalFilename)
-{
-	mError = 0;
+
+bool CFormat_Adapter::Valid() const {
+	return mValid;
+}
+
+std::string CFormat_Adapter::Format_Name() const {
+	return mFormat_Name;
+}
+
+bool CFormat_Adapter::Detect_Format_Layout(const TFormat_Signature_Rules& layout_rules) {
+
+	bool format_found = false;
+
+	auto match = [&](const TFormat_Signature_Map &signature)->bool {
+		// try all rules, all rules need to be matched
+		for (auto const& rulePair : signature)
+		{
+			const auto rVal = Read<std::string>(rulePair.first);
+			if (!rVal.has_value())
+				return false;			 
+
+			if (!rulePair.second.empty()) {
+				//check the containment only if it is defined
+				//we may be just checking a path existince only!
+
+				const auto trimmed_value = trim(rVal.value());
+					//note it can contain excessive spaces due to delimiter-identifier separations
+
+				if (!Contains_Element(rulePair.second, trimmed_value))
+					return false;
+			}
+		}
+
+		return true;
+	};
+
+	// try to recognize data format
+	for (auto const& fpair : layout_rules) {
+		if (match(fpair.second)) {
+			mFormat_Name = fpair.first;
+			format_found = true;
+			break;
+		}
+	}
+
+	return format_found;
+}
+
+bool CFormat_Adapter::Init(const filesystem::path filename, filesystem::path originalFilename) {
 	if (originalFilename.empty())
 		originalFilename = filename;
 
 	// at first, try to recognize file format from extension
 
-	KnownFileFormats format;
+	mStorage_Format = NStorage_Format::unknown;
 	std::wstring path = originalFilename.wstring();
-	if (path.length() < 4)
-	{
-		mError = 1;
-		return;
+	if (path.length() < 4) {		
+		return false;
 	}
 
 	// find dot
 	size_t dotpos = path.find_last_of('.');
-	if (dotpos == std::wstring::npos)
-	{
-		mError = 1;
-		return;
+	if (dotpos == std::wstring::npos) {		
+		return false;
 	}
 	// extract extension
 	std::wstring ext = path.substr(dotpos + 1);
@@ -89,413 +132,74 @@ void CFormat_Adapter::Init(const filesystem::path filename, filesystem::path ori
 
 	// extract format name
 	if (ext == L"csv" || ext == L"txt")
-		format = KnownFileFormats::FORMAT_CSV;
+		mStorage_Format = NStorage_Format::csv;
 #ifndef NO_BUILD_EXCELSUPPORT
 	else if (ext == L"xls")
-		format = KnownFileFormats::FORMAT_XLS;
+		mStorage_Format = NStorage_Format::xls;
 	else if (ext == L"xlsx")
-		format = KnownFileFormats::FORMAT_XLSX;
+		mStorage_Format = NStorage_Format::xlsx;
 #endif
 	else if (ext == L"xml")
-		format = KnownFileFormats::FORMAT_XML;
-	else
-	{
-		mError = 2;
-		return;
+		mStorage_Format = NStorage_Format::xml;
+	else {
+		return false;
 	}
 
 	mOriginalPath = filename;
 
 	// create appropriate format adapter
-	switch (format)
+	switch (mStorage_Format)
 	{
-		case KnownFileFormats::FORMAT_CSV:
+		case NStorage_Format::csv:
 		{
-			mFormat = std::make_unique<CCsv_File>();
+			mStorage = std::make_unique<CCsv_File>();
 			break;
 		}
 #ifndef NO_BUILD_EXCELSUPPORT
-		case KnownFileFormats::FORMAT_XLS:
+		case NStorage_Format::xls:
 		{
-			mFormat = std::make_unique<CXls_File>();
+			mStorage = std::make_unique<CXls_File>();
 			break;
 		}
-		case KnownFileFormats::FORMAT_XLSX:
+		case NStorage_Format::xlsx:
 		{
-			mFormat = std::make_unique<CXlsx_File>();
+			mStorage = std::make_unique<CXlsx_File>();
 			break;
 		}
 #endif
-		case KnownFileFormats::FORMAT_XML:
+		case NStorage_Format::xml:
 		{
-			mFormat = std::make_unique<CXml_File>();
+			mStorage = std::make_unique<CXml_File>();
 			break;
 		}
 		default:
 			assert("Unsupported format supplied as argument to CFormat_Adapter constructor" && false);
-			return;
+			return false;
 	}
 
-	mFormat->Init(mOriginalPath);
+	return mStorage->Init(mOriginalPath);
 }
 
 ISpreadsheet_File* CFormat_Adapter::ToSpreadsheetFile() const
 {
-	return dynamic_cast<ISpreadsheet_File*>(mFormat.get());
+	return dynamic_cast<ISpreadsheet_File*>(mStorage.get());
 }
 
 IHierarchy_File* CFormat_Adapter::ToHierarchyFile() const
 {
-	return dynamic_cast<IHierarchy_File*>(mFormat.get());
-}
-
-std::string CFormat_Adapter::Read(const char* cellSpec) const
-{
-	std::string ret = "";
-
-	switch (Get_File_Organization())
-	{
-		case FileOrganizationStructure::SPREADSHEET:
-		{
-			int row, col, sheet;
-			CellSpec_To_RowCol(cellSpec, row, col, sheet);
-
-			ret = Read(row, col, sheet);
-			break;
-		}
-		case FileOrganizationStructure::HIERARCHY:
-		{
-			TreePosition pos;
-			CellSpec_To_TreePosition(cellSpec, pos);
-
-			ret = Read(pos);
-
-			if (!pos.Valid())
-				ret = "<INVALID TREE POSITION>";
-			break;
-		}
-	}
-
-	return ret;
-}
-
-std::string CFormat_Adapter::Read(int row, int column, int sheetIndex) const
-{
-	if (sheetIndex >= 0)
-		ToSpreadsheetFile()->Select_Worksheet(sheetIndex);
-
-	return ToSpreadsheetFile()->Read(row, column);
-}
-
-std::string CFormat_Adapter::Read(TreePosition& position) const
-{
-	return ToHierarchyFile()->Read(position);
-}
-
-double CFormat_Adapter::Read_Double(const char* cellSpec) const
-{
-	int row, col, sheet;
-	CellSpec_To_RowCol(cellSpec, row, col, sheet);
-
-	return Read_Double(row, col, sheet);
-}
-
-double CFormat_Adapter::Read_Double(int row, int column, int sheetIndex) const
-{
-	if (sheetIndex >= 0)
-		ToSpreadsheetFile()->Select_Worksheet(sheetIndex);
-
-	return ToSpreadsheetFile()->Read_Double(row, column);
-}
-
-double CFormat_Adapter::Read_Double(TreePosition& position) const
-{
-	return ToHierarchyFile()->Read_Double(position);
-}
-
-std::string CFormat_Adapter::Read_Date(const char* cellSpec) const
-{
-	int row, col, sheet;
-	CellSpec_To_RowCol(cellSpec, row, col, sheet);
-
-	return Read_Date(row, col, sheet);
-}
-
-std::string CFormat_Adapter::Read_Date(int row, int column, int sheetIndex) const
-{
-	if (sheetIndex >= 0)
-		ToSpreadsheetFile()->Select_Worksheet(sheetIndex);
-
-	return ToSpreadsheetFile()->Read_Date(row, column);
-}
-
-std::string CFormat_Adapter::Read_Date(TreePosition& position) const
-{
-	return ToHierarchyFile()->Read_Date(position);
-}
-
-std::string CFormat_Adapter::Read_Time(const char* cellSpec) const
-{
-	int row, col, sheet;
-	CellSpec_To_RowCol(cellSpec, row, col, sheet);
-
-	return Read_Time(row, col, sheet);
-}
-
-std::string CFormat_Adapter::Read_Time(int row, int column, int sheetIndex) const
-{
-	if (sheetIndex >= 0)
-		ToSpreadsheetFile()->Select_Worksheet(sheetIndex);
-
-	return ToSpreadsheetFile()->Read_Time(row, column);
-}
-
-std::string CFormat_Adapter::Read_Time(TreePosition& position) const
-{
-	return ToHierarchyFile()->Read_Time(position);
-}
-
-std::string CFormat_Adapter::Read_Datetime(const char* cellSpec) const
-{
-	int row, col, sheet;
-	CellSpec_To_RowCol(cellSpec, row, col, sheet);
-
-	return Read_Datetime(row, col, sheet);
-}
-
-std::string CFormat_Adapter::Read_Datetime(int row, int column, int sheetIndex) const
-{
-	if (sheetIndex >= 0)
-		ToSpreadsheetFile()->Select_Worksheet(sheetIndex);
-
-	return ToSpreadsheetFile()->Read_Datetime(row, column);
-}
-
-std::string CFormat_Adapter::Read_Datetime(TreePosition& position) const
-{
-	return ToHierarchyFile()->Read_Datetime(position);
-}
-
-void CFormat_Adapter::Write(const char* cellSpec, std::string value)
-{
-	switch (Get_File_Organization())
-	{
-		case FileOrganizationStructure::SPREADSHEET:
-		{
-			int row, col, sheet;
-			CellSpec_To_RowCol(cellSpec, row, col, sheet);
-
-			Write(row, col, value, sheet);
-			break;
-		}
-		case FileOrganizationStructure::HIERARCHY:
-		{
-			TreePosition pos;
-			CellSpec_To_TreePosition(cellSpec, pos);
-
-			return Write(pos, value);
-		}
-	}
-}
-
-void CFormat_Adapter::Write(int row, int column, std::string value, int sheetIndex)
-{
-	if (sheetIndex >= 0)
-		ToSpreadsheetFile()->Select_Worksheet(sheetIndex);
-
-	ToSpreadsheetFile()->Write(row, column, value);
-}
-
-void CFormat_Adapter::Write(TreePosition& position, std::string value)
-{
-	ToHierarchyFile()->Write(position, value);
-}
-
-int CFormat_Adapter::Get_Error() const
-{
-	return mError;
-}
-
-void CFormat_Adapter::Clear_Error()
-{
-	mError = 0;
+	return dynamic_cast<IHierarchy_File*>(mStorage.get());
 }
 
 bool CFormat_Adapter::Is_EOF() const
 {
-	return mFormat->Is_EOF();
+	return mStorage->Is_EOF();
 }
 
 void CFormat_Adapter::Reset_EOF()
 {
-	mFormat->Reset_EOF();
+	mStorage->Reset_EOF();
 }
 
-FileOrganizationStructure CFormat_Adapter::Get_File_Organization() const
-{
-	return mFormat->Get_File_Organization();
-}
-
-void CFormat_Adapter::CellSpec_To_RowCol(const char* cellSpec, int& row, int& col, int& sheetIndex)
-{
-	bool specTypeFlag = false;
-	size_t i = 0;
-
-	sheetIndex = 0;
-
-	col = 0;
-	while (cellSpec[i] >= 'A' && cellSpec[i] <= 'Z')
-	{
-		col *= 'Z' - 'A' + 1;
-		col += cellSpec[i] - 'A';
-		i++;
-	}
-
-	// in case of non-Excel cellspec (not beginning with letter), set flag
-	if (i == 0)
-		specTypeFlag = true;
-
-	row = 0;
-	while (cellSpec[i] >= '0' && cellSpec[i] <= '9')
-	{
-		row *= 10;
-		row += cellSpec[i] - '0';
-		i++;
-	}
-
-	// besides standard Excell cellspec (B8, ..) we recognize also comma-separated cellspec (1,7)
-	if (specTypeFlag)
-	{
-		i++;
-		col = 0;
-		while (cellSpec[i] >= '0' && cellSpec[i] <= '9')
-		{
-			col *= 10;
-			col += cellSpec[i] - '0';
-			i++;
-		}
-	}
-	else
-		row--; // decrease row to be universal
-
-	// parse sheet index in case of multisheet workbook (XLS, XLSX)
-	if (cellSpec[i] == ':')
-	{
-		i++;
-		sheetIndex = 0;
-		while (cellSpec[i] >= '0' && cellSpec[i] <= '9')
-		{
-			sheetIndex *= 10;
-			sheetIndex += cellSpec[i] - '0';
-			i++;
-		}
-	}
-}
-
-void CFormat_Adapter::RowCol_To_CellSpec(int row, int col, std::string& cellSpec)
-{
-	cellSpec = "";
-
-	while (col > 0)
-	{
-		cellSpec += 'A' + (col % ('Z' - 'A' + 1));
-		col /= ('Z' - 'A' + 1);
-	}
-
-	cellSpec += std::to_string(row);
-}
-
-void CFormat_Adapter::CellSpec_To_TreePosition(const char* cellSpec, TreePosition& pos)
-{
-	// Example structure: /rootelement/childelement:0/valueelement:5.Value
-
-	pos.Clear();
-
-	// correct cellspec always contains '/' at the beginning and at least one letter
-	if (strlen(cellSpec) <= 1 || cellSpec[0] != '/')
-		return;
-
-	size_t i = 1, lastbl = 0, lastcolon = 0;
-	size_t len = strlen(cellSpec);
-	size_t levelOrdinal = 0;
-
-	for (; i <= len; i++)
-	{
-		if (i == len || cellSpec[i] == '/' || cellSpec[i] == '.')
-		{
-			if (lastcolon)
-			{
-				// invalid - nothing between current character and colon
-				if (i - lastcolon <= 1)
-				{
-					pos.Clear();
-					return;
-				}
-
-				try
-				{
-					levelOrdinal = std::stoul(std::string(cellSpec).substr(lastcolon + 1, i - lastcolon - 1));
-				}
-				catch (...) // invalid - non-numeric ordinal specifier
-				{
-					pos.Clear();
-					return;
-				}
-			}
-
-			// invalid - two hierarchy splitters without level spec
-			if (i - lastbl <= 1)
-			{
-				pos.Clear();
-				return;
-			}
-
-			std::string tagName = std::string(cellSpec).substr(lastbl + 1, (lastcolon ? lastcolon : i) - lastbl - 1);
-
-			pos.hierarchy.push_back(TreeLevelSpec(tagName, levelOrdinal));
-
-			lastcolon = 0;
-			levelOrdinal = 0;
-
-			if (i != len && cellSpec[i] == '/')
-				lastbl = i;
-		}
-
-		if (i != len)
-		{
-			if (cellSpec[i] == ':')
-			{
-				lastcolon = i;
-			}
-			else if (cellSpec[i] == '.')
-			{
-				if (i == len - 1)
-				{
-					pos.Clear();
-					return;
-				}
-
-				pos.parameter = std::string(cellSpec).substr(i + 1);
-				break;
-			}
-		}
-	}
-}
-
-void CFormat_Adapter::TreePosition_To_CellSpec(TreePosition& pos, std::string& cellSpec)
-{
-	std::ostringstream os;
-
-	for (size_t i = 0; i < pos.hierarchy.size(); i++)
-	{
-		os << "/" << pos.hierarchy[i].tagName;
-
-		if (pos.hierarchy[i].position != 0)
-			os << ":" << pos.hierarchy[i].position;
-	}
-
-	if (!pos.parameter.empty())
-		os << "." << pos.parameter;
-
-	cellSpec = os.str();
+NFile_Organization_Structure CFormat_Adapter::Get_File_Organization() const {
+	return mStorage->Get_File_Organization();
 }

@@ -36,13 +36,17 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "TimeRoutines.h"
+#include "time_utils.h"
+
 #include "../../../../common/utils/winapi_mapping.h"
+#include "../../../../common/utils/string_utils.h"
+#include "../../../../common/rtl/rattime.h"
 
 #include <iostream>
 #include <sstream>
 #include <iomanip>
 #include <ctime>
+#include <algorithm>
 
 bool Is_Valid_Tm(std::tm& v)
 {
@@ -79,36 +83,3 @@ bool Convert_Timestamp(std::string source, const char* sourceFormat, std::string
 		return false;
 }
 
-bool Convert_TimeString_To_UnixTime(std::string source, const char* sourceFormat, time_t& unixTimeDst)
-{
-	std::tm convtime = {};
-	std::istringstream ss(source);
-
-	if (ss >> std::get_time(&convtime, sourceFormat))
-	{
-		if (!Is_Valid_Tm(convtime))
-			return false;
-
-		unixTimeDst = mktime(&convtime);
-
-		return true;
-	}
-	else
-		return false;
-}
-
-bool Convert_UnixTime_To_TimeString(time_t source, const char* destFormat, std::string& dest)
-{
-	std::tm convtime;
-	localtime_s(&convtime, &source);
-
-	if (!Is_Valid_Tm(convtime))
-		return false;
-
-	std::stringstream timestr;
-	timestr << std::put_time(&convtime, destFormat);
-
-	dest = timestr.str();
-
-	return true;
-}

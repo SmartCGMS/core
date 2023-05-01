@@ -38,28 +38,9 @@
 
 #pragma once
 
-#include "../../../../common/rtl/hresult.h"
-#include "../../../../common/utils/SimpleIni.h"
+#include <ctime>
+#include <string>
+#include <vector>
 
-#include "FormatRecognizer.h"
-#include "Extractor.h"
-
-
-class CFormat_Rule_Loader {
-protected:
-	CFormat_Recognizer& mFormatRecognizer;
-	CExtractor& mExtractor;
-	CDateTime_Recognizer& mDateTime_Recognizer;
-
-	bool Load_Format_Pattern_Config(CSimpleIniA& ini);
-	bool Load_Format_Rule_Templates(CSimpleIniA& ini);
-	bool Load_Format_Rules(CSimpleIniA& ini);
-	bool Load_DateTime_Formats(CSimpleIniA& ini);
-
-    bool Add_Config_Keys(CSimpleIniA& ini, std::function<void(const char*, const char*, const char*)> func);
-    bool Load_Format_Config(const char* default_config, const wchar_t* file_name, std::function<bool(CSimpleIniA&)> func);
-public:
-	CFormat_Rule_Loader(CFormat_Recognizer& recognizer, CExtractor& extractor, CDateTime_Recognizer& datetime);
-
-	bool Load();
-};
+// Converts timestamp from one format to another; returns true on success
+bool Convert_Timestamp(std::string source, const char* sourceFormat, std::string &dest, const char* destFormat, time_t* unixTimeDst = nullptr);

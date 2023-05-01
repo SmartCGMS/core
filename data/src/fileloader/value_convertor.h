@@ -36,74 +36,45 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "FormatRecognizer.h"
-#include "Misc.h"
+#pragma once
 
-#include <algorithm>
+#include <string>
 
-CFormat_Recognizer::CFormat_Recognizer()
-{
-	//
-}
+#include "../third party/exprtk.hpp"
 
-void CFormat_Recognizer::Add_Pattern(const char* formatName, const char* cellLocation, const char* content)
-{
-	std::string istr(content);
-	size_t offset = 0, base;
-	// localized formats - pattern may contain "%%" string to delimit localizations
-	while ((base = istr.find("%%", offset)))
-	{
-		if (base == std::string::npos)
-		{
-			mRuleSet[formatName][cellLocation].push_back(istr.substr(offset));
-			break;
-		}
+class CValue_Convertor {
+protected:
+	enum class NValue_Conversion {
+		identity,
+		f_2_c,
+		mg_dl_2_mmol_l,
+		sleep_quality,
+		general,
+		minutes,
+		seconds,
+		invalid,
+	};
 
-		mRuleSet[formatName][cellLocation].push_back(istr.substr(offset, base - offset));
-		offset = base + 2;
-	}
-}
+	NValue_Conversion mConversion = NValue_Conversion::invalid;	
+protected:
+	//most of the time, there won't by any conversion => it is worth to allocate it only when needed to save the overall init time
+	struct TExpression_Engine {
+		exprtk::symbol_table<double> mSymbol_Table;
+		exprtk::expression<double>   mExpression_Tree;
+		exprtk::parser<double>       mParser;
+	};
 
-bool CFormat_Recognizer::Match(std::string format, CFormat_Adapter& file) const
-{
-	// find format to be matched
-	auto itr = mRuleSet.find(format);
-	if (itr == mRuleSet.end())
-		return false;
+	std::unique_ptr<TExpression_Engine> mEngine;
+protected:
+	std::string mExpression_String;
+	double mValue = std::numeric_limits<double>::quiet_NaN();		//eval value placeholder due to the expretk lib design
+public:
+	CValue_Convertor() {};
+	CValue_Convertor(const CValue_Convertor& other);
 
-	// try all rules, all rules need to be matched
-	for (auto const& rulePair : itr->second)
-	{
-		const std::string rVal = file.Read(rulePair.first.c_str());
+	bool init(const std::string& expression);
+	double eval(const double val);	//may return nan if cannot eval
+	bool valid() const;						//true if expression is correct	
 
-		if (!Contains_Element(rulePair.second, rVal) || file.Get_Error() != 0)
-			return false;
-	}
-
-	return true;
-}
-
-std::string CFormat_Recognizer::Recognize_And_Open(filesystem::path path, CFormat_Adapter& target) const
-{
-	return Recognize_And_Open(path, path, target);
-}
-
-std::string CFormat_Recognizer::Recognize_And_Open(filesystem::path originalPath, filesystem::path path, CFormat_Adapter& target) const
-{
-	// recognize file format at first
-	target.Init(path, originalPath);
-
-	if (target.Get_Error() != 0)
-		return "";
-
-	// try to recognize data format
-	for (auto const& fpair : mRuleSet)
-	{
-		target.Clear_Error();
-
-		if (Match(fpair.first, target))
-			return fpair.first;
-	}
-
-	return "";
-}
+	CValue_Convertor& operator=(const CValue_Convertor& other);
+};		

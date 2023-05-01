@@ -127,7 +127,6 @@ public:
 	HRESULT get_approx_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end);
 	HRESULT get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end);
 	
-	HRESULT add_filters(const scgms::TFilter_Descriptor *begin, const scgms::TFilter_Descriptor *end, const scgms::TCreate_Filter create_filter);
 	void describe_loaded_filters(refcnt::Swstr_list error_description);
 	GUID Resolve_Signal_By_Name(const wchar_t* name, bool& valid);
 };
@@ -145,8 +144,6 @@ extern "C" HRESULT IfaceCalling get_model_descriptors(scgms::TModel_Descriptor *
 extern "C" HRESULT IfaceCalling get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end);
 extern "C" HRESULT IfaceCalling get_approx_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end);
 extern "C" HRESULT IfaceCalling get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end);
-
-extern "C" HRESULT IfaceCalling add_filters(const scgms::TFilter_Descriptor *begin, const scgms::TFilter_Descriptor *end, const scgms::TCreate_Filter create_filter);
 
 
 scgms::SFilter create_filter(const GUID &id, scgms::IFilter *next_filter);

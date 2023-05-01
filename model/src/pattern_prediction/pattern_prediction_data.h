@@ -59,11 +59,9 @@ protected:
     std::vector<TLevel> mLearning_Data;
 protected:
     //prediction helpers
-    const double mTrusted_Perimeter = 2.0;
     double mRecent_Prediction = std::numeric_limits<double>::quiet_NaN();
     bool mInvalidated = true;   //true, when ::predict must recalculate mRecent_Prediction
 protected:
-    double predict_doi_10_dot_1016_slash_j_compbiomed_dot_2022_dot_105388();
 public:
     CPattern_Prediction_Data();
 

@@ -91,7 +91,7 @@ void CSinCos_Generator::Run_Generator() {
 			break;
 
 		if (signal == scgms::signal_BG)
-			if (!Emit_Signal_Level(scgms::signal_Calibration, time, level, segment_id))
+			if (!Emit_Signal_Level(scgms::signal_BG_Calibration, time, level, segment_id))
 				break;
 	}
 

@@ -45,6 +45,7 @@
 #include "fileloader/Structures.h"
 #include "fileloader/FormatAdapter.h"
 #include "fileloader/Extractor.h"
+#include "fileloader/file_format_rules.h"
 
 #include <memory>
 #include <thread>
@@ -53,7 +54,7 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-using TValue_Vector = std::vector<CMeasured_Value*>;
+using TValue_Vector = std::vector<CMeasured_Values_At_Single_Time>;
 // segment begin and end (indexes in given array/vector)
 using TSegment_Limits = std::pair<size_t, size_t>;
 
@@ -67,9 +68,6 @@ protected:
 		
 	double mMaximum_IG_Interval = 12.0 * scgms::One_Minute;	//maximum allowed interval between to IGs
 
-
-	// merged extracted values from given file
-	std::vector<TValue_Vector> mMergedValues;
 	// do we need to send shutdown after last value?
 	bool mShutdownAfterLast = false;
 	// minimum values in segment
@@ -79,19 +77,16 @@ protected:
 
 	// reader thread
 	std::unique_ptr<std::thread> mReaderThread;
+	CFile_Format_Rules mFile_Format_Rules;	
 
 	// reader main method
 	void Run_Reader();	
-
 	// send event to filter chain
-	bool Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId = Invalid_GUID, double value = 0.0, const std::wstring& winfo = L"");
-	// extracts file to value vector container
-	HRESULT Extract(ExtractionResult &values);
-	// merge values from extraction result to internal vector
-	void Merge_Values(ExtractionResult& result);
-
+	bool Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId = Invalid_GUID, const double value = 0.0, const std::wstring& winfo = L"");	
+	// extracts files to value vector container
+	TValue_Vector Extract();
 	// resolves segments of given value vector
-	void Resolve_Segments(TValue_Vector const& src, std::list<TSegment_Limits>& targetList) const;
+	std::list<TSegment_Limits> Resolve_Segments(const TValue_Vector& src) const;
 	
 protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
