@@ -297,8 +297,12 @@ HRESULT CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type
 		
 		deferred_success = E_UNEXPECTED;
 		std::tie(deferred_success, possibly_deferred_content) = Load_From_File(effective_deferred_path.c_str());
-		if (Succeeded(deferred_success))
+		if (Succeeded(deferred_success)) {		
+			if (possibly_deferred_content.empty()) 
+				return E_NOT_SET;
+			
 			effective_str = const_cast<wchar_t*>(possibly_deferred_content.c_str());
+		}
 	}
 	else
 		mDeferred_Path_Or_Var.clear();
