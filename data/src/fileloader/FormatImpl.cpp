@@ -292,7 +292,7 @@ std::wstring CodePageToUnicode(int codePage, const char *src)
 bool CCsv_File::Init(filesystem::path &path)
 {
 	mOriginalPath = path;
-	mFile = std::make_unique<CCSV_Format>(path);	
+	mFile = std::make_unique<CCSV_Format>(path);
 	return mFile.operator bool();
 }
 

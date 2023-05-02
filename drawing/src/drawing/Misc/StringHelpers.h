@@ -40,8 +40,8 @@
 
 #include <string>
 #include <vector>
+#include "../../../../../common/utils/string_utils.h"
 
-void trim(std::string& s);
 std::vector<std::string> split_string(std::string str, std::string delimiterOpen, std::string delimiterClose);
 std::vector<std::string> split_string(std::string str, std::string delimiter);
 std::vector<std::string> split_first_string(std::string str, std::string delimiter);

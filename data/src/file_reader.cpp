@@ -242,7 +242,7 @@ void CFile_Reader::Run_Reader() {
 
 
 				//second, send the signals 
-				current_values.enumerate([=, &errorRes, &nextPhysicalActivityEnd, &nextTempBasalEnd, &lastBasalRateSetting, &nextSleepEnd](const GUID& signal_id, const CMeasured_Values_At_Single_Time::TValue& val) {
+				current_values.enumerate([=, &errorRes](const GUID& signal_id, const CMeasured_Values_At_Single_Time::TValue& val) {
 						const std::set<GUID> silenced_signals = { signal_Physical_Activity_Duration, signal_Insulin_Temp_Rate, signal_Insulin_Temp_Rate_Endtime, signal_Sleep_Endtime, signal_Comment,
 																	signal_Date_Only, signal_Time_Only, signal_Date_Time, scgms::signal_Sleep_Quality };
 

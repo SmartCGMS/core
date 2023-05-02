@@ -36,15 +36,11 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#pragma once
-
 #include "Structures.h"
-
 
 bool Measured_Value_Comparator(const CMeasured_Values_At_Single_Time& a, const CMeasured_Values_At_Single_Time& b) {
 	return a.measured_at() < b.measured_at(); 
 };
-
 
 bool CMeasured_Levels::update(const CMeasured_Values_At_Single_Time& val) {
 	if (val.valid()) {

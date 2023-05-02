@@ -147,8 +147,8 @@ class IStorage_File
 		// retrieves file data organization structure
 		virtual NFile_Organization_Structure Get_File_Organization() const = 0;
 
-		virtual std::optional<std::string> Read(const std::string& position) = 0; 			
-		virtual std::optional<std::string> Read(const TSheet_Position &position) { return std::nullopt; };
+		virtual std::optional<std::string> Read(const std::string& position) = 0;
+		virtual std::optional<std::string> Read(const TSheet_Position& position) { return std::nullopt; }
 		virtual std::optional<std::string> Read(const TXML_Position& position) { return std::nullopt; }			//read may modify position to allow sanitization
 };
 
@@ -167,18 +167,15 @@ class ISpreadsheet_File : public virtual IStorage_File
 		// virtual destructor due to need of calling derived ones
 		virtual ~ISpreadsheet_File();
 		
-		// writes cell contents	
+		// writes cell contents
 		virtual void Write(int row, int col, int sheetIndex, const std::string& value) = 0;
-		// finalizes working with file
-		virtual void Finalize() = 0;
 
 		// retrieves file data organization structure
-		virtual NFile_Organization_Structure Get_File_Organization() const;
+		virtual NFile_Organization_Structure Get_File_Organization() const override;
 
-		virtual std::optional<std::string> Read(const TSheet_Position& position) = 0;
 		virtual std::optional<std::string> Read(const std::string& position) override final {
 			const TSheet_Position pos = CellSpec_To_RowCol(position);
-			return Read(pos);
+			return IStorage_File::Read(pos);
 		}
 };
 
@@ -199,12 +196,10 @@ class IHierarchy_File : public virtual IStorage_File
 		virtual ~IHierarchy_File();
 
 		// writes cell contents
-		virtual void Write(TXML_Position& position, const std::string &value) = 0;		
-		// finalizes working with file
-		virtual void Finalize() = 0;
+		virtual void Write(TXML_Position& position, const std::string &value) = 0;
 
 		// retrieves file data organization structure
-		NFile_Organization_Structure Get_File_Organization() const;
+		NFile_Organization_Structure Get_File_Organization() const override;
 };
 
 /*
@@ -218,8 +213,11 @@ class CCsv_File : public ISpreadsheet_File
 		virtual ~CCsv_File() = default;
 
 		virtual bool Init(filesystem::path &path) override;
-		virtual void Write(int row, int col, int sheetIndex, const std::string& value);
+		virtual void Write(int row, int col, int sheetIndex, const std::string& value) override;
 		virtual void Finalize() override;
+
+		// indicate the intent to override Read from IStorage_File (grandparent) and not "hide" the one in ISpreadsheet_File (parent)
+		using IStorage_File::Read;
 
 		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;
 };
@@ -232,12 +230,12 @@ class CCsv_File : public ISpreadsheet_File
 class CXls_File : public virtual ISpreadsheet_File
 {
 	private:
-		std::unique_ptr<ExcelFormat::BasicExcel> mFile;		
+		std::unique_ptr<ExcelFormat::BasicExcel> mFile;
 	public:
 		virtual ~CXls_File() = default;
 
 		virtual bool Init(filesystem::path &path) override;
-		virtual void Write(int row, int col, int sheetIndex, const std::string& value);
+		virtual void Write(int row, int col, int sheetIndex, const std::string& value) override;
 		virtual void Finalize() override;
 
 		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;
@@ -249,13 +247,13 @@ class CXls_File : public virtual ISpreadsheet_File
 class CXlsx_File : public virtual ISpreadsheet_File
 {
 	private:
-		std::unique_ptr<xlnt::workbook> mFile;		
+		std::unique_ptr<xlnt::workbook> mFile;
 		std::optional<std::string> Read_Datetime(const TSheet_Position &position);
 	public:
 		virtual ~CXlsx_File() = default;
 
 		virtual bool Init(filesystem::path &path) override;
-		virtual void Write(int row, int col, int sheetIndex, const std::string& value);
+		virtual void Write(int row, int col, int sheetIndex, const std::string& value) override;
 		virtual void Finalize() override;
 
 		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;

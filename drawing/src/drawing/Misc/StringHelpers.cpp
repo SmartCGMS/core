@@ -39,19 +39,6 @@
 #include <algorithm>
 #include "StringHelpers.h"
 
-/*
- * Trim whitespaces from string
- */
-void trim(std::string& s)
-{
-    size_t first = s.find_first_not_of(' ');
-    if (first == std::string::npos)
-        return;
-
-    size_t last = s.find_last_not_of(' ');
-    s = s.substr(first, (last - first + 1));
-}
-
 /**
  * Splits supplied string using delimiter
  * @param str - input string
