@@ -36,8 +36,6 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "factory.h"
-
 #include "diffusion/Diffusion_v2_blood.h"
 #include "diffusion/Diffusion_v2_ist.h"
 #include "steil_rebrin/Steil_Rebrin_blood.h"
@@ -94,7 +92,7 @@ public:
 
 static CId_Dispatcher Id_Dispatcher;
 
-extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal) {
+HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal) {
 	if ((calc_id ==nullptr) || (segment == nullptr)) return E_INVALIDARG;
 	return Id_Dispatcher.Create_Signal(*calc_id, segment, signal);
 }
