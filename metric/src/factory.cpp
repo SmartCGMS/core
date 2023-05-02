@@ -36,14 +36,13 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "factory.h"
-
 #include "metric.h"
 #include "descriptor.h"
 
 #include <map>
 #include <functional>
 
+#include "../../../common/iface/SolverIface.h"
 #include "../../../common/rtl/manufactory.h"
 
 using TCreate_Metric = std::function<HRESULT(const scgms::TMetric_Parameters &parameters, scgms::IMetric **metric)>;

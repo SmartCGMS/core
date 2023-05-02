@@ -25,5 +25,3 @@ public:
 
 
 #pragma warning( pop )
-
-extern "C" HRESULT IfaceCalling create_filter_configuration_link(const GUID *id, scgms::IFilter_Configuration_Link **link);

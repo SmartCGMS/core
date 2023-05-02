@@ -36,12 +36,12 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "descriptor.h"
 #include "drawing_filter.h"
 
+#include "../../../common/iface/UIIface.h"
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
-
+#include "../../../common/rtl/hresult.h"
 #include "../../../common/utils/descriptor_utils.h"
 
 #include <vector>
@@ -108,11 +108,11 @@ namespace drawing
 
 static const std::array<scgms::TFilter_Descriptor, 1> filter_descriptions = { drawing::Drawing_Descriptor };
 
-extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
+HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
+HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
 	if (*id == drawing::Drawing_Descriptor.id)
 		return Manufacture_Object<CDrawing_Filter>(filter, output);
 

@@ -113,39 +113,27 @@ protected:
 public:
 	CLoaded_Filters();
 
-	HRESULT create_filter(const GUID *id, scgms::IFilter *next_filter, scgms::IFilter **filter);
-	HRESULT create_metric(const scgms::TMetric_Parameters *parameters, scgms::IMetric **metric);
-	HRESULT create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID* approx_id, scgms::ISignal **signal);	
-	HRESULT solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress);
-	HRESULT create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApproximator **approx);
-	HRESULT create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model);
+	//all these methods have the _body suffixes so that linker can safely identify export functions and to be confused with object methods
+	HRESULT create_filter_body(const GUID *id, scgms::IFilter *next_filter, scgms::IFilter **filter);
+	HRESULT create_metric_body(const scgms::TMetric_Parameters *parameters, scgms::IMetric **metric);
+	HRESULT create_signal_body(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID* approx_id, scgms::ISignal **signal);	
+	HRESULT solve_generic_body(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress);
+	HRESULT create_approximator_body(const GUID *approx_id, scgms::ISignal *signal, scgms::IApproximator **approx);
+	HRESULT create_discrete_model_body(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model);
 
-	HRESULT get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end);
-	HRESULT get_metric_descriptors(scgms::TMetric_Descriptor **begin, scgms::TMetric_Descriptor **end);
-	HRESULT get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end);
-	HRESULT get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end);
-	HRESULT get_approx_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end);
-	HRESULT get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end);
+	HRESULT get_filter_descriptors_body(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end);
+	HRESULT get_metric_descriptors_body(scgms::TMetric_Descriptor **begin, scgms::TMetric_Descriptor **end);
+	HRESULT get_model_descriptors_body(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end);
+	HRESULT get_solver_descriptors_body(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end);
+	HRESULT get_approx_descriptors_body(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end);
+	HRESULT get_signal_descriptors_body(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end);
 	
 	void describe_loaded_filters(refcnt::Swstr_list error_description);
 	GUID Resolve_Signal_By_Name(const wchar_t* name, bool& valid);
 };
 
-extern "C" HRESULT IfaceCalling create_filter(const GUID *id, scgms::IFilter* next_filter, scgms::IFilter **filter);
-extern "C" HRESULT IfaceCalling create_metric(const scgms::TMetric_Parameters *parameters, scgms::IMetric **metric);
-extern "C" HRESULT IfaceCalling create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal);
-extern "C" HRESULT IfaceCalling create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model);
-extern "C" HRESULT IfaceCalling solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress);
-extern "C" HRESULT IfaceCalling create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApproximator **approx);
+HRESULT IfaceCalling solve_generic(const GUID * solver_id, const solver::TSolver_Setup * setup, solver::TSolver_Progress * progress);
 
-extern "C" HRESULT IfaceCalling get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end);
-extern "C" HRESULT IfaceCalling get_metric_descriptors(scgms::TMetric_Descriptor **begin, scgms::TMetric_Descriptor **end);
-extern "C" HRESULT IfaceCalling get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end);
-extern "C" HRESULT IfaceCalling get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end);
-extern "C" HRESULT IfaceCalling get_approx_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end);
-extern "C" HRESULT IfaceCalling get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end);
-
-
-scgms::SFilter create_filter(const GUID &id, scgms::IFilter *next_filter);
+scgms::SFilter create_filter_body(const GUID &id, scgms::IFilter *next_filter);
 void describe_loaded_filters(refcnt::Swstr_list error_description);
 GUID resolve_signal_by_name(const wchar_t* name, bool& valid);

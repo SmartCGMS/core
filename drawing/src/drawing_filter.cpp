@@ -510,7 +510,7 @@ HRESULT CDrawing_Filter::Do_Configure(scgms::SFilter_Configuration configuration
 	}
 
 	// cache model signal names
-	auto models = scgms::get_model_descriptors();
+	auto models = scgms::get_model_descriptor_list();
 	scgms::CSignal_Description signal_descriptions;
 	signal_descriptions.for_each([this](scgms::TSignal_Descriptor desc) {
 		mCalcSignalNameMap[desc.id] = Narrow_WChar(desc.signal_description);

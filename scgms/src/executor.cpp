@@ -43,7 +43,7 @@
 CFilter_Executor::CFilter_Executor(const GUID filter_id, std::recursive_mutex &communication_guard, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data) :
 	mCommunication_Guard(communication_guard),  mOn_Filter_Created(on_filter_created), mOn_Filter_Created_Data(on_filter_created_data) {
 	
-	mFilter = create_filter(filter_id, next_filter);			
+	mFilter = create_filter_body(filter_id, next_filter);			
 }
 
 void CFilter_Executor::Release_Filter() {

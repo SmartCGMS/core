@@ -36,15 +36,16 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "descriptor.h"
 #include "line.h"
 #include "Akima.h"
 #include "avgexp/AvgExpApprox.h"
 #include "avgexp/AvgElementaryFunctions.h"
 
+#include "../../../common/iface/UIIface.h"
 #include "../../../common/iface/ApproxIface.h"
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
+#include "../../../common/rtl/hresult.h"
 
 #include <vector>
 
@@ -74,13 +75,13 @@ const std::array<scgms::TApprox_Descriptor, 3> approx_descriptions = { { line::L
 																		  akima::Akima_Descriptor,
 																		 avgexp::AvgExp_Descriptor	} };
 
-extern "C" HRESULT IfaceCalling do_get_approximator_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end) {
+HRESULT IfaceCalling do_get_approximator_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end) {
 	*begin = const_cast<scgms::TApprox_Descriptor*>(approx_descriptions.data());
 	*end = *begin + approx_descriptions.size();
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApproximator **approx) {
+HRESULT IfaceCalling do_create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApproximator **approx) {
 
 	if (approx_id == nullptr)	//if no id is given, let's use the default approximator
 		return Manufacture_Object<CAkima>(approx, scgms::WSignal{ signal });

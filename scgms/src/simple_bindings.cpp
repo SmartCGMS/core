@@ -36,7 +36,9 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "simple_bindings.h"
+#include "../../../common/iface/SimpleIface.h"
+#include "../../../common/iface/FilterIface.h"
+
 
 #include "../../../common/rtl/DeviceLib.h"
 #include "../../../common/rtl/FilterLib.h"

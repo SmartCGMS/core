@@ -225,7 +225,7 @@ scgms::IDevice_Event* allocate_device_event(scgms::NDevice_Event_Code code) noex
 }
 
 //SCGMS exported function
-extern "C" HRESULT IfaceCalling create_device_event(scgms::NDevice_Event_Code code, scgms::IDevice_Event **event) noexcept {
+HRESULT IfaceCalling create_device_event(scgms::NDevice_Event_Code code, scgms::IDevice_Event * *event) noexcept {
 	*event = allocate_device_event(code);
 	return *event ? S_OK : E_OUTOFMEMORY;
 }

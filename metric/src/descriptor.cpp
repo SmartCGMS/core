@@ -303,19 +303,19 @@ namespace diabetes_grid {
 
 static const std::array<scgms::TFilter_Descriptor, 4> filter_descriptions = { signal_error::desc, fast_signal_error::desc , signal_stats::desc, diabetes_grid::desc };
 
-extern "C" HRESULT IfaceCalling do_get_filter_descriptors(const scgms::TFilter_Descriptor* *begin, scgms::TFilter_Descriptor const **end) {
+HRESULT IfaceCalling do_get_filter_descriptors(const scgms::TFilter_Descriptor* *begin, scgms::TFilter_Descriptor const **end) {
 	*begin = const_cast<scgms::TFilter_Descriptor*>(filter_descriptions.data());
 	*end = *begin + filter_descriptions.size();
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor const ** begin, scgms::TSignal_Descriptor const **end) {
+HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor const ** begin, scgms::TSignal_Descriptor const **end) {
 	*begin = &signal_error::signal_desc;
 	*end = *begin + 1;
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
+HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
 	if (*id == signal_error::desc.id) return Manufacture_Object<CSignal_Error>(filter, output);
 	else if (*id == fast_signal_error::desc.id) return Manufacture_Object<CFast_Signal_Error>(filter, output);
 	else if (*id == signal_stats::desc.id) return Manufacture_Object<CSignal_Stats>(filter, output);

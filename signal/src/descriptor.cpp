@@ -629,19 +629,19 @@ namespace noise_generator {
 const std::array<scgms::TFilter_Descriptor, 10> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, decoupling::desc, masking::Masking_Descriptor, unmasking::Unmasking_Descriptor, signal_generator::desc, network_signal_generator::desc, feedback_sender::desc, impulse_response::desc, noise_generator::desc } };
 
 
-extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
+HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 	*begin = const_cast<scgms::TFilter_Descriptor*>(filter_descriptions.data());
 	*end = *begin + filter_descriptions.size();
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end) {
+HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end) {
 	*begin = const_cast<scgms::TSignal_Descriptor*>(signal_descriptor::signals.data());
 	*end = *begin + signal_descriptor::signals.size();
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {	
+HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {	
 	if (*id == calculate::Calculate_Descriptor.id)
 		return Manufacture_Object<CCalculate_Filter>(filter, output);
 	else if (*id == masking::Masking_Descriptor.id)
@@ -665,7 +665,7 @@ extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 	return E_NOTIMPL;
 }
 
-extern "C" HRESULT IfaceCalling do_create_signal(const GUID *signal_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal) {
+HRESULT IfaceCalling do_create_signal(const GUID *signal_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal) {
 	if (signal_id == nullptr)	//signal error sets segment to nullptr as it does not need it, so we check signal_id only
 		return E_INVALIDARG;
 

@@ -138,7 +138,7 @@ HRESULT IfaceCalling CLog_Filter::Do_Configure(scgms::SFilter_Configuration conf
 #ifdef ANDROID
 	mLog_Filename = configuration.Read_String(rsLog_Output_File, false);
 #else
-	mModelDescriptors = scgms::get_model_descriptors();
+	mModelDescriptors = scgms::get_model_descriptor_list();
 	mLog_Filename = configuration.Read_File_Path(rsLog_Output_File);
 #endif
 

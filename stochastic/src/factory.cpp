@@ -36,7 +36,8 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "factory.h"
+#include "../../../common/iface/SolverIface.h"
+
 #include "descriptor.h"
 #include "solution.h"
 

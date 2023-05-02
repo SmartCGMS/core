@@ -66,51 +66,51 @@ CLoaded_Filters::CLoaded_Filters() {
 }
 
 HRESULT IfaceCalling get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {	
-	return loaded_filters.get_filter_descriptors(begin, end);
+	return loaded_filters.get_filter_descriptors_body(begin, end);
 }
 
 HRESULT IfaceCalling get_metric_descriptors(scgms::TMetric_Descriptor **begin, scgms::TMetric_Descriptor **end) {
-	return loaded_filters.get_metric_descriptors(begin, end);
+	return loaded_filters.get_metric_descriptors_body(begin, end);
 }
 
 HRESULT IfaceCalling get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
-	return loaded_filters.get_model_descriptors(begin, end);
+	return loaded_filters.get_model_descriptors_body(begin, end);
 }
 
 HRESULT IfaceCalling get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end) {
-	return loaded_filters.get_solver_descriptors(begin, end);
+	return loaded_filters.get_solver_descriptors_body(begin, end);
 }
 
 HRESULT IfaceCalling get_approx_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end) {
-	return loaded_filters.get_approx_descriptors(begin, end);
+	return loaded_filters.get_approx_descriptors_body(begin, end);
 }
 
 HRESULT IfaceCalling get_signal_descriptors(scgms::TSignal_Descriptor** begin, scgms::TSignal_Descriptor** end) {
-	return loaded_filters.get_signal_descriptors(begin, end);
+	return loaded_filters.get_signal_descriptors_body(begin, end);
 }
 
 HRESULT IfaceCalling create_filter(const GUID *id, scgms::IFilter* next_filter, scgms::IFilter **filter) {
-	return loaded_filters.create_filter(id, next_filter, filter);
+	return loaded_filters.create_filter_body(id, next_filter, filter);
 }
 
 HRESULT IfaceCalling create_metric(const scgms::TMetric_Parameters *parameters, scgms::IMetric **metric) {
-	return loaded_filters.create_metric(parameters, metric);
+	return loaded_filters.create_metric_body(parameters, metric);
 }
 
 HRESULT IfaceCalling create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID *approx_id, scgms::ISignal **signal) {
-	return loaded_filters.create_signal(calc_id, segment, approx_id, signal);
+	return loaded_filters.create_signal_body(calc_id, segment, approx_id, signal);
 }
 
 HRESULT IfaceCalling create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
-	return loaded_filters.create_discrete_model(model_id, parameters, output, model);
+	return loaded_filters.create_discrete_model_body(model_id, parameters, output, model);
 }
 
 HRESULT IfaceCalling solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress) {
-	return loaded_filters.solve_generic(solver_id, setup, progress);
+	return loaded_filters.solve_generic_body(solver_id, setup, progress);
 }
 
 HRESULT IfaceCalling create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApproximator **approx) {
-	return loaded_filters.create_approximator(approx_id, signal, approx);
+	return loaded_filters.create_approximator_body(approx_id, signal, approx);
 }
 
 void CLoaded_Filters::load_libraries() {
@@ -151,58 +151,58 @@ void CLoaded_Filters::load_libraries() {
 }
 
 
-HRESULT CLoaded_Filters::create_filter(const GUID *id, scgms::IFilter *next_filter, scgms::IFilter **filter) {
+HRESULT CLoaded_Filters::create_filter_body(const GUID *id, scgms::IFilter *next_filter, scgms::IFilter **filter) {
 	if ((!id) || (!next_filter)) return E_INVALIDARG;	
 	auto call_create_filter = [](const imported::TLibraryInfo &info) { return info.create_filter; }; 
 	return Call_Func(call_create_filter, id, next_filter, filter);
 }
 
-HRESULT CLoaded_Filters::create_metric(const scgms::TMetric_Parameters *parameters, scgms::IMetric **metric) {
+HRESULT CLoaded_Filters::create_metric_body(const scgms::TMetric_Parameters *parameters, scgms::IMetric **metric) {
 	auto call_create_metric = [](const imported::TLibraryInfo &info) { return info.create_metric; }; 
 	return Call_Func(call_create_metric, parameters, metric);
 }
 
-HRESULT CLoaded_Filters::create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID* approx_id, scgms::ISignal **signal) {
+HRESULT CLoaded_Filters::create_signal_body(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID* approx_id, scgms::ISignal **signal) {
 	auto call_create_signal = [](const imported::TLibraryInfo &info) { return info.create_signal; };
 	return Call_Func(call_create_signal, calc_id, segment, approx_id, signal);
 }
 
-HRESULT CLoaded_Filters::create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
+HRESULT CLoaded_Filters::create_discrete_model_body(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
 	auto call_create_discrete_model = [](const imported::TLibraryInfo &info) { return info.create_discrete_model; };
 	return Call_Func(call_create_discrete_model, model_id, parameters, output, model);
 }
 
-HRESULT CLoaded_Filters::solve_generic(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress) {
+HRESULT CLoaded_Filters::solve_generic_body(const GUID *solver_id, const solver::TSolver_Setup *setup, solver::TSolver_Progress *progress) {
 	auto call_solve_filter = [](const imported::TLibraryInfo &info) { return info.solve_generic; };
 	return Call_Func(call_solve_filter, solver_id, setup, progress);
 }
 
-HRESULT CLoaded_Filters::create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApproximator **approx) {
+HRESULT CLoaded_Filters::create_approximator_body(const GUID *approx_id, scgms::ISignal *signal, scgms::IApproximator **approx) {
 	auto call_create_approx = [](const imported::TLibraryInfo &info) { return info.create_approximator; };
 	return Call_Func(call_create_approx, approx_id, signal, approx);
 }
 
-HRESULT CLoaded_Filters::get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
+HRESULT CLoaded_Filters::get_filter_descriptors_body(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 	return do_get_descriptors<scgms::TFilter_Descriptor>(mFilter_Descriptors, begin, end);
 }
 
-HRESULT CLoaded_Filters::get_metric_descriptors(scgms::TMetric_Descriptor **begin, scgms::TMetric_Descriptor **end) {
+HRESULT CLoaded_Filters::get_metric_descriptors_body(scgms::TMetric_Descriptor **begin, scgms::TMetric_Descriptor **end) {
 	return do_get_descriptors<scgms::TMetric_Descriptor>(mMetric_Descriptors, begin, end);
 }
 
-HRESULT CLoaded_Filters::get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
+HRESULT CLoaded_Filters::get_model_descriptors_body(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
 	return do_get_descriptors<scgms::TModel_Descriptor>(mModel_Descriptors, begin, end);
 }
 
-HRESULT CLoaded_Filters::get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end) {
+HRESULT CLoaded_Filters::get_solver_descriptors_body(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end) {
 	return do_get_descriptors<scgms::TSolver_Descriptor>(mSolver_Descriptors, begin, end);
 }
 
-HRESULT CLoaded_Filters::get_approx_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end) {
+HRESULT CLoaded_Filters::get_approx_descriptors_body(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end) {
 	return do_get_descriptors<scgms::TApprox_Descriptor>(mApprox_Descriptors, begin, end);
 }
 
-HRESULT CLoaded_Filters::get_signal_descriptors(scgms::TSignal_Descriptor** begin, scgms::TSignal_Descriptor** end) {
+HRESULT CLoaded_Filters::get_signal_descriptors_body(scgms::TSignal_Descriptor** begin, scgms::TSignal_Descriptor** end) {
 	return do_get_descriptors<scgms::TSignal_Descriptor>(mSignal_Descriptors, begin, end);
 }
 
@@ -245,12 +245,12 @@ GUID CLoaded_Filters::Resolve_Signal_By_Name(const wchar_t* name, bool& valid) {
 }
 
 
-scgms::SFilter create_filter(const GUID &id, scgms::IFilter *next_filter) {
+scgms::SFilter create_filter_body(const GUID &id, scgms::IFilter *next_filter) {
 	scgms::SFilter result;
 	scgms::IFilter *filter;
 	
 
-	if (loaded_filters.create_filter(&id, next_filter, &filter) == S_OK)
+	if (loaded_filters.create_filter_body(&id, next_filter, &filter) == S_OK)
 		result = refcnt::make_shared_reference_ext<scgms::SFilter, scgms::IFilter>(filter, false);
 
 	return result;

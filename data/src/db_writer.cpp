@@ -195,7 +195,7 @@ bool CDb_Writer::Store_Parameters(const scgms::UDevice_Event& evt) {
     if (result) {
         const size_t paramCnt = std::distance(begin, end);
 
-        auto models = scgms::get_model_descriptors();
+        auto models = scgms::get_model_descriptor_list();
         for (const auto& model : models) {
             for (size_t i = 0; i < model.number_of_calculated_signals; i++) {
                 if (evt.signal_id() == model.calculated_signal_ids[i] && model.total_number_of_parameters == paramCnt) {
@@ -266,7 +266,7 @@ HRESULT IfaceCalling CDb_Writer::Do_Configure(scgms::SFilter_Configuration confi
     // should we warn the user somehow?
 
     // do not store any of model signals
-    auto models = scgms::get_model_descriptors();
+    auto models = scgms::get_model_descriptor_list();
     for (const auto& model : models)
         for (size_t i = 0; i < model.number_of_calculated_signals; i++)
             mIgnored_Signals.insert(model.calculated_signal_ids[i]);

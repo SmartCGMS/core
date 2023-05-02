@@ -36,12 +36,13 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "descriptor.h"
 #include "log.h"
 #include "log_replay.h"
 
+#include "../../../common/iface/UIIface.h"
 #include "../../../common/lang/dstrings.h"
 #include "../../../common/rtl/manufactory.h"
+#include "../../../common/rtl/hresult.h"
 #include "../../../common/utils/descriptor_utils.h"
 
 #include <vector>
@@ -135,11 +136,11 @@ namespace log_replay {
 
 const std::array<scgms::TFilter_Descriptor, 2> filter_descriptions = { { logger::Log_Descriptor, log_replay::Log_Replay_Descriptor } };
 
-extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
+HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
+HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
 	if (*id == log_replay::Log_Replay_Descriptor.id)
 		return Manufacture_Object<CLog_Replay_Filter>(filter, output);
 	else if (*id == logger::Log_Descriptor.id)

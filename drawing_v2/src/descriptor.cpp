@@ -113,12 +113,12 @@ const std::array<scgms::TFilter_Descriptor, 1> filter_descriptions = { { drawing
  * Filter library interface implementations
  */
 
-extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
+HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
+HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
 
 	if (*id == drawing_filter_v2::descriptor.id) {
 		return Manufacture_Object<CDrawing_Filter_v2>(filter, output);
