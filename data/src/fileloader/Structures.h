@@ -38,7 +38,7 @@
 
 #pragma once
 
-#include "..\..\..\..\common\rtl\guid.h"
+#include "../../../../common/rtl/guid.h"
 
 #include <cstdint>
 #include <climits>
