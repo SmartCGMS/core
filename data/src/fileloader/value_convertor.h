@@ -39,6 +39,7 @@
 #pragma once
 
 #include <string>
+#include <memory>
 
 #include "../third party/exprtk.hpp"
 
@@ -53,7 +54,7 @@ protected:
 		invalid,
 	};
 
-	NValue_Conversion mConversion = NValue_Conversion::invalid;	
+	NValue_Conversion mConversion = NValue_Conversion::invalid;
 protected:
 	//most of the time, there won't by any conversion => it is worth to allocate it only when needed to save the overall init time
 	struct TExpression_Engine {
@@ -75,4 +76,4 @@ public:
 	bool valid() const;						//true if expression is correct	
 
 	CValue_Convertor& operator=(const CValue_Convertor& other);
-};		
+};
