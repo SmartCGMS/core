@@ -173,14 +173,14 @@ void CParkes_Generator::Write_Description()
         mSvg.Draw_Text(sizeX / 2, Normalize_Y(0) + 50, str.str(), "middle", "black", 14);
         mSvg.Line(startX, Normalize_Y(0), Normalize_X(Parkes_Max_MgDl), Normalize_Y(0));
 
-		const int step = (int)(Utility::MmolL_To_MgDl(2.0));
+		constexpr int step = static_cast<int>(Utility::MmolL_To_MgDl(2.0));
 
         // x-axis description
         for (int i = 0; i <= Parkes_Max_MgDl; i += step)
         {
 			double x_d = Normalize_X(i);
             mSvg.Line(x_d, Normalize_Y(0), x_d, Normalize_Y(0) + 10);
-            mSvg.Draw_Text(x_d, Normalize_Y(0) + 30, mMmolFlag ? Utility::Format_Decimal(round(Utility::MgDl_To_MmolL(i)), 3) : Utility::Format_Decimal(i, 3), "middle", "black", 12);
+            mSvg.Draw_Text(x_d, Normalize_Y(0) + 32, mMmolFlag ? Utility::Format_Decimal(round(Utility::MgDl_To_MmolL(i)), 0) : Utility::Format_Decimal(i, 0), "middle", "black", 12);
         }
 
         // y-axis description
@@ -188,7 +188,7 @@ void CParkes_Generator::Write_Description()
         {
             double y_d = Normalize_Y(i);
             mSvg.Line(startX - 10, y_d, startX, y_d);
-            mSvg.Draw_Text(startX - 25, y_d, mMmolFlag ? Utility::Format_Decimal(round(Utility::MgDl_To_MmolL(i)), 3) : Utility::Format_Decimal(i, 3), "middle", "black", 12);
+            mSvg.Draw_Text(startX - 25, y_d, mMmolFlag ? Utility::Format_Decimal(round(Utility::MgDl_To_MmolL(i)), 0) : Utility::Format_Decimal(i, 0), "middle", "black", 12);
         }
     }
 
@@ -233,12 +233,19 @@ void CParkes_Generator::Write_Body()
 
         if (Utility::Find_Value(searchValue, measuredBlood, istVector))
             istGr.Point(Normalize_X(Parkes_Norm_Limit*Utility::MmolL_To_MgDl(measuredBlood.value) / Parkes_Max_MgDl), Normalize_Y(Parkes_Norm_Limit*Utility::MmolL_To_MgDl(searchValue.value) / Parkes_Max_MgDl), 3);
+    }
 
-		for (auto& calcElPair : mapGr)
-		{
-			if (Utility::Find_Value(searchValue, measuredBlood, mInputData[calcElPair.first].values))
-				calcElPair.second.Point(Normalize_X(Parkes_Norm_Limit*Utility::MmolL_To_MgDl(measuredBlood.value) / Parkes_Max_MgDl), Normalize_Y(Parkes_Norm_Limit*Utility::MmolL_To_MgDl(searchValue.value) / Parkes_Max_MgDl), 3);
-		}
+    for (auto& calcElPair : mapGr)
+    {
+        auto& calcvector = mInputData[calcElPair.first].values;
+        auto& refvector = mInputData[mInputData[calcElPair.first].refSignalIdentifier];
+
+        Value searchValue;
+
+        for (size_t i = 0; i < refvector.values.size(); i++) {
+            if (Utility::Find_Value(searchValue, refvector.values[i], calcvector))
+                calcElPair.second.Point(Normalize_X(Parkes_Norm_Limit * Utility::MmolL_To_MgDl(refvector.values[i].value) / Parkes_Max_MgDl), Normalize_Y(Parkes_Norm_Limit * Utility::MmolL_To_MgDl(searchValue.value) / Parkes_Max_MgDl), 3);
+        }
     }
 
 	for (auto& calcElPair : mapGr)

@@ -140,14 +140,14 @@ void CClark_Generator::Write_Descripton()
 
 		// TODO: rewrite Clark and Parkes generators to use mmol/l and get rid of this conversion mess
 
-		const int step = (int)(Utility::MmolL_To_MgDl(2.0));
+		constexpr int step = static_cast<int>(Utility::MmolL_To_MgDl(2.0));
 
         // x-axis description
         for (int i = 0; i <= Clark_Norm_Limit; i += step)
         {
             double x_d = Normalize_X(i);
             mSvg.Line(x_d, Normalize_Y(0), x_d, Normalize_Y(0) + 10);
-            mSvg.Draw_Text(x_d, Normalize_Y(0) + 20, mMmolFlag ? Utility::Format_Decimal(round(Utility::MgDl_To_MmolL(i)), 3) : Utility::Format_Decimal(i, 3), "middle", "black", 12);
+            mSvg.Draw_Text(x_d, Normalize_Y(0) + 22, mMmolFlag ? Utility::Format_Decimal(round(Utility::MgDl_To_MmolL(i)), 0) : Utility::Format_Decimal(i, 0), "middle", "black", 12);
         }
 
         // y-axis description
@@ -155,7 +155,7 @@ void CClark_Generator::Write_Descripton()
         {
             double y_d = Normalize_Y(i);
             mSvg.Line(startX - 10, y_d, startX, y_d);
-            mSvg.Draw_Text(startX - 25, y_d, mMmolFlag ? Utility::Format_Decimal(round(Utility::MgDl_To_MmolL(i)), 3) : Utility::Format_Decimal(i, 3), "middle", "black", 12);
+            mSvg.Draw_Text(startX - 25, y_d, mMmolFlag ? Utility::Format_Decimal(round(Utility::MgDl_To_MmolL(i)), 0) : Utility::Format_Decimal(i, 0), "middle", "black", 12);
         }
     }
 
@@ -209,12 +209,19 @@ void CClark_Generator::Write_Body()
 
         if (Utility::Find_Value(searchValue, measuredBlood, istVector))
             istEl.Point(Normalize_X(Clark_Norm_Limit*(Utility::MmolL_To_MgDl(measuredBlood.value) / Clark_Max_MgDl)), Normalize_Y(Clark_Norm_Limit*Utility::MmolL_To_MgDl(searchValue.value) / Clark_Max_MgDl), 3);
+    }
 
-		for (auto& calcElPair : calcElMap)
-		{
-			if (Utility::Find_Value(searchValue, measuredBlood, mInputData[calcElPair.first].values))
-				calcElPair.second.Point(Normalize_X(Clark_Norm_Limit*(Utility::MmolL_To_MgDl(measuredBlood.value) / Clark_Max_MgDl)), Normalize_Y(Clark_Norm_Limit*Utility::MmolL_To_MgDl(searchValue.value) / Clark_Max_MgDl), 3);
-		}
+    for (auto& calcElPair : calcElMap)
+    {
+        auto& calcvector = mInputData[calcElPair.first].values;
+        auto& refvector = mInputData[mInputData[calcElPair.first].refSignalIdentifier];
+
+        Value searchValue;
+
+        for (size_t i = 0; i < refvector.values.size(); i++) {
+            if (Utility::Find_Value(searchValue, refvector.values[i], calcvector))
+                calcElPair.second.Point(Normalize_X(Clark_Norm_Limit * Utility::MmolL_To_MgDl(refvector.values[i].value) / Clark_Max_MgDl), Normalize_Y(Clark_Norm_Limit * Utility::MmolL_To_MgDl(searchValue.value) / Clark_Max_MgDl), 3);
+        }
     }
 
 	for (auto& calcElPair : calcElMap)
