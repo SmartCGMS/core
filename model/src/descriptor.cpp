@@ -798,7 +798,7 @@ namespace gct3_model {
 		reference_signal_ids,
 	};
 
-	const scgms::TSignal_Descriptor ig_desc{ gct3_model::signal_IG, dsGCT_Model_v3_IG, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFF00A0FF, 0xFF00A0FF, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
+	const scgms::TSignal_Descriptor ig_desc{ gct3_model::signal_IG, dsGCT_Model_v3_IG, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xffff5326, 0xffff5326, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 	const scgms::TSignal_Descriptor bg_desc{ gct3_model::signal_BG, dsGCT_Model_v3_BG, dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0xFFFF0088, 0xFFFF0088, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 	const scgms::TSignal_Descriptor ins_desc{ gct3_model::signal_Delivered_Insulin, dsGCT_Model_v3_Delivered_Insulin, dsU, scgms::NSignal_Unit::U_insulin, 0xFF450098, 0xFF450098, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 	const scgms::TSignal_Descriptor iob_desc{ gct3_model::signal_IOB, dsGCT_Model_v3_IOB, dsU, scgms::NSignal_Unit::U_insulin, 0xFF456898, 0xFF456898, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
