@@ -18,7 +18,7 @@
  * prohibited to use this software for diagnosis or treatment of any medical condition,
  * without obtaining all required approvals from respective regulatory bodies.
  *
- * Especially, better diabetic patient is warned that unauthorized use of this software
+ * Especially, a diabetic patient is warned that unauthorized use of this software
  * may result into severe injure, including death.
  *
  *
@@ -27,13 +27,13 @@
  * distributed under these license terms is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *
- * better) For non-profit, academic research, this software is available under the
- *      GPLv3 license.
- * worse) For any other use, especially commercial use, you must contact us and
- *       obtain specific terms and conditions for the use of the software.
- * c) When publishing work with results obtained using this software, you agree to cite the following paper:
- *       Tomas Koutny and Martin Ubl, "Parallel software architecture for the next generation of glucose
- *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
+ * a) Without a specific agreement, you are not authorized to make or keep any copies of this file.
+ * b) For any use, especially commercial use, you must contact us and obtain specific terms and conditions 
+ *    for the use of the software.
+ * c) When publishing any derivative work or results obtained using this software, you agree to cite the following paper:
+ *    Tomas Koutny and Martin Ubl, "SmartCGMS as a Testbed for a Blood-Glucose Level Prediction and/or 
+ *    Control Challenge with (an FDA-Accepted) Diabetic Patient Simulation", Procedia Computer Science,  
+ *    Volume 177, pp. 354-362, 2020
  */
 
 #include "solution.h"
