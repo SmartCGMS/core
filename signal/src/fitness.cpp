@@ -160,7 +160,7 @@ BOOL IfaceCalling Fitness_Wrapper(const void* data, const size_t solution_count,
 
 HRESULT Solve_Model_Parameters(const TSegment_Solver_Setup &setup) {	
 	HRESULT rc = E_UNEXPECTED;
-	const auto model_descriptors = scgms::get_model_descriptors();
+	const auto model_descriptors = scgms::get_model_descriptor_list();
 
 	/*if (rc != S_OK) */{
 		//let's try to apply the generic filters as well

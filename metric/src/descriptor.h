@@ -89,13 +89,3 @@ static constexpr GUID mtrExpWtDiff =	// weigthed average preferring values highe
 
 static const GUID mtrAvg_Pow_StdDev_Metric =    //average to the power of std dev estimation
 { 0xf9b5fcae, 0x9f05, 0x4f75, { 0xb0, 0x17, 0xda, 0x25, 0xe2, 0xec, 0xee, 0x2c } }; // {F9B5FCAE-9F05-4F75-B017-DA25E2ECEE2C}
-
-
-
-extern "C" HRESULT IfaceCalling do_get_metric_descriptors(scgms::TMetric_Descriptor const **begin, scgms::TMetric_Descriptor const **end);
-
-extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor const**begin, scgms::TFilter_Descriptor const **end);
-
-extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor const** begin, scgms::TSignal_Descriptor const** end);
-
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter);

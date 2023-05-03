@@ -64,6 +64,3 @@ namespace sincos_generator {
 namespace healthkit_dump_reader_filter {
 	constexpr GUID id = { 0x6c601847, 0x8bfc, 0x4e79, { 0xb8, 0x55, 0xdd, 0x51, 0x87, 0xc6, 0x3e, 0xb9 } };// {6C601847-8BFC-4E79-B855-DD5187C63EB9}
 }
-
-extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end);
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *next_filter, scgms::IFilter **filter);

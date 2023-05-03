@@ -70,6 +70,3 @@ public:
 };
 
 #pragma warning( pop )
-
-
-extern "C" HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersistent_Filter_Chain_Configuration **configuration) noexcept;

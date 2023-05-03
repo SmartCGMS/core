@@ -86,6 +86,6 @@ const std::array<scgms::TSolver_Descriptor, 9> solver_descriptions =
 };
 
 
-HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end) {
+DLL_EXPORT HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end) {
 	return do_get_descriptors(solver_descriptions, begin, end);
 }

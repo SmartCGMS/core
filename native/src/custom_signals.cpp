@@ -36,8 +36,7 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "custom_signals.h"
-
+#include "../../../common/iface/UIIface.h"
 #include "../../../common/utils/descriptor_utils.h"
 #include "../../../common/utils/string_utils.h"
 #include "../../../common/rtl/FilesystemLib.h"
@@ -122,7 +121,7 @@ void load_custom_signals() {
 }
 
 
-extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end) {
+DLL_EXPORT HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end) {
 	std::call_once(signals_loaded, load_custom_signals);
 	return do_get_descriptors<scgms::TSignal_Descriptor>(custom_signals, begin, end);
 }

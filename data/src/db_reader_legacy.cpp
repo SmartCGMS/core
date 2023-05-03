@@ -110,7 +110,7 @@ bool CDb_Reader_Legacy::Emit_Segment_Marker(scgms::NDevice_Event_Code code, int6
 }
 
 bool CDb_Reader_Legacy::Emit_Segment_Parameters(int64_t segment_id) {
-	for (const auto &descriptor : scgms::get_model_descriptors()) {
+	for (const auto &descriptor : scgms::get_model_descriptor_list()) {
 
 		// skip models without database schema tables
 		if (descriptor.db_table_name == nullptr || wcslen(descriptor.db_table_name) == 0)

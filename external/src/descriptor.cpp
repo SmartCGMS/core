@@ -172,14 +172,14 @@ const std::array<scgms::TSignal_Descriptor, 3> signals_descriptors = { { dmms_mo
 #endif
 
 
-extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
+DLL_EXPORT HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
 	*begin = const_cast<scgms::TModel_Descriptor*>(model_descriptions.data());
 	*end = *begin + model_descriptions.size();
 	return S_OK;
 }
 
 
-extern "C" HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
+DLL_EXPORT HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
 #ifndef NO_BUILD_DMMS
 	if (*model_id == dmms_model::proc_model_id) return Manufacture_Object<CDMMS_Proc_Discrete_Model>(model, parameters, output);
 	if (*model_id == dmms_model::lib_model_id) return Manufacture_Object<CDMMS_Lib_Discrete_Model>(model, parameters, output);
@@ -189,7 +189,7 @@ extern "C" HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, s
 	return E_NOTIMPL;
 }
 
-extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor **begin, scgms::TSignal_Descriptor **end) {
+DLL_EXPORT HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor **begin, scgms::TSignal_Descriptor **end) {
 #ifndef NO_BUILD_DMMS
 	*begin = const_cast<scgms::TSignal_Descriptor*>(signals_descriptors.data());
 	*end = *begin + signals_descriptors.size();

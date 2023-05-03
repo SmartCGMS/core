@@ -413,7 +413,7 @@ protected:
 			GUID id;
 			ok = link->Get_Filter_Id(&id) == S_OK;
 			if (ok) {
-				scgms::SFilter filter = create_filter(id, &terminal);
+				scgms::SFilter filter = create_filter_body(id, &terminal);
 				ok = filter.operator bool();
 				if (ok) {
 					if (first_feedback_receiver_idx == std::numeric_limits<size_t>::max()) {

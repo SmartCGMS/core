@@ -202,7 +202,7 @@ protected:
 		mFirst_Array_Var_idx = std::numeric_limits<size_t>::max();
 
 		//std::wstring effective_str{ str };	//wcstok modifies the input string
-		const wchar_t* delimiters = L" ";	//string of chars, which designate individual delimiters
+		const wchar_t* delimiters = L" \r\n";	//string of chars, which designate individual delimiters
 		wchar_t* buffer = nullptr;
 		wchar_t* str_val = wcstok_s(const_cast<wchar_t*>(effective_str.data()), delimiters, &buffer);
 
@@ -368,4 +368,3 @@ public:
 
 #pragma warning( pop )
 
-extern "C" HRESULT IfaceCalling create_filter_parameter(const scgms::NParameter_Type type, const wchar_t *config_name, scgms::IFilter_Parameter **parameter);

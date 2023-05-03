@@ -417,19 +417,19 @@ const std::array<scgms::TSignal_Descriptor, 10> signals_descriptors = { {iob::ac
 const std::array<scgms::TFilter_Descriptor, 2> filter_descriptions = { { basal_2_bolus::filter_desc, sensor::filter_desc } };
 
 
-extern "C" HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
+DLL_EXPORT HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
 	*begin = const_cast<scgms::TModel_Descriptor*>(model_descriptions.data());
 	*end = *begin + model_descriptions.size();
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end) {
+DLL_EXPORT HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end) {
 	*begin = const_cast<scgms::TSignal_Descriptor*>(signals_descriptors.data());
 	*end = *begin + signals_descriptors.size();
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal) {
+DLL_EXPORT HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal) {
 	if ((calc_id == nullptr) || (segment == nullptr)) return E_INVALIDARG;
 
 	scgms::WTime_Segment weak_segment{ segment };
@@ -459,13 +459,13 @@ extern "C" HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITi
 }
 
 
-HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor** begin, scgms::TFilter_Descriptor** end) {
+DLL_EXPORT HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor** begin, scgms::TFilter_Descriptor** end) {
 	*begin = const_cast<scgms::TFilter_Descriptor*>(filter_descriptions.data());
 	*end = *begin + filter_descriptions.size();
 	return S_OK;
 }
 
-HRESULT IfaceCalling do_create_filter(const GUID* id, scgms::IFilter* output, scgms::IFilter** filter) {
+DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID* id, scgms::IFilter* output, scgms::IFilter** filter) {
 	if (*id == basal_2_bolus::filter_id)
 		return Manufacture_Object<CBasal_2_Bolus>(filter, output);
 	else if (*id == sensor::filter_id)

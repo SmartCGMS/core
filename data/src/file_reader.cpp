@@ -152,6 +152,7 @@ std::list<TSegment_Limits> CFile_Reader::Resolve_Segments(const TValue_Vector& s
 			segment_start_stop.push_back({ segment_begin, segment_end });
 		}
 
+
 		segment_begin = segment_end;			//at this level, new segment's start
 	}
 
@@ -269,7 +270,7 @@ void CFile_Reader::Run_Reader() {
 				{
 					//switch off the physical activity, once ended
 					if (!std::isnan(nextPhysicalActivityEnd) && (nextPhysicalActivityEnd <= current_measured_time)) {
-						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextPhysicalActivityEnd, currentSegmentId, scgms::signal_Physical_Activity, 0.0);
+						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextPhysicalActivityEnd, currentSegmentId, scgms::signal_Physical_Activity, 1.0);	//1.0 is the basal metabolism
 						nextPhysicalActivityEnd = std::numeric_limits<double>::quiet_NaN();
 					}
 
