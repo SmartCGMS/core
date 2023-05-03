@@ -112,7 +112,7 @@ bool add_solver_descriptor(TUser_Defined_Solver_Descriptor& descriptor)
 	return true;
 }
 
-extern "C" HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end) {
+DLL_EXPORT HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end) {
 
 	if (solver_descriptors.size() == 0)
 		return S_FALSE;
@@ -123,7 +123,7 @@ extern "C" HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descrip
 	return S_OK;
 }
 
-extern "C" HRESULT IfaceCalling do_solve_generic(const GUID * solver_id, solver::TSolver_Setup * setup, solver::TSolver_Progress * progress)
+DLL_EXPORT HRESULT IfaceCalling do_solve_generic(const GUID * solver_id, solver::TSolver_Setup * setup, solver::TSolver_Progress * progress)
 {
 	return gMatlab_Factory.Solve(solver_id, setup, progress);
 }

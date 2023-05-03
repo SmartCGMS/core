@@ -36,7 +36,6 @@
  *       monitoring", Procedia Computer Science, Volume 141C, pp. 279-286, 2018
  */
 
-#include "factory.h"
 
 #include "../../../common/iface/SolverIface.h"
 
@@ -110,7 +109,7 @@ const std::array<TSolver_Info, 18> solvers = {	TSolver_Info{nlopt::newuoa_id, So
 
 
 
-extern "C" HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, solver::TSolver_Setup *setup, solver::TSolver_Progress *progress) {
+DLL_EXPORT HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, solver::TSolver_Setup *setup, solver::TSolver_Progress *progress) {
 	
 	//instead of traversing an array, we could have used map
 	//but we no longe have the desire to use these solvers as the Pathfinder outperforms them

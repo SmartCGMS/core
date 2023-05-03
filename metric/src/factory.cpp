@@ -90,7 +90,7 @@ public:
 
 CId_Dispatcher Id_Dispatcher;
 
-HRESULT IfaceCalling do_create_metric(const scgms::TMetric_Parameters *parameters, scgms::IMetric **metric) {
+DLL_EXPORT HRESULT IfaceCalling do_create_metric(const scgms::TMetric_Parameters *parameters, scgms::IMetric **metric) {
 	if (parameters == nullptr) return E_INVALIDARG;
 	return Id_Dispatcher.Create_Metric(*parameters, metric);
 }

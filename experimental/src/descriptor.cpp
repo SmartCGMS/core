@@ -719,19 +719,19 @@ const std::array<scgms::TFilter_Descriptor, 2> filter_descriptors = { {
 	ideg::logstopper::descriptor,
 } };
 
-HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
+DLL_EXPORT HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
 	*begin = const_cast<scgms::TModel_Descriptor*>(model_descriptions.data());
 	*end = *begin + model_descriptions.size();
 	return S_OK;
 }
 
-HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end) {
+DLL_EXPORT HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end) {
 	*begin = const_cast<scgms::TSignal_Descriptor*>(signals_descriptors.data());
 	*end = *begin + signals_descriptors.size();
 	return S_OK;
 }
 
-HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
+DLL_EXPORT HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
 	if (*model_id == p559_model::model_id)
 		return Manufacture_Object<CP559_Model>(model, parameters, output);
 	else if (*model_id == aim_ge::model_id)
@@ -752,13 +752,13 @@ HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IMode
 		return E_NOTIMPL;
 }
 
-HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
+DLL_EXPORT HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 	*begin = const_cast<scgms::TFilter_Descriptor*>(filter_descriptors.data());
 	*end = *begin + filter_descriptors.size();
 	return S_OK;
 }
 
-HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
+DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
 	if (*id == ideg::riskfinder::id)
 		return Manufacture_Object<CRisk_Finder_Filter>(filter, output);
 	else if (*id == ideg::logstopper::id)

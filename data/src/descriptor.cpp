@@ -476,11 +476,11 @@ static const std::array<scgms::TFilter_Descriptor, 7> filter_descriptions = {
 	healthkit_dump_reader_filter::descriptor
 };
 
-extern "C" HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
+DLL_EXPORT HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-extern "C" HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *next_filter, scgms::IFilter **filter) {
+DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *next_filter, scgms::IFilter **filter) {
 
 	if (*id == db_reader::Db_Reader_Descriptor.id)
 		return Manufacture_Object<CDb_Reader>(filter, next_filter);

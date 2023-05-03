@@ -121,7 +121,7 @@ void load_custom_signals() {
 }
 
 
-HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end) {
+DLL_EXPORT HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end) {
 	std::call_once(signals_loaded, load_custom_signals);
 	return do_get_descriptors<scgms::TSignal_Descriptor>(custom_signals, begin, end);
 }

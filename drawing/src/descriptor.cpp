@@ -108,11 +108,11 @@ namespace drawing
 
 static const std::array<scgms::TFilter_Descriptor, 1> filter_descriptions = { drawing::Drawing_Descriptor };
 
-HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
+DLL_EXPORT HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
+DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
 	if (*id == drawing::Drawing_Descriptor.id)
 		return Manufacture_Object<CDrawing_Filter>(filter, output);
 

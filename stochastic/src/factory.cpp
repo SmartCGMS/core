@@ -140,7 +140,7 @@ public:
 static CId_Dispatcher Id_Dispatcher;
 
 
-HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, solver::TSolver_Setup *setup, solver::TSolver_Progress *progress) {
+DLL_EXPORT HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, solver::TSolver_Setup *setup, solver::TSolver_Progress *progress) {
 	try {
 		return Id_Dispatcher.do_solve(*solver_id, *setup, *progress);
 	}

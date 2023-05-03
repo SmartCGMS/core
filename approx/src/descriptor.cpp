@@ -75,13 +75,13 @@ const std::array<scgms::TApprox_Descriptor, 3> approx_descriptions = { { line::L
 																		  akima::Akima_Descriptor,
 																		 avgexp::AvgExp_Descriptor	} };
 
-HRESULT IfaceCalling do_get_approximator_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end) {
+DLL_EXPORT HRESULT IfaceCalling do_get_approximator_descriptors(scgms::TApprox_Descriptor **begin, scgms::TApprox_Descriptor **end) {
 	*begin = const_cast<scgms::TApprox_Descriptor*>(approx_descriptions.data());
 	*end = *begin + approx_descriptions.size();
 	return S_OK;
 }
 
-HRESULT IfaceCalling do_create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApproximator **approx) {
+DLL_EXPORT HRESULT IfaceCalling do_create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApproximator **approx) {
 
 	if (approx_id == nullptr)	//if no id is given, let's use the default approximator
 		return Manufacture_Object<CAkima>(approx, scgms::WSignal{ signal });

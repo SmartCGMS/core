@@ -204,17 +204,17 @@ namespace native_model {
 const std::array<const scgms::TFilter_Descriptor, 1> filter_descriptions = { { native::desc} };
 const std::array<scgms::TModel_Descriptor, 1> model_descriptions = { { native_model::model_desc} };
 
-HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
+DLL_EXPORT HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
-HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
+DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
 	if (*id == native::native_filter_id)
 		return Manufacture_Object<CNative_Script>(filter, output);
 
 	return E_NOTIMPL;
 }
 
-HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor** begin, scgms::TModel_Descriptor** end) {	
+DLL_EXPORT HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor** begin, scgms::TModel_Descriptor** end) {	
 	return do_get_descriptors(model_descriptions, begin, end);
 }

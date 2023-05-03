@@ -132,7 +132,7 @@ public:
 	GUID Resolve_Signal_By_Name(const wchar_t* name, bool& valid);
 };
 
-HRESULT IfaceCalling solve_generic(const GUID * solver_id, const solver::TSolver_Setup * setup, solver::TSolver_Progress * progress);
+DLL_EXPORT HRESULT IfaceCalling solve_generic(const GUID * solver_id, const solver::TSolver_Setup * setup, solver::TSolver_Progress * progress);
 
 scgms::SFilter create_filter_body(const GUID &id, scgms::IFilter *next_filter);
 void describe_loaded_filters(refcnt::Swstr_list error_description);
