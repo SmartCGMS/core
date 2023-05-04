@@ -199,7 +199,7 @@ namespace gct3_model
 				return mTransfer_Factor;
 			}
 
-			virtual std::unique_ptr<IIntegrator> Create_Integrator() {
+			virtual std::unique_ptr<IIntegrator> Create_Integrator() override {
 				return std::make_unique<CRectangular_Integrator>(*this);
 			}
 	};
@@ -355,7 +355,7 @@ namespace gct3_model
 				return mTransfer_Factor * std::max(0.0, diff);
 			}
 
-			virtual std::unique_ptr<IIntegrator> Create_Integrator() {
+			virtual std::unique_ptr<IIntegrator> Create_Integrator() override {
 				return std::make_unique<CRectangular_Integrator>(*this);
 			}
 	};
@@ -385,7 +385,7 @@ namespace gct3_model
 				return mTransfer_Factor * diff;
 			}
 
-			virtual std::unique_ptr<IIntegrator> Create_Integrator() {
+			virtual std::unique_ptr<IIntegrator> Create_Integrator() override {
 				return std::make_unique<CRectangular_Integrator>(*this);
 			}
 	};
@@ -409,7 +409,7 @@ namespace gct3_model
 				return 1.0 * Get_Amount_Scaling_Factor();
 			}
 
-			virtual std::unique_ptr<IIntegrator> Create_Integrator() {
+			virtual std::unique_ptr<IIntegrator> Create_Integrator() override {
 				return std::make_unique<CRectangular_Integrator>(*this);
 			}
 	};
@@ -448,7 +448,7 @@ namespace gct3_model
 				return amount * Get_Amount_Scaling_Factor();
 			}
 
-			virtual std::unique_ptr<IIntegrator> Create_Integrator() {
+			virtual std::unique_ptr<IIntegrator> Create_Integrator() override {
 				return std::make_unique<CMidpoint_Integrator>(*this);
 			}
 	};
