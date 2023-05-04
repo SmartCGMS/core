@@ -238,6 +238,7 @@ class CXls_File : public virtual ISpreadsheet_File
 		virtual void Write(int row, int col, int sheetIndex, const std::string& value) override;
 		virtual void Finalize() override;
 
+		using IStorage_File::Read;
 		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;
 };
 
@@ -256,6 +257,7 @@ class CXlsx_File : public virtual ISpreadsheet_File
 		virtual void Write(int row, int col, int sheetIndex, const std::string& value) override;
 		virtual void Finalize() override;
 
+		using IStorage_File::Read;
 		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;
 };
 
