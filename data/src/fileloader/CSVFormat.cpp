@@ -37,7 +37,6 @@
  */
 
 #include "CSVFormat.h"
-#include "Misc.h"
 #include "../../../../common/utils/winapi_mapping.h"
 
 #include <map>
@@ -108,27 +107,36 @@ CCSV_Format::~CCSV_Format()
 {
 }
 
+void CCSV_Format::Set_Cache_Mode(NCache_Mode mode) {
+	mCache_Mode = mode;
+
+	// either way, clear the cache
+	mContents.clear();
+}
+
 std::optional<std::string> CCSV_Format::Read(int row, int column)
 {
 	if (mError)
 		return std::nullopt;
 
 	// lazyload if needed
-	Load_To_Row(row);
+	bool read = Load_To_Row(static_cast<size_t>(row));
+
+	const int realRowIdx = (mCache_Mode == NCache_Mode::Cached) ? row : 0;
 
 	// if there are not enough rows / columns after lazyload, it means the cell does not exist
 	// note that we always consider maximum number of columns ever read; this is because of segmented CSVs, etc.
-	if (static_cast<int>(mContents.size()) <= row || static_cast<int>(mMaxColumn) <= column)
+	if (!read || static_cast<int>(mContents.size()) <= realRowIdx || static_cast<int>(mMaxColumn) <= column)
 	{
 		mUnkCell = true;
 		return std::nullopt;
 	}
 
-	if (static_cast<int>(mContents[row].size()) <= column)
+	if (static_cast<int>(mContents[realRowIdx].size()) <= column)
 		return std::nullopt;
 
 	mUnkCell = false;
-	return mContents[row][column];
+	return mContents[realRowIdx][column];
 }
 
 void CCSV_Format::Write(int row, int column, std::string value)
@@ -136,24 +144,32 @@ void CCSV_Format::Write(int row, int column, std::string value)
 	if (mError || row < 0)
 		return;
 
+	// we do not support writing in single-record cache
+	if (mCache_Mode == NCache_Mode::Single_Record_Cache) {
+		mError = true;
+		return;
+	}
+
 	// lazyload if needed
-	Load_To_Row(static_cast<size_t>(row));
+	bool read = Load_To_Row(static_cast<size_t>(row));
+
+	const int realRowIdx = row;
 
 	// resize if needed
-	if (static_cast<int>(mContents.size()) <= row)
-		mContents.resize(static_cast<size_t>(row) + 1);
-	if (static_cast<int>(mContents[row].size()) <= column)
+	if (static_cast<int>(mContents.size()) <= realRowIdx)
+		mContents.resize(static_cast<size_t>(realRowIdx) + 1);
+	if (static_cast<int>(mContents[realRowIdx].size()) <= column)
 		mContents[row].resize(static_cast<size_t>(column) + 1);
 
 	// write only if needed
-	if (mContents[row][column] != value)
+	if (mContents[realRowIdx][column] != value)
 	{
-		mContents[row][column] = value;
+		mContents[realRowIdx][column] = value;
 		mWriteFlag = true; // set writeflag to indicate file change
 	}
 }
 
-void CCSV_Format::Load_To_Row(size_t row)
+bool CCSV_Format::Load_To_Row(size_t row)
 {
 	// we load more rows only if needed
 	if (mRowsLoaded <= row)
@@ -161,8 +177,12 @@ void CCSV_Format::Load_To_Row(size_t row)
 		CSVState state = CSVState::UnquotedField;
 
 		std::string line;
-		while (mRowsLoaded <= row && std::getline(mFile, line))
+		while (mRowsLoaded <= row)
 		{
+			if (!std::getline(mFile, line)) {
+				return false;
+			}
+
 			std::vector<std::string> tok{""};
 
 			size_t i = 0;
@@ -229,13 +249,17 @@ void CCSV_Format::Load_To_Row(size_t row)
 				}
 			}
 
-			mContents.resize(mRowsLoaded + 1);
-			mContents[mRowsLoaded].assign(tok.begin(), tok.end());
-			mMaxColumn = mMaxColumn >= mContents[mRowsLoaded].size() ? mMaxColumn : mContents[mRowsLoaded].size();
+			size_t realRowIdx = (mCache_Mode == NCache_Mode::Cached) ? mRowsLoaded : 0;
+
+			mContents.resize(realRowIdx + 1);
+			mContents[realRowIdx].assign(tok.begin(), tok.end());
+			mMaxColumn = mMaxColumn >= mContents[realRowIdx].size() ? mMaxColumn : mContents[realRowIdx].size();
 
 			mRowsLoaded++;
 		}
 	}
+
+	return true;
 }
 
 bool CCSV_Format::Is_Error() const

@@ -47,6 +47,7 @@
 
 #include "CSVFormat.h"
 #include "XMLFormat.h"
+#include "Misc.h"
 
 #ifndef NO_BUILD_EXCELSUPPORT
 #include <xlnt/xlnt.hpp>
@@ -131,9 +132,11 @@ class IStorage_File
 		bool mEOF = false;
 		// original path to file
 		filesystem::path mOriginalPath;
+		// cache mode
+		NCache_Mode mCache_Mode = NCache_Mode::Cached;
 
 	public:
-		virtual ~IStorage_File();
+		virtual ~IStorage_File() = default;
 
 		// initializes format, loads from file, etc.
 		virtual bool Init(filesystem::path &path) = 0;
@@ -143,6 +146,8 @@ class IStorage_File
 		virtual bool Is_EOF() const;
 		// resets EOF flag
 		virtual void Reset_EOF();
+		// sets the cache mode for given instance
+		virtual void Set_Cache_Mode(NCache_Mode mode) { mCache_Mode = mode; };
 
 		// retrieves file data organization structure
 		virtual NFile_Organization_Structure Get_File_Organization() const = 0;
@@ -155,7 +160,7 @@ class IStorage_File
 /*
  * Spreadsheet format adapter interface; encapsulates all needed operations on table file types
  */
-class ISpreadsheet_File : public virtual IStorage_File
+class ISpreadsheet_File : public IStorage_File
 {
 	private:
 		//
@@ -165,7 +170,7 @@ class ISpreadsheet_File : public virtual IStorage_File
 
 	public:
 		// virtual destructor due to need of calling derived ones
-		virtual ~ISpreadsheet_File();
+		virtual ~ISpreadsheet_File() = default;
 		
 		// writes cell contents
 		virtual void Write(int row, int col, int sheetIndex, const std::string& value) = 0;
@@ -173,16 +178,19 @@ class ISpreadsheet_File : public virtual IStorage_File
 		// retrieves file data organization structure
 		virtual NFile_Organization_Structure Get_File_Organization() const override;
 
-		virtual std::optional<std::string> Read(const std::string& position) override final {
+		using IStorage_File::Read;
+
+		std::optional<std::string> Read(const std::string& position) override final {
 			const TSheet_Position pos = CellSpec_To_RowCol(position);
-			return IStorage_File::Read(pos);
+			return Read(pos);
 		}
+
 };
 
 /*
  * Hierarchy format adapter interface; encapsulates all needed operations on tree hierarchy file types
  */
-class IHierarchy_File : public virtual IStorage_File
+class IHierarchy_File : public IStorage_File
 {
 	private:
 		//
@@ -193,7 +201,7 @@ class IHierarchy_File : public virtual IStorage_File
 
 	public:
 		// virtual destructor due to need of calling derived ones
-		virtual ~IHierarchy_File();
+		virtual ~IHierarchy_File() = default;
 
 		// writes cell contents
 		virtual void Write(TXML_Position& position, const std::string &value) = 0;
@@ -215,11 +223,17 @@ class CCsv_File : public ISpreadsheet_File
 		virtual bool Init(filesystem::path &path) override;
 		virtual void Write(int row, int col, int sheetIndex, const std::string& value) override;
 		virtual void Finalize() override;
+		void Set_Cache_Mode(NCache_Mode mode) override {
+			ISpreadsheet_File::Set_Cache_Mode(mode);
+
+			if (mFile)
+				mFile->Set_Cache_Mode(mode);
+		}
 
 		// indicate the intent to override Read from IStorage_File (grandparent) and not "hide" the one in ISpreadsheet_File (parent)
-		using IStorage_File::Read;
+		//using IStorage_File::Read;
 
-		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;
+		std::optional<std::string> Read(const TSheet_Position& position) override final;
 };
 
 #ifndef NO_BUILD_EXCELSUPPORT
@@ -227,7 +241,7 @@ class CCsv_File : public ISpreadsheet_File
 /*
  * XLS file format adapter
  */
-class CXls_File : public virtual ISpreadsheet_File
+class CXls_File : public ISpreadsheet_File
 {
 	private:
 		std::unique_ptr<ExcelFormat::BasicExcel> mFile;
@@ -244,7 +258,7 @@ class CXls_File : public virtual ISpreadsheet_File
 /*
  * XLSX file format adapter
  */
-class CXlsx_File : public virtual ISpreadsheet_File
+class CXlsx_File : public ISpreadsheet_File
 {
 	private:
 		std::unique_ptr<xlnt::workbook> mFile;
@@ -264,7 +278,7 @@ class CXlsx_File : public virtual ISpreadsheet_File
 /*
  * XML format adapter
  */
-class CXml_File : public virtual IHierarchy_File
+class CXml_File : public IHierarchy_File
 {
 	private:
 		std::unique_ptr<CXML_Format> mFile;
