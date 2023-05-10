@@ -65,6 +65,8 @@ protected:
 	bool mReduce_Log = false;
 	double mSecond_Threshold = 0.0;
 
+	bool mHas_Queried_Log_Interface = false;
+
 	scgms::CSignal_Description mSignal_Names;
 	filesystem::path mLog_Filename;
 
