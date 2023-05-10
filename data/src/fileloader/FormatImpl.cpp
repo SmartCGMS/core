@@ -218,11 +218,6 @@ void TreePosition_To_CellSpec(TXML_Position& pos, std::string& cellSpec)
 
 /** Generic implementations **/
 
-IStorage_File::~IStorage_File()
-{
-	//
-}
-
 bool IStorage_File::Is_EOF() const
 {
 	return mEOF;
@@ -233,22 +228,11 @@ void IStorage_File::Reset_EOF()
 	mEOF = false;
 }
 
-ISpreadsheet_File::~ISpreadsheet_File()
-{
-	//
-}
-
 
 NFile_Organization_Structure ISpreadsheet_File::Get_File_Organization() const
 {
 	return NFile_Organization_Structure::SPREADSHEET;
 }
-
-IHierarchy_File::~IHierarchy_File()
-{
-	//
-}
-
 
 NFile_Organization_Structure IHierarchy_File::Get_File_Organization() const
 {

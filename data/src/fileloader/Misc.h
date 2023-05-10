@@ -40,6 +40,13 @@
 
 #include <fstream>
 
+// format implementation cache mode
+enum class NCache_Mode
+{
+	Cached,					// caches everything - this is a default mode
+	Single_Record_Cache,	// caches just a single line/record - this should be default mode for forward reads
+};
+
 // discards Byte Order Mark from UTF-8, UTF-16 and UTF-32x encoded documents; leaves stream in state,
 // where further text-only reading is possible
 void Discard_BOM_If_Present(std::istream& is);

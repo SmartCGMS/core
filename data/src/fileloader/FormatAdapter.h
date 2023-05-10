@@ -45,6 +45,7 @@
 
 #include "file_format_rules.h"
 #include "FormatImpl.h"
+#include "Misc.h"
 
 #include "../../../../common/rtl/FilesystemLib.h"
 
@@ -75,6 +76,11 @@ protected:
 public:
 	CFormat_Adapter(const TFormat_Signature_Rules&rules, const filesystem::path filename, const filesystem::path originalFilename = {});	
 	virtual ~CFormat_Adapter();
+
+	void Set_Cache_Mode(NCache_Mode mode) {
+		if (mStorage)
+			mStorage->Set_Cache_Mode(mode);
+	}
 
 	bool Valid() const;
 	std::string Format_Name() const;

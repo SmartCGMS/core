@@ -42,6 +42,7 @@
 #include <fstream>
 #include <optional>
 
+#include "Misc.h"
 #include "../../../../common/rtl/FilesystemLib.h"
 
 /**
@@ -68,14 +69,18 @@ class CCSV_Format
 		size_t mMaxColumn = 0;
 		// column separator
 		char mSeparator = ';';
+		// cache mode
+		NCache_Mode mCache_Mode = NCache_Mode::Cached;
 
 	protected:
 		// lazyloading method; loads to supplied row number, if needed
-		void Load_To_Row(size_t row);
+		bool Load_To_Row(size_t row);
 
 	public:
 		CCSV_Format(const filesystem::path path, char separator = 0);
 		virtual ~CCSV_Format();
+
+		void Set_Cache_Mode(NCache_Mode mode);
 
 		// reads contents of specified cell; always string since we don't convert inputs at load time
 		std::optional<std::string> Read(int row, int column);

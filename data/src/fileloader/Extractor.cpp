@@ -111,6 +111,8 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 	double datetime = std::numeric_limits<double>::quiet_NaN();
 	double date_part = 0.0, time_part = 0.0;
 
+	source.Set_Cache_Mode(NCache_Mode::Single_Record_Cache);
+
 	for (auto& cursor : cursors) {
 
 		bool read_anything = false;	//keeping compiler happy

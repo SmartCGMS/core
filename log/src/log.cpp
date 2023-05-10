@@ -61,13 +61,18 @@ CLog_Filter::CLog_Filter(scgms::IFilter *output) : CBase_Filter(output) {
 CLog_Filter::~CLog_Filter() {
 	mIs_Terminated = true;
 
-	if (mLog.is_open())
-		mLog.close();	
+	if (mLog.is_open()) {
+		mLog.flush(); // explicitly flush for easier debugging
+		mLog.close();
+	}
 }
 
 HRESULT IfaceCalling CLog_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
 	if (Internal_Query_Interface<scgms::IFilter>(scgms::IID_Log_Filter, *riid, ppvObj)) return S_OK;
-	if (Internal_Query_Interface<scgms::ILog_Filter_Inspection>(scgms::IID_Log_Filter_Inspection, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<scgms::ILog_Filter_Inspection>(scgms::IID_Log_Filter_Inspection, *riid, ppvObj)) {
+		mHas_Queried_Log_Interface = true;
+		return S_OK;
+	}
 
 	return E_NOINTERFACE;
 }
@@ -236,9 +241,11 @@ void CLog_Filter::Log_Event(std::wofstream& log, const scgms::UDevice_Event& evt
 
 	const std::wstring log_line_str = log_line.str();
 	if (log.is_open())
-		log << log_line_str << std::endl;
+		log << log_line_str << L'\n'; // no std::endl to not flush immediatelly (potentially causes overhead - let the stdlib flush by its own logic, we manually flush only in destructor)
 
-	if (push_to_ui_container) {
+	// if we ought to push the event to log interface by logic, and if somebody queried the log interface (therefore there is a consumer
+	// of log messages, that will call Pop on regular basis)
+	if (push_to_ui_container && mHas_Queried_Log_Interface) {
 		refcnt::wstr_container* container = refcnt::WString_To_WChar_Container(log_line_str.c_str());
 		{
 			std::unique_lock<std::mutex> scoped_lock{ mLog_Records_Guard };
