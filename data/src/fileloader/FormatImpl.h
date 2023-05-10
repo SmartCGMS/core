@@ -160,7 +160,7 @@ class IStorage_File
 /*
  * Spreadsheet format adapter interface; encapsulates all needed operations on table file types
  */
-class ISpreadsheet_File : public IStorage_File
+class ISpreadsheet_File : public virtual IStorage_File
 {
 	private:
 		//
@@ -180,7 +180,7 @@ class ISpreadsheet_File : public IStorage_File
 
 		using IStorage_File::Read;
 
-		std::optional<std::string> Read(const std::string& position) override final {
+		virtual std::optional<std::string> Read(const std::string& position) override final {
 			const TSheet_Position pos = CellSpec_To_RowCol(position);
 			return Read(pos);
 		}
@@ -190,7 +190,7 @@ class ISpreadsheet_File : public IStorage_File
 /*
  * Hierarchy format adapter interface; encapsulates all needed operations on tree hierarchy file types
  */
-class IHierarchy_File : public IStorage_File
+class IHierarchy_File : public virtual IStorage_File
 {
 	private:
 		//
@@ -213,7 +213,7 @@ class IHierarchy_File : public IStorage_File
 /*
  * CSV file format adapter
  */
-class CCsv_File : public ISpreadsheet_File
+class CCsv_File : public virtual ISpreadsheet_File
 {
 	private:
 		std::unique_ptr<CCSV_Format> mFile;
@@ -231,9 +231,9 @@ class CCsv_File : public ISpreadsheet_File
 		}
 
 		// indicate the intent to override Read from IStorage_File (grandparent) and not "hide" the one in ISpreadsheet_File (parent)
-		//using IStorage_File::Read;
+		using IStorage_File::Read;
 
-		std::optional<std::string> Read(const TSheet_Position& position) override final;
+		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;
 };
 
 #ifndef NO_BUILD_EXCELSUPPORT
@@ -241,7 +241,7 @@ class CCsv_File : public ISpreadsheet_File
 /*
  * XLS file format adapter
  */
-class CXls_File : public ISpreadsheet_File
+class CXls_File : public virtual ISpreadsheet_File
 {
 	private:
 		std::unique_ptr<ExcelFormat::BasicExcel> mFile;
@@ -259,7 +259,7 @@ class CXls_File : public ISpreadsheet_File
 /*
  * XLSX file format adapter
  */
-class CXlsx_File : public ISpreadsheet_File
+class CXlsx_File : public virtual ISpreadsheet_File
 {
 	private:
 		std::unique_ptr<xlnt::workbook> mFile;
@@ -280,7 +280,7 @@ class CXlsx_File : public ISpreadsheet_File
 /*
  * XML format adapter
  */
-class CXml_File : public IHierarchy_File
+class CXml_File : public virtual IHierarchy_File
 {
 	private:
 		std::unique_ptr<CXML_Format> mFile;

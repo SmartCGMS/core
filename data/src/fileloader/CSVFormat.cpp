@@ -151,7 +151,7 @@ void CCSV_Format::Write(int row, int column, std::string value)
 	}
 
 	// lazyload if needed
-	bool read = Load_To_Row(static_cast<size_t>(row));
+	/*bool read_unused = */Load_To_Row(static_cast<size_t>(row));
 
 	const int realRowIdx = row;
 
