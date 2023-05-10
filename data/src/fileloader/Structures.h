@@ -135,4 +135,34 @@ public:
 	bool empty() const;
 };
 
-using TExtracted_Series = std::vector<CMeasured_Levels>;
+/*
+* To consider:
+* As each log entry is actually a datetime&value pair, there's they can be stored with
+* struct TDatetime_Level {double datetime, double level};
+*	std::map<GUID, std::vector<TDatetime_Level>> mLevels;
+* 
+* where extractor would push datetime&level to each vector found by its GUI
+* In FileReader, ResolveSegments would use a triplet (a TValueVector replacement)
+*	struct {GUID_remap_id, datetime, level} where the GUID_remap_id is an id to a lookup table with GUIDs to conserve memory.
+* Then, ResolveSegments would detect ig/bg signals just by checkding the GUID_remap_id.
+* 
+* However, to properly handle the extractio of paired signals such as basal temp rate and its endtime, we would have to implement
+* some scan in the current datetime stamp, which would complicate the code.
+* 
+* Anyway, we should consider doing some compression like 
+* stuct{uint_64t idx, double level}, where two lower bytes of idx would be GUID_remap_id, while the remaining 6 bytes would be a lookup id
+* to a table with known timestamps. Then, we could encode the timestamps on 6 bytes instead of 8, but it may actually increase the memory
+* unless we would deal with at least 5 levels per single time. And that's not likely going to happen.
+* 
+* Therefore, the best solution would be to convert the largest data files separately, then concat the logs and use replay logs to sort them.
+*/
+
+
+/*
+* When coding, it looks as the best solution to:
+* 1. maintain single datetime-level pairs as stuct{uint_64t idx, double level}, where the reamining 6bytes woudl be 8-bytes double with two least bytes
+*	 zeroed and encoding delta from the previous time stamp. As it won't encode a day, then the missing two bytes should be just OK.
+* 2. encode any other datetime and multiple levels/or single text event would be encoded as the CMeasure Value as single time
+*	
+* Then, all routines could stand as they are if we provide a nice, CMeasured_Values_At_Single_Time iterators.
+*/
