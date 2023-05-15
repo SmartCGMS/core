@@ -153,6 +153,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 				//we do so, to ensure that all the events are time sorted and and events't logical clock are monotonically increasing
 
 	std::map<uint64_t, uint64_t> segment_id_map;
+	uint64_t segment_id_reset_counter = 0;
 
 	// read all lines from log file
 	while (std::getline(log, line) && (!mShutdown_Received || mEmit_All_Events_Before_Shutdown)) {
@@ -184,8 +185,15 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			const auto info_str = cut_column();
 			const uint64_t original_segment_id = read_segment_id(line_counter);
 
-			if ((original_segment_id != scgms::Invalid_Segment_Id) && (original_segment_id != scgms::All_Segments_Id))
-				segment_id_map[original_segment_id] = original_segment_id;
+			if ((original_segment_id != scgms::Invalid_Segment_Id) && (original_segment_id != scgms::All_Segments_Id)) {
+				if (mReset_Segment_Ids) {
+					if (segment_id_map.find(original_segment_id) == segment_id_map.end()) {
+						segment_id_reset_counter++;
+						segment_id_map[original_segment_id] = segment_id_reset_counter;
+					}
+				} else
+					segment_id_map[original_segment_id] = original_segment_id;
+			}
 
 			const scgms::NDevice_Event_Code code = static_cast<scgms::NDevice_Event_Code>(std::stoull(cut_column()));
 
