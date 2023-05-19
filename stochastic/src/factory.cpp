@@ -42,6 +42,7 @@
 #include "solution.h"
 
 #include "HaltonDevice.h"
+#include "xss_device.h"
 #include "MetaDE.h"
 #include "PSO.h"
 #include "Sequential_Brute_Force_Scan.h"
@@ -81,6 +82,9 @@ public:
 		
 		using TRandom_MetaDE = CMetaDE<TUsed_Solution, std::random_device>;
 		mSolver_Id_Map[rnd_metade::id] = std::bind(&Solve_By_Class<TRandom_MetaDE, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+
+		using TXSS_MetaDE = CMetaDE<TUsed_Solution, CXor_Shift_Star_Device<16>>;
+		mSolver_Id_Map[xss_metade::id] = std::bind(&Solve_By_Class<TXSS_MetaDE, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 
 		mSolver_Id_Map[sequential_brute_force_scan::id] = std::bind(&Solve_By_Class<CSequential_Brute_Force_Scan<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 		mSolver_Id_Map[sequential_convex_scan::id] = std::bind(&Solve_By_Class<CSequential_Convex_Scan<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);		

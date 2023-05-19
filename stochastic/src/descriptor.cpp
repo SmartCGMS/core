@@ -56,6 +56,11 @@ namespace rnd_metade {
 	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsRnd_MetaDE);
 }
 
+
+namespace xss_metade {
+	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, L"Xor-Shift* MetaDE");
+}
+
 namespace pso {
 	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsPSO_Halton);
 	const scgms::TSolver_Descriptor desc_r = Describe_Non_Specialized_Solver(pr_id, L"Halton pr-PSO");
@@ -78,8 +83,8 @@ namespace rumoropt {
 }
 
 
-const std::array<scgms::TSolver_Descriptor, 9> solver_descriptions = 
-	{ mt_metade::desc, halton_metade::desc, rnd_metade::desc,
+const std::array<scgms::TSolver_Descriptor, 10> solver_descriptions = 
+	{ mt_metade::desc, halton_metade::desc, rnd_metade::desc, xss_metade::desc,
 	  pso::desc, pso::desc_r,
 	  sequential_brute_force_scan::desc, sequential_convex_scan::desc,
 	  mutation::desc, rumoropt::desc,
