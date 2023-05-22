@@ -380,12 +380,14 @@ public:
 			trimmed_hints.push_back(mUpper_Bound.min(mLower_Bound.max(Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size))));//ensure the bounds
 		}
 
-		//b check their fitness in parallel 		
-		std::for_each(std::execution::par_unseq, hint_indexes.begin(), hint_indexes.end(), [this, &trimmed_hints, &hint_fitness, &hint_validity](auto& hint_idx) {
-			hint_validity[hint_idx] = mSetup.objective(mSetup.data, 1, trimmed_hints[hint_idx].data(), hint_fitness[hint_idx].data()) == TRUE;
-		});
-
 		if (initialized_count < mSetup.hint_count) { 
+			//b check their fitness in parallel 		
+			std::for_each(std::execution::par_unseq, hint_indexes.begin(), hint_indexes.end(), [this, &trimmed_hints, &hint_fitness, &hint_validity](auto& hint_idx) {
+				hint_validity[hint_idx] = mSetup.objective(mSetup.data, 1, trimmed_hints[hint_idx].data(), hint_fitness[hint_idx].data()) == TRUE;
+				});
+
+
+
 			//and sort the select up to the initialized_count best of them - if actually needed
 			std::partial_sort(hint_indexes.begin(), hint_indexes.begin() + initialized_count, hint_indexes.end(),
 				[&](const size_t& a, const size_t& b) {
@@ -396,6 +398,9 @@ public:
 							//true/false domination see the sorting in the main cycle
 				});
 		}
+		else 
+			std::fill(hint_validity.begin(), hint_validity.end(), true);	//when generating new, random solutions, we do not care about the validy neither
+		
 		
 
 		//1. create the initial population		
