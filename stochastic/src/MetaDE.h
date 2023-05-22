@@ -434,13 +434,20 @@ public:
 		}
 
 		//compute the fitness in parallel
+		for (size_t i=0; i<mPopulation.size(); i++)
+			Store_Next_Solution(i, mPopulation[i].current);
+		mSetup.objective(mSetup.data, mPopulation.size(), mNext_Solutions.data(), mNext_Fitnesses.data());
+		for (size_t i = 0; i < mPopulation.size(); i++)
+			mPopulation[i].current_fitness = *reinterpret_cast<solver::TFitness*>(&mNext_Fitnesses[i * solver::Maximum_Objectives_Count]);
+
+		/*
 		std::for_each(std::execution::par_unseq, mPopulation.begin() + effectively_initialized_count, mPopulation.end(), [this](auto& candidate_solution) {
 			if (mSetup.objective(mSetup.data, 1, candidate_solution.current.data(), candidate_solution.current_fitness.data()) != TRUE) {
 				for (auto& elem : candidate_solution.current_fitness)
 					elem = std::numeric_limits<double>::quiet_NaN();
 			  }
 			});
-
+		*/
 
 		//d) and shuffle
 		std::shuffle(mPopulation.begin(), mPopulation.end(), mRandom_Generator);
