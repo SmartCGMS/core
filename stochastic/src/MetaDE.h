@@ -360,7 +360,7 @@ public:
 
 		mPopulation.resize(std::max(mSetup.population_size, mPBest_Count));
 		mPopulation_Best.resize(mPopulation.size());
-		const size_t initialized_count = std::min(mPopulation.size() / 2, mSetup.hint_count);
+		const size_t max_initializable_hint_count = std::min(mPopulation.size() / 2, mSetup.hint_count);
 
 		mNext_Solutions.resize(mSetup.problem_size * mSetup.population_size);
 		mNext_Fitnesses.resize(solver::Maximum_Objectives_Count * mSetup.population_size);
@@ -380,7 +380,7 @@ public:
 			trimmed_hints.push_back(mUpper_Bound.min(mLower_Bound.max(Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], setup.problem_size))));//ensure the bounds
 		}
 
-		if (initialized_count < mSetup.hint_count) { 
+		if (max_initializable_hint_count < mSetup.hint_count) {
 			//b check their fitness in parallel 		
 			std::for_each(std::execution::par_unseq, hint_indexes.begin(), hint_indexes.end(), [this, &trimmed_hints, &hint_fitness, &hint_validity](auto& hint_idx) {
 				hint_validity[hint_idx] = mSetup.objective(mSetup.data, 1, trimmed_hints[hint_idx].data(), hint_fitness[hint_idx].data()) == TRUE;
@@ -389,7 +389,7 @@ public:
 
 
 			//and sort the select up to the initialized_count best of them - if actually needed
-			std::partial_sort(hint_indexes.begin(), hint_indexes.begin() + initialized_count, hint_indexes.end(),
+			std::partial_sort(hint_indexes.begin(), hint_indexes.begin() + max_initializable_hint_count, hint_indexes.end(),
 				[&](const size_t& a, const size_t& b) {
 					if (!hint_validity[a]) return false;
 					if (!hint_validity[b]) return true;
@@ -398,8 +398,11 @@ public:
 							//true/false domination see the sorting in the main cycle
 				});
 		}
-		else 
+		else {
+			for (size_t i = 0; i < setup.hint_count; i++)
+				mPopulation[i].current = trimmed_hints[i];
 			std::fill(hint_validity.begin(), hint_validity.end(), true);	//when generating new, random solutions, we do not care about the validy neither
+		}
 		
 		
 
@@ -408,7 +411,7 @@ public:
 				
 		//b) by storing suggested params
 		size_t effectively_initialized_count = 0;
-		for (size_t i = 0; i < initialized_count; i++) {
+		for (size_t i = 0; i < max_initializable_hint_count; i++) {
 			if (hint_validity[hint_indexes[i]]) {
 				effectively_initialized_count++;
 				mPopulation[i].current = trimmed_hints[hint_indexes[i]];
@@ -434,8 +437,11 @@ public:
 		}
 
 		//compute the fitness in parallel
-		for (size_t i=0; i<mPopulation.size(); i++)
-			Store_Next_Solution(i, mPopulation[i].current);
+		for (size_t i = 0; i < mPopulation.size(); i++) {
+			auto dst = Next_Solution(i);
+			auto src = mPopulation[i].current.data();
+			std::copy(src, src + mSetup.problem_size, dst);
+		}
 		mSetup.objective(mSetup.data, mPopulation.size(), mNext_Solutions.data(), mNext_Fitnesses.data());
 		for (size_t i = 0; i < mPopulation.size(); i++)
 			mPopulation[i].current_fitness = *reinterpret_cast<solver::TFitness*>(&mNext_Fitnesses[i * solver::Maximum_Objectives_Count]);

@@ -92,10 +92,11 @@ namespace logger
 }
 
 namespace log_replay {
-	constexpr size_t param_count = 4;
+	constexpr size_t param_count = 5;
 
 	constexpr scgms::NParameter_Type param_type[param_count] = {
 		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptBool
@@ -105,13 +106,15 @@ namespace log_replay {
 		dsLog_Input_File_Or_Dir,
 		dsEmit_Shutdown_Msg,
 		dsInterpret_Filename_As_Segment_Id,
-		dsEmit_All_Events_Before_Shutdown,
+		dsReset_Segment_Id,
+		dsEmit_All_Events_Before_Shutdown,		
 	};
 
 	const wchar_t* config_param_name[param_count] = {
 		rsLog_Output_File,
 		rsEmit_Shutdown_Msg,
 		rsInterpret_Filename_As_Segment_Id,
+		rsReset_Segment_Id,
 		rsEmit_All_Events_Before_Shutdown
 	};
 

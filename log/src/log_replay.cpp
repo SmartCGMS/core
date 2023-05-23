@@ -186,7 +186,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			const uint64_t original_segment_id = read_segment_id(line_counter);
 
 			if ((original_segment_id != scgms::Invalid_Segment_Id) && (original_segment_id != scgms::All_Segments_Id)) {
-				if (mReset_Segment_Ids) {
+				if (mReset_Segment_Id) {
 					if (segment_id_map.find(original_segment_id) == segment_id_map.end()) {
 						segment_id_reset_counter++;
 						segment_id_map[original_segment_id] = segment_id_reset_counter;
@@ -421,6 +421,7 @@ HRESULT IfaceCalling CLog_Replay_Filter::Do_Configure(scgms::SFilter_Configurati
 	mEmit_Shutdown = configuration.Read_Bool(rsEmit_Shutdown_Msg, mEmit_Shutdown);
 	mEmit_All_Events_Before_Shutdown = configuration.Read_Bool(rsEmit_All_Events_Before_Shutdown, mEmit_All_Events_Before_Shutdown);
 	mInterpret_Filename_As_Segment_Id = configuration.Read_Bool(rsInterpret_Filename_As_Segment_Id, mInterpret_Filename_As_Segment_Id);
+	mReset_Segment_Id = configuration.Read_Bool(rsReset_Segment_Id, mReset_Segment_Id);
 	mLog_Filename_Or_Dirpath = configuration.Read_File_Path(rsLog_Output_File);
 
 	std::vector<CLog_Replay_Filter::TLog_Segment_id> logs_to_replay = Enumerate_Log_Segments();

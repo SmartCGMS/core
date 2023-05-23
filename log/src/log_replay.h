@@ -72,7 +72,7 @@ protected:
 	};
 	std::vector<TLog_Segment_id> Enumerate_Log_Segments();
 protected:
-	bool mReset_Segment_Ids = false;
+	bool mReset_Segment_Id = false;
 	bool mEmit_Shutdown = false;
 	bool mEmit_All_Events_Before_Shutdown = false;
 	double mLast_Event_Time = std::numeric_limits<double>::quiet_NaN();

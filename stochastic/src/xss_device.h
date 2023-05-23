@@ -20,6 +20,15 @@
 	#include <Windows.h>
 #endif
 
+#if defined(__x86_64__) && !defined(_DEBUG)
+	#include <immintrin.h>
+#else
+	int _rdrand64_step(unsigned __int64* random_val) {
+		return 0;
+	}
+#endif
+
+
 #undef min
 #undef max
 
@@ -48,7 +57,7 @@ protected:
 	}
 
 	uint64_t rand_index() {
-		uint64_t result;
+		uint64_t result;		
 		_rdrand64_step(&result);
 		return result % mState.size();
 	}
