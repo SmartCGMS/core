@@ -20,7 +20,7 @@
 	#include <Windows.h>
 #endif
 
-#if defined(__x86_64__) && !defined(_DEBUG)
+#if (defined(__x86_64__) || defined(_M_X64)) && !defined(_DEBUG)
 	#include <immintrin.h>
 #else
 	int _rdrand64_step(unsigned __int64* random_val) {
