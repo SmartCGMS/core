@@ -38,6 +38,8 @@
 
 #include "basal_2_bolus.h"
 
+#include "..\..\..\..\common\utils\string_utils.h"
+
 CBasal_2_Bolus::CBasal_2_Bolus(scgms::IFilter *output) : scgms::CBase_Filter(output) {
 }
 
@@ -48,10 +50,19 @@ CBasal_2_Bolus::~CBasal_2_Bolus() {
 bool CBasal_2_Bolus::Schedule_Delivery(const double current_device_time, const double target_rate, const uint64_t segment_id) {
 	bool result = false;
 
-	if (target_rate > 0.0) {
+	const auto fpc = std::fpclassify(target_rate);
+	if ((fpc != FP_ZERO) && (fpc != FP_NORMAL))
+		return false;
+	
+	const double effective_target_rate = fpc == FP_NORMAL ? target_rate : 0.0;	//also flushing denormals to zero
+
+	if (effective_target_rate < 0.0)
+		return false;
+	
+	if (effective_target_rate > 0.0) {
 		const double old_delivery_per_period = mInsulin_To_Deliver_Per_Period;
 
-		mInsulin_To_Deliver_Per_Period = target_rate * mParameters.period / scgms::One_Hour;
+		mInsulin_To_Deliver_Per_Period = effective_target_rate * mParameters.period / scgms::One_Hour;
 		mEffective_Period = mParameters.period;
 
 		const double ratio = mParameters.minimum_amount / mInsulin_To_Deliver_Per_Period;
@@ -88,7 +99,7 @@ bool CBasal_2_Bolus::Schedule_Delivery(const double current_device_time, const d
 	else {
 		//let's stop the insulin deliveries
 		mValid_Settings = false;
-		result = target_rate == 0.0;	//let's report negative rates as errors
+		result = effective_target_rate == 0.0;	//let's report negative rates as errors
 	}
 
 
@@ -120,8 +131,13 @@ HRESULT CBasal_2_Bolus::Do_Execute(scgms::UDevice_Event event) {
 	
 
 	if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate) {
-		if (!Schedule_Delivery(current_device_time, event.level(), event.segment_id()))
+		if (!Schedule_Delivery(current_device_time, event.level(), event.segment_id())) {
+			std::wstring msg = L"Cannot compute boluses from requested rate ";
+			msg += dbl_2_wstr(event.level());
+			Emit_Info(scgms::NDevice_Event_Code::Error, msg, event.segment_id());
+
 			return E_INVALIDARG;
+		}
 
 		//we are set, hence we change the signal to the delivered insulin basal rate
 		event.signal_id() = scgms::signal_Delivered_Insulin_Basal_Rate;

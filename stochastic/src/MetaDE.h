@@ -401,7 +401,7 @@ public:
 		else {
 			for (size_t i = 0; i < setup.hint_count; i++)
 				mPopulation[i].current = trimmed_hints[i];
-			std::fill(hint_validity.begin(), hint_validity.end(), true);	//when generating new, random solutions, we do not care about the validy neither
+			std::fill(hint_validity.begin(), hint_validity.end(), true);	//when generating new, random solutions, we do not care about the validity either
 		}
 		
 		
