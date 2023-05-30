@@ -187,7 +187,7 @@ void CFile_Reader::Run_Reader() {
 
 				bool errorRes = false;
 
-				//first, set up the end time and levels for various temporal activites
+				//first, set up the end time and levels for various temporal activities
 				current_values.enumerate([=, &errorRes, &nextPhysicalActivityEnd, &nextTempBasalEnd, &lastBasalRateSetting, &nextSleepEnd](const GUID& signal_id, const CMeasured_Values_At_Single_Time::TValue& val) {
 					const double* current_level = std::get_if<double>(&val);
 
@@ -198,7 +198,7 @@ void CFile_Reader::Run_Reader() {
 						//note that we do not set the activity itself here, because it will be done in the generic part of the code
 					}
 					else if (signal_id == signal_Insulin_Temp_Rate_Endtime) {
-						//note that we drive the temp by the end-time, becuase the temp basal must have the temp time - otherwise, it won't be a temporarily change
+						//note that we drive the temp by the end-time, because the temp basal must have the temp time - otherwise, it won't be a temporarily change
 						if (current_level != nullptr) {
 							//check the temp basal  rate
 							const auto new_temp_basal = current_values.get<double>(signal_Insulin_Temp_Rate);
@@ -221,11 +221,18 @@ void CFile_Reader::Run_Reader() {
 
 					else if (signal_id == scgms::signal_Requested_Insulin_Basal_Rate) {
 						if (current_level != nullptr) {
-							lastBasalRateSetting = *current_level;
-							// cancel all temp basal settings - a new basal rate settings immediatelly overrides all temp basal rates
-							nextTempBasalEnd = std::numeric_limits<double>::quiet_NaN();
-
-							//note that the new basal rate will be sent in the generic part of the code
+							lastBasalRateSetting = *current_level;	//update recent desired basal rate
+						
+							const bool has_temp_basal_start = current_values.has_value(signal_Insulin_Temp_Rate) && current_values.has_value(signal_Insulin_Temp_Rate_Endtime);
+							if (!has_temp_basal_start) {//emit only if another temp does not start immediately								
+								nextTempBasalEnd = std::numeric_limits<double>::quiet_NaN();	//no temp starts => new basal rate settings cancels current temp basal, if any active
+								errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, current_measured_time, currentSegmentId, scgms::signal_Requested_Insulin_Basal_Rate, *current_level);
+							} else {
+								std::wstring msg = L"Updated insulin basal rate to ";
+								msg += dbl_2_wstr(lastBasalRateSetting);
+								msg += L", but new temp basal came at effect.";
+								Send_Event(scgms::NDevice_Event_Code::Information, current_measured_time, currentSegmentId, Invalid_GUID, std::numeric_limits<double>::quiet_NaN(), msg);
+							}
 						}
 					}
 
@@ -245,7 +252,7 @@ void CFile_Reader::Run_Reader() {
 				//second, send the signals 
 				current_values.enumerate([=, &errorRes](const GUID& signal_id, const CMeasured_Values_At_Single_Time::TValue& val) {
 						const std::set<GUID> silenced_signals = { signal_Physical_Activity_Duration, signal_Insulin_Temp_Rate, signal_Insulin_Temp_Rate_Endtime, signal_Sleep_Endtime, signal_Comment,
-																	signal_Date_Only, signal_Time_Only, signal_Date_Time, scgms::signal_Sleep_Quality };
+																	signal_Date_Only, signal_Time_Only, signal_Date_Time, scgms::signal_Sleep_Quality, scgms::signal_Requested_Insulin_Basal_Rate };
 
 					//as regards scgms::signal_Sleep_Quality, see the signal_id == signal_Sleep_Endtime comments/reasoning
 					const double* current_level = std::get_if<double>(&val);
@@ -266,7 +273,7 @@ void CFile_Reader::Run_Reader() {
 
 				});
 
-				//third, switch off the temporal activites, which have ended
+				//third, switch off the temporal activities, which have ended
 				{
 					//switch off the physical activity, once ended
 					if (!std::isnan(nextPhysicalActivityEnd) && (nextPhysicalActivityEnd <= current_measured_time)) {
@@ -278,10 +285,16 @@ void CFile_Reader::Run_Reader() {
 					if (!std::isnan(nextTempBasalEnd) && (nextTempBasalEnd <= current_measured_time)) {
 						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextTempBasalEnd, currentSegmentId, scgms::signal_Requested_Insulin_Basal_Rate, lastBasalRateSetting);
 						nextTempBasalEnd = std::numeric_limits<double>::quiet_NaN();
+
+						{
+							std::wstring msg = L"Basal insulin rate restored to ";
+							msg += dbl_2_wstr(lastBasalRateSetting);
+							Send_Event(scgms::NDevice_Event_Code::Information, current_measured_time, currentSegmentId, Invalid_GUID, std::numeric_limits<double>::quiet_NaN(), msg);
+						}
 					}
 
 					//wake up the patient
-					if (!std::isnan(nextSleepEnd) && (nextSleepEnd < current_measured_time))
+					if (!std::isnan(nextSleepEnd) && (nextSleepEnd <= current_measured_time))
 					{
 						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextSleepEnd, currentSegmentId, scgms::signal_Sleep_Quality, 0.0);
 						nextSleepEnd = std::numeric_limits<double>::quiet_NaN();;
