@@ -133,6 +133,7 @@ public:
 	TSet::iterator begin();
 	TSet::iterator end();
 	bool empty() const;
+	size_t size() const;
 };
 
 /*

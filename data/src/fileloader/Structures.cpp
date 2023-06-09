@@ -74,3 +74,7 @@ CMeasured_Levels::TSet::iterator CMeasured_Levels::end() {
 bool CMeasured_Levels::empty() const {
 	return mLevels.empty();
 }
+
+size_t CMeasured_Levels::size() const {
+	return mLevels.size();
+}
