@@ -224,7 +224,7 @@ HRESULT CSignal_Generator::Do_Execute(scgms::UDevice_Event event) {
 			//an event for all segments
 			if (mLast_Sync_Generator)
 				rc = mLast_Sync_Generator->Execute_Sync(event);
-					//the sync'ed generators will subsequenly forward this event among them
+					//the sync'ed generators will subsequently forward this event among them
 			else
 				rc = mOutput.Send(event);
 		} else if (event.segment_id() != scgms::Invalid_Segment_Id) {
