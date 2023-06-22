@@ -72,6 +72,8 @@ TCursors<TSheet_Position> Break_Sheet_Layout_To_Cursors(CFormat_Layout& layout) 
 	return TCursors<TSheet_Position>{cursor};
 }
 
+#include "../../../../common/utils/DebugHelper.h"
+
 
 //xml/hierarchical format is more tricky as each element can has its own datetime
 //we need to sort them by path
@@ -80,10 +82,15 @@ TCursors<TXML_Position> Break_XML_Layout_To_Cursors(CFormat_Layout& layout) {
 
 	std::map<std::string, std::vector<TCell_Descriptor>> cells;
 	for (auto elem : layout) {
-		auto key = elem.cursor_position;	//remove everything after the last dot as dot delimits the parameter
-		auto offset = key.find_last_of('.');
-		if (offset != key.npos)
-			key.resize(offset);
+		auto key = elem.cursor_position;	//remove everything after the first dot as dot delimits the parameter - but include the conditional to distinguish multiple parallel series
+		auto paramoffset = key.find_first_of('.');
+		auto condoffset = key.find_first_of('&');
+		if (paramoffset != key.npos) {
+			if (condoffset == key.npos)
+				key.resize(paramoffset);
+			else
+				key.erase(key.begin() + paramoffset, key.begin() + condoffset);
+		}
 		cells[key].push_back(elem);
 	}
 
@@ -122,6 +129,14 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 			std::string comments;	//comments aggregation
 
 			for (auto& elem : cursor) {	//this has to be non-const reference, otherwise we will be creating the expression convertor on and on as there's lazy init
+
+				while (source.Position_Valid<TPosition>(elem.position) && !source.Condition_Match<TPosition>(elem.position)) {
+					elem.position.Forward();
+				}
+
+				if (!source.Position_Valid<TPosition>(elem.position))
+					continue;
+
 				const GUID& sig = elem.cell.series.target_signal;
 
 				const auto str_val_opt = source.Read<TPosition>(elem.position);

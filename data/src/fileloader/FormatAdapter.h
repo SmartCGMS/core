@@ -90,6 +90,16 @@ public:
 		return mStorage->Read(position);
 	}
 
+	template <typename R, typename P>
+	bool Condition_Match(P& position) const {
+		return mStorage->Condition_Match(position);
+	}
+
+	template <typename R, typename P>
+	bool Position_Valid(P& position) const {
+		return mStorage->Position_Valid(position);
+	}
+
 	NFile_Organization_Structure Get_File_Organization() const;
 	bool Is_EOF() const;
 	// resets EOF flag

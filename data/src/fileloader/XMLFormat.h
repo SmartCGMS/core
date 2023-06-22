@@ -66,10 +66,24 @@ struct TreeLevelSpec
  */
 struct TXML_Position
 {
+	struct TParam_Cond {
+		std::vector<TreeLevelSpec> subtreeSpec;
+		std::string parameterName;
+		std::string conditionalValue;
+
+		void Reset() {
+			subtreeSpec.clear();
+			parameterName = "";
+			conditionalValue = "";
+		}
+	};
+
 	// wrapper elements sequence
 	std::vector<TreeLevelSpec> hierarchy;
 	// selected parameter; empty if none
 	std::string parameter;
+	// conditional parameters; empty if none
+	std::vector<TParam_Cond> conditions{};
 
 	// is tree position valid?
 	bool Valid() const

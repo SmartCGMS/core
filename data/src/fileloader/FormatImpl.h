@@ -155,6 +155,14 @@ class IStorage_File
 		virtual std::optional<std::string> Read(const std::string& position) = 0;
 		virtual std::optional<std::string> Read(const TSheet_Position& position) { return std::nullopt; }
 		virtual std::optional<std::string> Read(const TXML_Position& position) { return std::nullopt; }			//read may modify position to allow sanitization
+
+		virtual bool Condition_Match(const std::string& position) = 0;
+		virtual bool Condition_Match(const TSheet_Position& position) { return true; }
+		virtual bool Condition_Match(const TXML_Position& position) { return true; }
+
+		virtual bool Position_Valid(const std::string& position) = 0;
+		virtual bool Position_Valid(const TSheet_Position& position) { return true; }
+		virtual bool Position_Valid(const TXML_Position& position) { return true; }
 };
 
 /*
@@ -179,12 +187,23 @@ class ISpreadsheet_File : public virtual IStorage_File
 		virtual NFile_Organization_Structure Get_File_Organization() const override;
 
 		using IStorage_File::Read;
+		using IStorage_File::Condition_Match;
+		using IStorage_File::Position_Valid;
 
 		virtual std::optional<std::string> Read(const std::string& position) override final {
 			const TSheet_Position pos = CellSpec_To_RowCol(position);
 			return Read(pos);
 		}
 
+		virtual bool Condition_Match(const std::string& position) override final {
+			const TSheet_Position pos = CellSpec_To_RowCol(position);
+			return Condition_Match(pos);
+		}
+
+		virtual bool Position_Valid(const std::string& position) override final {
+			const TSheet_Position pos = CellSpec_To_RowCol(position);
+			return Position_Valid(pos);
+		}
 };
 
 /*
@@ -208,6 +227,18 @@ class IHierarchy_File : public virtual IStorage_File
 
 		// retrieves file data organization structure
 		NFile_Organization_Structure Get_File_Organization() const override;
+
+		using IStorage_File::Condition_Match;
+		virtual bool Condition_Match(const std::string& position) override final {
+			const TXML_Position pos = CellSpec_To_TreePosition(position);
+			return Condition_Match(pos);
+		}
+
+		using IStorage_File::Position_Valid;
+		virtual bool Position_Valid(const std::string& position) override final {
+			const TXML_Position pos = CellSpec_To_TreePosition(position);
+			return Position_Valid(pos);
+		}
 };
 
 /*
@@ -232,8 +263,10 @@ class CCsv_File : public virtual ISpreadsheet_File
 
 		// indicate the intent to override Read from IStorage_File (grandparent) and not "hide" the one in ISpreadsheet_File (parent)
 		using IStorage_File::Read;
-
 		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;
+
+		using IStorage_File::Condition_Match;
+		virtual bool Condition_Match(const TSheet_Position& position) override final { return true; } // TODO
 };
 
 #ifndef NO_BUILD_EXCELSUPPORT
@@ -254,6 +287,9 @@ class CXls_File : public virtual ISpreadsheet_File
 
 		using IStorage_File::Read;
 		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;
+
+		using IStorage_File::Condition_Match;
+		virtual bool Condition_Match(const TSheet_Position& position) override final { return true; } // TODO
 };
 
 /*
@@ -273,6 +309,9 @@ class CXlsx_File : public virtual ISpreadsheet_File
 
 		using IStorage_File::Read;
 		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;
+
+		using IStorage_File::Condition_Match;
+		virtual bool Condition_Match(const TSheet_Position& position) override final { return true; } // TODO
 };
 
 #endif
@@ -295,4 +334,7 @@ class CXml_File : public virtual IHierarchy_File
 
 		virtual std::optional<std::string> Read(const std::string& position) override final;
 		virtual std::optional<std::string> Read(const TXML_Position& position) override final;	//read may modify position
+
+		virtual bool Condition_Match(const TXML_Position& position) override final;
+		virtual bool Position_Valid(const TXML_Position& position) override final;
 };
