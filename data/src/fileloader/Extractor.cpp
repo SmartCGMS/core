@@ -72,8 +72,6 @@ TCursors<TSheet_Position> Break_Sheet_Layout_To_Cursors(CFormat_Layout& layout) 
 	return TCursors<TSheet_Position>{cursor};
 }
 
-#include "../../../../common/utils/DebugHelper.h"
-
 
 //xml/hierarchical format is more tricky as each element can has its own datetime
 //we need to sort them by path
