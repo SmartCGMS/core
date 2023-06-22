@@ -50,12 +50,19 @@ ENDIF()
 
 CONFIGURE_COMMON(${PROJ})
 
+FILE(GLOB SRC_FILES_TOP "src/*.cpp" "src/*.c" "src/*.h")
+FILE(GLOB SRC_FILES_THIRDPARTY "src/third party/*.h" "src/third party/*.cpp" "src/third party/*.c")
+FILE(GLOB SRC_FILES_FILELOADER "src/fileloader/*.cpp" "src/fileloader/*.h" "src/fileloader/*.c" "misc/formats/*.c")
+SET(SRC_FILES ${SRC_FILES_TOP} ${SRC_FILES_THIRDPARTY} ${SRC_FILES_FILELOADER})
 
-FILE(GLOB SRC_FILES "src/*.cpp" "src/*.c" "src/*.h" "src/third party/*.h" "src/third party/*.cpp" "src/third party/*.c" "src/fileloader/*.cpp" "src/fileloader/*.h" "src/fileloader/*.c" "misc/formats/*.c")
 IF(WIN32)
 	FILE(GLOB SRC_WIN_FILES "src/win/*.cpp" "src/win/*.h" "src/win/*.def")
 	SET(SRC_FILES "${SRC_FILES};${SRC_WIN_FILES}")
 ENDIF()
+
+SOURCE_GROUP(src FILES ${SRC_FILES_TOP})
+SOURCE_GROUP(thirdparty FILES ${SRC_FILES_THIRDPARTY})
+SOURCE_GROUP(fileloader FILES ${SRC_FILES_FILELOADER})
 
 SCGMS_ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES};${COMMON_FILES})
 CONFIGURE_FILTER_OUTPUT(${PROJ})

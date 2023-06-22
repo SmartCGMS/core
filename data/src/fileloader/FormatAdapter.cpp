@@ -79,7 +79,7 @@ bool CFormat_Adapter::Detect_Format_Layout(const TFormat_Signature_Rules& layout
 		{
 			const auto rVal = Read<std::string>(rulePair.first);
 			if (!rVal.has_value())
-				return false;			 
+				return false;
 
 			if (!rulePair.second.empty()) {
 				//check the containment only if it is defined

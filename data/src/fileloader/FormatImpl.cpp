@@ -120,7 +120,8 @@ void RowCol_To_CellSpec(int row, int col, std::string& cellSpec)
 }
 
 TXML_Position CellSpec_To_TreePosition(const std::string &cellSpec) {
-	// Example structure: /rootelement/childelement:0/valueelement:5.Value
+	// Example of conditional structure: /rootelement/childelement.Value&Type:SomeValue
+	// Example of conditional structure: /rootelement/childelement.Value&>ChildElementTag.Type:SomeValue
 	TXML_Position pos;
 	pos.Reset();
 
@@ -128,67 +129,102 @@ TXML_Position CellSpec_To_TreePosition(const std::string &cellSpec) {
 	if (cellSpec.size() <= 1 || cellSpec[0] != '/')
 		return pos;
 
-	size_t i = 1, lastbl = 0, lastcolon = 0;
-	size_t len = cellSpec.size();
-	size_t levelOrdinal = 0;
+	enum class _NState {
+		Spec_Parent_Tree,
+		Spec_Parameter,
+		Condition,
+		Cond_Parent_Tree,
+		Cond_Parameter,
+		Cond_Value,
+	};
+	_NState curState = _NState::Spec_Parent_Tree;
+	TXML_Position::TParam_Cond tmpCond;
 
-	for (; i <= len; i++)
-	{
-		if (i == len || cellSpec[i] == '/' || cellSpec[i] == '.')
+	std::ostringstream buffer;
+	auto flushBuffer = [&buffer]() -> std::string {
+		std::string ret = buffer.str();
+
+		buffer.str(std::string());
+		buffer.clear();
+
+		return ret;
+	};
+
+	for (size_t i = 1; i <= cellSpec.size(); i++) { // we start from 1, as we already know that the 0th position is '/' and made the "transition" to the correct state (code simplification)
+		// virtually add 0-terminator to indicate end of sequence and avoid code duplication
+		char c = (i < cellSpec.size()) ? cellSpec[i] : '\0';
+
+		switch (curState)
 		{
-			if (lastcolon)
+			case _NState::Spec_Parent_Tree:
 			{
-				// invalid - nothing between current character and colon
-				if (i - lastcolon <= 1)
-				{
-					pos.Reset();
-					return pos;
-				}
+				if (c == '/' || c == '.') {
+					pos.hierarchy.push_back(TreeLevelSpec{ flushBuffer() });
 
-				try
-				{
-					levelOrdinal = std::stoul(std::string(cellSpec).substr(lastcolon + 1, i - lastcolon - 1));
+					if (c == '.')
+						curState = _NState::Spec_Parameter;
 				}
-				catch (...) // invalid - non-numeric ordinal specifier
-				{
-					pos.Reset();
-					return pos;
-				}
+				else if (c != '\0')
+					buffer << c;
+
+				break;
 			}
-
-			// invalid - two hierarchy splitters without level spec
-			if (i - lastbl <= 1)
+			case _NState::Spec_Parameter:
 			{
-				pos.Reset();
-				return pos;
-			}
-
-			std::string tagName = std::string(cellSpec).substr(lastbl + 1, (lastcolon ? lastcolon : i) - lastbl - 1);
-
-			pos.hierarchy.push_back(TreeLevelSpec(tagName, levelOrdinal));
-
-			lastcolon = 0;
-			levelOrdinal = 0;
-
-			if (i != len && cellSpec[i] == '/')
-				lastbl = i;
-		}
-
-		if (i != len)
-		{
-			if (cellSpec[i] == ':')
-			{
-				lastcolon = i;
-			}
-			else if (cellSpec[i] == '.')
-			{
-				if (i == len - 1)
-				{
-					pos.Reset();
-					return pos;
+				if (c == '&' || c == '\0') {
+					pos.parameter = flushBuffer();
+					curState = _NState::Condition;
 				}
+				else if (c != '\0')
+					buffer << c;
+				break;
+			}
+			case _NState::Condition:
+			{
+				if (c == '>') {
+					curState = _NState::Cond_Parent_Tree;
+				}
+				else  if (c != '\0') {
+					buffer << c;
+					curState = _NState::Cond_Parameter;
+				}
+				break;
+			}
+			case _NState::Cond_Parent_Tree:
+			{
+				if (c == '/' || c == '.') {
+					tmpCond.subtreeSpec.push_back(TreeLevelSpec{ flushBuffer() });
 
-				pos.parameter = std::string(cellSpec).substr(i + 1);
+					if (c == '.') {
+						curState = _NState::Cond_Parameter;
+					}
+				}
+				else if (c != '\0')
+					buffer << c;
+				break;
+			}
+			case _NState::Cond_Parameter:
+			{
+				if (c == ':') {
+					tmpCond.parameterName = flushBuffer();
+					curState = _NState::Cond_Value;
+				}
+				else if (c != '\0')
+					buffer << c;
+				break;
+			}
+			case _NState::Cond_Value:
+			{
+				if (c == '&' || c == '\0') {
+					tmpCond.conditionalValue = flushBuffer();
+
+					pos.conditions.push_back(tmpCond);
+					tmpCond.Reset();
+
+					curState = _NState::Condition;
+				}
+				else if (c != '\0')
+					buffer << c;
 				break;
 			}
 		}
@@ -535,6 +571,31 @@ std::optional<std::string> CXml_File::Read(const TXML_Position& position)
 	return mFile->Read(position);
 }
 
+bool CXml_File::Condition_Match(const TXML_Position& position) {
+
+	for (auto& cond : position.conditions) {
+
+		TXML_Position cpy = position;
+		cpy.parameter = cond.parameterName;
+
+		if (!cond.subtreeSpec.empty()) {
+			std::copy(cond.subtreeSpec.begin(), cond.subtreeSpec.end(), std::back_inserter(cpy.hierarchy));
+		}
+
+		auto condVal = mFile->Read(cpy);
+		if (!condVal.has_value() || condVal.value() != cond.conditionalValue) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool CXml_File::Position_Valid(const TXML_Position& position) {
+	// TODO: more structured approach
+	auto val = mFile->Read(position);
+	return val.has_value();
+}
 
 void CXml_File::Write(TXML_Position& position, const std::string &value)
 {
