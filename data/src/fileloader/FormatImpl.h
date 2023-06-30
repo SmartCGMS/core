@@ -335,6 +335,9 @@ class CXml_File : public virtual IHierarchy_File
 		virtual std::optional<std::string> Read(const std::string& position) override final;
 		virtual std::optional<std::string> Read(const TXML_Position& position) override final;	//read may modify position
 
+		using IStorage_File::Condition_Match;
 		virtual bool Condition_Match(const TXML_Position& position) override final;
+		
+		using IStorage_File::Position_Valid;
 		virtual bool Position_Valid(const TXML_Position& position) override final;
 };
