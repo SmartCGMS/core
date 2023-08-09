@@ -43,6 +43,7 @@
 #undef min
 
 #include <iostream>
+#include <limits>
 
 void Uptake_Accumulator::Add_Uptake(double t, double t_delta_end, double amount)
 {

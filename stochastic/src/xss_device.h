@@ -42,6 +42,12 @@
 	}
 #endif
 
+namespace {
+	int rdrand64_step(uint64_t* random_val) {
+		return _rdrand64_step(reinterpret_cast<unsigned long long*>(random_val));
+	}
+}
+
 #undef min
 #undef max
 
@@ -70,7 +76,7 @@ protected:
 
 	uint64_t rand_index() {
 		uint64_t result;
-		_rdrand64_step(&result);
+		rdrand64_step(&result);
 		return result % mState.size();
 	}
 
@@ -124,7 +130,7 @@ public:
 		uint64_t local_entropy = 0;
 		mHas_CPU_Entropy = true;
 		for (size_t i = 0; i < std::max(static_cast<size_t>(10), mState.size()); i++) {	//see 5.2.1 Retry Recommendations in the Intel® Digital Random Number Generator (DRNG) Software Implementation Guide 
-			const bool local_success = _rdrand64_step(&local_entropy) != 0;
+			const bool local_success = rdrand64_step(&local_entropy) != 0;
 			mHas_CPU_Entropy &= local_success;
 
 			if (i < mState.size()) {
