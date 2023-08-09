@@ -48,7 +48,7 @@
 #include <fstream>
 #include <numeric>
 #include <type_traits>
-
+#include <set>
 
 
 CTwo_Signals::CTwo_Signals(scgms::IFilter *output) : CBase_Filter(output) {
@@ -173,7 +173,6 @@ HRESULT CTwo_Signals::Do_Configure(scgms::SFilter_Configuration configuration, r
 	return S_OK;
 }
 
-	
 bool CTwo_Signals::Prepare_Levels(const uint64_t segment_id, std::vector<double> &times, std::vector<double> &reference, std::vector<double> &error) {
 
 	auto prepare_levels_per_single_segment = [](TSegment_Signals &signals, std::vector<double>& times, std::vector<double>& reference, std::vector<double>& error)->bool {
@@ -222,6 +221,148 @@ bool CTwo_Signals::Prepare_Levels(const uint64_t segment_id, std::vector<double>
 	}
 
 	return result;
+}
+
+bool CTwo_Signals::Prepare_Unaligned_Discrete_Levels(const uint64_t segment_id, std::vector<double>& times, std::vector<double>& reference, std::vector<double>& error_times, std::vector<double>& error, bool allow_multipoint_affinity) {
+
+	auto prepare_levels_per_single_segment = [allow_multipoint_affinity](TSegment_Signals &signals, std::vector<double>& times, std::vector<double>& reference, std::vector<double>& error_times, std::vector<double>& error)->bool {
+		size_t reference_count = 0;
+
+		if (Succeeded(signals.reference_signal->Get_Discrete_Bounds(nullptr, nullptr, &reference_count))) {
+
+			auto distanceHeuristic = [](const double refTime, const double refValue, const double errTime, const double errValue) -> double {
+				// Manhattan metric for faster computation - we are interested in heuristic-based ordering, rather than an exact distance
+				return std::fabs(refTime - errTime) + std::fabs(refValue - errValue);
+			};
+
+			if (reference_count > 0) {
+
+				const size_t offset = times.size();
+
+				times.resize(offset+reference_count);
+				reference.resize(offset+reference_count);
+
+				const double refAvg = std::accumulate(reference.begin() + offset, reference.end(), 0.0) / static_cast<double>(reference_count);
+
+				size_t filled;
+				if (signals.reference_signal->Get_Discrete_Levels(times.data()+ offset, reference.data()+offset, reference_count, &filled) == S_OK) {
+					error.resize(offset+reference_count);
+					error_times.resize(offset+reference_count);
+					// assume at first, that at the time the reference level was recorded, there was a void event at that time, until we match a recorded one in error levels
+					std::fill(error.begin() + offset, error.begin() + offset + reference_count, 0);
+					std::copy(times.begin() + offset, times.begin() + offset + reference_count, error_times.begin() + offset);
+
+					size_t error_count = 0;
+					if (!Succeeded(signals.error_signal->Get_Discrete_Bounds(nullptr, nullptr, &error_count)) || error_count == 0)
+						return true;
+
+					std::vector<double> staged_error_times, staged_error_values;
+
+					staged_error_times.resize(error_count);
+					staged_error_values.resize(error_count);
+
+					if (signals.error_signal->Get_Discrete_Levels(staged_error_times.data(), staged_error_values.data(), error_count, &filled) != S_OK)
+						return false;
+
+					struct TDistance_Rec {
+						size_t measured_idx = std::numeric_limits<size_t>::max();
+						size_t closest_idx = std::numeric_limits<size_t>::max();
+						double distance = std::numeric_limits<double>::max();
+					};
+
+					// 1) for every measured value, find closest (according to heuristic) error value
+					std::set<size_t> used_err_idx, used_meas_idx;
+
+					while (used_err_idx.size() < error_count && used_meas_idx.size() < reference_count) {
+						std::vector<TDistance_Rec> distances;
+						for (size_t i = offset; i < offset + reference_count; i++) {
+
+							if (!allow_multipoint_affinity && used_meas_idx.find(i) != used_meas_idx.end())
+								continue;
+
+							const double refTime = times[i];
+							const double refValue = reference[i];
+
+							TDistance_Rec drec;
+							drec.measured_idx = i;
+
+							// for all recorded error levels
+							for (size_t j = 0; j < error_count; j++) {
+
+								if (used_err_idx.find(j) != used_err_idx.end())
+									continue;
+
+								const auto calcDistance = distanceHeuristic(refTime, refValue, staged_error_times[j], staged_error_values[j]);
+
+								if (drec.distance > calcDistance) {
+									drec.closest_idx = j;
+									drec.distance = calcDistance;
+								}
+							}
+
+							distances.push_back(drec);
+						}
+
+						std::sort(distances.begin(), distances.end(), [](auto& a, auto& b) { return a.distance < b.distance; });
+
+						// 2) push a maximum of [error value count] errors to error vector, starting from the closest ones
+						for (auto& drec : distances) {
+
+							const size_t candidate_idx = drec.closest_idx;
+
+							if (allow_multipoint_affinity || used_err_idx.find(candidate_idx) == used_err_idx.end()) {
+								used_err_idx.insert(candidate_idx);
+								used_meas_idx.insert(drec.measured_idx);
+
+								error[drec.measured_idx] = staged_error_values[candidate_idx];
+								error_times[drec.measured_idx] = staged_error_times[candidate_idx];
+							}
+						}
+					}
+
+					// 3) if the error value count > measured value count, put a void event of 0 level to the error vector for every unpaired error level
+					if (used_err_idx.size() < error_count) {
+						for (size_t i = 0; i < error_count; i++) {
+							if (used_err_idx.find(i) == used_err_idx.end()) {
+								times.push_back(staged_error_times[i]);
+								error_times.push_back(staged_error_times[i]);
+								reference.push_back(std::abs(staged_error_values[i] - refAvg)); // penalize unmatching guesses; TODO: elaborate on it more
+								error.push_back(staged_error_values[i]);
+							}
+						}
+					}
+
+					return true;
+				}
+
+			}
+			else
+				return true;	//no error, but simply no data yet
+		}
+		return false;
+	};
+
+	
+	bool result = false;	//assume failure
+	switch (segment_id) {
+		case scgms::Invalid_Segment_Id:  break;	//result is already false
+		case scgms::All_Segments_Id: {
+
+			for (auto &signals : mSignal_Series)
+				result |= prepare_levels_per_single_segment(signals.second, times, reference, error_times, error);	//we want at least one OK segment
+
+			break;
+		}
+
+		default: {
+			auto signals = mSignal_Series.find(segment_id);
+			if (signals != mSignal_Series.end())
+				result = prepare_levels_per_single_segment(signals->second, times, reference, error_times, error);
+		}
+	}
+
+	return result;
+
 }
 
 HRESULT IfaceCalling CTwo_Signals::Logical_Clock(ULONG *clock) {

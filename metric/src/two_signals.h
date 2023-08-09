@@ -76,7 +76,8 @@ protected:
 	bool mShutdown_Received = false;
 
 
-	bool Prepare_Levels(const uint64_t segment_id, std::vector<double> &times, std::vector<double> &reference, std::vector<double> &error);
+	bool Prepare_Levels(const uint64_t segment_id, std::vector<double>& times, std::vector<double>& reference, std::vector<double>& error);
+	bool Prepare_Unaligned_Discrete_Levels(const uint64_t segment_id, std::vector<double>& times, std::vector<double>& reference, std::vector<double>& error_times, std::vector<double>& error, bool allow_multipoint_affinity = false);
 	virtual HRESULT On_Level_Added(const uint64_t segment_id, const double device_time) { return S_OK; };
 	void Flush_Stats();
 protected:
