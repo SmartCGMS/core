@@ -164,7 +164,7 @@ public:
 
 #pragma warning( pop )
 
-scgms_execution_t SimpleCalling Execute_SCGMS_Configuration(const char *config, TSCGMS_Execution_Callback callback, scgms::TOn_Filter_Created filterCreatedCallback) {
+DLL_EXPORT scgms_execution_t SimpleCalling Execute_SCGMS_Configuration(const char* config, TSCGMS_Execution_Callback callback, scgms::TOn_Filter_Created filterCreatedCallback) {
 	std::unique_ptr<CSimple_SCGMS_Execution> result = std::make_unique<CSimple_SCGMS_Execution>(callback);
 
 	if (result)
@@ -176,7 +176,7 @@ scgms_execution_t SimpleCalling Execute_SCGMS_Configuration(const char *config, 
 	return raw_result;
 }
 
-BOOL SimpleCalling Inject_SCGMS_Event(const scgms_execution_t execution, const TSCGMS_Event_Data *simple_event) {
+DLL_EXPORT BOOL SimpleCalling Inject_SCGMS_Event(const scgms_execution_t execution, const TSCGMS_Event_Data *simple_event) {
 	if (!execution) return FALSE;
 	if (simple_event->event_code >= static_cast<std::underlying_type_t<scgms::NDevice_Event_Code>>(scgms::NDevice_Event_Code::count))
 		return FALSE;
@@ -209,7 +209,7 @@ BOOL SimpleCalling Inject_SCGMS_Event(const scgms_execution_t execution, const T
 	return Succeeded(executor->Inject_Event(event_to_send)) ? TRUE : FALSE;
 }
 
-void SimpleCalling Shutdown_SCGMS(const scgms_execution_t execution, BOOL wait_for_shutdown) {
+DLL_EXPORT void SimpleCalling Shutdown_SCGMS(const scgms_execution_t execution, BOOL wait_for_shutdown) {
 	if (execution) {
 		std::unique_ptr<CSimple_SCGMS_Execution> executor{ static_cast<CSimple_SCGMS_Execution*>(execution) };
 		executor->Terminate(wait_for_shutdown);
