@@ -69,7 +69,7 @@ CLog_Replay_Filter::CLog_Replay_Filter(scgms::IFilter* output) : CBase_Filter(ou
 
 CLog_Replay_Filter::~CLog_Replay_Filter() {
 	mShutdown_Received = true; //ensure that the shutdown flag is set,
-							   //because we are shutting down, regardless of the shutdown messsage received
+							   //because we are shutting down, regardless of the shutdown message received
 							   //e.g.; on aborting from a failed configuration of a successive thread
 
 	if (mLog_Replay_Thread)
@@ -493,7 +493,8 @@ void CLog_Replay_Filter::Correct_Timings(std::vector<TLog_Entry>& log_lines) {
 				(evt.code == scgms::NDevice_Event_Code::Time_Segment_Stop))
 				lines_to_remove.push_back(i);
 			else
-				update_stamps(evt);	//this removes empty segments and stretchtes the starts and stops
+				if (evt.code != scgms::NDevice_Event_Code::Shut_Down)
+					update_stamps(evt);	//this removes empty segments and stretches the starts and stops
 		}
 	}
 
@@ -531,6 +532,12 @@ void CLog_Replay_Filter::Correct_Timings(std::vector<TLog_Entry>& log_lines) {
 	//As we have read the times and end of lines, no event has been created yet => no event logical clock advanced by us
 	//=> by creating the events inside the following for, log-events and by-them-triggered events will have monotonically increasing logical clocks.
 	std::sort(log_lines.begin(), log_lines.end(), [](const TLog_Entry& a, const TLog_Entry& b) {		
+		if (a.code == scgms::NDevice_Event_Code::Shut_Down)
+			return false;
+
+		if (b.code == scgms::NDevice_Event_Code::Shut_Down)
+			return true;
+
 		if (a.device_time != b.device_time)
 			return a.device_time < b.device_time;
 
@@ -538,10 +545,7 @@ void CLog_Replay_Filter::Correct_Timings(std::vector<TLog_Entry>& log_lines) {
 			return a.segment_id < b.segment_id;
 
 		if (a.code == scgms::NDevice_Event_Code::Time_Segment_Start)
-			return true;
-
-		if (a.code == scgms::NDevice_Event_Code::Shut_Down)
-			return false;
+			return true;		
 
 		if (a.code == scgms::NDevice_Event_Code::Time_Segment_Stop)
 			return false;
