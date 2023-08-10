@@ -38,7 +38,8 @@
 
 #include "basal_2_bolus.h"
 
-#include "..\..\..\..\common\utils\string_utils.h"
+#include "../../../../common/utils/string_utils.h"
+#include <cmath>
 
 CBasal_2_Bolus::CBasal_2_Bolus(scgms::IFilter *output) : scgms::CBase_Filter(output) {
 }

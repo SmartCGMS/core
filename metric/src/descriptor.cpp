@@ -41,6 +41,7 @@
 #include "signal_error.h"
 #include "fast_signal_error.h"
 #include "signal_stats.h"
+#include "temporal_signal_error.h"
 #include "diabetes_grid/diabetes_grid.h"
 
 #include "../../../common/lang/dstrings.h"
@@ -153,6 +154,96 @@ namespace signal_error {
 		metric_signal_id, dsSignal_GUI_Name_Error_Metric, L"", scgms::NSignal_Unit::Other, 0xFF000000, 0xFF000000, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::none, nullptr, 1.0};
 }
 
+namespace temporal_signal_error {
+
+	const wchar_t* rsTemporal_Metric = L"Selected_Temporal_Metric";
+	const wchar_t* rsAllow_Multipoint_Affinity = L"Allow_Multipoint_Affinity";
+
+	constexpr size_t param_count = 15;
+
+	const scgms::NParameter_Type parameter_type[param_count] = {
+		scgms::NParameter_Type::ptWChar_Array,
+		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptMetric_Id,
+		scgms::NParameter_Type::ptMetric_Id,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptInt64,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptDouble,
+		scgms::NParameter_Type::ptNull,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptBool,
+		scgms::NParameter_Type::ptWChar_Array,
+	};
+
+	const wchar_t* ui_parameter_name[param_count] = {
+		dsDescription,
+		dsReference_Signal,
+		dsError_Signal,
+		dsSelected_Metric,
+		L"Temporal metric",
+		L"Allow multipoint affinity",
+		dsMetric_Levels_Required,
+		dsUse_Relative_Error,
+		dsUse_Squared_Diff,
+		dsUse_Prefer_More_Levels,
+		dsMetric_Threshold,
+		nullptr,
+		dsEmit_metric_as_signal,
+		dsEmit_last_value_only,
+		dsOutput_CSV_File
+	};
+
+	const wchar_t* config_parameter_name[param_count] = {
+		rsDescription,
+		rsReference_Signal,
+		rsError_Signal,
+		rsSelected_Metric,
+		rsTemporal_Metric,
+		rsAllow_Multipoint_Affinity,
+		rsMetric_Levels_Required,
+		rsUse_Relative_Error,
+		rsUse_Squared_Diff,
+		rsUse_Prefer_More_Levels,
+		rsMetric_Threshold,
+		nullptr,
+		rsEmit_metric_as_signal,
+		rsEmit_last_value_only,
+		rsOutput_CSV_File
+	};
+
+	const wchar_t* ui_parameter_tooltip[param_count] = {
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		dsMetric_Levels_Required_Hint,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr
+	};
+
+	const scgms::TFilter_Descriptor desc = {
+		{ 0x1939d651, 0xbec3, 0x4468, { 0xac, 0xe8, 0x8e, 0xc8, 0xfd, 0xd1, 0x2f, 0xf0 } },// {1939D651-BEC3-4468-ACE8-8EC8FDD12FF0}
+		scgms::NFilter_Flags::None,
+		L"Temporal signal error",
+		param_count,
+		parameter_type,
+		ui_parameter_name,
+		config_parameter_name,
+		ui_parameter_tooltip
+	};
+}
 
 namespace signal_stats {
 	constexpr size_t param_count = 3;
@@ -301,7 +392,7 @@ namespace diabetes_grid {
 
 }
 
-static const std::array<scgms::TFilter_Descriptor, 4> filter_descriptions = { signal_error::desc, fast_signal_error::desc , signal_stats::desc, diabetes_grid::desc };
+static const std::array<scgms::TFilter_Descriptor, 5> filter_descriptions = { signal_error::desc, fast_signal_error::desc , signal_stats::desc, diabetes_grid::desc, temporal_signal_error::desc };
 
 DLL_EXPORT HRESULT IfaceCalling do_get_filter_descriptors(const scgms::TFilter_Descriptor* *begin, scgms::TFilter_Descriptor const **end) {
 	*begin = const_cast<scgms::TFilter_Descriptor*>(filter_descriptions.data());
@@ -320,7 +411,7 @@ DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 	else if (*id == fast_signal_error::desc.id) return Manufacture_Object<CFast_Signal_Error>(filter, output);
 	else if (*id == signal_stats::desc.id) return Manufacture_Object<CSignal_Stats>(filter, output);
 	else if (*id == diabetes_grid::desc.id) return Manufacture_Object<CDiabetes_Grid>(filter, output);
-	
+	else if (*id == temporal_signal_error::desc.id) return Manufacture_Object<CTemporal_Signal_Error>(filter, output);
 
 	return E_NOTIMPL;
 }
