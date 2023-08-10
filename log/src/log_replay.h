@@ -77,7 +77,7 @@ protected:
 	bool mEmit_All_Events_Before_Shutdown = false;
 	double mLast_Event_Time = std::numeric_limits<double>::quiet_NaN();
 	bool mInterpret_Filename_As_Segment_Id = false;
-	filesystem::path mLog_Filename_Or_Dirpath;  //would prefere wildcard, but this is not covered by C++ standard and do not need that so much to implement it using regex
+	filesystem::path mLog_Filename_Or_Dirpath;  //would preferred wildcard, but this is not covered by C++ standard and do not need that so much to implement it using regex
 	std::unique_ptr<std::thread> mLog_Replay_Thread;
 protected:
 	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
