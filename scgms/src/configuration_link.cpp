@@ -90,6 +90,6 @@ HRESULT IfaceCalling CFilter_Configuration_Link::add(scgms::IFilter_Parameter** 
 	return rc;
 }
 
-HRESULT IfaceCalling create_filter_configuration_link(const GUID* id, scgms::IFilter_Configuration_Link** link) {
+DLL_EXPORT HRESULT IfaceCalling create_filter_configuration_link(const GUID* id, scgms::IFilter_Configuration_Link** link) {
 	return Manufacture_Object<CFilter_Configuration_Link>(link, *id);
 }

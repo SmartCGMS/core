@@ -830,7 +830,7 @@ BOOL IfaceCalling internal::Parameters_Fitness_Wrapper(const void *data, const s
 }
 
 
-HRESULT IfaceCalling optimize_parameters(scgms::IFilter_Chain_Configuration *configuration, const size_t filter_index, const wchar_t *parameters_configuration_name, 
+DLL_EXPORT HRESULT IfaceCalling optimize_parameters(scgms::IFilter_Chain_Configuration *configuration, const size_t filter_index, const wchar_t *parameters_configuration_name,
 										 scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data,
 									     const GUID *solver_id, const size_t population_size, const size_t max_generations, 
 										 const double** hints, const size_t hint_count,
@@ -842,7 +842,7 @@ HRESULT IfaceCalling optimize_parameters(scgms::IFilter_Chain_Configuration *con
 	return optimizer.Optimize(*solver_id, population_size, max_generations, hints, hint_count, *progress, shared_error_description);
 }
 
-HRESULT IfaceCalling optimize_multiple_parameters(scgms::IFilter_Chain_Configuration *configuration, const size_t *filter_indices, const wchar_t **parameters_configuration_names, size_t filter_count,
+DLL_EXPORT HRESULT IfaceCalling optimize_multiple_parameters(scgms::IFilter_Chain_Configuration *configuration, const size_t *filter_indices, const wchar_t **parameters_configuration_names, size_t filter_count,
 												  scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data,
 												  const GUID *solver_id, const size_t population_size, const size_t max_generations, 
 												  const double** hints, const size_t hint_count,

@@ -55,7 +55,7 @@ double str_2_rat_dbl(const std::wstring& str, bool& converted_ok) {
 	return value;
 }
 
-HRESULT IfaceCalling create_filter_parameter(const scgms::NParameter_Type type, const wchar_t* config_name, scgms::IFilter_Parameter** parameter) {
+DLL_EXPORT HRESULT IfaceCalling create_filter_parameter(const scgms::NParameter_Type type, const wchar_t* config_name, scgms::IFilter_Parameter** parameter) {
 	return Manufacture_Object<CFilter_Parameter, scgms::IFilter_Parameter>(parameter, type, config_name);
 }
 

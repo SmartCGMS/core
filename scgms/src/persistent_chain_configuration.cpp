@@ -480,7 +480,6 @@ wchar_t* CPersistent_Chain_Configuration::Describe_GUID(const GUID& val, const s
 	return result;
 }
 
-
-HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersistent_Filter_Chain_Configuration** configuration) noexcept {
+DLL_EXPORT HRESULT IfaceCalling create_persistent_filter_chain_configuration(scgms::IPersistent_Filter_Chain_Configuration** configuration) noexcept {
 	return Manufacture_Object<CPersistent_Chain_Configuration, scgms::IPersistent_Filter_Chain_Configuration>(configuration);
 }

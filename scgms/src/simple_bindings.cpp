@@ -82,6 +82,7 @@ public:
 
 		mErrors = refcnt::Swstr_list{};
 		scgms::SPersistent_Filter_Chain_Configuration configuration{};
+
 		if (configuration->Load_From_Memory(config, strlen(config), mErrors.get()) == S_OK) {
 			scgms::IFilter_Executor *executor;
 			if (execute_filter_configuration(configuration.get(), filterCreatedCallback, filterCreatedCallbackData, mCallback ? this : nullptr, &executor, mErrors.get()) == S_OK)
@@ -156,8 +157,8 @@ public:
 		return mExecutor->Execute(raw_event);
 	}
 
-	void Terminate(const BOOL wait_for_shutdown) {
-		mExecutor->Terminate(wait_for_shutdown);
+	HRESULT Terminate(const BOOL wait_for_shutdown) {
+		return mExecutor->Terminate(wait_for_shutdown);
 	}
 
 };
@@ -165,6 +166,7 @@ public:
 #pragma warning( pop )
 
 DLL_EXPORT scgms_execution_t SimpleCalling Execute_SCGMS_Configuration(const char* config, TSCGMS_Execution_Callback callback, scgms::TOn_Filter_Created filterCreatedCallback) {
+
 	std::unique_ptr<CSimple_SCGMS_Execution> result = std::make_unique<CSimple_SCGMS_Execution>(callback);
 
 	if (result)
@@ -177,7 +179,10 @@ DLL_EXPORT scgms_execution_t SimpleCalling Execute_SCGMS_Configuration(const cha
 }
 
 DLL_EXPORT BOOL SimpleCalling Inject_SCGMS_Event(const scgms_execution_t execution, const TSCGMS_Event_Data *simple_event) {
-	if (!execution) return FALSE;
+
+	if (!execution)
+		return FALSE;
+
 	if (simple_event->event_code >= static_cast<std::underlying_type_t<scgms::NDevice_Event_Code>>(scgms::NDevice_Event_Code::count))
 		return FALSE;
 
@@ -201,7 +206,8 @@ DLL_EXPORT BOOL SimpleCalling Inject_SCGMS_Event(const scgms_execution_t executi
 			event_to_send.info.set(simple_event->str);	
 			break;
 
-		default: break;
+		default:
+			break;
 	}
 
 	CSimple_SCGMS_Execution* executor = static_cast<CSimple_SCGMS_Execution*>(execution);
@@ -209,9 +215,13 @@ DLL_EXPORT BOOL SimpleCalling Inject_SCGMS_Event(const scgms_execution_t executi
 	return Succeeded(executor->Inject_Event(event_to_send)) ? TRUE : FALSE;
 }
 
-DLL_EXPORT void SimpleCalling Shutdown_SCGMS(const scgms_execution_t execution, BOOL wait_for_shutdown) {
-	if (execution) {
-		std::unique_ptr<CSimple_SCGMS_Execution> executor{ static_cast<CSimple_SCGMS_Execution*>(execution) };
-		executor->Terminate(wait_for_shutdown);
-	}
+DLL_EXPORT BOOL SimpleCalling Shutdown_SCGMS(const scgms_execution_t execution, BOOL wait_for_shutdown) {
+
+	if (!execution)
+		return FALSE;
+
+	// explicitly take ownership back to release the executor from memory correctly
+	// this "reverses" the release method call in Execute_SCGMS_Configuration function
+	std::unique_ptr<CSimple_SCGMS_Execution> executor{ static_cast<CSimple_SCGMS_Execution*>(execution) };
+	return Succeeded(executor->Terminate(wait_for_shutdown));
 }

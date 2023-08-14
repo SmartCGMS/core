@@ -55,16 +55,16 @@ protected:
 	std::recursive_mutex mCommunication_Guard;
 	CComposite_Filter mComposite_Filter{ mCommunication_Guard };
 	CTerminal_Filter mTerminal_Filter{ nullptr };
-public:			
+public:
 	CFilter_Configuration_Executor(scgms::IFilter *custom_output);
 	virtual ~CFilter_Configuration_Executor();
 
 	HRESULT Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, refcnt::Swstr_list& error_description);
 
-	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;	
+	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
 	virtual HRESULT IfaceCalling Terminate(const BOOL wait_for_shutdown) override final;
 };
 
 #pragma warning( pop )
 
-HRESULT IfaceCalling execute_filter_configuration(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, scgms::IFilter *custom_output, scgms::IFilter_Executor **executor, refcnt::wstr_list *error_description);
+DLL_EXPORT HRESULT IfaceCalling execute_filter_configuration(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, scgms::IFilter *custom_output, scgms::IFilter_Executor **executor, refcnt::wstr_list *error_description);
