@@ -660,3 +660,97 @@ namespace ideg {
 	}
 }
 
+namespace scgen {
+
+	namespace random {
+		constexpr const GUID id = { 0xa1f30737, 0x7ee8, 0x47ae, { 0x91, 0xe5, 0xa8, 0xcc, 0x28, 0x2b, 0x77, 0xa1 } };	// {A1F30737-7EE8-47AE-91E5-A8CC282B77A1}
+
+		extern const wchar_t* rsMax_Time;
+		extern const wchar_t* rsBolus_Mean;
+		extern const wchar_t* rsBolus_Range;
+		extern const wchar_t* rsCarb_Base_Mean;
+		extern const wchar_t* rsCarb_Base_Range;
+		extern const wchar_t* rsMeal_Count_Min;
+		extern const wchar_t* rsMeal_Count_Max;
+		extern const wchar_t* rsForgotten_Bolus_Probability;
+		extern const wchar_t* rsMeal_Time_Range;
+	}
+}
+
+
+namespace daily_routine
+{
+	constexpr const GUID model_id = { 0xda793db7, 0x2222, 0x49a9, { 0xbf, 0x69, 0xab, 0xd2, 0x1b, 0xc1, 0x9b, 0x4c } };		// {DA793DB7-2222-49A9-BF69-ABD21BC19B4C}
+	constexpr const GUID est_carbs_id = { 0x3caea977, 0xb129, 0x4bba, { 0xb9, 0x5f, 0x48, 0xfc, 0x20, 0x4f, 0x4f, 0xfa } };	// {3CAEA977-B129-4BBA-B95F-48FC204F4FFA}
+
+	constexpr size_t daily_meal_count = 8;
+	constexpr size_t param_count = daily_meal_count * 2;
+
+	struct TParameters {
+		union {
+			struct {
+				double carb_times[daily_meal_count];
+				double carb_values[daily_meal_count];
+			};
+			double vector[param_count];
+		};
+	};
+
+	const TParameters lower_bounds = {
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+	};
+	const TParameters default_parameters = {
+		scgms::One_Hour * 6,
+		scgms::One_Hour * 9,
+		scgms::One_Hour * 12,
+		scgms::One_Hour * 15,
+		scgms::One_Hour * 18,
+		scgms::One_Hour * 12,
+		scgms::One_Hour * 15,
+		scgms::One_Hour * 18,
+
+		20,
+		10,
+		40,
+		10,
+		35,
+		40,
+		10,
+		35,
+	};
+	const TParameters upper_bounds = {
+		scgms::One_Hour * 24.0 - 10.0 * scgms::One_Minute,
+		scgms::One_Hour * 24.0 - 10.0 * scgms::One_Minute,
+		scgms::One_Hour * 24.0 - 10.0 * scgms::One_Minute,
+		scgms::One_Hour * 24.0 - 10.0 * scgms::One_Minute,
+		scgms::One_Hour * 24.0 - 10.0 * scgms::One_Minute,
+		scgms::One_Hour * 24.0 - 10.0 * scgms::One_Minute,
+		scgms::One_Hour * 24.0 - 10.0 * scgms::One_Minute,
+		scgms::One_Hour * 24.0 - 10.0 * scgms::One_Minute,
+
+		70,
+		70,
+		70,
+		70,
+		70,
+		70,
+		70,
+		70,
+	};
+}

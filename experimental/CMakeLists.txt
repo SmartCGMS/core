@@ -36,10 +36,9 @@
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 
+SET(PROJ "experimental")
+
 IF(COMPONENT_EXPERIMENTAL_MODULES)
-
-	SET(PROJ "experimental")
-
 	CONFIGURE_COMMON(${PROJ})
 
 	FILE(GLOB_RECURSE SRC_FILES "src/*.cpp" "src/*.c" "src/*.h")
@@ -57,15 +56,15 @@ IF(COMPONENT_EXPERIMENTAL_MODULES)
 	ENDIF()
 
 	# grouping
-	SET(SRC_GRPS "p559" "aim_ge" "enhacement" "cgp_pred" "bases" "bases_standalone" "ideg_riskfinder" "ideg_logstopper" "ann")
+	SET(SRC_GRPS "p559" "aim_ge" "flr_ge" "gege" "enhacement" "cgp_pred" "bases" "bases_standalone" "ideg_riskfinder" "ideg_logstopper" "ann" "random_scenario_generator" "daily_routine_estimator")
 	FOREACH(MODEL_DIR ${SRC_GRPS})
 		FILE(GLOB_RECURSE MDL_SOURCES "src/${MODEL_DIR}/*.cpp" "src/${MODEL_DIR}/*.h" "src/${MODEL_DIR}/*.c")
 		SOURCE_GROUP("model\\${MODEL_DIR}" FILES ${MDL_SOURCES})
 	ENDFOREACH()
 
-	SCGMS_ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES};${COMMON_FILES})
+	SCGMS_ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES})
+	TARGET_LINK_LIBRARIES(${PROJ} scgms-common)
 	CONFIGURE_FILTER_OUTPUT(${PROJ})
-
-	TARGET_LINK_LIBRARIES(${PROJ} scgms)
-
+ELSE()
+	MESSAGE(STATUS "Experimental modules disabled, not building the ${PROJ} module")
 ENDIF()

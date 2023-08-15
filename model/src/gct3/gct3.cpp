@@ -369,7 +369,7 @@ HRESULT CGCT3_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 			// insulin pump control
 			if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate) {
 
-				if (event.device_time() >= mLast_Time)
+				//if (event.device_time() >= mLast_Time)
 				{
 					constexpr double PortionTimeSpacing = 60_sec;
 					const double rate = event.level() / (60.0 * (60_sec / PortionTimeSpacing));
@@ -383,13 +383,13 @@ HRESULT CGCT3_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 			// physical activity
 			else if (event.signal_id() == scgms::signal_Physical_Activity) {
 
-				if (event.device_time() >= mLast_Time)
+				//if (event.device_time() >= mLast_Time)
 					mPhysical_Activity.Set_Quantity(event.level());
 			}
 			// bolus insulin
 			else if (event.signal_id() == scgms::signal_Requested_Insulin_Bolus) {
 
-				if (event.device_time() >= mLast_Time)
+				//if (event.device_time() >= mLast_Time)
 				{
 					constexpr double PortionTimeSpacing = scgms::One_Minute;
 					const size_t Portions = static_cast<size_t>(mParameters.t_id / PortionTimeSpacing);

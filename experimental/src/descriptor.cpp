@@ -52,9 +52,11 @@
 #include "gege/gege.h"
 #include "flr_ge/flr_ge.h"
 #include "ann/ann.h"
+#include "daily_routine_estimator/daily_routine.h"
 
 #include "ideg_riskfinder/riskfinder.h"
 #include "ideg_logstopper/logstopper.h"
+#include "random_scenario_generator/scgen.h"
 
 #include <vector>
 
@@ -742,7 +744,132 @@ namespace ann {
 	const scgms::TSignal_Descriptor pred_desc{ signal_id, L"ANN prediction", dsmmol_per_L, scgms::NSignal_Unit::mmol_per_L, 0x00666666, 0x00666666, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 }
 
-const std::array<scgms::TModel_Descriptor, 9> model_descriptions = { {
+namespace scgen {
+
+	namespace random {
+
+		const wchar_t* rsMax_Time = L"Maximum_Time";
+		const wchar_t* rsBolus_Mean = L"Bolus_Mean";
+		const wchar_t* rsBolus_Range = L"Bolus_Range";
+		const wchar_t* rsCarb_Base_Mean = L"Carb_Base_Mean";
+		const wchar_t* rsCarb_Base_Range = L"Carb_Base_Range";
+		const wchar_t* rsMeal_Count_Min = L"Meal_Count_Min";
+		const wchar_t* rsMeal_Count_Max = L"Meal_Count_Max";
+		const wchar_t* rsForgotten_Bolus_Probability = L"Forgotten_Bolus_Prob";
+		const wchar_t* rsMeal_Time_Range = L"Meal_Time_Range";
+
+		constexpr size_t param_count = 9;
+
+		constexpr scgms::NParameter_Type param_type[param_count] = {
+			scgms::NParameter_Type::ptRatTime,
+			scgms::NParameter_Type::ptDouble,
+			scgms::NParameter_Type::ptDouble,
+			scgms::NParameter_Type::ptDouble,
+			scgms::NParameter_Type::ptDouble,
+			scgms::NParameter_Type::ptInt64,
+			scgms::NParameter_Type::ptInt64,
+			scgms::NParameter_Type::ptDouble,
+			scgms::NParameter_Type::ptRatTime,
+		};
+
+		const wchar_t* ui_param_name[param_count] = {
+			L"Maximum time",
+			L"Bolus mean",
+			L"Bolus range",
+			L"Carb base mean",
+			L"Carb base range",
+			L"Minimum meal count",
+			L"Maximum meal count",
+			L"Probability of forgotten meal bolus",
+			L"Meal time range",
+		};
+
+		const wchar_t* config_param_name[param_count] = {
+			rsMax_Time,
+			rsBolus_Mean,
+			rsBolus_Range,
+			rsCarb_Base_Mean,
+			rsCarb_Base_Range,
+			rsMeal_Count_Min,
+			rsMeal_Count_Max,
+			rsForgotten_Bolus_Probability,
+			rsMeal_Time_Range,
+		};
+
+		const wchar_t* ui_param_tooltips[param_count] = {
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr,
+		};
+
+		const scgms::TFilter_Descriptor descriptor = {
+			id,
+			scgms::NFilter_Flags::None,
+			L"Random scenario generator",
+			param_count,
+			param_type,
+			ui_param_name,
+			config_param_name,
+			ui_param_tooltips
+		};
+	}
+}
+
+namespace daily_routine {
+
+	const wchar_t* model_param_ui_names[param_count] = {
+		L"t_1",L"t_2",L"t_3",L"t_4",L"t_5",L"t_6",L"t_7",L"t_8",
+		L"c_1",L"c_2",L"c_3",L"c_4",L"c_5",L"c_6",L"c_7",L"c_8",
+	};
+
+	const scgms::NModel_Parameter_Value model_param_types[param_count] = {
+		scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptTime,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+	};
+
+	constexpr size_t number_of_calculated_signals = 1;
+
+	const GUID calculated_signal_ids[number_of_calculated_signals] = {
+		est_carbs_id,
+	};
+
+	const wchar_t* calculated_signal_names[number_of_calculated_signals] = {
+		L"DailyRoutine_v1 - estimated carbs",
+	};
+
+	const GUID reference_signal_ids[number_of_calculated_signals] = {
+		scgms::signal_Carb_Intake,
+	};
+
+	scgms::TModel_Descriptor desc = {
+		model_id,
+		scgms::NModel_Flags::Discrete_Model,
+		L"Daily routine v1",
+		nullptr,
+		param_count,
+		param_count,
+		model_param_types,
+		model_param_ui_names,
+		nullptr,
+		lower_bounds.vector,
+		default_parameters.vector,
+		upper_bounds.vector,
+
+		number_of_calculated_signals,
+		calculated_signal_ids,
+		reference_signal_ids,
+	};
+
+	const scgms::TSignal_Descriptor est_carb_desc{ est_carbs_id, L"DailyRoutine_v1 - estimated carbs", L"g", scgms::NSignal_Unit::g, 0xFF00AA44, 0xFF00AA44, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::star, nullptr, 0.1 };
+}
+
+const std::array<scgms::TModel_Descriptor, 10> model_descriptions = { {
 	p559_model::desc,
 	aim_ge::desc,
 	data_enhacement::desc,
@@ -751,23 +878,26 @@ const std::array<scgms::TModel_Descriptor, 9> model_descriptions = { {
 	bases_standalone::desc,
 	gege::desc, flr_ge::desc,
 	ann::desc,
+	daily_routine::desc,
 } };
 
-const std::array<scgms::TSignal_Descriptor, 14 + cgp_pred::number_of_calculated_signals> signals_descriptors = { {
+const std::array<scgms::TSignal_Descriptor, 15 + cgp_pred::number_of_calculated_signals> signals_descriptors = { {
 	p559_model::ig_desc,
 	aim_ge::ig_desc,
 	data_enhacement::pos_desc, data_enhacement::neg_desc,
 	bases_pred::ig_desc, bases_standalone::ig_desc, gege::ibr_desc, gege::bolus_desc, flr_ge::ibr_desc, flr_ge::bolus_desc,
 	ideg::riskfinder::hyper_desc, ideg::riskfinder::hypo_desc, ideg::riskfinder::riskavg_desc,
 	ann::pred_desc,
+	daily_routine::est_carb_desc,
 
 	// CGP signal group (total of cgp_pred::number_of_calculated_signals)
 	cgp_pred::signal_descs[0],cgp_pred::signal_descs[1],cgp_pred::signal_descs[2],cgp_pred::signal_descs[3],
 } };
 
-const std::array<scgms::TFilter_Descriptor, 2> filter_descriptors = { {
+const std::array<scgms::TFilter_Descriptor, 3> filter_descriptors = { {
 	ideg::riskfinder::descriptor,
 	ideg::logstopper::descriptor,
+	scgen::random::descriptor,
 } };
 
 DLL_EXPORT HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
@@ -801,6 +931,8 @@ DLL_EXPORT HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, s
 		return Manufacture_Object<CFLR_GE_Model>(model, parameters, output);
 	else if (*model_id == ann::model_id)
 		return Manufacture_Object<CANN_Model>(model, parameters, output);
+	else if (*model_id == daily_routine::model_id)
+		return Manufacture_Object<CDaily_Routine_Model>(model, parameters, output);
 	else
 		return E_NOTIMPL;
 }
@@ -816,6 +948,8 @@ DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 		return Manufacture_Object<CRisk_Finder_Filter>(filter, output);
 	else if (*id == ideg::logstopper::id)
 		return Manufacture_Object<CLog_Stopper_Filter>(filter, output);
+	else if (*id == scgen::random::id)
+		return Manufacture_Object<CRandom_Scenario_Generator>(filter, output);
 
 	return E_NOTIMPL;
 }
