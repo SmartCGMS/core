@@ -36,10 +36,10 @@
 
 #include "filters.h"
 
-#include "../../../common/rtl/FilesystemLib.h"
-#include "../../../common/utils/descriptor_utils.h"
-#include "../../../common/utils/winapi_mapping.h"
-#include "../../../common/lang/dstrings.h"
+#include <scgms/rtl/FilesystemLib.h>
+#include <scgms/utils/descriptor_utils.h>
+#include <scgms/utils/winapi_mapping.h>
+#include <scgms/lang/dstrings.h>
 
 namespace imported {
 	const char* rsGet_Filter_Descriptors = "do_get_filter_descriptors";

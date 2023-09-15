@@ -47,8 +47,8 @@
 #include <functional>
 
 
-#include "../../../common/rtl/manufactory.h"
-#include "../../../common/rtl/DeviceLib.h"
+#include <scgms/rtl/manufactory.h>
+#include <scgms/rtl/DeviceLib.h>
 
 
 using TCreate_Signal = std::function<HRESULT(scgms::ITime_Segment *segment, scgms::ISignal **signal)>;

@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<manifest>
-	<dmms exepath="c:\Program Files\The Epsilon Group\DMMS.R\simulator\DMMS.R.exe" scenariofile="dmms.xml" logfile="dmms_out.log" />
-</manifest>

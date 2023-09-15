@@ -39,8 +39,8 @@
 
 #include "../SVGBuilder.h"
 #include "../Misc/Utility.h"
-#include "../../../../../common/utils/string_utils.h"
-#include "../../../../../common/utils/DebugHelper.h"
+#include <scgms/utils/string_utils.h>
+#include <scgms/utils/DebugHelper.h>
 
 #include <algorithm>
 #include <set>

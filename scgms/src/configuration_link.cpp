@@ -36,7 +36,7 @@
 
 #include "configuration_link.h"
 
-#include "../../../common/rtl/manufactory.h"
+#include <scgms/rtl/manufactory.h>
 
 CFilter_Configuration_Link::CFilter_Configuration_Link(const GUID &id) : mID(id) {
 //	mParent_Path = std::make_unique<std::wstring>();

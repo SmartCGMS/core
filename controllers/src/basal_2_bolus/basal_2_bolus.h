@@ -36,8 +36,8 @@
 
 #pragma once
 
-#include "../../../../common/iface/DeviceIface.h"
-#include "../../../../common/rtl/FilterLib.h"
+#include <scgms/iface/DeviceIface.h>
+#include <scgms/rtl/FilterLib.h>
 
 #include "../descriptor.h"
 

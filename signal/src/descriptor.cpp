@@ -47,8 +47,8 @@
 #include "median_response_filter.h"
 #include "noise_filter.h"
 
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/rtl/manufactory.h"
+#include <scgms/lang/dstrings.h>
+#include <scgms/rtl/manufactory.h>
 
 #include <vector>
 

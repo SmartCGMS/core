@@ -36,9 +36,9 @@
 
 #include "unmasking.h"
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/utils/string_utils.h"
+#include <scgms/rtl/FilterLib.h>
+#include <scgms/lang/dstrings.h>
+#include <scgms/utils/string_utils.h>
 
 #include <algorithm>
 #include <cctype>

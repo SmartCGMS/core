@@ -40,8 +40,8 @@
 #include <vector>
 #include <array>
 
-#include "../../../common/iface/SolverIface.h"
-#include "../../../common/rtl/AlignmentAllocator.h"
+#include <scgms/iface/SolverIface.h>
+#include <scgms/rtl/AlignmentAllocator.h>
 
 
 template <int n>

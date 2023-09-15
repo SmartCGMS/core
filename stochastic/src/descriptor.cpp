@@ -35,9 +35,9 @@
  */
 
 #include "descriptor.h"
-#include "../../../common/iface/DeviceIface.h"
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/utils/descriptor_utils.h"
+#include <scgms/iface/DeviceIface.h>
+#include <scgms/lang/dstrings.h>
+#include <scgms/utils/descriptor_utils.h>
 #include <vector>
 
 

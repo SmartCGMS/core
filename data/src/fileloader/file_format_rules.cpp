@@ -36,10 +36,8 @@
 
 #include "file_format_rules.h"
 
-#include "../../../../common/rtl/FilesystemLib.h"
-#include "../../../../common/utils/string_utils.h"
-
-
+#include <scgms/rtl/FilesystemLib.h>
+#include <scgms/utils/string_utils.h>
 
 void CFormat_Layout::push(const TCell_Descriptor& cell) {
 	mCells.push_back(cell);

@@ -35,7 +35,7 @@
  */
 
 #include "CSVFormat.h"
-#include "../../../../common/utils/winapi_mapping.h"
+#include <scgms/utils/winapi_mapping.h>
 
 #include <map>
 #include <sstream>

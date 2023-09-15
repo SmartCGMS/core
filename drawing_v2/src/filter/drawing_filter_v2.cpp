@@ -38,7 +38,7 @@
 
 #include "../views/graph_view.h"
 #include "../views/cvga.h"
-#include "../../../../common/utils/string_utils.h"
+#include <scgms/utils/string_utils.h>
 
 #include <set>
 #include <cmath>

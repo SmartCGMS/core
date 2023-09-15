@@ -34,7 +34,7 @@
  *    Volume 177, pp. 354-362, 2020
  */
 
-#include "../../../common/rtl/UILib.h"
+#include <scgms/rtl/UILib.h>
 
 #include "time_segment.h"
 #include "descriptor.h"

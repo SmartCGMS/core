@@ -36,7 +36,7 @@
 
 #pragma once
 
-#include "../../../../common/rtl/Eigen_Buffer.h"
+#include <scgms/rtl/Eigen_Buffer.h>
 
 #include <Eigen/Dense>
 

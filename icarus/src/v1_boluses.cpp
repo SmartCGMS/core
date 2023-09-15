@@ -37,7 +37,7 @@
 #include "v1_boluses.h"
 #include "descriptor.h"
 
-#include "../../../common/rtl/SolverLib.h"
+#include <scgms/rtl/SolverLib.h>
 
 CV1_Boluses::~CV1_Boluses() {
 

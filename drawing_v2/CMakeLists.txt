@@ -36,8 +36,6 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 
 SET(PROJ "drawing_v2")
 
-CONFIGURE_COMMON(${PROJ})
-
 FILE(GLOB SRC_FILES "src/*.cpp" "src/*.c" "src/*.h")
 IF(WIN32)
     FILE(GLOB SRC_WIN_FILES "src/win/*.cpp" "src/win/*.h" "src/win/*.def")
@@ -49,4 +47,5 @@ FILE(GLOB_RECURSE SRC_VIEWS_FILES "src/views/*.cpp" "src/views/*.c" "src/views/*
 
 SCGMS_ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES};${SRC_FILTER_FILES};${SRC_VIEWS_FILES})
 TARGET_LINK_LIBRARIES(${PROJ} scgms-common)
+APPLY_SCGMS_LIBRARY_BUILD_SETTINGS(${PROJ})
 CONFIGURE_FILTER_OUTPUT(${PROJ})

@@ -36,7 +36,7 @@
 
 #include "FormatAdapter.h"
 
-#include "../../../../common/utils/string_utils.h"
+#include <scgms/utils/string_utils.h>
 
 #include "CSVFormat.h"
 #include "Misc.h"

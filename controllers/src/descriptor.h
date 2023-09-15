@@ -36,9 +36,9 @@
 
 #pragma once
 
-#include "../../../common/iface/UIIface.h"
-#include "../../../common/rtl/hresult.h"
-#include "../../../common/rtl/ModelsLib.h"
+#include <scgms/iface/UIIface.h>
+#include <scgms/rtl/hresult.h>
+#include <scgms/rtl/ModelsLib.h>
 
 
 namespace basal_2_bolus {

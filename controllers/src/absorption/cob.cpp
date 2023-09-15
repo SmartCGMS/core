@@ -39,8 +39,8 @@
 
 #include <numeric>
 
-#include "../../../../common/rtl/rattime.h"
-#include "../../../../common/rtl/SolverLib.h"
+#include <scgms/rtl/rattime.h>
+#include <scgms/rtl/SolverLib.h>
 
 CCarbohydrates_On_Board::CCarbohydrates_On_Board(scgms::WTime_Segment segment)
 	: CCommon_Calculated_Signal(segment), mCarb_Intake(segment.Get_Signal(scgms::signal_Carb_Intake)), mCarb_Rescue(segment.Get_Signal(scgms::signal_Carb_Rescue)) {

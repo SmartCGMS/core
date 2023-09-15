@@ -38,10 +38,10 @@
 #include "device_event.h"
 #include "filters.h"
 
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/utils/string_utils.h" 
-#include "../../../common/rtl/UILib.h"
-#include "../../../common/rtl/hresult.h"
+#include <scgms/lang/dstrings.h>
+#include <scgms/utils/string_utils.h>
+#include <scgms/rtl/UILib.h>
+#include <scgms/rtl/hresult.h>
 
 #include <map>
 #include <stdexcept>

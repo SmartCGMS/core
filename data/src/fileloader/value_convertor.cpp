@@ -36,7 +36,7 @@
 
 #include "value_convertor.h"
 
-#include "../../../../common/iface/DeviceIface.h"
+#include <scgms/iface/DeviceIface.h>
 
 CValue_Convertor::CValue_Convertor(const CValue_Convertor& other) {
 	operator=(other);

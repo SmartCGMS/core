@@ -36,10 +36,10 @@
 
 #pragma once
 
-#include "../../../../common/utils/drawing/SVGRenderer.h"
-#include "../../../../common/rtl/rattime.h"
-#include "../../../../common/iface/FilterIface.h"
-#include "../../../../common/utils/winapi_mapping.h"
+#include <scgms/utils/drawing/SVGRenderer.h>
+#include <scgms/rtl/rattime.h>
+#include <scgms/iface/FilterIface.h>
+#include <scgms/utils/winapi_mapping.h>
 
 #include <string>
 #include <map>

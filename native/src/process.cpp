@@ -36,8 +36,8 @@
 
 #include "process.h"
 
-#include "../../../common/rtl/FilesystemLib.h"
-#include "../../../common/utils/string_utils.h"
+#include <scgms/rtl/FilesystemLib.h>
+#include <scgms/utils/string_utils.h>
 
 #include <cstdio> 
 #include <string>

@@ -36,10 +36,10 @@
 
 #pragma once
 
-#include "../../../common/iface/FilterIface.h"
-#include "../../../common/rtl/referencedImpl.h"
-#include "../../../common/rtl/FilesystemLib.h"
-#include "../../../common/rtl/UILib.h"
+#include <scgms/iface/FilterIface.h>
+#include <scgms/rtl/referencedImpl.h>
+#include <scgms/rtl/FilesystemLib.h>
+#include <scgms/rtl/UILib.h>
 
 
 #pragma warning( push )

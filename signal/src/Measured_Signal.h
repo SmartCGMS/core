@@ -36,8 +36,8 @@
 
 #pragma once
 
-#include "../../../common/rtl/ApproxLib.h"
-#include "../../../common/rtl/referencedImpl.h"
+#include <scgms/rtl/ApproxLib.h>
+#include <scgms/rtl/referencedImpl.h>
 
 #include <map>
 

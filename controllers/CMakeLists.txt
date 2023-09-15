@@ -36,8 +36,6 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 
 SET(PROJ "controllers")
 
-CONFIGURE_COMMON(${PROJ})
-
 FILE(GLOB SRC_FILES "src/descriptor.cpp" "src/descriptor.h"
 					"src/betapid/*.cpp" "src/betapid/*.c" "src/betapid/*.h"
 					"src/lgs/*.cpp" "src/lgs/*.c" "src/lgs/*.h"
@@ -56,4 +54,5 @@ ENDIF()
 
 SCGMS_ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES})
 TARGET_LINK_LIBRARIES(${PROJ} scgms-common)
+APPLY_SCGMS_LIBRARY_BUILD_SETTINGS(${PROJ})
 CONFIGURE_FILTER_OUTPUT(${PROJ})

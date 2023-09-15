@@ -35,12 +35,13 @@
  */
 
 #include "descriptor.h"
-#include "../../../common/utils/descriptor_utils.h"
-#include "pattern_prediction/pattern_prediction_descriptor.h"
 
-#include "../../../common/iface/DeviceIface.h"
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/rtl/manufactory.h"
+#include <scgms/utils/descriptor_utils.h>
+#include <scgms/iface/DeviceIface.h>
+#include <scgms/lang/dstrings.h>
+#include <scgms/rtl/manufactory.h>
+
+#include "pattern_prediction/pattern_prediction_descriptor.h"
 #include "diffusion/Diffusion_v2_blood.h"
 #include "diffusion/Diffusion_v2_ist.h"
 #include "steil_rebrin/Steil_Rebrin_blood.h"

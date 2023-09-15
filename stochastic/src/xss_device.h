@@ -52,7 +52,7 @@
 	#include <Windows.h>
 #endif
 
-#if (defined(__x86_64__) || defined(_M_X64)) && !defined(_DEBUG)
+#if (defined(__x86_64__) || defined(_M_X64))
 	#include <immintrin.h>
 	#ifdef __APPLE__
 		#if __has_include(<x86intrin.h>)

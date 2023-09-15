@@ -36,9 +36,9 @@
 
 #pragma once
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/referencedImpl.h"
-#include "../../../common/rtl/FilesystemLib.h"
+#include <scgms/rtl/FilterLib.h>
+#include <scgms/rtl/referencedImpl.h>
+#include <scgms/rtl/FilesystemLib.h>
 
 #include "fileloader/Structures.h"
 #include "fileloader/FormatAdapter.h"

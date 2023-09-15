@@ -36,12 +36,11 @@
 
 #include "drawing_filter.h"
 
-#include "../../../common/lang/dstrings.h"
-
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/UILib.h"
-#include "../../../common/rtl/rattime.h"
-#include "../../../common/utils/string_utils.h"
+#include <scgms/lang/dstrings.h>
+#include <scgms/rtl/FilterLib.h>
+#include <scgms/rtl/UILib.h>
+#include <scgms/rtl/rattime.h>
+#include <scgms/utils/string_utils.h>
 
 #include "drawing/Generators/IGenerator.h"
 #include "drawing/Generators/GraphGenerator.h"

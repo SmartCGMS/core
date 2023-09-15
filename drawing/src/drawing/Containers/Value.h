@@ -41,8 +41,8 @@
 #include <vector>
 #include <string>
 
-#include "../../../../../common/rtl/guid.h"
-#include "../../../../../common/iface/UIIface.h"
+#include <scgms/rtl/guid.h>
+#include <scgms/iface/UIIface.h>
 
 typedef std::map<std::string, std::string> LocalizationMap;
 

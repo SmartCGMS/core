@@ -36,8 +36,8 @@
 
 #include "filter_configuration_executor.h"
 
-#include "../../../common/rtl/manufactory.h"
-#include "../../../common/rtl/FilterLib.h"
+#include <scgms/rtl/manufactory.h>
+#include <scgms/rtl/FilterLib.h>
 
 #include "executor.h"
 #include "composite_filter.h"

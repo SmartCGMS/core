@@ -36,14 +36,12 @@
 
 #pragma once
 
-#include "../../../../common/iface/UIIface.h"
-#include "../../../../common/rtl/hresult.h"
-#include "../../../../common/rtl/ModelsLib.h"
-#include "../../../../common/rtl/guid.h"
+#include <scgms/iface/UIIface.h>
+#include <scgms/rtl/hresult.h>
+#include <scgms/rtl/ModelsLib.h>
+#include <scgms/rtl/guid.h>
 
-
-
-namespace pattern_prediction {        
+namespace pattern_prediction {
     static constexpr double Low_Threshold = 3.0;			//mmol/L below which a medical attention is needed
     static constexpr double High_Threshold = 13.0;			//dtto above
     static constexpr size_t Internal_Bound_Count = 30;      //number of bounds inside the thresholds
@@ -54,7 +52,6 @@ namespace pattern_prediction {
 
     static constexpr size_t Band_Count = Internal_Bound_Count + 2;
     static constexpr size_t Subclasses_Count = 3;
-    
 
     static constexpr double Steady_Epsilon = 0.1; //epsilon for considering two levels as equal
 

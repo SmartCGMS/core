@@ -36,8 +36,8 @@
 
 #include "native_segment.h"
 
-#include "../../../common/utils/math_utils.h"
-#include "../../../common/utils/string_utils.h"
+#include <scgms/utils/math_utils.h>
+#include <scgms/utils/string_utils.h>
 
 HRESULT IfaceCalling Send_Handler(const GUID* sig_id, const double device_time, const double level, const char* msg, const void* context) {
 	CNative_Segment* segment = reinterpret_cast<CNative_Segment*>(const_cast<void*>(context));

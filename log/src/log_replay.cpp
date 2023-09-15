@@ -37,12 +37,12 @@
 #include "log_replay.h"
 #include "log.h"
 
-#include "../../../common/iface/DeviceIface.h"
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/rtl/UILib.h"
-#include "../../../common/rtl/rattime.h"
-#include "../../../common/utils/string_utils.h"
+#include <scgms/iface/DeviceIface.h>
+#include <scgms/rtl/FilterLib.h>
+#include <scgms/lang/dstrings.h>
+#include <scgms/rtl/UILib.h>
+#include <scgms/rtl/rattime.h>
+#include <scgms/utils/string_utils.h>
 
 #include "log.h"
 

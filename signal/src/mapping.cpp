@@ -36,8 +36,8 @@
 
 #include "mapping.h"
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/lang/dstrings.h"
+#include <scgms/rtl/FilterLib.h>
+#include <scgms/lang/dstrings.h>
 
 CMapping_Filter::CMapping_Filter(scgms::IFilter *output) : CBase_Filter(output) {
 	//

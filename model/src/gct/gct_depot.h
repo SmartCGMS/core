@@ -46,7 +46,7 @@
 #include <cassert>
 #include <functional>
 
-#include "../../../../common/utils/DebugHelper.h"
+#include <scgms/utils/DebugHelper.h>
 
 class CDepot;
 

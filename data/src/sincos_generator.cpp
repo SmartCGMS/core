@@ -37,9 +37,9 @@
 #include "sincos_generator.h"
 #include "descriptor.h"
 
-#include "../../../common/rtl/rattime.h"
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/utils/math_utils.h"
+#include <scgms/rtl/rattime.h>
+#include <scgms/lang/dstrings.h>
+#include <scgms/utils/math_utils.h>
 
 #include <cmath>
 

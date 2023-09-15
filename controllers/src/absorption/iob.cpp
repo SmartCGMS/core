@@ -40,8 +40,8 @@
 #include <numeric>
 #include <cmath>
 
-#include "../../../../common/rtl/rattime.h"
-#include "../../../../common/rtl/SolverLib.h"
+#include <scgms/rtl/rattime.h>
+#include <scgms/rtl/SolverLib.h>
 
 CInsulin_Absorption::CInsulin_Absorption(scgms::WTime_Segment segment, NInsulin_Calc_Mode mode) : CCommon_Calculated_Signal(segment), mDelivered_Insulin(segment.Get_Signal(scgms::signal_Delivered_Insulin_Total)),
 	mMode(mode) {

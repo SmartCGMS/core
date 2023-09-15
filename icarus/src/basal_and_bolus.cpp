@@ -37,7 +37,7 @@
 #include "basal_and_bolus.h"
 #include "descriptor.h"
 
-#include "../../../common/rtl/SolverLib.h"
+#include <scgms/rtl/SolverLib.h>
 
 HRESULT CBasal_And_Bolus::Do_Execute(scgms::UDevice_Event event) {
 	if (!mBasal_Rate_Issued) {

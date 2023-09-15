@@ -39,9 +39,9 @@
 #include "basal_and_bolus.h"
 #include "rates_pack_boluses.h"
 
-#include "../../../common/iface/DeviceIface.h"
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/rtl/manufactory.h"
+#include <scgms/iface/DeviceIface.h>
+#include <scgms/lang/dstrings.h>
+#include <scgms/rtl/manufactory.h>
 
 #include <array>
 #include <string>

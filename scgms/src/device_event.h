@@ -36,7 +36,7 @@
 
 #pragma once
 
-#include "../../../common/iface/DeviceIface.h"
+#include <scgms/iface/DeviceIface.h>
 
 class CDevice_Event : public virtual scgms::IDevice_Event {
 protected:

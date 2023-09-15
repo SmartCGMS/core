@@ -36,8 +36,8 @@
 
 #include "physical_activity.h"
 #include "../descriptor.h"
-#include "../../../../common/rtl/SolverLib.h"
-#include "../../../../common/utils/DebugHelper.h"
+#include <scgms/rtl/SolverLib.h>
+#include <scgms/utils/DebugHelper.h>
 
 #include <cmath>
 

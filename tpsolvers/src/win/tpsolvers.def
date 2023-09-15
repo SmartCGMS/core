@@ -1,7 +1,0 @@
-LIBRARY tpsolvers.dll
-
-
-EXPORTS
-  
-	do_solve_generic
-	do_get_solver_descriptors

@@ -36,7 +36,7 @@
 
 #pragma once
 
-#include "../../../common/rtl/FilterLib.h"
+#include <scgms/rtl/FilterLib.h>
 
 #include "device_event.h"
 

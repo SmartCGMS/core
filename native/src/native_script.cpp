@@ -37,7 +37,7 @@
 #include "native_script.h"
 #include "compiler.h"
 
-#include "../../../common/rtl/FilesystemLib.h"
+#include <scgms/rtl/FilesystemLib.h>
 
 
 CNative_Script::CNative_Script(scgms::IFilter* output) : CBase_Filter(output) {

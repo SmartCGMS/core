@@ -37,11 +37,11 @@
 #include "log.h"
 #include "log_replay.h"
 
-#include "../../../common/iface/UIIface.h"
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/rtl/manufactory.h"
-#include "../../../common/rtl/hresult.h"
-#include "../../../common/utils/descriptor_utils.h"
+#include <scgms/iface/UIIface.h>
+#include <scgms/lang/dstrings.h>
+#include <scgms/rtl/manufactory.h>
+#include <scgms/rtl/hresult.h>
+#include <scgms/utils/descriptor_utils.h>
 
 #include <vector>
 

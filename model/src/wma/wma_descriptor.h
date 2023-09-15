@@ -36,21 +36,19 @@
 
 #pragma once
 
-#include "../../../../common/iface/UIIface.h"
-#include "../../../../common/rtl/hresult.h"
-#include "../../../../common/rtl/ModelsLib.h"
-#include "../../../../common/rtl/guid.h"
+#include <scgms/iface/UIIface.h>
+#include <scgms/rtl/hresult.h>
+#include <scgms/rtl/ModelsLib.h>
+#include <scgms/rtl/guid.h>
 
-
-
-namespace wma {        
+namespace wma {
 
 	constexpr GUID model_id = { 0x2b516dd9, 0xe1ba, 0x4df6, { 0xb8, 0xe6, 0x9c, 0xec, 0xd4, 0x2e, 0xf8, 0xda } };  // {2B516DD9-E1BA-4DF6-B8E6-9CECD42EF8DA}
-    constexpr const GUID signal_id = { 0x4798e566, 0xa225, 0x4253, { 0xa6, 0x86, 0x70, 0xb3, 0xd1, 0xaf, 0x66, 0x7a } };  // {4798E566-A225-4253-A686-70B3D1AF667A}
+	constexpr const GUID signal_id = { 0x4798e566, 0xa225, 0x4253, { 0xa6, 0x86, 0x70, 0xb3, 0xd1, 0xaf, 0x66, 0x7a } };  // {4798E566-A225-4253-A686-70B3D1AF667A}
 
 	constexpr size_t coeff_count = 12;
 	constexpr size_t model_param_count = coeff_count + 1;
-	
+
 	struct TParameters {
 		union {
 			struct {
@@ -64,9 +62,7 @@ namespace wma {
 
 	extern const double default_parameters[model_param_count];
 
-   
+	scgms::TSignal_Descriptor get_sig_desc();
 
-    scgms::TSignal_Descriptor get_sig_desc();
-
-    scgms::TModel_Descriptor get_model_desc();    //func to avoid static init fiasco as this is another unit than descriptor.cpp
+	scgms::TModel_Descriptor get_model_desc();    //func to avoid static init fiasco as this is another unit than descriptor.cpp
 }

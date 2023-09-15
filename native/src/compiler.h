@@ -36,7 +36,7 @@
 
 #pragma once
 
-#include "../../../common/rtl/FilesystemLib.h"
+#include <scgms/rtl/FilesystemLib.h>
 
 bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 			 const filesystem::path& source, const filesystem::path& target_dll,

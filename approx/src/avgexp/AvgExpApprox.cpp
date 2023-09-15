@@ -36,7 +36,7 @@
 
 #include "AvgExpApprox.h"
 
-#include "../../../../common/rtl/SolverLib.h"
+#include <scgms/rtl/SolverLib.h>
 
 #include "AvgElementaryFunctions.h"
 #include "AvgExpInterpolation.h"

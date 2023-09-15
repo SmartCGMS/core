@@ -40,8 +40,8 @@
 #include <memory>
 #include <optional>
 
-#include "../../../../common/rtl/guid.h"
-#include "../../../../common/rtl/FilesystemLib.h"
+#include <scgms/rtl/guid.h>
+#include <scgms/rtl/FilesystemLib.h>
 
 #include "CSVFormat.h"
 #include "XMLFormat.h"

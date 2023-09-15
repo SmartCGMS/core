@@ -42,8 +42,8 @@
 #include "temporal_signal_error.h"
 #include "diabetes_grid/diabetes_grid.h"
 
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/utils/descriptor_utils.h"
+#include <scgms/lang/dstrings.h>
+#include <scgms/utils/descriptor_utils.h>
 
 const std::array < scgms::TMetric_Descriptor, 14 > metric_descriptor = { {
 	 scgms::TMetric_Descriptor{ mtrAvg_Abs, dsAvg_Abs },

@@ -35,8 +35,8 @@
  */
 
 #include "uva_padova_s2017.h"
-#include "../../../../common/rtl/SolverLib.h"
-#include "../../../../common/rtl/rattime.h"
+#include <scgms/rtl/SolverLib.h>
+#include <scgms/rtl/rattime.h>
 
 #include <type_traits>
 #include <cassert>

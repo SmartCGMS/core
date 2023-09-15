@@ -34,7 +34,10 @@
  *    Volume 177, pp. 354-362, 2020
  */
 
-#ifdef _WIN32
+// dllmain.cpp : Defines the entry point for the DLL application.
+
+
+#include <scgms/utils/DebugHelper.h>
 
 #include <Windows.h>
 
@@ -53,5 +56,3 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
 	return TRUE;
 }
-
-#endif

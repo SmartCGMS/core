@@ -40,8 +40,8 @@
 #include <map>
 #include <functional>
 
-#include "../../../common/iface/SolverIface.h"
-#include "../../../common/rtl/manufactory.h"
+#include <scgms/iface/SolverIface.h>
+#include <scgms/rtl/manufactory.h>
 
 using TCreate_Metric = std::function<HRESULT(const scgms::TMetric_Parameters &parameters, scgms::IMetric **metric)>;
 

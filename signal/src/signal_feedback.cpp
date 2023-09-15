@@ -36,8 +36,8 @@
 
 #include "signal_feedback.h"
 
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/utils/string_utils.h"
+#include <scgms/lang/dstrings.h>
+#include <scgms/utils/string_utils.h>
 
 
 class CAtomic_Counter {

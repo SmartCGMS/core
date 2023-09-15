@@ -36,10 +36,10 @@
 
 #pragma once
 
-#include "../../../common/iface/ApproxIface.h"
-#include "../../../common/iface/UIIface.h"
-#include "../../../common/rtl/referencedImpl.h"
-#include "../../../common/rtl/DeviceLib.h"
+#include <scgms/iface/ApproxIface.h>
+#include <scgms/iface/UIIface.h>
+#include <scgms/rtl/referencedImpl.h>
+#include <scgms/rtl/DeviceLib.h>
 
 #include <mutex>
 

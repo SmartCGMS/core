@@ -36,7 +36,7 @@
 
 #include "clarke_error_grid.h"
 
-#include "../../../../common/iface/DeviceIface.h"
+#include <scgms/iface/DeviceIface.h>
 
 
 // The coordinates were adopted from Matlab CLARKE code

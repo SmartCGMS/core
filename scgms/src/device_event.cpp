@@ -36,11 +36,11 @@
 
 #include "device_event.h"
 
-#include "../../../common/rtl/rattime.h"
-#include "../../../common/rtl/manufactory.h"
-#include "../../../common/rtl/referencedImpl.h"
-#include "../../../common/rtl/DeviceLib.h"
-#include "../../../common/utils/DebugHelper.h"
+#include <scgms/rtl/rattime.h>
+#include <scgms/rtl/manufactory.h>
+#include <scgms/rtl/referencedImpl.h>
+#include <scgms/rtl/DeviceLib.h>
+#include <scgms/utils/DebugHelper.h>
 
 #include <atomic>
 #include <stdexcept>

@@ -36,7 +36,7 @@
 
 #include "parkes_error_grid.h"
 
-#include "../../../../common/iface/DeviceIface.h"
+#include <scgms/iface/DeviceIface.h>
 
 
 //See also:

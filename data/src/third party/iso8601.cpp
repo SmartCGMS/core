@@ -28,7 +28,7 @@
 //https://github.com/logandk/restful_mapper/blob/master/include/restful_mapper/internal/iso8601.h
 
 #include "iso8601.h"
-#include "../../../../common/utils/winapi_mapping.h"
+#include <scgms/utils/winapi_mapping.h>
 
 #include <cctype>
 #include <time.h>

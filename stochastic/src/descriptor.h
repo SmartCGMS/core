@@ -36,10 +36,8 @@
 
 #pragma once
 
-#include "../../../common/iface/UIIface.h"
-#include "../../../common/rtl/hresult.h"
-
-
+#include <scgms/iface/UIIface.h>
+#include <scgms/rtl/hresult.h>
 
 namespace mt_metade {	//mersenne twister initialized with linear random generator
 	constexpr GUID id =	{ 0x1b21b62f, 0x7c6c, 0x4027,{ 0x89, 0xbc, 0x68, 0x7d, 0x8b, 0xd3, 0x2b, 0x3c } };	// {1B21B62F-7C6C-4027-89BC-687D8BD32B3C}

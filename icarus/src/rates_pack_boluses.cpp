@@ -37,8 +37,8 @@
 #include "rates_pack_boluses.h"
 #include "descriptor.h"
 
-#include "../../../common/rtl/SolverLib.h"
-#include "../../../common/utils/DebugHelper.h"
+#include <scgms/rtl/SolverLib.h>
+#include <scgms/utils/DebugHelper.h>
 
 CRates_Pack_Boluses::CRates_Pack_Boluses(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output) :
 	CBase_Filter(output, rates_pack_boluses::model_id),

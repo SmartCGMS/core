@@ -44,7 +44,7 @@
 	#include <windows.h>
 #endif
 
-#include "../../../../common/utils/string_utils.h"
+#include <scgms/utils/string_utils.h>
 
 
 //helper functions

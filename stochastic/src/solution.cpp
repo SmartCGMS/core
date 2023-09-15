@@ -36,7 +36,7 @@
 
 #include "solution.h"
 
-#include "../../../common/utils/math_utils.h"
+#include <scgms/utils/math_utils.h>
 
 #if __cplusplus >= 202002L
 	#include <compare>

@@ -34,8 +34,8 @@
  *    Volume 177, pp. 354-362, 2020
  */
 
-#include "../../../../common/utils/string_utils.h"
-#include "../../../../common/rtl/FilesystemLib.h"
+#include <scgms/utils/string_utils.h>
+#include <scgms/rtl/FilesystemLib.h>
 
 #include "XMLFormat.h"
 #include "Misc.h"

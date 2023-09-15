@@ -38,7 +38,7 @@
 
 #include <string>
 #include <vector>
-#include "../../../../../common/utils/string_utils.h"
+#include <scgms/utils/string_utils.h>
 
 std::vector<std::string> split_string(std::string str, std::string delimiterOpen, std::string delimiterClose);
 std::vector<std::string> split_string(std::string str, std::string delimiter);

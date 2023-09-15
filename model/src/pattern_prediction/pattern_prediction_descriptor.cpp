@@ -37,8 +37,8 @@
 #include "pattern_prediction_descriptor.h"
 #include "pattern_descriptor_model_parameters.h"
 
-#include "../../../../common/utils/descriptor_utils.h"
-#include "../../../../common/lang/dstrings.h"
+#include <scgms/utils/descriptor_utils.h>
+#include <scgms/lang/dstrings.h>
 
 #include <cmath>
 

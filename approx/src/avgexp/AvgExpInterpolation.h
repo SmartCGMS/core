@@ -36,7 +36,7 @@
 
 #pragma once
 
-#include "../../../../common/iface/ApproxIface.h"
+#include <scgms/iface/ApproxIface.h>
 #include "AvgExpApprox.h"
 
 //Epsilon Types - they cannot be declared with extern to allow using them with switch

@@ -37,9 +37,7 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
 
 
-#include "../../../../common/utils/DebugHelper.h"
-
-#include "../filters.h"
+#include <scgms/utils/DebugHelper.h>
 
 #include <Windows.h>
 
@@ -51,8 +49,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 	switch (ul_reason_for_call)	{
 	case DLL_PROCESS_ATTACH:
 	case DLL_THREAD_ATTACH:
-	case DLL_THREAD_DETACH:	
-	case DLL_PROCESS_DETACH: 
+	case DLL_THREAD_DETACH:
+	case DLL_PROCESS_DETACH:
 		break;
 	}
 	return TRUE;

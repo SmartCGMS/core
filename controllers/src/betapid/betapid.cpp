@@ -40,8 +40,8 @@
 #include <numeric>
 #include <cmath>
 
-#include "../../../../common/rtl/rattime.h"
-#include "../../../../common/rtl/SolverLib.h"
+#include <scgms/rtl/rattime.h>
+#include <scgms/rtl/SolverLib.h>
 
 CBetaPID_Insulin_Regulation::CBetaPID_Insulin_Regulation(scgms::WTime_Segment segment)
 	: CCommon_Calculated_Signal(segment), mIOB(segment.Get_Signal(scgms::signal_IOB)), mIG(segment.Get_Signal(scgms::signal_IG)) {

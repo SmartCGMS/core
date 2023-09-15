@@ -36,8 +36,8 @@
 
 #pragma once
 
-#include "../../../common/iface/SolverIface.h"
-#include "../../../common/rtl/referencedImpl.h"
+#include <scgms/iface/SolverIface.h>
+#include <scgms/rtl/referencedImpl.h>
 
 #include <vector>
 

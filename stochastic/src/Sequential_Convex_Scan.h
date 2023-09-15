@@ -42,7 +42,7 @@
 #include <climits>
 
 #include "solution.h"
-#include "../../../common/rtl/SolverLib.h"
+#include <scgms/rtl/SolverLib.h>
 
 template <typename TUsed_Solution>
 class CSequential_Convex_Scan {

@@ -37,10 +37,10 @@
 #include "filter_parameter.h"
 #include "filters.h"
 
-#include "../../../common/rtl/manufactory.h"
-#include "../../../common/utils/string_utils.h"
-#include "../../../common/rtl/rattime.h"
-#include "../../../common/lang/dstrings.h"
+#include <scgms/rtl/manufactory.h>
+#include <scgms/utils/string_utils.h>
+#include <scgms/rtl/rattime.h>
+#include <scgms/lang/dstrings.h>
 
 #include <fstream>
 

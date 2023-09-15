@@ -36,9 +36,9 @@
 
 #include "fitness.h"
 
-#include "../../../common/rtl/SolverLib.h"
-#include "../../../common/rtl/UILib.h"
-#include "../../../common/rtl/referencedImpl.h"
+#include <scgms/rtl/SolverLib.h>
+#include <scgms/rtl/UILib.h>
+#include <scgms/rtl/referencedImpl.h>
 
 #include <numeric>
 #include <execution> 

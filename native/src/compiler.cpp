@@ -40,8 +40,8 @@
 #include "process.h"
 #include "auto_env.h"
 
-#include "../../../common/utils/string_utils.h"
-#include "../../../common/rtl/Dynamic_Library.h"
+#include <scgms/utils/string_utils.h>
+#include <scgms/rtl/Dynamic_Library.h>
 
 #include <array>
 #include <regex>

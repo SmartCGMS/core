@@ -36,10 +36,10 @@
 
 #pragma once
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/referencedImpl.h"
-#include "../../../common/rtl/FilesystemLib.h"
-#include "../../../common/utils/string_utils.h"
+#include <scgms/rtl/FilterLib.h>
+#include <scgms/rtl/referencedImpl.h>
+#include <scgms/rtl/FilesystemLib.h>
+#include <scgms/utils/string_utils.h>
 
 #include <map>
 #include <iostream>

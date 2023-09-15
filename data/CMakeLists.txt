@@ -46,8 +46,6 @@ IF(COMPONENT_EXCEL_LOADERS)
 	SET(EXCELFORMAT_LIBRARY "" CACHE FILEPATH "ExcelFormat library files location")
 ENDIF()
 
-CONFIGURE_COMMON(${PROJ})
-
 FILE(GLOB SRC_FILES_TOP "src/*.cpp" "src/*.c" "src/*.h")
 FILE(GLOB SRC_FILES_THIRDPARTY "src/third party/*.h" "src/third party/*.cpp" "src/third party/*.c")
 FILE(GLOB SRC_FILES_FILELOADER "src/fileloader/*.cpp" "src/fileloader/*.h" "src/fileloader/*.c" "misc/formats/*.c")
@@ -64,6 +62,7 @@ SOURCE_GROUP(fileloader FILES ${SRC_FILES_FILELOADER})
 
 SCGMS_ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES})
 TARGET_LINK_LIBRARIES(${PROJ} scgms-common)
+APPLY_SCGMS_LIBRARY_BUILD_SETTINGS(${PROJ})
 CONFIGURE_FILTER_OUTPUT(${PROJ})
 
 SET(REQUIRED_LIBS )

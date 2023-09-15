@@ -36,10 +36,9 @@
 
 #pragma once
 
-#include "../../../common/iface/UIIface.h"
-#include "../../../common/rtl/hresult.h"
-#include "../../../common/rtl/ModelsLib.h"
-
+#include <scgms/iface/UIIface.h>
+#include <scgms/rtl/hresult.h>
+#include <scgms/rtl/ModelsLib.h>
 
 namespace icarus_v1_boluses {
 	constexpr GUID model_id = { 0xf9d961a5, 0x4767, 0x41f6, { 0x89, 0x5f, 0x2a, 0xe6, 0xf4, 0xf4, 0x56, 0x4c } };	// {F9D961A5-4767-41F6-895F-2AE6F4F4564C}

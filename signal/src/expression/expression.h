@@ -40,8 +40,8 @@
 #include <string>
 #include <type_traits>
 
-#include "../../../../common/rtl/DeviceLib.h"
-#include "../../../../common/utils/string_utils.h"
+#include <scgms/rtl/DeviceLib.h>
+#include <scgms/utils/string_utils.h>
 
 namespace expression {
     

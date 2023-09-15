@@ -34,7 +34,7 @@
  *    Volume 177, pp. 354-362, 2020
  */
 
-#include "../../../common/iface/SolverIface.h"
+#include <scgms/iface/SolverIface.h>
 
 #include "descriptor.h"
 #include "solution.h"

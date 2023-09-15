@@ -36,11 +36,10 @@
 
 #pragma once
 
-#include "../../../../common/rtl/referencedImpl.h"
-#include "../../../../common/rtl/hresult.h"
-#include "../../../../common/rtl/FilesystemLib.h"
-#include "../../../../common/utils/SimpleIni.h"
-
+#include <scgms/rtl/referencedImpl.h>
+#include <scgms/rtl/hresult.h>
+#include <scgms/rtl/FilesystemLib.h>
+#include <scgms/utils/SimpleIni.h>
 
 #include "value_convertor.h"
 #include "time_utils.h"

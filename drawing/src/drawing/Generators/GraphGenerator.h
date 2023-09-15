@@ -38,7 +38,7 @@
 
 #include "IGenerator.h"
 
-#include "../../../../../common/rtl/UILib.h"
+#include <scgms/rtl/UILib.h>
 
 struct TCoordinate;
 struct Value;

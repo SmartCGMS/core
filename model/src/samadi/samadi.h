@@ -40,7 +40,7 @@
 #include <mutex>
 
 #include "../descriptor.h"
-#include "../../../../common/rtl/FilterLib.h"
+#include <scgms/rtl/FilterLib.h>
 
 #include "../common/ode_solvers.h"
 #include "../common/ode_solver_parameters.h"

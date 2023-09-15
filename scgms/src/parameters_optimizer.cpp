@@ -34,7 +34,11 @@
  *    Volume 177, pp. 354-362, 2020
  */
 
-#include "../../../common/rtl/SolverLib.h"
+#include <scgms/rtl/SolverLib.h>
+#include <scgms/rtl/referencedImpl.h>
+#include <scgms/rtl/FilterLib.h>
+#include <scgms/utils/DebugHelper.h>
+#include <scgms/lang/dstrings.h>
 
 #include "parameters_optimizer.h"
 #include "configuration_link.h"
@@ -44,11 +48,6 @@
 #include "composite_filter.h"
 #include "device_event.h"
 #include "persistent_chain_configuration.h"
-
-#include "../../../common/rtl/referencedImpl.h"
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/utils/DebugHelper.h"
-#include "../../../common/lang/dstrings.h"
 
 #include <stack>
 #include <mutex>

@@ -48,8 +48,8 @@
 #undef max
 #undef min
 
-#include "../../../common/rtl/SolverLib.h"
-#include "../../../common/utils/DebugHelper.h"
+#include <scgms/rtl/SolverLib.h>
+#include <scgms/utils/DebugHelper.h>
 
 #include "population.h"
 

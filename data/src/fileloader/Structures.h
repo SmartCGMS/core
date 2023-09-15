@@ -36,7 +36,7 @@
 
 #pragma once
 
-#include "../../../../common/rtl/guid.h"
+#include <scgms/rtl/guid.h>
 
 #include <cstdint>
 #include <climits>

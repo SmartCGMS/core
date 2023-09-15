@@ -36,7 +36,7 @@
 
 #include "samadi_gct2.h"
 
-#include "../../../../common/rtl/SolverLib.h"
+#include <scgms/rtl/SolverLib.h>
 
 // this selects GCTv2 support implementations
 using namespace gct2_model;

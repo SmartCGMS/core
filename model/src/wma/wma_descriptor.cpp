@@ -36,8 +36,8 @@
 
 #include "wma_descriptor.h"
 
-#include "../../../../common/utils/descriptor_utils.h"
-#include "../../../../common/lang/dstrings.h"
+#include <scgms/utils/descriptor_utils.h>
+#include <scgms/lang/dstrings.h>
 
 #include <vector>
 

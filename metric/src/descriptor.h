@@ -36,7 +36,7 @@
 
 #pragma once
 
-#include "../../../common/iface/UIIface.h"
+#include <scgms/iface/UIIface.h>
 
 #include <vector>
 

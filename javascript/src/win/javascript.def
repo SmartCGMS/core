@@ -1,6 +1,0 @@
-LIBRARY javascript.dll
-
-EXPORTS
-	do_get_model_descriptors
-	do_create_discrete_model
-	do_get_signal_descriptors

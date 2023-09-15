@@ -38,7 +38,7 @@
 
 #include "native_segment.h"
 
-#include "../../../common/rtl/Dynamic_Library.h"
+#include <scgms/rtl/Dynamic_Library.h>
 
 #include <map>
 

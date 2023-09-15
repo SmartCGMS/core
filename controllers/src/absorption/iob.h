@@ -36,7 +36,7 @@
 
 #pragma once
 
-#include "../../../../common/rtl/Common_Calculated_Signal.h"
+#include <scgms/rtl/Common_Calculated_Signal.h>
 
 enum class NInsulin_Calc_Mode {
 	Activity,

@@ -50,9 +50,9 @@
 
 #include "solution.h"
 
-#include "../../../common/rtl/SolverLib.h"
-#include "../../../common/rtl/Eigen_Buffer.h"
-#include "../../../common/utils/DebugHelper.h"
+#include <scgms/rtl/SolverLib.h>
+#include <scgms/rtl/Eigen_Buffer.h>
+#include <scgms/utils/DebugHelper.h>
 
 
 namespace metade {

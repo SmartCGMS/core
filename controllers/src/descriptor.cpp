@@ -34,12 +34,12 @@
  *    Volume 177, pp. 354-362, 2020
  */
 
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/rtl/manufactory.h"
-#include "../../../common/rtl/UILib.h"
-#include "../../../common/utils/descriptor_utils.h"
-#include "../../../common/rtl/DeviceLib.h"
-#include "../../../common/rtl/FilterLib.h"
+#include <scgms/lang/dstrings.h>
+#include <scgms/rtl/manufactory.h>
+#include <scgms/rtl/UILib.h>
+#include <scgms/utils/descriptor_utils.h>
+#include <scgms/rtl/DeviceLib.h>
+#include <scgms/rtl/FilterLib.h>
 
 #include "descriptor.h"
 

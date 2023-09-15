@@ -36,8 +36,8 @@
 
 #include "noise_filter.h"
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/lang/dstrings.h"
+#include <scgms/rtl/FilterLib.h>
+#include <scgms/lang/dstrings.h>
 
 #include <algorithm>
 #include <numeric>

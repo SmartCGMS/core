@@ -35,10 +35,10 @@
  */
 
 #include "samadi.h"
-#include "../../../../common/rtl/SolverLib.h"
-#include "../../../../common/rtl/rattime.h"
 
-#include "../../../../common/utils/DebugHelper.h"
+#include <scgms/rtl/SolverLib.h>
+#include <scgms/rtl/rattime.h>
+#include <scgms/utils/DebugHelper.h>
 
 #include <type_traits>
 #include <cassert>

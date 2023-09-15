@@ -45,7 +45,7 @@
 #include "FormatImpl.h"
 #include "Misc.h"
 
-#include "../../../../common/rtl/FilesystemLib.h"
+#include <scgms/rtl/FilesystemLib.h>
 
 /*
  * Format adapter class encapsulating file format recognition and interfacing with

@@ -34,8 +34,8 @@
  *    Volume 177, pp. 354-362, 2020
  */
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/referencedImpl.h"
+#include <scgms/rtl/FilterLib.h>
+#include <scgms/rtl/referencedImpl.h>
 
 #include <vector>
 

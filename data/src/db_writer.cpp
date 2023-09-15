@@ -36,16 +36,15 @@
 
 #include "db_writer.h"
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/rattime.h"
-#include "../../../common/iface/DeviceIface.h"
-#include "../../../common/rtl/referencedImpl.h"
-#include "../../../common/rtl/ModelsLib.h"
-#include "../../../common/rtl/UILib.h"
-#include "../../../common/rtl/FilesystemLib.h"
-#include "../../../common/lang/dstrings.h"
-
-#include "../../../common/utils/DebugHelper.h"
+#include <scgms/rtl/FilterLib.h>
+#include <scgms/rtl/rattime.h>
+#include <scgms/iface/DeviceIface.h>
+#include <scgms/rtl/referencedImpl.h>
+#include <scgms/rtl/ModelsLib.h>
+#include <scgms/rtl/UILib.h>
+#include <scgms/rtl/FilesystemLib.h>
+#include <scgms/lang/dstrings.h>
+#include <scgms/utils/DebugHelper.h>
 
 #include "third party/iso8601.h"
 #include "descriptor.h"

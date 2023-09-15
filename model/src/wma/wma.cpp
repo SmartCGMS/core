@@ -38,8 +38,8 @@
 
 #include "wma_descriptor.h"
 
-#include "../../../../common/rtl/SolverLib.h"
-#include "../../../../common/utils/math_utils.h"
+#include <scgms/rtl/SolverLib.h>
+#include <scgms/utils/math_utils.h>
 
 #include <cmath>
 

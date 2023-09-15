@@ -36,7 +36,7 @@
 
 #include "lgs.h"
 #include "../descriptor.h"
-#include "../../../../common/rtl/SolverLib.h"
+#include <scgms/rtl/SolverLib.h>
 
 #include <cmath>
 

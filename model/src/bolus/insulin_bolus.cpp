@@ -35,7 +35,7 @@
  */
 
 #include "insulin_bolus.h"
-#include "../../../../common/rtl/SolverLib.h"
+#include <scgms/rtl/SolverLib.h>
 
 CDiscrete_Insulin_Bolus_Calculator::CDiscrete_Insulin_Bolus_Calculator(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output)
 	: CBase_Filter(output), mParameters(scgms::Convert_Parameters<insulin_bolus::TParameters>(parameters, insulin_bolus::default_parameters)) {

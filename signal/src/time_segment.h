@@ -36,8 +36,8 @@
 
 #pragma once
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/DeviceLib.h"
+#include <scgms/rtl/FilterLib.h>
+#include <scgms/rtl/DeviceLib.h>
 
 #include <map>
 #include <set>

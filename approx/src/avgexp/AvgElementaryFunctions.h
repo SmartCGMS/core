@@ -36,7 +36,7 @@
 
 #pragma once
 
-#include "../../../../common/iface/ApproxIface.h"
+#include <scgms/iface/ApproxIface.h>
 
 #include <vector>
 

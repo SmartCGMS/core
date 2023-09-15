@@ -37,7 +37,7 @@
 #pragma once
 
 #include "../descriptor.h"
-#include "../../../../common/rtl/FilterLib.h"
+#include <scgms/rtl/FilterLib.h>
 
 #include "gct_transfer_functions.h"
 #include "gct_moderation_functions.h"

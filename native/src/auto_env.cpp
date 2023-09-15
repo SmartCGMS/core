@@ -37,7 +37,7 @@
 #include "auto_env.h"
 
 #include "process.h"
-#include "../../../common/utils/string_utils.h"
+#include <scgms/utils/string_utils.h>
 
 #include <array>
 

@@ -36,8 +36,8 @@
 
 #pragma once
 
-#include "../../../common/iface/UIIface.h"
-#include "../../../common/rtl/hresult.h"
+#include <scgms/iface/UIIface.h>
+#include <scgms/rtl/hresult.h>
 
 namespace calculate
 {

@@ -39,7 +39,7 @@
 #include <cmath>
 #include <limits>
 
-#include "../../../../common/utils/DebugHelper.h"
+#include <scgms/utils/DebugHelper.h>
 
 #undef max
 #undef min

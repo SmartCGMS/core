@@ -41,10 +41,10 @@
 #include "db_writer_legacy.h"
 #include "file_reader.h"
 #include "sincos_generator.h"
-#include "../../../common/utils/descriptor_utils.h"
 
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/rtl/manufactory.h"
+#include <scgms/utils/descriptor_utils.h>
+#include <scgms/lang/dstrings.h>
+#include <scgms/rtl/manufactory.h>
 
 #include <vector>
 

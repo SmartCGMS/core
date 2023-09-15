@@ -36,10 +36,10 @@
 
 #include "signal_stats.h"
 
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/rtl/UILib.h"
-#include "../../../common/utils/string_utils.h"
-#include "../../../common/utils/math_utils.h"
+#include <scgms/lang/dstrings.h>
+#include <scgms/rtl/UILib.h>
+#include <scgms/utils/string_utils.h>
+#include <scgms/utils/math_utils.h>
 
 
 #include <fstream>

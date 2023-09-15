@@ -36,12 +36,12 @@
 
 #include "file_reader.h"
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/FilesystemLib.h"
-#include "../../../common/rtl/rattime.h"
-#include "../../../common/rtl/hresult.h"
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/utils/string_utils.h"
+#include <scgms/rtl/FilterLib.h>
+#include <scgms/rtl/FilesystemLib.h>
+#include <scgms/rtl/rattime.h>
+#include <scgms/rtl/hresult.h>
+#include <scgms/lang/dstrings.h>
+#include <scgms/utils/string_utils.h>
 
 #include "fileloader/file_format_rules.h"
 #include "fileloader/Extractor.h"

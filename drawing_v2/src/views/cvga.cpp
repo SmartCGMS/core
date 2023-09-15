@@ -38,11 +38,11 @@
 
 #include <iomanip>
 
-#include "../../../../common/iface/UIIface.h"
-#include "../../../../common/rtl/UILib.h"
-#include "../../../../common/utils/drawing/IRenderer.h"
-#include "../../../../common/utils/drawing/SVGRenderer.h"
-#include "../../../../common/utils/string_utils.h"
+#include <scgms/iface/UIIface.h>
+#include <scgms/rtl/UILib.h>
+#include <scgms/utils/drawing/IRenderer.h>
+#include <scgms/utils/drawing/SVGRenderer.h>
+#include <scgms/utils/string_utils.h>
 
 #undef min
 #undef max

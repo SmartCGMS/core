@@ -36,8 +36,8 @@
 
 #pragma once
 
-#include "../../../../common/rtl/Common_Calculated_Signal.h"
-#include "../../../../common/rtl/Eigen_Buffer.h"
+#include <scgms/rtl/Common_Calculated_Signal.h>
+#include <scgms/rtl/Eigen_Buffer.h>
 
 
 #pragma warning( push )

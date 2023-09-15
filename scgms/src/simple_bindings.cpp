@@ -34,13 +34,11 @@
  *    Volume 177, pp. 354-362, 2020
  */
 
-#include "../../../common/iface/SimpleIface.h"
-#include "../../../common/iface/FilterIface.h"
-
-
-#include "../../../common/rtl/DeviceLib.h"
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/referencedImpl.h"
+#include <scgms/iface/SimpleIface.h>
+#include <scgms/iface/FilterIface.h>
+#include <scgms/rtl/DeviceLib.h>
+#include <scgms/rtl/FilterLib.h>
+#include <scgms/rtl/referencedImpl.h>
 
 #include "filter_configuration_executor.h"
 

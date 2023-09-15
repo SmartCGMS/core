@@ -36,18 +36,7 @@
 
 #include "gct3.h"
 
-// draw debug plots to a file? define to draw
-//#define GCT_DEBUG_DRAWING
-
-#include "../../../../common/rtl/SolverLib.h"
-
-#ifdef GCT_DEBUG_DRAWING
-#include <fstream>
-#include "../../../../common/utils/string_utils.h"
-#include "../../../../common/utils/drawing/SVGRenderer.h"
-#include "../../../../common/utils/drawing/Drawing.cpp"			// I am sorry
-#include "../../../../common/utils/drawing/SVGRenderer.cpp"		// Don't judge me, please
-#endif
+#include <scgms/rtl/SolverLib.h>
 
 // this selects GCTv3 support implementations
 using namespace gct3_model;
@@ -422,118 +411,6 @@ HRESULT CGCT3_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 				// res = S_OK; - do not unless we have another signal called consumed CHO
 			}
 		}
-#ifdef GCT_DEBUG_DRAWING
-		else if (event.event_code() == scgms::NDevice_Event_Code::Shut_Down)
-		{
-			std::string svg_str;
-
-			drawing::Drawing draw;
-
-			double mintime = std::numeric_limits<double>::max(), maxtime = std::numeric_limits<double>::min();
-
-			size_t entryCnt = 0;
-
-			for (auto& dt : mDebug_Values) {
-				for (auto& dd : dt.second) {
-					entryCnt++;
-					for (auto& val : dd.second) {
-						if (val.first < mintime)
-							mintime = val.first;
-						if (val.first > maxtime)
-							maxtime = val.first;
-					}
-				}
-			}
-
-			auto draw_plot = [&draw, mintime, maxtime](const std::string& grpname, double startX, double startY, double endX, double endY, const std::vector<std::pair<double, double>>& vals) {
-
-				auto& grp = draw.Root().Add<drawing::Group>(grpname);
-
-				grp.Add<drawing::Text>(startX + 5, startY + 60, grpname)
-					.Set_Font_Size(16)
-					.Set_Fill_Color(RGBColor::From_HTML_Color("#12128D"));
-
-				grp.Add<drawing::Line>(startX, startY, startX, endY)
-					.Set_Stroke_Color(RGBColor::From_HTML_Color("#000000"))
-					.Set_Stroke_Width(2.0);
-
-				grp.Add<drawing::Line>(startX, endY, endX, endY)
-					.Set_Stroke_Color(RGBColor::From_HTML_Color("#000000"))
-					.Set_Stroke_Width(2.0);
-
-				double minval = std::numeric_limits<double>::max(), maxval = std::numeric_limits<double>::min();
-				for (const auto& v : vals) {
-					if (v.second < minval)
-						minval = v.second;
-					if (v.second > maxval)
-						maxval = v.second;
-				}
-
-				grp.Add<drawing::Text>(startX + 5, startY + 20, std::to_string(maxval))
-					.Set_Font_Size(12)
-					.Set_Fill_Color(RGBColor::From_HTML_Color("#12128D"));
-				grp.Add<drawing::Text>(startX + 5, endY - 8, std::to_string(minval))
-					.Set_Font_Size(12)
-					.Set_Fill_Color(RGBColor::From_HTML_Color("#12128D"));
-
-				auto scale_time = [mintime, maxtime, startX, endX](double time) {
-					return startX + (endX - startX) *( 1- ((maxtime - time) / (maxtime - mintime)));
-				};
-				auto scale_value = [minval, maxval, startY, endY](double value) {
-					return endY - (endY - startY) * (1 - ((maxval - value) / (maxval - minval)));
-				};
-
-				double tmptime = mintime + scgms::One_Hour;
-				while (tmptime < maxtime) {
-
-					double scaledTime = scale_time(tmptime);
-
-					grp.Add<drawing::Line>(scaledTime, endY-4, scaledTime, endY)
-						.Set_Stroke_Color(RGBColor::From_HTML_Color("#000000"))
-						.Set_Stroke_Width(1.0);
-
-					tmptime += scgms::One_Hour;
-				}
-
-				auto& polyline = grp.Add<drawing::PolyLine>(scale_time(vals[0].first), scale_value(vals[0].second));
-
-				polyline.Set_Stroke_Color(RGBColor::From_HTML_Color("#0000FF"))
-					.Set_Stroke_Width(1.0);
-
-				polyline.Set_Fill_Opacity(0);
-
-				for (auto& v : vals) {
-					polyline.Add_Point(scale_time(v.first), scale_value(v.second));
-				}
-
-			};
-
-			const size_t perRow = static_cast<size_t>(std::sqrt(entryCnt));
-			constexpr size_t graphWidth = 400;
-			constexpr size_t graphHeight = 300;
-			const size_t rowCnt = 1 + ( entryCnt / perRow );
-
-			size_t row = 0;
-			size_t col = 0;
-
-			for (auto& dt : mDebug_Values) {
-				for (auto& dd : dt.second) {
-					draw_plot(Narrow_WString(mDebug_Names[dd.first]), col* graphWidth, row* graphHeight, (col + 1)* graphWidth, (row + 1)* graphHeight, dd.second);
-					col = (col + 1) % perRow;
-					if (col == 0)
-						row++;
-				}
-			}
-
-			//
-			CSVG_Renderer renderer(perRow* graphWidth, rowCnt* graphHeight, svg_str);
-			draw.Render(renderer);
-
-			std::ofstream of("gct2_debug.svg");
-			of << svg_str;
-			of.close();
-		}
-#endif
 	}
 
 	if (res == S_FALSE)
@@ -581,51 +458,6 @@ HRESULT IfaceCalling CGCT3_Discrete_Model::Step(const double time_advance_delta)
 				mLast_Time = oldTime + static_cast<double>(i) * microStepSize;
 			}
 		}
-
-#ifdef GCT_DEBUG_DRAWING
-		auto comp_to_str = [](const NGCT_Compartment comp) -> std::wstring {
-			switch (comp) {
-				case NGCT_Compartment::Glucose_1: return L"Q1";
-				case NGCT_Compartment::Glucose_2: return L"Q2";
-				case NGCT_Compartment::Glucose_Peripheral: return L"Qp";
-				case NGCT_Compartment::Glucose_Subcutaneous: return L"Qsc";
-				case NGCT_Compartment::Carbs: return L"COB";
-				case NGCT_Compartment::Insulin_Base: return L"Ib";
-				case NGCT_Compartment::Insulin_Peripheral: return L"Ip";
-				case NGCT_Compartment::Insulin_Remote: return L"X";
-				case NGCT_Compartment::Insulin_Subcutaneous_1: return L"Isc";
-				case NGCT_Compartment::Physical_Activity: return L"PA";
-				case NGCT_Compartment::Physical_Activity_Glucose_Moderation_Short_Term: return L"PAmod_ST";
-				case NGCT_Compartment::Physical_Activity_Glucose_Moderation_Long_Term: return L"PAmod_LT";
-				default: return L"???";
-			}
-		};
-
-		// collect data from all depots and compartments
-		for (size_t ci = 0; ci < static_cast<size_t>(NGCT_Compartment::count); ci++) {
-
-			auto& comp = mCompartments[static_cast<NGCT_Compartment>(ci)];
-
-			
-			for (auto& depot : comp) {
-
-				if (static_cast<NGCT_Compartment>(ci) != NGCT_Compartment::Physical_Activity_Glucose_Moderation_Short_Term)
-					continue;
-
-				/*
-				if (static_cast<NGCT_Compartment>(ci) == NGCT_Compartment::Insulin_Subcutaneous || static_cast<NGCT_Compartment>(ci) == NGCT_Compartment::Carbs)
-					continue;
-				*/
-
-				mDebug_Values[static_cast<NGCT_Compartment>(ci)][(uintptr_t)&depot].push_back({ mLast_Time, depot->Get_Quantity() });
-				mDebug_Names[(uintptr_t)&depot] = depot->Get_Name();
-			}
-			
-
-			mDebug_Values[static_cast<NGCT_Compartment>(ci)][(uintptr_t)static_cast<NGCT_Compartment>(ci)].push_back({ mLast_Time, comp.Get_Quantity() });
-			mDebug_Names[(uintptr_t)static_cast<NGCT_Compartment>(ci)] = comp_to_str(static_cast<NGCT_Compartment>(ci));
-		}
-#endif
 
 		mLast_Time = futureTime; // to avoid precision loss
 

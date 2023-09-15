@@ -36,7 +36,7 @@
 
 #pragma once
 
-#include "../../../../common/rtl/Common_Calculated_Signal.h"
+#include <scgms/rtl/Common_Calculated_Signal.h>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance

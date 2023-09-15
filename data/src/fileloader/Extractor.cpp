@@ -34,12 +34,13 @@
  *    Volume 177, pp. 354-362, 2020
  */
 
-#include "../../../../common/lang/dstrings.h"
-#include "../../../../common/iface/DeviceIface.h"
+#include <scgms/lang/dstrings.h>
+#include <scgms/iface/DeviceIface.h>
+#include <scgms/rtl/rattime.h>
+#include <scgms/utils/string_utils.h>
+
 #include "Extractor.h"
 #include "time_utils.h"
-#include "../../../../common/rtl/rattime.h"
-#include "../../../../common/utils/string_utils.h"
 
 #include <array>
 #include <sstream>

@@ -36,9 +36,9 @@
 
 #include "time_utils.h"
 
-#include "../../../../common/utils/winapi_mapping.h"
-#include "../../../../common/utils/string_utils.h"
-#include "../../../../common/rtl/rattime.h"
+#include <scgms/utils/winapi_mapping.h>
+#include <scgms/utils/string_utils.h>
+#include <scgms/rtl/rattime.h>
 
 #include <iostream>
 #include <sstream>

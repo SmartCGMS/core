@@ -36,8 +36,8 @@
 
 #pragma once
 
-#include "../../../common/iface/UIIface.h"
-#include "../../../common/rtl/hresult.h"
+#include <scgms/iface/UIIface.h>
+#include <scgms/rtl/hresult.h>
 
 namespace db_reader {
 	constexpr GUID filter_id = { 0x1f8ffb51, 0x5f8c, 0x416b, { 0x9b, 0x80, 0x93, 0x66, 0xb0, 0x81, 0x2f, 0xff } }; //// {1F8FFB51-5F8C-416B-9B80-9366B0812FFF}

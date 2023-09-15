@@ -36,8 +36,8 @@
 
 #pragma once
 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/referencedImpl.h"
+#include <scgms/rtl/FilterLib.h>
+#include <scgms/rtl/referencedImpl.h>
 
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance

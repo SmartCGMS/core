@@ -74,8 +74,8 @@
 #include <stdbool.h>
 
 #include "expression.tab.hpp"
-#include "../../../../common/lang/dstrings.h"
-#include "../../../../common/utils/string_utils.h"
+#include <scgms/lang/dstrings.h>
+#include <scgms/utils/string_utils.h>
 
 struct TGlobal_Ast_Data {
   expression::CAST_Node* ast_root;

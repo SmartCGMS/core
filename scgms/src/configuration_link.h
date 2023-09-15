@@ -36,8 +36,8 @@
 
 #pragma once
 
-#include "../../../common/iface/FilterIface.h"
-#include "../../../common/rtl/referencedImpl.h"
+#include <scgms/iface/FilterIface.h>
+#include <scgms/rtl/referencedImpl.h>
 
 #include "filter_parameter.h"
 

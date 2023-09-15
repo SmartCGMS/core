@@ -38,13 +38,13 @@
 #include "configuration_link.h"
 #include "filters.h"
 
-#include "../../../common/rtl/FilesystemLib.h" 
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/manufactory.h"
-#include "../../../common/rtl/rattime.h"
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/utils/SimpleIni.h" 
-#include "../../../common/utils/string_utils.h" 
+#include <scgms/rtl/FilesystemLib.h>
+#include <scgms/rtl/FilterLib.h>
+#include <scgms/rtl/manufactory.h>
+#include <scgms/rtl/rattime.h>
+#include <scgms/lang/dstrings.h>
+#include <scgms/utils/SimpleIni.h>
+#include <scgms/utils/string_utils.h>
 
 #include <fstream>
 #include <exception>

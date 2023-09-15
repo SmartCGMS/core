@@ -34,6 +34,16 @@
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 
+PROJECT("scgms-core")
+
+SET(SMARTCGMS_COMMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../common/" CACHE PATH "SmartCGMS 'common' directory location")
+
+INCLUDE("${SMARTCGMS_COMMON_DIR}/cmake/Functions.cmake")
+
+DISCOVER_DEPENDENCIES()
+
+INCLUDE_DIRECTORIES("${SMARTCGMS_COMMON_DIR}/")
+
 # Add "scgms" project - this is a mandatory core module
 
 ADD_SUBDIRECTORY("scgms")

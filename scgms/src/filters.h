@@ -36,11 +36,11 @@
 
 #pragma once
 
-#include "../../../common/iface/SolverIface.h"
-#include "../../../common/iface/UIIface.h"
-#include "../../../common/iface/ApproxIface.h"
-#include "../../../common/rtl/Dynamic_Library.h"
-#include "../../../common/rtl/FilterLib.h"
+#include <scgms/iface/SolverIface.h>
+#include <scgms/iface/UIIface.h>
+#include <scgms/iface/ApproxIface.h>
+#include <scgms/rtl/Dynamic_Library.h>
+#include <scgms/rtl/FilterLib.h>
 
 namespace imported {
 	struct TLibraryInfo {

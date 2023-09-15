@@ -34,10 +34,10 @@
  *    Volume 177, pp. 354-362, 2020
  */
 
-#include "../../../common/iface/UIIface.h"
-#include "../../../common/utils/descriptor_utils.h"
-#include "../../../common/utils/string_utils.h"
-#include "../../../common/rtl/FilesystemLib.h"
+#include <scgms/iface/UIIface.h>
+#include <scgms/utils/descriptor_utils.h>
+#include <scgms/utils/string_utils.h>
+#include <scgms/rtl/FilesystemLib.h>
 
 #include <vector>
 #include <mutex>

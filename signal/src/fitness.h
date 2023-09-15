@@ -37,8 +37,8 @@
 #pragma once
 
 
-#include "../../../common/rtl/SolverLib.h"
-#include "../../../common/rtl/AlignmentAllocator.h"
+#include <scgms/rtl/SolverLib.h>
+#include <scgms/rtl/AlignmentAllocator.h>
 
 #include <vector>
 

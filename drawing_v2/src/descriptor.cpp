@@ -37,11 +37,11 @@
 #include "descriptor.h"
 #include "filter/drawing_filter_v2.h"
 
-#include "../../../common/iface/DeviceIface.h"
-#include "../../../common/iface/FilterIface.h"
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/rtl/manufactory.h"
-#include "../../../common/utils/descriptor_utils.h"
+#include <scgms/iface/DeviceIface.h>
+#include <scgms/iface/FilterIface.h>
+#include <scgms/rtl/FilterLib.h>
+#include <scgms/rtl/manufactory.h>
+#include <scgms/utils/descriptor_utils.h>
 
 #include <array>
 

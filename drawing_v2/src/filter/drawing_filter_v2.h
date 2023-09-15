@@ -36,12 +36,12 @@
 
 #pragma once
 
-#include "../../../../common/rtl/FilterLib.h"
-#include "../../../../common/rtl/referencedImpl.h"
-#include "../../../../common/rtl/UILib.h"
-#include "../../../../common/rtl/rattime.h"
-#include "../descriptor.h"
+#include <scgms/rtl/FilterLib.h>
+#include <scgms/rtl/referencedImpl.h>
+#include <scgms/rtl/UILib.h>
+#include <scgms/rtl/rattime.h>
 
+#include "../descriptor.h"
 #include "../views/view_base.h"
 
 #include <vector>

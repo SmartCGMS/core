@@ -37,12 +37,12 @@
 #include "pattern_prediction.h"
 #include "pattern_descriptor_model_parameters.h"
 
-#include "../../../../common/iface/ApproxIface.h"
-#include "../../../../common/utils/math_utils.h"
-#include "../../../../common/utils/string_utils.h"
-#include "../../../../common/utils/DebugHelper.h"
-#include "../../../../common/utils/SimpleIni.h"
-#include "../../../../common/rtl/FilesystemLib.h"
+#include <scgms/iface/ApproxIface.h>
+#include <scgms/utils/math_utils.h>
+#include <scgms/utils/string_utils.h>
+#include <scgms/utils/DebugHelper.h>
+#include <scgms/utils/SimpleIni.h>
+#include <scgms/rtl/FilesystemLib.h>
 
 #undef min
 

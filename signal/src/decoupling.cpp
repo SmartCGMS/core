@@ -36,13 +36,13 @@
 
 #include "decoupling.h"
 
-#include  "expression/expression.h"
+#include "expression/expression.h"
 
-#include "../../../common/rtl/UILib.h"
-#include "../../../common/rtl/FilterLib.h"
-#include "../../../common/utils/string_utils.h"
-#include "../../../common/utils/math_utils.h"
-#include "../../../common/lang/dstrings.h"
+#include <scgms/rtl/UILib.h>
+#include <scgms/rtl/FilterLib.h>
+#include <scgms/utils/string_utils.h>
+#include <scgms/utils/math_utils.h>
+#include <scgms/lang/dstrings.h>
 
 #include <cmath>
 #include <fstream>

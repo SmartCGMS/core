@@ -42,7 +42,7 @@
 #include "IGenerator.h"
 #include "../Containers/Value.h"
 
-#include "../../../../../common/utils/drawing/SVGRenderer.h"
+#include <scgms/utils/drawing/SVGRenderer.h>
 
 constexpr time_t OneDay = 24 * 60 * 60;
 constexpr time_t ThreeHours = 3 * 60 * 60;

@@ -39,11 +39,11 @@
 #include "descriptor.h"
 #include "fitness.h"
 
-#include "../../../common/rtl/UILib.h"
-#include "../../../common/rtl/rattime.h"
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/utils/math_utils.h"
-#include "../../../common/utils/string_utils.h"
+#include <scgms/rtl/UILib.h>
+#include <scgms/rtl/rattime.h>
+#include <scgms/lang/dstrings.h>
+#include <scgms/utils/math_utils.h>
+#include <scgms/utils/string_utils.h>
 
 #include <iostream>
 #include <cmath>
