@@ -217,7 +217,10 @@ protected:
 			}
 
 			const char endl = 0xa;	//well, it its \n even for a Mac in way we opened this file descriptor
-			write(mIO.input.fd[TPipe::write_idx], &endl, 1);
+			if (write(mIO.input.fd[TPipe::write_idx], &endl, 1) < 0) {
+				succeeded = false;
+				break;
+			}
 		}
 
 		return (close(mIO.input.fd[TPipe::write_idx]) == 0) && succeeded;
