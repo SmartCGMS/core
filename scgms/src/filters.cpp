@@ -116,11 +116,18 @@ void CLoaded_Filters::load_libraries() {
 	const auto filters_dir = Get_Dll_Dir() / std::wstring{rsSolversDir};
 #else
 	const auto filters_dir = Get_Dll_Dir();
-#endif		
+#endif
+
+	// filters directory must exist and must be a directory
+	if (!filesystem::exists(filters_dir) || !filesystem::is_directory(filters_dir)) {
+		return;
+	}
+
 	for (const auto& dir_entry : filesystem::directory_iterator(filters_dir)) {
 		const auto &filepath = dir_entry.path();
 
-		if (CDynamic_Library::Is_Library(filepath)) {				//just checks the extension
+		// just checks the platform-dependent extension to filter out unwanted 
+		if (CDynamic_Library::Is_Library(filepath)) {
 			imported::TLibraryInfo lib;
 
 			if (lib.library.Load(filepath)) {

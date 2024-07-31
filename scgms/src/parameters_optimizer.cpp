@@ -730,7 +730,7 @@ public:
 	bool Calculate_Fitness(const size_t solution_count, const double* solutions, double* const fitnesses, refcnt::Swstr_list empty_error_description) {
 		if (solution_count > 1) {
 			bool success_flag = true;
-			std::for_each(std::execution::par/* par_unseq*/, solver::CInt_Iterator<size_t>{ 0 }, solver::CInt_Iterator<size_t>{ solution_count }, [=, &success_flag](const auto& id) {			
+			std::for_each(std::execution::par/* par_unseq*/, solver::CInt_Iterator<size_t>{ 0 }, solver::CInt_Iterator<size_t>{ solution_count }, [=, this, &success_flag](const auto& id) {
 				// we use execution::par only to avoid any possible problems with nested fitness calls, e.g. to OpenCL in the future
 				if (success_flag) {
 					if (!Calculate_Single_Fitness(solutions + id * mProblem_Size, fitnesses + id * solver::Maximum_Objectives_Count, empty_error_description))

@@ -68,15 +68,25 @@
 		}
 	#endif
 #else
-	int _rdrand64_step(unsigned __int64* random_val) {
-		return 0;
-	}
+// no rdrand available at the current platform
+#define DISABLE_RDRAND
 #endif
 
 namespace {
+
+#ifndef DISABLE_RDRAND
 	int rdrand64_step(uint64_t* random_val) {
 		return _rdrand64_step(reinterpret_cast<unsigned long long*>(random_val));
 	}
+#else
+	#include <random>
+	std::random_device rdev;
+
+	// fallback when no RDRAND is available
+	int rdrand64_step(uint64_t* random_val) {
+		return (static_cast<uint64_t>(rdev()) << 32ULL) | static_cast<uint64_t>(rdev());
+	}
+#endif
 }
 
 #undef min
@@ -160,7 +170,7 @@ public:
 	CXor_Shift_Star_Device() {
 		uint64_t local_entropy = 0;
 		mHas_CPU_Entropy = true;
-		for (size_t i = 0; i < std::max(static_cast<size_t>(10), mState.size()); i++) {	//see 5.2.1 Retry Recommendations in the Intel® Digital Random Number Generator (DRNG) Software Implementation Guide 
+		for (size_t i = 0; i < std::max(static_cast<size_t>(10), mState.size()); i++) {	//see 5.2.1 Retry Recommendations in the IntelÂ® Digital Random Number Generator (DRNG) Software Implementation Guide 
 			const bool local_success = rdrand64_step(&local_entropy) != 0;
 			mHas_CPU_Entropy &= local_success;
 
