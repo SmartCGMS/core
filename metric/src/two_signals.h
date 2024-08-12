@@ -45,7 +45,6 @@
 #include <mutex>
 #include <fstream>
 
-
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
@@ -53,42 +52,47 @@
  * base class for comparig two signals
  */
 class CTwo_Signals : public virtual scgms::CBase_Filter, public virtual scgms::ILogical_Clock {
-protected:
-	GUID mReference_Signal_ID = Invalid_GUID;
-	GUID mError_Signal_ID = Invalid_GUID;
-	filesystem::path mCSV_Path;
+	protected:
+		GUID mReference_Signal_ID = Invalid_GUID;
+		GUID mError_Signal_ID = Invalid_GUID;
+		filesystem::path mCSV_Path;
 
-	std::wstring mDescription;
+		std::wstring mDescription;
 
-	std::mutex mSeries_Gaurd;
+		std::mutex mSeries_Gaurd;
 
-	struct TSegment_Signals {
-		scgms::SSignal reference_signal{ scgms::STime_Segment{}, scgms::signal_BG };
-		scgms::SSignal error_signal{ scgms::STime_Segment{}, scgms::signal_BG };
-		bool last_value_emitted = false;        //fixing for logs, which do not contain proper segment start stop marks
-	};
-	std::map<uint64_t, TSegment_Signals> mSignal_Series;
+		struct TSegment_Signals {
+			scgms::SSignal reference_signal{ scgms::STime_Segment{}, scgms::signal_BG };
+			scgms::SSignal error_signal{ scgms::STime_Segment{}, scgms::signal_BG };
+			bool last_value_emitted = false;        //fixing for logs, which do not contain proper segment start stop marks
+		};
+		std::map<uint64_t, TSegment_Signals> mSignal_Series;
 
-	std::atomic<ULONG> mNew_Data_Logical_Clock{0};
+		std::atomic<ULONG> mNew_Data_Logical_Clock{0};
 
-	bool mShutdown_Received = false;
+		bool mShutdown_Received = false;
 
+	protected:
+		bool Prepare_Levels(const uint64_t segment_id, std::vector<double>& times, std::vector<double>& reference, std::vector<double>& error);
+		bool Prepare_Unaligned_Discrete_Levels(const uint64_t segment_id, std::vector<double>& times, std::vector<double>& reference, std::vector<double>& error_times, std::vector<double>& error, bool allow_multipoint_affinity = false);
 
-	bool Prepare_Levels(const uint64_t segment_id, std::vector<double>& times, std::vector<double>& reference, std::vector<double>& error);
-	bool Prepare_Unaligned_Discrete_Levels(const uint64_t segment_id, std::vector<double>& times, std::vector<double>& reference, std::vector<double>& error_times, std::vector<double>& error, bool allow_multipoint_affinity = false);
-	virtual HRESULT On_Level_Added(const uint64_t segment_id, const double device_time) { return S_OK; };
-	void Flush_Stats();
-protected:
-	virtual void Do_Flush_Stats(std::wofstream stats_file) = 0;
-protected:
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override ;
-public:
-	CTwo_Signals(scgms::IFilter *output);
-	virtual ~CTwo_Signals();
+		virtual HRESULT On_Level_Added(const uint64_t segment_id, const double device_time) {
+			return S_OK;
+		}
+
+		void Flush_Stats();
+
+		virtual void Do_Flush_Stats(std::wofstream stats_file) = 0;
+
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override;
+		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override;
+
+	public:
+		CTwo_Signals(scgms::IFilter *output);
+		virtual ~CTwo_Signals();
 	
-	virtual HRESULT IfaceCalling Logical_Clock(ULONG *clock) override final;
-	virtual HRESULT IfaceCalling Get_Description(wchar_t** const desc);
+		virtual HRESULT IfaceCalling Logical_Clock(ULONG *clock) override final;
+		virtual HRESULT IfaceCalling Get_Description(wchar_t** const desc);
 };
 
 

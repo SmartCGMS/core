@@ -48,7 +48,6 @@
 #include <type_traits>
 #include <set>
 
-
 CTwo_Signals::CTwo_Signals(scgms::IFilter *output) : CBase_Filter(output) {
 	//
 }
@@ -58,7 +57,6 @@ CTwo_Signals::~CTwo_Signals() {
 
 HRESULT CTwo_Signals::Do_Execute(scgms::UDevice_Event event) {
 	scgms::TDevice_Event *raw_event;
-	
 
 	auto add_level = [&raw_event, this](TSegment_Signals &signals, const bool is_reference_signal) {
 		auto signal = is_reference_signal ? signals.reference_signal : signals.error_signal;
@@ -69,8 +67,9 @@ HRESULT CTwo_Signals::Do_Execute(scgms::UDevice_Event event) {
 			}
 
 			HRESULT rc = On_Level_Added(raw_event->segment_id, raw_event->device_time);
-			if (!Succeeded(rc))
+			if (!Succeeded(rc)) {
 				return rc;
+			}
 		}
 
 		return S_OK;
@@ -81,15 +80,18 @@ HRESULT CTwo_Signals::Do_Execute(scgms::UDevice_Event event) {
 		if (signals == mSignal_Series.end()) {
 			TSegment_Signals signals;
 			HRESULT rc = add_level(signals, is_reference_signal);
-			if (Succeeded(rc))
+			if (Succeeded(rc)) {
 				mSignal_Series[raw_event->segment_id] = std::move(signals);
-			else
+			}
+			else {
 				return rc;
+			}
 		}
 		else {
 			HRESULT rc = add_level(signals->second, is_reference_signal);
-			if (!Succeeded(rc))
+			if (!Succeeded(rc)) {
 				return rc;
+			}
 		}
 
 		return S_OK;
@@ -105,8 +107,9 @@ HRESULT CTwo_Signals::Do_Execute(scgms::UDevice_Event event) {
 					if (!(std::isnan(event.level()) || std::isnan(event.device_time()))) {
 						std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
 						HRESULT rc = add_segment(is_reference_signal);
-						if (!Succeeded(rc))
+						if (!Succeeded(rc)) {
 							return rc;
+						}
 					}
 				}
 
@@ -138,7 +141,7 @@ HRESULT CTwo_Signals::Do_Execute(scgms::UDevice_Event event) {
 			*/
 
 			case scgms::NDevice_Event_Code::Shut_Down:
-				mShutdown_Received = true;				
+				mShutdown_Received = true;
 				Flush_Stats();
 				break;
 
@@ -185,16 +188,18 @@ bool CTwo_Signals::Prepare_Levels(const uint64_t segment_id, std::vector<double>
 				reference.resize(offset+reference_count);
 
 				size_t filled;
-				if (signals.reference_signal->Get_Discrete_Levels(times.data()+ offset, reference.data()+offset, reference_count, &filled) == S_OK) {
-					error.resize(offset+reference_count);
+				if (signals.reference_signal->Get_Discrete_Levels(times.data() + offset, reference.data() + offset, reference_count, &filled) == S_OK) {
+					error.resize(offset + reference_count);
 
-					if (signals.error_signal->Get_Continuous_Levels(nullptr, times.data()+offset, error.data()+offset, filled, scgms::apxNo_Derivation) == S_OK)
+					if (signals.error_signal->Get_Continuous_Levels(nullptr, times.data() + offset, error.data() + offset, filled, scgms::apxNo_Derivation) == S_OK) {
 						return true;
+					}
 				}
 
 			}
-			else
+			else {
 				return true;	//no error, but simply no data yet
+			}
 		}
 		return false;
 	};
@@ -202,19 +207,23 @@ bool CTwo_Signals::Prepare_Levels(const uint64_t segment_id, std::vector<double>
 	
 	bool result = false;	//assume failure
 	switch (segment_id) {
-		case scgms::Invalid_Segment_Id:  break;	//result is already false
-		case scgms::All_Segments_Id: {
-
-			for (auto &signals : mSignal_Series)
+		case scgms::Invalid_Segment_Id:
+			break;	//result is already false
+		case scgms::All_Segments_Id:
+		{
+			for (auto& signals: mSignal_Series) {
 				result |= prepare_levels_per_single_segment(signals.second, times, reference, error);	//we want at least one OK segment
+			}
 
 			break;
 		}
 
-		default: {
+		default:
+		{
 			auto signals = mSignal_Series.find(segment_id);
-			if (signals != mSignal_Series.end())
+			if (signals != mSignal_Series.end()) {
 				result = prepare_levels_per_single_segment(signals->second, times, reference, error);
+			}
 		}
 	}
 
@@ -251,16 +260,18 @@ bool CTwo_Signals::Prepare_Unaligned_Discrete_Levels(const uint64_t segment_id, 
 					std::copy(times.begin() + offset, times.begin() + offset + reference_count, error_times.begin() + offset);
 
 					size_t error_count = 0;
-					if (!Succeeded(signals.error_signal->Get_Discrete_Bounds(nullptr, nullptr, &error_count)) || error_count == 0)
+					if (!Succeeded(signals.error_signal->Get_Discrete_Bounds(nullptr, nullptr, &error_count)) || error_count == 0) {
 						return true;
+					}
 
 					std::vector<double> staged_error_times, staged_error_values;
 
 					staged_error_times.resize(error_count);
 					staged_error_values.resize(error_count);
 
-					if (signals.error_signal->Get_Discrete_Levels(staged_error_times.data(), staged_error_values.data(), error_count, &filled) != S_OK)
+					if (signals.error_signal->Get_Discrete_Levels(staged_error_times.data(), staged_error_values.data(), error_count, &filled) != S_OK) {
 						return false;
+					}
 
 					struct TDistance_Rec {
 						size_t measured_idx = std::numeric_limits<size_t>::max();
@@ -275,8 +286,9 @@ bool CTwo_Signals::Prepare_Unaligned_Discrete_Levels(const uint64_t segment_id, 
 						std::vector<TDistance_Rec> distances;
 						for (size_t i = offset; i < offset + reference_count; i++) {
 
-							if (!allow_multipoint_affinity && used_meas_idx.find(i) != used_meas_idx.end())
+							if (!allow_multipoint_affinity && used_meas_idx.find(i) != used_meas_idx.end()) {
 								continue;
+							}
 
 							const double refTime = times[i];
 							const double refValue = reference[i];
@@ -287,8 +299,9 @@ bool CTwo_Signals::Prepare_Unaligned_Discrete_Levels(const uint64_t segment_id, 
 							// for all recorded error levels
 							for (size_t j = 0; j < error_count; j++) {
 
-								if (used_err_idx.find(j) != used_err_idx.end())
+								if (used_err_idx.find(j) != used_err_idx.end()) {
 									continue;
+								}
 
 								const auto calcDistance = distanceHeuristic(refTime, refValue, staged_error_times[j], staged_error_values[j]);
 
@@ -334,28 +347,31 @@ bool CTwo_Signals::Prepare_Unaligned_Discrete_Levels(const uint64_t segment_id, 
 				}
 
 			}
-			else
+			else {
 				return true;	//no error, but simply no data yet
+			}
 		}
 		return false;
 	};
 
-	
 	bool result = false;	//assume failure
 	switch (segment_id) {
-		case scgms::Invalid_Segment_Id:  break;	//result is already false
-		case scgms::All_Segments_Id: {
-
-			for (auto &signals : mSignal_Series)
+		case scgms::Invalid_Segment_Id:
+			break;	//result is already false
+		case scgms::All_Segments_Id:
+		{
+			for (auto &signals : mSignal_Series) {
 				result |= prepare_levels_per_single_segment(signals.second, times, reference, error_times, error);	//we want at least one OK segment
+			}
 
 			break;
 		}
-
-		default: {
+		default:
+		{
 			auto signals = mSignal_Series.find(segment_id);
-			if (signals != mSignal_Series.end())
+			if (signals != mSignal_Series.end()) {
 				result = prepare_levels_per_single_segment(signals->second, times, reference, error_times, error);
+			}
 		}
 	}
 
@@ -364,7 +380,9 @@ bool CTwo_Signals::Prepare_Unaligned_Discrete_Levels(const uint64_t segment_id, 
 }
 
 HRESULT IfaceCalling CTwo_Signals::Logical_Clock(ULONG *clock) {
-	if (!clock) return E_INVALIDARG;
+	if (!clock) {
+		return E_INVALIDARG;
+	}
 
 	const ULONG old_clock = *clock;
 	*clock = mNew_Data_Logical_Clock;
@@ -379,7 +397,9 @@ HRESULT IfaceCalling CTwo_Signals::Get_Description(wchar_t** const desc) {
 }
 
 void CTwo_Signals::Flush_Stats() {
-	if (mCSV_Path.empty()) return;
+	if (mCSV_Path.empty()) {
+		return;
+	}
 
 	std::wofstream stats_file{ mCSV_Path };
 

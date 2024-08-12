@@ -46,14 +46,11 @@
 #include <numeric>
 #include <type_traits>
 
-
 namespace fast_signal_metrics {
-
 
 	CAvg_SD::CAvg_SD(double& levels_counter) : mLevels_Counter(levels_counter) {
 		//
-	};
-
+	}
 
 	double CAvg_SD::Avg_Divisor() {
 		return mLevels_Counter > 1.5 ? mLevels_Counter - 1.5 + 1.0 / (8.0 * (mLevels_Counter - 1.0)) : 1.0;
@@ -76,8 +73,9 @@ namespace fast_signal_metrics {
 		if (mLevels_Counter > 1.0) {
 			return avg + std::sqrt(mVariance / divisor);
 		}
-		else
+		else {
 			return avg; //zero variance
+		}
 	}
 
 	void CAvg_SD::Clear_Counters() {
@@ -85,7 +83,6 @@ namespace fast_signal_metrics {
 		mVariance = 0.0;
 		mLevels_Counter = 0.0;
 	}
-
 
 	const GUID& CAvg_SD::Metric_ID() const {
 		return mMetric_ID;
@@ -103,7 +100,6 @@ namespace fast_signal_metrics {
 	double CAvg::Calculate_Metric() {
 		return mAccumulator / mLevels_Counter;
 	}
-
 
 	void CAvg::Clear_Counters() {
 		mAccumulator = 0.0;
@@ -125,32 +121,37 @@ CFast_Signal_Error::~CFast_Signal_Error() {
 	if (mPromised_Metric) {
 		if (mLevels_Counter >= static_cast<double>(mLevels_Required)) {
 			double metric = mCalculate_Metric();
-			if (mPrefer_More_Levels)
+			if (mPrefer_More_Levels) {
 				metric /= mLevels_Counter;
+			}
 			*mPromised_Metric = metric;
-		} else
+		}
+		else {
 			*mPromised_Metric = std::numeric_limits<double>::quiet_NaN();
+		}
 	}
 }
 
 HRESULT CFast_Signal_Error::Do_Execute(scgms::UDevice_Event event) {
 	switch (event.event_code()) {
 		case scgms::NDevice_Event_Code::Level:
-			{
-				if (event.signal_id() == mReference_Signal_ID) Update_Signal_Info(event.level(), event.device_time(), true);
-				else if (event.signal_id() == mError_Signal_ID) Update_Signal_Info(event.level(), event.device_time(), false);
+		{
+			if (event.signal_id() == mReference_Signal_ID) {
+				Update_Signal_Info(event.level(), event.device_time(), true);
+			}
+			else if (event.signal_id() == mError_Signal_ID) {
+				Update_Signal_Info(event.level(), event.device_time(), false);
+			}
 			
-				break;
-			}
-
+			break;
+		}
 		case scgms::NDevice_Event_Code::Warm_Reset:
-			{
-				mClear_Counters();
-				Clear_Signal_Info();
-				mNew_Data_Logical_Clock++;
-				break;
-			}
-
+		{
+			mClear_Counters();
+			Clear_Signal_Info();
+			mNew_Data_Logical_Clock++;
+			break;
+		}
 		default:
 			break;
 	}
@@ -162,8 +163,9 @@ HRESULT CFast_Signal_Error::Do_Configure(scgms::SFilter_Configuration configurat
 	mReference_Signal_ID = configuration.Read_GUID(rsReference_Signal, Invalid_GUID);
 	mError_Signal_ID = configuration.Read_GUID(rsError_Signal, Invalid_GUID);
 	
-	if (Is_Invalid_GUID(mReference_Signal_ID, mError_Signal_ID))
+	if (Is_Invalid_GUID(mReference_Signal_ID, mError_Signal_ID)) {
 		return E_INVALIDARG;
+	}
 
 	const GUID metric_id = configuration.Read_GUID(rsSelected_Metric);
 
@@ -185,20 +187,18 @@ HRESULT CFast_Signal_Error::Do_Configure(scgms::SFilter_Configuration configurat
 	return S_OK;
 }
 
-
-
 HRESULT IfaceCalling CFast_Signal_Error::Get_Description(wchar_t** const desc) {
 	*desc = const_cast<wchar_t*>(mDescription.c_str());
 	return S_OK;
 }
 
-
 HRESULT IfaceCalling CFast_Signal_Error::QueryInterface(const GUID* riid, void** ppvObj) {
-	if (Internal_Query_Interface<scgms::ISignal_Error_Inspection>(scgms::IID_Signal_Error_Inspection, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<scgms::ISignal_Error_Inspection>(scgms::IID_Signal_Error_Inspection, *riid, ppvObj)) {
+		return S_OK;
+	}
 
 	return E_NOINTERFACE;
 }
-
 
 HRESULT IfaceCalling CFast_Signal_Error::Promise_Metric(const uint64_t segment_id, double* const metric_value, BOOL defer_to_dtor) {
 
@@ -206,10 +206,10 @@ HRESULT IfaceCalling CFast_Signal_Error::Promise_Metric(const uint64_t segment_i
 		mPromised_Metric = metric_value;
 		return S_OK;
 	}
-	else
+	else {
 		return E_INVALIDARG;
+	}
 }
-
 
 void CFast_Signal_Error::Clear_Signal_Info() {
 	mLevels_Counter = 0.0;
@@ -236,7 +236,6 @@ void CFast_Signal_Error::Update_Signal_Info(const double level, const double dev
 	info.device_time = device_time;
 	info.level = level;
 
-
 	//and try to get the other signal to compute the difference
 	const auto& other_info = mSignals[sig_idx ^ 1];
 	
@@ -251,16 +250,19 @@ void CFast_Signal_Error::Update_Signal_Info(const double level, const double dev
 
 			if (mRelative_Error) {
 				const double divisor = reference_signal ? level : other_level;
-				if (divisor == 0.0)
+				if (divisor == 0.0) {
 					return;	//cannot divide by zero
+				}
 
 				difference /= divisor;
 			}
 
-			if (mSquared_Diff)
+			if (mSquared_Diff) {
 				difference *= difference;
-			else
+			}
+			else {
 				difference = std::fabs(difference);
+			}
 
 			mUpdate_Counters(difference);
 		}
@@ -269,8 +271,9 @@ void CFast_Signal_Error::Update_Signal_Info(const double level, const double dev
 
 
 HRESULT IfaceCalling CFast_Signal_Error::Logical_Clock(ULONG* clock) {
-	if (!clock)
+	if (!clock) {
 		return E_INVALIDARG;
+	}
 
 	const ULONG old_clock = *clock;
 	*clock = mNew_Data_Logical_Clock;

@@ -46,11 +46,9 @@
 #include <numeric>
 #include <type_traits>
 
-
 constexpr unsigned char bool_2_uc(const bool b) {
 	return b ? static_cast<unsigned char>(1) : static_cast<unsigned char>(0);
 }
-
 
 CTemporal_Signal_Error::CTemporal_Signal_Error(scgms::IFilter *output) : CBase_Filter(output), CTwo_Signals(output) {
 	//
@@ -64,8 +62,9 @@ CTemporal_Signal_Error::~CTemporal_Signal_Error() {
 }
 
 HRESULT IfaceCalling CTemporal_Signal_Error::QueryInterface(const GUID*  riid, void ** ppvObj) {
-
-	if (Internal_Query_Interface<scgms::ISignal_Error_Inspection>(scgms::IID_Signal_Error_Inspection, *riid, ppvObj)) return S_OK;	
+	if (Internal_Query_Interface<scgms::ISignal_Error_Inspection>(scgms::IID_Signal_Error_Inspection, *riid, ppvObj)) {
+		return S_OK;
+	}
 
 	return E_NOINTERFACE;
 }
@@ -96,7 +95,6 @@ HRESULT CTemporal_Signal_Error::Do_Execute(scgms::UDevice_Event event) {
 	HRESULT rc = S_OK;
 	
 	switch (event_code) {
-			
 		case scgms::NDevice_Event_Code::Time_Segment_Stop:
 			if (mEmit_Metric_As_Signal && mEmit_Last_Value_Only && !mShutdown_Received) {
 				std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
@@ -109,7 +107,6 @@ HRESULT CTemporal_Signal_Error::Do_Execute(scgms::UDevice_Event event) {
 			}
 			break;
 
-
 		case scgms::NDevice_Event_Code::Shut_Down:
 			if (mEmit_Metric_As_Signal && mEmit_Last_Value_Only) {
 				std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
@@ -119,36 +116,42 @@ HRESULT CTemporal_Signal_Error::Do_Execute(scgms::UDevice_Event event) {
 
 					if (!signals.second.last_value_emitted) {
 						rc = Emit_Metric_Signal(signals.first, device_time);
-						if (Succeeded(rc))
+						if (Succeeded(rc)) {
 							signals.second.last_value_emitted = true;
-						else
+						}
+						else {
 							break;
+						}
 					}
 				}
 
-				if (Succeeded(rc))
+				if (Succeeded(rc)) {
 					rc = Emit_Metric_Signal(scgms::All_Segments_Id, device_time);
-			}			
-				
+				}
+			}
 			break;
-
 		default:
 			rc = S_OK;
 			break;
-	}		
-	
+	}
+
 	//eventually, execute the terminal events
 	scgms::IDevice_Event* raw = event.get();
 	event.release();
-	if (Succeeded(rc))
+	if (Succeeded(rc)) {
 		return CTwo_Signals::Do_Execute(scgms::UDevice_Event{ raw });	//why just cannot we pass std::move(event)?
-	else
+	}
+	else {
 		return rc;
+	}
 }
 
 HRESULT CTemporal_Signal_Error::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
+
 	const HRESULT rc = CTwo_Signals::Do_Configure(configuration, error_description);
-	if (!Succeeded(rc)) return rc;
+	if (!Succeeded(rc)) {
+		return rc;
+	}
 
 	const GUID metric_id = configuration.Read_GUID(rsSelected_Metric);
 	const GUID temporal_metric_id = configuration.Read_GUID(temporal_signal_error::rsTemporal_Metric);
@@ -168,8 +171,9 @@ HRESULT CTemporal_Signal_Error::Do_Configure(scgms::SFilter_Configuration config
 		return E_INVALIDARG;
 	}
 
-	if (std::isnan(metric_threshold)) 
+	if (std::isnan(metric_threshold)) {
 		return E_INVALIDARG;
+	}
 
 	mEmit_Metric_As_Signal = configuration.Read_Bool(rsEmit_metric_as_signal, mEmit_Metric_As_Signal);
 	mEmit_Last_Value_Only = configuration.Read_Bool(rsEmit_last_value_only, mEmit_Last_Value_Only);
@@ -180,7 +184,6 @@ HRESULT CTemporal_Signal_Error::Do_Configure(scgms::SFilter_Configuration config
 
 	mDescription = configuration.Read_String(rsDescription, true, GUID_To_WString(mReference_Signal_ID).append(L" - ").append(GUID_To_WString(mError_Signal_ID)));
 
-	
 	const scgms::TMetric_Parameters metric_parameters{ metric_id,
 		bool_2_uc(configuration.Read_Bool(rsUse_Relative_Error)),
 		bool_2_uc(configuration.Read_Bool(rsUse_Squared_Diff)),
@@ -201,7 +204,6 @@ HRESULT CTemporal_Signal_Error::Do_Configure(scgms::SFilter_Configuration config
 	return S_OK;
 }
 
-#pragma optimize("", off)
 double CTemporal_Signal_Error::Calculate_Metric(const uint64_t segment_id) {
 	double result_levels = std::numeric_limits<double>::quiet_NaN();
 	double result_times = std::numeric_limits<double>::quiet_NaN();
@@ -217,9 +219,11 @@ double CTemporal_Signal_Error::Calculate_Metric(const uint64_t segment_id) {
 			if (mMetric->Accumulate(reference_times.data(), reference_levels.data(), error_levels.data(), reference_times.size()) == S_OK) {
 				size_t levels_acquired = 0;
 
-				if (mMetric->Calculate(&result_levels, &levels_acquired, mLevels_Required) == S_OK)
-					if (levels_acquired == 0)
+				if (mMetric->Calculate(&result_levels, &levels_acquired, mLevels_Required) == S_OK) {
+					if (levels_acquired == 0) {
 						result_levels = std::numeric_limits<double>::quiet_NaN();
+					}
+				}
 			}
 		}
 
@@ -250,9 +254,11 @@ double CTemporal_Signal_Error::Calculate_Metric(const uint64_t segment_id) {
 			if (mTemporal_Metric->Accumulate(reference_times.data(), scaled_ref.data(), scaled_err.data(), reference_times.size()) == S_OK) {
 				size_t levels_acquired = 0;
 
-				if (mTemporal_Metric->Calculate(&result_times, &levels_acquired, mLevels_Required) == S_OK)
-					if (levels_acquired == 0)
+				if (mTemporal_Metric->Calculate(&result_times, &levels_acquired, mLevels_Required) == S_OK) {
+					if (levels_acquired == 0) {
 						result_times = std::numeric_limits<double>::quiet_NaN();
+					}
+				}
 			}
 		}
 	}
@@ -260,7 +266,6 @@ double CTemporal_Signal_Error::Calculate_Metric(const uint64_t segment_id) {
 	// this basically mimics a very limited version of Pareto frontier with Manhattan metric behavior if used during optimization
 	return result_levels + result_times;// *24 * 60; // scale time differences to minutes - not always the best option, but we need to increase the magnitude of error to be more easily incorporated
 }
-#pragma optimize("", on)
 
 HRESULT IfaceCalling CTemporal_Signal_Error::Promise_Metric(const uint64_t segment_id, double* const metric_value, BOOL defer_to_dtor) {
 	std::lock_guard<std::mutex> lock{ mSeries_Gaurd };
@@ -276,9 +281,10 @@ HRESULT IfaceCalling CTemporal_Signal_Error::Promise_Metric(const uint64_t segme
 	}
 }
 
-
 HRESULT IfaceCalling CTemporal_Signal_Error::Calculate_Signal_Error(const uint64_t segment_id, scgms::TSignal_Stats *absolute_error, scgms::TSignal_Stats *relative_error) {
-	if (!absolute_error || !relative_error) return E_INVALIDARG;
+	if (!absolute_error || !relative_error) {
+		return E_INVALIDARG;
+	}
 
 	std::vector<double> times;
 	std::vector<double> reference_levels;
@@ -317,7 +323,9 @@ HRESULT IfaceCalling CTemporal_Signal_Error::Calculate_Signal_Error(const uint64
 		relative_differences.resize(relative_error_count);
 
 		//2. test the count and if OK, calculate avg and others
-		if (!Calculate_Signal_Stats(absolute_differences, *absolute_error)) return S_FALSE;
+		if (!Calculate_Signal_Stats(absolute_differences, *absolute_error)) {
+			return S_FALSE;
+		}
 		Calculate_Signal_Stats(relative_differences, *relative_error);
 		
 		return S_OK;
@@ -328,7 +336,6 @@ HRESULT IfaceCalling CTemporal_Signal_Error::Calculate_Signal_Error(const uint64
 HRESULT CTemporal_Signal_Error::Emit_Metric_Signal(const uint64_t segment_id, const double device_time) {
 	scgms::UDevice_Event event{scgms::NDevice_Event_Code::Level};
 	if (event) {
-
 		event.device_id() = event.signal_id() = signal_error::metric_signal_id;
 		event.level() = Calculate_Metric(segment_id);
 		event.segment_id() = segment_id;
@@ -336,8 +343,9 @@ HRESULT CTemporal_Signal_Error::Emit_Metric_Signal(const uint64_t segment_id, co
 
 		return mOutput.Send(event);
 	}
-	else
+	else {
 		return E_OUTOFMEMORY;
+	}
 }
 
 void CTemporal_Signal_Error::Do_Flush_Stats(std::wofstream stats_file) {
@@ -348,16 +356,20 @@ void CTemporal_Signal_Error::Do_Flush_Stats(std::wofstream stats_file) {
 	//append rest of the header for ECDF
 	const wchar_t *tc_d = L";; ";
 	stats_file << tc_d << static_cast<et>(scgms::NECDF::min_value) ;
-	for (et i = static_cast<et>(scgms::NECDF::min_value) + 1; i <= static_cast<et>(scgms::NECDF::max_value); i++)
+	for (et i = static_cast<et>(scgms::NECDF::min_value) + 1; i <= static_cast<et>(scgms::NECDF::max_value); i++) {
 		stats_file << "; " << i;
+	}
 	stats_file << std::endl;
 
 
 	auto flush_stats = [&stats_file, &tc_d](const scgms::TSignal_Stats& signal_stats, const wchar_t *marker_string, const uint64_t segment_id) {
-		
 
-		if (segment_id == scgms::All_Segments_Id)  stats_file << dsSelect_All_Segments;
-			else stats_file << std::to_wstring(segment_id);
+		if (segment_id == scgms::All_Segments_Id) {
+			stats_file << dsSelect_All_Segments;
+		}
+		else {
+			stats_file << std::to_wstring(segment_id);
+		}
 
 		stats_file << "; " << marker_string << tc_d
 			<< signal_stats.avg << "; " << signal_stats.stddev << "; " << signal_stats.exc_kurtosis << "; " << signal_stats.skewness << "; " << signal_stats.count << tc_d
@@ -371,8 +383,9 @@ void CTemporal_Signal_Error::Do_Flush_Stats(std::wofstream stats_file) {
 		
 		//write ECDF
 		stats_file << tc_d << signal_stats.ecdf[scgms::NECDF::min_value];
-		for (et i = static_cast<et>(scgms::NECDF::min_value) + 1; i <= static_cast<et>(scgms::NECDF::max_value); i++)
+		for (et i = static_cast<et>(scgms::NECDF::min_value) + 1; i <= static_cast<et>(scgms::NECDF::max_value); i++) {
 			stats_file << "; " << signal_stats.ecdf[static_cast<scgms::NECDF>(i)];
+		}
 
 		stats_file<< std::endl;
 	};
@@ -383,12 +396,12 @@ void CTemporal_Signal_Error::Do_Flush_Stats(std::wofstream stats_file) {
 		if (Calculate_Signal_Error(segment_id, &absolute_error, &relative_error) == S_OK) {
 			flush_stats(absolute_error, dsAbsolute, segment_id);
 			flush_stats(relative_error, dsRelative, segment_id);
-			
 		}
 	};
 
-	for (auto& signals: mSignal_Series) 
+	for (auto& signals: mSignal_Series) {
 		flush_segment(signals.first);
-	
-	flush_segment(scgms::All_Segments_Id);	
+	}
+
+	flush_segment(scgms::All_Segments_Id);
 }

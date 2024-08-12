@@ -46,37 +46,41 @@
  */
 
 class CSignal_Error : public virtual CTwo_Signals, public virtual scgms::ISignal_Error_Inspection {
-protected:
-	scgms::SMetric mMetric;
+	protected:
+		scgms::SMetric mMetric;
 
-	double *mPromised_Metric = nullptr;
-	uint64_t mPromised_Segment_id = scgms::All_Segments_Id;	
+		double *mPromised_Metric = nullptr;
+		uint64_t mPromised_Segment_id = scgms::All_Segments_Id;
 
-	size_t mLevels_Required = 0;
+		size_t mLevels_Required = 0;
 
-	bool mEmit_Metric_As_Signal = false;
-	bool mEmit_Last_Value_Only = false;
+		bool mEmit_Metric_As_Signal = false;
+		bool mEmit_Last_Value_Only = false;
 
-	double mLast_Emmitted_Time = std::numeric_limits<double>::quiet_NaN();
+		double mLast_Emmitted_Time = std::numeric_limits<double>::quiet_NaN();
+
+	protected:
+		virtual HRESULT On_Level_Added(const uint64_t segment_id, const double device_time) override final;
+		HRESULT Emit_Metric_Signal(const uint64_t segment_id, const double device_time);
 	
-	virtual HRESULT On_Level_Added(const uint64_t segment_id, const double device_time) override final;
-	HRESULT Emit_Metric_Signal(const uint64_t segment_id, const double device_time);
-	
-	double Calculate_Metric(const uint64_t segment_id);	//returns metric or NaN if could not calculate
+		double Calculate_Metric(const uint64_t segment_id);	//returns metric or NaN if could not calculate
 
-	virtual void Do_Flush_Stats(std::wofstream stats_file) override final;
-protected:
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-	CSignal_Error(scgms::IFilter *output);
-	virtual ~CSignal_Error();
+		virtual void Do_Flush_Stats(std::wofstream stats_file) override final;
 
-	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;	
-	virtual HRESULT IfaceCalling Promise_Metric(const uint64_t segment_id, double* const metric_value, BOOL defer_to_dtor) override final;
-	virtual HRESULT IfaceCalling Calculate_Signal_Error(const uint64_t segment_id, scgms::TSignal_Stats *absolute_error, scgms::TSignal_Stats *relative_error) override final;	
-	//using CTwo_Signals::Get_Description;
-	virtual HRESULT IfaceCalling Get_Description(wchar_t** const desc) override final { return CTwo_Signals::Get_Description(desc); };
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+
+	public:
+		CSignal_Error(scgms::IFilter *output);
+		virtual ~CSignal_Error();
+
+		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
+		virtual HRESULT IfaceCalling Promise_Metric(const uint64_t segment_id, double* const metric_value, BOOL defer_to_dtor) override final;
+		virtual HRESULT IfaceCalling Calculate_Signal_Error(const uint64_t segment_id, scgms::TSignal_Stats *absolute_error, scgms::TSignal_Stats *relative_error) override final;
+
+		virtual HRESULT IfaceCalling Get_Description(wchar_t** const desc) override final {
+			return CTwo_Signals::Get_Description(desc);
+		};
 };
 
 

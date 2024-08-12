@@ -45,15 +45,15 @@ namespace {
 }
 
 CDiabetes_Grid::CDiabetes_Grid(scgms::IFilter* output) : CBase_Filter(output), CTwo_Signals(output) {
-
 }
 
 //Classify a single point (may be external one) into the proper zone.
 NError_Grid_Zone CDiabetes_Grid::Classify_Point(const TError_Grid& grid, double reference, double error) {
 	for (const auto& region : grid) {
-		if (Point_In_Polygon(region.vertices, reference, error))
+		if (Point_In_Polygon(region.vertices, reference, error)) {
 			return region.zone;
-	}	
+		}
+	}
 
 	return NError_Grid_Zone::Undefined;
 }
@@ -72,8 +72,9 @@ bool CDiabetes_Grid::Point_In_Polygon(const std::vector<TError_Grid_Point>& vert
 			if (A.calculated <= calculated) {
 				//A is below or on the horizontal ray => there is some intersection
 				//if the intersection is to the right from P, change the status, otherwise ignore it
-				if ((calculated - A.calculated) * (B.expected - A.expected) > (expected - A.expected) * (B.calculated - A.calculated))
+				if ((calculated - A.calculated) * (B.expected - A.expected) > (expected - A.expected) * (B.calculated - A.calculated)) {
 					inside = !inside;
+				}
 			}
 		}
 		else if (calculated < A.calculated) {
@@ -81,15 +82,14 @@ bool CDiabetes_Grid::Point_In_Polygon(const std::vector<TError_Grid_Point>& vert
 			//if the intersection is to the right from P, take it, otherwise ignore it
 			//n.b., the different sign is here because to avoid division we multiplied both sides of inequation by the denominator
 			//which in this case is negative, i.e., it turns the sign
-			if ((calculated - A.calculated) * (B.expected - A.expected) < (expected - A.expected) * (B.calculated - A.calculated))
+			if ((calculated - A.calculated) * (B.expected - A.expected) < (expected - A.expected) * (B.calculated - A.calculated)) {
 				inside = !inside;
+			}
 		}
 	}
 
 	return inside;
 }
-
-
 
 //Counts the number of points in every zone. If useRelativeCounts is true, the counted values are normalized so that their sum is 1.0.
 TError_Grid_Stats CDiabetes_Grid::Calculate_Statistics(const TError_Grid& grid, std::vector<double>& reference, std::vector<double>& error,  bool useRelativeCounts) {
@@ -103,7 +103,7 @@ TError_Grid_Stats CDiabetes_Grid::Calculate_Statistics(const TError_Grid& grid, 
 	}
 
 	size_t numValid = 0;
-	for (size_t i=0; i<reference.size(); i++) {	
+	for (size_t i = 0; i < reference.size(); i++) {	
 		const auto zone = Classify_Point(grid, reference[i], error[i]);
 
 		if (zone != NError_Grid_Zone::Undefined) {
@@ -138,7 +138,6 @@ void CDiabetes_Grid::Do_Flush_Stats(std::wofstream stats_file) {
 		std::vector<double> reference_times, reference_levels, error_levels;
 		auto get_segment = [this, &grids, &reference_times, &reference_levels, &error_levels](const uint64_t segment_id) {
 
-
 			if (Prepare_Levels(segment_id, reference_times, reference_levels, error_levels)) {
 				TAll_Grids segment_grids;
 				segment_grids.segment_id = segment_id;
@@ -156,19 +155,20 @@ void CDiabetes_Grid::Do_Flush_Stats(std::wofstream stats_file) {
 		}
 		get_segment(scgms::All_Segments_Id);
 	}
-	
 
-	
 	//2. write the error grids
 	const std::array<const wchar_t*, 3> markers = { dsClarke_Error_Grid, dsParkes_Error_Grid_Type_1, dsParkes_Error_Grid_Type_2 };
 
 	auto flush_stats = [&stats_file](const TError_Grid_Stats& stats, const uint64_t segment_id) {
 
-		if (segment_id == scgms::All_Segments_Id)  stats_file << dsSelect_All_Segments;
-		else stats_file << std::to_wstring(segment_id);
+		if (segment_id == scgms::All_Segments_Id) {
+			stats_file << dsSelect_All_Segments;
+		}
+		else {
+			stats_file << std::to_wstring(segment_id);
+		}
 
-		stats_file << ";; "
-			<< stats[0] << "; " << stats[1] << "; " << stats[0]+stats[1] << "; " << stats[2] << "; " << stats[3] << "; " << stats[4] << "; " << std::endl;
+		stats_file << ";; " << stats[0] << "; " << stats[1] << "; " << stats[0]+stats[1] << "; " << stats[2] << "; " << stats[3] << "; " << stats[4] << "; " << std::endl;
 	};
 	
 	for (size_t idx = idx_ceg; idx <= idx_peg2; idx++) {

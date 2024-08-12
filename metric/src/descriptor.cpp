@@ -405,11 +405,21 @@ DLL_EXPORT HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descrip
 }
 
 DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
-	if (*id == signal_error::desc.id) return Manufacture_Object<CSignal_Error>(filter, output);
-	else if (*id == fast_signal_error::desc.id) return Manufacture_Object<CFast_Signal_Error>(filter, output);
-	else if (*id == signal_stats::desc.id) return Manufacture_Object<CSignal_Stats>(filter, output);
-	else if (*id == diabetes_grid::desc.id) return Manufacture_Object<CDiabetes_Grid>(filter, output);
-	else if (*id == temporal_signal_error::desc.id) return Manufacture_Object<CTemporal_Signal_Error>(filter, output);
+	if (*id == signal_error::desc.id) {
+		return Manufacture_Object<CSignal_Error>(filter, output);
+	}
+	else if (*id == fast_signal_error::desc.id) {
+		return Manufacture_Object<CFast_Signal_Error>(filter, output);
+	}
+	else if (*id == signal_stats::desc.id) {
+		return Manufacture_Object<CSignal_Stats>(filter, output);
+	}
+	else if (*id == diabetes_grid::desc.id) {
+		return Manufacture_Object<CDiabetes_Grid>(filter, output);
+	}
+	else if (*id == temporal_signal_error::desc.id) {
+		return Manufacture_Object<CTemporal_Signal_Error>(filter, output);
+	}
 
 	return E_NOTIMPL;
 }

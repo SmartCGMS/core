@@ -47,7 +47,7 @@
 
 //Diabetes Type 1 coordinates
 #pragma region DiabetesType1
-const std::vector<TError_Grid_Point> PARKES_ZONE_A_T1 = {	
+const std::vector<TError_Grid_Point> PARKES_ZONE_A_T1 = {
 	{50.0*scgms::mgdL_2_mmolL, 0.0}, {50.0 * scgms::mgdL_2_mmolL, 30.0 * scgms::mgdL_2_mmolL}, {170.0 * scgms::mgdL_2_mmolL, 145.0 * scgms::mgdL_2_mmolL}, {385.0 * scgms::mgdL_2_mmolL, 300.0 * scgms::mgdL_2_mmolL}, {550.0 * scgms::mgdL_2_mmolL,450.0 * scgms::mgdL_2_mmolL},
 	{550.0 * scgms::mgdL_2_mmolL, 550.0 * scgms::mgdL_2_mmolL},
 	{430.0 * scgms::mgdL_2_mmolL, 550.0 * scgms::mgdL_2_mmolL}, {280.0 * scgms::mgdL_2_mmolL,380.0 * scgms::mgdL_2_mmolL}, {140.0 * scgms::mgdL_2_mmolL, 170.0 * scgms::mgdL_2_mmolL}, {30.0 * scgms::mgdL_2_mmolL, 50.0 * scgms::mgdL_2_mmolL}, {0.0 , 50.0 * scgms::mgdL_2_mmolL},
@@ -86,7 +86,7 @@ const std::vector<TError_Grid_Point> PARKES_ZONE_D_Low_T1 = {
 	{ 550.0 *scgms::mgdL_2_mmolL, 150.0 *scgms::mgdL_2_mmolL},{ 250.0 *scgms::mgdL_2_mmolL, 40.0 *scgms::mgdL_2_mmolL},	{ 250.0 *scgms::mgdL_2_mmolL, 0.0 },
 };
 
-const std::vector<TError_Grid_Point> PARKES_ZONE_E_Up_T1 = {	
+const std::vector<TError_Grid_Point> PARKES_ZONE_E_Up_T1 = {
 	{0.0 ,150.0 *scgms::mgdL_2_mmolL},{ 35.0 * scgms::mgdL_2_mmolL,155.0 * scgms::mgdL_2_mmolL },{ 50.0 *scgms::mgdL_2_mmolL,550.0 *scgms::mgdL_2_mmolL},
 	{0.0 , 550.0 * scgms::mgdL_2_mmolL},
 };
@@ -94,7 +94,7 @@ const std::vector<TError_Grid_Point> PARKES_ZONE_E_Up_T1 = {
 
 //Diabetes Type 2 coordinates
 #pragma region DiabetesType2
-const std::vector<TError_Grid_Point> PARKES_ZONE_A_T2 = {	
+const std::vector<TError_Grid_Point> PARKES_ZONE_A_T2 = {
 	{ 50.0 *scgms::mgdL_2_mmolL, 0.0 },{ 50.0 *scgms::mgdL_2_mmolL, 30.0 *scgms::mgdL_2_mmolL},{ 90.0 *scgms::mgdL_2_mmolL, 80.0 *scgms::mgdL_2_mmolL},{ 330.0 *scgms::mgdL_2_mmolL, 230.0 *scgms::mgdL_2_mmolL},{ 550.0 *scgms::mgdL_2_mmolL,450.0 *scgms::mgdL_2_mmolL},
 	{ 550.0 *scgms::mgdL_2_mmolL, 550.0 *scgms::mgdL_2_mmolL},
 	{ 440.0 *scgms::mgdL_2_mmolL, 550.0 *scgms::mgdL_2_mmolL},{230.0 *scgms::mgdL_2_mmolL,330.0 * scgms::mgdL_2_mmolL},{ 30.0 *scgms::mgdL_2_mmolL, 50.0 *scgms::mgdL_2_mmolL},{0.0 , 50.0 *scgms::mgdL_2_mmolL},
@@ -128,7 +128,7 @@ const std::vector<TError_Grid_Point> PARKES_ZONE_D_Up_T2 = {
 
 };
 
-const std::vector<TError_Grid_Point> PARKES_ZONE_D_Low_T2 = {	
+const std::vector<TError_Grid_Point> PARKES_ZONE_D_Low_T2 = {
 	{ 550.0 *scgms::mgdL_2_mmolL, 160.0 *scgms::mgdL_2_mmolL},{410.0 *scgms::mgdL_2_mmolL,110.0}, { 250.0 *scgms::mgdL_2_mmolL, 40.0 *scgms::mgdL_2_mmolL},{ 250.0 *scgms::mgdL_2_mmolL, 0.0},
 	{ 550.0 *scgms::mgdL_2_mmolL, 0.0 },
 };

@@ -56,20 +56,22 @@ struct TProcessed_Difference {
 };
 
 class CCommon_Metric : public virtual scgms::IMetric, public virtual refcnt::CReferenced {
-protected:
-	const scgms::TMetric_Parameters mParameters;
-	std::vector<TProcessed_Difference> mDifferences;
-protected:
-	virtual double Do_Calculate_Metric() = 0;
-	//Particular metrics should only override this method and no else method
-public:
-	CCommon_Metric(const scgms::TMetric_Parameters& params);
-	virtual ~CCommon_Metric() {};
+	protected:
+		const scgms::TMetric_Parameters mParameters;
+		std::vector<TProcessed_Difference> mDifferences;
 
-	virtual HRESULT IfaceCalling Accumulate(const double *times, const double *reference, const double *calculated, const size_t count) final;
-	virtual HRESULT IfaceCalling Reset() final;
-	virtual HRESULT IfaceCalling Calculate(double *metric, size_t *levels_accumulated, size_t levels_required) final;
-	virtual HRESULT IfaceCalling Get_Parameters(scgms::TMetric_Parameters *parameters) final;
+	protected:
+		//Particular metrics should only override this method and no else method
+		virtual double Do_Calculate_Metric() = 0;
+
+	public:
+		CCommon_Metric(const scgms::TMetric_Parameters& params);
+		virtual ~CCommon_Metric() {};
+
+		virtual HRESULT IfaceCalling Accumulate(const double *times, const double *reference, const double *calculated, const size_t count) final;
+		virtual HRESULT IfaceCalling Reset() final;
+		virtual HRESULT IfaceCalling Calculate(double *metric, size_t *levels_accumulated, size_t levels_required) final;
+		virtual HRESULT IfaceCalling Get_Parameters(scgms::TMetric_Parameters *parameters) final;
 };
 
 #pragma warning( pop )

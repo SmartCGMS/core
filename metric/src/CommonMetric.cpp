@@ -41,8 +41,9 @@
 
 #undef max
 
-constexpr double Infinity_Diff_Penalty = 1'000.0;	//the more levels that won't be calculated would considerably increase the overall penalty
-													//however, we cannot use double_max to avoid overflow, so we need a small number (yet overly great compared to glucose levels)
+ //the more levels that won't be calculated would considerably increase the overall penalty
+//however, we cannot use double_max to avoid overflow, so we need a small number (yet overly great compared to glucose levels)
+constexpr double Infinity_Diff_Penalty = 1'000.0;
 
 CCommon_Metric::CCommon_Metric(const scgms::TMetric_Parameters& params) : mParameters(params) {
 	Reset();
@@ -50,12 +51,12 @@ CCommon_Metric::CCommon_Metric(const scgms::TMetric_Parameters& params) : mParam
 
 HRESULT IfaceCalling CCommon_Metric::Accumulate(const double *times, const double *expected, const double *calculated, const size_t count) {
 
-	for (size_t i = 0; i < count; i++) {		
+	for (size_t i = 0; i < count; i++) {
 		if (!std::isnan(calculated[i])) {
 			TProcessed_Difference tmp;
 
-			tmp.raw.datetime = times[i];			
-			tmp.raw.calculated = calculated[i];			
+			tmp.raw.datetime = times[i];
+			tmp.raw.calculated = calculated[i];
 			tmp.raw.expected = expected[i];
 
 			tmp.difference = fabs(expected[i] - tmp.raw.calculated);
@@ -70,19 +71,28 @@ HRESULT IfaceCalling CCommon_Metric::Accumulate(const double *times, const doubl
 
 				if (mParameters.use_relative_error) {
 
-					if (tmp.raw.calculated != 0.0)
-						tmp.difference /= fabs(tmp.raw.expected);	//with wrong (e.g., MetaDE random) parameters, the result could be negative
-																	//albeit it is no longer a valid metric then (the triangle inequality wouldn't hold)
-					else if (tmp.difference <= std::numeric_limits<double>::epsilon())
-						tmp.difference = 0.0;		//if the difference is zero, then the relative difference is zero as well
-					else
-						tmp.difference = Infinity_Diff_Penalty;		//open case, what to do in such a case when we cannot divide by zero
+					if (tmp.raw.calculated != 0.0) {
+						//with wrong (e.g., MetaDE random) parameters, the result could be negative
+						//albeit it is no longer a valid metric then (the triangle inequality wouldn't hold)
+						tmp.difference /= fabs(tmp.raw.expected);
+					}
+					else if (tmp.difference <= std::numeric_limits<double>::epsilon()) {
+						//if the difference is zero, then the relative difference is zero as well
+						tmp.difference = 0.0;
+					}
+					else {
+						//open case, what to do in such a case when we cannot divide by zero
+						tmp.difference = Infinity_Diff_Penalty;
+					}
 				}
-				if (mParameters.use_squared_differences)
+
+				if (mParameters.use_squared_differences) {
 					tmp.difference *= tmp.difference;
+				}
 			}
-			else
+			else {
 				tmp.difference = Infinity_Diff_Penalty;
+			}
 
 			mDifferences.push_back(tmp);
 		}
@@ -91,12 +101,10 @@ HRESULT IfaceCalling CCommon_Metric::Accumulate(const double *times, const doubl
 	return S_OK;
 }
 
-
 HRESULT IfaceCalling CCommon_Metric::Reset() {
 	mDifferences.clear();
 	return S_OK;
 }
-
 
 HRESULT IfaceCalling CCommon_Metric::Calculate(double *metric, size_t *levels_accumulated, size_t levels_required) {
 
@@ -104,15 +112,21 @@ HRESULT IfaceCalling CCommon_Metric::Calculate(double *metric, size_t *levels_ac
 		*levels_accumulated = mDifferences.size();
 		levels_required = std::max((decltype(levels_required))1, levels_required);
 
-		if (*levels_accumulated < levels_required) return S_FALSE;
+		if (*levels_accumulated < levels_required) {
+			return S_FALSE;
+		}
 	}
 
 	double local_metric = Do_Calculate_Metric();	//caching into the register
 	
 	const auto cl = std::fpclassify(local_metric);
-	if ((cl != FP_NORMAL) && (cl != FP_ZERO)) return S_FALSE;
+	if ((cl != FP_NORMAL) && (cl != FP_ZERO)) {
+		return S_FALSE;
+	}
 
-	if (mParameters.prefer_more_levels != 0) local_metric /= static_cast<double>(mDifferences.size());
+	if (mParameters.prefer_more_levels != 0) {
+		local_metric /= static_cast<double>(mDifferences.size());
+	}
 
 	*metric = local_metric;
 

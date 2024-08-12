@@ -63,5 +63,4 @@
 /// Patients" Diabetes Care, Volume 25, Number 2, February 2002
 /// </remarks>
 
-
 extern const TError_Grid Clarke_Error_Grid;

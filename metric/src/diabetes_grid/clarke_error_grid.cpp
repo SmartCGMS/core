@@ -65,7 +65,7 @@
 
 
 #pragma region Diabetes Coords
-const std::vector<TError_Grid_Point> CLARKE_ZONE_A = {	
+const std::vector<TError_Grid_Point> CLARKE_ZONE_A = {
 	{ 70.0*scgms::mgdL_2_mmolL, 0.0 },{ 70.0 * scgms::mgdL_2_mmolL, 56.0 * scgms::mgdL_2_mmolL },{ 400.0 * scgms::mgdL_2_mmolL, 320.0 * scgms::mgdL_2_mmolL },
 
 	{ 400.0 * scgms::mgdL_2_mmolL, 400.0 * scgms::mgdL_2_mmolL },
@@ -78,7 +78,7 @@ const std::vector<TError_Grid_Point> CLARKE_ZONE_B_Up = {
 	{290.0 * scgms::mgdL_2_mmolL, 400.0 * scgms::mgdL_2_mmolL}, {70.0 * scgms::mgdL_2_mmolL, 180.0 * scgms::mgdL_2_mmolL},
 };
 
-const std::vector<TError_Grid_Point> CLARKE_ZONE_C_Up = {	
+const std::vector<TError_Grid_Point> CLARKE_ZONE_C_Up = {
 	{ 70.0 * scgms::mgdL_2_mmolL, 180.0 * scgms::mgdL_2_mmolL },{ 290.0 * scgms::mgdL_2_mmolL, 400.0 * scgms::mgdL_2_mmolL },
 	{ 70.0 * scgms::mgdL_2_mmolL, 400.0 * scgms::mgdL_2_mmolL}
 };
@@ -111,11 +111,9 @@ const std::vector<TError_Grid_Point>  CLARKE_ZONE_E_Low = {
 	{ 180.0 * scgms::mgdL_2_mmolL, 0.0 },{ 400.0 * scgms::mgdL_2_mmolL, 0.0 },{ 400.0 * scgms::mgdL_2_mmolL,70.0 * scgms::mgdL_2_mmolL },{ 180.0 * scgms::mgdL_2_mmolL, 70.0 * scgms::mgdL_2_mmolL },
 };
 
-
 #pragma endregion
 
 const TError_Grid Clarke_Error_Grid = {
-
 	{ NError_Grid_Zone::A, CLARKE_ZONE_A},
 	{ NError_Grid_Zone::B, CLARKE_ZONE_B_Up},
 	{ NError_Grid_Zone::B, CLARKE_ZONE_B_Low},

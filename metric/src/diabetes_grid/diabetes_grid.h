@@ -41,9 +41,9 @@
 #include <vector>
 #include <array>
 
-struct TError_Grid_Point {		//everything is in mmol/L
-	double expected;		//expected value aka reference value
-	double calculated;	//calculated value aka error value
+struct TError_Grid_Point { //everything is in mmol/L
+	double expected;   //expected value aka reference value
+	double calculated; //calculated value aka error value
 };
 
 enum class NError_Grid_Zone : size_t {
@@ -65,21 +65,20 @@ struct TError_Grid_Region {
 using TError_Grid = std::vector<TError_Grid_Region>;
 using TError_Grid_Stats = std::array<double, static_cast<size_t>(NError_Grid_Zone::count)>;
 
-
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-
 class CDiabetes_Grid : public virtual CTwo_Signals {
-protected:
-	static NError_Grid_Zone Classify_Point(const TError_Grid& grid, double reference, double error);
-	static bool Point_In_Polygon(const std::vector<TError_Grid_Point>& vertices, const double expected, const double calculated);
-	static TError_Grid_Stats Calculate_Statistics(const TError_Grid& grid, std::vector<double>& reference, std::vector<double>& error, bool useRelativeCounts = true);
-protected:
-	virtual void Do_Flush_Stats(std::wofstream stats_file) override final;
-public:
-	CDiabetes_Grid(scgms::IFilter* output);
-	virtual ~CDiabetes_Grid() {};
+	protected:
+		static NError_Grid_Zone Classify_Point(const TError_Grid& grid, double reference, double error);
+		static bool Point_In_Polygon(const std::vector<TError_Grid_Point>& vertices, const double expected, const double calculated);
+		static TError_Grid_Stats Calculate_Statistics(const TError_Grid& grid, std::vector<double>& reference, std::vector<double>& error, bool useRelativeCounts = true);
+
+		virtual void Do_Flush_Stats(std::wofstream stats_file) override final;
+
+	public:
+		CDiabetes_Grid(scgms::IFilter* output);
+		virtual ~CDiabetes_Grid() = default;
 };
 
 #pragma warning( pop )

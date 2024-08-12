@@ -47,16 +47,16 @@
 #include <type_traits>
 
 CSignal_Stats::CSignal_Stats(scgms::IFilter* output) : CBase_Filter(output) {
-
 }
 
 CSignal_Stats::~CSignal_Stats() {
-
 }
 
 HRESULT CSignal_Stats::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mSignal_ID = configuration.Read_GUID(rsSelected_Signal);
-	if (mSignal_ID == Invalid_GUID) return E_INVALIDARG;
+	if (mSignal_ID == Invalid_GUID) {
+		return E_INVALIDARG;
+	}
 
 	mCSV_Path = configuration.Read_File_Path(rsOutput_CSV_File);
 	mDiscard_Repeating_Level = configuration.Read_Bool(rsDiscard_Repeating_Level, mDiscard_Repeating_Level);
@@ -82,9 +82,8 @@ HRESULT CSignal_Stats::Do_Execute(scgms::UDevice_Event event) {
 		default: break;
 	}
 
-
 	if (event.signal_id() == mSignal_ID) {
-		if (event.event_code() == scgms::NDevice_Event_Code::Level) { //we intentionally ignore masked levels                
+		if (event.event_code() == scgms::NDevice_Event_Code::Level) { //we intentionally ignore masked levels
 			const double level = event.level();
 			const double date_time = event.device_time();
 
@@ -92,46 +91,45 @@ HRESULT CSignal_Stats::Do_Execute(scgms::UDevice_Event event) {
 
 				auto series = mSignal_Series.find(event.segment_id());
 
-					if (series == mSignal_Series.end()) {
-						TLevels levels;
+				if (series == mSignal_Series.end()) {
+					TLevels levels;
+					levels.last_level = level;
+					levels.level.push_back(level);
+					levels.datetime.push_back(date_time);
+					mSignal_Series[event.segment_id()] = std::move(levels);
+				}
+				else {
+					auto& levels = series->second;
+
+					const bool discard_level = mDiscard_Repeating_Level && (levels.last_level == level);
+					if (!discard_level) {
 						levels.last_level = level;
 						levels.level.push_back(level);
 						levels.datetime.push_back(date_time);
-						mSignal_Series[event.segment_id()] = std::move(levels);
 					}
-					else {                            
-						auto& levels = series->second;
-
-						const bool discard_level = mDiscard_Repeating_Level && (levels.last_level == level);
-						if (!discard_level) {
-							levels.last_level = level;
-							levels.level.push_back(level);
-							levels.datetime.push_back(date_time);
-						}
-					}
+				}
 			}
 
-		}    
-	}     
-	
+		}
+	}
+
 	return mOutput.Send(event);
 }
 
-
 void CSignal_Stats::Flush_Stats() {
+
 	std::wofstream stats_file{ mCSV_Path };
 	if (!stats_file.is_open()) {
-		Emit_Info(scgms::NDevice_Event_Code::Error, std::wstring{ dsCannot_Open_File }+mCSV_Path.wstring());
+		Emit_Info(scgms::NDevice_Event_Code::Error, std::wstring{ dsCannot_Open_File } + mCSV_Path.wstring());
 		return;
 	}
 
-	{   //write the header
+	//write the header
+	{
 		scgms::CSignal_Description signal_names;
 		stats_file << signal_names.Get_Name(mSignal_ID) << "; " << GUID_To_WString(mSignal_ID) << std::endl;
 		stats_file << rsSignal_Stats_Header << std::endl;
 	}
-
-
 
 	auto flush_marker = [&stats_file](const uint64_t segment_id, auto& series, const wchar_t* marker_string) {
 		scgms::TSignal_Stats signal_stats;
@@ -139,10 +137,12 @@ void CSignal_Stats::Flush_Stats() {
 		const bool result = Calculate_Signal_Stats(series, signal_stats);
 
 		if (result) {
-			if (segment_id == scgms::All_Segments_Id)  
+			if (segment_id == scgms::All_Segments_Id) {
 				stats_file << dsSelect_All_Segments;
-			else 
+			}
+			else {
 				stats_file << std::to_wstring(segment_id);
+			}
 
 			stats_file << "; " << marker_string << ";; "
 				<< signal_stats.avg << "; " << signal_stats.stddev << "; " << signal_stats.exc_kurtosis << "; " << signal_stats.skewness << "; " << signal_stats.count << ";; "
@@ -153,7 +153,6 @@ void CSignal_Stats::Flush_Stats() {
 				<< signal_stats.ecdf[scgms::NECDF::p95] << "; "
 				<< signal_stats.ecdf[scgms::NECDF::p99] << "; "
 				<< signal_stats.ecdf[scgms::NECDF::max_value] << std::endl;
-
 		}
 
 		return result;
@@ -164,34 +163,36 @@ void CSignal_Stats::Flush_Stats() {
 
 	//accumulate data for total stats, while flushing partial stats per segments
 	for (const auto& segment: mSignal_Series) { //signal must be const because we can FlushStats in later implementations sooner than in dtor             
-			auto& levels = segment.second;
+		auto& levels = segment.second;
 
-			if (levels.level.size() > 0) {
-				//1. calculate statistics per level
-				std::vector<double> levels_stats{ levels.level };   //we need a copy due to the sort to find ECDF
-				if (flush_marker(segment.first, levels_stats, dsLevel)) {
-					std::move(levels.level.begin(), levels.level.end(), std::back_inserter(total_levels));
+		if (levels.level.size() > 0) {
+			//1. calculate statistics per level
+			std::vector<double> levels_stats{ levels.level };   //we need a copy due to the sort to find ECDF
+			if (flush_marker(segment.first, levels_stats, dsLevel)) {
+				std::move(levels.level.begin(), levels.level.end(), std::back_inserter(total_levels));
 
-					//2. calculate the periods
-					if (levels.datetime.size() > 1) {
-						std::vector<double> periods{ levels.datetime };
-						std::sort(periods.begin(), periods.end());  //we do not need to synchronize time with the levels
-						//transform datetimes to periods
-						std::adjacent_difference(periods.begin(), periods.end(), periods.begin());
-						periods.erase(periods.begin());
+				//2. calculate the periods
+				if (levels.datetime.size() > 1) {
+					std::vector<double> periods{ levels.datetime };
+					std::sort(periods.begin(), periods.end());  //we do not need to synchronize time with the levels
+					//transform datetimes to periods
+					std::adjacent_difference(periods.begin(), periods.end(), periods.begin());
+					periods.erase(periods.begin());
 
-						if (flush_marker(segment.first, periods, dsPeriod))
-							std::move(periods.begin(), periods.end(), std::back_inserter(total_periods));
+					if (flush_marker(segment.first, periods, dsPeriod)) {
+						std::move(periods.begin(), periods.end(), std::back_inserter(total_periods));
 					}
 				}
-
 			}
+
+		}
 	}
 
 	stats_file << std::endl;
 
-	if (flush_marker(scgms::All_Segments_Id, total_levels, dsLevel))
+	if (flush_marker(scgms::All_Segments_Id, total_levels, dsLevel)) {
 		flush_marker(scgms::All_Segments_Id, total_periods, dsPeriod);
+	}
 
 	stats_file << std::endl;
 	stats_file << std::endl;

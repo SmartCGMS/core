@@ -43,7 +43,6 @@
 #undef max
 #undef min
 
-
 double CAbsDiffAvgMetric::Do_Calculate_Metric() {
 	/*
 	//Kahan sum: http://msdn.microsoft.com/en-us/library/aa289157%28v=vs.71%29.aspx
@@ -76,8 +75,9 @@ double CExpWeightedDiffAvgPolar_Metric::Do_Calculate_Metric() {
 	for (const auto &diff : mDifferences) {
 
 		double accdiff = diff.difference;
-		if (diff.raw.calculated + mParameters.threshold < diff.raw.expected)
+		if (diff.raw.calculated + mParameters.threshold < diff.raw.expected) {
 			accdiff *= 1.0 + diff.difference;
+		}
 
 		accumulator += accdiff;
 	}
@@ -97,7 +97,7 @@ double CAbsDiffMaxMetric::Do_Calculate_Metric() {
 
 CAbsDiffPercentilMetric::CAbsDiffPercentilMetric(scgms::TMetric_Parameters& params) : CCommon_Metric(params) {
 	mInvThreshold = 0.01 * params.threshold;
-};
+}
 
 double CAbsDiffPercentilMetric::Do_Calculate_Metric() {
 	size_t count = mDifferences.size();
@@ -109,21 +109,23 @@ double CAbsDiffPercentilMetric::Do_Calculate_Metric() {
 		mDifferences.end(),
 		[](const TProcessed_Difference &a, const TProcessed_Difference &b) -> bool {
 			return a.difference < b.difference;
-	}
+		}
 	);
 
-	if (offset > 0) offset--;	//elements are sorted up to middle, i.e, middle is not sorted
+	if (offset > 0) {
+		offset--; //elements are sorted up to middle, i.e, middle is not sorted
+	}
 
 	return mDifferences[offset].difference;	
 }
 
-
-
 double CAbsDiffThresholdMetric::Do_Calculate_Metric() {
 	sort(mDifferences.begin(), mDifferences.end(), 
 		[](const TProcessed_Difference &a, const TProcessed_Difference &b) -> bool {
-			return a.difference < b.difference; }
+			return a.difference < b.difference;
+		}
 	);
+
 	//we need to determine how many levels were calculated until the desired threshold 
 	//out of all values that could be calculated
 	auto thebegin = mDifferences.begin();
@@ -132,14 +134,14 @@ double CAbsDiffThresholdMetric::Do_Calculate_Metric() {
 
 	auto iter = std::upper_bound(thebegin, mDifferences.end(), thresh,
 		[](const TProcessed_Difference &a, const TProcessed_Difference &b) -> bool {
-			return a.difference < b.difference; }	//a always equal to thresh
-		);
+			return a.difference < b.difference;	//a always equal to thresh
+		}
+	);
 
 	//return 1.0 / std::distance(thebegin, iter);
 	const auto thresholdcount = std::distance(thebegin, iter);
 	return static_cast<double>(mDifferences.size() - thresholdcount);
 }
-
 
 CLeal2010Metric::CLeal2010Metric(scgms::TMetric_Parameters& params) : CCommon_Metric({params.metric_id, false, true, params.prefer_more_levels, params.threshold}) {
 	//mParameters.use_relative_error = false;
@@ -167,7 +169,6 @@ double CLeal2010Metric::Do_Calculate_Metric() {
 		avgedsqsum += tmp*tmp;
 	}
 
-
 	//return (1.0 - sqrt((diffsqsum / avgedsqsum)));
 	/*
 		This is the original metric where greater number is better.
@@ -183,7 +184,7 @@ double CLeal2010Metric::Do_Calculate_Metric() {
 CAICMetric::CAICMetric(scgms::TMetric_Parameters& params) : CAbsDiffAvgMetric({ params.metric_id, false, true, params.prefer_more_levels, params.threshold }){
 	//mParameters.UseRelativeValues = false;
 	//mParameters.UseSquaredDifferences = true;
-};
+}
 
 
 double CAICMetric::Do_Calculate_Metric() {
@@ -192,33 +193,29 @@ double CAICMetric::Do_Calculate_Metric() {
 }
 
 CRMSE_Metric::CRMSE_Metric(scgms::TMetric_Parameters& params) : CAbsDiffAvgMetric({ params.metric_id, params.use_relative_error, true, params.prefer_more_levels, params.threshold }) { };
-//mParameters.UseSquaredDifferences = true;
 
 double CRMSE_Metric::Do_Calculate_Metric() {
 	return sqrt(CAbsDiffAvgMetric::Do_Calculate_Metric());
 }
-
-
 
 double CVariance_Metric::Do_Calculate_Metric() {
 
 	//threshold holds margins to cut off, so we have to sort first
 	sort(mDifferences.begin(), mDifferences.end(), 
 		[](const TProcessed_Difference &a, const TProcessed_Difference &b) -> bool {
-		return a.difference < b.difference; }
+			return a.difference < b.difference;
+		}
 	);
 
 	size_t lowbound, highbound;
-	{
-		double n = static_cast<double>(mDifferences.size());
-		double margin = n*0.01*mParameters.threshold;
-		lowbound = (size_t)floor(margin);
-		highbound = (size_t)ceil(n - margin);
+	double n = static_cast<double>(mDifferences.size());
+	double margin = n*0.01*mParameters.threshold;
+	lowbound = (size_t)floor(margin);
+	highbound = (size_t)ceil(n - margin);
 
-	}
-
-	if (lowbound > highbound)
+	if (lowbound > highbound) {
 		return std::numeric_limits<double>::quiet_NaN();
+	}
 
 	double sum = 0.0;	
 	for (auto i = lowbound; i != highbound; i++) {
@@ -229,10 +226,17 @@ double CVariance_Metric::Do_Calculate_Metric() {
 	double invn = casted_size;
 
 	//first, try Unbiased estimation of standard deviation
-	if (invn > 1.5) 			//since invn is alway a full number (no fraction due to being a number of items in the vector),
-								//we just need to know whether it is greater than 1
-		invn = casted_size - 1.5 + 1 / (8 * (casted_size - 1));	//precise estimation, better than substracting 1.5	
-		else if (invn > 1.0) invn -= 1.0;	//if not, try to fall back to Bessel's Correction at least
+	if (invn > 1.5) {
+		//since invn is alway a full number (no fraction due to being a number of items in the vector),
+		//we just need to know whether it is greater than 1
+
+		//precise estimation, better than substracting 1.5
+		invn = casted_size - 1.5 + 1 / (8 * (casted_size - 1));
+	}
+	else if (invn > 1.0) {
+		//if not, try to fall back to Bessel's Correction at least
+		invn -= 1.0;
+	}
 	invn = 1.0 / invn;
 
 	mLast_Calculated_Avg = sum*invn;
@@ -250,108 +254,17 @@ double CStdDevMetric::Do_Calculate_Metric() {
 	return sqrt(CVariance_Metric::Do_Calculate_Metric());
 }
 
-
 double CAvgPlusBesselStdDevMetric::Do_Calculate_Metric() {
+	//also calculates mLastCalculatedAvg
 	const double variance = CVariance_Metric::Do_Calculate_Metric();
-			//also calculates mLastCalculatedAvg
 	return mLast_Calculated_Avg + sqrt(variance);
 }
-
-
 
 double CAvg_Pow_StdDev_Metric::Do_Calculate_Metric() {
 	const double variance = CVariance_Metric::Do_Calculate_Metric();
 
 	return log(mLast_Calculated_Avg) + log(sqrt(variance));
-
-	//also calculates mLastCalculatedAvg
-
-		//the real metric is supposed to be
-		//(1.0+avg)^(1.0+std_dev_estimate)		
-		//both 1.0+ are to avoid adverse results with both avg and sd less than 1.0 so the best metric is 1.0 => -1.0 to have zero as the best fit like the other metrics
-	//return pow(1.0+mLast_Calculated_Avg, 1.0 + sqrt(variance))-1.0;	//we do sqrt to minimize the power extent
-
-
-	/*
-	//statistical efficiency
-	if (mLast_Calculated_Avg >= 0.0) {
-		return variance / mLast_Calculated_Avg*mLast_Calculated_Avg;	
-	}
-	else
-		return 0.0;	//zero average means no error
-	*/
-
-	//coefficient of determination - comes almost close to avg+sd
-	double sum_of_residuals = 0.0;
-	double sum_observed = 0.0;
-	for (const auto& elem : mDifferences) {
-		sum_of_residuals += elem.difference * elem.difference;
-		sum_observed += elem.raw.expected;
-	}
-
-
-	double corrected_count = static_cast<double>(mDifferences.size());	//this would be the original, but we make corrected estimation like sd-estimation
-	if (corrected_count > 1.5) 
-		corrected_count = corrected_count - 1.5 + 1 / (8 * (corrected_count - 1));	//precise estimation, better than substracting 1.5	
-		else if (corrected_count > 1.0) corrected_count -= 1.0;	//if not, try to fall back to Bessel's Correction at least
-
-	const double avg_observed = sum_observed / corrected_count;
-	double sum_of_total = 0.0;
-	for (const auto& elem : mDifferences) {
-		const double diff = elem.raw.expected - avg_observed;
-		sum_of_total += diff * diff;
-	}
-
-	return sum_of_residuals / sum_of_total;
-
-	
-
-	//harmonic mean
-	double n = 0.0;
-	double sum = 0.0;
-	for (const auto& elem : mDifferences) {
-		if (elem.difference != 0.0) {
-			n += 1.0;
-			sum += 1.0 / std::fabs(elem.difference);
-		}
-	}
-	return n / sum;
-
-	/*
-	//coefficient of variation
-	if (mLast_Calculated_Avg >= 0.0) {
-		return sqrt(variance) / mLast_Calculated_Avg;	//coefficient of variation		
-	}
-	else
-		return 0.0;	//zero average means no error
-	
-
-	//quartile coefficient of dispersion
-	std::sort(mDifferences.begin(),
-		mDifferences.end(),
-		[](const TProcessed_Difference &a, const TProcessed_Difference &b) -> bool {
-		return a.difference < b.difference;
-	}
-	);
-	const size_t q1_idx = static_cast<size_t>(round(0.25*static_cast<double>(mDifferences.size())));
-	const size_t q3_idx = static_cast<size_t>(round(0.75*static_cast<double>(mDifferences.size())));
-	const double q1 = mDifferences[q1_idx].difference;
-	const double q3 = mDifferences[q3_idx].difference;
-	//const double interquartile_range = 0.5*(q3 - q1);
-	//const double midhinge = 0.5*(q1 + q3);
-	return (q3 - q1) / (q1 + q3); //interquartile_range / midhinge;
-
-
-	*/
-
-	
-
-//https://en.wikipedia.org/wiki/Coefficient_of_variation
-//https://en.wikipedia.org/wiki/Coefficient_of_determination
 }
-
-
-
 
 double CCrossWalkMetric::Do_Calculate_Metric() {
 	/*
@@ -363,7 +276,8 @@ double CCrossWalkMetric::Do_Calculate_Metric() {
 	//1. we have to sort differences accordingly to the time
 	sort(mDifferences.begin(), mDifferences.end(),
 		[](const TProcessed_Difference &a, const TProcessed_Difference &b)->bool {
-		return a.raw.datetime < b.raw.datetime; }
+			return a.raw.datetime < b.raw.datetime;
+		}
 	);
 
 	//2. for the first differences, the path-length cannot be calculated at all => set it to zero
@@ -371,8 +285,6 @@ double CCrossWalkMetric::Do_Calculate_Metric() {
 
 	double path_length = 0.0;
 	double measured_path_length = 0.0;	//ideal path through the measured points only
-
-	
 
 	for (size_t i = 1; i < mDifferences.size(); i++) {
 		const TProcessed_Difference& previous_diff = mDifferences[i-1];
@@ -387,9 +299,8 @@ double CCrossWalkMetric::Do_Calculate_Metric() {
 		double mesB = current_diff.raw.expected;
 		double calcB = current_diff.raw.calculated;
 
-
 		if (mParameters.use_relative_error) {
-			if (mCalculate_Real_Relative_Difference) {
+			if constexpr (mCalculate_Real_Relative_Difference) {
 				calcA = fabs(mesA - calcA) / mesA;
 				mesA = 0.0;
 
@@ -405,56 +316,61 @@ double CCrossWalkMetric::Do_Calculate_Metric() {
 				calcB /= mesB;
 				mesB = 1.0;
 			}
-		}		
-
+		}
 
 		bool mestocalccross = mCross_Measured_With_Calculated_Only || ((mesA>calcA) && (mesB > calcB)) || ((mesA < calcA) && (mesB < calcB));
 
-		
 		if (mestocalccross) {
-
 			//Measured-to-calculated and calculated-to-measured
 			double height = mesA - calcB;	//do not forget fabs when experimenting with odd-powers
 			height *= height;
-			if (mCrosswalk4) height *= height;
+			if constexpr (mCrosswalk4) {
+				height *= height;
+			}
 
 			path_length += sqrt(timedelta + height);
 
 			height = calcA - mesB;				//do not forget fabs when experimenting with odd-powers
 			height *= height;
-			if (mCrosswalk4) height *= height;
+			if constexpr (mCrosswalk4) {
+				height *= height;
+			}
 			path_length += sqrt(timedelta + height);
-
 		}
 		else {
 			//Measured-to-measured and calculated-to-calculated
 			double height = mesA - mesB;
 			height *= height;
-			if (mCrosswalk4) height *= height;
+			if constexpr (mCrosswalk4) {
+				height *= height;
+			}
 			path_length += sqrt(timedelta + height);
 
 
 			height = calcA - calcB;
 			height *= height;
-			if (mCrosswalk4) height *= height;
+			if constexpr (mCrosswalk4) {
+				height *= height;
+			}
 			path_length += sqrt(timedelta + height);
 		}
 
-		if (mCompare_To_Measured_Path) {
+		if constexpr (mCompare_To_Measured_Path) {
 			double mes_height = mesA - mesB;
 			mes_height *= mes_height;
-			if (mCrosswalk4) mes_height *= mes_height;
+			if constexpr (mCrosswalk4) {
+				mes_height *= mes_height;
+			}
 			measured_path_length += sqrt(timedelta + mes_height);
 		}
 	}
 	
-	if (mCompare_To_Measured_Path)	path_length = abs(path_length - measured_path_length);
+	if constexpr (mCompare_To_Measured_Path) {
+		path_length = abs(path_length - measured_path_length);
+	}
 
 	return path_length / static_cast<double>(mDifferences.size());
 }
-
-
-
 
 double CIntegralCDFMetric::Do_Calculate_Metric() {
 
@@ -472,21 +388,19 @@ double CIntegralCDFMetric::Do_Calculate_Metric() {
 	//threshold holds margins to cut off, so we have to sort first
 	sort(mDifferences.begin(), mDifferences.end(),
 		[](const TProcessed_Difference &a, const TProcessed_Difference &b)->bool {
-		return a.difference < b.difference; }
+			return a.difference < b.difference;
+		}
 	);
 
 	size_t lowbound, highbound;
-	{
-		double n = static_cast<double>(mDifferences.size());
-		double margin = n*0.01*mParameters.threshold;
-		lowbound = (size_t)floor(margin);
-		highbound = (size_t)ceil(n - margin);
+	double n = static_cast<double>(mDifferences.size());
+	double margin = n*0.01*mParameters.threshold;
+	lowbound = (size_t)floor(margin);
+	highbound = (size_t)ceil(n - margin);
 
-	}
-
-	if (lowbound >= highbound)
+	if (lowbound >= highbound) {
 		return std::numeric_limits<double>::quiet_NaN();
-
+	}
 
 	double area = 0.0;
 	double step = 1.0 / static_cast<double>(mDifferences.size());
@@ -495,7 +409,6 @@ double CIntegralCDFMetric::Do_Calculate_Metric() {
 	auto previous = lowbound;
 	lowbound++;
 	for (auto i = lowbound; i != highbound; i++) {
-
 		area += step*(std::min(diffs[previous].difference, diffs[i].difference) + fabs(diffs[previous].difference - diffs[i].difference)*0.5);
 	}
 
