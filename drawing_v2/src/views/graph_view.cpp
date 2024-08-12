@@ -49,8 +49,7 @@
 #undef min
 #undef max
 
-NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local& opts, const IDrawing_Data_Source& source)
-{
+NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local& opts, const IDrawing_Data_Source& source) {
 	// NOTE: this is just a proof-of-the-concept implementation of one type of plots; this will surely be a subject of refactoring
 
 	drawing::Drawing draw;
@@ -75,15 +74,14 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 		const TPlot_Segment& segment = source.Get_Segment(seg_id);
 
 		for (const auto& signal : segment.mPlots_Signals) {
-			if (opts.signal_ids.find(signal.first) == opts.signal_ids.end())
+			if (opts.signal_ids.find(signal.first) == opts.signal_ids.end()) {
 				continue;
+			}
 
 			scgms::TSignal_Descriptor desc = scgms::Null_Signal_Descriptor;
 
-			if (scgms::get_signal_descriptor_by_id(signal.second.signal_id, desc))
-			{
-				for (const auto& val : signal.second.mPlots_Values)
-				{
+			if (scgms::get_signal_descriptor_by_id(signal.second.signal_id, desc)) {
+				for (const auto& val : signal.second.mPlots_Values) {
 					min_y = std::min(min_y, val.value * desc.value_scale);
 					max_y = std::max(max_y, val.value * desc.value_scale);
 					min_x = std::min(min_x, val.device_time);
@@ -93,8 +91,9 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 		}
 	}
 
-	if (max_x < min_y || max_y < min_y)
+	if (max_x < min_y || max_y < min_y) {
 		return NDrawing_Error::Not_Enough_Values;
+	}
 
 	max_y += 2.0; // always move the maximum value, so there's still room for descriptions, etc.
 
@@ -109,8 +108,7 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 	std::string lastDate = "";
 
 	// descriptions on X axis
-	for (size_t i = 0; i < total_x_label_cnt; i++)
-	{
+	for (size_t i = 0; i < total_x_label_cnt; i++) {
 		grp.Add<drawing::Text>(
 				mCanvas_WidthOff + static_cast<double>(i) * x_label_step_px,
 				mCanvas_HeightOff + 20,
@@ -120,8 +118,7 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 			.Set_Anchor(drawing::Text::TextAnchor::MIDDLE);
 
 		std::string curDate = Rat_Time_To_Local_Time_Str(min_x + static_cast<double>(i) * x_label_step_val, "%d.%m.%Y");
-		if (curDate != lastDate)
-		{
+		if (curDate != lastDate) {
 			lastDate = curDate;
 
 			grp.Add<drawing::Text>(
@@ -204,13 +201,13 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 
 		for (const auto& signal : segment.mPlots_Signals) {
 
-			if (opts.signal_ids.find(signal.first) == opts.signal_ids.end())
+			if (opts.signal_ids.find(signal.first) == opts.signal_ids.end()) {
 				continue;
+			}
 
 			scgms::TSignal_Descriptor desc = scgms::Null_Signal_Descriptor;
 
-			if (scgms::get_signal_descriptor_by_id(signal.second.signal_id, desc))
-			{
+			if (scgms::get_signal_descriptor_by_id(signal.second.signal_id, desc)) {
 				// draw description text only on first appearance
 				if (usedSignals.find(desc.id) == usedSignals.end()) {
 					grp.Add<drawing::Text>(mCanvas_WidthOff + 20, descriptionY, Narrow_WChar(desc.signal_description) + " [" + Narrow_WChar(desc.unit_description) + "]")
@@ -223,21 +220,20 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 
 				descriptionY += 20;
 
-				//
 				if (desc.visualization == scgms::NSignal_Visualization::smooth ||
-					desc.visualization == scgms::NSignal_Visualization::smooth_with_mark)
-				{
-					drawing::PolyLine line;
-					//line.Set_Position(mCanvas_WidthOff, mCanvas_HeightOff);
-					for (const auto& val : signal.second.mPlots_Values) {
+					desc.visualization == scgms::NSignal_Visualization::smooth_with_mark) {
 
+					drawing::PolyLine line;
+
+					for (const auto& val : signal.second.mPlots_Values) {
 						line.Add_Point(
 							mCanvas_WidthOff + (opts.width - mCanvas_WidthOff) * ((val.device_time - min_x) / (max_x - min_x)),
 							mCanvas_HeightOff - (mCanvas_HeightOff * ((val.value - min_y)* desc.value_scale / (max_y - min_y))));
 					}
 					const auto& all_points = line.Get_Points();
-					if (!all_points.empty())
+					if (!all_points.empty()) {
 						line.Set_Position(all_points[0].x, all_points[0].y);
+					}
 
 					grp.Add<drawing::PolyLine>(line)
 						.Set_Stroke_Width(1.2)
@@ -245,8 +241,7 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 						.Set_Stroke_Color(RGBColor::From_UInt32(desc.stroke_color, true));
 				}
 				else if (desc.visualization == scgms::NSignal_Visualization::step ||
-					desc.visualization == scgms::NSignal_Visualization::step_with_mark)
-				{
+					desc.visualization == scgms::NSignal_Visualization::step_with_mark) {
 					double last_x = 0, last_y = mCanvas_HeightOff;
 
 					drawing::PolyLine line;
@@ -273,8 +268,7 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 
 				if (desc.visualization == scgms::NSignal_Visualization::mark ||
 					desc.visualization == scgms::NSignal_Visualization::smooth_with_mark ||
-					desc.visualization == scgms::NSignal_Visualization::step_with_mark)
-				{
+					desc.visualization == scgms::NSignal_Visualization::step_with_mark) {
 					constexpr double Plus_Distance = 4.0;
 					constexpr double Star_Distance = 4.5;
 					constexpr double Cross_Distance = 4.0;
@@ -287,16 +281,14 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 						const double base_x = mCanvas_WidthOff + (opts.width - mCanvas_WidthOff) * ((val.device_time - min_x) / (max_x - min_x));
 						const double base_y = mCanvas_HeightOff - (mCanvas_HeightOff * (val.value * desc.value_scale / (max_y - min_y)));
 
-						if (desc.mark == scgms::NSignal_Mark::circle)
-						{
+						if (desc.mark == scgms::NSignal_Mark::circle) {
 							grp.Add<drawing::Circle>(base_x, base_y, 8)
 								.Set_Stroke_Color(RGBColor::From_UInt32(desc.stroke_color, true))
 								.Set_Stroke_Width(2)
 								.Set_Stroke_Opacity(1.0)
 								.Set_Fill_Opacity(0.0);
 						}
-						else if (desc.mark == scgms::NSignal_Mark::dot)
-						{
+						else if (desc.mark == scgms::NSignal_Mark::dot) {
 							grp.Add<drawing::Circle>(base_x, base_y, 4)
 								.Set_Stroke_Color(RGBColor::From_UInt32(desc.stroke_color, true))
 								.Set_Fill_Color(RGBColor::From_UInt32(desc.fill_color, true))
@@ -304,15 +296,13 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 								.Set_Stroke_Opacity(1.0)
 								.Set_Fill_Opacity(1.0);
 						}
-						else if (desc.mark == scgms::NSignal_Mark::minus)
-						{
+						else if (desc.mark == scgms::NSignal_Mark::minus) {
 							grp.Add<drawing::Line>(base_x - Plus_Distance, base_y, base_x + Plus_Distance, base_y)
 								.Set_Stroke_Color(RGBColor::From_UInt32(desc.stroke_color, true))
 								.Set_Stroke_Width(2)
 								.Set_Stroke_Opacity(1.0);
 						}
-						else if (desc.mark == scgms::NSignal_Mark::plus)
-						{
+						else if (desc.mark == scgms::NSignal_Mark::plus) {
 							grp.Add<drawing::Line>(base_x - Plus_Distance, base_y, base_x + Plus_Distance, base_y)
 								.Set_Stroke_Color(RGBColor::From_UInt32(desc.stroke_color, true))
 								.Set_Stroke_Width(2)
@@ -323,8 +313,7 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 								.Set_Stroke_Width(2)
 								.Set_Stroke_Opacity(1.0);
 						}
-						else if (desc.mark == scgms::NSignal_Mark::star)
-						{
+						else if (desc.mark == scgms::NSignal_Mark::star) {
 							grp.Add<drawing::Line>(base_x, base_y - Star_Distance, base_x, base_y + Star_Distance)
 								.Set_Stroke_Color(RGBColor::From_UInt32(desc.stroke_color, true))
 								.Set_Stroke_Width(1.5)
@@ -340,8 +329,7 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 								.Set_Stroke_Width(1.5)
 								.Set_Stroke_Opacity(1.0);
 						}
-						else if (desc.mark == scgms::NSignal_Mark::cross)
-						{
+						else if (desc.mark == scgms::NSignal_Mark::cross) {
 							grp.Add<drawing::Line>(base_x - Cross_Distance, base_y - Cross_Distance, base_x + Cross_Distance, base_y + Cross_Distance)
 								.Set_Stroke_Color(RGBColor::From_UInt32(desc.stroke_color, true))
 								.Set_Stroke_Width(2)
@@ -352,8 +340,7 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 								.Set_Stroke_Width(2)
 								.Set_Stroke_Opacity(1.0);
 						}
-						else if (desc.mark == scgms::NSignal_Mark::rectangle)
-						{
+						else if (desc.mark == scgms::NSignal_Mark::rectangle) {
 							grp.Add<drawing::Rectangle>(base_x - Rect_Distance, base_y - Rect_Distance, 2 * Rect_Distance, 2 * Rect_Distance)
 								.Set_Stroke_Color(RGBColor::From_UInt32(desc.stroke_color, true))
 								.Set_Fill_Color(RGBColor::From_UInt32(desc.fill_color, true))
@@ -361,8 +348,7 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 								.Set_Stroke_Opacity(1.0)
 								.Set_Fill_Opacity(1.0);
 						}
-						else if (desc.mark == scgms::NSignal_Mark::diamond)
-						{
+						else if (desc.mark == scgms::NSignal_Mark::diamond) {
 							grp.Add<drawing::Polygon>(base_x - Diamond_Distance, base_y)
 								.Add_Point(base_x - Diamond_Distance, base_y)
 								.Add_Point(base_x, base_y - Diamond_Distance)
@@ -374,8 +360,7 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 								.Set_Stroke_Opacity(1.0)
 								.Set_Fill_Opacity(1.0);;
 						}
-						else if (desc.mark == scgms::NSignal_Mark::triangle)
-						{
+						else if (desc.mark == scgms::NSignal_Mark::triangle) {
 							grp.Add<drawing::Polygon>(base_x, base_y - Triangle_Distance)
 								.Add_Point(base_x, base_y - Triangle_Distance)
 								.Add_Point(base_x + Triangle_Distance * 0.866, base_y + Triangle_Distance * 0.5)

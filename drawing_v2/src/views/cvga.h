@@ -41,8 +41,7 @@
 /*
  * CVGA view - aggregates all segment values by its minimal and maximal IG and produces a control variability grid
  */
-class CCVGA_View : public virtual CDrawing_View_Base
-{
+class CCVGA_View : public virtual CDrawing_View_Base {
 	public:
 		// IDrawing_View_Base iface
 		virtual NDrawing_Error Draw(std::string& target, const TDraw_Options_Local& opts, const IDrawing_Data_Source& source) override;

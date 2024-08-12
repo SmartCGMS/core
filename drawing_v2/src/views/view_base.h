@@ -76,8 +76,7 @@ struct TPlot_Segment {
 };
 
 // enumerator of known drawing errors
-enum class NDrawing_Error
-{
+enum class NDrawing_Error {
 	Ok = 0,
 	Unspecified_Error,
 	Invalid_Options,
@@ -102,11 +101,9 @@ struct TDraw_Options_Local {
 };
 
 // utility namespace - this will be a subject of future restructuring (once there are more utility functions)
-namespace utility
-{
+namespace utility {
 	// formats double precision number to a given number of decimal places
-	inline std::string Format_Decimal(double number, int precision)
-	{
+	inline std::string Format_Decimal(double number, int precision) {
 		std::stringstream str;
 		str << std::fixed << std::setprecision(precision) << number;
 		return str.str();
@@ -116,8 +113,7 @@ namespace utility
 /*
  * Data source of segments
  */
-class IDrawing_Data_Source
-{
+class IDrawing_Data_Source {
 	public:
 		// retrieves a segment reference for a given ID; may throw an exception if no such segment is found
 		virtual const TPlot_Segment& Get_Segment(const size_t id) const = 0;
@@ -126,8 +122,7 @@ class IDrawing_Data_Source
 /*
  * Base for all drawing view handlers (generators)
  */
-class CDrawing_View_Base
-{
+class CDrawing_View_Base {
 	public:
 		// draws signals and segments from given data source to target string (SVG); uses the local opts structure to parametrize the outputs
 		virtual NDrawing_Error Draw(std::string& target, const TDraw_Options_Local& opts, const IDrawing_Data_Source& source) = 0;

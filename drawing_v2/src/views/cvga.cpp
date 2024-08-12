@@ -47,30 +47,31 @@
 #undef min
 #undef max
 
-NDrawing_Error CCVGA_View::Draw(std::string& target, const TDraw_Options_Local& opts, const IDrawing_Data_Source& source)
-{
+NDrawing_Error CCVGA_View::Draw(std::string& target, const TDraw_Options_Local& opts, const IDrawing_Data_Source& source) {
 	drawing::Drawing draw;
 
 	std::vector<std::pair<double, double>> points;
-	for (auto& segId : opts.segment_ids)
-	{
+	for (auto& segId : opts.segment_ids) {
 		const auto& seg = source.Get_Segment(segId);
 		
 		const auto igItr = seg.mPlots_Signals.find(scgms::signal_IG);
-		if (igItr == seg.mPlots_Signals.end())
+		if (igItr == seg.mPlots_Signals.end()) {
 			continue;
+		}
 
 		const auto& ig = igItr->second.mPlots_Values;
-		if (ig.empty())
+		if (ig.empty()) {
 			continue;
+		}
 
 		double tmpMin = ig[0].value, tmpMax = ig[0].value;
-		for (const auto& val : ig)
-		{
-			if (val.value < tmpMin)
+		for (const auto& val : ig) {
+			if (val.value < tmpMin) {
 				tmpMin = val.value;
-			if (val.value > tmpMax)
+			}
+			if (val.value > tmpMax) {
 				tmpMax = val.value;
+			}
 		}
 
 		points.push_back({ tmpMin, tmpMax });
@@ -231,26 +232,31 @@ NDrawing_Error CCVGA_View::Draw(std::string& target, const TDraw_Options_Local& 
 
 		auto igToX = [&startX, &endX](double ig) {
 			const double norm = (ig - 2.8) / (6.1 - 2.8);
-			if (norm < 0.0)
+			if (norm < 0.0) {
 				return endX;
-			else if (norm > 1.0)
+			}
+			else if (norm > 1.0) {
 				return startX;
+			}
 
 			return endX - norm * (endX - startX);
 		};
 
 		auto igToY = [&startY, &endY](double ig) {
 			const double norm = (ig - 6.1) / (22.2 - 6.1);
-			if (norm < 0.0)
+			if (norm < 0.0) {
 				return endY;
-			else if (norm > 1.0)
+			}
+			else if (norm > 1.0) {
 				return startY;
+			}
 
 			return endY - norm * (endY - startY);
 		};
 
-		for (const auto& pt : points)
+		for (const auto& pt : points) {
 			pts.Add<drawing::Circle>(igToX(pt.first), igToY(pt.second), 4.0);
+		}
 	}
 
 	// render prepared canvas to string

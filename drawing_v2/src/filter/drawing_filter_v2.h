@@ -86,8 +86,7 @@ class CDrawing_Filter_v2 : public scgms::CBase_Filter, public scgms::IDrawing_Fi
 	private:
 		// registers a view handler (instantiates the handler)
 		template<typename T, typename... Args>
-		void Register_View(const GUID& id, const std::wstring& filename_option_name, Args... args)
-		{
+		void Register_View(const GUID& id, const std::wstring& filename_option_name, Args... args) {
 			mViews.insert({
 				id, TRegistered_View{ id, std::make_unique<T>(std::forward<Args>(args)...), filename_option_name }
 			});
