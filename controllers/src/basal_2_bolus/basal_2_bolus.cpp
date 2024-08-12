@@ -50,13 +50,15 @@ bool CBasal_2_Bolus::Schedule_Delivery(const double current_device_time, const d
 	bool result = false;
 
 	const auto fpc = std::fpclassify(target_rate);
-	if ((fpc != FP_ZERO) && (fpc != FP_NORMAL))
+	if ((fpc != FP_ZERO) && (fpc != FP_NORMAL)) {
 		return false;
+	}
 	
 	const double effective_target_rate = fpc == FP_NORMAL ? target_rate : 0.0;	//also flushing denormals to zero
 
-	if (effective_target_rate < 0.0)
+	if (effective_target_rate < 0.0) {
 		return false;
+	}
 	
 	if (effective_target_rate > 0.0) {
 		const double old_delivery_per_period = mInsulin_To_Deliver_Per_Period;
@@ -70,7 +72,6 @@ bool CBasal_2_Bolus::Schedule_Delivery(const double current_device_time, const d
 			mEffective_Period = mParameters.period * ratio;
 			mInsulin_To_Deliver_Per_Period *= ratio;
 		}
-
 
 		if (!mValid_Settings) {
 			mNext_Delivery_Time = current_device_time;		//we start delivering now
@@ -90,17 +91,17 @@ bool CBasal_2_Bolus::Schedule_Delivery(const double current_device_time, const d
 
 				result = Succeeded(mOutput.Send(event));
 			}
-			else
+			else {
 				result = true;
+			}
 			//else we deliver on the original delivery time not to generate excess insulin doses
-		}		
+		}
 	}
 	else {
 		//let's stop the insulin deliveries
 		mValid_Settings = false;
 		result = effective_target_rate == 0.0;	//let's report negative rates as errors
 	}
-
 
 	return result;
 }
@@ -121,13 +122,13 @@ HRESULT CBasal_2_Bolus::Deliver_Bolus(const double delivery_device_time, const u
 
 		return mOutput.Send(event);
 	}
-	else
+	else {
 		return E_OUTOFMEMORY;
+	}
 }
 
 HRESULT CBasal_2_Bolus::Do_Execute(scgms::UDevice_Event event) {
 	const double current_device_time = event.device_time();
-	
 
 	if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate) {
 		if (!Schedule_Delivery(current_device_time, event.level(), event.segment_id())) {
@@ -145,23 +146,21 @@ HRESULT CBasal_2_Bolus::Do_Execute(scgms::UDevice_Event event) {
 	if (event.segment_id() != scgms::Invalid_Segment_Id) {
 		if ((current_device_time >= mNext_Delivery_Time) && (mValid_Settings)) {
 			const HRESULT rc = Deliver_Bolus(current_device_time, event.segment_id());
-			if (!Succeeded(rc))
+			if (!Succeeded(rc)) {
 				return rc;
+			}
 		}
 	}
 
-
-
 	return mOutput.Send(event);
-
 }
 
 
 HRESULT CBasal_2_Bolus::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	std::vector<double> lower, def, upper;
 	if (!configuration.Read_Parameters(rsParameters, lower, def, upper) || 
-		 (def.size() != basal_2_bolus::model_param_count) ||
-		(def[0] <=0.0) || (def[1]<=0.0) ) {	
+		(def.size() != basal_2_bolus::model_param_count) ||
+		(def[0] <=0.0) || (def[1]<=0.0) ) {
 
 		error_description.push(dsStored_Parameters_Corrupted_Not_Loaded);
 		return E_INVALIDARG;

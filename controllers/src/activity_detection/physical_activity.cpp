@@ -52,8 +52,7 @@ CPhysical_Activity_Detection_Model::CPhysical_Activity_Detection_Model(scgms::WT
 }
 
 HRESULT IfaceCalling CPhysical_Activity_Detection_Model::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
-	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
-{
+	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 	const physical_activity_detection::TParameters &parameters = scgms::Convert_Parameters<physical_activity_detection::TParameters>(params, physical_activity_detection::default_parameters);
 
 	const double historyTimeStep = scgms::One_Minute * 5.0;	// 5 minute step
@@ -61,11 +60,11 @@ HRESULT IfaceCalling CPhysical_Activity_Detection_Model::Get_Continuous_Levels(s
 
 	std::vector<double> htimes(historyTimeCnt);
 
-	for (size_t i = 0; i < count; i++)
-	{
+	for (size_t i = 0; i < count; i++) {
 		// generate history times
-		for (size_t p = 0; p < historyTimeCnt; p++)
+		for (size_t p = 0; p < historyTimeCnt; p++) {
 			htimes[historyTimeCnt - p - 1] = times[i] - static_cast<double>(p) * historyTimeStep;
+		}
 
 		// select maximum from history times
 
@@ -99,13 +98,11 @@ HRESULT IfaceCalling CPhysical_Activity_Detection_Model::Get_Continuous_Levels(s
 		// if we have data from electrodermal activity sensor, we may want to "confirm" the activity index
 		if (!std::isnan(edamax)) {
 
-			if (edamax > parameters.eda_threshold)
-			{
+			if (edamax > parameters.eda_threshold) {
 				const double thrmaxdiff = std::max(parameters.eda_max - parameters.eda_threshold + 1.0, 1.0);
 				levels[i] *= 1.0 + (  ((std::min(edamax, parameters.eda_max) - parameters.eda_threshold) / thrmaxdiff) * 0.25  );
 			}
-			else
-			{
+			else {
 				levels[i] *= 0.75;
 			}
 		}

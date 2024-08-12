@@ -45,11 +45,13 @@
 
 CInsulin_Absorption::CInsulin_Absorption(scgms::WTime_Segment segment, NInsulin_Calc_Mode mode) : CCommon_Calculated_Signal(segment), mDelivered_Insulin(segment.Get_Signal(scgms::signal_Delivered_Insulin_Total)),
 	mMode(mode) {
-	if (!refcnt::Shared_Valid_All(mDelivered_Insulin)) throw std::exception{};
+	if (!refcnt::Shared_Valid_All(mDelivered_Insulin)) {
+		throw std::exception{};
+	}
 }
 
-double CInsulin_Absorption_Bilinear::Calculate_Signal(double bolusTime, double bolusValue, double nowTime, double peak, double dia) const
-{
+double CInsulin_Absorption_Bilinear::Calculate_Signal(double bolusTime, double bolusValue, double nowTime, double peak, double dia) const {
+
 	double value = 0.0;
 
 	// NOTE: oref0 math assumes inputs in minutes (so the coefficients would work)
@@ -69,8 +71,7 @@ double CInsulin_Absorption_Bilinear::Calculate_Signal(double bolusTime, double b
 	// activityPeak scales based on user's dia even though peak and end remain fixed
 	const double activityPeak = 2.0 / (dia / scgms::One_Minute);
 
-	if (scaledTime < default_peak)
-	{
+	if (scaledTime < default_peak) {
 		if (mMode == NInsulin_Calc_Mode::Activity) {
 			const double slopeUp = activityPeak / default_peak;
 			value = bolusValue * (slopeUp * scaledTime);
@@ -80,8 +81,7 @@ double CInsulin_Absorption_Bilinear::Calculate_Signal(double bolusTime, double b
 			value = bolusValue * (1.0 + 0.001852*x1*(1.0 - x1));
 		}
 	}
-	else if (scaledTime < default_end)
-	{
+	else if (scaledTime < default_end) {
 		if (mMode == NInsulin_Calc_Mode::Activity) {
 			const double slopeDown = -1.0 * (activityPeak / (default_end - default_peak));
 			const double minsPastPeak = scaledTime - default_peak;
@@ -97,8 +97,8 @@ double CInsulin_Absorption_Bilinear::Calculate_Signal(double bolusTime, double b
 	return value;
 }
 
-double CInsulin_Absorption_Exponential::Calculate_Signal(double bolusTime, double bolusValue, double nowTime, double peak, double dia) const
-{
+double CInsulin_Absorption_Exponential::Calculate_Signal(double bolusTime, double bolusValue, double nowTime, double peak, double dia) const {
+
 	double value = 0.0;
 
 	// NOTE: oref0 math assumes inputs in minutes (so the coefficients would work)
@@ -118,40 +118,38 @@ double CInsulin_Absorption_Exponential::Calculate_Signal(double bolusTime, doubl
 		const double a = 2.0 * tau / end;                                     // rise time factor
 		const double S = 1.0 / (1.0 - a + (1.0 + a) * std::exp(-end / tau));      // auxiliary scale factor
 
-		if (mMode == NInsulin_Calc_Mode::Activity)
+		if (mMode == NInsulin_Calc_Mode::Activity) {
 			value = bolusValue * (S / std::pow(tau, 2)) * minsAgo * (1.0 - minsAgo / end) * std::exp(-minsAgo / tau);
-		else if (mMode == NInsulin_Calc_Mode::IOB)
+		}
+		else if (mMode == NInsulin_Calc_Mode::IOB) {
 			value = bolusValue * (1.0 - S * (1.0 - a) * ((std::pow(minsAgo, 2) / (tau * end * (1.0 - a)) - minsAgo / tau - 1.0) * std::exp(-minsAgo / tau) + 1.0));
+		}
 	}
 
 	return value;
 }
 
-IOB_Combined CInsulin_Absorption::Calculate_Total_IOB(double nowTime, double peak, double dia) const
-{
+IOB_Combined CInsulin_Absorption::Calculate_Total_IOB(double nowTime, double peak, double dia) const {
 	IOB_Combined totalIob = {0, 0};
 	size_t cnt, filled;
 	std::vector<double> insTimes, insLevels;
 
 	// get basal insulin levels and times, add it to total IOB contrib
-	if (mDelivered_Insulin->Get_Discrete_Bounds(nullptr, nullptr, &cnt) == S_OK && cnt != 0)
-	{
+	if (mDelivered_Insulin->Get_Discrete_Bounds(nullptr, nullptr, &cnt) == S_OK && cnt != 0) {
 		insTimes.resize(cnt);
 		insLevels.resize(cnt);
 
-		if (mDelivered_Insulin->Get_Discrete_Levels(insTimes.data(), insLevels.data(), cnt, &filled) == S_OK)
-		{
-			if (cnt != filled)
-			{
+		if (mDelivered_Insulin->Get_Discrete_Levels(insTimes.data(), insLevels.data(), cnt, &filled) == S_OK) {
+			if (cnt != filled) {
 				insTimes.resize(filled);
 				insLevels.resize(filled);
 				cnt = filled;
 			}
 
-			for (size_t i = 0; i < cnt; i++)
-			{
-				if (insTimes[i] > nowTime)
+			for (size_t i = 0; i < cnt; i++) {
+				if (insTimes[i] > nowTime) {
 					continue;
+				}
 
 				double tVal = Calculate_Signal(insTimes[i], insLevels[i], nowTime, peak, dia);
 				totalIob.basal += tVal;
@@ -163,12 +161,10 @@ IOB_Combined CInsulin_Absorption::Calculate_Total_IOB(double nowTime, double pea
 }
 
 HRESULT CInsulin_Absorption::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
-	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
-{
+	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 	const iob::TParameters &parameters = scgms::Convert_Parameters<iob::TParameters>(params, iob::default_parameters);
 
-	for (size_t i = 0; i < count; i++)
-	{
+	for (size_t i = 0; i < count; i++) {
 		IOB_Combined totalIob = Calculate_Total_IOB(times[i], parameters.peak, parameters.dia);
 
 		levels[i] = totalIob.basal + totalIob.bolus;
@@ -177,8 +173,7 @@ HRESULT CInsulin_Absorption::Get_Continuous_Levels(scgms::IModel_Parameter_Vecto
 	return S_OK;
 }
 
-HRESULT CInsulin_Absorption::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const
-{
+HRESULT CInsulin_Absorption::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const {
 	double *params = const_cast<double*>(iob::default_parameters);
 	return parameters->set(params, params + iob::param_count);
 }

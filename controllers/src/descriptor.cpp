@@ -53,7 +53,6 @@
 
 #include <vector>
 
-
 namespace basal_2_bolus {
 	const size_t filter_param_count = 1;
 	const scgms::NParameter_Type filter_param_types[filter_param_count] = { scgms::NParameter_Type::ptDouble_Array};
@@ -62,19 +61,19 @@ namespace basal_2_bolus {
 	const wchar_t* filter_param_tooltips[filter_param_count] = { nullptr};
 
 	const scgms::TFilter_Descriptor filter_desc = {
-				filter_id,
-				scgms::NFilter_Flags::Encapsulated_Model,
-				dsBasal_2_Bolus,
-				filter_param_count,
-				filter_param_types,
-				filter_param_ui_names,
-				filter_param_config_names,
-				filter_param_tooltips
-		};
+		filter_id,
+		scgms::NFilter_Flags::Encapsulated_Model,
+		dsBasal_2_Bolus,
+		filter_param_count,
+		filter_param_types,
+		filter_param_ui_names,
+		filter_param_config_names,
+		filter_param_tooltips
+	};
 
 
 	const scgms::NModel_Parameter_Value model_types[model_param_count] = { scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime };
-	const wchar_t* model_param_ui_names[model_param_count] = {dsMinimum_Volume, dsPPeriod };
+	const wchar_t* model_param_ui_names[model_param_count] = { dsMinimum_Volume, dsPPeriod };
 	const wchar_t* model_param_config_names[model_param_count] = { rsMinimum, rsPeriod };
 
 	const double lower_bound[model_param_count] = { 0.0, 0.0};	
@@ -102,8 +101,8 @@ namespace basal_2_bolus {
 	};
 }
 
-namespace sensor
-{
+namespace sensor {
+
 	const wchar_t* rsNoise_Level = L"Noise_Level";
 	const wchar_t* rsCalibration_Signal_Id = L"Calibration_Signal_Id";
 	const wchar_t* rsCalibration_Min_Value_Count = L"Calibration_Min_Value_Count";
@@ -167,12 +166,10 @@ namespace sensor
 namespace iob {
 	const GUID model_id = { 0xd3d57cb4, 0x48da, 0x40e2, { 0x9e, 0x53, 0xbb, 0x1e, 0x84, 0x8a, 0x63, 0x95 } };// {D3D57CB4-48DA-40E2-9E53-BB1E848A6395}
 
-
 	constexpr GUID signal_Insulin_Activity_Bilinear = { 0x235962db, 0x1356, 0x4d14, { 0xb8, 0x54, 0x49, 0x3f, 0xd9, 0x79, 0x1, 0x42 } };		// {235962DB-1356-4D14-B854-493FD9790142}
 	constexpr GUID signal_Insulin_Activity_Exponential = { 0x19974ff5, 0x9eb1, 0x4a99, { 0xb7, 0xf2, 0xdc, 0x9b, 0xfa, 0xe, 0x31, 0x5e } };	// {19974FF5-9EB1-4A99-B7F2-DC9BFA0E315E}
 	constexpr GUID signal_IOB_Bilinear = { 0xa8fa0190, 0x4c89, 0x4e0b, { 0x88, 0x55, 0xaf, 0x47, 0xba, 0x29, 0x4c, 0xff } };		// {A8FA0190-4C89-4E0B-8855-AF47BA294CFF}
 	constexpr GUID signal_IOB_Exponential = { 0x238d2353, 0x6d37, 0x402c, { 0xaf, 0x39, 0x6c, 0x55, 0x52, 0xa7, 0x7e, 0x1f } };	// {238D2353-6D37-402C-AF39-6C5552A77E1F}
-
 
 	const scgms::NModel_Parameter_Value param_types[param_count] = { scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptTime };
 
@@ -245,8 +242,8 @@ namespace cob {
 		default_parameters,
 		upper_bound,
 		signal_count,
-		signal_ids,		
-		reference_signal_ids,		
+		signal_ids,
+		reference_signal_ids,
 	};
 
 	const scgms::TSignal_Descriptor bi_desc{ signal_COB_Bilinear, dsCOB_Bilinear, L"", scgms::NSignal_Unit::Other, 0xFF008000, 0xFF008000, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 0.1 };
@@ -290,7 +287,6 @@ namespace betapid_insulin_regulation {
 
 	const scgms::TSignal_Descriptor pid_desc{ betapid_signal_id, dsInsulin_BetaPID_Rate, dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0xFF008000, 0xFF008000, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr, 1.0 };
 	const scgms::TSignal_Descriptor pid2_desc{ betapid2_signal_id, dsInsulin_BetaPID2_Rate, dsU_per_Hr, scgms::NSignal_Unit::U_per_Hr, 0xFF008000, 0xFF008000, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr, 1.0 };
-	
 }
 
 namespace betapid3_insulin_regulation {
@@ -325,7 +321,7 @@ namespace betapid3_insulin_regulation {
 		default_parameters,
 		upper_bound,
 		signal_count,
-		signal_ids,		
+		signal_ids,
 		reference_signal_ids,
 	};
 
@@ -360,7 +356,7 @@ namespace lgs_basal_insulin {
 		default_parameters,
 		upper_bound,
 		signal_count,
-		signal_ids,		
+		signal_ids,
 		reference_signal_ids
 	};
 
@@ -428,30 +424,42 @@ DLL_EXPORT HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descrip
 }
 
 DLL_EXPORT HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal) {
-	if ((calc_id == nullptr) || (segment == nullptr)) return E_INVALIDARG;
+	if ((calc_id == nullptr) || (segment == nullptr)) {
+		return E_INVALIDARG;
+	}
 
 	scgms::WTime_Segment weak_segment{ segment };
 
-	if (*calc_id == iob::signal_Insulin_Activity_Bilinear)
+	if (*calc_id == iob::signal_Insulin_Activity_Bilinear) {
 		return Manufacture_Object<CInsulin_Absorption_Bilinear, scgms::ISignal>(signal, weak_segment, NInsulin_Calc_Mode::Activity);
-	else if (*calc_id == iob::signal_Insulin_Activity_Exponential)
+	}
+	else if (*calc_id == iob::signal_Insulin_Activity_Exponential) {
 		return Manufacture_Object<CInsulin_Absorption_Exponential, scgms::ISignal>(signal, weak_segment, NInsulin_Calc_Mode::Activity);
-	else if (*calc_id == iob::signal_IOB_Bilinear)
+	}
+	else if (*calc_id == iob::signal_IOB_Bilinear) {
 		return Manufacture_Object<CInsulin_Absorption_Bilinear, scgms::ISignal>(signal, weak_segment, NInsulin_Calc_Mode::IOB);
-	else if (*calc_id == iob::signal_IOB_Exponential)
+	}
+	else if (*calc_id == iob::signal_IOB_Exponential) {
 		return Manufacture_Object<CInsulin_Absorption_Exponential, scgms::ISignal>(signal, weak_segment, NInsulin_Calc_Mode::IOB);
-	else if (*calc_id == cob::signal_COB_Bilinear)
+	}
+	else if (*calc_id == cob::signal_COB_Bilinear) {
 		return Manufacture_Object<CCarbohydrates_On_Board_Bilinear, scgms::ISignal>(signal, weak_segment);
-	else if (*calc_id == betapid_insulin_regulation::betapid_signal_id)
+	}
+	else if (*calc_id == betapid_insulin_regulation::betapid_signal_id) {
 		return Manufacture_Object<CBetaPID_Insulin_Regulation, scgms::ISignal>(signal, weak_segment);
-	else if (*calc_id == betapid_insulin_regulation::betapid2_signal_id)
+	}
+	else if (*calc_id == betapid_insulin_regulation::betapid2_signal_id) {
 		return Manufacture_Object<CBetaPID2_Insulin_Regulation, scgms::ISignal>(signal, weak_segment);
-	else if (*calc_id == betapid3_insulin_regulation::betapid3_signal_id)
+	}
+	else if (*calc_id == betapid3_insulin_regulation::betapid3_signal_id) {
 		return Manufacture_Object<CBetaPID3_Insulin_Regulation, scgms::ISignal>(signal, weak_segment);
-	else if (*calc_id == lgs_basal_insulin::lgs_basal_insulin_signal_id)
+	}
+	else if (*calc_id == lgs_basal_insulin::lgs_basal_insulin_signal_id) {
 		return Manufacture_Object<CConstant_Basal_LGS_Insulin_Rate_Model, scgms::ISignal>(signal, weak_segment);
-	else if (*calc_id == physical_activity_detection::signal_id)
+	}
+	else if (*calc_id == physical_activity_detection::signal_id) {
 		return Manufacture_Object<CPhysical_Activity_Detection_Model, scgms::ISignal>(signal, weak_segment);
+	}
 
 	return E_NOTIMPL;
 }
@@ -464,10 +472,12 @@ DLL_EXPORT HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descrip
 }
 
 DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID* id, scgms::IFilter* output, scgms::IFilter** filter) {
-	if (*id == basal_2_bolus::filter_id)
+	if (*id == basal_2_bolus::filter_id) {
 		return Manufacture_Object<CBasal_2_Bolus>(filter, output);
-	else if (*id == sensor::filter_id)
+	}
+	else if (*id == sensor::filter_id) {
 		return Manufacture_Object<CEmulated_Sensor_Filter>(filter, output);
+	}
 
 	return E_NOTIMPL;
 }

@@ -48,23 +48,26 @@
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 class CBasal_2_Bolus : public virtual scgms::CBase_Filter {
-protected:
-    basal_2_bolus::TParameters mParameters{ {{0.0, 0.0} } };
+    protected:
+        basal_2_bolus::TParameters mParameters{ {{0.0, 0.0} } };
 
-    bool mValid_Settings = false;    
-    double mInsulin_To_Deliver_Per_Period = 0.0;
-    double mEffective_Period = 0.0;
-    double mNext_Delivery_Time = 0.0;
+        bool mValid_Settings = false;
+        double mInsulin_To_Deliver_Per_Period = 0.0;
+        double mEffective_Period = 0.0;
+        double mNext_Delivery_Time = 0.0;
 
-    bool Schedule_Delivery(const double current_device_time, const double target_rate, const uint64_t segment_id);
-    HRESULT Deliver_Bolus(const double current_device_time, const uint64_t segment_id);
-protected:
-    // scgms::CBase_Filter iface implementation
-    virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-    virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-    CBasal_2_Bolus(scgms::IFilter* output);
-    virtual ~CBasal_2_Bolus();
+        bool Schedule_Delivery(const double current_device_time, const double target_rate, const uint64_t segment_id);
+        HRESULT Deliver_Bolus(const double current_device_time, const uint64_t segment_id);
+
+    protected:
+        // scgms::CBase_Filter iface implementation
+        virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+        virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+
+    public:
+
+        CBasal_2_Bolus(scgms::IFilter* output);
+        virtual ~CBasal_2_Bolus();
 };
 
 #pragma warning( pop )

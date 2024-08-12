@@ -41,23 +41,22 @@
 #include <cmath>
 
 CEmulated_Sensor_Filter::CEmulated_Sensor_Filter(scgms::IFilter *output)
-	: scgms::CBase_Filter(output)
-{
+	: scgms::CBase_Filter(output) {
 	//
 }
 
-CEmulated_Sensor_Filter::~CEmulated_Sensor_Filter()
-{
-	
+CEmulated_Sensor_Filter::~CEmulated_Sensor_Filter() {
+	//
 }
 
 HRESULT CEmulated_Sensor_Filter::Do_Execute(scgms::UDevice_Event evt)
 {
 	// respond to measured signal value
-	if (evt.signal_id() == mSource_Id)
-	{
-		if (std::isnan(mStart_Time))
+	if (evt.signal_id() == mSource_Id) {
+
+		if (std::isnan(mStart_Time)) {
 			mStart_Time = evt.device_time();
+		}
 
 		// the drift is constant for now, although it should be an exponential curve (the body trying to get rid of the sensor needle);
 		// let's keep it linear until we implement inspection with sensor reset
@@ -68,21 +67,18 @@ HRESULT CEmulated_Sensor_Filter::Do_Execute(scgms::UDevice_Event evt)
 		const double sensedValue = evt.level() + mDist(mRandom_Engine) + mSensor_Drift;
 
 		// if there is a new calibration value pending
-		if (mPending_Calibration)
-		{
-			for (auto& cal : mCalibration_Diffs)
-			{
-				if (std::isnan(cal.measured_value))
+		if (mPending_Calibration) {
+			for (auto& cal : mCalibration_Diffs) {
+				if (std::isnan(cal.measured_value)) {
 					cal.measured_value = sensedValue;
+				}
 			}
 
 			mPending_Calibration = false;
 
 			// is it possible to calibrate?
-			if (mCalibration_Diffs.size() >= mMin_Calibration_Values)
-			{
-				if (mCalibration_Diffs.size() == 1)
-				{
+			if (mCalibration_Diffs.size() >= mMin_Calibration_Values) {
+				if (mCalibration_Diffs.size() == 1) {
 					// with just a single value, let us shift the curve without slope
 					// this may lead to a significant "jump" in measured signal, however this may sometimes be wanted (e.g.; when the signal is steady enough to do this
 					// and the outer code is aware of that)
@@ -90,15 +86,13 @@ HRESULT CEmulated_Sensor_Filter::Do_Execute(scgms::UDevice_Event evt)
 					mCal_K = 0.0;
 					mCal_Q = mCalibration_Diffs[0].measured_value - mCalibration_Diffs[0].calibration_value;
 				}
-				else
-				{
+				else {
 					// cache the calibrations to vectors
 					std::vector<double> times(mCalibration_Diffs.size());
 					std::vector<double> values(mCalibration_Diffs.size());
 
 					// fill the vectors
-					for (size_t i = 0; i < mCalibration_Diffs.size(); i++)
-					{
+					for (size_t i = 0; i < mCalibration_Diffs.size(); i++) {
 						times[i] = mCalibration_Diffs[i].time - mStart_Time;
 						values[i] = mCalibration_Diffs[i].measured_value - mCalibration_Diffs[i].calibration_value;
 					}
@@ -110,8 +104,7 @@ HRESULT CEmulated_Sensor_Filter::Do_Execute(scgms::UDevice_Event evt)
 					// calculate linear regression coefficients
 					double b1_a = 0.0;
 					double b1_b = 0.0;
-					for (size_t i = 0; i < times.size(); i++)
-					{
+					for (size_t i = 0; i < times.size(); i++) {
 						b1_a += (values[i] - meanValue) * (times[i] - meanTime);
 						b1_b += (values[i] - meanValue) * (values[i] - meanValue);
 					}
@@ -126,8 +119,7 @@ HRESULT CEmulated_Sensor_Filter::Do_Execute(scgms::UDevice_Event evt)
 		}
 
 		// if the sensor is calibrated, or is precalibrated (i.e.; the user knows what he's doing), emit measured value (-> mapping with noise and calibration)
-		if (mCalibrated || mPrecalibrated)
-		{
+		if (mCalibrated || mPrecalibrated) {
 			scgms::UDevice_Event evt2{ scgms::NDevice_Event_Code::Level };
 			evt2.device_time() = evt.device_time();
 			evt2.level() = std::max(0.0, sensedValue - (mCal_K * (evt.device_time() - mStart_Time) + mCal_Q)); // subtract the calibration
@@ -139,8 +131,7 @@ HRESULT CEmulated_Sensor_Filter::Do_Execute(scgms::UDevice_Event evt)
 		}
 	}
 	// respond to calibration signal value
-	else if (evt.signal_id() == mCalibration_Id)
-	{
+	else if (evt.signal_id() == mCalibration_Id) {
 		// push it to calibration vector and signalize calibration
 		// the calibration will be issued on next measured value arrival
 
@@ -152,8 +143,8 @@ HRESULT CEmulated_Sensor_Filter::Do_Execute(scgms::UDevice_Event evt)
 }
 
 
-HRESULT CEmulated_Sensor_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description)
-{
+HRESULT CEmulated_Sensor_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
+
 	mSource_Id = configuration.Read_GUID(rsSignal_Source_Id, mSource_Id);
 	mDestination_Id = configuration.Read_GUID(rsSignal_Destination_Id, mDestination_Id);
 	mCalibration_Id = configuration.Read_GUID(sensor::rsCalibration_Signal_Id, mCalibration_Id);
@@ -162,14 +153,12 @@ HRESULT CEmulated_Sensor_Filter::Do_Configure(scgms::SFilter_Configuration confi
 	int64_t cal_vals = configuration.Read_Int(sensor::rsCalibration_Min_Value_Count, mMin_Calibration_Values);
 	mSensor_Drift_Per_Day = configuration.Read_Double(sensor::rsSensor_Drift_Per_Day, mSensor_Drift_Per_Day);
 
-	if (mNoise_Level < 0)
-	{
+	if (mNoise_Level < 0) {
 		error_description.push(L"Sensor noise level must be non-negative");
 		return E_INVALIDARG;
 	}
 
-	if (cal_vals < 1)
-	{
+	if (cal_vals < 1) {
 		error_description.push(L"Sensor needs to be calibrated with at least 1 value");
 		return E_INVALIDARG;
 	}

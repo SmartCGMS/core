@@ -49,8 +49,8 @@ CBetaPID_Insulin_Regulation::CBetaPID_Insulin_Regulation(scgms::WTime_Segment se
 }
 
 HRESULT CBetaPID_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
-	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
-{
+	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
+
 	const betapid_insulin_regulation::TParameters &parameters = scgms::Convert_Parameters<betapid_insulin_regulation::TParameters>(params, betapid_insulin_regulation::default_parameters);
 
 	const double h = scgms::One_Minute * 1.0;
@@ -62,22 +62,24 @@ HRESULT CBetaPID_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Paramet
 	std::vector<double> BGs(count);
 	std::fill(BGs.begin(), BGs.end(), std::numeric_limits<double>::quiet_NaN());
 	HRESULT rc = mIG->Get_Continuous_Levels(nullptr, times, BGs.data(), count, scgms::apxNo_Derivation);
-	if (!Succeeded(rc)) return rc;
+	if (!Succeeded(rc)) {
+		return rc;
+	}
 
 	std::vector<double> IOBs(count);
 	std::fill(IOBs.begin(), IOBs.end(), 0.0);
 	rc = mIOB->Get_Continuous_Levels(nullptr, times, IOBs.data(), count, scgms::apxNo_Derivation);
-	if (!Succeeded(rc)) return rc;
+	if (!Succeeded(rc)) {
+		return rc;
+	}
 
-	for (size_t i = 0; i < count; i++)
-	{
+	for (size_t i = 0; i < count; i++) {
 		const double bt = BGs[i];
 		const double iob = IOBs[i];
 
 		// we cannot calculate insulin rate when BG/IOB is unknown at this time point
 		// as we don't extrapolate (would be dangerous), wait for BG/IOB to be available
-		if (std::isnan(bt) || std::isnan(IOBs[i]))
-		{
+		if (std::isnan(bt) || std::isnan(IOBs[i])) {
 			levels[i] = std::numeric_limits<double>::quiet_NaN();
 			continue;
 		}
@@ -97,18 +99,23 @@ HRESULT CBetaPID_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Paramet
 
 		// retrieve history
 		rc = mIG->Get_Continuous_Levels(nullptr, historyTimes.data(), historyIGs.data(), integral_history, scgms::apxNo_Derivation);
-		if (!Succeeded(rc)) return rc;
+		if (!Succeeded(rc)) {
+			return rc;
+		}
 
 		// approximate integral of error, int_0^t e(tau) dtau =~= sum_i=0^hist e(t-i*h)*h
-		for (size_t j = 0; j < integral_history; j++)
+		for (size_t j = 0; j < integral_history; j++) {
 			eintegral += std::isnan(historyIGs[j]) ? 0.0 : (targetBG - historyIGs[j]); // *h --> omit the width parameter, as its constant, and would still be included in Ki parameter
+		}
 
 		rc = mIG->Get_Continuous_Levels(nullptr, &times[i], &ederivative, 1, scgms::apxFirst_Order_Derivation);
 		if (Succeeded(rc)) {
 			// error trend has exactly opposite sign than current BG trend
 			ederivative *= -1;
-		} else
+		}
+		else {
 			return rc;
+		}
 
 		// the lower the BG is, the more the regulator conservative is
 		// the regulator is "most confident" around target BG
@@ -125,19 +132,21 @@ HRESULT CBetaPID_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Paramet
 		levels[i] = -parameters.isf * (parameters.kp * future_etf * et + parameters.ki * future_etf * eintegral + parameters.kd * etf * ederivative) + parameters.basal_insulin_rate;
 
 		// as much as the regulator would want to, the dosage still needs to be non-negative (positive values would mean the BG is/would be too low)
-		if (levels[i] < 0.0)
+		if (levels[i] < 0.0) {
 			levels[i] = 0.0;
+		}
 
 		// TODO: move this to safety filter
-		if (levels[i] > 3.5)
+		if (levels[i] > 3.5) {
 			levels[i] = 3.5;
+		}
 	}
 
 	return S_OK;
 }
 
-HRESULT CBetaPID_Insulin_Regulation::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const
-{
+HRESULT CBetaPID_Insulin_Regulation::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const {
+
 	double *params = const_cast<double*>(betapid_insulin_regulation::default_parameters);
 	return parameters->set(params, params + betapid_insulin_regulation::param_count);
 }
@@ -150,8 +159,8 @@ CBetaPID2_Insulin_Regulation::CBetaPID2_Insulin_Regulation(scgms::WTime_Segment 
 }
 
 HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
-	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
-{
+	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
+
 	const betapid_insulin_regulation::TParameters &parameters = scgms::Convert_Parameters<betapid_insulin_regulation::TParameters>(params, betapid_insulin_regulation::default_parameters);
 
 	const double h = scgms::One_Minute * 1.0;
@@ -164,24 +173,30 @@ HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 	std::vector<double> IGs(count);
 	std::fill(IGs.begin(), IGs.end(), std::numeric_limits<double>::quiet_NaN());
 	HRESULT rc = mIG->Get_Continuous_Levels(nullptr, times, IGs.data(), count, scgms::apxNo_Derivation);
-	if (!Succeeded(rc)) return rc;
+	if (!Succeeded(rc)) {
+		return rc;
+	}
 
 	std::vector<double> IOBs(count);
 	std::fill(IOBs.begin(), IOBs.end(), 0.0);
 	rc = mIOB->Get_Continuous_Levels(nullptr, times, IOBs.data(), count, scgms::apxNo_Derivation);
-	if (!Succeeded(rc)) return rc;
+	if (!Succeeded(rc)) {
+		return rc;
+	}
 
 	std::vector<double> COBs(count);
 	std::fill(COBs.begin(), COBs.end(), 0.0);
 	rc = mCOB->Get_Continuous_Levels(nullptr, times, COBs.data(), count, scgms::apxNo_Derivation);
-	if (!Succeeded(rc)) return rc;
+	if (!Succeeded(rc)) {
+		return rc;
+	}
 
 	const auto e = [targetBG](const double v) {
 		return targetBG - v;
 	};
 
-	for (size_t i = 0; i < count; i++)
-	{
+	for (size_t i = 0; i < count; i++) {
+
 		const double bt = IGs[i];
 		const double iob = IOBs[i];
 		const double cob = COBs[i];
@@ -190,8 +205,7 @@ HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 		// as we don't extrapolate (would be dangerous), we wait for all values to be available;
 		// NOTE: IOB and COB should have IG as reference signal and always emit a valid value
 		//       as BetaPID also have IG as reference, these signals would come 
-		if (std::isnan(bt) || std::isnan(iob) || std::isnan(cob))
-		{
+		if (std::isnan(bt) || std::isnan(iob) || std::isnan(cob)) {
 			levels[i] = std::numeric_limits<double>::quiet_NaN();
 			continue;
 		}
@@ -211,28 +225,33 @@ HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 
 		// retrieve history
 		rc = mIG->Get_Continuous_Levels(nullptr, historyTimes.data(), historyIGs.data(), integral_history, scgms::apxNo_Derivation);
-		if (!Succeeded(rc)) return rc;
+		if (!Succeeded(rc)) {
+			return rc;
+		}
 
 		// approximate integral of error, int_0^t e(tau) dtau =~= sum_i=0^hist e(t-i*h)*h
-		for (size_t j = 0; j < integral_history; j++)
+		for (size_t j = 0; j < integral_history; j++) {
 			eintegral += std::isnan(historyIGs[j]) ? 0.0 : e(historyIGs[j]); // *h --> omit the width parameter, as its constant, and would still be included in Ki parameter
+		}
 
 		double derTimes[derivative_smooth_history];
 		double valArray[derivative_smooth_history];
-		for (size_t j = 1; j <= derivative_smooth_history; j++)
+		for (size_t j = 1; j <= derivative_smooth_history; j++) {
 			derTimes[j - 1] = times[i] - (scgms::One_Minute * 5 * (derivative_smooth_history - j));
+		}
 
 		rc = mIG->Get_Continuous_Levels(nullptr, derTimes, valArray, derivative_smooth_history, scgms::apxNo_Derivation);
-		if (Succeeded(rc))
-		{
+		if (Succeeded(rc)) {
 			bool valid = true;
 			for (size_t j = 0; j < derivative_smooth_history; j++)
 				valid &= !std::isnan(valArray[j]);
 
 			if (valid)
 				ederivative = (-e(valArray[derivative_smooth_history - 1]) + 8 * e(valArray[derivative_smooth_history - 2]) - 8 * e(valArray[derivative_smooth_history - 4]) + e(valArray[derivative_smooth_history - 5])) / (12 * scgms::One_Minute * 5);
-		} else
+		}
+		else {
 			return rc;
+		}
 
 		const double isf = parameters.isf;
 
@@ -250,19 +269,20 @@ HRESULT CBetaPID2_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 		levels[i] = -isf * (parameters.kp * future_etf * et + parameters.ki * future_etf * eintegral + parameters.kd * etf * ederivative) + parameters.basal_insulin_rate;
 
 		// as much as the regulator would want to, the dosage still needs to be non-negative (positive values would mean the BG is/would be too low)
-		if (levels[i] < 0.0)
+		if (levels[i] < 0.0) {
 			levels[i] = 0.0;
+		}
 
 		// TODO: move this to safety filter
-		if (levels[i] > 3.5)
+		if (levels[i] > 3.5) {
 			levels[i] = 3.5;
+		}
 	}
 
 	return S_OK;
 }
 
-HRESULT CBetaPID2_Insulin_Regulation::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const
-{
+HRESULT CBetaPID2_Insulin_Regulation::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const {
 	double *params = const_cast<double*>(betapid_insulin_regulation::default_parameters);
 	return parameters->set(params, params + betapid_insulin_regulation::param_count);
 }
@@ -275,8 +295,8 @@ CBetaPID3_Insulin_Regulation::CBetaPID3_Insulin_Regulation(scgms::WTime_Segment 
 }
 
 HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
-	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
-{
+	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
+
 	const betapid3_insulin_regulation::TParameters &parameters = scgms::Convert_Parameters<betapid3_insulin_regulation::TParameters>(params, betapid3_insulin_regulation::default_parameters);
 
 	const double h = scgms::One_Minute * 5.0;
@@ -289,27 +309,37 @@ HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 	std::vector<double> IGs(count);
 	std::fill(IGs.begin(), IGs.end(), std::numeric_limits<double>::quiet_NaN());
 	HRESULT rc = mIG->Get_Continuous_Levels(nullptr, times, IGs.data(), count, scgms::apxNo_Derivation);
-	if (!Succeeded(rc)) return rc;
+	if (!Succeeded(rc)) {
+		return rc;
+	}
 
 	std::vector<double> IOBs(count);
 	std::fill(IOBs.begin(), IOBs.end(), 0.0);
 	rc = mIOB->Get_Continuous_Levels(nullptr, times, IOBs.data(), count, scgms::apxNo_Derivation);
-	if (!Succeeded(rc)) return rc;
+	if (!Succeeded(rc)) {
+		return rc;
+	}
 
 	std::vector<double> COBs(count);
 	std::fill(COBs.begin(), COBs.end(), 0.0);
 	rc = mCOB->Get_Continuous_Levels(nullptr, times, COBs.data(), count, scgms::apxNo_Derivation);
-	if (!Succeeded(rc)) return rc;
+	if (!Succeeded(rc)) {
+		return rc;
+	}
 
 	std::vector<double> ISFs(count);
 	std::fill(ISFs.begin(), ISFs.end(), 0.0);
 	rc = mISF->Get_Continuous_Levels(nullptr, times, ISFs.data(), count, scgms::apxNo_Derivation);
-	if (!Succeeded(rc)) return rc;
+	if (!Succeeded(rc)) {
+		return rc;
+	}
 
 	std::vector<double> CRs(count);
 	std::fill(CRs.begin(), CRs.end(), 0.0);
 	rc = mCR->Get_Continuous_Levels(nullptr, times, CRs.data(), count, scgms::apxNo_Derivation);
-	if (!Succeeded(rc)) return rc;
+	if (!Succeeded(rc)) {
+		return rc;
+	}
 
 	double derTimes[derivative_smooth_history];
 	double valArray[derivative_smooth_history];
@@ -320,8 +350,8 @@ HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 		return targetBG - v;
 	};
 
-	for (size_t i = 0; i < count; i++)
-	{
+	for (size_t i = 0; i < count; i++) {
+
 		const double bt = IGs[i];
 		const double iob = IOBs[i];
 		const double cob = COBs[i];
@@ -332,8 +362,7 @@ HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 		// as we don't extrapolate (would be dangerous), we wait for all values to be available;
 		// NOTE: IOB and COB should have IG as reference signal and always emit a valid value
 		//       as BetaPID also have IG as reference, these signals would come 
-		if (std::isnan(bt) || std::isnan(iob) || std::isnan(cob) || std::isnan(isf) || std::isnan(cr))
-		{
+		if (std::isnan(bt) || std::isnan(iob) || std::isnan(cob) || std::isnan(isf) || std::isnan(cr)) {
 			levels[i] = std::numeric_limits<double>::quiet_NaN();
 			continue;
 		}
@@ -357,8 +386,7 @@ HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 			if (!Succeeded(rc)) return rc;
 
 			// approximate integral of error (Riemann), int_0^t e(tau) dtau =~= sum_i=0^hist e(t-i*h)*h
-			for (size_t i = 0; i < integral_history; i++)
-			{
+			for (size_t i = 0; i < integral_history; i++) {
 				// perform exponential decay before summing another value
 				eintegral *= parameters.kidecay;
 				// add value from history to decayed integral accumulator variable
@@ -368,31 +396,33 @@ HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 
 		// calculate derivative part
 		{
-			for (size_t j = 1; j <= derivative_smooth_history; j++)
+			for (size_t j = 1; j <= derivative_smooth_history; j++) {
 				derTimes[j - 1] = times[i] - (scgms::One_Minute * 5 * (derivative_smooth_history - j));
+			}
 
 			rc = mIG->Get_Continuous_Levels(nullptr, derTimes, valArray, derivative_smooth_history, scgms::apxNo_Derivation);
-			if (Succeeded(rc))
-			{
+			if (Succeeded(rc)) {
 				valid = true;
 				// for the derivative to be valid, we need all values in smoothed history (in order to calculate Nth order accurate derivative) to be valid
 				// otherwise the derivative part is considered zero => has no effect whatsoever on the control variable
-				for (size_t j = 0; j < derivative_smooth_history; j++)
+				for (size_t j = 0; j < derivative_smooth_history; j++) {
 					valid = valid && !std::isnan(valArray[j]);
+				}
 
 				// five-point method of derivative approximation
-				if (valid)
+				if (valid) {
 					ederivative = (-e(valArray[derivative_smooth_history - 1]) + 8 * e(valArray[derivative_smooth_history - 2]) - 8 * e(valArray[derivative_smooth_history - 4]) + e(valArray[derivative_smooth_history - 5])) / (12 * scgms::One_Minute * 5);
+				}
 			}
-			else return rc;
-
+			else {
+				return rc;
+			}
 		}
 
 		// kd(t)  = b(t) / TARGET_BG
 		//	- this prioritizes derivation error function when the patient is above target range
 
 		const double etf = bt / targetBG;
-
 
 		// k(t)   = (b(t) - (iob - cob*CSR) / ISF) / TARGET_BG
 		//	- projected BG over the target BG - this gives the priority to proportional and integral parts based on projected BG ("in future")
@@ -414,19 +444,20 @@ HRESULT CBetaPID3_Insulin_Regulation::Get_Continuous_Levels(scgms::IModel_Parame
 		levels[i] = -isf * parameters.k * (future_etf * (et + parameters.ki * eintegral) + parameters.kd * etf * ederivative) + parameters.basal_insulin_rate;
 
 		// as much as the regulator would want to, the dosage still needs to be non-negative (positive values would mean the BG is/would be too low)
-		if (levels[i] < 0.0)
+		if (levels[i] < 0.0) {
 			levels[i] = 0.0;
+		}
 
 		// TODO: move this to safety filter
-		if (levels[i] > 3.5)
+		if (levels[i] > 3.5) {
 			levels[i] = 3.5;
+		}
 	}
 
 	return S_OK;
 }
 
-HRESULT CBetaPID3_Insulin_Regulation::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const
-{
+HRESULT CBetaPID3_Insulin_Regulation::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const {
 	double *params = const_cast<double*>(betapid3_insulin_regulation::default_parameters);
 	return parameters->set(params, params + betapid3_insulin_regulation::param_count);
 }

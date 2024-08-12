@@ -46,8 +46,7 @@ CCarbohydrates_On_Board::CCarbohydrates_On_Board(scgms::WTime_Segment segment)
 	: CCommon_Calculated_Signal(segment), mCarb_Intake(segment.Get_Signal(scgms::signal_Carb_Intake)), mCarb_Rescue(segment.Get_Signal(scgms::signal_Carb_Rescue)) {
 }
 
-double CCarbohydrates_On_Board_Bilinear::Calculate_Signal(double bolusTime, double bolusValue, double nowTime, double peak, double dia) const
-{
+double CCarbohydrates_On_Board_Bilinear::Calculate_Signal(double bolusTime, double bolusValue, double nowTime, double peak, double dia) const {
 	double value = 0.0;
 
 	// NOTE: oref0 math assumes inputs in minutes (so the coefficients would work)
@@ -67,13 +66,11 @@ double CCarbohydrates_On_Board_Bilinear::Calculate_Signal(double bolusTime, doub
 	// activityPeak scales based on user's dia even though peak and end remain fixed
 	//const double activityPeak = 2.0 / (dia / scgms::One_Minute);
 
-	if (scaledTime < default_peak)
-	{
+	if (scaledTime < default_peak) {
 		const double x1 = (scaledTime / 5.0) + 1.0;  // scaled minutes since bolus, pre-peak; divided by 5 to work with coefficients estimated based on 5 minute increments
 		value = bolusValue * (1.0 + 0.001852*x1*(1.0 - x1));
 	}
-	else if (scaledTime < default_end)
-	{
+	else if (scaledTime < default_end) {
 		const double x2 = ((scaledTime - default_peak) / 5.0);  // scaled minutes past peak; divided by 5 to work with coefficients estimated based on 5 minute increments
 		value = bolusValue * (0.555560 + x2 * (0.001323*x2 - 0.054233));
 	}
@@ -89,24 +86,21 @@ double CCarbohydrates_On_Board::Calculate_Total_COB(const scgms::SSignal& source
 	std::vector<double> carbTimes, carbLevels;
 
 	// get carbs levels and times, add it to total COB contrib
-	if (source->Get_Discrete_Bounds(nullptr, nullptr, &cnt) == S_OK && cnt != 0)
-	{
+	if (source->Get_Discrete_Bounds(nullptr, nullptr, &cnt) == S_OK && cnt != 0) {
 		carbTimes.resize(cnt);
 		carbLevels.resize(cnt);
 		
-		if (source->Get_Discrete_Levels(carbTimes.data(), carbLevels.data(), cnt, &filled) == S_OK)
-		{
-			if (cnt != filled)
-			{
+		if (source->Get_Discrete_Levels(carbTimes.data(), carbLevels.data(), cnt, &filled) == S_OK) {
+			if (cnt != filled) {
 				carbTimes.resize(filled);
 				carbLevels.resize(filled);
 				cnt = filled;
 			}
 
-			for (size_t i = 0; i < cnt; i++)
-			{
-				if (carbTimes[i] > nowTime)
+			for (size_t i = 0; i < cnt; i++) {
+				if (carbTimes[i] > nowTime) {
 					continue;
+				}
 
 				double tVal = Calculate_Signal(carbTimes[i], carbLevels[i], nowTime, peak, dia);
 				totalCob += tVal;
@@ -118,12 +112,11 @@ double CCarbohydrates_On_Board::Calculate_Total_COB(const scgms::SSignal& source
 }
 
 HRESULT CCarbohydrates_On_Board::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
-	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
-{
+	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
+
 	const iob::TParameters &parameters = scgms::Convert_Parameters<iob::TParameters>(params, iob::default_parameters);
 
-	for (size_t i = 0; i < count; i++)
-	{
+	for (size_t i = 0; i < count; i++) {
 		double totalCob = Calculate_Total_COB(mCarb_Intake, times[i], parameters.peak, parameters.dia)
 						  + Calculate_Total_COB(mCarb_Rescue, times[i], parameters.peak, parameters.dia);
 
@@ -133,8 +126,7 @@ HRESULT CCarbohydrates_On_Board::Get_Continuous_Levels(scgms::IModel_Parameter_V
 	return S_OK;
 }
 
-HRESULT CCarbohydrates_On_Board::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const
-{
+HRESULT CCarbohydrates_On_Board::Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const {
 	double *params = const_cast<double*>(cob::default_parameters);
 	return parameters->set(params, params + cob::param_count);
 }

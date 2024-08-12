@@ -46,8 +46,8 @@ CConstant_Basal_LGS_Insulin_Rate_Model::CConstant_Basal_LGS_Insulin_Rate_Model(s
 }
 
 HRESULT IfaceCalling CConstant_Basal_LGS_Insulin_Rate_Model::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
-	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
-{
+	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
+
 	const lgs_basal_insulin::TParameters &parameters = scgms::Convert_Parameters<lgs_basal_insulin::TParameters>(params, lgs_basal_insulin::default_parameters);
 
 	const double historyTimeStep = scgms::One_Minute * 5.0;	// 5 minute step
@@ -55,22 +55,23 @@ HRESULT IfaceCalling CConstant_Basal_LGS_Insulin_Rate_Model::Get_Continuous_Leve
 
 	std::vector<double> htimes(historyTimeCnt);
 
-	for (size_t i = 0; i < count; i++)
-	{
-		for (size_t p = 0; p < historyTimeCnt; p++)
-			htimes[historyTimeCnt - p - 1] = times[i] - static_cast<double>(p)*historyTimeStep;
+	for (size_t i = 0; i < count; i++) {
 
-        bool below = false;
+		for (size_t p = 0; p < historyTimeCnt; p++) {
+			htimes[historyTimeCnt - p - 1] = times[i] - static_cast<double>(p) * historyTimeStep;
+		}
+
+		bool below = false;
 		std::vector<double> sensor_readings(historyTimeCnt);
 		if (mIG->Get_Continuous_Levels(nullptr, htimes.data(), sensor_readings.data(), historyTimeCnt, scgms::apxNo_Derivation) == S_OK) {		
 
-	        for (size_t p = 0; p < historyTimeCnt; p++) {
-                if (!std::isnan(sensor_readings[p]) && (sensor_readings[p] < parameters.suspend_threshold)) {
-                    below = true;
-                    break;
-                }
-	        }
-        }
+			for (size_t p = 0; p < historyTimeCnt; p++) {
+				if (!std::isnan(sensor_readings[p]) && (sensor_readings[p] < parameters.suspend_threshold)) {
+					below = true;
+					break;
+				}
+			}
+		}
 
 		// suspend infusion when CGM readings are below set lower threshold
 		levels[i] = below ? 0.0 : parameters.basal_insulin_rate;
