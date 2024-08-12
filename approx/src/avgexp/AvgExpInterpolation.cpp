@@ -66,22 +66,23 @@ HRESULT Enum2Vector(scgms::WSignal src, bool AllowPhantom, TControlVector *dst, 
 
 	*/
 
-	
 	//make allocation faster by pre-allocating space fo cca expected number of points
 	size_t src_cnt;
 	HRESULT rc = src.Get_Discrete_Bounds(nullptr, nullptr, &src_cnt);
-	if (rc != S_OK) return rc;
+	if (rc != S_OK) {
+		return rc;
+	}
 	std::vector<double> discrete_times(src_cnt);
 	std::vector<double> discrete_levels(src_cnt);
 
 	rc = src.Get_Discrete_Levels(discrete_times.data(), discrete_levels.data(), discrete_times.size(), &src_cnt);
-	if (rc != S_OK) return rc;
+	if (rc != S_OK) {
+		return rc;
+	}
 
 	dst->reserve(src_cnt);
 
-
-
-	for(size_t j=0; j<src_cnt; j++) {
+	for (size_t j = 0; j < src_cnt; j++) {
 		//just copy the points, do not add any phantom point
 		TControlPoint cpt;
 
@@ -90,13 +91,10 @@ HRESULT Enum2Vector(scgms::WSignal src, bool AllowPhantom, TControlVector *dst, 
 		cpt.phantom = false;
 
 		dst->push_back(cpt);
-	} //for	
-
+	}
 
 	//just to be sure, sort it
-	std::sort(dst->begin(), dst->end(),
-		[](TControlPoint const & a, TControlPoint const &b){return a.pt.datetime < b.pt.datetime; });
-
+	std::sort(dst->begin(), dst->end(), [](TControlPoint const & a, TControlPoint const &b){return a.pt.datetime < b.pt.datetime; });
 
 	//OK, this won't be the fastest method, but the addion occur so infrequently
 	//that we take it as an excuse for non-optimalized code
@@ -104,18 +102,18 @@ HRESULT Enum2Vector(scgms::WSignal src, bool AllowPhantom, TControlVector *dst, 
 		size_t index = dst->size()-1;
 		double k;
 
-		while (index-->1) {
+		while (index-- > 1) {
 			k = (*dst)[index].pt.level-(*dst)[index-1].pt.level;
 			k = k/((*dst)[index].pt.datetime-(*dst)[index-1].pt.datetime);
 
-			if ((k<avgelementary.steepDownRatio) || (k>avgelementary.steepUpRatio)) {
+			if ((k < avgelementary.steepDownRatio) || (k > avgelementary.steepUpRatio)) {
 				TControlPoint cpt;
 
 				cpt.pt.datetime = ((*dst)[index].pt.datetime+(*dst)[index-1].pt.datetime)*0.5;
 
 				//cpt.pt.y = ((*dst)[index].pt.y+(*dst)[index-1].pt.y)*0.5;
 				//as processes in body goes by exponential function,
-				//let's guess a better y with i				
+				//let's guess a better y with i
 				k = avgelementary.ComputeExpK((*dst)[index - 1].pt, (*dst)[index].pt);
 				cpt.pt.level = (*dst)[index-1].pt.level*std::exp(k*(cpt.pt.datetime-(*dst)[index-1].pt.datetime));
 
@@ -139,7 +137,7 @@ HRESULT AvgExpDistille(TControlVector *src, TAvgExpVector *dst, size_t passes, c
 
 	size_t iSrcCount = src->size();
 
-	size_t	iDstHigh = (iSrcCount-1) << passes;
+	size_t iDstHigh = (iSrcCount-1) << passes;
 	//and pre-allocate size for later in place conversion
 	dst->resize(iDstHigh+1);
 
@@ -148,21 +146,20 @@ HRESULT AvgExpDistille(TControlVector *src, TAvgExpVector *dst, size_t passes, c
 	//first, copy src to the dst
 	dst1 = &(*dst)[0];
 	src1 = &(*src)[0];
-	for (size_t i=0; i<iSrcCount;  i++) {	
+	for (size_t i=0; i<iSrcCount;  i++) {
 		dst1->pt=src1->pt;
 
 		dst1 += iDstStride;
 		src1++;
 	}
 
-
-	while (passes-->0) {
+	while (passes-- > 0) {
 		size_t iHelperIndex = iDstStride << 1;
 
 		//Now, compute k-coefficients
 		(*dst)[iDstHigh - iDstStride].k = avgelementary.ComputeExpK((*dst)[iDstHigh - iDstStride].pt, (*dst)[iDstHigh].pt);
 		//the last segment was a special case
-		
+
 		//serial version
 		dst2 = &(*dst)[iDstHigh];
 		dst1 = dst2 - iHelperIndex;
@@ -173,8 +170,6 @@ HRESULT AvgExpDistille(TControlVector *src, TAvgExpVector *dst, size_t passes, c
 			dst1 -= iDstStride;
 			dst2 -= iDstStride;
 		}
-		
-		
 
 		//With k-coefficients, we can approximate values for the next run
 
@@ -212,7 +207,6 @@ HRESULT AvgExpDistille(TControlVector *src, TAvgExpVector *dst, size_t passes, c
 			double ry = avgelementary.ComputeExpKX(*dst3, dst2->pt.datetime);
 			dst2->pt.level = (ly + ry)*0.5;
 
-
 			//and compute y for the present point
 			ly = avgelementary.ComputeExpKX(*dst1, dst3->pt.datetime);
 			dst3->pt.level = (ly + dst3->pt.level)*0.5;
@@ -221,17 +215,13 @@ HRESULT AvgExpDistille(TControlVector *src, TAvgExpVector *dst, size_t passes, c
 			dst2 -= iDstStride;
 			dst3 -= iDstStride;
 		}
-		
-			
 
 		//fill the first but one as a special case
 		(*dst)[iHelperIndex].pt.level = avgelementary.ComputeExpKX((*dst)[0], (*dst)[iHelperIndex].pt.datetime);
 
-
 		//and prepare stride for the next pass
 		iDstStride = iDstStride >> 1;
 	} //while (passes-->0) {
-
 
 	//finally, compute final k-coeficients
 	//MComputeExpK((*dst)[iDstHigh-1].pt, (*dst)[iDstHigh].pt, (*dst)[iDstHigh-1].k);
@@ -242,7 +232,7 @@ HRESULT AvgExpDistille(TControlVector *src, TAvgExpVector *dst, size_t passes, c
 	dst1->k = avgelementary.ComputeExpK(dst1->pt, dst2->pt);
 	dst1--;
 
-	for (size_t i=iDstHigh; i>1; i--) {		
+	for (size_t i = iDstHigh; i > 1; i--) {
 		dst1->k = avgelementary.ComputeExpK(dst1->pt, dst2->pt);
 
 		dst1--;
@@ -275,16 +265,20 @@ HRESULT Approx2RelativeBounds(TControlVector *EnumSrc, TAvgExpVector *BoundsDst,
 
 	HRESULT res;
 
-	if ((epsilon<=0.0) || (epsilon>=1.0)) return E_INVALIDARG;
+	if ((epsilon <= 0.0) || (epsilon >= 1.0)) {
+		return E_INVALIDARG;
+	}
 
 	//get the approximated values, so that we can calculate the bounds using the give epsilon
 	CAvgExpApprox approximated{ scgms::WSignal{ nullptr }, avgelementary };
 	res = AvgExpDistille(EnumSrc, approximated.getPoints(), passes, avgelementary);
-	if (res != S_OK) return res;
+	if (res != S_OK) {
+		return res;
+	}
 		
 	size_t srcSize = EnumSrc->size();
 	
-	for (size_t i=0; i<srcSize; i++) {
+	for (size_t i = 0; i < srcSize; i++) {
 		//We need to do this:
 		//tmp.pt.x time of the measured level
 		//tmp.pt.y the approximated glucose level
@@ -294,8 +288,10 @@ HRESULT Approx2RelativeBounds(TControlVector *EnumSrc, TAvgExpVector *BoundsDst,
 		tmp.pt = (*EnumSrc)[i].pt;
 		tmp.k = tmp.pt.level;  //the original, i.e. the fully interpolated, level
 	
-		res = approximated.GetLevels_Internal(&tmp.pt.datetime, &tmp.pt.level, 1, scgms::apxNo_Derivation);			
-		if (res != S_OK) break;
+		res = approximated.GetLevels_Internal(&tmp.pt.datetime, &tmp.pt.level, 1, scgms::apxNo_Derivation);
+		if (res != S_OK) {
+			break;
+		}
 
 		//add the offset
 		tmp.pt.level += dfYOffset;
@@ -304,7 +300,7 @@ HRESULT Approx2RelativeBounds(TControlVector *EnumSrc, TAvgExpVector *BoundsDst,
 		//tmp.pt.y is the approximated level now
 
 		//do we need to swap them?
-		if (tmp.pt.level>tmp.k) {
+		if (tmp.pt.level > tmp.k) {
 			double ftmp = tmp.k;
 			tmp.k = tmp.pt.level;
 			tmp.pt.level = ftmp;
@@ -317,7 +313,7 @@ HRESULT Approx2RelativeBounds(TControlVector *EnumSrc, TAvgExpVector *BoundsDst,
 		//finally, push it to save it
 		BoundsDst->push_back(tmp);
 	}
-	
+
 	return res;
 }
 
@@ -326,12 +322,15 @@ HRESULT AvgExpInterpolateData(TControlVector *testvector, TAvgExpVector *dst, co
 							  TControlVector *iavIn, TControlVector *iavOut,
 							  TAvgExpVector *bounds,	//may be NULL, e.g. when approximating 
 							  const TAvgElementary &avgelementary) {
-						//test vector vector are original values
+
+	//test vector vector are original values
 
 	TControlVector av;	//approximation vector, i.e. approximated values and indexes into final dst
 	size_t i, j, iVectorHigh;
+
+	//if we would allow RemainingIterations==0, it would overflow on --!
 	size_t RemainingIterations = std::max(params.Iterations, static_cast<decltype(params.Iterations)>(1));
-		//if we would allow RemainingIterations==0, it would overflow on --!
+
 	bool StopConditionMet = false;
 	HRESULT res;
 
@@ -346,35 +345,36 @@ HRESULT AvgExpInterpolateData(TControlVector *testvector, TAvgExpVector *dst, co
 		
 		But let's do it with std::move!
 	*/
-	if (iavIn) av = std::move(*iavIn); else
+	if (iavIn) {
+		av = std::move(*iavIn);
+	}
+	else {
 		av.assign(testvector->begin(), testvector->end());	//we need to preserve the test vector
-
+	}
 
 	//get high
 	iVectorHigh = av.size()-1;
 	//and check for required minimum number of data points
-	if (iVectorHigh<2) return E_INVALIDARG;
+	if (iVectorHigh < 2) {
+		return E_INVALIDARG;
+	}
 
 	//and fill its indexes
-	j = (size_t) 1 << params.Passes;
-		//by default, 1 is int in C++
+	j = static_cast<size_t>(1) << params.Passes;
 
 	controlpoints = &av[0];
-	for (size_t i=0; i<=iVectorHigh; i++) {
-		//av[i].index = i*j;
-
+	for (size_t i = 0; i <= iVectorHigh; i++) {
 		controlpoints->index = i*j;
-
 		controlpoints++;
 	}
 
 	double ftMaxEpsilon = 0.0; //not every program path initiliazes it in the do cycle, after if
 	double approxLevel, diff;
 
-
-
 	TAvgExpPoint *boundsPtr = nullptr;
-	if (bounds) boundsPtr = &((*bounds)[0]);
+	if (bounds) {
+		boundsPtr = &((*bounds)[0]);
+	}
 		
 	do {
 		//proceed at least once to make at least one approximation
@@ -398,7 +398,7 @@ HRESULT AvgExpInterpolateData(TControlVector *testvector, TAvgExpVector *dst, co
 					//actually, it works better if we enforce the phantom points
 					//better means lower max epsilon
 
-					//calculate the difference					
+					//calculate the difference
 					//approxLevel = (*dst)[controlpoints->index].pt.level;
 					approxLevel = dstPtr[controlpoints->index].pt.level;
 					diff = testpoints->pt.level - approxLevel;
@@ -406,61 +406,57 @@ HRESULT AvgExpInterpolateData(TControlVector *testvector, TAvgExpVector *dst, co
 
 					switch (params.EpsilonType) {
 						//max average absolute difference
-					case etMaxAbsDiff:     approxLevel = std::fabs(diff);
-						if (approxLevel > ftMaxEpsilon) ftMaxEpsilon = approxLevel;
-						break;
-
+						case etMaxAbsDiff:
+						{
+							approxLevel = std::fabs(diff);
+							if (approxLevel > ftMaxEpsilon) {
+								ftMaxEpsilon = approxLevel;
+							}
+							break;
+						}
 						//does this level fall into the desired bounds?
-					case etApproxRelative: 
-						if (boundsPtr != NULL) {
-							if (StopConditionMet)
-							//										     StopConditionMet = (((*bounds)[i].pt.y<=approxY) &
-							//											  				    ((*bounds)[i].k>=approxY));
-
-
-							//												 StopConditionMet = (((*bounds)[i].k-params->Epsilon<=approxLevel) &
-							//												 				     ((*bounds)[i].k+params->Epsilon>=approxLevel));
-
-							StopConditionMet = ((boundsPtr[i].k - params.Epsilon <= approxLevel) &
-							(boundsPtr[i].k + params.Epsilon >= approxLevel));
-
-						}//if (boundsPtr != NULL) {
-						break;
-
+						case etApproxRelative:
+						{
+							if (boundsPtr != NULL) {
+								if (StopConditionMet) {
+									StopConditionMet = ((boundsPtr[i].k - params.Epsilon <= approxLevel) && (boundsPtr[i].k + params.Epsilon >= approxLevel));
+								}
+							}
+							break;
+						}
 					}
-
 
 					//adjust the control point's glucose level
 					controlpoints->pt.level += diff;
-
 
 					controlpoints++;
 					testpoints++;
 				}
 			}
 
-
 			RemainingIterations--;
 
 			//Test the stop condition, if not set already
 			switch (params.EpsilonType) {
-			case etFixedIterations: StopConditionMet = RemainingIterations <= 0;
-				break;
-			case etMaxAbsDiff:	    StopConditionMet = ftMaxEpsilon < params.Epsilon;
-				break;
-
-			default:				res = E_INVALIDARG;	//EpsilonType holds an unknown value
-				break;
+				case etFixedIterations:
+					StopConditionMet = RemainingIterations <= 0;
+					break;
+				case etMaxAbsDiff:
+					StopConditionMet = ftMaxEpsilon < params.Epsilon;
+					break;
+				default:
+					res = E_INVALIDARG;	//EpsilonType holds an unknown value
+					break;
 			};
 
 		} //if (res == S_OK)
 		else break;
 
 	} while (!StopConditionMet);
-	
 
-	///if (iavOut) iavOut->assign(av.begin(), av.end()); - let's use std::move
-	if (iavOut) *iavOut = std::move(av);
+	if (iavOut) {
+		*iavOut = std::move(av);
+	}
 
 	return res;
 }
@@ -475,8 +471,8 @@ HRESULT AvgExpApproximateData(scgms::WSignal src, CAvgExpApprox **dst, const TAv
 	TControlVector cv;
 	TAvgExpVector bounds;
 	HRESULT res = Enum2Vector(src, params.Iterations>0 ? true : false, &cv, avgelementary);
-	if ((res == S_OK) && (cv.size()>2))
-	{
+	if ((res == S_OK) && (cv.size()>2)) {
+
 		try {
 
 			CAvgExpApprox *approx = new CAvgExpApprox(src, avgelementary);		
@@ -493,10 +489,12 @@ HRESULT AvgExpApproximateData(scgms::WSignal src, CAvgExpApprox **dst, const TAv
 					break; //case etApproxRelative:
 
 				case etMaxAbsDiff: 
-					if (params.Epsilon>=0.0)
+					if (params.Epsilon >= 0.0) {
 						res = AvgExpInterpolateData(&cv, approx->getPoints(), params, NULL, NULL, NULL, avgelementary);
-					else
+					}
+					else {
 						res = E_INVALIDARG;
+					}
 					break;
 
 				case etFixedIterations:
@@ -513,7 +511,9 @@ HRESULT AvgExpApproximateData(scgms::WSignal src, CAvgExpApprox **dst, const TAv
 
 						//do first amount of fast precalculations
 						res = AvgExpInterpolateData(&cv, approx->getPoints(), tmpAP, NULL, &tmp, NULL, avgelementary);
-						if (res == S_OK) RemainingIterations = RemainingIterations - firstPreCalcIters;
+						if (res == S_OK) {
+							RemainingIterations = RemainingIterations - firstPreCalcIters;
+						}
 
 						//do second amount of fast precalculations
 						//based on numerical analysis of results, we can do most of the work with 5 passes
@@ -524,7 +524,9 @@ HRESULT AvgExpApproximateData(scgms::WSignal src, CAvgExpApprox **dst, const TAv
 							tmpAP.Iterations = RemainingIterations - lastCalcIters;
 
 							res = AvgExpInterpolateData(&cv, approx->getPoints(), tmpAP, &tmp, &tmp, NULL, avgelementary);
-							if (res == S_OK) RemainingIterations = lastCalcIters;
+							if (res == S_OK) {
+								RemainingIterations = lastCalcIters;
+							}
 						}
 
 						//and finalize
@@ -533,20 +535,24 @@ HRESULT AvgExpApproximateData(scgms::WSignal src, CAvgExpApprox **dst, const TAv
 							tmpAP.Iterations = RemainingIterations;
 							res = AvgExpInterpolateData(&cv, approx->getPoints(), tmpAP, &tmp, NULL, NULL, avgelementary);
 						}
-						else
+						else {
 							res = AvgExpInterpolateData(&cv, approx->getPoints(), params, NULL, NULL, NULL, avgelementary);
+						}
 					}
 
 					break; //case etFixedIterations:
 
 				default:
 					res = E_INVALIDARG;
+					break;
 			} //switch (params->EpsilonType) {
 
-			if (res == S_OK)
+			if (res == S_OK) {
 				*dst = approx;
-			else
+			}
+			else {
 				delete approx;
+			}
 		}
 		catch (...) {
 			res = E_UNEXPECTED;

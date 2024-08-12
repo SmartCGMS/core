@@ -41,8 +41,8 @@
 #include <vector>
 
 typedef struct {
-	double datetime;		//time of measuring
-	double level;		//the glucose level/concetration measured
+	double datetime; //time of measuring
+	double level;    //the glucose level/concetration measured
 } TGlucoseLevel;
 
 

@@ -47,7 +47,7 @@
 
 #include <vector>
 
-namespace line {	
+namespace line {
 	const scgms::TApprox_Descriptor LineApprox_Descriptor = {
 		scgms::apxLine,
 		dsLine_Approx
@@ -56,8 +56,8 @@ namespace line {
 
 namespace akima {
 	const scgms::TApprox_Descriptor Akima_Descriptor = {
-		scgms::apxAkima,	
-		dsAkima		
+		scgms::apxAkima,
+		dsAkima
 	};
 }
 
@@ -67,7 +67,6 @@ namespace avgexp {
 		dsAvgExp
 	};
 }
-
 
 const std::array<scgms::TApprox_Descriptor, 3> approx_descriptions = { { line::LineApprox_Descriptor, 
 																		  akima::Akima_Descriptor,
@@ -81,15 +80,19 @@ DLL_EXPORT HRESULT IfaceCalling do_get_approximator_descriptors(scgms::TApprox_D
 
 DLL_EXPORT HRESULT IfaceCalling do_create_approximator(const GUID *approx_id, scgms::ISignal *signal, scgms::IApproximator **approx) {
 
-	if (approx_id == nullptr)	//if no id is given, let's use the default approximator
+	if (approx_id == nullptr) { //if no id is given, let's use the default approximator
 		return Manufacture_Object<CAkima>(approx, scgms::WSignal{ signal });
+	}
 
-	if (*approx_id == line::LineApprox_Descriptor.id)
+	if (*approx_id == line::LineApprox_Descriptor.id) {
 		return Manufacture_Object<CLine_Approximator>(approx, scgms::WSignal{ signal });
-	else if (*approx_id == akima::Akima_Descriptor.id)
+	}
+	else if (*approx_id == akima::Akima_Descriptor.id) {
 		return Manufacture_Object<CAkima>(approx, scgms::WSignal{ signal });
-	else if (*approx_id == avgexp::AvgExp_Descriptor.id)
+	}
+	else if (*approx_id == avgexp::AvgExp_Descriptor.id) {
 		return Manufacture_Object<CAvgExpApprox>(approx, scgms::WSignal{ signal }, AvgExpElementary);
+	}
 
 	return E_NOTIMPL;
 }

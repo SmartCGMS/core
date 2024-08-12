@@ -47,43 +47,42 @@
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 class CAkima : public scgms::IApproximator, public virtual refcnt::CReferenced {
-protected:
-	scgms::WSignal mSignal;
-	const size_t MINIMUM_NUMBER_POINTS = 5;
-	std::vector<double> mInputTimes, mInputLevels, mCoefficients;
+	protected:
+		scgms::WSignal mSignal;
+		const size_t MINIMUM_NUMBER_POINTS = 5;
+		std::vector<double> mInputTimes, mInputLevels, mCoefficients;
 
-    std::mutex mUpdate_Guard;
-	bool Update();
-protected:
-	/**
-	* Computes coefficients of Akima Interpolation.
-	* Coefficients are stored in one array containing coefficients stored in
-	* column fashion. Eg. first coefficients are stored between 0 and count position (inclusive).
-	*/
-	void Compute_Coefficients();	//modifies mCoefficients
+		std::mutex mUpdate_Guard;
+		bool Update();
+	protected:
+		/**
+		* Computes coefficients of Akima Interpolation.
+		* Coefficients are stored in one array containing coefficients stored in
+		* column fashion. Eg. first coefficients are stored between 0 and count position (inclusive).
+		*/
+		void Compute_Coefficients();	//modifies mCoefficients
 
-	/**
-	* From mMeasured, it computes differences within three points as needed by Akima interpolation
-	*	
-	*/
-	double Differentiate_Three_Point_Scalar(size_t indexOfDifferentiation,
-											size_t indexOfFirstSample,
-											size_t indexOfSecondsample,
-											size_t indexOfThirdSample);
+		/**
+		* From mMeasured, it computes differences within three points as needed by Akima interpolation
+		*	
+		*/
+		double Differentiate_Three_Point_Scalar(size_t indexOfDifferentiation,
+												size_t indexOfFirstSample,
+												size_t indexOfSecondsample,
+												size_t indexOfThirdSample);
 
-	/**
-	* Interpolate on basis of Hermite's algorithm
-	*
-	* @param firstDerivatives pointer to output structure with first derivates
-	*/
-	std::vector<double> Interpolate_Hermite_Scalar(std::vector<double> coefsOfPolynFunc);
-public:
-public:
-	CAkima(scgms::WSignal signal);
-	virtual ~CAkima() {};
+		/**
+		* Interpolate on basis of Hermite's algorithm
+		*
+		* @param firstDerivatives pointer to output structure with first derivates
+		*/
+		std::vector<double> Interpolate_Hermite_Scalar(std::vector<double> coefsOfPolynFunc);
 
-	virtual HRESULT IfaceCalling GetLevels(const double* times, double* const levels, const size_t count, const size_t derivation_order) override;
-	
+	public:
+		CAkima(scgms::WSignal signal);
+		virtual ~CAkima() {};
+
+		virtual HRESULT IfaceCalling GetLevels(const double* times, double* const levels, const size_t count, const size_t derivation_order) override;
 };
 
 #pragma warning( pop )

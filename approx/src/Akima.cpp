@@ -47,23 +47,26 @@ CAkima::CAkima(scgms::WSignal signal) : mSignal(signal) {
 	Update();
 }
 
-
 bool CAkima::Update() {
 	std::lock_guard<std::mutex> local_guard{ mUpdate_Guard };
 
 	size_t update_count;
-	if (mSignal.Get_Discrete_Bounds(nullptr, nullptr, &update_count) != S_OK)
+	if (mSignal.Get_Discrete_Bounds(nullptr, nullptr, &update_count) != S_OK) {
 		return false;
+	}
 
-	if (update_count < MINIMUM_NUMBER_POINTS) return false;
+	if (update_count < MINIMUM_NUMBER_POINTS) {
+		return false;
+	}
 
 	if (mInputTimes.size() != update_count) {
 		mInputTimes.resize(update_count);
 		mInputLevels.resize(update_count);
 		mCoefficients.resize(update_count);
 	}
-	else // valCount == oldCount, no need to update
+	else { // valCount == oldCount, no need to update
 		return true;
+	}
 
 	size_t filled;
 	if (mSignal.Get_Discrete_Levels(mInputTimes.data(), mInputLevels.data(), update_count, &filled) != S_OK) {
@@ -73,7 +76,6 @@ bool CAkima::Update() {
 	}
 
 	Compute_Coefficients();
-	
 
 	return true;
 }
@@ -93,13 +95,11 @@ void CAkima::Compute_Coefficients() {
 	double d3 = (mInputLevels[3] - mInputLevels[2]) / (mInputTimes[3] - mInputTimes[2]);
 	double d4 = (mInputLevels[4] - mInputLevels[3]) / (mInputTimes[4] - mInputTimes[3]);
 
-
 	double w1 = fabs(d1 - d2);
 	double w2 = fabs(d2 - d3);
 	double w3 = fabs(d3 - d4);
 
 	double fd, fdPrev = 0.0;
-
 
 	auto computeFd = [&](size_t i) {
 		if (FP_ZERO == std::fpclassify(w3) && FP_ZERO == std::fpclassify(w1)) {
@@ -194,13 +194,13 @@ double CAkima::Differentiate_Three_Point_Scalar(size_t indexOfDifferentiation, /
 	return (2 * a * t) + b;
 }
 
-
 std::vector<double> CAkima::Interpolate_Hermite_Scalar(std::vector<double> coefsOfPolynFunc) {
 	
 	const size_t count = mInputLevels.size();
 	auto firstDerivatives = &coefsOfPolynFunc[count];
 	size_t numberOfDiffAndWeightElements = count - 1;
-		//we should not get here with count less than 5
+
+	//we should not get here with count less than 5
 
 	size_t dimSize = count;
 	for (size_t i = 0; i < numberOfDiffAndWeightElements; i++) {
@@ -222,16 +222,21 @@ std::vector<double> CAkima::Interpolate_Hermite_Scalar(std::vector<double> coefs
 	return coefsOfPolynFunc;
 }
 
-
-
 HRESULT IfaceCalling CAkima::GetLevels(const double* times, double* const levels, const size_t count, const size_t derivation_order) {
 
 	assert((times != nullptr) && (levels != nullptr) && (count > 0));
-	if ((times == nullptr) || (levels == nullptr)) return E_INVALIDARG;
 
-	if (!Update() || mCoefficients.empty()) return E_FAIL;
+	if ((times == nullptr) || (levels == nullptr)) {
+		return E_INVALIDARG;
+	}
 
-	if (derivation_order > scgms::apxFirst_Order_Derivation) return E_INVALIDARG;
+	if (!Update() || mCoefficients.empty()) {
+		return E_FAIL;
+	}
+
+	if (derivation_order > scgms::apxFirst_Order_Derivation) {
+		return E_INVALIDARG;
+	}
 
 	const size_t measured_size_mul3 = mInputLevels.size() * 3;
 	const size_t measured_size_mul2 = mInputLevels.size() * 2;
@@ -240,18 +245,22 @@ HRESULT IfaceCalling CAkima::GetLevels(const double* times, double* const levels
 
 	for (size_t i = 0; i< count; i++) {
 		size_t knot_index = std::numeric_limits<size_t>::max();
-		if (times[i] == mInputTimes[0]) knot_index = 0;
-		else if (times[i] == mInputTimes[mInputTimes.size() - 1]) knot_index = mInputTimes.size() - 1;
+		if (times[i] == mInputTimes[0]) {
+			knot_index = 0;
+		}
+		else if (times[i] == mInputTimes[mInputTimes.size() - 1]) {
+			knot_index = mInputTimes.size() - 1;
+		}
 		else if (!std::isnan(times[i])) {
 			std::vector<double>::iterator knot_iter = std::upper_bound(mInputTimes.begin(), mInputTimes.end(), times[i]);
-			if (knot_iter != mInputTimes.end()) knot_index = std::distance(mInputTimes.begin(), knot_iter) - 1;
+			if (knot_iter != mInputTimes.end()) {
+				knot_index = std::distance(mInputTimes.begin(), knot_iter) - 1;
+			}
 		}
-
-
 
 		if (knot_index != std::numeric_limits<size_t>::max()) {
 			const double desired_time_knot_offset = times[i] - mInputTimes[knot_index];
-			
+
 			double res = 0.0;
 			switch (derivation_order) {
 				//Horner's evaluation method
@@ -272,8 +281,9 @@ HRESULT IfaceCalling CAkima::GetLevels(const double* times, double* const levels
 					break;
 			}
 		}
-		else
+		else {
 			levels[i] = std::numeric_limits<double>::quiet_NaN();
+		}
 	}
 
 	return count > 0 ? S_OK : S_FALSE;

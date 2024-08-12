@@ -60,18 +60,12 @@ const TApproximationParams dfApproximationParams = {
 	}
 };
 
-
-
 CAvgExpApprox::CAvgExpApprox(scgms::WSignal signal, const TAvgElementary& avgelementary) : 
 	mSignal(signal), mAvgElementary(avgelementary) {	
 }
 
-
-
 CAvgExpApprox::~CAvgExpApprox() {
-
 }
-
 
 TAvgExpVector* CAvgExpApprox::getPoints() {
 	return &vmPoints;
@@ -83,13 +77,14 @@ bool CAvgExpApprox::Update() {
 
 	size_t srccnt;
 	scgms::TBounds time_bounds;
-	if (mSignal.Get_Discrete_Bounds(&time_bounds, nullptr, &srccnt) != S_OK)
+	if (mSignal.Get_Discrete_Bounds(&time_bounds, nullptr, &srccnt) != S_OK) {
 		return false;
+	}
 
-	
 	//Get the information we can prior we begin the calculation	
-	if (srccnt < 2) return false;
-
+	if (srccnt < 2) {
+		return false;
+	}
 
 	//It seems like we can proceed with a calculation => go ahead
 	CAvgExpApprox *rawapprox;
@@ -109,26 +104,28 @@ bool CAvgExpApprox::Update() {
 
 		auto get_levels = [&times, &levels, this, &rawapprox](const double first_time)->bool {
 			times[0] = first_time;
-			for (size_t i = 1; i < times.size(); i++)
+			for (size_t i = 1; i < times.size(); i++) {
 				times[i] = times[i - 1] + mParameters.avgexp.ResamplingStepping;
+			}
 
 			return rawapprox->GetLevels_Internal(times.data(), levels.data(), levels.size(), scgms::apxNo_Derivation) == S_OK;
 		};
 
 		while (get_levels(tmplevel.pt.datetime)) {
-			for (size_t i = 0; i < levels.size(); i++) 
-				if (std::isnormal(levels[i])) 	{
+			for (size_t i = 0; i < levels.size(); i++)  {
+				if (std::isnormal(levels[i])) {
 					tmplevel.pt.datetime = times[i];
 					tmplevel.pt.level = levels[i] + dfYOffset;
-					vmPoints.push_back(tmplevel); 
-			}			
+					vmPoints.push_back(tmplevel);
+				}
+			}
 
 			tmplevel.pt.datetime += mParameters.avgexp.ResamplingStepping;
 		}
-		
-		
+
 		//add the last point if we have missed it
 		if (time_bounds.Max > vmPoints[vmPoints.size()-1].pt.datetime) {
+
 			tmplevel.pt.datetime = time_bounds.Max;
 
 			{
@@ -141,14 +138,11 @@ bool CAvgExpApprox::Update() {
 					vmPoints.push_back(tmplevel);
 				}
 			}
-
-			
 		}
-		
 
 		//Second, recalculate the k-parameter
 
-		//initialize preceeding points, if we have more than 3 points		
+		//initialize preceeding points, if we have more than 3 points
 		TAvgExpPoint *rpt, *lpt;
 		srccnt = vmPoints.size();	//0 and 1 points were detected and handled above
 		if (srccnt == 2) {
@@ -177,9 +171,7 @@ bool CAvgExpApprox::Update() {
 			for (size_t i = 0; i<srccnt - 2; i++) {
 				lpt->k = mAvgElementary.ComputeExpK(lpt->pt, rpt->pt);
 
-#ifdef _DEBUG
-				_ASSERT(lpt->pt.level>0.0);
-#endif
+				assert(lpt->pt.level>0.0);
 
 				lpt++;
 				rpt++;
@@ -192,25 +184,26 @@ bool CAvgExpApprox::Update() {
 			lpt->k = mAvgElementary.ComputeExpK(lpt->pt, rpt->pt);
 		}
 
-
 		//And for sanity
 		vmPoints[srccnt - 1].k = 0.0;
 
-		//Finally, free the memory used 		
-		delete rawapprox;		
+		//Finally, free the memory used
+		delete rawapprox;
 
 		return true;
-	}	
+	}
 
 	return false;
 }
 
 bool CAvgExpApprox::GetLeftPoint(double desiredtime, size_t *index) const {
-	size_t i = vmPoints.size();	
-	if (i == 0) return false;
+	size_t i = vmPoints.size();
+	if (i == 0) {
+		return false;
+	}
 
 	//is the value in range?
-	if ((desiredtime >= vmPoints[0].pt.datetime) && (desiredtime <= vmPoints[i - 1].pt.datetime)) {		
+	if ((desiredtime >= vmPoints[0].pt.datetime) && (desiredtime <= vmPoints[i - 1].pt.datetime)) {
 
 		auto thebegin = vmPoints.begin();
 		auto theend = vmPoints.end();
@@ -222,15 +215,20 @@ bool CAvgExpApprox::GetLeftPoint(double desiredtime, size_t *index) const {
 			*index = it - thebegin;
 			return true;
 		}
-		else
+		else {
 			return false;
-	} else 
+		}
+	}
+	else {
 		return false; //out of range
+	}
 }
 
 HRESULT IfaceCalling CAvgExpApprox::GetLevels_Internal(const double* times, double* const levels, const size_t count, const size_t derivation_order) {	
 	size_t iCachedSize = vmPoints.size();
-	if (iCachedSize<2) return S_FALSE;
+	if (iCachedSize < 2) {
+		return S_FALSE;
+	}
 
 	size_t filled = 0;
 
@@ -239,14 +237,13 @@ HRESULT IfaceCalling CAvgExpApprox::GetLevels_Internal(const double* times, doub
 		levels[time_idx] = std::numeric_limits<double>::quiet_NaN();	//sanity, if we would get an index that will not satisfy any of the following conditions
 
 		size_t index;
-		if (!GetLeftPoint(times[time_idx], &index)) {			
+		if (!GetLeftPoint(times[time_idx], &index)) {
 			continue;
 		}
-	
-	
+
 		//let us use pointer arithmetic to reduce overhead associated with overloaded [] operator
 		//as the overload results in call proc instead of mov and fld
-		const double X = times[time_idx];		
+		const double X = times[time_idx];
 
 		//take care about special variant, this time the leading point
 		if (index == 0) {
@@ -256,7 +253,6 @@ HRESULT IfaceCalling CAvgExpApprox::GetLevels_Internal(const double* times, doub
 			//for the leading point, we need to compute k that points to the very next point
 			const double leadingK = mAvgElementary.ComputeExpK(pt1.pt, pt2.pt);
 
-			
 			//(*points).y = vmPoints[0].pt.y*exp(leadingK*(X-vmPoints[0].pt.x)) * YScaleOut;
 			//				(*points).y = (*pt1).pt.y*exp(leadingK*(X-(*pt1).pt.x)) * YScaleOut;
 			levels[time_idx] = pt1.pt.level*std::exp(leadingK*(X - pt1.pt.datetime)) - dfYOffset;
@@ -267,17 +263,16 @@ HRESULT IfaceCalling CAvgExpApprox::GetLevels_Internal(const double* times, doub
 			}
 			//y = c*exp(k*x)
 
-			filled++;						
+			filled++;
 		}
 
 
 		//compute with inside points - i.e. between first and last points exclusive
-		if ((index>0) & (index<iCachedSize - 1)) {
+		if ((index > 0) && (index < iCachedSize - 1)) {
 			//pt1 = &vmPoints[imPredictedPoint-1];
 			const auto& pt2 = vmPoints[index];
 			const auto& pt1 = vmPoints[index - 1];
 
-		
 			//there are two exponential functions to weight them
 			//1. compute Y for the left value - i.e. prior the current point
 			const double ly = mAvgElementary.ComputeExpKX(pt1, X);
@@ -287,7 +282,6 @@ HRESULT IfaceCalling CAvgExpApprox::GetLevels_Internal(const double* times, doub
 
 			//and store their average value
 
-				
 			//				(*points).y = (ly+ry)*0.5 * YScaleOut;
 			levels[time_idx] = (ly + ry)*0.5 - dfYOffset;
 
@@ -297,23 +291,16 @@ HRESULT IfaceCalling CAvgExpApprox::GetLevels_Internal(const double* times, doub
 				levels[time_idx] *= dermul;
 			}
 
-
-			//				for debug
-			//				if ((*points).y<0)
-			//					break;
-
-			filled++;				
+			filled++;
 		} 
 
-
 		//finally, take care about the last segment - i.e. from last but one to the last point
-		if ((index>= iCachedSize - 2) && (index < iCachedSize)) {
+		if ((index >= iCachedSize - 2) && (index < iCachedSize)) {
 			const double followingX = vmPoints[iCachedSize - 1].pt.datetime;
 			const auto& pt1 = vmPoints[index];
 
-			if (X<=followingX) {//make sure that we did not cross the last known point											
+			if (X <= followingX) {//make sure that we did not cross the last known point
 					levels[time_idx] = mAvgElementary.ComputeExpKX(pt1, X);
-					//				(*points).y *= YScaleOut;
 					levels[time_idx] -= dfYOffset;
 					//y = c*exp(k*x)
 
@@ -321,17 +308,17 @@ HRESULT IfaceCalling CAvgExpApprox::GetLevels_Internal(const double* times, doub
 						levels[time_idx] *= pt1.k;
 					}
 
-
-					filled++;					
-				} 
-		}		
+					filled++;
+				}
+		}
 	}
-	
+
 	return filled > 0 ? S_OK : S_FALSE;
-	
 }
 
 HRESULT IfaceCalling CAvgExpApprox::GetLevels(const double* times, double* const levels, const size_t count, const size_t derivation_order) {
-	if (!Update()) return E_FAIL;
+	if (!Update()) {
+		return E_FAIL;
+	}
 	return GetLevels_Internal(times, levels, count, derivation_order);
 }

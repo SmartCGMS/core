@@ -41,7 +41,6 @@
 #include <scgms/rtl/referencedImpl.h>
 #include <scgms/rtl/DeviceLib.h>
 
-
 #include <mutex>
 
 #pragma warning( push )
@@ -53,10 +52,9 @@
 class CLine_Approximator : public scgms::IApproximator, public virtual refcnt::CReferenced {
 	protected:
 		scgms::WSignal mSignal;
-
 		std::vector<double> mInputTimes, mInputLevels, mSlopes;
+		std::mutex mUpdate_Guard;
 
-        std::mutex mUpdate_Guard;
 		bool Update();
 
 	public:
