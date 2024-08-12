@@ -45,7 +45,6 @@ CRates_Pack_Boluses::CRates_Pack_Boluses(scgms::IModel_Parameter_Vector* paramet
 	scgms::CDiscrete_Model<rates_pack_boluses::TParameters>(parameters, rates_pack_boluses::default_parameters, output, rates_pack_boluses::model_id) {	
 }
 
-
 CRates_Pack_Boluses::~CRates_Pack_Boluses() {
 
 }
@@ -87,8 +86,9 @@ HRESULT CRates_Pack_Boluses::Do_Execute(scgms::UDevice_Event event) {
 
 				HRESULT rc = mOutput.Send(evt);
 
-				if (Succeeded(rc))
+				if (Succeeded(rc)) {
 					return rc;
+				}
 			}
 		}
 	}
@@ -97,7 +97,6 @@ HRESULT CRates_Pack_Boluses::Do_Execute(scgms::UDevice_Event event) {
 }
 
 HRESULT CRates_Pack_Boluses::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
-
 	return S_OK;
 }
 

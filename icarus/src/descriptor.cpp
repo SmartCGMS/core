@@ -175,72 +175,9 @@ namespace rates_pack_boluses {
 		nullptr,
 		nullptr
 	};
-
-
-	/*
-#include <iostream>
-#include <sstream>
-
-int main() {
-	constexpr size_t bolus_max_count = 8;
-	constexpr size_t basal_change_max_count = 40;
-
-	std::stringstream ui_names; ui_names << "const wchar_t* param_names[param_count] = { dsBasal_Insulin_Rate, dsSuspend_Threshold, dsLGS_Suspend_Duration";
-	std::stringstream config_names; config_names << "const wchar_t* config_names[param_count] = { rsBasal_Insulin_Rate, rsSuspend_Threshold, rsLGS_Suspend_Duration";
-	std::stringstream param_types; param_types << "const scgms::NModel_Parameter_Value param_types[param_count] = { scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime";
-
-	std::stringstream lower; lower << "const double lower_bound[param_count] = {0.0, 0.0, 0.0";
-	std::stringstream upper; upper << "const double upper_bound[param_count] = { 10.0, 5.0, 2_hr";
-	std::stringstream def_params; def_params << "const double default_parameters[param_count] = { 1.5, 3.0, 30_min";
-
-
-	for (size_t i=0; i<bolus_max_count; i++) {
-		ui_names << ", L\"Bolus offset " << i << "\", L\"Bolus " << i << '"';
-		config_names << ", L\"Bolus_Offset_" << i << "\", L\"Bolus_" << i << '"';
-		param_types << ", scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble";
-
-
-		lower << ", Minimum_Bolus_Delay, 0.0";
-		def_params << ", " << i <<  ".0*meal_period, 10.0";
-		upper << ", experiment_time, 25.0";
-	}
-
-	for (size_t i=0; i<basal_change_max_count; i++) {
-		ui_names << ", L\"Basal rate offset " << i << "\", L\"Basal rate "<< i << '"';
-		config_names << ", L\"Basal_Rate_Offset " << i << "\", L\"Basal_Rate_" << i << '"';
-		param_types << ", scgms::NModel_Parameter_Value::mptTime, scgms::NModel_Parameter_Value::mptDouble";
-
-		lower << ", Minimum_Rate_Change_Delay, 0.0";
-		def_params << ", " << i <<  ".0*rate_period, 10.0";
-		upper << ", experiment_time, 12.0";
-	}
-
-
-	ui_names << "};";
-	config_names << "};";
-	param_types << "};";
-
-	lower << "};";
-	def_params << "};";
-	upper << "};";
-
-
-	std::cout << ui_names.str() << std::endl;
-	std::cout << config_names.str() << std::endl;
-	std::cout << param_types.str() << std::endl;
-
-	std::cout << lower.str() << std::endl;
-	std::cout << def_params.str() << std::endl;
-	std::cout << upper.str() << std::endl;
-
-	return 0;
-}
-	
-	*/
 }
 
 const std::array<scgms::TModel_Descriptor, 3> model_descriptions = { { icarus_v1_boluses::desc, basal_and_bolus::desc,  rates_pack_boluses::desc} };
-
 
 DLL_EXPORT HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descriptor **begin, scgms::TModel_Descriptor **end) {
 	*begin = const_cast<scgms::TModel_Descriptor*>(model_descriptions.data());
@@ -248,17 +185,18 @@ DLL_EXPORT HRESULT IfaceCalling do_get_model_descriptors(scgms::TModel_Descripto
 	return S_OK;
 }
 
-
 DLL_EXPORT HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
 	if (!model_id) return E_INVALIDARG;
 
-	if (*model_id == icarus_v1_boluses::model_id) 
+	if (*model_id == icarus_v1_boluses::model_id) {
 		return Manufacture_Object<CV1_Boluses>(model, parameters, output);
-	else if (*model_id == basal_and_bolus::model_id)
-		return Manufacture_Object<CBasal_And_Bolus> (model, parameters, output);
-	else if (*model_id == rates_pack_boluses::model_id)
+	}
+	else if (*model_id == basal_and_bolus::model_id) {
+		return Manufacture_Object<CBasal_And_Bolus>(model, parameters, output);
+	}
+	else if (*model_id == rates_pack_boluses::model_id) {
 		return Manufacture_Object<CRates_Pack_Boluses>(model, parameters, output);
-
+	}
 
 	return E_NOTIMPL;
 }

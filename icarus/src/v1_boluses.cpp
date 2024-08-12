@@ -54,7 +54,6 @@ void CV1_Boluses::Check_Bolus_Delivery(const double current_time) {
 		mBasal_Rate_Issued = Succeeded(mOutput.Send(evt));
 	}
 
-
 	const double offset = current_time - mSimulation_Start;
 
 	if (mBolus_Index < icarus_v1_boluses::meal_count) {
@@ -67,8 +66,9 @@ void CV1_Boluses::Check_Bolus_Delivery(const double current_time) {
 			evt.segment_id() = mSegment_id;
 			evt.level() = mParameters.bolus[mBolus_Index].bolus;
 
-			if (Succeeded(mOutput.Send(evt)))
+			if (Succeeded(mOutput.Send(evt))) {
 				mBolus_Index++;
+			}
 		}
 	}
 }

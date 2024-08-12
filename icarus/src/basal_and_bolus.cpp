@@ -60,15 +60,15 @@ HRESULT CBasal_And_Bolus::Do_Execute(scgms::UDevice_Event event) {
 		evt.level() = mParameters.carb_to_insulin * event.level();
 		HRESULT rc = mOutput.Send(evt);
 
-		if (!Succeeded(rc))
+		if (!Succeeded(rc)) {
 			return rc;
+		}
 	}
 
 	return mOutput.Send(event);
 }
 
 HRESULT CBasal_And_Bolus::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
-
 	return S_OK;
 }
 

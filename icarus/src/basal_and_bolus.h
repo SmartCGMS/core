@@ -46,23 +46,25 @@
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 class CBasal_And_Bolus : public virtual scgms::CDiscrete_Model<basal_and_bolus::TParameters> {
-protected:
-	uint64_t mSegment_id = scgms::Invalid_Segment_Id;
-	bool mBasal_Rate_Issued = false;
-protected:
-	// scgms::CBase_Filter iface implementation
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-	CBasal_And_Bolus(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output) :
-		CBase_Filter(output, basal_and_bolus::model_id),
-		scgms::CDiscrete_Model<basal_and_bolus::TParameters>(parameters, basal_and_bolus::default_parameters, output, basal_and_bolus::model_id)
-		{}
-	virtual ~CBasal_And_Bolus() {}
+	protected:
+		uint64_t mSegment_id = scgms::Invalid_Segment_Id;
+		bool mBasal_Rate_Issued = false;
 
-	// scgms::IDiscrete_Model iface
-	virtual HRESULT IfaceCalling Initialize(const double new_current_time, const uint64_t segment_id) override final;
-	virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
+	protected:
+		// scgms::CBase_Filter iface implementation
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+
+	public:
+		CBasal_And_Bolus(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output) :
+			CBase_Filter(output, basal_and_bolus::model_id),
+			scgms::CDiscrete_Model<basal_and_bolus::TParameters>(parameters, basal_and_bolus::default_parameters, output, basal_and_bolus::model_id)
+			{}
+		virtual ~CBasal_And_Bolus() = default;
+
+		// scgms::IDiscrete_Model iface
+		virtual HRESULT IfaceCalling Initialize(const double new_current_time, const uint64_t segment_id) override final;
+		virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
 };
 
 #pragma warning( pop )

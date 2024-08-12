@@ -47,30 +47,32 @@
 
 
 class CV1_Boluses : public virtual scgms::CDiscrete_Model<icarus_v1_boluses::TParameters> {
-protected:
-	double mSimulation_Start = std::numeric_limits<double>::quiet_NaN();
-	double mStepped_Current_Time = std::numeric_limits<double>::quiet_NaN();
-	size_t mBolus_Index = std::numeric_limits<size_t>::max();
-	uint64_t mSegment_id = scgms::Invalid_Segment_Id;
-	bool mBasal_Rate_Issued = false;
+	protected:
+		double mSimulation_Start = std::numeric_limits<double>::quiet_NaN();
+		double mStepped_Current_Time = std::numeric_limits<double>::quiet_NaN();
+		size_t mBolus_Index = std::numeric_limits<size_t>::max();
+		uint64_t mSegment_id = scgms::Invalid_Segment_Id;
+		bool mBasal_Rate_Issued = false;
 
+	protected:
 		//delivers insulin bolus, only if it is time is LESS-ONLY than the current_time
 		//LESS-ONLY let us keep the code short and clean
-	void Check_Bolus_Delivery(const double current_time);
-protected:
-	// scgms::CBase_Filter iface implementation
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-	CV1_Boluses(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output) :
-		CBase_Filter(output, icarus_v1_boluses::model_id),
-		scgms::CDiscrete_Model<icarus_v1_boluses::TParameters>(parameters, icarus_v1_boluses::default_parameters, output, icarus_v1_boluses::model_id)
-		{}
-	virtual ~CV1_Boluses();
+		void Check_Bolus_Delivery(const double current_time);
 
-	// scgms::IDiscrete_Model iface
-	virtual HRESULT IfaceCalling Initialize(const double new_current_time, const uint64_t segment_id) override final;
-	virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
+		// scgms::CBase_Filter iface implementation
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+
+	public:
+		CV1_Boluses(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output) :
+			CBase_Filter(output, icarus_v1_boluses::model_id),
+			scgms::CDiscrete_Model<icarus_v1_boluses::TParameters>(parameters, icarus_v1_boluses::default_parameters, output, icarus_v1_boluses::model_id)
+			{}
+		virtual ~CV1_Boluses();
+
+		// scgms::IDiscrete_Model iface
+		virtual HRESULT IfaceCalling Initialize(const double new_current_time, const uint64_t segment_id) override final;
+		virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
 };
 
 #pragma warning( pop )

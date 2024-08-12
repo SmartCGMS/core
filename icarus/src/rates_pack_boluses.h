@@ -47,57 +47,59 @@
 
 
 class CRates_Pack_Boluses : public virtual scgms::CDiscrete_Model<rates_pack_boluses::TParameters> {
-protected:
-	double mSimulation_Start = std::numeric_limits<double>::quiet_NaN();
-	double mStepped_Current_Time = std::numeric_limits<double>::quiet_NaN();
-	size_t mBolus_Index = std::numeric_limits<size_t>::max();
-	size_t mBasal_Index = std::numeric_limits<size_t>::max();
+	protected:
+		double mSimulation_Start = std::numeric_limits<double>::quiet_NaN();
+		double mStepped_Current_Time = std::numeric_limits<double>::quiet_NaN();
+		size_t mBolus_Index = std::numeric_limits<size_t>::max();
+		size_t mBasal_Index = std::numeric_limits<size_t>::max();
 
-	double mNext_Bolus_Delivery_Time = std::numeric_limits<double>::quiet_NaN();
-	double mNext_Basal_Change_Time = std::numeric_limits<double>::quiet_NaN();
+		double mNext_Bolus_Delivery_Time = std::numeric_limits<double>::quiet_NaN();
+		double mNext_Basal_Change_Time = std::numeric_limits<double>::quiet_NaN();
 
-	uint64_t mSegment_id = scgms::Invalid_Segment_Id;
-	bool mBasal_Rate_Issued = false;
-	bool mLGS_Active = false;
-	double mLGS_endtime = 0.0;
+		uint64_t mSegment_id = scgms::Invalid_Segment_Id;
+		bool mBasal_Rate_Issued = false;
+		bool mLGS_Active = false;
+		double mLGS_endtime = 0.0;
 
+	protected:
 		//delivers insulin bolus, only if its time is LESS-ONLY than the current_time
 		//LESS-ONLY let us keep the code short and clean
-	void Check_Insulin_Delivery(const double current_time);
+		void Check_Insulin_Delivery(const double current_time);
 
+		template <size_t max_count, typename T>
+		void Deliver_Insulin(const double current_time, double &next_time, size_t &index, const T &values, const GUID &signal_id) {
 
-	template <size_t max_count, typename T>
-	void Deliver_Insulin(const double current_time, double &next_time, size_t &index, const T &values, const GUID &signal_id) {
+			if (next_time <= current_time) {
 
-		if (next_time <= current_time) {
+				scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
+				evt.signal_id() = signal_id;
+				evt.device_id() = rates_pack_boluses::model_id;
+				evt.device_time() = current_time;
+				evt.segment_id() = mSegment_id;
+				evt.level() = values[index].value;
 
-			scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
-			evt.signal_id() = signal_id;
-			evt.device_id() = rates_pack_boluses::model_id;
-			evt.device_time() = current_time;
-			evt.segment_id() = mSegment_id;
-			evt.level() = values[index].value;
-
-			if (Succeeded(mOutput.Send(evt))) {
-				index++;
-				if (index < max_count)
-					next_time = current_time + values[index].offset;
-				else
-					next_time = std::numeric_limits<double>::max();
+				if (Succeeded(mOutput.Send(evt))) {
+					index++;
+					if (index < max_count) {
+						next_time = current_time + values[index].offset;
+					}
+					else {
+						next_time = std::numeric_limits<double>::max();
+					}
+				}
 			}
 		}
-	}
-protected:
-	// scgms::CBase_Filter iface implementation
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-	CRates_Pack_Boluses(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output);
-	virtual ~CRates_Pack_Boluses();
 
-	// scgms::IDiscrete_Model iface
-	virtual HRESULT IfaceCalling Initialize(const double new_current_time, const uint64_t segment_id) override final;
-	virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
+		// scgms::CBase_Filter iface implementation
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+	public:
+		CRates_Pack_Boluses(scgms::IModel_Parameter_Vector* parameters, scgms::IFilter* output);
+		virtual ~CRates_Pack_Boluses();
+
+		// scgms::IDiscrete_Model iface
+		virtual HRESULT IfaceCalling Initialize(const double new_current_time, const uint64_t segment_id) override final;
+		virtual HRESULT IfaceCalling Step(const double time_advance_delta) override final;
 };
 
 #pragma warning( pop )
