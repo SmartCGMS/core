@@ -52,9 +52,7 @@
 #include <map>
 #include <ctime>
 
-
-namespace db_writer
-{
+namespace db_writer {
 	// database ID of anonymous subject; TODO: select this from database
 	constexpr int64_t Anonymous_Subject_Id = 1;
 
@@ -77,9 +75,9 @@ CDb_Writer::~CDb_Writer() {
 }
 
 HRESULT IfaceCalling CDb_Writer::QueryInterface(const GUID* riid, void** ppvObj) {
-
-	if (Internal_Query_Interface<db::IDb_Sink>(db::Db_Sink_Filter, *riid, ppvObj))
+	if (Internal_Query_Interface<db::IDb_Sink>(db::Db_Sink_Filter, *riid, ppvObj)) {
 		return S_OK;
+	}
 	return E_NOINTERFACE;
 }
 
@@ -89,12 +87,14 @@ int64_t CDb_Writer::Create_Segment(std::wstring name) {
 
 	int64_t segment_id;
 	qr = mDb_Connection.Query(rsSelect_Founded_Segment, rsReserved_Segment_Name);
-	if (!qr || !qr.Get_Next(segment_id))
+	if (!qr || !qr.Get_Next(segment_id)) {
 		return db_writer::Error_Id;
+	}
 
 	qr = mDb_Connection.Query(rsUpdate_Founded_Segment, name.c_str(), mSubject_Id, segment_id);
-	if (!qr || !qr.Get_Next())
+	if (!qr || !qr.Get_Next()) {
 		return db_writer::Error_Id;
+	}
 
 	return segment_id;
 }
@@ -105,12 +105,14 @@ int64_t CDb_Writer::Create_Subject(std::wstring name) {
 
 	int64_t subject_id;
 	qr = mDb_Connection.Query(rsSelect_Founded_Subject, rsReserved_Subject_Name);
-	if (!qr || !qr.Get_Next(subject_id))
+	if (!qr || !qr.Get_Next(subject_id)) {
 		return db_writer::Error_Id;
+	}
 
 	qr = mDb_Connection.Query(rsUpdate_Founded_Subject, name.c_str(), L"", subject_id);
-	if (!qr || !qr.Get_Next())
+	if (!qr || !qr.Get_Next()) {
 		return db_writer::Error_Id;
+	}
 
 	return subject_id;
 }
@@ -118,10 +120,12 @@ int64_t CDb_Writer::Create_Subject(std::wstring name) {
 int64_t CDb_Writer::Get_Db_Segment_Id(int64_t segment_id) {
 
 	if (mSegment_Db_Id_Map.find(segment_id) == mSegment_Db_Id_Map.end()) {
-		if (mGenerate_Primary_Keys)
+		if (mGenerate_Primary_Keys) {
 			mSegment_Db_Id_Map[segment_id] = Create_Segment(db_writer::Segment_Base_Name + std::wstring(L" ") + std::to_wstring(++mLast_Generated_Idx));
-		else
+		}
+		else {
 			mSegment_Db_Id_Map[segment_id] = segment_id;
+		}
 	}
 
 	return mSegment_Db_Id_Map[segment_id];
@@ -144,19 +148,19 @@ void CDb_Writer::Flush_Levels()
 {
 	// TODO: transactions
 
-	if (Succeeded(Connect_To_Db_If_Needed()))
-	{
-		for (const auto& val : mPrepared_Values)
-		{
+	if (Succeeded(Connect_To_Db_If_Needed())) {
+		for (const auto& val : mPrepared_Values) {
 			const auto time_str = to_iso8601(Rat_Time_To_Unix_Time(val.measuredAt));
 			auto qr = mDb_Connection.Query(rsInsert_New_Measured_Value, time_str.c_str());
 
-			if (!qr)
+			if (!qr) {
 				break;
+			}
 
 			int64_t id = Get_Db_Segment_Id(val.segmentId);
-			if (id == db_writer::Error_Id)
+			if (id == db_writer::Error_Id) {
 				break;
+			}
 
 			qr.Bind_Parameters(id, val.signalId, val.value);
 
@@ -169,18 +173,21 @@ void CDb_Writer::Flush_Levels()
 
 bool CDb_Writer::Store_Parameters(const scgms::UDevice_Event& evt) {
 
-	if (!Succeeded(Connect_To_Db_If_Needed()))
+	if (!Succeeded(Connect_To_Db_If_Needed())) {
 		return false;
+	}
 
 	int64_t id = Get_Db_Segment_Id(evt.segment_id());
-	if (id == db_writer::Error_Id)
+	if (id == db_writer::Error_Id) {
 		return false;
+	}
 
 	double* begin, * end;
 	bool result = (evt.parameters->get(&begin, &end) == S_OK);
 
-	if (!result)
+	if (!result) {
 		return false;
+	}
 
 	db::TBinary_Object paramblob{ static_cast<size_t>(std::distance(begin, end)) * sizeof(double), reinterpret_cast<uint8_t*>(begin) };
 
@@ -192,11 +199,13 @@ bool CDb_Writer::Store_Parameters(const scgms::UDevice_Event& evt) {
 	insert_query.Bind_Parameters(time_str.c_str());
 	insert_query.Bind_Parameters(paramblob);
 
-	if (!insert_query)
+	if (!insert_query) {
 		return false;
+	}
 
-	if (!insert_query.Execute())
+	if (!insert_query.Execute()) {
 		return false;
+	}
 
 	return true;
 }
@@ -220,14 +229,16 @@ HRESULT IfaceCalling CDb_Writer::Do_Configure(scgms::SFilter_Configuration confi
 
 	// do not store any of model signals
 	auto models = scgms::get_model_descriptor_list();
-	for (const auto& model : models)
-		for (size_t i = 0; i < model.number_of_calculated_signals; i++)
+	for (const auto& model : models) {
+		for (size_t i = 0; i < model.number_of_calculated_signals; i++) {
 			mIgnored_Signals.insert(model.calculated_signal_ids[i]);
+		}
+	}
 
 	// do not store virtual signals either
-	for (const auto& id : scgms::signal_Virtual)
+	for (const auto& id : scgms::signal_Virtual) {
 		mIgnored_Signals.insert(id);
-
+	}
 
 	// bolus is an exception for now - model produces directly requested insulin bolus
 	// TODO: modify model to produce model-specific signal, that needs to be remapped to requested insulin bolus signal
@@ -302,10 +313,13 @@ HRESULT IfaceCalling CDb_Writer::Set_Connector(db::IDb_Connector* connector) {
 }
 
 HRESULT CDb_Writer::Connect_To_Db_If_Needed() {
-	if (mDb_Connector)
+	if (mDb_Connector) {
 		mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
-	if (!mDb_Connection)
+	}
+
+	if (!mDb_Connection) {
 		return E_FAIL;
+	}
 
 	return S_OK;
 }

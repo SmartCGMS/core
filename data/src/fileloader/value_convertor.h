@@ -42,38 +42,39 @@
 #include "../third party/exprtk.hpp"
 
 class CValue_Convertor {
-protected:
-	enum class NValue_Conversion {
-		identity,
-		f_2_c,
-		mg_dl_2_mmol_l,
-		sleep_quality,
-		general,
-		minutes,
-		seconds,
-		invalid,
-	};
+	protected:
+		enum class NValue_Conversion {
+			identity,
+			f_2_c,
+			mg_dl_2_mmol_l,
+			sleep_quality,
+			general,
+			minutes,
+			seconds,
+			invalid,
+		};
 
-	NValue_Conversion mConversion = NValue_Conversion::invalid;
-protected:
-	//most of the time, there won't by any conversion => it is worth to allocate it only when needed to save the overall init time
-	struct TExpression_Engine {
-		exprtk::symbol_table<double> mSymbol_Table;
-		exprtk::expression<double>   mExpression_Tree;
-		exprtk::parser<double>       mParser;
-	};
+		NValue_Conversion mConversion = NValue_Conversion::invalid;
 
-	std::unique_ptr<TExpression_Engine> mEngine;
-protected:
-	std::string mExpression_String;
-	double mValue = std::numeric_limits<double>::quiet_NaN();		//eval value placeholder due to the expretk lib design
-public:
-	CValue_Convertor() {};
-	CValue_Convertor(const CValue_Convertor& other);
+		//most of the time, there won't by any conversion => it is worth to allocate it only when needed to save the overall init time
+		struct TExpression_Engine {
+			exprtk::symbol_table<double> mSymbol_Table;
+			exprtk::expression<double>   mExpression_Tree;
+			exprtk::parser<double>       mParser;
+		};
 
-	bool init(const std::string& expression);
-	double eval(const double val);	//may return nan if cannot eval
-	bool valid() const;						//true if expression is correct	
+		std::unique_ptr<TExpression_Engine> mEngine;
 
-	CValue_Convertor& operator=(const CValue_Convertor& other);
+		std::string mExpression_String;
+		double mValue = std::numeric_limits<double>::quiet_NaN();		//eval value placeholder due to the expretk lib design
+
+	public:
+		CValue_Convertor() {};
+		CValue_Convertor(const CValue_Convertor& other);
+
+		bool init(const std::string& expression);
+		double eval(const double val); //may return nan if cannot eval
+		bool valid() const; //true if expression is correct
+
+		CValue_Convertor& operator=(const CValue_Convertor& other);
 };

@@ -46,7 +46,6 @@
 
 #include <scgms/utils/string_utils.h>
 
-
 //helper functions
 TSheet_Position CellSpec_To_RowCol(const std::string &cellSpec) {
 	int row = 0, col =0, sheetIndex = 0;
@@ -54,46 +53,42 @@ TSheet_Position CellSpec_To_RowCol(const std::string &cellSpec) {
 	bool specTypeFlag = false;
 	size_t i = 0;
 
-	while (cellSpec[i] >= 'A' && cellSpec[i] <= 'Z')
-	{
+	while (cellSpec[i] >= 'A' && cellSpec[i] <= 'Z') {
 		col *= 'Z' - 'A' + 1;
 		col += cellSpec[i] - 'A';
 		i++;
 	}
 
 	// in case of non-Excel cellspec (not beginning with letter), set flag
-	if (i == 0)
+	if (i == 0) {
 		specTypeFlag = true;
+	}
 	
-	while (cellSpec[i] >= '0' && cellSpec[i] <= '9')
-	{
+	while (cellSpec[i] >= '0' && cellSpec[i] <= '9') {
 		row *= 10;
 		row += cellSpec[i] - '0';
 		i++;
 	}
 
 	// besides standard Excell cellspec (B8, ..) we recognize also comma-separated cellspec (1,7)
-	if (specTypeFlag)
-	{
+	if (specTypeFlag) {
 		i++;
 		col = 0;
-		while (cellSpec[i] >= '0' && cellSpec[i] <= '9')
-		{
+		while (cellSpec[i] >= '0' && cellSpec[i] <= '9') {
 			col *= 10;
 			col += cellSpec[i] - '0';
 			i++;
 		}
 	}
-	else
+	else {
 		row--; // decrease row to be universal
+	}
 
 	// parse sheet index in case of multisheet workbook (XLS, XLSX)
-	if (cellSpec[i] == ':')
-	{
+	if (cellSpec[i] == ':') {
 		i++;
 		sheetIndex = 0;
-		while (cellSpec[i] >= '0' && cellSpec[i] <= '9')
-		{
+		while (cellSpec[i] >= '0' && cellSpec[i] <= '9') {
 			sheetIndex *= 10;
 			sheetIndex += cellSpec[i] - '0';
 			i++;
@@ -104,12 +99,10 @@ TSheet_Position CellSpec_To_RowCol(const std::string &cellSpec) {
 }
 
 
-void RowCol_To_CellSpec(int row, int col, std::string& cellSpec)
-{
+void RowCol_To_CellSpec(int row, int col, std::string& cellSpec) {
 	cellSpec = "";
 
-	while (col > 0)
-	{
+	while (col > 0) {
 		cellSpec += 'A' + (col % ('Z' - 'A' + 1));
 		col /= ('Z' - 'A' + 1);
 	}
@@ -124,8 +117,9 @@ TXML_Position CellSpec_To_TreePosition(const std::string &cellSpec) {
 	pos.Reset();
 
 	// correct cellspec always contains '/' at the beginning and at least one letter
-	if (cellSpec.size() <= 1 || cellSpec[0] != '/')
+	if (cellSpec.size() <= 1 || cellSpec[0] != '/') {
 		return pos;
+	}
 
 	enum class _NState {
 		Spec_Parent_Tree,
@@ -135,6 +129,7 @@ TXML_Position CellSpec_To_TreePosition(const std::string &cellSpec) {
 		Cond_Parameter,
 		Cond_Value,
 	};
+
 	_NState curState = _NState::Spec_Parent_Tree;
 	TXML_Position::TParam_Cond tmpCond;
 
@@ -159,11 +154,13 @@ TXML_Position CellSpec_To_TreePosition(const std::string &cellSpec) {
 				if (c == '/' || c == '.') {
 					pos.hierarchy.push_back(TreeLevelSpec{ flushBuffer() });
 
-					if (c == '.')
+					if (c == '.') {
 						curState = _NState::Spec_Parameter;
+					}
 				}
-				else if (c != '\0')
+				else if (c != '\0') {
 					buffer << c;
+				}
 
 				break;
 			}
@@ -173,8 +170,9 @@ TXML_Position CellSpec_To_TreePosition(const std::string &cellSpec) {
 					pos.parameter = flushBuffer();
 					curState = _NState::Condition;
 				}
-				else if (c != '\0')
+				else if (c != '\0') {
 					buffer << c;
+				}
 				break;
 			}
 			case _NState::Condition:
@@ -197,8 +195,9 @@ TXML_Position CellSpec_To_TreePosition(const std::string &cellSpec) {
 						curState = _NState::Cond_Parameter;
 					}
 				}
-				else if (c != '\0')
+				else if (c != '\0') {
 					buffer << c;
+				}
 				break;
 			}
 			case _NState::Cond_Parameter:
@@ -207,8 +206,9 @@ TXML_Position CellSpec_To_TreePosition(const std::string &cellSpec) {
 					tmpCond.parameterName = flushBuffer();
 					curState = _NState::Cond_Value;
 				}
-				else if (c != '\0')
+				else if (c != '\0') {
 					buffer << c;
+				}
 				break;
 			}
 			case _NState::Cond_Value:
@@ -221,8 +221,9 @@ TXML_Position CellSpec_To_TreePosition(const std::string &cellSpec) {
 
 					curState = _NState::Condition;
 				}
-				else if (c != '\0')
+				else if (c != '\0') {
 					buffer << c;
+				}
 				break;
 			}
 		}
@@ -235,16 +236,17 @@ void TreePosition_To_CellSpec(TXML_Position& pos, std::string& cellSpec)
 {
 	std::ostringstream os;
 
-	for (size_t i = 0; i < pos.hierarchy.size(); i++)
-	{
+	for (size_t i = 0; i < pos.hierarchy.size(); i++) {
 		os << "/" << pos.hierarchy[i].tagName;
 
-		if (pos.hierarchy[i].position != 0)
+		if (pos.hierarchy[i].position != 0) {
 			os << ":" << pos.hierarchy[i].position;
+		}
 	}
 
-	if (!pos.parameter.empty())
+	if (!pos.parameter.empty()) {
 		os << "." << pos.parameter;
+	}
 
 	cellSpec = os.str();
 }
@@ -252,53 +254,50 @@ void TreePosition_To_CellSpec(TXML_Position& pos, std::string& cellSpec)
 
 /** Generic implementations **/
 
-bool IStorage_File::Is_EOF() const
-{
+bool IStorage_File::Is_EOF() const {
 	return mEOF;
 }
 
-void IStorage_File::Reset_EOF()
-{
+void IStorage_File::Reset_EOF() {
 	mEOF = false;
 }
 
 
-NFile_Organization_Structure ISpreadsheet_File::Get_File_Organization() const
-{
+NFile_Organization_Structure ISpreadsheet_File::Get_File_Organization() const {
 	return NFile_Organization_Structure::SPREADSHEET;
 }
 
-NFile_Organization_Structure IHierarchy_File::Get_File_Organization() const
-{
+NFile_Organization_Structure IHierarchy_File::Get_File_Organization() const {
 	return NFile_Organization_Structure::HIERARCHY;
 }
 
 // converts codepage encoded string to unicode; needed due to mixed mode XLS files
-std::wstring CodePageToUnicode(int codePage, const char *src)
-{
+std::wstring CodePageToUnicode(int codePage, const char* src) {
 #ifndef _WIN32
 	// we do not support codepages on non-Windows machine for now; we would need iconv or similar
 	return std::wstring{ src, src + strlen(src) };
 #else
-	if (!src)
+	if (!src) {
 		return L"";
+	}
 
 	int srcLen = (int)strlen(src);
-	if (!srcLen)
-	{
+	if (!srcLen) {
 		return L"";
 	}
 
 	int requiredSize = MultiByteToWideChar(codePage, 0, src, srcLen, 0, 0);
 
-	if (!requiredSize)
+	if (!requiredSize) {
 		return L"";
+	}
 
 	std::wstring w(requiredSize, L' ');
 
 	int retval = MultiByteToWideChar(codePage, 0, src, srcLen, &w[0], requiredSize);
-	if (!retval)
+	if (!retval) {
 		return L"";
+	}
 
 	return w;
 #endif
@@ -307,8 +306,7 @@ std::wstring CodePageToUnicode(int codePage, const char *src)
 
 /** CSV format interface implementation **/
 
-bool CCsv_File::Init(filesystem::path &path)
-{
+bool CCsv_File::Init(filesystem::path &path) {
 	mOriginalPath = path;
 	mFile = std::make_unique<CCSV_Format>(path);
 	return mFile.operator bool();
@@ -318,8 +316,9 @@ bool CCsv_File::Init(filesystem::path &path)
 std::optional<std::string> CCsv_File::Read(const TSheet_Position& position) {
 	const auto rd = mFile->Read(position.row, position.column);
 
-	if (mFile->Is_UnkCell_Flag())
+	if (mFile->Is_UnkCell_Flag()) {
 		mEOF = true;
+	}
 
 	return rd;
 }
@@ -328,8 +327,7 @@ void CCsv_File::Write(int row, int col, int sheetIndex, const std::string& value
 	mFile->Write(row, col, value);
 }
 
-void CCsv_File::Finalize()
-{
+void CCsv_File::Finalize() {
 	//
 }
 
@@ -354,22 +352,19 @@ bool CXls_File::Init(filesystem::path &path) {
 
 std::optional<std::string> CXls_File::Read(const TSheet_Position& position) {
 	ExcelFormat::BasicExcelWorksheet* ws = mFile->GetWorksheet(position.sheetIndex);
-	if (!ws)
-	{
+	if (!ws) {
 		mEOF = true;
 		return std::nullopt;
 	}
 
 	ExcelFormat::BasicExcelCell* cell = ws->Cell(position.row, position.column);
-	if (!cell || cell->Type() == ExcelFormat::BasicExcelCell::UNDEFINED)
-	{
+	if (!cell || cell->Type() == ExcelFormat::BasicExcelCell::UNDEFINED) {
 		mEOF = true;
 		return std::nullopt;
 	}
 
 	// type disambiguation; convert if needed
-	switch (cell->Type())
-	{
+	switch (cell->Type()) {
 		case ExcelFormat::BasicExcelCell::STRING:
 		{
 			// unfortunatelly, Excel in XLS format saves several strings in codepage encoding
@@ -390,58 +385,58 @@ std::optional<std::string> CXls_File::Read(const TSheet_Position& position) {
 	return std::nullopt;
 }
 
-void CXls_File::Write(int row, int col, int sheetIndex, const std::string& value)
-{
+void CXls_File::Write(int row, int col, int sheetIndex, const std::string& value) {
 	ExcelFormat::BasicExcelWorksheet* ws = mFile->GetWorksheet(sheetIndex);
-	if (!ws)
+	if (!ws) {
 		return;
+	}
 
 	ws->Cell(row, col)->Set(value.c_str());
 }
 
-void CXls_File::Finalize()
-{
+void CXls_File::Finalize() {
 	// we do not need saving in temporary load filters
 	//mFile->SaveAs(mOriginalPath.c_str());
 }
 
 /** XLSX format interface implementation **/
 
-bool CXlsx_File::Init(filesystem::path &path) {	
+bool CXlsx_File::Init(filesystem::path &path) {
 	mOriginalPath = path;
 	mFile = std::make_unique<xlnt::workbook>();
+
 	bool result = mFile.operator bool();
-	if (result)
+	if (result) {
 		mFile->load(path.string());
+	}
 
 	return result;
 }
 
 std::optional<std::string> CXlsx_File::Read(const TSheet_Position& position) {
-	try
-	{
+	try {
 		xlnt::worksheet ws = mFile->sheet_by_index(static_cast<size_t>(position.sheetIndex));
 
 		xlnt::cell const& cl = ws.cell(position.column + 1, position.row + 1);
 
-		if (cl.data_type() == xlnt::cell_type::formula_string)
+		if (cl.data_type() == xlnt::cell_type::formula_string) {
 			return cl.value<std::string>();
-		else if (cl.data_type() == xlnt::cell_type::number)
+		}
+		else if (cl.data_type() == xlnt::cell_type::number) {
 			return cl.to_string();
-
-		else if (cl.data_type() == xlnt::cell_type::date)
+		}
+		else if (cl.data_type() == xlnt::cell_type::date) {
 			return Read_Datetime(position);
-
-		else if (cl.data_type() == xlnt::cell_type::error)
-		{
+		}
+		else if (cl.data_type() == xlnt::cell_type::error) {
 			mEOF = true;
 			return std::nullopt;
 		}
-		else
+		else {
 			return std::nullopt;
+		}
 	}
-	catch (std::exception&)
-	{
+	catch (std::exception&) {
 		mEOF = true;
 		return std::nullopt;
 	}
@@ -504,45 +499,37 @@ std::string CXlsx_File::Read_Time(int row, int col)
 }
 */
 
-std::optional<std::string> CXlsx_File::Read_Datetime(const TSheet_Position& position)
-{
-	try
-	{
+std::optional<std::string> CXlsx_File::Read_Datetime(const TSheet_Position& position) {
+	try {
 		xlnt::worksheet ws = mFile->sheet_by_index(position.sheetIndex);
 		xlnt::cell const& cl = ws.cell(position.column + 1, position.row + 1);
 
-		if (cl.data_type() == xlnt::cell_type::error || cl.data_type() == xlnt::cell_type::empty)
-		{
+		if (cl.data_type() == xlnt::cell_type::error || cl.data_type() == xlnt::cell_type::empty) {
 			mEOF = true;
 			return std::nullopt;
 		}
-		else {			
+		else {
 			xlnt::datetime dtm = cl.value<xlnt::datetime>();
 			return dtm.to_string();
 		}
 	}
-	catch (std::exception&)
-	{
+	catch (std::exception&) {
 		mEOF = true;
 		return std::nullopt;
 	}
 }
 
-void CXlsx_File::Write(int row, int col, int sheetIndex, const std::string &value)
-{
-	try
-	{
+void CXlsx_File::Write(int row, int col, int sheetIndex, const std::string &value) {
+	try {
 		xlnt::worksheet ws = mFile->sheet_by_index(sheetIndex);
 		ws.cell(col + 1, row + 1).value(value);
 	}
-	catch (std::exception&)
-	{
+	catch (std::exception&) {
 		//
 	}
 }
 
-void CXlsx_File::Finalize()
-{
+void CXlsx_File::Finalize() {
 	// we do not need saving in temporary load filters
 	//mFile->save(mOriginalPath);
 }
@@ -551,8 +538,7 @@ void CXlsx_File::Finalize()
 
 /** XML format interface implementation **/
 
-bool CXml_File::Init(filesystem::path &path)
-{
+bool CXml_File::Init(filesystem::path &path) {
 	mOriginalPath = path;
 	mFile = std::make_unique<CXML_Format>(path);
 	return mFile.operator bool();
@@ -563,9 +549,7 @@ std::optional<std::string> CXml_File::Read(const std::string & position) {
 	return Read(pos);
 }
 
-
-std::optional<std::string> CXml_File::Read(const TXML_Position& position)
-{
+std::optional<std::string> CXml_File::Read(const TXML_Position& position) {
 	return mFile->Read(position);
 }
 
@@ -595,12 +579,10 @@ bool CXml_File::Position_Valid(const TXML_Position& position) {
 	return val.has_value();
 }
 
-void CXml_File::Write(TXML_Position& position, const std::string &value)
-{
+void CXml_File::Write(TXML_Position& position, const std::string &value) {
 	mFile->Write(position, value);
 }
 
-void CXml_File::Finalize()
-{
+void CXml_File::Finalize() {
 	//
 }

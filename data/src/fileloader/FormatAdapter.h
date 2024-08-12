@@ -52,54 +52,58 @@
  * table-like formats using cellspecs and row/column specifiers
  */
 class CFormat_Adapter {
-private:
-	// format we use
-	NStorage_Format mStorage_Format = NStorage_Format::unknown;
-	std::unique_ptr<IStorage_File> mStorage;
-	// original path to file
-	filesystem::path mOriginalPath;
-	// initializes adapter - creates appropriate structures, ..
-	bool Init(const filesystem::path filename, filesystem::path originalFilename = {});
+	private:
+		// format we use
+		NStorage_Format mStorage_Format = NStorage_Format::unknown;
+		std::unique_ptr<IStorage_File> mStorage;
+		// original path to file
+		filesystem::path mOriginalPath;
+		// initializes adapter - creates appropriate structures, ..
+		bool Init(const filesystem::path filename, filesystem::path originalFilename = {});
 
-	bool mValid = false;
-protected:
-	std::string mFormat_Name;
-	bool Detect_Format_Layout(const TFormat_Signature_Rules& rules);
-protected:
-	// converts format pointer to spreadsheet file
-	ISpreadsheet_File * ToSpreadsheetFile() const;
-	// converts format pointer to hierarchy file
-	IHierarchy_File* ToHierarchyFile() const;
+		bool mValid = false;
 
-public:
-	CFormat_Adapter(const TFormat_Signature_Rules&rules, const filesystem::path filename, const filesystem::path originalFilename = {});	
-	virtual ~CFormat_Adapter();
+	protected:
+		std::string mFormat_Name;
+		
+	protected:
+		// converts format pointer to spreadsheet file
+		ISpreadsheet_File* ToSpreadsheetFile() const;
+		// converts format pointer to hierarchy file
+		IHierarchy_File* ToHierarchyFile() const;
 
-	void Set_Cache_Mode(NCache_Mode mode) {
-		if (mStorage)
-			mStorage->Set_Cache_Mode(mode);
-	}
+		bool Detect_Format_Layout(const TFormat_Signature_Rules& rules);
 
-	bool Valid() const;
-	std::string Format_Name() const;
+	public:
+		CFormat_Adapter(const TFormat_Signature_Rules&rules, const filesystem::path filename, const filesystem::path originalFilename = {});
+		virtual ~CFormat_Adapter();
 
-	template <typename R, typename P>
-	std::optional<std::string> Read(P& position) const {
-		return mStorage->Read(position);
-	}
+		void Set_Cache_Mode(NCache_Mode mode) {
+			if (mStorage) {
+				mStorage->Set_Cache_Mode(mode);
+			}
+		}
 
-	template <typename R, typename P>
-	bool Condition_Match(P& position) const {
-		return mStorage->Condition_Match(position);
-	}
+		bool Valid() const;
+		std::string Format_Name() const;
 
-	template <typename R, typename P>
-	bool Position_Valid(P& position) const {
-		return mStorage->Position_Valid(position);
-	}
+		template <typename R, typename P>
+		std::optional<std::string> Read(P& position) const {
+			return mStorage->Read(position);
+		}
 
-	NFile_Organization_Structure Get_File_Organization() const;
-	bool Is_EOF() const;
-	// resets EOF flag
-	void Reset_EOF();
+		template <typename R, typename P>
+		bool Condition_Match(P& position) const {
+			return mStorage->Condition_Match(position);
+		}
+
+		template <typename R, typename P>
+		bool Position_Valid(P& position) const {
+			return mStorage->Position_Valid(position);
+		}
+
+		NFile_Organization_Structure Get_File_Organization() const;
+		bool Is_EOF() const;
+		// resets EOF flag
+		void Reset_EOF();
 };

@@ -46,8 +46,7 @@
 /**
  * CSV file reader + writer, implements lazyloading in both directions
  */
-class CCSV_Format
-{
+class CCSV_Format {
 	private:
 		// CSV contents; primary = row, secondary = column
 		std::vector<std::vector<std::string>> mContents;

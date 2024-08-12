@@ -39,8 +39,7 @@
 #include <fstream>
 
 // format implementation cache mode
-enum class NCache_Mode
-{
+enum class NCache_Mode {
 	Cached,					// caches everything - this is a default mode
 	Single_Record_Cache,	// caches just a single line/record - this should be default mode for forward reads
 };
@@ -52,12 +51,11 @@ void Discard_BOM_If_Present(std::istream& is);
 // determines, whether the element is present in supplied container; the element must have "==" operator defined,
 // and the container should contain range-based for loops
 template<class C, typename T>
-inline bool Contains_Element(C const& container, T const& element)
-{
-	for (auto& el : container)
-	{
-		if (el == element)
+inline bool Contains_Element(C const& container, T const& element) {
+	for (auto& el : container) {
+		if (el == element) {
 			return true;
+		}
 	}
 	return false;
 }

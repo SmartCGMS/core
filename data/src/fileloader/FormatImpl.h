@@ -54,8 +54,7 @@
 #endif
 
 // all known file formats
-enum class NStorage_Format
-{
+enum class NStorage_Format {
 	csv,
 #ifndef NO_BUILD_EXCELSUPPORT
 	xls,
@@ -65,8 +64,7 @@ enum class NStorage_Format
 	unknown
 };
 
-enum class NFile_Organization_Structure
-{
+enum class NFile_Organization_Structure {
 	SPREADSHEET,
 	HIERARCHY
 };
@@ -74,8 +72,7 @@ enum class NFile_Organization_Structure
 /*
  * Structure encapsulating position in workbook
  */
-struct TSheet_Position
-{
+struct TSheet_Position {
 	// current row
 	int row = 0;
 	// current column
@@ -90,17 +87,15 @@ struct TSheet_Position
 	
 	TSheet_Position(int r, int c, int s) : row(r), column(c), sheetIndex(s) {};
 
-	bool operator==(TSheet_Position const& other) const
-	{
+	bool operator==(TSheet_Position const& other) const {
 		return ((row == other.row) && (column == other.column) && (sheetIndex == other.sheetIndex));
 	}
-	bool operator!=(TSheet_Position const& other) const
-	{
+	bool operator!=(TSheet_Position const& other) const {
 		return !((row == other.row) && (column == other.column) && (sheetIndex == other.sheetIndex));
 	}
 
 	// is sheet position valid?
-	bool Valid() const 	{
+	bool Valid() const {
 		return (row >= 0) && (column >= 0) && (sheetIndex >= 0);
 	};
 
@@ -119,12 +114,10 @@ struct TSheet_Position
 TSheet_Position CellSpec_To_RowCol(const std::string& cellSpec);
 TXML_Position CellSpec_To_TreePosition(const std::string& cellSpec);
 
-
 /*
  * Base storage file interface
  */
-class IStorage_File
-{
+class IStorage_File {
 	protected:
 		// end of file flag
 		bool mEOF = false;
@@ -166,14 +159,7 @@ class IStorage_File
 /*
  * Spreadsheet format adapter interface; encapsulates all needed operations on table file types
  */
-class ISpreadsheet_File : public virtual IStorage_File
-{
-	private:
-		//
-
-	protected:
-		//
-
+class ISpreadsheet_File : public virtual IStorage_File {
 	public:
 		// virtual destructor due to need of calling derived ones
 		virtual ~ISpreadsheet_File() = default;
@@ -207,11 +193,7 @@ class ISpreadsheet_File : public virtual IStorage_File
 /*
  * Hierarchy format adapter interface; encapsulates all needed operations on tree hierarchy file types
  */
-class IHierarchy_File : public virtual IStorage_File
-{
-	private:
-		//
-
+class IHierarchy_File : public virtual IStorage_File {
 	protected:
 		// end of file flag
 		bool mEOF = false;
@@ -242,8 +224,7 @@ class IHierarchy_File : public virtual IStorage_File
 /*
  * CSV file format adapter
  */
-class CCsv_File : public virtual ISpreadsheet_File
-{
+class CCsv_File : public virtual ISpreadsheet_File {
 	private:
 		std::unique_ptr<CCSV_Format> mFile;
 	public:
@@ -255,8 +236,9 @@ class CCsv_File : public virtual ISpreadsheet_File
 		void Set_Cache_Mode(NCache_Mode mode) override {
 			ISpreadsheet_File::Set_Cache_Mode(mode);
 
-			if (mFile)
+			if (mFile) {
 				mFile->Set_Cache_Mode(mode);
+			}
 		}
 
 		// indicate the intent to override Read from IStorage_File (grandparent) and not "hide" the one in ISpreadsheet_File (parent)
@@ -264,7 +246,10 @@ class CCsv_File : public virtual ISpreadsheet_File
 		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;
 
 		using IStorage_File::Condition_Match;
-		virtual bool Condition_Match(const TSheet_Position& position) override final { return true; } // TODO
+		virtual bool Condition_Match(const TSheet_Position& position) override final {
+			// TODO
+			return true;
+		}
 };
 
 #ifndef NO_BUILD_EXCELSUPPORT
@@ -272,8 +257,7 @@ class CCsv_File : public virtual ISpreadsheet_File
 /*
  * XLS file format adapter
  */
-class CXls_File : public virtual ISpreadsheet_File
-{
+class CXls_File : public virtual ISpreadsheet_File {
 	private:
 		std::unique_ptr<ExcelFormat::BasicExcel> mFile;
 	public:
@@ -287,17 +271,20 @@ class CXls_File : public virtual ISpreadsheet_File
 		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;
 
 		using IStorage_File::Condition_Match;
-		virtual bool Condition_Match(const TSheet_Position& position) override final { return true; } // TODO
+		virtual bool Condition_Match(const TSheet_Position& position) override final {
+			// TODO
+			return true;
+		}
 };
 
 /*
  * XLSX file format adapter
  */
-class CXlsx_File : public virtual ISpreadsheet_File
-{
+class CXlsx_File : public virtual ISpreadsheet_File {
 	private:
 		std::unique_ptr<xlnt::workbook> mFile;
 		std::optional<std::string> Read_Datetime(const TSheet_Position &position);
+
 	public:
 		virtual ~CXlsx_File() = default;
 
@@ -309,7 +296,10 @@ class CXlsx_File : public virtual ISpreadsheet_File
 		virtual std::optional<std::string> Read(const TSheet_Position& position) override final;
 
 		using IStorage_File::Condition_Match;
-		virtual bool Condition_Match(const TSheet_Position& position) override final { return true; } // TODO
+		virtual bool Condition_Match(const TSheet_Position& position) override final {
+			// TODO
+			return true;
+		}
 };
 
 #endif
@@ -317,8 +307,7 @@ class CXlsx_File : public virtual ISpreadsheet_File
 /*
  * XML format adapter
  */
-class CXml_File : public virtual IHierarchy_File
-{
+class CXml_File : public virtual IHierarchy_File {
 	private:
 		std::unique_ptr<CXML_Format> mFile;
 
@@ -328,7 +317,6 @@ class CXml_File : public virtual IHierarchy_File
 		virtual bool Init(filesystem::path &path) override;
 		virtual void Write(TXML_Position& position, const std::string &value) override final;
 		virtual void Finalize() override;
-
 
 		virtual std::optional<std::string> Read(const std::string& position) override final;
 		virtual std::optional<std::string> Read(const TXML_Position& position) override final;	//read may modify position

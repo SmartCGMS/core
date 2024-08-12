@@ -39,6 +39,14 @@
 #include <scgms/rtl/FilesystemLib.h>
 #include <scgms/utils/string_utils.h>
 
+namespace {
+	const wchar_t* dsSeries_Definitions_Filename = L"format_series.ini";
+	const wchar_t* dsFormat_Layout_Filename = L"format_layout.ini";
+}
+
+extern "C" const char default_format_layout[];			//bin2c -n default_format_rules_templates -p 0,0 %(FullPath) > %(FullPath).c
+extern "C" const char default_format_series[];
+
 void CFormat_Layout::push(const TCell_Descriptor& cell) {
 	mCells.push_back(cell);
 }
@@ -57,7 +65,6 @@ bool CFile_Format_Rules::Load_Format_Config(const char *default_config, const wc
 		return path;
 	};
 
-
 	auto load_config = [&func](const char* str, std::function<SI_Error(const char*, CSimpleIniA&)> load_config_func) {
 		CSimpleIniA ini;
 		SI_Error err;
@@ -65,8 +72,9 @@ bool CFile_Format_Rules::Load_Format_Config(const char *default_config, const wc
 		ini.SetUnicode();
 		err = load_config_func(str, ini);
 
-		if (err < 0)
+		if (err < 0) {
 			return false;
+		}
 
 		return func(ini);
 	};
@@ -80,8 +88,9 @@ bool CFile_Format_Rules::Load_Format_Config(const char *default_config, const wc
 	};
 
 	bool default_result = false;
-	if (default_config != nullptr)
+	if (default_config != nullptr) {
 		default_result = load_config(default_config, load_config_from_memory);
+	}
 
 	if (file_name != nullptr) {
 		const std::string path_to_load = resolve_config_file_path(file_name).make_preferred().string();
@@ -127,10 +136,8 @@ bool CFile_Format_Rules::Load_Format_Definition(CSimpleIniA& ini) {
 			const std::string format_name = section_name.substr(0, section_name.size() - signature_suffix.size());
 			const std::string cursors_section_name = format_name + cursors_suffix;
 
-
 			auto signature = Load_Format_Signature(ini, section);
 			auto layout = Load_Format_Layout(ini, cursors_section_name);
-
 
 			if (!signature.empty() && !layout.empty()) {
 
@@ -260,12 +267,14 @@ bool CFile_Format_Rules::Load_Series_Descriptors(CSimpleIniA& ini) {
 
 		TSeries_Descriptor desc;
 		value = ini.GetValue(section.pItem, "datetime_format");
-		if (value)
+		if (value) {
 			desc.datetime_format = trim(value);
+		}
 
 		value = ini.GetValue(section.pItem, "comment_name");
-		if (value)
-			desc.comment_name= trim(value);
+		if (value) {
+			desc.comment_name = trim(value);
+		}
 
 		value = ini.GetValue(section.pItem, "conversion");
 		if (value) {
@@ -282,8 +291,10 @@ bool CFile_Format_Rules::Load_Series_Descriptors(CSimpleIniA& ini) {
 
 		bool valid_signal_id = false;
 		value = ini.GetValue(section.pItem, "signal");
-		if (value)
+		if (value) {
 			desc.target_signal = WString_To_GUID(Widen_String(value), valid_signal_id);
+		}
+
 		if (!valid_signal_id) {
 			std::wstring msg = L"Cannot convert \"";
 			msg += value ? Widen_String(value) : L"none_value";
@@ -308,25 +319,22 @@ TFormat_Signature_Rules CFile_Format_Rules::Signature_Rules() const {
 
 std::optional<CFormat_Layout> CFile_Format_Rules::Format_Layout(const std::string& format_name) const {
 	auto iter = mFormat_Layouts.find(format_name);
-	if (iter != mFormat_Layouts.end())
+	if (iter != mFormat_Layouts.end()) {
 		return iter->second;
-	else
+	}
+	else {
 		return std::nullopt;
+	}
 }
-
-const wchar_t* dsSeries_Definitions_Filename = L"format_series.ini";
-const wchar_t* dsFormat_Layout_Filename = L"format_layout.ini";
-
-extern "C" const char default_format_layout[];			//bin2c -n default_format_rules_templates -p 0,0 %(FullPath) > %(FullPath).c
-extern "C" const char default_format_series[];
 
 CFile_Format_Rules::CFile_Format_Rules() {
 	mValid = Load();
 }
 
 bool CFile_Format_Rules::Are_Rules_Valid(refcnt::Swstr_list& error_description) const {
-	for (const auto& err : mErrors)
+	for (const auto& err : mErrors) {
 		error_description.push(err);
+	}
 	return mValid;
 }
 
@@ -342,8 +350,9 @@ bool CFile_Format_Rules::Load_Additional_Format_Layout(const filesystem::path& p
 
 	ini.SetUnicode();
 
-	if (ini.LoadFile(path.c_str()) != SI_Error::SI_OK)
+	if (ini.LoadFile(path.c_str()) != SI_Error::SI_OK) {
 		return false;
+	}
 
 	return Load_Format_Definition(ini);
 }

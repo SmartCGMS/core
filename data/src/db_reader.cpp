@@ -86,24 +86,28 @@ bool CDb_Reader::Emit_Segment_Parameters(const double deviceTime, int64_t segmen
 	db::TBinary_Object blob;
 
 	db::SDb_Query query = mDb_Connection.Query(rsSelect_Params_Filter, segment_id);
-	if (!query.Bind_Result(recorded_at_str, model_id, signal_id, blob))
+	if (!query.Bind_Result(recorded_at_str, model_id, signal_id, blob)) {
 		return false;
+	}
 
 	while (query.Get_Next() && !mQuit_Flag) {
 
-		if (!recorded_at_str)
+		if (!recorded_at_str) {
 			continue;
+		}
 
 		const double recorded_at = Unix_Time_To_Rat_Time(from_iso8601(recorded_at_str));
-		if (recorded_at == 0.0)
+		if (recorded_at == 0.0) {
 			continue;	// conversion did not succeed
+		}
 
 		scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Parameters };
 
 		double* vals = reinterpret_cast<double*>(blob.data);
 		const size_t valcount = blob.size / sizeof(double);
-		if (valcount == 0)
+		if (valcount == 0) {
 			continue;
+		}
 
 		std::vector<double> datavec{ vals, vals + valcount };
 
@@ -113,8 +117,9 @@ bool CDb_Reader::Emit_Segment_Parameters(const double deviceTime, int64_t segmen
 		evt.device_time() = recorded_at;
 		evt.segment_id() = segment_id;
 
-		if (mOutput.Send(evt) != S_OK)
+		if (mOutput.Send(evt) != S_OK) {
 			return false;
+		}
 	}
 
 	return true;
@@ -126,7 +131,9 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 	double level;
 
 	db::SDb_Query query = mDb_Connection.Query(rsSelect_Timesegment_Values_Filter, segment_id);
-	if (!query.Bind_Result(measured_at_str, signal_id, level)) return false;
+	if (!query.Bind_Result(measured_at_str, signal_id, level)) {
+		return false;
+	}
 
 	double lastTime = std::numeric_limits<double>::quiet_NaN();
 
@@ -134,21 +141,24 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 
 		// it is somehow possible for date being null (although the database constraint doesn't allow it)
 		// TODO: revisit this after database restructuralisation
-		if (!measured_at_str)
+		if (!measured_at_str) {
 			continue;
+		}
 
 		// "select measured_at, signal_id, value from measured_value where time_segment_id = ? order by measured_at asc"
 		//         0            1          2
 
 		const double measured_at = Unix_Time_To_Rat_Time(from_iso8601(measured_at_str));
 		auto fpcl = std::fpclassify(measured_at);
-		if (fpcl == FP_ZERO || fpcl == FP_NAN)
+		if (fpcl == FP_ZERO || fpcl == FP_NAN) {
 			continue;	// conversion did not succeed or yielded an invalid result
+		}
 
 		// validate the level
 		fpcl = std::fpclassify(level);
-		if (fpcl == FP_NAN || fpcl == FP_INFINITE)
+		if (fpcl == FP_NAN || fpcl == FP_INFINITE) {
 			continue;
+		}
 
 		if (std::isnan(lastTime)) {
 			if (!Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Start, measured_at, segment_id)) {
@@ -171,8 +181,9 @@ bool CDb_Reader::Emit_Segment_Levels(int64_t segment_id) {
 			evt.device_time() = measured_at;
 			evt.segment_id() = segment_id;
 
-			if (mOutput.Send(evt) != S_OK)
+			if (mOutput.Send(evt) != S_OK) {
 				return false;
+			}
 		}
 	}
 
@@ -201,21 +212,22 @@ void CDb_Reader::Db_Reader() {
 
 	// we must open the db connection from exactly that thread, that is about to use it
 
-	if (mDb_Connector)
+	if (mDb_Connector) {
 		mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
-	if (!mDb_Connection)
-	{
+	}
+
+	if (!mDb_Connection) {
 		Emit_Info_Event(dsError_Could_Not_Connect_To_Db);
 		return;
 	}
 
-	for (const auto segment_index : mDbTimeSegmentIds)
-	{
+	for (const auto segment_index : mDbTimeSegmentIds) {
 		Emit_Segment_Levels(segment_index);
 	}
 
-	if (mShutdownAfterLast)
+	if (mShutdownAfterLast) {
 		Emit_Shut_Down();
+	}
 }
 
 HRESULT IfaceCalling CDb_Reader::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
@@ -258,27 +270,31 @@ HRESULT IfaceCalling CDb_Reader::Do_Execute(scgms::UDevice_Event event) {
 
 void CDb_Reader::End_Db_Reader() {
 	mQuit_Flag = true;
-	if (mDb_Reader_Thread)
-	{
-		if (mDb_Reader_Thread->joinable())
+	if (mDb_Reader_Thread) {
+		if (mDb_Reader_Thread->joinable()) {
 			mDb_Reader_Thread->join();
+		}
 	}
 }
 
 HRESULT IfaceCalling CDb_Reader::QueryInterface(const GUID*  riid, void ** ppvObj) {
-	if (Internal_Query_Interface<db::IDb_Sink>(db::Db_Sink_Filter, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<db::IDb_Sink>(db::Db_Sink_Filter, *riid, ppvObj)) {
+		return S_OK;
+	}
 	return E_NOINTERFACE;
 }
 
 HRESULT IfaceCalling CDb_Reader::Set_Connector(db::IDb_Connector *connector) {
-	if (!connector)
+	if (!connector) {
 		return E_INVALIDARG;
+	}
 	mDb_Connector = refcnt::make_shared_reference_ext<db::SDb_Connector, db::IDb_Connector>(connector, true);
 	
 	// we need at least these parameters
 	HRESULT rc = (!(mDbHost.empty() || mDbProvider.empty() || mDbTimeSegmentIds.empty())) ? S_OK : E_INVALIDARG;
-	if (rc == S_OK)
+	if (rc == S_OK) {
 		mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader::Db_Reader, this);
+	}
 
 	return rc;
 }

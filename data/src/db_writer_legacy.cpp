@@ -53,8 +53,7 @@
 #include <ctime>
 
 
-namespace db_writer_legacy
-{
+namespace db_writer_legacy {
 	// database ID of anonymous subject; TODO: select this from database
 	constexpr int64_t Anonymous_Subject_Id = 1;
 
@@ -79,9 +78,9 @@ CDb_Writer_Legacy::~CDb_Writer_Legacy() {
 }
 
 HRESULT IfaceCalling CDb_Writer_Legacy::QueryInterface(const GUID*  riid, void ** ppvObj) {
-
-	if (Internal_Query_Interface<db::IDb_Sink>(db::Db_Sink_Filter, *riid, ppvObj))
+	if (Internal_Query_Interface<db::IDb_Sink>(db::Db_Sink_Filter, *riid, ppvObj)) {
 		return S_OK;
+	}
 	return E_NOINTERFACE;
 }
 
@@ -91,12 +90,14 @@ int64_t CDb_Writer_Legacy::Create_Segment(std::wstring name, std::wstring commen
 
 	int64_t segment_id;
 	qr = mDb_Connection.Query(rsLegacy_Db_Select_Founded_Segment, rsReserved_Segment_Name);
-	if (!qr || !qr.Get_Next(segment_id))
+	if (!qr || !qr.Get_Next(segment_id)) {
 		return db_writer_legacy::Error_Id;
+	}
 
 	qr = mDb_Connection.Query(rsLegacy_Db_Update_Founded_Segment, name.c_str(), comment.c_str(), false, mSubject_Id, nullptr, segment_id);
-	if (!qr || !qr.Get_Next())
+	if (!qr || !qr.Get_Next()) {
 		return db_writer_legacy::Error_Id;
+	}
 
 	return segment_id;
 }
@@ -107,12 +108,14 @@ int64_t CDb_Writer_Legacy::Create_Subject(std::wstring name) {
 
 	int64_t subject_id;
 	qr = mDb_Connection.Query(rsSelect_Founded_Subject, rsReserved_Subject_Name);
-	if (!qr || !qr.Get_Next(subject_id))
+	if (!qr || !qr.Get_Next(subject_id)) {
 		return db_writer_legacy::Error_Id;
+	}
 
 	qr = mDb_Connection.Query(rsLegacy_Db_Update_Founded_Subject, name.c_str(), L"", 0, 0, subject_id);
-	if (!qr || !qr.Get_Next())
+	if (!qr || !qr.Get_Next()) {
 		return db_writer_legacy::Error_Id;
+	}
 
 	return subject_id;
 }
@@ -120,10 +123,12 @@ int64_t CDb_Writer_Legacy::Create_Subject(std::wstring name) {
 int64_t CDb_Writer_Legacy::Get_Db_Segment_Id(int64_t segment_id) {
 
 	if (mSegment_Db_Id_Map.find(segment_id) == mSegment_Db_Id_Map.end()) {
-		if (mGenerate_Primary_Keys)
+		if (mGenerate_Primary_Keys) {
 			mSegment_Db_Id_Map[segment_id] = Create_Segment(db_writer_legacy::Segment_Base_Name + std::wstring(L" ") + std::to_wstring(++mLast_Generated_Idx), db_writer_legacy::Segment_Comment);
-		else
+		}
+		else {
 			mSegment_Db_Id_Map[segment_id] = segment_id;
+		}
 	}
 
 	return mSegment_Db_Id_Map[segment_id];
@@ -146,15 +151,14 @@ void CDb_Writer_Legacy::Flush_Levels()
 {
 	// TODO: transactions
 
-	if (Succeeded(Connect_To_Db_If_Needed()))
-	{
-		for (const auto& val : mPrepared_Values)
-		{
+	if (Succeeded(Connect_To_Db_If_Needed())) {
+		for (const auto& val : mPrepared_Values) {
 			const auto time_str = to_iso8601(Rat_Time_To_Unix_Time(val.measuredAt));
 			auto qr = mDb_Connection.Query(rsLegacy_Db_Insert_New_Measured_Value, time_str.c_str());
 
-			if (!qr)
+			if (!qr) {
 				break;
+			}
 
 			const auto sigCondBind = [&qr, &val](const GUID& cond) {
 				if (cond == val.signalId)
@@ -175,8 +179,9 @@ void CDb_Writer_Legacy::Flush_Levels()
 			sigCondBind(scgms::signal_Movement_Speed);
 
 			int64_t id = Get_Db_Segment_Id(val.segmentId);
-			if (id == db_writer_legacy::Error_Id)
+			if (id == db_writer_legacy::Error_Id) {
 				break;
+			}
 
 			qr.Bind_Parameters(id);
 
@@ -189,14 +194,17 @@ void CDb_Writer_Legacy::Flush_Levels()
 
 bool CDb_Writer_Legacy::Store_Parameters(const scgms::UDevice_Event& evt) {
 
-	if (!Succeeded(Connect_To_Db_If_Needed()))
+	if (!Succeeded(Connect_To_Db_If_Needed())) {
 		return false;
+	}
 
 	int64_t id = Get_Db_Segment_Id(evt.segment_id());
-	if (id == db_writer_legacy::Error_Id) return false;
+	if (id == db_writer_legacy::Error_Id) {
+		return false;
+	}
 
-	double *begin, *end;	
-	bool result = evt.parameters->get(&begin, &end) == S_OK;
+	double *begin, *end;
+	bool result = (evt.parameters->get(&begin, &end) == S_OK);
 
 	if (result) {
 		const size_t paramCnt = std::distance(begin, end);
@@ -213,8 +221,9 @@ bool CDb_Writer_Legacy::Store_Parameters(const scgms::UDevice_Event& evt) {
 					query_text += rsDelete_Parameters_Of_Segment_Stmt;
 
 					auto delete_query = mDb_Connection.Query(query_text, id);
-					if (delete_query)
+					if (delete_query) {
 						delete_query.Execute(); // TODO: error checking
+					}
 
 					// INSERT INTO model_db_table (segmentid, param_1, param_2, ..., param_N) VALUES (?, ?, ..., ?)
 
@@ -225,24 +234,27 @@ bool CDb_Writer_Legacy::Store_Parameters(const scgms::UDevice_Event& evt) {
 					// (segmentid, param_1, param_2, ..., param_N)
 					query_text += L" (";
 					query_text += rsLegacy_Db_Insert_Params_Segmentid_Column;
-					for (size_t i = 0; i < model.total_number_of_parameters; i++)
+					for (size_t i = 0; i < model.total_number_of_parameters; i++) {
 						query_text += L", " + std::wstring(model.parameter_db_column_names[i], model.parameter_db_column_names[i] + wcslen(model.parameter_db_column_names[i]));
+					}
 					query_text += L")";
 
 					// VALUES (?, ?, ..., ?)
 					query_text += L" ";
 					query_text += rsLegacy_Db_Insert_Params_Values_Stmt;
 					query_text += L" (?";
-					for (size_t i = 0; i < model.total_number_of_parameters; i++)
+					for (size_t i = 0; i < model.total_number_of_parameters; i++) {
 						query_text += L", ?";
+					}
 					query_text += L")";
 
 					// create query and bind our parameters
 					auto insert_query = mDb_Connection.Query(query_text);
 					if (insert_query) {
 						insert_query.Bind_Parameters(id);
-						for (size_t i = 0; i < model.total_number_of_parameters; i++)
+						for (size_t i = 0; i < model.total_number_of_parameters; i++) {
 							insert_query.Bind_Parameters(*(begin + i));
+						}
 
 						result = insert_query.Execute();
 					}
@@ -273,13 +285,16 @@ HRESULT IfaceCalling CDb_Writer_Legacy::Do_Configure(scgms::SFilter_Configuratio
 
 	// do not store any of model signals
 	auto models = scgms::get_model_descriptor_list();
-	for (const auto& model : models)
-		for (size_t i = 0; i < model.number_of_calculated_signals; i++)
+	for (const auto& model : models) {
+		for (size_t i = 0; i < model.number_of_calculated_signals; i++) {
 			mIgnored_Signals.insert(model.calculated_signal_ids[i]);
+		}
+	}
 
 	// do not store virtual signals either
-	for (const auto& id : scgms::signal_Virtual)
+	for (const auto& id : scgms::signal_Virtual) {
 		mIgnored_Signals.insert(id);
+	}
 
 	// bolus is an exception for now - model produces directly requested insulin bolus
 	// TODO: modify model to produce model-specific signal, that needs to be remapped to requested insulin bolus signal
@@ -294,61 +309,68 @@ HRESULT IfaceCalling CDb_Writer_Legacy::Do_Execute(scgms::UDevice_Event event) {
 	switch (event.event_code()) {
 		case scgms::NDevice_Event_Code::Level:
 		case scgms::NDevice_Event_Code::Masked_Level:
+		{
 			if (mStore_Data && (mIgnored_Signals.find(event.signal_id()) == mIgnored_Signals.end())) {
-																if (!Store_Level(event)) {
-																	dprintf(__FILE__);
-																	dprintf(", ");
-																	dprintf(__LINE__);
-																	dprintf(", ");
-																	dprintf(__func__);
-																	dprintf(" has failed!\n");
-																}
-															}
-															break;
+				if (!Store_Level(event)) {
+					dprintf(__FILE__);
+					dprintf(", ");
+					dprintf(__LINE__);
+					dprintf(", ");
+					dprintf(__func__);
+					dprintf(" has failed!\n");
+				}
+			}
+			break;
+		}
+		case scgms::NDevice_Event_Code::Parameters:
+		{
+			if (mStore_Parameters) {
+				if (!Store_Parameters(event)) {
+					dprintf(__FILE__);
+					dprintf(", ");
+					dprintf(__LINE__);
+					dprintf(", ");
+					dprintf(__func__);
+					dprintf(" has failed!\n");
+				}
+			}
+			break;
+		}
 
-		case scgms::NDevice_Event_Code::Parameters:		if (mStore_Parameters) {
-																if (!Store_Parameters(event)) {
-																	dprintf(__FILE__);
-																	dprintf(", ");
-																	dprintf(__LINE__);
-																	dprintf(", ");
-																	dprintf(__func__);
-																	dprintf(" has failed!\n");
-																}
-															}
-															break;
-
-		case scgms::NDevice_Event_Code::Time_Segment_Stop:	Flush_Levels();
-																break;
-		default:	break;
+		case scgms::NDevice_Event_Code::Time_Segment_Stop:
+			Flush_Levels();
+			break;
+		default:
+			break;
 	}
 
 	return mOutput.Send(event);
 }
 
-HRESULT IfaceCalling CDb_Writer_Legacy::Set_Connector(db::IDb_Connector *connector)
-{
-	if (!connector)
+HRESULT IfaceCalling CDb_Writer_Legacy::Set_Connector(db::IDb_Connector *connector) {
+	if (!connector) {
 		return E_INVALIDARG;
+	}
 
 	mDb_Connector = refcnt::make_shared_reference_ext<db::SDb_Connector, db::IDb_Connector>(connector, true);
 
 	return S_OK;
 }
 
-HRESULT CDb_Writer_Legacy::Connect_To_Db_If_Needed()
-{
-	if (mConnected)
+HRESULT CDb_Writer_Legacy::Connect_To_Db_If_Needed() {
+	if (mConnected) {
 		return S_FALSE;
+	}
 
-	if (mDb_Connector)
+	if (mDb_Connector) {
 		mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
+	}
 
-	if (!mDb_Connection)
+	if (!mDb_Connection) {
 		return E_FAIL;
+	}
 
-	switch (mSubject_Id)
-	{
+	switch (mSubject_Id) {
 		case db::Anonymous_Subject_Identifier:
 			// TODO: select this from DB
 			mSubject_Id = db_writer_legacy::Anonymous_Subject_Id;

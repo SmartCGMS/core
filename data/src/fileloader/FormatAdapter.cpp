@@ -52,12 +52,11 @@ CFormat_Adapter::CFormat_Adapter(const TFormat_Signature_Rules& rules, const fil
 	}
 }
 
-CFormat_Adapter::~CFormat_Adapter()
-{
-	if (mStorage)
+CFormat_Adapter::~CFormat_Adapter() {
+	if (mStorage) {
 		mStorage->Finalize();
+	}
 }
-
 
 bool CFormat_Adapter::Valid() const {
 	return mValid;
@@ -73,21 +72,22 @@ bool CFormat_Adapter::Detect_Format_Layout(const TFormat_Signature_Rules& layout
 
 	auto match = [&](const TFormat_Signature_Map &signature)->bool {
 		// try all rules, all rules need to be matched
-		for (auto const& rulePair : signature)
-		{
+		for (auto const& rulePair : signature) {
 			const auto rVal = Read<std::string>(rulePair.first);
-			if (!rVal.has_value())
+			if (!rVal.has_value()) {
 				return false;
+			}
 
 			if (!rulePair.second.empty()) {
 				//check the containment only if it is defined
 				//we may be just checking a path existince only!
 
 				const auto trimmed_value = trim(rVal.value());
-					//note it can contain excessive spaces due to delimiter-identifier separations
+				//note it can contain excessive spaces due to delimiter-identifier separations
 
-				if (!Contains_Element(rulePair.second, trimmed_value))
+				if (!Contains_Element(rulePair.second, trimmed_value)) {
 					return false;
+				}
 			}
 		}
 
@@ -107,38 +107,44 @@ bool CFormat_Adapter::Detect_Format_Layout(const TFormat_Signature_Rules& layout
 }
 
 bool CFormat_Adapter::Init(const filesystem::path filename, filesystem::path originalFilename) {
-	if (originalFilename.empty())
+	if (originalFilename.empty()) {
 		originalFilename = filename;
+	}
 
 	// at first, try to recognize file format from extension
 
 	mStorage_Format = NStorage_Format::unknown;
 	std::wstring path = originalFilename.wstring();
-	if (path.length() < 4) {		
+	if (path.length() < 4) {
 		return false;
 	}
 
 	// find dot
 	size_t dotpos = path.find_last_of('.');
-	if (dotpos == std::wstring::npos) {		
+	if (dotpos == std::wstring::npos) {
 		return false;
 	}
+
 	// extract extension
 	std::wstring ext = path.substr(dotpos + 1);
 	// convert to lowercase
 	std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
 	// extract format name
-	if (ext == L"csv" || ext == L"txt")
+	if (ext == L"csv" || ext == L"txt") {
 		mStorage_Format = NStorage_Format::csv;
+	}
 #ifndef NO_BUILD_EXCELSUPPORT
-	else if (ext == L"xls")
+	else if (ext == L"xls") {
 		mStorage_Format = NStorage_Format::xls;
-	else if (ext == L"xlsx")
+	}
+	else if (ext == L"xlsx") {
 		mStorage_Format = NStorage_Format::xlsx;
+	}
 #endif
-	else if (ext == L"xml")
+	else if (ext == L"xml") {
 		mStorage_Format = NStorage_Format::xml;
+	}
 	else {
 		return false;
 	}
@@ -178,23 +184,19 @@ bool CFormat_Adapter::Init(const filesystem::path filename, filesystem::path ori
 	return mStorage->Init(mOriginalPath);
 }
 
-ISpreadsheet_File* CFormat_Adapter::ToSpreadsheetFile() const
-{
+ISpreadsheet_File* CFormat_Adapter::ToSpreadsheetFile() const {
 	return dynamic_cast<ISpreadsheet_File*>(mStorage.get());
 }
 
-IHierarchy_File* CFormat_Adapter::ToHierarchyFile() const
-{
+IHierarchy_File* CFormat_Adapter::ToHierarchyFile() const {
 	return dynamic_cast<IHierarchy_File*>(mStorage.get());
 }
 
-bool CFormat_Adapter::Is_EOF() const
-{
+bool CFormat_Adapter::Is_EOF() const {
 	return mStorage->Is_EOF();
 }
 
-void CFormat_Adapter::Reset_EOF()
-{
+void CFormat_Adapter::Reset_EOF() {
 	mStorage->Reset_EOF();
 }
 

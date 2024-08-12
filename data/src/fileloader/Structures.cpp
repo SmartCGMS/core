@@ -51,12 +51,12 @@ bool CMeasured_Levels::update(const CMeasured_Values_At_Single_Time& val) {
 
 			mLevels.insert(tmp);
 		}
-		else
+		else {
 			mLevels.insert(val);
-		
+		}
 
 		return true;
-	} 
+	}
 
 	return false;
 }

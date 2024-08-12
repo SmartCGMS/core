@@ -60,38 +60,39 @@ using TSegment_Limits = std::pair<size_t, size_t>;
  * Filter class for loading and extracting file, and sending values to chain
  */
 class CFile_Reader : public scgms::CBase_Filter {
-protected:
-	// original filename from configuration
-	filesystem::path mFileName;
+	protected:
+		// original filename from configuration
+		filesystem::path mFileName;
 		
-	double mMaximum_IG_Interval = 12.0 * scgms::One_Minute;	//maximum allowed interval between to IGs
+		double mMaximum_IG_Interval = 12.0 * scgms::One_Minute;	//maximum allowed interval between to IGs
 
-	// do we need to send shutdown after last value?
-	bool mShutdownAfterLast = false;
-	// minimum values in segment
-	size_t mMinimum_Required_IGs = 0;
-	// require both BG values in a segment
-	bool mRequire_BG = false;
+		// do we need to send shutdown after last value?
+		bool mShutdownAfterLast = false;
+		// minimum values in segment
+		size_t mMinimum_Required_IGs = 0;
+		// require both BG values in a segment
+		bool mRequire_BG = false;
 
-	// reader thread
-	std::unique_ptr<std::thread> mReaderThread;
-	CFile_Format_Rules mFile_Format_Rules;	
-
-	// reader main method
-	void Run_Reader();	
-	// send event to filter chain
-	bool Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId = Invalid_GUID, const double value = 0.0, const std::wstring& winfo = L"");	
-	// extracts files to value vector container
-	TValue_Vector Extract();
-	// resolves segments of given value vector
-	std::list<TSegment_Limits> Resolve_Segments(const TValue_Vector& src) const;
+		// reader thread
+		std::unique_ptr<std::thread> mReaderThread;
+		CFile_Format_Rules mFile_Format_Rules;	
 	
-protected:
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-	CFile_Reader(scgms::IFilter *output);
-	virtual ~CFile_Reader();
+	protected:
+		// reader main method
+		void Run_Reader();
+		// send event to filter chain
+		bool Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId = Invalid_GUID, const double value = 0.0, const std::wstring& winfo = L"");
+		// extracts files to value vector container
+		TValue_Vector Extract();
+		// resolves segments of given value vector
+		std::list<TSegment_Limits> Resolve_Segments(const TValue_Vector& src) const;
+
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+
+	public:
+		CFile_Reader(scgms::IFilter *output);
+		virtual ~CFile_Reader();
 };
 
 #pragma warning( pop )

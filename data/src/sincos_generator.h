@@ -61,35 +61,36 @@ struct TGenerator_Signal_Parameters
  * Class that generates sinus/cosinus functions as IG/BG signals
  */
 class CSinCos_Generator : public scgms::CBase_Filter {
-protected:
-	// do we need to send shutdown after last value?
-	bool mShutdownAfterLast = false;
+	protected:
+		// do we need to send shutdown after last value?
+		bool mShutdownAfterLast = false;
 
-	std::unique_ptr<std::thread> mGenerator_Thread;
-	std::atomic<bool> mExit_Flag;
+		std::unique_ptr<std::thread> mGenerator_Thread;
+		std::atomic<bool> mExit_Flag;
 
-	// generator parameters for IG
-	TGenerator_Signal_Parameters mIG_Params;
-	// generator parameters for BG
-	TGenerator_Signal_Parameters mBG_Params;
-	// total time to be generated
-	double mTotal_Time;
+		// generator parameters for IG
+		TGenerator_Signal_Parameters mIG_Params;
+		// generator parameters for BG
+		TGenerator_Signal_Parameters mBG_Params;
+		// total time to be generated
+		double mTotal_Time;
 
-protected:
-	void Run_Generator();
+	protected:
+		void Run_Generator();
 
-	bool Emit_Segment_Marker(uint64_t segment_id, bool start);
-	bool Emit_Signal_Level(GUID signal_id, double time, double level, uint64_t segment_id);
-	bool Emit_Shut_Down();
+		bool Emit_Segment_Marker(uint64_t segment_id, bool start);
+		bool Emit_Signal_Level(GUID signal_id, double time, double level, uint64_t segment_id);
+		bool Emit_Shut_Down();
 
-	void Start_Generator();
-	void Terminate_Generator();
-protected:
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-	CSinCos_Generator(scgms::IFilter *output);
-	virtual ~CSinCos_Generator();
+		void Start_Generator();
+		void Terminate_Generator();
+
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+
+	public:
+		CSinCos_Generator(scgms::IFilter *output);
+		virtual ~CSinCos_Generator();
 };
 
 #pragma warning( pop )

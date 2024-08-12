@@ -76,12 +76,16 @@ class CDb_Reader_Legacy : public scgms::CBase_Filter, public db::IDb_Sink{
 		// do we need to send shutdown after last value?
 		bool mShutdownAfterLast = false;
 
-	protected:
+		db::SDb_Connector mDb_Connector;
+		db::SDb_Connection mDb_Connection;
+
 		std::atomic<bool> mQuit_Flag{ false };
 		// reader thread
 		std::unique_ptr<std::thread> mDb_Reader_Thread;
+
+	protected:
 		void Db_Reader();
-		void End_Db_Reader();		
+		void End_Db_Reader();
 	
 		bool Emit_Segment_Marker(scgms::NDevice_Event_Code code, int64_t segment_id);
 		bool Emit_Segment_Parameters(int64_t segment_id);
@@ -89,12 +93,10 @@ class CDb_Reader_Legacy : public scgms::CBase_Filter, public db::IDb_Sink{
 		bool Emit_Shut_Down();
 
 		bool Emit_Info_Event(const std::wstring& info);
+
 	protected:
 		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 		HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-	protected:
-		db::SDb_Connector mDb_Connector;
-		db::SDb_Connection mDb_Connection;
 
 	public:
 		CDb_Reader_Legacy(scgms::IFilter *output);

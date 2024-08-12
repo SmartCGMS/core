@@ -95,11 +95,11 @@ class CDb_Writer : public scgms::CBase_Filter, public db::IDb_Sink {
 
 		bool mConnected = false;
 
-		HRESULT Connect_To_Db_If_Needed();
-
-	protected:
 		db::SDb_Connector mDb_Connector;
 		db::SDb_Connection mDb_Connection;
+
+	protected:
+		HRESULT Connect_To_Db_If_Needed();
 
 		int64_t Get_Db_Segment_Id(int64_t segment_id);
 
@@ -118,6 +118,7 @@ class CDb_Writer : public scgms::CBase_Filter, public db::IDb_Sink {
 
 		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
 		HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+
 	public:
 		CDb_Writer(scgms::IFilter* output);
 		virtual ~CDb_Writer();

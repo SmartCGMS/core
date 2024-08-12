@@ -83,10 +83,12 @@ TCursors<TXML_Position> Break_XML_Layout_To_Cursors(CFormat_Layout& layout) {
 		auto paramoffset = key.find_first_of('.');
 		auto condoffset = key.find_first_of('&');
 		if (paramoffset != key.npos) {
-			if (condoffset == key.npos)
+			if (condoffset == key.npos) {
 				key.resize(paramoffset);
-			else
+			}
+			else {
 				key.erase(key.begin() + paramoffset, key.begin() + condoffset);
+			}
 		}
 		cells[key].push_back(elem);
 	}
@@ -104,9 +106,6 @@ TCursors<TXML_Position> Break_XML_Layout_To_Cursors(CFormat_Layout& layout) {
 
 	return result;
 }
-
-
-
 
 template <typename TPosition>
 CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cursors)  {
@@ -131,8 +130,9 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 					elem.position.Forward();
 				}
 
-				if (!source.Position_Valid<TPosition>(elem.position))
+				if (!source.Position_Valid<TPosition>(elem.position)) {
 					continue;
+				}
 
 				const GUID& sig = elem.cell.series.target_signal;
 
@@ -143,8 +143,9 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 					const std::string str_val = trim(str_val_opt.value());
 
 					if (sig == signal_Comment) {
-						if (!comments.empty())
+						if (!comments.empty()) {
 							comments += "; ";
+						}
 						
 						if (!elem.cell.series.comment_name.empty()) {
 							comments += elem.cell.series.comment_name;
@@ -171,25 +172,29 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 							//we are reading a generic signal, double value
 							bool ok = false;
 							val = str_2_dbl(str_val.c_str(), ok);
-							if (ok) 
+							if (ok) {
 								val = elem.cell.series.conversion.eval(val);
+							}
 						}
 
-						if (!std::isnan(val))
+						if (!std::isnan(val)) {
 							mval.push(sig, val);
+						}
 					}
 				}
 
 				elem.position.Forward();
 			}
 
-			if (!comments.empty())
+			if (!comments.empty()) {
 				mval.push(signal_Comment, comments);
+			}
 
 			if (std::isnan(datetime)) {	//some formats give date and time in separate series
 				datetime = date_part + time_part;
-				if (datetime == 0.0) //did we got at least one of the date & time series?
+				if (datetime == 0.0) { //did we got at least one of the date & time series?
 					datetime = std::numeric_limits<double>::quiet_NaN();
+				}
 			}
 
 			if (!std::isnan(datetime)) {

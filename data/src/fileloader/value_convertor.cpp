@@ -55,20 +55,27 @@ bool CValue_Convertor::init(const std::string& expression_string) {
 	std::string spaceless_expression = expression_string;
 	spaceless_expression.erase(std::remove_if(spaceless_expression.begin(), spaceless_expression.end(), isspace), spaceless_expression.end());
 
-	if (expression_string.empty())
+	if (expression_string.empty()) {
 		mConversion = NValue_Conversion::identity;
-	else if (expression_string == conv_F_2_C)
+	}
+	else if (expression_string == conv_F_2_C) {
 		mConversion = NValue_Conversion::f_2_c;
-	else if (expression_string == conv_Mg_dL_2_mmol_L)
+	}
+	else if (expression_string == conv_Mg_dL_2_mmol_L) {
 		mConversion = NValue_Conversion::mg_dl_2_mmol_l;
-	else if (expression_string == conv_Sleep_Quality)
+	}
+	else if (expression_string == conv_Sleep_Quality) {
 		mConversion = NValue_Conversion::sleep_quality;
-	else if (expression_string == conv_minutes)
+	}
+	else if (expression_string == conv_minutes) {
 		mConversion = NValue_Conversion::minutes;
-	else if (expression_string == conv_seconds)
+	}
+	else if (expression_string == conv_seconds) {
 		mConversion = NValue_Conversion::seconds;
-	else
+	}
+	else {
 		mConversion = NValue_Conversion::general;
+	}
 
 	mExpression_String = expression_string;
 
@@ -87,19 +94,21 @@ double CValue_Convertor::eval(const double val) {
 			if (mEngine) {
 				if (mEngine->mSymbol_Table.add_variable("x", mValue)) {
 					mEngine->mExpression_Tree.register_symbol_table(mEngine->mSymbol_Table);
-					if (mEngine->mParser.compile(mExpression_String, mEngine->mExpression_Tree))
+					if (mEngine->mParser.compile(mExpression_String, mEngine->mExpression_Tree)) {
 						mConversion = NValue_Conversion::general;
+					}
 				}
 
-				if (mConversion == NValue_Conversion::invalid)
+				if (mConversion == NValue_Conversion::invalid) {
 					mEngine.reset();
+				}
 			}
 		}
 
 		if (mConversion == NValue_Conversion::general) {
 			mValue = val;
 			result = mEngine->mExpression_Tree.value();
-		}		
+		}
 	};
 
 	switch (mConversion) {
@@ -133,10 +142,7 @@ double CValue_Convertor::eval(const double val) {
 
 		default:
 			break;	//result is already set to nan
-
 	}
-
-	
 
 	return result;
 }

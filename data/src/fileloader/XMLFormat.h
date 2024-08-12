@@ -86,22 +86,32 @@ struct TXML_Position
 	// is tree position valid?
 	bool Valid() const
 	{
-		if (hierarchy.empty())
+		if (hierarchy.empty()) {
 			return false;
+		}
 
-		for (size_t i = 0; i < hierarchy.size(); i++)
-		{
-			if (!hierarchy[i].Valid())
+		for (size_t i = 0; i < hierarchy.size(); i++) {
+			if (!hierarchy[i].Valid()) {
 				return false;
+			}
 		}
 
 		return true;
 	};
+
 	// clears position records
-	void Reset() { hierarchy.clear(); parameter = ""; };
+	void Reset() {
+		hierarchy.clear();
+		parameter = "";
+	};
 
 	// move to next element within last wrapper element
-	void Forward() { if (hierarchy.empty()) return; hierarchy[hierarchy.size() - 1].position++; };
+	void Forward() {
+		if (hierarchy.empty()) {
+			return;
+		}
+		hierarchy[hierarchy.size() - 1].position++;
+	};
 };
 
 /*

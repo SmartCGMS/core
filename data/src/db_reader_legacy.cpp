@@ -54,8 +54,7 @@
 const GUID Db_Reader_Device_GUID = db_reader_legacy::filter_id;// { 0x00000001, 0x0001, 0x0001, { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
 
 // enumerator of known column indexes
-enum class NColumn_Pos : size_t
-{
+enum class NColumn_Pos : size_t {
 	Blood = 0,
 	Ist,
 	Isig,
@@ -73,8 +72,7 @@ enum class NColumn_Pos : size_t
 };
 
 // increment operator to allow using for loop
-NColumn_Pos& operator++(NColumn_Pos& ref)
-{
+NColumn_Pos& operator++(NColumn_Pos& ref) {
 	ref = static_cast<NColumn_Pos>(static_cast<size_t>(ref) + 1);
 	return ref;
 }
@@ -111,14 +109,16 @@ bool CDb_Reader_Legacy::Emit_Segment_Parameters(int64_t segment_id) {
 	for (const auto &descriptor : scgms::get_model_descriptor_list()) {
 
 		// skip models without database schema tables
-		if (descriptor.db_table_name == nullptr || wcslen(descriptor.db_table_name) == 0)
+		if (descriptor.db_table_name == nullptr || wcslen(descriptor.db_table_name) == 0) {
 			continue;
+		}
 
 		std::wstring query = rsLegacy_Db_Select_Params_Base;
 
 		for (size_t i = 0; i < descriptor.total_number_of_parameters; i++) {
-
-			if (i>0) query += L", ";
+			if (i > 0) {
+				query += L", ";
+			}
 			query += std::wstring(descriptor.parameter_db_column_names[i], descriptor.parameter_db_column_names[i] + wcslen(descriptor.parameter_db_column_names[i]));
 		}
 
@@ -127,8 +127,7 @@ bool CDb_Reader_Legacy::Emit_Segment_Parameters(int64_t segment_id) {
 		query += std::wstring(descriptor.db_table_name, descriptor.db_table_name + wcslen(descriptor.db_table_name));
 		query += rsLegacy_Db_Select_Params_Condition;
 
-		try
-		{
+		try {
 			db::SDb_Query squery = mDb_Connection.Query(query, segment_id);
 
 			std::vector<double> sql_result(descriptor.total_number_of_parameters);
@@ -141,14 +140,16 @@ bool CDb_Reader_Legacy::Emit_Segment_Parameters(int64_t segment_id) {
 						evt.device_id() = Db_Reader_Device_GUID;
 						evt.signal_id() = descriptor.calculated_signal_ids[i];
 						evt.segment_id() = segment_id;
-						if (evt.parameters.set(sql_result))
-							if (!Succeeded(mOutput.Send(evt))) return false;
+						if (evt.parameters.set(sql_result)) {
+							if (!Succeeded(mOutput.Send(evt))) {
+								return false;
+							}
+						}
 					}
 				}
 			}
 		}
-		catch (...)
-		{
+		catch (...) {
 			/* this probably means the model does not have the table created yet */
 		}
 	}
@@ -159,11 +160,12 @@ bool CDb_Reader_Legacy::Emit_Segment_Parameters(int64_t segment_id) {
 bool CDb_Reader_Legacy::Emit_Segment_Levels(int64_t segment_id) {
 	wchar_t* measured_at_str;
 
-
 	std::vector<double> levels(static_cast<size_t>(NColumn_Pos::_Count));
 
 	db::SDb_Query query = mDb_Connection.Query(rsLegacy_Db_Select_Timesegment_Values_Filter, segment_id);
-	if (!query.Bind_Result(measured_at_str, levels)) return false;
+	if (!query.Bind_Result(measured_at_str, levels)) {
+		return false;
+	}
 
 	while (query.Get_Next() && !mQuit_Flag) {
 
@@ -178,7 +180,9 @@ bool CDb_Reader_Legacy::Emit_Segment_Levels(int64_t segment_id) {
 
 		// assuming that subsequent datetime formats are identical, try to recognize the used date time format from the first line
 		const double measured_at = Unix_Time_To_Rat_Time(from_iso8601(measured_at_str));
-		if (measured_at == 0.0) continue;	// conversion did not succeed
+		if (measured_at == 0.0) {
+			continue;	// conversion did not succeed
+		}
 
 		// go through all value columns
 		for (NColumn_Pos i = NColumn_Pos::_Begin; i < NColumn_Pos::_End; ++i) {
@@ -186,8 +190,9 @@ bool CDb_Reader_Legacy::Emit_Segment_Levels(int64_t segment_id) {
 
 			// if no value is present, skip
 			const auto fpcl = std::fpclassify(column);
-			if (fpcl == FP_NAN || fpcl == FP_INFINITE)
+			if (fpcl == FP_NAN || fpcl == FP_INFINITE) {
 				continue;
+			}
 
 			scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Level };
 
@@ -198,14 +203,15 @@ bool CDb_Reader_Legacy::Emit_Segment_Levels(int64_t segment_id) {
 			evt.segment_id() = segment_id;
 
 			// this may block if the pipe is full (i.e. due to artificial slowdown filter, simulation stepping, etc.)
-			if (mOutput.Send(evt) != S_OK) return false;
+			if (mOutput.Send(evt) != S_OK) {
+				return false;
+			}
 		}
 	}
 	return true;
 }
 
-bool CDb_Reader_Legacy::Emit_Info_Event(const std::wstring& info)
-{
+bool CDb_Reader_Legacy::Emit_Info_Event(const std::wstring& info) {
 	scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Information };
 
 	evt.device_id() = Db_Reader_Device_GUID;
@@ -226,42 +232,49 @@ void CDb_Reader_Legacy::Db_Reader() {
 
 	//we must open the db connection from exactly that thread, that is about to use it
 
-	if (mDb_Connector)
+	if (mDb_Connector) {
 		mDb_Connection = mDb_Connector.Connect(mDbHost, mDbProvider, mDbPort, mDbDatabaseName, mDbUsername, mDbPassword);
-	if (!mDb_Connection)
-	{
+	}
+
+	if (!mDb_Connection) {
 		Emit_Info_Event(dsError_Could_Not_Connect_To_Db);
 		return;
 	}
 
-	
-
 	for (const auto segment_index : mDbTimeSegmentIds) {
-		if (!Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Start, segment_index)) break;
-		if (!Emit_Segment_Parameters(segment_index)) break;
+		if (!Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Start, segment_index)) {
+			break;
+		}
+		if (!Emit_Segment_Parameters(segment_index)) {
+			break;
+		}
+
 		Emit_Segment_Levels(segment_index);
-		if (!Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Stop, segment_index)) break;
+
+		if (!Emit_Segment_Marker(scgms::NDevice_Event_Code::Time_Segment_Stop, segment_index)) {
+			break;
+		}
 	}
 
-	if (mShutdownAfterLast)
+	if (mShutdownAfterLast) {
 		Emit_Shut_Down();
+	}
 }
 
 HRESULT IfaceCalling CDb_Reader_Legacy::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
-	mDbHost = configuration.Read_String(rsDb_Host);	
+	mDbHost = configuration.Read_String(rsDb_Host);
 	mDbProvider = configuration.Read_String(rsDb_Provider);
 	mDbPort = static_cast<decltype(mDbPort)>(configuration.Read_Int(rsDb_Port));
 	mDbDatabaseName = db::is_file_db(mDbProvider) ? configuration.Read_File_Path(rsDb_Name).wstring() : configuration.Read_String(rsDb_Name);
 	mDbUsername = configuration.Read_String(rsDb_User_Name);
 	mDbPassword = configuration.Read_String(rsDb_Password);
-	mDbTimeSegmentIds = configuration.Read_Int_Array(rsTime_Segment_ID);	
+	mDbTimeSegmentIds = configuration.Read_Int_Array(rsTime_Segment_ID);
 	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
 
 	if (mDbTimeSegmentIds.empty()) {
 		error_description.push(dsNo_Time_Segments_Specified);
 		return E_INVALIDARG;
 	}
-		
 
 	return S_OK;
 }
@@ -288,27 +301,32 @@ HRESULT IfaceCalling CDb_Reader_Legacy::Do_Execute(scgms::UDevice_Event event) {
 
 void CDb_Reader_Legacy::End_Db_Reader() {
 	mQuit_Flag = true;
-	if (mDb_Reader_Thread)
-		if (mDb_Reader_Thread->joinable())
-			mDb_Reader_Thread->join();
+	if (mDb_Reader_Thread && mDb_Reader_Thread->joinable()) {
+		mDb_Reader_Thread->join();
+	}
 }
 
 HRESULT IfaceCalling CDb_Reader_Legacy::QueryInterface(const GUID*  riid, void ** ppvObj) {
-	if (Internal_Query_Interface<db::IDb_Sink>(db::Db_Sink_Filter, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<db::IDb_Sink>(db::Db_Sink_Filter, *riid, ppvObj)) {
+		return S_OK;
+	}
 	return E_NOINTERFACE;
 }
 
 HRESULT IfaceCalling CDb_Reader_Legacy::Set_Connector(db::IDb_Connector *connector) {
-	if (!connector) return E_INVALIDARG;
+	if (!connector) {
+		return E_INVALIDARG;
+	}
 	mDb_Connector = refcnt::make_shared_reference_ext<db::SDb_Connector, db::IDb_Connector>(connector, true);
 	
 	// we need at least these parameters
 	const bool essential_parameters_provided = !mDbProvider.empty() && !mDbTimeSegmentIds.empty() && !mDbDatabaseName.empty();
-	const bool db_path_provided = 	db::is_file_db(mDbProvider) ? true : !mDbHost.empty();
+	const bool db_path_provided = db::is_file_db(mDbProvider) ? true : !mDbHost.empty();
 
 	HRESULT rc = (essential_parameters_provided && db_path_provided) ? S_OK : E_INVALIDARG;
-	if (rc == S_OK)
+	if (rc == S_OK) {
 		mDb_Reader_Thread = std::make_unique<std::thread>(&CDb_Reader_Legacy::Db_Reader, this);
+	}
 
 	return rc;
 }

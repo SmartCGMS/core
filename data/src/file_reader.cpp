@@ -52,8 +52,7 @@
 #include <cmath>
 #include <set>
 
-namespace file_reader
-{
+namespace file_reader {
 	const GUID File_Reader_Device_GUID = { 0x78df0982, 0x705, 0x4c84, { 0xb0, 0xa3, 0xae, 0x40, 0xfe, 0x7e, 0x18, 0x7b } };	// {78DF0982-0705-4C84-B0A3-AE40FE7E187B}
 
 	// default value spacing in segments - this space determines when the segment ends and starts new
@@ -65,37 +64,37 @@ CFile_Reader::CFile_Reader(scgms::IFilter *output) : CBase_Filter(output) {
 }
 
 CFile_Reader::~CFile_Reader() {
-
-	if (mReaderThread && mReaderThread->joinable())
+	if (mReaderThread && mReaderThread->joinable()) {
 		mReaderThread->join();
+	}
 }
 
-bool CFile_Reader::Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId, const double value, const std::wstring& winfo)
-{
+bool CFile_Reader::Send_Event(scgms::NDevice_Event_Code code, double device_time, uint64_t segment_id, const GUID& signalId, const double value, const std::wstring& winfo) {
 	scgms::UDevice_Event evt{ code };
 
 	evt.device_id() = file_reader::File_Reader_Device_GUID;
 	evt.device_time() = device_time;
-	if (evt.is_level_event())
+	if (evt.is_level_event()) {
 		evt.level() = value;
+	}
 	evt.segment_id() = segment_id;
 	evt.signal_id() = signalId;
-	if (evt.is_info_event())
+	if (evt.is_info_event()) {
 		evt.info.set(winfo.c_str());
+	}
 
 	const HRESULT rc = mOutput.Send(evt);
-	const bool succcess = Succeeded(rc);
+	const bool success = Succeeded(rc);
 
-	if (!succcess) {
+	if (!success) {
 		std::wstring desc{ dsFile_Reader };
 		desc += dsFailed_To_Send_Event;
 		desc += Describe_Error(rc);
 		Emit_Info(scgms::NDevice_Event_Code::Error, desc);
 	}
 
-	return succcess;
+	return success;
 }
-
 
 std::list<TSegment_Limits> CFile_Reader::Resolve_Segments(const TValue_Vector& src) const {
 	std::list<TSegment_Limits> segment_start_stop;
@@ -142,14 +141,12 @@ std::list<TSegment_Limits> CFile_Reader::Resolve_Segments(const TValue_Vector& s
 			}
 		}
 
-
 		segment_end++;
 		
 		if ((ig_counter >= mMinimum_Required_IGs) &&				//minimum number of IG levels met
 			(!mRequire_BG || (mRequire_BG && bg_is_present))) {		//BG is present, if required
 			segment_start_stop.push_back({ segment_begin, segment_end });
 		}
-
 
 		segment_begin = segment_end;			//at this level, new segment's start
 	}
@@ -179,8 +176,9 @@ void CFile_Reader::Run_Reader() {
 			for (size_t i = seg.first; i < seg.second; i++) {
 				
 				const auto& current_values = values[i];
-				if (!current_values.valid())
+				if (!current_values.valid()) {
 					continue;
+				}
 				const double current_measured_time = current_values.measured_at();
 
 				bool errorRes = false;
@@ -191,8 +189,9 @@ void CFile_Reader::Run_Reader() {
 
 					//handle the known, special cases which use helper signals
 					if (signal_id == signal_Physical_Activity_Duration) {
-						if (current_level != nullptr)
+						if (current_level != nullptr) {
 							nextPhysicalActivityEnd = current_measured_time + *current_level;
+						}
 						//note that we do not set the activity itself here, because it will be done in the generic part of the code
 					}
 					else if (signal_id == signal_Insulin_Temp_Rate_Endtime) {
@@ -216,7 +215,6 @@ void CFile_Reader::Run_Reader() {
 							}
 						}
 					}
-
 					else if (signal_id == scgms::signal_Requested_Insulin_Basal_Rate) {
 						if (current_level != nullptr) {
 							lastBasalRateSetting = *current_level;	//update recent desired basal rate
@@ -233,7 +231,6 @@ void CFile_Reader::Run_Reader() {
 							}
 						}
 					}
-
 					else if (signal_id == signal_Sleep_Endtime) {
 						//just like with the temp basal, we require the sleep end time to prevent the patient falling asleep forever
 						if (current_level != nullptr) {
@@ -246,11 +243,10 @@ void CFile_Reader::Run_Reader() {
 					}
 				});
 
-
 				//second, send the signals 
 				current_values.enumerate([=, this, &errorRes](const GUID& signal_id, const CMeasured_Values_At_Single_Time::TValue& val) {
-						const std::set<GUID> silenced_signals = { signal_Physical_Activity_Duration, signal_Insulin_Temp_Rate, signal_Insulin_Temp_Rate_Endtime, signal_Sleep_Endtime, signal_Comment,
-																	signal_Date_Only, signal_Time_Only, signal_Date_Time, scgms::signal_Sleep_Quality, scgms::signal_Requested_Insulin_Basal_Rate };
+					const std::set<GUID> silenced_signals = { signal_Physical_Activity_Duration, signal_Insulin_Temp_Rate, signal_Insulin_Temp_Rate_Endtime, signal_Sleep_Endtime, signal_Comment,
+																signal_Date_Only, signal_Time_Only, signal_Date_Time, scgms::signal_Sleep_Quality, scgms::signal_Requested_Insulin_Basal_Rate };
 
 					//as regards scgms::signal_Sleep_Quality, see the signal_id == signal_Sleep_Endtime comments/reasoning
 					const double* current_level = std::get_if<double>(&val);
@@ -265,8 +261,9 @@ void CFile_Reader::Run_Reader() {
 
 					//send all the non-helper signals, which we do not suppress
 					if (silenced_signals.find(signal_id) == silenced_signals.end()) {
-						if (current_level != nullptr)
+						if (current_level != nullptr) {
 							errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, current_measured_time, currentSegmentId, signal_id, *current_level);
+						}
 					}
 
 				});
@@ -292,26 +289,25 @@ void CFile_Reader::Run_Reader() {
 					}
 
 					//wake up the patient
-					if (!std::isnan(nextSleepEnd) && (nextSleepEnd <= current_measured_time))
-					{
+					if (!std::isnan(nextSleepEnd) && (nextSleepEnd <= current_measured_time)) {
 						errorRes |= !Send_Event(scgms::NDevice_Event_Code::Level, nextSleepEnd, currentSegmentId, scgms::signal_Sleep_Quality, 0.0);
 						nextSleepEnd = std::numeric_limits<double>::quiet_NaN();;
 					}
 				}
 
-
-				if (errorRes)
-				{
+				if (errorRes) {
 					isError = true;
 					break;
 				}
 			}
 
-			if (!Send_Event(scgms::NDevice_Event_Code::Time_Segment_Stop, values[seg.second - 1].measured_at(), currentSegmentId))
+			if (!Send_Event(scgms::NDevice_Event_Code::Time_Segment_Stop, values[seg.second - 1].measured_at(), currentSegmentId)) {
 				isError = true;
+			}
 
-			if (isError)
+			if (isError) {
 				break;
+			}
 		}
 		
 	} else {
@@ -320,13 +316,13 @@ void CFile_Reader::Run_Reader() {
 
 	if (mShutdownAfterLast)	{
 		scgms::UDevice_Event evt{ scgms::NDevice_Event_Code::Shut_Down };
-		if (!values.empty())
+		if (!values.empty()) {
 			evt.device_time() = values[values.size() - 1].measured_at() + std::numeric_limits<double>::epsilon();
+		}
 		evt.device_id() = file_reader::File_Reader_Device_GUID;
 		mOutput.Send(evt);
 	}
 }
-
 
 TValue_Vector CFile_Reader::Extract() {
 
@@ -335,11 +331,14 @@ TValue_Vector CFile_Reader::Extract() {
 
 	if (Is_Directory(mFileName)) {
 		for (auto& path : filesystem::directory_iterator(mFileName)) {
-			if (Is_Regular_File_Or_Symlink(path))
+			if (Is_Regular_File_Or_Symlink(path)) {
 				files_to_extract.push_back(path);
+			}
 		}
-	} else
+	}
+	else {
 		files_to_extract.push_back(mFileName);
+	}
 		
 	for (size_t fileIndex = 0; fileIndex < files_to_extract.size(); fileIndex++) {
 		CFormat_Adapter sfile{ mFile_Format_Rules.Signature_Rules() , files_to_extract[fileIndex] };
@@ -357,9 +356,10 @@ TValue_Vector CFile_Reader::Extract() {
 
 		//a then, we merge the locally extracted data to the master CMeasured_Levels
 		if (!extracted_data.empty()) {
-			for (const auto& elem : extracted_data)
+			for (const auto& elem : extracted_data) {
 				master.update(elem);
-		} else 	{
+			}
+		} else {
 			Emit_Info(scgms::NDevice_Event_Code::Error, L"No data extracted from: " + files_to_extract[fileIndex].wstring());
 			//return TValue_Vector{}; do not return as some datasets such as D1NAMO may contain excessive files in the directory
 			//so, we will just ignore them with a message of such an action

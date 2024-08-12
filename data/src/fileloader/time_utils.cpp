@@ -46,38 +46,37 @@
 #include <ctime>
 #include <algorithm>
 
-bool Is_Valid_Tm(std::tm& v)
-{
+bool Is_Valid_Tm(std::tm& v) {
 	// TODO: tweak this to truly validate result (i.e. day and month range, ..)
 	return !(v.tm_mday == 0 || v.tm_mon < 0 || v.tm_year == 0);
 }
 
-bool Convert_Timestamp(std::string source, const char* sourceFormat, std::string &dest, const char* destFormat, time_t* unixTimeDst)
-{
+bool Convert_Timestamp(std::string source, const char* sourceFormat, std::string &dest, const char* destFormat, time_t* unixTimeDst) {
 	std::tm convtime = {};
 	std::istringstream ss(source + " "); //we append extra space to avoid 1b) and enforce 1c) for https://en.cppreference.com/w/cpp/locale/time_get/get
 										 //practically, if mask would e.g.; contain seconds, but the source would not, then the conversion would still succeed despite missing seconds
 										 //the trailing, extra space removes the eof, thus making the conversion fail for the missing seconds
 
-	if (ss >> std::get_time(&convtime, sourceFormat))
-	{
-		if (!Is_Valid_Tm(convtime))
+	if (ss >> std::get_time(&convtime, sourceFormat)) {
+		if (!Is_Valid_Tm(convtime)) {
 			return false;
+		}
 
-		if (destFormat)
-		{
+		if (destFormat) {
 			std::stringstream timestr;
 			timestr << std::put_time(&convtime, destFormat);
 
 			dest = timestr.str();
 		}
 
-		if (unixTimeDst)
+		if (unixTimeDst) {
 			*unixTimeDst = mktime(&convtime);
+		}
 
 		return true;
 	}
-	else
+	else {
 		return false;
+	}
 }
 

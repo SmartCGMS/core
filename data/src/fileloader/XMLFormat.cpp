@@ -43,23 +43,19 @@
 #include <fstream>
 #include <string>
 
-CXML_Format::CXML_Format(const filesystem::path path) : mFileName(path), mWriteFlag(false)
-{
+CXML_Format::CXML_Format(const filesystem::path path) : mFileName(path), mWriteFlag(false) {
 	Load(path);
 }
 
-CXML_Format::~CXML_Format()
-{
+CXML_Format::~CXML_Format() {
 }
 
-void CXML_Format::Write_To_File(XMLElement const& element, std::ofstream& file)
-{
+void CXML_Format::Write_To_File(XMLElement const& element, std::ofstream& file) {
 	// common base
 	file << "<" << element.tagName << Build_Tag_Parameters_String(element);
 
 	// no children = end tag and return
-	if (element.children.empty())
-	{
+	if (element.children.empty()) {
 		file << "/>";
 		return;
 	}
@@ -67,36 +63,37 @@ void CXML_Format::Write_To_File(XMLElement const& element, std::ofstream& file)
 	file << ">";
 
 	// dump children inside
-	for (auto& child : element.children)
-	{
-		for (size_t i = 0; i < child.second.size(); i++)
+	for (auto& child : element.children) {
+		for (size_t i = 0; i < child.second.size(); i++) {
 			Write_To_File(child.second[i], file);
+		}
 	}
 
 	file << "</" << element.tagName << ">";
 }
 
-std::string CXML_Format::Build_Tag_Parameters_String(XMLElement const& element) const
-{
-	if (element.parameters.empty())
+std::string CXML_Format::Build_Tag_Parameters_String(XMLElement const& element) const {
+	if (element.parameters.empty()) {
 		return "";
+	}
 
 	std::string out = "";
 
-	for (auto& par : element.parameters)
+	for (auto& par : element.parameters) {
 		out += " " + par.first + "=\"" + par.second + "\"";
+	}
 
 	return out;
 }
 
-XMLElement* CXML_Format::Find_Element(const TXML_Position& pos)
-{
-	if (!pos.Valid())
+XMLElement* CXML_Format::Find_Element(const TXML_Position& pos) {
+
+	if (!pos.Valid()) {
 		return nullptr;
+	}
 
 	XMLElement* el = &mRootElement;
 
-	
 	// verify root element name
 	if ((pos.hierarchy[0].tagName != el->tagName) || (pos.hierarchy[0].position == TreeLevelSpec::npos)) {
 		//pos.hierarchy[0].position = TreeLevelSpec::npos;
@@ -104,8 +101,9 @@ XMLElement* CXML_Format::Find_Element(const TXML_Position& pos)
 	}
 	
 	for (size_t i = 1; i < pos.hierarchy.size(); i++) {
-		if (pos.hierarchy[i].position == TreeLevelSpec::npos)
+		if (pos.hierarchy[i].position == TreeLevelSpec::npos) {
 			return nullptr;
+		}
 
 		auto iter = el->children.find(pos.hierarchy[i].tagName);
 		if (iter == el->children.end()) {
@@ -114,8 +112,9 @@ XMLElement* CXML_Format::Find_Element(const TXML_Position& pos)
 		}
 		
 		auto& children = iter->second;
-		if (pos.hierarchy[i].position < children.size())
+		if (pos.hierarchy[i].position < children.size()) {
 			el = &children[pos.hierarchy[i].position];
+		}
 		else {
 			//pos.hierarchy[i].position = TreeLevelSpec::npos;
 			return nullptr;
@@ -126,25 +125,25 @@ XMLElement* CXML_Format::Find_Element(const TXML_Position& pos)
 	return el;
 }
 
-std::optional<std::string> CXML_Format::Read(const TXML_Position& pos)
-{
-	if (pos.hierarchy.size() == 0)
+std::optional<std::string> CXML_Format::Read(const TXML_Position& pos) {
+
+	if (pos.hierarchy.size() == 0) {
 		return std::nullopt;
+	}
 
 	XMLElement* el = Find_Element(pos);
 
-	if (!el)
-	{
+	if (!el) {
 		//pos.hierarchy[pos.hierarchy.size() - 1].position = TreeLevelSpec::npos;
 		return std::nullopt;
 	}
 
 	// probe reading; no value should be returned, but still valid attempt
-	if (pos.parameter == "")
+	if (pos.parameter == "") {
 		return "";
+	}
 
-	if (el->parameters.find(pos.parameter) == el->parameters.end())
-	{
+	if (el->parameters.find(pos.parameter) == el->parameters.end()) {
 		//pos.hierarchy[pos.hierarchy.size() - 1].position = TreeLevelSpec::npos;
 		return std::nullopt;
 	}
@@ -152,24 +151,24 @@ std::optional<std::string> CXML_Format::Read(const TXML_Position& pos)
 	return el->parameters[pos.parameter];
 }
 
-void CXML_Format::Write(TXML_Position& pos, const std::string &value)
-{
-	if (pos.hierarchy.size() == 0)
+void CXML_Format::Write(TXML_Position& pos, const std::string &value) {
+
+	if (pos.hierarchy.size() == 0) {
 		return;
+	}
 
 	XMLElement* el = Find_Element(pos);
 
-	if (!el)
-	{
+	if (!el) {
 		pos.hierarchy[pos.hierarchy.size() - 1].position = TreeLevelSpec::npos;
 		return;
 	}
 
-	if (pos.parameter == "")
+	if (pos.parameter == "") {
 		return;
+	}
 
-	if (el->parameters.find(pos.parameter) == el->parameters.end())
-	{
+	if (el->parameters.find(pos.parameter) == el->parameters.end()) {
 		pos.hierarchy[pos.hierarchy.size() - 1].position = TreeLevelSpec::npos;
 		return;
 	}
@@ -179,17 +178,17 @@ void CXML_Format::Write(TXML_Position& pos, const std::string &value)
 	el->parameters[pos.parameter] = value;
 }
 
-bool CXML_Format::Is_Error() const
-{
+bool CXML_Format::Is_Error() const {
 	return false;
 }
 
-bool CXML_Format::Load(const filesystem::path path)
-{
+bool CXML_Format::Load(const filesystem::path path) {
+
 	std::ifstream f(path);
 
-	if (!f.is_open())
+	if (!f.is_open()) {
 		return false;
+	}
 
 	Discard_BOM_If_Present(f);
 
@@ -201,8 +200,7 @@ bool CXML_Format::Load(const filesystem::path path)
 
 	// this element should contain XML version tag
 
-	if (el.substr(0, 4) == "?xml" && el.substr(el.length() - 1) == "?")
-	{
+	if (el.substr(0, 4) == "?xml" && el.substr(el.length() - 1) == "?") {
 		// store to allow saving with unchanged version tag
 		mXmlVersionTag = "<" + el + ">";
 
@@ -210,8 +208,9 @@ bool CXML_Format::Load(const filesystem::path path)
 		std::getline(f, el, '<'); // discard out-of-tag mess
 		std::getline(f, el, '>'); // read tag
 	}
-	else
+	else {
 		mXmlVersionTag = "<?xml version=\"1.0\"?>";
+	}
 
 	mRootElement.tagName = Parse_Tag_Name(el);
 
@@ -224,28 +223,31 @@ bool CXML_Format::Load(const filesystem::path path)
 	return true;
 }
 
-void CXML_Format::Load_To_Element(XMLElement& target, std::ifstream& file)
-{
+void CXML_Format::Load_To_Element(XMLElement& target, std::ifstream& file) {
+
 	std::string el, tagName;
 	bool pairTag = true;
 
-	while (!file.eof() && !file.bad())
-	{
+	while (!file.eof() && !file.bad()) {
+
 		std::getline(file, el, '<'); // discard out-of-tag mess
 		std::getline(file, el, '>'); // read tag
 
-		if (el.empty())
+		if (el.empty()) {
 			break;
+		}
 
 		pairTag = (el[el.size() - 1] != '/');
 
 		// closing tag of current "parent" - return
-		if (el == "/" + target.tagName)
+		if (el == "/" + target.tagName) {
 			break;
+		}
 
 		tagName = Parse_Tag_Name(el);
-		if (tagName.empty())
+		if (tagName.empty()) {
 			continue;
+		}
 
 		target.children[tagName].push_back(XMLElement());
 
@@ -255,24 +257,22 @@ void CXML_Format::Load_To_Element(XMLElement& target, std::ifstream& file)
 		Parse_Tags(xmlel, el);
 
 		// recursive step
-		if (pairTag)
+		if (pairTag) {
 			Load_To_Element(xmlel, file);
+		}
 	}
 }
 
-std::string CXML_Format::Parse_Tag_Name(std::string& contents)
-{
+std::string CXML_Format::Parse_Tag_Name(std::string& contents) {
 	size_t pos = contents.find_first_of(" /");
 
 	std::string tagName = "";
 
-	if (pos == std::string::npos)
-	{
+	if (pos == std::string::npos) {
 		tagName = contents;
 		contents.clear();
 	}
-	else
-	{
+	else {
 		tagName = contents.substr(0, pos);
 		contents = contents.substr(pos + 1);
 	}
@@ -280,48 +280,53 @@ std::string CXML_Format::Parse_Tag_Name(std::string& contents)
 	return tagName;
 }
 
-void CXML_Format::Parse_Tags(XMLElement& target, std::string& contents)
-{
+void CXML_Format::Parse_Tags(XMLElement& target, std::string& contents) {
 	// empty parameter list
-	if (contents.empty())
+	if (contents.empty()) {
 		return;
+	}
 
 	size_t lpos, epos, qpos;
 
-	while (true)
-	{
+	while (true) {
 		lpos = contents.find_first_not_of(' ');
 
 		// also empty
-		if (lpos == '/' || lpos == std::string::npos)
+		if (lpos == '/' || lpos == std::string::npos) {
 			return;
+		}
 
 		epos = contents.find('=', lpos);
 
-		if (epos == std::string::npos)
+		if (epos == std::string::npos) {
 			return;
+		}
 
 		qpos = contents.find('\"', epos + 2);
 
-		if (qpos == std::string::npos)
+		if (qpos == std::string::npos) {
 			return;
+		}
 
 		target.parameters[contents.substr(lpos, epos - lpos)] = contents.substr(epos + 2, qpos - epos - 2);
 
-		if (qpos + 1 == contents.length())
+		if (qpos + 1 == contents.length()) {
 			return;
+		}
 
 		contents = contents.substr(qpos + 1);
 	}
 }
 
-std::string CXML_Format::Strip_Quotes(std::string& input)
-{
-	if (input.length() < 2)
-		return input;
+std::string CXML_Format::Strip_Quotes(std::string& input) {
 
-	if (input[0] == '\"' && input[input.length() - 1] == '\"')
+	if (input.length() < 2) {
+		return input;
+	}
+
+	if (input[0] == '\"' && input[input.length() - 1] == '\"') {
 		return input.substr(1, input.length() - 2);
+	}
 
 	return input;
 }

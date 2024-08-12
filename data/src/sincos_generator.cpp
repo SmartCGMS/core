@@ -65,39 +65,43 @@ void CSinCos_Generator::Run_Generator() {
 
 	const uint64_t segment_id = 1; // probably no need to introduce more segments
 
-	if (!Emit_Segment_Marker(segment_id, true))
+	if (!Emit_Segment_Marker(segment_id, true)) {
 		return;
+	}
 
 	while (!mExit_Flag && time < endTime) {
 
-		if (nextIG < nextBG)
-		{
+		if (nextIG < nextBG) {
 			signal = scgms::signal_IG;
 			level = mIG_Params.amplitude * std::sin((nextIG - startTime)*(2*PI)/mIG_Params.period) + mIG_Params.offset;
 			time = nextIG;
 			nextIG += mIG_Params.samplingPeriod;
 		}
-		else
-		{
+		else {
 			signal = scgms::signal_BG;
 			level = mBG_Params.amplitude * std::cos((nextBG - startTime)*(2*PI)/mBG_Params.period) + mBG_Params.offset;
 			time = nextBG;
 			nextBG += mBG_Params.samplingPeriod;
 		}
 
-		if (!Emit_Signal_Level(signal, time, level, segment_id))
+		if (!Emit_Signal_Level(signal, time, level, segment_id)) {
 			break;
+		}
 
-		if (signal == scgms::signal_BG)
-			if (!Emit_Signal_Level(scgms::signal_BG_Calibration, time, level, segment_id))
+		if (signal == scgms::signal_BG) {
+			if (!Emit_Signal_Level(scgms::signal_BG_Calibration, time, level, segment_id)) {
 				break;
+			}
+		}
 	}
 
-	if (!Emit_Segment_Marker(segment_id, false))
+	if (!Emit_Segment_Marker(segment_id, false)) {
 		return;
+	}
 
-	if (mShutdownAfterLast)
+	if (mShutdownAfterLast) {
 		Emit_Shut_Down();
+	}
 }
 
 bool CSinCos_Generator::Emit_Segment_Marker(uint64_t segment_id, bool start) {
@@ -137,9 +141,11 @@ HRESULT IfaceCalling CSinCos_Generator::Do_Configure(scgms::SFilter_Configuratio
 	mTotal_Time = configuration.Read_Double(rsGen_Total_Time);
 	mShutdownAfterLast = configuration.Read_Bool(rsShutdown_After_Last);
 
-	if (Is_Any_NaN(mIG_Params.offset, mIG_Params.amplitude, mIG_Params.period, mIG_Params.samplingPeriod, 
+	if (Is_Any_NaN(mIG_Params.offset, mIG_Params.amplitude, mIG_Params.period, mIG_Params.samplingPeriod,
 		mBG_Params.offset, mBG_Params.amplitude, mBG_Params.period, mBG_Params.samplingPeriod,
-		mTotal_Time)) return E_INVALIDARG;
+		mTotal_Time)) {
+		return E_INVALIDARG;
+	}
 
 	Start_Generator();
 
@@ -155,15 +161,14 @@ HRESULT IfaceCalling CSinCos_Generator::Do_Execute(scgms::UDevice_Event event) {
 	return mOutput.Send(event);
 }
 
-void CSinCos_Generator::Start_Generator()
-{
+void CSinCos_Generator::Start_Generator() {
 	mExit_Flag = false;
 	mGenerator_Thread = std::make_unique<std::thread>(&CSinCos_Generator::Run_Generator, this);
 }
 
-void CSinCos_Generator::Terminate_Generator()
-{
+void CSinCos_Generator::Terminate_Generator() {
 	mExit_Flag = true;
-	if (mGenerator_Thread->joinable())
+	if (mGenerator_Thread && mGenerator_Thread->joinable()) {
 		mGenerator_Thread->join();
+	}
 }
