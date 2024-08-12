@@ -47,20 +47,20 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
-
 class CFilter_Configuration_Executor : public virtual scgms::IFilter_Executor, public virtual refcnt::CReferenced {
-protected:
-	std::recursive_mutex mCommunication_Guard;
-	CComposite_Filter mComposite_Filter{ mCommunication_Guard };
-	CTerminal_Filter mTerminal_Filter{ nullptr };
-public:
-	CFilter_Configuration_Executor(scgms::IFilter *custom_output);
-	virtual ~CFilter_Configuration_Executor();
+	protected:
+		std::recursive_mutex mCommunication_Guard;
+		CComposite_Filter mComposite_Filter{ mCommunication_Guard };
+		CTerminal_Filter mTerminal_Filter{ nullptr };
 
-	HRESULT Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, refcnt::Swstr_list& error_description);
+	public:
+		CFilter_Configuration_Executor(scgms::IFilter *custom_output);
+		virtual ~CFilter_Configuration_Executor();
 
-	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
-	virtual HRESULT IfaceCalling Terminate(const BOOL wait_for_shutdown) override final;
+		HRESULT Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, refcnt::Swstr_list& error_description);
+
+		virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
+		virtual HRESULT IfaceCalling Terminate(const BOOL wait_for_shutdown) override final;
 };
 
 #pragma warning( pop )

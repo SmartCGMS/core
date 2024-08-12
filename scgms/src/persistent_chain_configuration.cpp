@@ -74,18 +74,19 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 	mFile_Path.clear();
 	HRESULT rc = E_UNEXPECTED;
 
-	if ((file_path == nullptr) || (*file_path == 0))
+	if ((file_path == nullptr) || (*file_path == 0)) {
 		return E_INVALIDARG;
+	}
 	
 	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
 
 	std::error_code ec;
 	filesystem::path working_file_path = filesystem::absolute(std::wstring{ file_path }, ec);
-	if (ec) {                
-        shared_error_description.push(Widen_String(ec.message()));
+	if (ec) {
+		shared_error_description.push(Widen_String(ec.message()));
 		return E_INVALIDARG;
-	}		
-	 	
+	}
+
 	std::ifstream configfile;
 	configfile.open(working_file_path);
 
@@ -98,16 +99,16 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_File(const wchar
 		// although we are sending proper length, SimpleIni probably reaches one byte further and reads uninitialized memory
 		buf.push_back(0);
 		rc = Load_From_Memory(buf.data(), buf.size(), error_description);	//also clears mFile_Path!
-		if (Succeeded(rc)) {			
+		if (Succeeded(rc)) {
 			Advertise_Parent_Path();
 		}
 
 		configfile.close();
 	}
-	else
+	else {
 		rc = ERROR_FILE_NOT_FOUND;
+	}
 
-	
 	return rc;
 }
 
@@ -126,14 +127,13 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 
 	const std::wstring parent_path = Get_Parent_Path();
 
-
 	std::list<CSimpleIniW::Entry> section_names;
 	mIni.GetAllSections(section_names);
 
 	// sort by section names - the name would contain zero-padded number, so it is possible to sort it as strings
 	section_names.sort([](auto& a, auto& b) {
 		return std::wstring(a.pItem).compare(b.pItem) < 0;
-		});
+	});
 
 	for (auto& section_name : section_names) {
 		std::wstring name_str{ section_name.pItem };
@@ -142,8 +142,9 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 		if (res.first == prefix.end()) {
 
 			auto uspos = name_str.find(rsFilter_Section_Separator, prefix.size() + 1);
-			if (uspos == std::wstring::npos)
+			if (uspos == std::wstring::npos) {
 				uspos = prefix.size();
+			}
 
 			//OK, this is filter section - extract the guid
 			const std::wstring section_id_str { name_str.begin() + uspos + 1, name_str.end() };
@@ -152,8 +153,6 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 			//and get the filter descriptor to load the parameters
 
 			scgms::TFilter_Descriptor desc = scgms::Null_Filter_Descriptor;
-
-				
 
 			if (section_id_ok && scgms::get_filter_descriptor_by_id(id, desc)) {
 				refcnt::SReferenced<scgms::IFilter_Configuration_Link> filter_config{ new CFilter_Configuration_Link{id} };
@@ -168,13 +167,14 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 
 							std::unique_ptr<CFilter_Parameter> raw_filter_parameter = std::make_unique<CFilter_Parameter>(desc.parameter_type[i], desc.config_parameter_name[i]);
 							raw_filter_parameter->Set_Parent_Path(parent_path.c_str()); //needed to make the deferred parameters work
-							const HRESULT valid_rc = raw_filter_parameter->from_string(desc.parameter_type[i], str_value);							
+							const HRESULT valid_rc = raw_filter_parameter->from_string(desc.parameter_type[i], str_value);
 
 							if (Succeeded(valid_rc) || (valid_rc == E_NOT_SET)) {
-								scgms::IFilter_Parameter* raw_param = static_cast<scgms::IFilter_Parameter*>(raw_filter_parameter.get());								
+								scgms::IFilter_Parameter* raw_param = static_cast<scgms::IFilter_Parameter*>(raw_filter_parameter.get());
 
-								if (Succeeded(filter_config->add(&raw_param, &raw_param + 1)))
+								if (Succeeded(filter_config->add(&raw_param, &raw_param + 1))) {
 									raw_filter_parameter.release();
+								}
 
 								if (valid_rc == E_NOT_SET) {
 									encountered_E_NOT_SET = true;
@@ -221,7 +221,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 					return E_FAIL;
 				}
 			}
-			else {					
+			else {
 				loaded_all_filters = false;
 				std::wstring error_desc = dsCannot_Resolve_Filter_Descriptor + section_id_str;
 				shared_error_description.push(error_desc.c_str());
@@ -236,8 +236,9 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 
 	Advertise_Parent_Path();	//called once more to ensure that everybody got the parent path
 
-	if (!loaded_all_filters)
+	if (!loaded_all_filters) {
 		describe_loaded_filters(shared_error_description);
+	}
 
 	return (loaded_all_filters || encountered_E_NOT_SET) ? S_OK : S_FALSE;
 }
@@ -248,20 +249,23 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 	//1. determine the file path to save to
 	const bool empty_file_path = (file_path == nullptr) || (*file_path == 0);
 
-	if (empty_file_path && (mFile_Path.empty())) return E_ILLEGAL_METHOD_CALL;
+	if (empty_file_path && (mFile_Path.empty())) {
+		return E_ILLEGAL_METHOD_CALL;
+	}
 
 	filesystem::path working_file_path;
-	if (empty_file_path) working_file_path = mFile_Path;
+	if (empty_file_path) {
+		working_file_path = mFile_Path;
+	}
 	else {
 		std::error_code ec;
 		working_file_path = filesystem::absolute(std::wstring{ file_path }, ec);
 		if (ec) {
 			refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
-                        shared_error_description.push(Widen_String(ec.message()));
+			shared_error_description.push(Widen_String(ec.message()));
 			return E_INVALIDARG;
-		}		
+		}
 	}
-	
 
 	//2. produce the ini file content
 	CSimpleIniW ini;
@@ -269,12 +273,12 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 	scgms::CSignal_Description signal_descriptors;	//make the GUID in the ini human-readable by attaching comments
 
 	auto ini_SetValue = [&ini](const std::wstring &a_pSection,
-		const wchar_t* a_pKey,
-		const std::wstring& a_pValue,
-		const std::wstring& a_pComment = std::wstring{},
-		bool            a_bForceReplace = false) {
+			const wchar_t* a_pKey,
+			const std::wstring& a_pValue,
+			const std::wstring& a_pComment = std::wstring{},
+			bool a_bForceReplace = false) {
 
-			ini.SetValue(a_pSection.c_str(), a_pKey, a_pValue.empty() ? nullptr : a_pValue.c_str(), a_pComment.empty() ? nullptr : a_pComment.c_str(), a_bForceReplace);
+		ini.SetValue(a_pSection.c_str(), a_pKey, a_pValue.empty() ? nullptr : a_pValue.c_str(), a_pComment.empty() ? nullptr : a_pComment.c_str(), a_bForceReplace);
 	};
 
 
@@ -285,32 +289,35 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 		auto filter = *filter_begin;
 		GUID filter_id;
 		rc = filter->Get_Filter_Id(&filter_id);
-		if (rc != S_OK) return rc;
+		if (rc != S_OK) {
+			return rc;
+		}
 
 		const std::wstring id_str = std::wstring(rsFilter_Section_Prefix) + rsFilter_Section_Separator + Get_Padded_Number(section_counter++, 3) + rsFilter_Section_Separator + GUID_To_WString(filter_id);
 		auto section = ini.GetSection(id_str.c_str());
 		if (!section) {
 			//if the section does not exist yet, create it by writing a comment there - the filter description
 			scgms::TFilter_Descriptor filter_desc = scgms::Null_Filter_Descriptor;
-                            if (scgms::get_filter_descriptor_by_id(filter_id, filter_desc)) {                                    
-								ini_SetValue(id_str.c_str(), nullptr, std::wstring{}, std::wstring{ rsIni_Comment_Prefix }.append(filter_desc.description));
-                            }
+			if (scgms::get_filter_descriptor_by_id(filter_id, filter_desc)) {
+				ini_SetValue(id_str.c_str(), nullptr, std::wstring{}, std::wstring{ rsIni_Comment_Prefix }.append(filter_desc.description));
+			}
 		}
 
 		scgms::IFilter_Parameter** parameter_begin, ** parameter_end;
 		rc = filter->get(&parameter_begin, &parameter_end);
-		if (!Succeeded(rc)) return rc;	//rc may be also S_FALSE if no parameter has been set yet
-
+		if (!Succeeded(rc)) {
+			return rc;	//rc may be also S_FALSE if no parameter has been set yet
+		}
 
 		for (; parameter_begin != parameter_end; parameter_begin++) {
 			scgms::SFilter_Parameter param_shared = refcnt::make_shared_reference_ext<scgms::SFilter_Parameter, scgms::IFilter_Parameter>(*parameter_begin, true);
 
 			const wchar_t* config_name = param_shared.configuration_name();
-			if (!config_name) 
+			if (!config_name) {
 				return E_UNEXPECTED;
+			}
 
-
-			//let the filter parameter to convert its value to the string				
+			//let the filter parameter to convert its value to the string
 			std::wstring converted = param_shared.as_wstring(rc, false);
 
 			if (rc == E_NOT_SET) {
@@ -321,16 +328,20 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 				error_desc.append(L" (3)");
 				error_desc.append(converted);
 				shared_error_description.push(error_desc.c_str());
-			} else 
-				if (rc != S_OK) 
+			}
+			else {
+				if (rc != S_OK) {
 					return rc;
+				}
+			}
 				
 			std::wstring comment = L"";
 
 			//resolve any possible comment
 			const auto param_type = param_shared.type();
-			if (param_type == scgms::NParameter_Type::ptInvalid)
+			if (param_type == scgms::NParameter_Type::ptInvalid) {
 				return E_UNEXPECTED;
+			}
 
 			switch (param_type) {
 				case scgms::NParameter_Type::ptSignal_Model_Id:
@@ -341,22 +352,22 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 				case scgms::NParameter_Type::ptSolver_Id:
 				{
 					const GUID val = param_shared.as_guid(rc);
-					if (rc != S_OK) return rc;
+					if (rc != S_OK) {
+						return rc;
+					}
 
 					wchar_t* id_desc_ptr = Describe_GUID(val, param_shared.type(), signal_descriptors);
 					if (id_desc_ptr) {
 						comment = L"; ";
-						comment += id_desc_ptr;							
+						comment += id_desc_ptr;
 					}
-											
 				}
 				break;
 
 				default: break;
 			} //switch param_type
 
-
-			//and, write the value				
+			//and, write the value
 			ini_SetValue(id_str, config_name, converted, comment);
 		}
 	}
@@ -384,10 +395,11 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 
 HRESULT IfaceCalling CPersistent_Chain_Configuration::add(scgms::IFilter_Configuration_Link** begin, scgms::IFilter_Configuration_Link** end) noexcept {
 	HRESULT rc = refcnt::internal::CVector_Container<scgms::IFilter_Configuration_Link*>::add(begin, end);
-	if (rc == S_OK)
+	if (rc == S_OK) {
 		Advertise_Parent_Path();
+	}
 
-	return rc;	
+	return rc;
 }
 
 HRESULT IfaceCalling CPersistent_Chain_Configuration::Get_Parent_Path(refcnt::wstr_container** path) noexcept {
@@ -397,17 +409,21 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Get_Parent_Path(refcnt::ws
 }
 
 HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Parent_Path(const wchar_t* parent_path) noexcept {
-	if (!parent_path || (*parent_path == 0)) return E_INVALIDARG;
+	if (!parent_path || (*parent_path == 0)) {
+		return E_INVALIDARG;
+	}
 
 	HRESULT rc = S_OK;
 	mFile_Path = parent_path;
 
-	if (Is_Directory(mFile_Path))
+	if (Is_Directory(mFile_Path)) {
 		mFile_Path.append(".");
+	}
 
 	for (scgms::IFilter_Configuration_Link* link : mData) {
-		if (!Succeeded(link->Set_Parent_Path(parent_path)))
+		if (!Succeeded(link->Set_Parent_Path(parent_path))) {
 			rc = E_UNEXPECTED;
+		}
 	}
 
 	return rc;
@@ -416,14 +432,19 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Parent_Path(const wcha
 
 
 HRESULT IfaceCalling CPersistent_Chain_Configuration::Set_Variable(const wchar_t* name, const wchar_t* value) noexcept {
-	if (!name || (*name == 0)) return E_INVALIDARG;
-	if (name == CFilter_Parameter::mUnused_Variable_Name) return TYPE_E_AMBIGUOUSNAME;
+	if (!name || (*name == 0)) {
+		return E_INVALIDARG;
+	}
+	if (name == CFilter_Parameter::mUnused_Variable_Name) {
+		return TYPE_E_AMBIGUOUSNAME;
+	}
 
 	HRESULT rc = refcnt::internal::CVector_Container<scgms::IFilter_Configuration_Link*>::empty();
 	if (rc == S_FALSE) {
 		for (scgms::IFilter_Configuration_Link* link : mData) {
-			if (!Succeeded(link->Set_Variable(name, value)))
+			if (!Succeeded(link->Set_Variable(name, value))) {
 				rc = E_UNEXPECTED;
+			}
 		}
 	}
 
@@ -435,44 +456,41 @@ wchar_t* CPersistent_Chain_Configuration::Describe_GUID(const GUID& val, const s
 	wchar_t* result = nullptr;
 
 	switch (param_type) {
-
-	case scgms::NParameter_Type::ptModel_Produced_Signal_Id:
-	case scgms::NParameter_Type::ptSignal_Id:
-	{
-		scgms::TSignal_Descriptor sig_desc = scgms::Null_Signal_Descriptor;
-		if (signal_descriptors.Get_Descriptor(val, sig_desc))
-			result = const_cast<wchar_t*>(sig_desc.signal_description);
-	}
-	break;
-
-	case scgms::NParameter_Type::ptSignal_Model_Id:
-	case scgms::NParameter_Type::ptDiscrete_Model_Id: {
+		case scgms::NParameter_Type::ptModel_Produced_Signal_Id:
+		case scgms::NParameter_Type::ptSignal_Id:
 		{
-			scgms::TModel_Descriptor model_desc = scgms::Null_Model_Descriptor;
-			if (scgms::get_model_descriptor_by_id(val, model_desc))
-				result = const_cast<wchar_t*>(model_desc.description);
+			scgms::TSignal_Descriptor sig_desc = scgms::Null_Signal_Descriptor;
+			if (signal_descriptors.Get_Descriptor(val, sig_desc))
+				result = const_cast<wchar_t*>(sig_desc.signal_description);
+			break;
 		}
-		break;
-	}
-
-	case scgms::NParameter_Type::ptMetric_Id:
-	{
-		scgms::TMetric_Descriptor metric_desc = scgms::Null_Metric_Descriptor;
-		if (scgms::get_metric_descriptor_by_id(val, metric_desc))
-			result = const_cast<wchar_t*>(metric_desc.description);
-	}
-	break;
-
-	case scgms::NParameter_Type::ptSolver_Id:
-	{
-		scgms::TSolver_Descriptor solver_desc = scgms::Null_Solver_Descriptor;
-		if (scgms::get_solver_descriptor_by_id(val, solver_desc))
-			result = const_cast<wchar_t*>(solver_desc.description);
-	}
-	break;
-
-
-	default: result = nullptr; break;
+		case scgms::NParameter_Type::ptSignal_Model_Id:
+		case scgms::NParameter_Type::ptDiscrete_Model_Id:
+		{
+			{
+				scgms::TModel_Descriptor model_desc = scgms::Null_Model_Descriptor;
+				if (scgms::get_model_descriptor_by_id(val, model_desc))
+					result = const_cast<wchar_t*>(model_desc.description);
+			}
+			break;
+		}
+		case scgms::NParameter_Type::ptMetric_Id:
+		{
+			scgms::TMetric_Descriptor metric_desc = scgms::Null_Metric_Descriptor;
+			if (scgms::get_metric_descriptor_by_id(val, metric_desc))
+				result = const_cast<wchar_t*>(metric_desc.description);
+			break;
+		}
+		case scgms::NParameter_Type::ptSolver_Id:
+		{
+			scgms::TSolver_Descriptor solver_desc = scgms::Null_Solver_Descriptor;
+			if (scgms::get_solver_descriptor_by_id(val, solver_desc))
+				result = const_cast<wchar_t*>(solver_desc.description);
+			break;
+		}
+		default:
+			result = nullptr;
+			break;
 	}
 
 	return result;

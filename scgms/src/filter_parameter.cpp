@@ -48,8 +48,9 @@ const std::wstring CFilter_Parameter::mUnused_Variable_Name = rsUnused_Variable_
 
 double str_2_rat_dbl(const std::wstring& str, bool& converted_ok) {
 	double value = str_2_dbl(str.c_str(), converted_ok);
-	if (!converted_ok)
+	if (!converted_ok) {
 		value = Default_Str_To_Rat_Time(str.c_str(), converted_ok);
+	}
 	return value;
 }
 
@@ -75,9 +76,10 @@ HRESULT IfaceCalling CFilter_Parameter::Get_Config_Name(wchar_t **config_name) {
 HRESULT IfaceCalling CFilter_Parameter::Get_WChar_Container(refcnt::wstr_container **wstr, BOOL read_interpreted) {
 	auto [rc, converted] = to_string(read_interpreted == TRUE);
 
-	if ((rc == S_OK) || ((rc == E_NOT_SET) && (read_interpreted == FALSE)))
+	if ((rc == S_OK) || ((rc == E_NOT_SET) && (read_interpreted == FALSE))) {
 		*wstr = refcnt::WString_To_WChar_Container(converted.c_str());
-	return rc;	
+	}
+	return rc;
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_WChar_Container(refcnt::wstr_container *wstr) {
@@ -86,8 +88,9 @@ HRESULT IfaceCalling CFilter_Parameter::Set_WChar_Container(refcnt::wstr_contain
 		mWChar_Container = refcnt::make_shared_reference_ext<decltype(mWChar_Container), refcnt::wstr_container>(wstr, true);
 		return S_OK;
 	}
-	else
+	else {
 		return E_INVALIDARG;
+	}
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** wstr) {
@@ -119,7 +122,9 @@ HRESULT IfaceCalling CFilter_Parameter::Get_File_Path(refcnt::wstr_container** w
 
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Parent_Path(const wchar_t* parent_path) {
-	if ((!parent_path) || (*parent_path == 0)) return E_INVALIDARG;
+	if ((!parent_path) || (*parent_path == 0)) {
+		return E_INVALIDARG;
+	}
 
 	mParent_Path = parent_path;
 	return S_OK;
@@ -225,16 +230,18 @@ HRESULT IfaceCalling CFilter_Parameter::Clone(scgms::IFilter_Parameter **deep_co
 }
 
 HRESULT IfaceCalling CFilter_Parameter::Set_Variable(const wchar_t* name, const wchar_t* value) {
-	if (name == CFilter_Parameter::mUnused_Variable_Name) return TYPE_E_AMBIGUOUSNAME;
+	if (name == CFilter_Parameter::mUnused_Variable_Name) {
+		return TYPE_E_AMBIGUOUSNAME;
+	}
 	mNon_OS_Variables[name] = value;
 	return S_OK;
 }
 
 std::tuple<HRESULT, std::wstring> CFilter_Parameter::Evaluate_Variable(const std::wstring& var_name) {
 
-	if (var_name == CFilter_Parameter::mUnused_Variable_Name)
+	if (var_name == CFilter_Parameter::mUnused_Variable_Name) {
 		return { S_FALSE, std::wstring{} };	//valid text for an unused option
-
+	}
 
 	//try our variables as they may hide the OS ones to actually customize them
 	{
@@ -256,9 +263,8 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::Evaluate_Variable(const std
 				var_buf.push_back(0);	//make sure its ASCIIZ
 				return std::tuple<bool, std::wstring>{S_OK, Widen_Char(var_buf.data())};
 			}
-		}			
+		}
 	}
-		
 
 	return { E_NOT_SET, std::wstring{} };	//not found at all
 }
@@ -266,15 +272,13 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::Evaluate_Variable(const std
 
 std::tuple<HRESULT, std::wstring> CFilter_Parameter::Resolve_Deferred_Path() {
 	std::wstring effective_deferred_path = mDeferred_Path_Or_Var;
-	HRESULT rc = E_UNEXPECTED;
+	HRESULT rc = S_OK;
 
 	//deferred path could still be an OS-variable, which needs to be resolved
 	const auto [is_var, var_name] = scgms::Is_Variable_Name(mDeferred_Path_Or_Var);
 	if (is_var) {
 		std::tie(rc, effective_deferred_path) = Evaluate_Variable(var_name);
 	}
-	else
-		rc = S_OK;
 
 	return { rc, Succeeded(rc) ? Make_Absolute_Path(effective_deferred_path, mParent_Path) : std::wstring{} };
 }
@@ -289,14 +293,16 @@ HRESULT CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type
 	if (is_deferred) {
 		auto [deferred_success, effective_deferred_path] = Resolve_Deferred_Path();
 		
-		if (deferred_success == E_NOT_SET)
+		if (deferred_success == E_NOT_SET) {
 			return E_NOT_SET;
+		}
 		
 		deferred_success = E_UNEXPECTED;
 		std::tie(deferred_success, possibly_deferred_content) = Load_From_File(effective_deferred_path.c_str());
-		if (Succeeded(deferred_success)) {		
-			if (possibly_deferred_content.empty()) 
+		if (Succeeded(deferred_success)) {
+			if (possibly_deferred_content.empty()) {
 				return E_NOT_SET;
+			}
 			
 			effective_str = const_cast<wchar_t*>(possibly_deferred_content.c_str());
 		}
@@ -304,54 +310,56 @@ HRESULT CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type
 	else
 		mDeferred_Path_Or_Var.clear();
 
-
 	auto [is_var, var_name] = scgms::Is_Variable_Name(effective_str);
 	if (is_var) {
 		mVariable_Name = var_name;
 		return S_OK;
 	}
-	else
+	else {
 		mVariable_Name.clear();
+	}
 
 	bool valid = false;
 
 	switch (desired_type) {
 
-		case scgms::NParameter_Type::ptWChar_Array:		
+		case scgms::NParameter_Type::ptWChar_Array:
+		{
 			mWChar_Container = refcnt::make_shared_reference_ext<decltype(mWChar_Container), refcnt::wstr_container>(refcnt::WString_To_WChar_Container(effective_str), false);
 			valid = true;
 			break;
-
+		}
 		case scgms::NParameter_Type::ptInt64_Array:
+		{
 			valid = Parse_Container<scgms::time_segment_id_container, int64_t>(mTime_Segment_ID, effective_str, str_2_int);
 			break;
-
-		case scgms::NParameter_Type::ptRatTime:	
+		}
+		case scgms::NParameter_Type::ptRatTime:
 		case scgms::NParameter_Type::ptDouble:
 		{
-			double val = str_2_rat_dbl(effective_str, valid);		
-			if (valid)
+			double val = str_2_rat_dbl(effective_str, valid);
+			if (valid) {
 				mData.dbl = val;
+			}
+			break;
 		}
-		break;
-
 		case scgms::NParameter_Type::ptInt64:
 		case scgms::NParameter_Type::ptSubject_Id:
 		{
 			int64_t val = str_2_int(effective_str, valid);
-			if (valid)
+			if (valid) {
 				mData.int64 = val;
+			}
+			break;
 		}
-		break;
-
 		case scgms::NParameter_Type::ptBool:
 		{
 			bool val = str_2_bool(effective_str, valid);
-			if (valid)
+			if (valid) {
 				mData.boolean = val;
-		}
+			}
 			break;
-
+		}
 		case scgms::NParameter_Type::ptSignal_Model_Id:
 		case scgms::NParameter_Type::ptDiscrete_Model_Id:
 		case scgms::NParameter_Type::ptMetric_Id:
@@ -365,19 +373,19 @@ HRESULT CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type
 				tmp_guid = resolve_signal_by_name(effective_str, valid);
 			}
 
-			if (valid) 
+			if (valid) {
 				mData.guid = tmp_guid;
-			
-			
-		}
-		break;
-
-		case scgms::NParameter_Type::ptDouble_Array:
-			valid = Parse_Container<scgms::IModel_Parameter_Vector, double>(mModel_Parameters, effective_str, str_2_rat_dbl);	
+			}
 			break;
-
+		}
+		case scgms::NParameter_Type::ptDouble_Array:
+		{
+			valid = Parse_Container<scgms::IModel_Parameter_Vector, double>(mModel_Parameters, effective_str, str_2_rat_dbl);
+			break;
+		}
 		default:
 			valid = false;
+			break;
 	} //switch (desc.parameter_type[i])	{
 
 	return valid ? S_OK : E_FAIL;
@@ -429,42 +437,46 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string(bool read_interpr
 
 		}
 		else {
-			if (read_interpreted) 
+			if (read_interpreted) {
 				std::tie(rc, converted) = Evaluate_Variable(mVariable_Name);
-			 else 
+			}
+			else {
 				converted = L"$(" + mVariable_Name + L")";
-			//and that's all
+			}
 		}
-		
 	};
 
 
 	switch (mType) {
 
 		case scgms::NParameter_Type::ptDouble_Array: 
-			{							
-				if (!mModel_Parameters && (!mDeferred_Path_Or_Var.empty()))	//if we have not evaluated the array yet
-						rc = S_OK;
-				else
-						std::tie(rc, converted) = Array_To_String<double>(mModel_Parameters.get(), read_interpreted);
+		{
+			if (!mModel_Parameters && (!mDeferred_Path_Or_Var.empty())) { //if we have not evaluated the array yet
+				rc = S_OK;
+			}
+			else {
+				std::tie(rc, converted) = Array_To_String<double>(mModel_Parameters.get(), read_interpreted);
 			}
 			break;
-
+		}
 		case scgms::NParameter_Type::ptInt64_Array:
-			{
-				if (!mTime_Segment_ID && (!mDeferred_Path_Or_Var.empty()))
-					rc = S_OK;
-				else
-					std::tie(rc, converted) = Array_To_String<int64_t>(mTime_Segment_ID.get(), read_interpreted);
+		{
+			if (!mTime_Segment_ID && (!mDeferred_Path_Or_Var.empty())) {
+				rc = S_OK;
+			}
+			else {
+				std::tie(rc, converted) = Array_To_String<int64_t>(mTime_Segment_ID.get(), read_interpreted);
 			}
 			break;
-
-		default: convert_scalar();
+		}
+		default:
+			convert_scalar();
 			break;
 	}
 
-	if (rc != S_OK)
+	if (rc != S_OK) {
 		converted.clear();
+	}
 
 	if ((rc == S_OK) && (!mDeferred_Path_Or_Var.empty()) && (read_interpreted == false)) {
 		//we actually have to save the content to a deferred file
@@ -473,9 +485,10 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string(bool read_interpr
 		if (deffered_success != E_NOT_SET) {
 			if (Succeeded(deffered_success))
 				rc = Save_To_File(converted, effective_deffered_path.c_str());
-		} else
+		}
+		else {
 			rc = deffered_success;
-				
+		}
 
 		//file has been saved succesfully => write the deferred file path
 		converted = mDeferred_Magic_String_Prefix;
@@ -489,15 +502,17 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string(bool read_interpr
 
 std::tuple<bool, std::wstring> CFilter_Parameter::Is_Deferred_Parameter(const wchar_t* str_value) {
 	const size_t len = wcslen(str_value);
-	if (len < wcslen(mDeferred_Magic_String_Prefix) + wcslen(mDeferred_Magic_String_Postfix) + 1)
+	if (len < wcslen(mDeferred_Magic_String_Prefix) + wcslen(mDeferred_Magic_String_Postfix) + 1) {
 		return { false, L"" };	//just does not fit
+	}
 
-	if (wmemcmp(str_value, mDeferred_Magic_String_Prefix, wcslen(mDeferred_Magic_String_Prefix)) != 0)
+	if (wmemcmp(str_value, mDeferred_Magic_String_Prefix, wcslen(mDeferred_Magic_String_Prefix)) != 0) {
 		return { false, L"" };	//unrecognized prefix
+	}
 
-
-	if (str_value[len - 1] != mDeferred_Magic_String_Postfix[0])
+	if (str_value[len - 1] != mDeferred_Magic_String_Postfix[0]) {
 		return { false, L"" };	//malformed
+	}
 
 	std::wstring deferred_path{ str_value + wcslen(mDeferred_Magic_String_Prefix),
 						 str_value + len - wcslen(mDeferred_Magic_String_Postfix) };
@@ -528,10 +543,10 @@ HRESULT CFilter_Parameter::Save_To_File(const std::wstring& text, const wchar_t*
 	std::wofstream dst_file;
 	dst_file.open(filesystem::path{ path });
 
-	if (dst_file.is_open()) {
-		dst_file << text;
-		return S_OK;
-	}
-	else
+	if (!dst_file.is_open()) {
 		return MK_E_CANTOPENFILE;
+	}
+
+	dst_file << text;
+	return S_OK;
 }

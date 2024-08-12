@@ -45,19 +45,19 @@
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
 class CFilter_Configuration_Link : public virtual refcnt::internal::CVector_Container<scgms::IFilter_Parameter*>, public virtual scgms::IFilter_Configuration_Link {
-protected:
-	const GUID mID;	
-	std::wstring mParent_Path;	//for resolving relative paths; see CPersistent_Chain_Configuration for unique_ptr exaplanation
-public:
-	CFilter_Configuration_Link(const GUID &id);
-	virtual ~CFilter_Configuration_Link() = default;
+	protected:
+		const GUID mID;	
+		std::wstring mParent_Path;	//for resolving relative paths; see CPersistent_Chain_Configuration for unique_ptr exaplanation
 
-	virtual HRESULT IfaceCalling add(scgms::IFilter_Parameter* *begin, scgms::IFilter_Parameter* *end) override;
+	public:
+		CFilter_Configuration_Link(const GUID &id);
+		virtual ~CFilter_Configuration_Link() = default;
 
-	virtual HRESULT IfaceCalling Get_Filter_Id(GUID *id) override final;
-	virtual HRESULT IfaceCalling Set_Parent_Path(const wchar_t* path) override final;
-	virtual HRESULT IfaceCalling Set_Variable(const wchar_t* name, const wchar_t* value) override final;
+		virtual HRESULT IfaceCalling add(scgms::IFilter_Parameter* *begin, scgms::IFilter_Parameter* *end) override;
+
+		virtual HRESULT IfaceCalling Get_Filter_Id(GUID *id) override final;
+		virtual HRESULT IfaceCalling Set_Parent_Path(const wchar_t* path) override final;
+		virtual HRESULT IfaceCalling Set_Variable(const wchar_t* name, const wchar_t* value) override final;
 };
-
 
 #pragma warning( pop )

@@ -48,48 +48,55 @@
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 class CFilter_Executor : public virtual scgms::IFilter, public virtual refcnt::CNotReferenced {
-protected:
-	std::recursive_mutex &mCommunication_Guard;
-	scgms::SFilter mFilter;
-	scgms::TOn_Filter_Created mOn_Filter_Created;
-	const void* mOn_Filter_Created_Data;
-public:
-	CFilter_Executor(const GUID filter_id, std::recursive_mutex &communication_guard, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
-	virtual ~CFilter_Executor() = default;
+	protected:
+		std::recursive_mutex &mCommunication_Guard;
+		scgms::SFilter mFilter;
+		scgms::TOn_Filter_Created mOn_Filter_Created;
+		const void* mOn_Filter_Created_Data;
 
-	void Release_Filter();
+	public:
+		CFilter_Executor(const GUID filter_id, std::recursive_mutex &communication_guard, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data);
+		virtual ~CFilter_Executor() = default;
 
-	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
+		void Release_Filter();
 
-	virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list *error_description) override final;
-	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
+		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
+
+		// scgms::IFilter iface
+		virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list *error_description) override final;
+		virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
 };
 
+//executer designed to consume events only and to signal the shutdown event
 class CTerminal_Filter : public virtual scgms::IFilter, public virtual refcnt::CNotReferenced {
-	//executer designed to consume events only and to signal the shutdown event
-protected:
-	std::mutex mShutdown_Guard;
-	std::condition_variable mShutdown_Condition;
-	bool mShutdown_Received = false;
-	scgms::IFilter *mCustom_Output = nullptr;
-public:
-	CTerminal_Filter(scgms::IFilter *custom_output);
-	virtual ~CTerminal_Filter() = default;
+	protected:
+		std::mutex mShutdown_Guard;
+		std::condition_variable mShutdown_Condition;
+		bool mShutdown_Received = false;
+		scgms::IFilter *mCustom_Output = nullptr;
 
-	void Wait_For_Shutdown();	//blocking wait, until it receives the shutdown event
+	public:
+		CTerminal_Filter(scgms::IFilter *custom_output);
+		virtual ~CTerminal_Filter() = default;
 
-	virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list* error_description) override final;
-	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override;
+		void Wait_For_Shutdown();	//blocking wait, until it receives the shutdown event
+
+		// scgms::IFilter iface
+		virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list* error_description) override final;
+		virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override;
 };
 
 class CCopying_Terminal_Filter : public virtual CTerminal_Filter {
-protected:
-	std::vector<CDevice_Event> &mEvents;
-	bool mDo_Not_Copy_Info_Events = true;
-public:
-	CCopying_Terminal_Filter(std::vector<CDevice_Event> &events, bool do_not_copy_info_events);
-	virtual ~CCopying_Terminal_Filter() = default;
-	virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
+	protected:
+		std::vector<CDevice_Event> &mEvents;
+		bool mDo_Not_Copy_Info_Events = true;
+
+	public:
+		CCopying_Terminal_Filter(std::vector<CDevice_Event> &events, bool do_not_copy_info_events);
+		virtual ~CCopying_Terminal_Filter() = default;
+
+		// scgms::IFilter iface
+		virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
 };
 
 #pragma warning( pop )

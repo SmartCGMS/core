@@ -39,28 +39,36 @@
 #include <scgms/iface/DeviceIface.h>
 
 class CDevice_Event : public virtual scgms::IDevice_Event {
-protected:
-	scgms::TDevice_Event mRaw;
-	size_t mSlot = std::numeric_limits<size_t>::max();
-	void Clean_Up() noexcept;
-public:
-	CDevice_Event() noexcept {};
-	CDevice_Event(CDevice_Event &&other) noexcept;
-	virtual ~CDevice_Event() noexcept;
+	protected:
+		scgms::TDevice_Event mRaw;
+		size_t mSlot = std::numeric_limits<size_t>::max();
+		void Clean_Up() noexcept;
 
-	void Set_Slot(const size_t slot) noexcept { mSlot = slot; };
+	public:
+		CDevice_Event() noexcept {};
+		CDevice_Event(CDevice_Event &&other) noexcept;
+		virtual ~CDevice_Event() noexcept;
 
-	void Initialize(const scgms::NDevice_Event_Code code) noexcept;
-	void Initialize(const scgms::TDevice_Event* event) noexcept;
-	scgms::TDevice_Event& Raw() { return mRaw; };
+		void Set_Slot(const size_t slot) noexcept {
+			mSlot = slot;
+		}
 
-	virtual ULONG IfaceCalling Release() noexcept override;
-	virtual HRESULT IfaceCalling Raw(scgms::TDevice_Event** dst) noexcept override;
-	virtual HRESULT IfaceCalling Clone(IDevice_Event** event) const noexcept override;
+		void Initialize(const scgms::NDevice_Event_Code code) noexcept;
+		void Initialize(const scgms::TDevice_Event* event) noexcept;
 
-	//tiny helper for debugging
-	size_t logical_clock() noexcept { return mRaw.logical_time; }
+		scgms::TDevice_Event& Raw() {
+			return mRaw;
+		}
+
+		//tiny helper for debugging
+		size_t logical_clock() noexcept {
+			return mRaw.logical_time;
+		}
+
+		// scgms::IDevice_Event iface
+		virtual ULONG IfaceCalling Release() noexcept override;
+		virtual HRESULT IfaceCalling Raw(scgms::TDevice_Event** dst) noexcept override;
+		virtual HRESULT IfaceCalling Clone(IDevice_Event** event) const noexcept override;
 };
-
 
 scgms::IDevice_Event* allocate_device_event(scgms::NDevice_Event_Code code) noexcept;

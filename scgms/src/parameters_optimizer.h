@@ -42,4 +42,3 @@
 namespace internal {
 	BOOL IfaceCalling Parameters_Fitness_Wrapper(const void* data, const size_t solution_count, const double* solution, double* const fitnesses);
 }
-

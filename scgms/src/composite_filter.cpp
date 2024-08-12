@@ -50,13 +50,15 @@ CComposite_Filter::CComposite_Filter(std::recursive_mutex &communication_guard) 
 	//
 }
 
-
 HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, refcnt::Swstr_list& error_description) noexcept {
 	mRefuse_Execute = true;
-	if (!mExecutors.empty())
+	if (!mExecutors.empty()) {
 		return E_ILLEGAL_METHOD_CALL;	//so far, we are able to configure the chain just once
+	}
 
-	if (!configuration || !next_filter) return E_INVALIDARG;
+	if (!configuration || !next_filter) {
+		return E_INVALIDARG;
+	}
 
 	std::lock_guard<std::recursive_mutex> guard{ mCommunication_Guard };
 	scgms::IFilter *last_filter = next_filter;
@@ -71,12 +73,14 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 	//we have to create the filter executors from the last one
 	{
 		auto send_shut_down = [this]() {
-			if (mExecutors.empty())
+			if (mExecutors.empty()) {
 				return;
+			}
 
 			scgms::IDevice_Event* shutdown_event = allocate_device_event( scgms::NDevice_Event_Code::Shut_Down );
-			if (shutdown_event)
+			if (shutdown_event) {
 				mExecutors[0]->Execute(shutdown_event);
+			}
 		};
 
 		size_t link_position = std::distance(link_begin, link_end);
@@ -132,8 +136,9 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 				}
 				error_description.push(err_str.c_str());
 
-				if (failed_to_resolve_descriptor)
+				if (failed_to_resolve_descriptor) {
 					describe_loaded_filters(error_description);
+				}
 
 				err_str = dsLast_RC + std::wstring{ Describe_Error(rc) };
 				error_description.push(err_str.c_str());
@@ -197,7 +202,9 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 }
 
 HRESULT CComposite_Filter::Execute(scgms::IDevice_Event *event) noexcept {
-	if (!event) return E_INVALIDARG;
+	if (!event) {
+		return E_INVALIDARG;
+	}
 	if (mExecutors.empty()) {
 		event->Release();
 		return S_FALSE;
@@ -223,10 +230,10 @@ HRESULT CComposite_Filter::Clear() noexcept {
 
 	//once we refuse any communication from the Execute method, we can safely release the filters
 	//assuming that they terminate any threads they have spawned
-	for (size_t i = 0; i < mExecutors.size(); i++)
+	for (size_t i = 0; i < mExecutors.size(); i++) {
 		mExecutors[i]->Release_Filter();
+	}
 	mExecutors.clear();	//calls reset on all contained unique ptr's	
-	
 
 	return S_OK;
 }

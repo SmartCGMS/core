@@ -44,20 +44,19 @@
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance 
 
-	
 class CComposite_Filter  {
-protected:
-	bool mRefuse_Execute = false;
-	std::recursive_mutex &mCommunication_Guard;		
-	std::vector<std::unique_ptr<CFilter_Executor>> mExecutors;
-public:
-	CComposite_Filter(std::recursive_mutex &communication_guard) noexcept;
+	protected:
+		bool mRefuse_Execute = false;
+		std::recursive_mutex &mCommunication_Guard;		
+		std::vector<std::unique_ptr<CFilter_Executor>> mExecutors;
 
-	HRESULT Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, refcnt::Swstr_list &error_description) noexcept;
-	HRESULT Execute(scgms::IDevice_Event *event) noexcept;
-	HRESULT Clear() noexcept;
-	bool Empty() const noexcept;
-	
+	public:
+		CComposite_Filter(std::recursive_mutex &communication_guard) noexcept;
+
+		HRESULT Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, refcnt::Swstr_list &error_description) noexcept;
+		HRESULT Execute(scgms::IDevice_Event *event) noexcept;
+		HRESULT Clear() noexcept;
+		bool Empty() const noexcept;
 };
 
 #pragma warning( pop )

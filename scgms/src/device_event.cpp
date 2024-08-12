@@ -54,60 +54,57 @@
 constexpr size_t Event_Pool_Size = 100*1024;
 
 class CEvent_Pool {
-protected:
-	std::array<CDevice_Event, Event_Pool_Size> mEvents;
-	std::array<std::atomic<bool>, Event_Pool_Size > mAllocated_Flags{ false };
-	std::atomic<size_t> mRecent_Allocated_Event_Idx{ Event_Pool_Size - 1 };
-public:
-	CEvent_Pool() {		
-		for (size_t i = 0; i < Event_Pool_Size; i++) {
-			mEvents[i].Initialize(scgms::NDevice_Event_Code::Nothing);
-			mEvents[i].Set_Slot(i);
-			mAllocated_Flags[i] = false;
-		}
-	}
-	
-	~CEvent_Pool() {
-		for (size_t i = 0; i < Event_Pool_Size; i++) {
-			if (mAllocated_Flags[i]) {
+	protected:
+		std::array<CDevice_Event, Event_Pool_Size> mEvents;
+		std::array<std::atomic<bool>, Event_Pool_Size > mAllocated_Flags{ false };
+		std::atomic<size_t> mRecent_Allocated_Event_Idx{ Event_Pool_Size - 1 };
 
-				dprintf("Leaked device event; logical time: %d\n", mEvents[i].logical_clock());
+	public:
+		CEvent_Pool() {
+			for (size_t i = 0; i < Event_Pool_Size; i++) {
+				mEvents[i].Initialize(scgms::NDevice_Event_Code::Nothing);
+				mEvents[i].Set_Slot(i);
+				mAllocated_Flags[i] = false;
+			}
+		}
+	
+		~CEvent_Pool() {
+			for (size_t i = 0; i < Event_Pool_Size; i++) {
+				if (mAllocated_Flags[i]) {
+					dprintf("Leaked device event; logical time: %d\n", mEvents[i].logical_clock());
+				}
 			}
 		}
 
-	}
+		CDevice_Event* Alloc_Event() {
+			//obtain working index, but we need to do it as modulo spinlock
+
+			size_t working_idx = mRecent_Allocated_Event_Idx;
+			bool locked = false;
+			size_t retries_count = Event_Pool_Size * 2;
 
 
+			while ((!locked) && (retries_count-- > 0)) {
+				working_idx = (working_idx + 1) % Event_Pool_Size;
+				if (!mAllocated_Flags[working_idx]) {
+					locked = !mAllocated_Flags[working_idx].exchange(true);
+				}
+			}
 
-	CDevice_Event* Alloc_Event() {
-		//obtain working index, but we need to do it as modulo spinlock
 
-		size_t working_idx = mRecent_Allocated_Event_Idx;
-		bool locked = false;
-		size_t retries_count = Event_Pool_Size * 2;
-
-
-		while ((!locked) && (retries_count-- > 0)) {
-			working_idx = (working_idx + 1) % Event_Pool_Size;
-			if (!mAllocated_Flags[working_idx])
-				locked = !mAllocated_Flags[working_idx].exchange(true);
+			if (locked) {
+				mRecent_Allocated_Event_Idx.store(working_idx);
+				return &mEvents[working_idx];
+			}
+			else {
+				return new CDevice_Event{};	//should be controlled with a flag for embedded devices
+			}
 		}
 
-
-		if (locked) {
-			mRecent_Allocated_Event_Idx.store(working_idx);
-			return &mEvents[working_idx];
+		void Free_Event(const size_t slot) {
+			if (slot < Event_Pool_Size)
+				mAllocated_Flags[slot] = false;
 		}
-		else
-			return new CDevice_Event{};	//should be controlled with a flag for embedded devices
-			//return nullptr;		
-		
-	}
-
-	void Free_Event(const size_t slot) {
-		if (slot < Event_Pool_Size)
-			mAllocated_Flags[slot] = false;
-	}
 };
 
 
@@ -123,14 +120,20 @@ void Clone_Raw(const scgms::TDevice_Event& src_raw, scgms::TDevice_Event& dst_ra
 	dst_raw.logical_time = global_logical_time.fetch_add(1);
 
 	switch (scgms::UDevice_Event_internal::major_type(dst_raw.event_code)) {
-		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::info:			if (dst_raw.info) 
-																					   dst_raw.info->AddRef();
+		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::info:
+		{
+			if (dst_raw.info) {
+				dst_raw.info->AddRef();
+			}
 			break;
-
-		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::parameters:	if (dst_raw.parameters)
-			                                                                          dst_raw.parameters->AddRef();
+		}
+		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::parameters:
+		{
+			if (dst_raw.parameters) {
+				dst_raw.parameters->AddRef();
+			}
 			break;
-
+		}
 		default: break;	//just keeping the checkers happy
 	}
 }
@@ -148,14 +151,18 @@ void CDevice_Event::Initialize(const scgms::NDevice_Event_Code code) noexcept {
 	mRaw.device_time = Unix_Time_To_Rat_Time(time(nullptr));
 	mRaw.segment_id = scgms::Invalid_Segment_Id;
 
-	switch (scgms::UDevice_Event_internal::major_type(code)) {		
-		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::info: mRaw.info = refcnt::WString_To_WChar_Container(nullptr);
+	switch (scgms::UDevice_Event_internal::major_type(code)) {
+
+		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::info:
+			mRaw.info = refcnt::WString_To_WChar_Container(nullptr);
 			break;
 
-		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::parameters: mRaw.parameters = refcnt::Create_Container<double>(nullptr, nullptr);
+		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::parameters:
+			mRaw.parameters = refcnt::Create_Container<double>(nullptr, nullptr);
 			break;
 
-		default:mRaw.level = std::numeric_limits<double>::quiet_NaN();
+		default:
+			mRaw.level = std::numeric_limits<double>::quiet_NaN();
 			break;
 	}
 }
@@ -172,18 +179,23 @@ CDevice_Event::~CDevice_Event() noexcept {
 
 void CDevice_Event::Clean_Up() noexcept {
 	switch (scgms::UDevice_Event_internal::major_type(mRaw.event_code)) {
-		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::info:			if (mRaw.info) 
-																						mRaw.info->Release();
-																					break;
-
-		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::parameters:	if (mRaw.parameters) 
-																						mRaw.parameters->Release();
-																					break;
-		default:	break;
+		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::info:
+		{
+			if (mRaw.info) 
+				mRaw.info->Release();
+			break;
+		}
+		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::parameters:
+		{
+			if (mRaw.parameters)
+				mRaw.parameters->Release();
+			break;
+		}
+		default:
+			break;
 	}
 
 	mRaw.info = nullptr;	//also resets parameters to nullptr
-
 }
 
 ULONG IfaceCalling CDevice_Event::Release() noexcept {
@@ -191,8 +203,9 @@ ULONG IfaceCalling CDevice_Event::Release() noexcept {
 		Clean_Up();
 		event_pool.Free_Event(mSlot);
 	}
-	else
+	else {
 		delete this;
+	}
 	return 0;
 }
 
@@ -200,7 +213,6 @@ HRESULT IfaceCalling CDevice_Event::Raw(scgms::TDevice_Event **dst) noexcept {
 	*dst = &mRaw;
 	return S_OK;
 }
-
 
 HRESULT IfaceCalling CDevice_Event::Clone(IDevice_Event** event) const noexcept {
 
@@ -216,8 +228,9 @@ HRESULT IfaceCalling CDevice_Event::Clone(IDevice_Event** event) const noexcept 
 //syntactic sugar 
 scgms::IDevice_Event* allocate_device_event(scgms::NDevice_Event_Code code) noexcept {
 	auto result = event_pool.Alloc_Event();
-	if (result)
+	if (result) {
 		result->Initialize(code);
+	}
 
 	return static_cast<scgms::IDevice_Event*>(result);
 }

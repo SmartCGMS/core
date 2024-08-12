@@ -51,28 +51,34 @@ HRESULT IfaceCalling CFilter_Configuration_Link::Set_Parent_Path(const wchar_t* 
 	if ((!path) || (*path == 0)) {
 		mParent_Path.clear();
 		return S_OK;
-	};
-	
+	}
+
 	mParent_Path = path;
 
 	HRESULT rc = S_OK;
 	for (auto param : mData) {
-		if (!Succeeded(param->Set_Parent_Path(mParent_Path.c_str())))
+		if (!Succeeded(param->Set_Parent_Path(mParent_Path.c_str()))) {
 			rc = E_UNEXPECTED;
+		}
 	}
 
 	return rc;
 }
 
 HRESULT IfaceCalling CFilter_Configuration_Link::Set_Variable(const wchar_t* name, const wchar_t* value) {
-	if ((!name) || (*name == 0)) return E_INVALIDARG;
-	if (name == CFilter_Parameter::mUnused_Variable_Name) return TYPE_E_AMBIGUOUSNAME;
+	if ((!name) || (*name == 0)) {
+		return E_INVALIDARG;
+	}
+	if (name == CFilter_Parameter::mUnused_Variable_Name) {
+		return TYPE_E_AMBIGUOUSNAME;
+	}
 
 	HRESULT rc = refcnt::internal::CVector_Container<scgms::IFilter_Parameter*>::empty();
 	if (rc == S_FALSE) {
 		for (auto param : mData) {
-			if (!Succeeded(param->Set_Variable(name, value)))
+			if (!Succeeded(param->Set_Variable(name, value))) {
 				rc = E_UNEXPECTED;
+			}
 		}
 	}
 
@@ -82,8 +88,9 @@ HRESULT IfaceCalling CFilter_Configuration_Link::Set_Variable(const wchar_t* nam
 
 HRESULT IfaceCalling CFilter_Configuration_Link::add(scgms::IFilter_Parameter** begin, scgms::IFilter_Parameter** end) {
 	HRESULT rc = refcnt::internal::CVector_Container<scgms::IFilter_Parameter*>::add(begin, end);
-	if (rc == S_OK)
+	if (rc == S_OK) {
 		rc = Set_Parent_Path(mParent_Path.c_str());
+	}
 
 	return rc;
 }

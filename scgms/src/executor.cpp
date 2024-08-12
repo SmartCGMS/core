@@ -45,14 +45,17 @@ CFilter_Executor::CFilter_Executor(const GUID filter_id, std::recursive_mutex &c
 }
 
 void CFilter_Executor::Release_Filter() {
-	if (mFilter) mFilter.reset();
+	if (mFilter) {
+		mFilter.reset();
+	}
 }
 
 
 HRESULT IfaceCalling CFilter_Executor::Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list* error_description) {
 
-	if (!mFilter)
+	if (!mFilter) {
 		return E_FAIL;
+	}
 
 	HRESULT rc = mFilter->Configure(configuration, error_description);
 	if ((rc == S_OK) && mOn_Filter_Created) {
@@ -91,7 +94,9 @@ HRESULT IfaceCalling CTerminal_Filter::Configure(scgms::IFilter_Configuration* c
 
 HRESULT IfaceCalling CTerminal_Filter::Execute(scgms::IDevice_Event *event) {
 	
-	if (!event) return E_INVALIDARG;
+	if (!event) {
+		return E_INVALIDARG;
+	}
 
 	scgms::TDevice_Event *raw_event;
 	HRESULT rc = event->Raw(&raw_event);
@@ -104,7 +109,7 @@ HRESULT IfaceCalling CTerminal_Filter::Execute(scgms::IDevice_Event *event) {
 		mShutdown_Received = true;
 		mShutdown_Condition.notify_all();
 	}
-		
+
 	if (mCustom_Output) //if there's anybody interested in consuming the event
 		return mCustom_Output->Execute(event);	
 
@@ -128,13 +133,12 @@ HRESULT IfaceCalling CCopying_Terminal_Filter::Execute(scgms::IDevice_Event *eve
 			return CTerminal_Filter::Execute(event);
 		} else {
 			CDevice_Event clone;
-			clone.Initialize(raw_event);		
-
+			clone.Initialize(raw_event);
 
 			mEvents.push_back(std::move(clone));
 			return CTerminal_Filter::Execute(event);
 		}
 	}
-	else
-		return rc;
+
+	return rc;
 }

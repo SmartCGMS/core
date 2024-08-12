@@ -146,10 +146,12 @@ void CLoaded_Filters::load_libraries() {
 				lib_used |= Load_Descriptors<scgms::TGet_Approx_Descriptors, scgms::TApprox_Descriptor>(mApprox_Descriptors, lib.library, imported::rsGet_Approx_Descriptors);
 				lib_used |= Load_Descriptors<scgms::TGet_Signal_Descriptors, scgms::TSignal_Descriptor>(mSignal_Descriptors, lib.library, imported::rsGet_Signal_Descriptors);
 
-				if (lib_used)
+				if (lib_used) {
 					mLibraries.push_back(std::move(lib));
-				else
+				}
+				else {
 					lib.library.Unload();
+				}
 			}
 		}
 	}
@@ -157,7 +159,9 @@ void CLoaded_Filters::load_libraries() {
 
 
 HRESULT CLoaded_Filters::create_filter_body(const GUID *id, scgms::IFilter *next_filter, scgms::IFilter **filter) {
-	if ((!id) || (!next_filter)) return E_INVALIDARG;	
+	if ((!id) || (!next_filter)) {
+		return E_INVALIDARG;
+	}
 	auto call_create_filter = [](const imported::TLibraryInfo &info) { return info.create_filter; }; 
 	return Call_Func(call_create_filter, id, next_filter, filter);
 }
@@ -223,8 +227,9 @@ void CLoaded_Filters::describe_loaded_filters(refcnt::Swstr_list error_descripti
 		for (auto& lib : mLibraries)
 			error_description.push(lib.library.Lib_Path().wstring());
 	}
-	else
+	else {
 		error_description.push(dsNone);
+	}
 }
 
 GUID CLoaded_Filters::Resolve_Signal_By_Name(const wchar_t* name, bool& valid) {
@@ -244,23 +249,19 @@ GUID CLoaded_Filters::Resolve_Signal_By_Name(const wchar_t* name, bool& valid) {
 			return scgms::signal_Virtual[i];
 		}
 	}
-		
 
 	return Invalid_GUID;
 }
 
-
 scgms::SFilter create_filter_body(const GUID &id, scgms::IFilter *next_filter) {
 	scgms::SFilter result;
 	scgms::IFilter *filter;
-	
 
 	if (loaded_filters.create_filter_body(&id, next_filter, &filter) == S_OK)
 		result = refcnt::make_shared_reference_ext<scgms::SFilter, scgms::IFilter>(filter, false);
 
 	return result;
 }
-
 
 void describe_loaded_filters(refcnt::Swstr_list error_description) {
 	loaded_filters.describe_loaded_filters(error_description);

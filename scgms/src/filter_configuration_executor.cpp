@@ -58,14 +58,19 @@ CFilter_Configuration_Executor::~CFilter_Configuration_Executor() {
 }
 
 HRESULT IfaceCalling CFilter_Configuration_Executor::Execute(scgms::IDevice_Event *event) {	
-	if (!event) return E_INVALIDARG;
+	if (!event) {
+		return E_INVALIDARG;
+	}
 	return mComposite_Filter.Execute(event);    //also frees the event	
 }
 
 HRESULT IfaceCalling CFilter_Configuration_Executor::Terminate(const BOOL wait_for_shutdown) {
-	if (mComposite_Filter.Empty()) return S_FALSE;
-	if (wait_for_shutdown == TRUE) 
+	if (mComposite_Filter.Empty()) {
+		return S_FALSE;
+	}
+	if (wait_for_shutdown == TRUE) {
 		mTerminal_Filter.Wait_For_Shutdown();
+	}
 	
 	return mComposite_Filter.Clear();
 }
@@ -76,8 +81,7 @@ DLL_EXPORT HRESULT IfaceCalling execute_filter_configuration(scgms::IFilter_Chai
 	*executor = static_cast<scgms::IFilter_Executor*>(raw_executor.get());
 	(*executor)->AddRef();
 
-
-    refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
+	refcnt::Swstr_list shared_error_description = refcnt::make_shared_reference_ext<refcnt::Swstr_list, refcnt::wstr_list>(error_description, true);
 
 	HRESULT rc = raw_executor->Build_Filter_Chain(configuration, on_filter_created, on_filter_created_data, shared_error_description);
 	raw_executor.release();	//can release the unique pointer as it did its job and is needed no more
@@ -86,8 +90,6 @@ DLL_EXPORT HRESULT IfaceCalling execute_filter_configuration(scgms::IFilter_Chai
 		(*executor)->Release();
 		return rc;
 	}
-
-	
 
 	return S_OK;
 }
