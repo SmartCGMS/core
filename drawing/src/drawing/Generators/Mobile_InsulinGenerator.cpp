@@ -50,14 +50,12 @@ int CMobile_Insulin_Generator::sizeY = 800;
 
 constexpr time_t BolusColumnWidth = 10 * 60; // bolus columns is X minutes wide
 
-void CMobile_Insulin_Generator::Set_Canvas_Size(int width, int height)
-{
+void CMobile_Insulin_Generator::Set_Canvas_Size(int width, int height) {
 	sizeX = width;
 	sizeY = height;
 }
 
-void CMobile_Insulin_Generator::Write_Description()
-{
+void CMobile_Insulin_Generator::Write_Description() {
 	auto& grp = mDraw.Root().Add<drawing::Group>("background");
 
 	grp.Set_Default_Stroke_Width(0);
@@ -68,8 +66,7 @@ void CMobile_Insulin_Generator::Write_Description()
 		.Set_Anchor(drawing::Text::TextAnchor::START)
 		.Set_Font_Size(MobileHeaderTextSize);
 
-	for (a = mTimeRange.first; a < mTimeRange.second; a += ThreeHours)
-	{
+	for (a = mTimeRange.first; a < mTimeRange.second; a += ThreeHours) {
 		grp.Add<drawing::Rectangle>(startX + Normalize_Time_X(a), startY, Normalize_Time_X(a + ThreeHours) - Normalize_Time_X(a), sizeY)
 			.Set_Fill_Color(RGBColor::From_HTML_Color(Get_Time_Of_Day_Color(a)));
 	}
@@ -90,8 +87,7 @@ void CMobile_Insulin_Generator::Write_Description()
 		.Set_Font_Weight(drawing::Text::FontWeight::BOLD);
 }
 
-void CMobile_Insulin_Generator::Write_Body()
-{
+void CMobile_Insulin_Generator::Write_Body() {
 	ValueVector& basal = Utility::Get_Value_Vector_Ref(mInputData, "basal_insulin");
 	ValueVector& bolus = Utility::Get_Value_Vector_Ref(mInputData, "insulin");
 	ValueVector& iob = Utility::Get_Value_Vector_Ref(mInputData, "iob");
@@ -99,34 +95,40 @@ void CMobile_Insulin_Generator::Write_Body()
 	time_t maxTime = 0;
 
 	mMaxValueY = 2.0; // use 2 U as base maximum
-	for (auto& val : basal)
-	{
-		if (val.date < mTimeRange.first || val.date > mTimeRange.second)
+	for (auto& val : basal) {
+		if (val.date < mTimeRange.first || val.date > mTimeRange.second) {
 			continue;
-		if (val.value > mMaxValueY)
+		}
+		if (val.value > mMaxValueY) {
 			mMaxValueY = val.value;
-		if (val.date > maxTime)
+		}
+		if (val.date > maxTime) {
 			maxTime = val.date;
+		}
 	}
 
-	for (auto& val : bolus)
-	{
-		if (val.date < mTimeRange.first || val.date > mTimeRange.second)
+	for (auto& val : bolus) {
+		if (val.date < mTimeRange.first || val.date > mTimeRange.second) {
 			continue;
-		if (val.value > mMaxValueY)
+		}
+		if (val.value > mMaxValueY) {
 			mMaxValueY = val.value;
-		if (val.date > maxTime)
+		}
+		if (val.date > maxTime) {
 			maxTime = val.date;
+		}
 	}
 
-	for (auto& val : iob)
-	{
-		if (val.date < mTimeRange.first || val.date > mTimeRange.second)
+	for (auto& val : iob) {
+		if (val.date < mTimeRange.first || val.date > mTimeRange.second) {
 			continue;
-		if (val.value > mMaxValueY)
+		}
+		if (val.value > mMaxValueY) {
 			mMaxValueY = val.value;
-		if (val.date > maxTime)
+		}
+		if (val.date > maxTime) {
 			maxTime = val.date;
+		}
 	}
 
 	Write_Description();
@@ -150,15 +152,14 @@ void CMobile_Insulin_Generator::Write_Body()
 		double lastX = Normalize_Time_X(mTimeRange.first);
 		bool first = true;
 
-		for (size_t i = 0; i < iob.size(); i++)
-		{
+		for (size_t i = 0; i < iob.size(); i++) {
 			Value& val = iob[i];
 
-			if (val.date > mTimeRange.second || val.date < mTimeRange.first)
+			if (val.date > mTimeRange.second || val.date < mTimeRange.first) {
 				continue;
+			}
 
-			if (first)
-			{
+			if (first) {
 				first = false;
 				poly.Add_Point(startX + Normalize_Time_X(val.date), Normalize_Y(0));
 			}
@@ -178,12 +179,12 @@ void CMobile_Insulin_Generator::Write_Body()
 		grp.Set_Default_Stroke_Width(0);
 		grp.Set_Default_Fill_Color(RGBColor::From_HTML_Color(InsulinBolusColumnColor));
 
-		for (size_t i = 0; i < bolus.size(); i++)
-		{
+		for (size_t i = 0; i < bolus.size(); i++) {
 			Value& val = bolus[i];
 
-			if (val.date > mTimeRange.second || val.date < mTimeRange.first)
+			if (val.date > mTimeRange.second || val.date < mTimeRange.first) {
 				continue;
+			}
 
 			const double ColumnWidth = Normalize_Time_X(val.date + BolusColumnWidth) - Normalize_Time_X(val.date);
 
@@ -200,31 +201,30 @@ void CMobile_Insulin_Generator::Write_Body()
 		grp.Set_Default_Stroke_Width(0);
 		grp.Set_Default_Fill_Color(RGBColor::From_HTML_Color(InsulinBasalDotColor));
 
-		for (size_t i = 0; i < basal.size(); i++)
-		{
+		for (size_t i = 0; i < basal.size(); i++) {
 			Value& val = basal[i];
 
-			if (val.date > mTimeRange.second || val.date < mTimeRange.first)
+			if (val.date > mTimeRange.second || val.date < mTimeRange.first) {
 				continue;
+			}
 
 			// do not draw zero or near-zero boluses
-			if (val.value < 0.0001)
+			if (val.value < 0.0001) {
 				continue;
+			}
 
 			// val.value is in U/hr, by determining the time span, we could determine how much basal insulin were delivered in U
 			// TODO: change this when we have a pump implemented (either virtual or physical); the pump then should transform
 			//       basal rate to actually delivered units (and that's what we intend to visualize)
 
-			/*if (i < basal.size() - 1 && basal[i + 1].date < mTimeRange.second)
-			{
+			/*if (i < basal.size() - 1 && basal[i + 1].date < mTimeRange.second) {
 				const time_t timeSpan = basal[i + 1].date - val.date;
 				const double basalDelivered = (static_cast<double>(timeSpan)*val.value) / (60.0 * 60.0);
 
 				grp.Add<drawing::Circle>(startX + Normalize_Time_X(val.date), Normalize_Y(basalDelivered), 6);
 			}*/
 
-			if (val.value != lastValue)
-			{
+			if (val.value != lastValue) {
 				grp.Add<drawing::Circle>(startX + Normalize_Time_X(val.date), Normalize_Y(val.value), 4);
 				lastValue = val.value;
 			}
@@ -232,26 +232,21 @@ void CMobile_Insulin_Generator::Write_Body()
 	}
 }
 
-double CMobile_Insulin_Generator::Normalize_Time_X(time_t date) const
-{
+double CMobile_Insulin_Generator::Normalize_Time_X(time_t date) const {
 	return ((static_cast<double>(date - mTimeRange.first) / static_cast<double>(mTimeRange.second - mTimeRange.first)) * (sizeX - startX));
 }
 
-double CMobile_Insulin_Generator::Normalize_Y(double val) const
-{
+double CMobile_Insulin_Generator::Normalize_Y(double val) const {
 	double v = (sizeY - startY) * (val / mMaxValueY);
 	// invert axis
 	return startY + ((sizeY - startY) - v);
 }
 
-std::string CMobile_Insulin_Generator::Build_SVG()
-{
-	try
-	{
+std::string CMobile_Insulin_Generator::Build_SVG() {
+	try {
 		Write_Body();
 	}
-	catch (...)
-	{
+	catch (...) {
 		//
 	}
 
@@ -263,7 +258,6 @@ std::string CMobile_Insulin_Generator::Build_SVG()
 }
 
 CMobile_Insulin_Generator::CMobile_Insulin_Generator(DataMap &inputData, double maxValue, LocalizationMap &localization, int mmolFlag)
-	: CMobile_Generator(inputData, maxValue, localization, mmolFlag)
-{
+	: CMobile_Generator(inputData, maxValue, localization, mmolFlag) {
 	mTimeRange = Get_Display_Time_Range(inputData);
 }

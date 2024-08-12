@@ -48,14 +48,12 @@ int CMobile_Glucose_Generator::startY = MobileHeaderTextSize + 52; // header + t
 int CMobile_Glucose_Generator::sizeX = 800;
 int CMobile_Glucose_Generator::sizeY = 800;
 
-void CMobile_Glucose_Generator::Set_Canvas_Size(int width, int height)
-{
+void CMobile_Glucose_Generator::Set_Canvas_Size(int width, int height) {
 	sizeX = width;
 	sizeY = height;
 }
 
-void CMobile_Glucose_Generator::Write_Description()
-{
+void CMobile_Glucose_Generator::Write_Description() {
 	auto& grp = mDraw.Root().Add<drawing::Group>("background");
 
 	grp.Set_Default_Fill_Color(RGBColor::From_HTML_Color(TextColor));
@@ -66,8 +64,7 @@ void CMobile_Glucose_Generator::Write_Description()
 		.Set_Font_Weight(drawing::Text::FontWeight::BOLD)
 		.Set_Font_Size(MobileHeaderTextSize);
 
-	for (a = mTimeRange.first; a < mTimeRange.second; a += ThreeHours)
-	{
+	for (a = mTimeRange.first; a < mTimeRange.second; a += ThreeHours) {
 		grp.Add<drawing::Rectangle>(startX + Normalize_Time_X(a), startY, Normalize_Time_X(a + ThreeHours) - Normalize_Time_X(a), sizeY)
 			.Set_Fill_Color(RGBColor::From_HTML_Color(Get_Time_Of_Day_Color(a)));
 
@@ -76,6 +73,7 @@ void CMobile_Glucose_Generator::Write_Description()
 			.Set_Font_Size(MobileTextSize)
 			.Set_Font_Weight(drawing::Text::FontWeight::BOLD);
 	}
+
 	grp.Add<drawing::Text>(startX + Normalize_Time_X(a), 52 + 3.0 * 40 / 5.0, Get_Time_Of_Day_Title(a))
 		.Set_Anchor(drawing::Text::TextAnchor::END)
 		.Set_Font_Size(MobileTextSize)
@@ -103,8 +101,7 @@ void CMobile_Glucose_Generator::Write_Description()
 	const double targetMinY = Normalize_Y(BG_Target_Min) + 10;
 
 	// draw minimum only if it wouldn't overlap target range texts
-	if ((Normalize_Y(mMinValueY) - 4) - targetMinY > MobileTextSize)
-	{
+	if ((Normalize_Y(mMinValueY) - 4) - targetMinY > MobileTextSize) {
 		grp.Add<drawing::Text>(startX - 8, Normalize_Y(mMinValueY) - 4, Utility::Format_Decimal(mMinValueY, 1))
 			.Set_Anchor(drawing::Text::TextAnchor::END)
 			.Set_Font_Size(MobileTextSize)
@@ -127,27 +124,22 @@ void CMobile_Glucose_Generator::Write_Description()
 		.Set_Font_Weight(drawing::Text::FontWeight::BOLD);
 }
 
-void CMobile_Glucose_Generator::Set_Stroke_By_Value(drawing::Group& target, double value, int width)
-{
+void CMobile_Glucose_Generator::Set_Stroke_By_Value(drawing::Group& target, double value, int width) {
 	target.Set_Default_Stroke_Width(width);
 
-	if (value > BG_Elevated_Max)
-	{
+	if (value > BG_Elevated_Max) {
 		target.Set_Default_Stroke_Color(RGBColor::From_HTML_Color(MeasurementAboveColor));
 		target.Set_Default_Fill_Color(RGBColor::From_HTML_Color(MeasurementAboveColor));
 	}
-	else if (value > BG_Target_Max)
-	{
+	else if (value > BG_Target_Max) {
 		target.Set_Default_Stroke_Color(RGBColor::From_HTML_Color(MeasurementElevatedColor));
 		target.Set_Default_Fill_Color(RGBColor::From_HTML_Color(MeasurementElevatedColor));
 	}
-	else if (value < BG_Target_Min)
-	{
+	else if (value < BG_Target_Min) {
 		target.Set_Default_Stroke_Color(RGBColor::From_HTML_Color(MeasurementBelowColor));
 		target.Set_Default_Fill_Color(RGBColor::From_HTML_Color(MeasurementBelowColor));
 	}
-	else
-	{
+	else {
 		target.Set_Default_Stroke_Color(RGBColor::From_HTML_Color(MeasurementInRangeColor));
 		target.Set_Default_Fill_Color(RGBColor::From_HTML_Color(MeasurementInRangeColor));
 	}
@@ -164,21 +156,21 @@ static const std::array<std::string, 6> gPredictionMaps = {
 
 static const std::string gPhysicalActivitySignalName = "{F4438E9A-DD52-45BD-83CE-5E93615E62BD}";
 
-static bool Fill_Pred_Vector(DataMap& inputMap, ValueVector& dst)
-{
+static bool Fill_Pred_Vector(DataMap& inputMap, ValueVector& dst) {
 	ValueVector tmp;
 
 	time_t lastTime = 0;
 
-	for (size_t i = 0; i < gPredictionMaps.size(); i++)
-	{
+	for (size_t i = 0; i < gPredictionMaps.size(); i++) {
 		tmp = Utility::Get_Value_Vector(inputMap, gPredictionMaps[i]);
-		if (tmp.empty())
+		if (tmp.empty()) {
 			return false;
+		}
 
 		const auto& val = *tmp.rbegin();
-		if (val.date < lastTime)
+		if (val.date < lastTime) {
 			return false;
+		}
 
 		dst.push_back(val);
 		lastTime = val.date;
@@ -187,39 +179,46 @@ static bool Fill_Pred_Vector(DataMap& inputMap, ValueVector& dst)
 	return true;
 }
 
-void CMobile_Glucose_Generator::Write_Body()
-{
+void CMobile_Glucose_Generator::Write_Body() {
 	ValueVector& istVector = Utility::Get_Value_Vector_Ref(mInputData, "ist");
 	ValueVector predVector;// = Utility::Get_Value_Vector(mInputData, "{79EDF100-B0A2-4EE7-AB17-1637418DB15A}");
 
-	if (!Fill_Pred_Vector(mInputData, predVector))
+	if (!Fill_Pred_Vector(mInputData, predVector)) {
 		predVector.clear();
+	}
 
 	// start at targetMin
 	mMinValueY = BG_Target_Min;
 	// start at 10 mmol/l
 	mMaxValueY = 10.0;
-	for (auto& val : istVector)
-	{
-		if (val.date < mTimeRange.first || val.date > mTimeRange.second)
+	for (auto& val : istVector) {
+		if (val.date < mTimeRange.first || val.date > mTimeRange.second) {
 			continue;
-		if (val.value < 0 || val.value > 60.0) // NOTE: temporary hack, will not be included in new drawing implementation
+		}
+		if (val.value < 0 || val.value > 60.0) { // NOTE: temporary hack, will not be included in new drawing implementation
 			continue;
-		if (val.value > mMaxValueY)
+		}
+		if (val.value > mMaxValueY) {
 			mMaxValueY = val.value;
-		if (val.value < mMinValueY)
+		}
+		if (val.value < mMinValueY) {
 			mMinValueY = val.value;
+		}
 	}
-	for (auto& val : predVector)
-	{
-		if (val.date < mTimeRange.first || val.date > mTimeRange.second)
+
+	for (auto& val : predVector) {
+		if (val.date < mTimeRange.first || val.date > mTimeRange.second) {
 			continue;
-		if (val.value < 0 || val.value > 60.0) // NOTE: temporary hack, will not be included in new drawing implementation
+		}
+		if (val.value < 0 || val.value > 60.0) {// NOTE: temporary hack, will not be included in new drawing implementation
 			continue;
-		if (val.value > mMaxValueY)
+		}
+		if (val.value > mMaxValueY) {
 			mMaxValueY = val.value;
-		if (val.value < mMinValueY)
+		}
+		if (val.value < mMinValueY) {
 			mMinValueY = val.value;
+		}
 	}
 
 	// add some bottom valuepadding
@@ -235,14 +234,15 @@ void CMobile_Glucose_Generator::Write_Body()
 	{
 		auto& grp = mDraw.Root().Add<drawing::Group>("ist");
 
-		for (auto& val : istVector)
-		{
-			if (val.date < mTimeRange.first || val.date > mTimeRange.second)
+		for (auto& val : istVector) {
+			if (val.date < mTimeRange.first || val.date > mTimeRange.second) {
 				continue;
+			}
 
 			// NOTE: temporary hack, will not be included in new drawing implementation
-			if (val.value < 0 || val.value > 60.0)
+			if (val.value < 0 || val.value > 60.0) {
 				continue;
+			}
 
 			Set_Stroke_By_Value(grp, val.value);
 
@@ -251,8 +251,9 @@ void CMobile_Glucose_Generator::Write_Body()
 
 			Set_Stroke_By_Value(grp, val.value, 7);
 
-			if (!std::isnan(lastX))
+			if (!std::isnan(lastX)) {
 				grp.Add<drawing::Line>(lastX, lastY, curX, curY);
+			}
 
 			lastX = curX;
 			lastY = curY;
@@ -280,22 +281,21 @@ void CMobile_Glucose_Generator::Write_Body()
 		polyline2.Set_Fill_Opacity(0);
 		polyline2.Set_Stroke_Dash_Array({ 2, 5 });
 
-		for (auto& val : predVector)
-		{
-			if (val.date < mTimeRange.first || val.date > mTimeRange.second)
+		for (auto& val : predVector) {
+			if (val.date < mTimeRange.first || val.date > mTimeRange.second) {
 				continue;
+			}
 
 			// NOTE: temporary hack, will not be included in new drawing implementation
-			if (val.value < 0 || val.value > 60.0)
+			if (val.value < 0 || val.value > 60.0) {
 				continue;
+			}
 
 			curX = startX + Normalize_Time_X(val.date);
 			curY = Normalize_Y(val.value);
 
-			if (!std::isnan(lastX) && curX > lastMeasuredX)
-			{
-				if (!foundInitial)
-				{
+			if (!std::isnan(lastX) && curX > lastMeasuredX) {
+				if (!foundInitial) {
 					foundInitial = true;
 					polyline.Set_Position(lastX, lastY);
 					polyline.Add_Point(lastX, lastY);
@@ -312,8 +312,7 @@ void CMobile_Glucose_Generator::Write_Body()
 	}
 
 	// exercise group scope
-	try
-	{
+	try {
 		ValueVector& exerciseData = Utility::Get_Value_Vector_Ref(mInputData, gPhysicalActivitySignalName);
 
 		auto& grp = mDraw.Root().Add<drawing::Group>("exercise");
@@ -321,10 +320,8 @@ void CMobile_Glucose_Generator::Write_Body()
 		double lastExerciseValue = 0.0;
 		time_t lastExerciseTime = 0;
 
-		for (auto& val : exerciseData)
-		{
-			if (val.date < mTimeRange.first || val.date > mTimeRange.second)
-			{
+		for (auto& val : exerciseData) {
+			if (val.date < mTimeRange.first || val.date > mTimeRange.second) {
 				lastExerciseValue = val.value;
 				lastExerciseTime = val.date;
 				continue;
@@ -351,56 +348,48 @@ void CMobile_Glucose_Generator::Write_Body()
 			lastMeasuredX, Normalize_Y(lastExerciseValue + mMinValueY));
 
 	}
-	catch (...)
-	{
+	catch (...) {
 		// no exercise data - fine, we don't need them
 	}
 
 	// blood calibration group scope
-	try
-	{
+	try {
 		ValueVector& bloodCalibrationVector = Utility::Get_Value_Vector_Ref(mInputData, "bloodCalibration");
 
 		auto& grp = mDraw.Root().Add<drawing::Group>("bloodCal");
 
-		for (auto& val : bloodCalibrationVector)
-		{
-			if (val.date < mTimeRange.first || val.date > mTimeRange.second)
+		for (auto& val : bloodCalibrationVector) {
+			if (val.date < mTimeRange.first || val.date > mTimeRange.second) {
 				continue;
+			}
 
 			Set_Stroke_By_Value(grp, val.value);
 
 			grp.Add<drawing::Circle>(startX + Normalize_Time_X(val.date), Normalize_Y(val.value), 8);
 		}
 	}
-	catch (...)
-	{
+	catch (...) {
 		// when there's no blood calibration data, it's still ok
 	}
 }
 
-double CMobile_Glucose_Generator::Normalize_Time_X(time_t date) const
-{
+double CMobile_Glucose_Generator::Normalize_Time_X(time_t date) const {
 	return ((static_cast<double>(date - mTimeRange.first) / static_cast<double>(mTimeRange.second - mTimeRange.first)) * (sizeX - startX));
 }
 
-double CMobile_Glucose_Generator::Normalize_Y(double val) const
-{
+double CMobile_Glucose_Generator::Normalize_Y(double val) const {
 	double v = (sizeY - startY) * ((val - mMinValueY) / (mMaxValueY - mMinValueY));
 	// invert axis
 	return startY + ((sizeY - startY) - v);
 }
 
-std::string CMobile_Glucose_Generator::Build_SVG()
-{
+std::string CMobile_Glucose_Generator::Build_SVG() {
 	mMaxValueY = (mMaxValue > 12) ? mMaxValue : 12;
 
-	try
-	{
+	try {
 		Write_Body();
 	}
-	catch (...)
-	{
+	catch (...) {
 		//
 	}
 
@@ -412,7 +401,6 @@ std::string CMobile_Glucose_Generator::Build_SVG()
 }
 
 CMobile_Glucose_Generator::CMobile_Glucose_Generator(DataMap &inputData, double maxValue, LocalizationMap &localization, int mmolFlag)
-	: CMobile_Generator(inputData, maxValue, localization, mmolFlag)
-{
+	: CMobile_Generator(inputData, maxValue, localization, mmolFlag) {
 	mTimeRange = Get_Display_Time_Range(inputData);
 }

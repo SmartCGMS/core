@@ -49,7 +49,6 @@ struct TStored_Model_Params {
 	scgms::SModel_Parameter_Vector params;
 };
 
-
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 

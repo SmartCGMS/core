@@ -47,50 +47,47 @@ class Stats;
 /*
  * Graph (overall) generator class
  */
-class CGraph_Generator : public IGenerator
-{
-    private:
-        //
-
+class CGraph_Generator : public IGenerator {
 	protected:
 		scgms::CSignal_Description mSignal_Desc{};
-    protected:
-        // maximum value on Y axis
-        double mMaxValueY;
-        // time limits
+
+		// maximum value on Y axis
+		double mMaxValueY;
+		// time limits
 		time_t mMinD{ 0 }, mMaxD{ 0 }, mDifD{ 0 };
 
-        // writes plot body
-        void Write_Body();
-        // writes plot description (axis titles, ..)
-        void Write_Description();
-        // writes normalized set of lines
-        void Write_Normalized_Lines(ValueVector istVector, ValueVector bloodVector);
-        // writes bezier curve and counts errors on the path from supplied value vector values
+		// image start X coordinate
+		static int startX;
+		// image maximum X coordinate (excl. padding)
+		static int maxX;
+		// image maximum Y coordinate (excl. padding)
+		static int maxY;
+		// image limit X coordinate
+		static int sizeX;
+		// image limit Y coordinate
+		static int sizeY;
+
+	protected:
+		// writes plot body
+		void Write_Body();
+		// writes plot description (axis titles, ..)
+		void Write_Description();
+		// writes normalized set of lines
+		void Write_Normalized_Lines(ValueVector istVector, ValueVector bloodVector);
+		// writes bezier curve and counts errors on the path from supplied value vector values
 		void Write_QuadraticBezierCurve(const ValueVector& values);
 		// writes linear polyline
 		void Write_LinearCurve(const ValueVector& values, const Data& dataMeta);
 		// writes step function polyline
 		void Write_StepCurve(const ValueVector& values, const Data& dataMeta);
 
-        virtual double Normalize_Time_X(time_t x) const override;
-        virtual double Normalize_Y(double y) const override;
+		virtual double Normalize_Time_X(time_t x) const override;
+		virtual double Normalize_Y(double y) const override;
 
-        // image start X coordinate
-        static int startX;
-        // image maximum X coordinate (excl. padding)
-        static int maxX;
-        // image maximum Y coordinate (excl. padding)
-        static int maxY;
-        // image limit X coordinate
-        static int sizeX;
-        // image limit Y coordinate
-        static int sizeY;
+	public:
+		CGraph_Generator(DataMap &inputData, double maxValue, LocalizationMap &localization, int mmolFlag);
 
-    public:
-        CGraph_Generator(DataMap &inputData, double maxValue, LocalizationMap &localization, int mmolFlag);
+		static void Set_Canvas_Size(int width, int height);
 
-        static void Set_Canvas_Size(int width, int height);
-
-        virtual std::string Build_SVG() override;
+		virtual std::string Build_SVG() override;
 };

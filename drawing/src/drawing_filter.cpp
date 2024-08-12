@@ -103,8 +103,7 @@ class CSignal_Visualization_Config final
 		};
 
 		template<typename T>
-		bool Get_Map_Element(const GUID& id, const GUIDMap<T>& map, const T& default_value, T& target) const
-		{
+		bool Get_Map_Element(const GUID& id, const GUIDMap<T>& map, const T& default_value, T& target) const {
 			auto itr = map.find(id);
 			if (itr != map.end()) {
 				target = itr->second;
@@ -116,20 +115,17 @@ class CSignal_Visualization_Config final
 		}
 
 	public:
-		CSignal_Visualization_Config()
-		{
+		CSignal_Visualization_Config() {
 			//
 		}
 
-		bool Get_Signal_Force_Draw_Name(const GUID& id, std::wstring& target) const
-		{
+		bool Get_Signal_Force_Draw_Name(const GUID& id, std::wstring& target) const {
 			bool found = Get_Map_Element<std::wstring>(id, Force_Draw_Signals, target, target);
 
 			return found;
 		}
 
-		double Get_Signal_Values_Scale(const GUID& id) const
-		{
+		double Get_Signal_Values_Scale(const GUID& id) const {
 			double scale = 1.0;
 			Get_Map_Element(id, Signal_Scales, scale, scale);
 
@@ -144,7 +140,9 @@ CDrawing_Filter::CDrawing_Filter(scgms::IFilter *output) : CBase_Filter(output),
 }
 
 HRESULT IfaceCalling CDrawing_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
-	if (Internal_Query_Interface<scgms::IDrawing_Filter_Inspection>(scgms::IID_Drawing_Filter_Inspection, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<scgms::IDrawing_Filter_Inspection>(scgms::IID_Drawing_Filter_Inspection, *riid, ppvObj)) {
+		return S_OK;
+	}
 
 	return E_NOINTERFACE;
 }
@@ -156,28 +154,29 @@ HRESULT CDrawing_Filter::Do_Execute(scgms::UDevice_Event event) {
 	mChangedInternal = true;
 
 	// incoming level or calibration - store to appropriate vector
-	if (event.event_code() == scgms::NDevice_Event_Code::Level )
-	{
-		//mInputData[event.signal_id()][event.segment_id()].push_back(Value(event.level(), Rat_Time_To_Unix_Time(event.device_time()), event.segment_id()));
+	if (event.event_code() == scgms::NDevice_Event_Code::Level) {
+
 		auto &data = mInputData[event.signal_id()][event.segment_id()];
 		double insert_time = event.device_time();
-		if (!data.empty()) {			
+
+		if (!data.empty()) {
 			const auto last_time = data[data.size() - 1].date;
-			if (last_time != Rat_Time_To_Unix_Time(insert_time))
+			if (last_time != Rat_Time_To_Unix_Time(insert_time)) {
 				data.push_back(Value(event.level(), Rat_Time_To_Unix_Time(insert_time), event.segment_id()));
+			}
 			else {
 				data[data.size() - 1].Set_Value(event.level());
 			}
-		} else
+		}
+		else {
 			data.push_back(Value(event.level(), Rat_Time_To_Unix_Time(insert_time), event.segment_id()));
+		}
 	}
 	// incoming new parameters
-	else if (event.event_code() == scgms::NDevice_Event_Code::Parameters)
-	{
+	else if (event.event_code() == scgms::NDevice_Event_Code::Parameters) {
 		mParameterChanges[event.signal_id()][event.segment_id()].push_back(Value((double)Rat_Time_To_Unix_Time(event.device_time()), Rat_Time_To_Unix_Time(event.device_time()), event.segment_id()));
 	}
-	else if (event.event_code() == scgms::NDevice_Event_Code::Shut_Down)
-	{
+	else if (event.event_code() == scgms::NDevice_Event_Code::Shut_Down) {
 		// when the filter shuts down, store drawings to files
 		Force_Redraw();
 
@@ -190,38 +189,30 @@ HRESULT CDrawing_Filter::Do_Execute(scgms::UDevice_Event event) {
 		// TODO: store profile drawings
 	}
 	// incoming parameters reset information message
-	else if (event.event_code() == scgms::NDevice_Event_Code::Information)
-	{
+	else if (event.event_code() == scgms::NDevice_Event_Code::Information) {
 		// we catch parameter reset information message
-		if (event.info == rsParameters_Reset)
-		{
+		if (event.info == rsParameters_Reset) {
 			// TODO: verify, if parameter reset came for signal, that is really a calculated signal (not measured)
 
 			// reset of specific signal
-			if (event.signal_id() != Invalid_GUID)
-			{
+			if (event.signal_id() != Invalid_GUID) {
 				Reset_Signal(event.signal_id(), event.segment_id());
 				mSignalsBeingReset.insert(event.signal_id());
 			}
-			else // reset of all calculated signals (signal == Invalid_GUID)
-			{
-				for (auto& data : mInputData)
-				{
-					if (Signal_Mapping.find(data.first) == Signal_Mapping.end())
-					{
+			else {
+				for (auto& data : mInputData) {
+					if (Signal_Mapping.find(data.first) == Signal_Mapping.end()) {
 						Reset_Signal(data.first, event.segment_id());
 						mSignalsBeingReset.insert(event.signal_id());
 					}
 				}
 			}
 		}
-		else if (event.info == rsSegment_Recalculate_Complete)
-		{
+		else if (event.info == rsSegment_Recalculate_Complete) {
 			mSignalsBeingReset.erase(event.signal_id());
 //			mChanged = true;
 		}
-		else if (refcnt::WChar_Container_Equals_WString(event.info.get(), L"DrawingResize", 0, 13))
-		{
+		else if (refcnt::WChar_Container_Equals_WString(event.info.get(), L"DrawingResize", 0, 13)) {
 			std::wstring str = refcnt::WChar_Container_To_WString(event.info.get());
 			auto rpos = str.find(L'=');
 			auto cpos = str.find(L',');
@@ -237,8 +228,7 @@ HRESULT CDrawing_Filter::Do_Execute(scgms::UDevice_Event event) {
 
 			int height = static_cast<int>(std::stoull(str.substr(rpos + 1)));
 
-			switch (drawingId)
-			{
+			switch (drawingId) {
 				case scgms::TDrawing_Image_Type::Graph:
 					CGraph_Generator::Set_Canvas_Size(width, height);
 					break;
@@ -273,12 +263,10 @@ HRESULT CDrawing_Filter::Do_Execute(scgms::UDevice_Event event) {
 			mChanged = true;
 		}
 	}
-	else if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start || event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Stop)
-	{
+	else if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start || event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Stop) {
 		mSegmentMarkers.push_back(Value(0, Rat_Time_To_Unix_Time(event.device_time()), event.segment_id()));
 	}
-	else if (event.event_code() == scgms::NDevice_Event_Code::Warm_Reset)
-	{
+	else if (event.event_code() == scgms::NDevice_Event_Code::Warm_Reset) {
 		mInputData.clear();
 		mParameterChanges.clear();
 	}
@@ -288,8 +276,7 @@ HRESULT CDrawing_Filter::Do_Execute(scgms::UDevice_Event event) {
 	return mOutput.Send(event);
 }
 
-bool CDrawing_Filter::Force_Redraw(const std::unordered_set<uint64_t> &segmentIds, const std::set<GUID> &signalIds)
-{
+bool CDrawing_Filter::Force_Redraw(const std::unordered_set<uint64_t> &segmentIds, const std::set<GUID> &signalIds) {
 	mChangedInternal = false;
 
 	mDataMap.clear();
@@ -300,8 +287,7 @@ bool CDrawing_Filter::Force_Redraw(const std::unordered_set<uint64_t> &segmentId
 	return true;
 }
 
-bool CDrawing_Filter::Redraw_If_Changed(const std::unordered_set<uint64_t> &segmentIds, const std::set<GUID> &signalIds)
-{
+bool CDrawing_Filter::Redraw_If_Changed(const std::unordered_set<uint64_t> &segmentIds, const std::set<GUID> &signalIds) {
 	std::unique_lock<std::mutex> lck(mChangedMtx);
 
 	if (mChangedInternal || !segmentIds.empty() || !signalIds.empty())
@@ -310,21 +296,19 @@ bool CDrawing_Filter::Redraw_If_Changed(const std::unordered_set<uint64_t> &segm
 	return false;
 }
 
-void CDrawing_Filter::Reset_Signal(const GUID& signal_id, const uint64_t segment_id)
-{
+void CDrawing_Filter::Reset_Signal(const GUID& signal_id, const uint64_t segment_id) {
 	// incoming parameters just erases the signals, because a new set of calculated levels comes through the pipe
 	// remove just segment, for which the reset was issued
-	for (auto& dataPair : mInputData[signal_id])
-	{
+	for (auto& dataPair : mInputData[signal_id]) {
 		auto& data = dataPair.second;
 		data.erase(
 			std::remove_if(data.begin(), data.end(), [segment_id](Value const& a) { return a.segment_id == segment_id; }),
 			data.end()
 		);
 	}
+
 	// remove also markers
-	for (auto& dataPair : mInputData[signal_id])
-	{
+	for (auto& dataPair : mInputData[signal_id]) {
 		auto& data = dataPair.second;
 		data.erase(
 			std::remove_if(data.begin(), data.end(), [segment_id](Value const& a) { return a.segment_id == segment_id; }),
@@ -340,11 +324,11 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 
 	DataMap vectorsMap;
 
-	for (auto const& mapping : Signal_Mapping)
-	{
+	for (auto const& mapping : Signal_Mapping) {
 		// do not use signals we don't want to draw
-		if (!allSignals && signalIds.find(mapping.first) == signalIds.end())
+		if (!allSignals && signalIds.find(mapping.first) == signalIds.end()) {
 			continue;
+		}
 
 		vectorsMap[mapping.second] = Data({}, true, mInputData[mapping.first].empty(), false);
 
@@ -353,15 +337,14 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 		vec.signal_id = mapping.first;
 		vec.identifier = mapping.second;
 
-		if (Signal_Visualization_Config.Get_Signal_Force_Draw_Name(mapping.first, vec.nameAlias))
+		if (Signal_Visualization_Config.Get_Signal_Force_Draw_Name(mapping.first, vec.nameAlias)) {
 			vec.forceDraw = true;
+		}
 
 		vec.valuesScale = Signal_Visualization_Config.Get_Signal_Values_Scale(mapping.first);
 
-		for (auto& dataPair : mInputData[mapping.first])
-		{
-			if (allSegments || segmentIds.find(dataPair.first) != segmentIds.end())
-			{
+		for (auto& dataPair : mInputData[mapping.first]) {
+			if (allSegments || segmentIds.find(dataPair.first) != segmentIds.end()) {
 				const auto& data = dataPair.second;
 				vec.values.reserve(vec.values.size() + data.size());
 				std::copy(data.begin(), data.end(), std::back_inserter(vec.values));
@@ -380,27 +363,25 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 	std::map<GUID, std::string> calcSignalMap;
 	scgms::CSignal_Description signal_descriptions;
 
-	for (auto const& presentData : mInputData)
-	{
+	for (auto const& presentData : mInputData) {
 		// do not use signals we don't want to draw
-		if (!allSignals && signalIds.find(presentData.first) == signalIds.end())
+		if (!allSignals && signalIds.find(presentData.first) == signalIds.end()) {
 			continue;
+		}
 
-		if (Signal_Mapping.find(presentData.first) == Signal_Mapping.end() && calcSignalMap.find(presentData.first) == calcSignalMap.end())
+		if (Signal_Mapping.find(presentData.first) == Signal_Mapping.end() && calcSignalMap.find(presentData.first) == calcSignalMap.end()) {
 			calcSignalMap[presentData.first] = base + std::to_string(curIdx++);
+		}
 
 		const GUID& signal_id = presentData.first;
 
-		if (Signal_Mapping.find(presentData.first) == Signal_Mapping.end())
-		{
+		if (Signal_Mapping.find(presentData.first) == Signal_Mapping.end()) {
 			//const std::string& key = calcSignalMap[presentData.first];
 			const std::string& key = Narrow_WString(GUID_To_WString(presentData.first));
 
 			vectorsMap[key] = Data({}, true, false, true);
-			for (auto& dataPair : mInputData[signal_id])
-			{
-				if (allSegments || segmentIds.find(dataPair.first) != segmentIds.end())
-				{
+			for (auto& dataPair : mInputData[signal_id]) {
+				if (allSegments || segmentIds.find(dataPair.first) != segmentIds.end()) {
 					const auto& data = dataPair.second;
 					vectorsMap[key].values.reserve(vectorsMap[key].values.size() + data.size());
 					for (auto& val : data) {
@@ -410,30 +391,27 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 			}
 
 			auto refItr = mReferenceForCalcMap.find(presentData.first);
-			if (refItr != mReferenceForCalcMap.end())
-			{
+			if (refItr != mReferenceForCalcMap.end()) {
 				auto nameMeasuredItr = Signal_Mapping.find(refItr->second);
-				if (nameMeasuredItr != Signal_Mapping.end())
+				if (nameMeasuredItr != Signal_Mapping.end()) {
 					vectorsMap[key].refSignalIdentifier = nameMeasuredItr->second;
-				else
-				{
+				}
+				else {
 					auto nameCalcItr = calcSignalMap.find(refItr->second);
-					if (nameCalcItr != calcSignalMap.end())
+					if (nameCalcItr != calcSignalMap.end()) {
 						vectorsMap[key].refSignalIdentifier = nameCalcItr->second;
+					}
 				}
 			}
 
 			vectorsMap[key].identifier = key;
 			vectorsMap[key].signal_id = presentData.first;
 
-			if (mParameterChanges.find(signal_id) != mParameterChanges.end())
-			{
+			if (mParameterChanges.find(signal_id) != mParameterChanges.end()) {
 				const std::string pkey = "param_" + key;
 				vectorsMap[pkey] = Data({}, true, false, false);
-				for (auto& dataPair : mParameterChanges[signal_id])
-				{
-					if (allSegments || segmentIds.find(dataPair.first) != segmentIds.end())
-					{
+				for (auto& dataPair : mParameterChanges[signal_id]) {
+					if (allSegments || segmentIds.find(dataPair.first) != segmentIds.end()) {
 						const auto& data = dataPair.second;
 						vectorsMap[pkey].values.reserve(vectorsMap[pkey].values.size() + data.size());
 						std::copy(data.begin(), data.end(), std::back_inserter(vectorsMap[pkey].values));
@@ -445,22 +423,24 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 			}
 
 			signal_descriptions.for_each([&vectorsMap, &key, &presentData](scgms::TSignal_Descriptor desc) {
-				if (desc.id == presentData.first)
+				if (desc.id == presentData.first) {
 					vectorsMap[key].visualization_style = desc.visualization;
+				}
 			});
 
 			auto itr = mCalcSignalNameMap.find(signal_id);
-			if (itr != mCalcSignalNameMap.end())
+			if (itr != mCalcSignalNameMap.end()) {
 				mLocaleMap[key] = itr->second;
-			else
+			}
+			else {
 				mLocaleMap[key] = Narrow_WString(GUID_To_WString(signal_id));
+			}
 		}
 	}
 
 	mGraphMaxValue = 0.0;
 
-	for (auto& mapping : vectorsMap)
-	{
+	for (auto& mapping : vectorsMap) {
 		std::sort(mapping.second.values.begin(), mapping.second.values.end(), [](Value& a, Value& b) {
 			return a.date < b.date;
 		});
@@ -469,12 +449,11 @@ void CDrawing_Filter::Prepare_Drawing_Map(const std::unordered_set<uint64_t> &se
 
 		//if (signalId != scgms::signal_Carb_Intake && signalId != scgms::signal_Delivered_Insulin_Bolus && signalId != scgms::signal_Delivered_Insulin_Basal_Rate && signalId != scgms::signal_Physical_Activity
 		//	&& signalId != scgms::signal_ISIG && signalId != scgms::signal_COB && signalId != scgms::signal_IOB)
-		if (signalId == scgms::signal_BG || signalId == scgms::signal_IG)
-		{
-			for (auto& data : mapping.second.values)
-			{
-				if (data.value > mGraphMaxValue)
+		if (signalId == scgms::signal_BG || signalId == scgms::signal_IG) {
+			for (auto& data : mapping.second.values) {
+				if (data.value > mGraphMaxValue) {
 					mGraphMaxValue = std::min(data.value, 150.0); //http://www.guinnessworldrecords.com/world-records/highest-blood-sugar-level/
+				}
 			}
 		}
 	}
@@ -492,8 +471,7 @@ HRESULT CDrawing_Filter::Do_Configure(scgms::SFilter_Configuration configuration
 	mParkes_FilePath = configuration.Read_File_Path(rsDrawing_Filter_Filename_Parkes);
 	mECDF_FilePath = configuration.Read_File_Path(rsDrawing_Filter_Filename_ECDF);
 
-	if (mCanvasWidth != 0 && mCanvasHeight != 0)
-	{
+	if (mCanvasWidth != 0 && mCanvasHeight != 0) {
 		CAGP_Generator::Set_Canvas_Size(mCanvasWidth, mCanvasHeight);
 		CClark_Generator::Set_Canvas_Size(mCanvasWidth, mCanvasHeight);
 		CDay_Generator::Set_Canvas_Size(mCanvasWidth, mCanvasHeight);
@@ -512,20 +490,13 @@ HRESULT CDrawing_Filter::Do_Configure(scgms::SFilter_Configuration configuration
 		mCalcSignalNameMap[desc.id] = Narrow_WChar(desc.signal_description);
 	});
 
-	for (auto const& model : models)
-	{
-		for (size_t i = 0; i < model.number_of_calculated_signals; i++)
-		{
+	for (auto const& model : models) {
+		for (size_t i = 0; i < model.number_of_calculated_signals; i++) {
 			std::wstring wname = /*std::wstring(model.description) + L" - " + */signal_descriptions.Get_Name(model.calculated_signal_ids[i]);
 			mCalcSignalNameMap[model.calculated_signal_ids[i]] = Narrow_WString(wname);
 			mReferenceForCalcMap[model.calculated_signal_ids[i]] = model.reference_signal_ids[i];
 		}
 	}
-
-	//for (size_t i = 0; i < scgms::signal_Virtual.size(); i++)
-//		mCalcSignalNameMap[scgms::signal_Virtual[i]] = std::string("virtual ") + std::to_string(i);
-
-	
 
 	Fill_Localization_Map(mLocaleMap);
 
@@ -534,17 +505,17 @@ HRESULT CDrawing_Filter::Do_Configure(scgms::SFilter_Configuration configuration
 	return S_OK;
 }
 
-void CDrawing_Filter::Store_To_File(std::string& str, const filesystem::path& filePath)
-{
-	if (filePath.empty())
+void CDrawing_Filter::Store_To_File(std::string& str, const filesystem::path& filePath) {
+	if (filePath.empty()) {
 		return;
+	}
 
 	std::ofstream ofs(filePath);
 	ofs << str;
 }
 
-void CDrawing_Filter::Generate_Graphs(DataMap& valueMap, double maxValue, LocalizationMap& locales)
-{
+void CDrawing_Filter::Generate_Graphs(DataMap& valueMap, double maxValue, LocalizationMap& locales) {
+
 	// lock scope
 	{
 		std::unique_lock<std::mutex> lck(mRetrieveMtx);
@@ -636,14 +607,13 @@ HRESULT IfaceCalling CDrawing_Filter::Draw(scgms::TDrawing_Image_Type type, scgm
 	std::set<GUID> signalSet{};
 
 	// draw only selected segments
-	if (segmentIds != nullptr)
-	{
+	if (segmentIds != nullptr) {
 		auto vec = refcnt::Container_To_Vector(segmentIds);
 		segmentSet.insert(vec.begin(), vec.end());
 	}
+
 	// draw only selected signals
-	if (signalIds != nullptr)
-	{
+	if (signalIds != nullptr) {
 		auto vec = refcnt::Container_To_Vector(signalIds);
 		signalSet.insert(vec.begin(), vec.end());
 	}
@@ -652,8 +622,7 @@ HRESULT IfaceCalling CDrawing_Filter::Draw(scgms::TDrawing_Image_Type type, scgm
 
 	std::unique_lock<std::mutex> lck(mRetrieveMtx);
 
-	switch (type)
-	{
+	switch (type) {
 		case scgms::TDrawing_Image_Type::AGP:
 			return Get_Plot(mAGP_SVG, svg);
 		case scgms::TDrawing_Image_Type::Day:
@@ -664,8 +633,7 @@ HRESULT IfaceCalling CDrawing_Filter::Draw(scgms::TDrawing_Image_Type type, scgm
 			return Get_Plot(mClark_SVG, svg);
 		case scgms::TDrawing_Image_Type::Parkes:
 		{
-			switch (diagnosis)
-			{
+			switch (diagnosis) {
 				case scgms::TDiagnosis::Type1:
 					return Get_Plot(mParkes_type1_SVG, svg);
 				case scgms::TDiagnosis::Type2: 
@@ -694,15 +662,11 @@ HRESULT IfaceCalling CDrawing_Filter::Draw(scgms::TDrawing_Image_Type type, scgm
 	return E_INVALIDARG;
 }
 
-void CDrawing_Filter::Set_Locale_Title(LocalizationMap& locales, std::wstring title) const
-{
+void CDrawing_Filter::Set_Locale_Title(LocalizationMap& locales, std::wstring title) const {
 	locales[Narrow_WChar(rsDrawingLocaleTitle)] = Narrow_WString(title);
 }
 
-void CDrawing_Filter::Fill_Localization_Map(LocalizationMap& locales)
-{
-
-
+void CDrawing_Filter::Fill_Localization_Map(LocalizationMap& locales) {
 	locales[Narrow_WChar(rsDrawingLocaleTitle)] = Narrow_WChar(dsDrawingLocaleTitle);
 	locales[Narrow_WChar(rsDrawingLocaleTitleDay)] = Narrow_WChar(dsDrawingLocaleTitleDay);
 	locales[Narrow_WChar(rsDrawingLocaleSubtitle)] = Narrow_WChar(dsDrawingLocaleSubtitle);
@@ -744,20 +708,9 @@ void CDrawing_Filter::Fill_Localization_Map(LocalizationMap& locales)
 	locales[Narrow_WChar(rsDrawingLocaleCummulativeProbability)] = Narrow_WChar(dsDrawingLocaleCummulativeProbability);
 	locales[Narrow_WChar(rsDrawingLocaleElevatedGlucose)] = Narrow_WChar(dsDrawingLocaleElevatedGlucose);
 
-
 	scgms::CSignal_Description signal_descriptions;
 	for (auto &sig : Signal_Mapping) {
 		locales[sig.second] = Narrow_WString(signal_descriptions.Get_Name(sig.first));
 	}
 	locales["carbIntake"] = locales["carbs"];
-	   
-	/*
-	locales["basal_insulin_rate"] = "Suggested basal rate";
-	locales["cob"] = "Carbohydrates on board";
-	locales["iob"] = "Insulin on board";
-	locales["insactivity"] = "Insulin activity";
-	locales["calcd_insulin"] = "Calculated pre-meal bolus";
-	locales["carbIntake"] = "Carbohydrates intake";
-	locales["insulin_activity"] = "Insulin activity";
-*/	
 }

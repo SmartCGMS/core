@@ -82,8 +82,7 @@ extern const char* InsulinIoBStrokeColor;
 /*
  * Mobile generator parent
  */
-class CMobile_Generator : public IGenerator
-{
+class CMobile_Generator : public IGenerator {
 	protected:
 		std::pair<time_t, time_t> Get_Display_Time_Range(const DataMap& inputData) const;
 		static std::string Get_Time_Of_Day_Color(time_t curTime);

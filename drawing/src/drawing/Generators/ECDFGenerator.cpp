@@ -55,8 +55,7 @@ constexpr double Relative_Margin = 0.05;
 constexpr std::array<const char*, 4> X_Axis_Uniform_Titles = { { "0.1", "1", "10", "100" } };
 constexpr size_t Y_Axis_Step_Count = 11;
 
-void CECDF_Generator::Set_Canvas_Size(int width, int height)
-{
+void CECDF_Generator::Set_Canvas_Size(int width, int height) {
 	sizeX = width;
 	sizeY = height;
 
@@ -64,8 +63,7 @@ void CECDF_Generator::Set_Canvas_Size(int width, int height)
 	maxY = height;
 }
 
-void CECDF_Generator::Write_ECDF_Curve(const ValueVector& reference, const ValueVector& calculated, std::string& name)
-{
+void CECDF_Generator::Write_ECDF_Curve(const ValueVector& reference, const ValueVector& calculated, std::string& name) {
 	// we assume the levels are sorted, and that matching levels were calculated properly
 
 	std::vector<double> relErrors;
@@ -73,37 +71,39 @@ void CECDF_Generator::Write_ECDF_Curve(const ValueVector& reference, const Value
 
 	size_t i = 0, j = 0;
 
-	while (i < reference.size() && j < calculated.size())
-	{
-		while (i < reference.size() && j < calculated.size() && reference[i].date != calculated[j].date)
-		{
-			if (reference[i].date > calculated[j].date)
+	while (i < reference.size() && j < calculated.size()) {
+		while (i < reference.size() && j < calculated.size() && reference[i].date != calculated[j].date) {
+			if (reference[i].date > calculated[j].date) {
 				j++;
-			else
+			}
+			else {
 				i++;
+			}
 		}
 
-		if (i >= reference.size() || j >= calculated.size())
+		if (i >= reference.size() || j >= calculated.size()) {
 			break;
+		}
 
 		const double relErr = fabs((calculated[j].value / reference[i].value) - 1.0);
-		if (relErr < 1.0)
+		if (relErr < 1.0) {
 			relErrors.push_back(relErr);
+		}
 
 		i++;
 		j++;
 	}
 
-	if (relErrors.empty())
+	if (relErrors.empty()) {
 		return;
+	}
 
 	std::sort(relErrors.begin(), relErrors.end());
 	probabilities.resize(relErrors.size());
 
 	// here we have sorted errors, let us calculate 
 
-	for (i = 0; i < relErrors.size(); i++)
-	{
+	for (i = 0; i < relErrors.size(); i++) {
 		// calculate the cummulative probability
 		probabilities[i] = ((double)i / (double)relErrors.size());
 		relErrors[i] = std::log(relErrors[i]) / std::log(1000) + 1.0;
@@ -115,10 +115,10 @@ void CECDF_Generator::Write_ECDF_Curve(const ValueVector& reference, const Value
 	{
 		SVG::GroupGuard grp(mSvg, name + "EcdfCurve", true);
 
-		for (i = 0; i < relErrors.size(); i++)
-		{
-			if (relErrors[i] < 0.0)
+		for (i = 0; i < relErrors.size(); i++) {
+			if (relErrors[i] < 0.0) {
 				continue;
+			}
 
 			mSvg.Line(Normalize_X(lastX), Normalize_Y(1.0 - lastY), Normalize_X(relErrors[i]), Normalize_Y(1.0 - lastY));
 			mSvg.Line(Normalize_X(relErrors[i]), Normalize_Y(1.0-lastY), Normalize_X(relErrors[i]), Normalize_Y(1.0 - probabilities[i]));
@@ -132,14 +132,12 @@ void CECDF_Generator::Write_ECDF_Curve(const ValueVector& reference, const Value
 	}
 }
 
-void CECDF_Generator::Write_Body()
-{
+void CECDF_Generator::Write_Body() {
 	size_t curColorIdx = 0;
 
 	// this block calculates IST using linear interpolation for times of blood samples; this is wrong in many aspects, but:
 	// TODO: rework this to generic IST approximation!!! i.e. calculate filter variation
-	try
-	{
+	try {
 		auto& istVec = Utility::Get_Value_Vector_Ref(mInputData, "ist");
 		auto& bloodVec = Utility::Get_Value_Vector_Ref(mInputData, "blood");
 
@@ -147,47 +145,45 @@ void CECDF_Generator::Write_Body()
 
 		size_t cur_ist = 0;
 
-		if (istVec.size() > 0)
-		{
-			for (auto& val : bloodVec)
-			{
-				while (cur_ist < istVec.size() - 1)
-				{
+		if (istVec.size() > 0) {
+			for (auto& val : bloodVec) {
+				while (cur_ist < istVec.size() - 1) {
 					const auto& prevIst = istVec[cur_ist];
 					const auto& nextIst = istVec[cur_ist + 1];
 
 					// discard blood values before current ist (the values has to be orderer, so this means we dont have valid ist for it anyway
-					if (val.date < prevIst.date)
+					if (val.date < prevIst.date) {
 						break;
+					}
 
-					if (val.date > prevIst.date && val.date < nextIst.date)
-					{
+					if (val.date > prevIst.date && val.date < nextIst.date) {
 						const double k = static_cast<double>(nextIst.value - prevIst.value) / static_cast<double>(nextIst.date - prevIst.date);
 						const double q = static_cast<double>(prevIst.value);
 
-						if (std::isfinite(k))
-							istVec.insert(istVec.begin() + cur_ist + 1, Value{ k*static_cast<double>(val.date) + q, val.date, val.segment_id });
+						if (std::isfinite(k)) {
+							istVec.insert(istVec.begin() + cur_ist + 1, Value{ k * static_cast<double>(val.date) + q, val.date, val.segment_id });
+						}
 						break;
 					}
-					else
+					else {
 						cur_ist++;
+					}
 				}
 			}
 		}
 	}
-	catch (...)
-	{
+	catch (...) {
 		//
 	}
 
-	for (auto& dataVector : mInputData)
-	{
-		if (!dataVector.second.refSignalIdentifier.empty())
-		{
-			if (dataVector.first == "ist")
+	for (auto& dataVector : mInputData) {
+		if (!dataVector.second.refSignalIdentifier.empty()) {
+			if (dataVector.first == "ist") {
 				mSvg.Set_Stroke(1, "blue", "none");
-			else
+			}
+			else {
 				mSvg.Set_Stroke(1, Utility::Curve_Colors[curColorIdx], "none");
+			}
 
 			// calculated curve group scope
 			{
@@ -195,18 +191,19 @@ void CECDF_Generator::Write_Body()
 
 				const auto& calc = Utility::Get_Value_Vector(mInputData, dataVector.first);
 				const auto& ref = Utility::Get_Value_Vector(mInputData, dataVector.second.refSignalIdentifier);
-				if (!calc.empty() && !ref.empty())
+				if (!calc.empty() && !ref.empty()) {
 					Write_ECDF_Curve(ref, calc, dataVector.second.identifier);
+				}
 			}
 
-			if (dataVector.first != "ist")
+			if (dataVector.first != "ist") {
 				curColorIdx = (curColorIdx + 1) % Utility::Curve_Colors.size();
+			}
 		}
 	}
 }
 
-void CECDF_Generator::Write_Description()
-{
+void CECDF_Generator::Write_Description() {
 	// X axis scope
 	{
 		SVG::GroupGuard grp(mSvg, "axis_x", false);
@@ -215,8 +212,7 @@ void CECDF_Generator::Write_Description()
 		mSvg.Line(Normalize_X(0.0), Normalize_Y(1.0), Normalize_X(1.0), Normalize_Y(1.0));
 
 		// X axis titles
-		for (size_t i = 0; i < X_Axis_Uniform_Titles.size(); i++)
-		{
+		for (size_t i = 0; i < X_Axis_Uniform_Titles.size(); i++) {
 			const double xpos = (double)i * (1.0 / (double)(X_Axis_Uniform_Titles.size() - 1));
 			mSvg.Line(Normalize_X(xpos), Normalize_Y(1.0), Normalize_X(xpos), Normalize_Y(1.0) + 10);
 
@@ -231,8 +227,7 @@ void CECDF_Generator::Write_Description()
 		mSvg.Set_Stroke(1, "black", "none");
 		mSvg.Line(Normalize_X(0.0), Normalize_Y(1.0), Normalize_X(0.0), Normalize_Y(0.0));
 
-		for (size_t i = 0; i < Y_Axis_Step_Count; i++)
-		{
+		for (size_t i = 0; i < Y_Axis_Step_Count; i++) {
 			const double ypos = ((double)i * (1.0 / (double)(Y_Axis_Step_Count - 1)));
 			mSvg.Line(Normalize_X(0.0), Normalize_Y(ypos), Normalize_X(0.0) - 10, Normalize_Y(ypos));
 
@@ -256,8 +251,7 @@ void CECDF_Generator::Write_Description()
 	}
 }
 
-void CECDF_Generator::Write_Legend()
-{
+void CECDF_Generator::Write_Legend() {
 	mSvg.Set_Default_Stroke();
 
 	// legend group scope
@@ -267,20 +261,21 @@ void CECDF_Generator::Write_Legend()
 		size_t curColorIdx = 0;
 		double y = 55;
 
-		for (auto& dataVector : mInputData)
-		{
-			if (!dataVector.second.refSignalIdentifier.empty() && !dataVector.second.values.empty())
-			{
-				if (dataVector.first == "ist")
+		for (auto& dataVector : mInputData) {
+			if (!dataVector.second.refSignalIdentifier.empty() && !dataVector.second.values.empty()) {
+				if (dataVector.first == "ist") {
 					mSvg.Set_Stroke(1, "blue", "none");
-				else
+				}
+				else {
 					mSvg.Set_Stroke(1, Utility::Curve_Colors[curColorIdx], Utility::Curve_Colors[curColorIdx]);
+				}
 
 				std::string name = tr(dataVector.second.identifier);
 
 				auto refItr = mInputData.find(dataVector.second.refSignalIdentifier);
-				if (refItr != mInputData.end())
+				if (refItr != mInputData.end()) {
 					name += " (" + tr(dataVector.second.refSignalIdentifier) + ")";
+				}
 
 				SVG::GroupGuard diffGrp(mSvg, dataVector.second.identifier, false);
 				mSvg.Link_Text_color(Normalize_X(0.0) + 20, y, name, "", 12); // TODO: add visibility change function
@@ -295,24 +290,15 @@ void CECDF_Generator::Write_Legend()
 	}
 }
 
-double CECDF_Generator::Normalize_X(double x) const
-{
+double CECDF_Generator::Normalize_X(double x) const {
 	return (double)sizeX * (x*(1.0 - 2.0*Relative_Margin) + Relative_Margin);
 }
 
-double CECDF_Generator::Normalize_Y(double y) const
-{
+double CECDF_Generator::Normalize_Y(double y) const {
 	return (double)sizeY * (y*(1.0 - 2.0*Relative_Margin) + Relative_Margin);
 }
 
-CECDF_Generator::CECDF_Generator(DataMap &inputData, double maxValue, LocalizationMap &localization, int mmolFlag)
-	: IGenerator(inputData, maxValue, localization, mmolFlag)
-{
-	//
-}
-
-std::string CECDF_Generator::Build_SVG()
-{
+std::string CECDF_Generator::Build_SVG() {
 	mSvg.Header(sizeX, sizeY);
 	Write_Body();
 	Write_Description();
@@ -320,4 +306,9 @@ std::string CECDF_Generator::Build_SVG()
 	mSvg.Footer();
 
 	return mSvg.Dump();
+}
+
+CECDF_Generator::CECDF_Generator(DataMap &inputData, double maxValue, LocalizationMap &localization, int mmolFlag)
+	: IGenerator(inputData, maxValue, localization, mmolFlag) {
+	//
 }

@@ -46,71 +46,68 @@
 
 typedef std::map<std::string, std::string> LocalizationMap;
 
-struct Value
-{
-    Value(double _value = 0.0, time_t _date = 0, uint64_t _segment_id = 0);
-    ~Value();
+struct Value {
+	Value(double _value = 0.0, time_t _date = 0, uint64_t _segment_id = 0);
+	~Value();
 
-    double Get_Value();
-    void Set_Value(double _value);
+	double Get_Value();
+	void Set_Value(double _value);
 
-    double value;
-    time_t date;
-    time_t normalize;
-    uint64_t segment_id;
+	double value;
+	time_t date;
+	time_t normalize;
+	uint64_t segment_id;
 };
 
 typedef std::vector<Value> ValueVector;
 
 struct TCoordinate {
-    double x, y;
+	double x, y;
 };
 
-class Stats
-{
-    private:
-        std::vector<double> mAbsuluteError;
-        std::vector<double> mRelativeError;
-        double mSumAbsolute;
-        double mSumRelative;
-        bool mIsSorted;
-        bool mPrintStats;
+class Stats {
+	private:
+		std::vector<double> mAbsuluteError;
+		std::vector<double> mRelativeError;
+		double mSumAbsolute;
+		double mSumRelative;
+		bool mIsSorted;
+		bool mPrintStats;
 
-    public:
-        Stats();
-        ~Stats();
+	public:
+		Stats();
+		~Stats();
 
-        void Sort();
-        void Quartile_Rel(double& q0, double& q1, double& q2, double& q3, double& q4);
-        double Avarage_Rel() const;
-        void Quartile_Abs(double& q0, double& q1, double& q2, double& q3, double& q4);
-        double Avarage_Abs() const;
-        void Next_Error(double measured, double counted);
+		void Sort();
+		void Quartile_Rel(double& q0, double& q1, double& q2, double& q3, double& q4);
+		double Avarage_Rel() const;
+		void Quartile_Abs(double& q0, double& q1, double& q2, double& q3, double& q4);
+		double Avarage_Abs() const;
+		void Next_Error(double measured, double counted);
 
-        void Set_Print_Stats(bool state);
-        bool Get_Print_Stats() const;
+		void Set_Print_Stats(bool state);
+		bool Get_Print_Stats() const;
 };
 
-struct Data
-{
-    Data();
-    ~Data();
-    Data(ValueVector _values, bool _visible, bool _empty, bool _calculated = false);
+struct Data {
+	Data();
+	~Data();
+	Data(ValueVector _values, bool _visible, bool _empty, bool _calculated = false);
 
-    bool Is_Visible();
-    bool Is_Visible_Legend();
+	bool Is_Visible();
+	bool Is_Visible_Legend();
 
-    ValueVector values;
-    bool visible = false;
-    bool empty = true;
+	ValueVector values;
+	bool visible = false;
+	bool empty = true;
 	bool calculated = false;
 	scgms::NSignal_Visualization visualization_style = scgms::NSignal_Visualization::smooth;
 	GUID signal_id = Invalid_GUID;
 	std::string identifier;
 	std::string refSignalIdentifier;
-    bool forceDraw = false;
-    std::wstring nameAlias = L"";
-    double valuesScale = 1.0;
+	bool forceDraw = false;
+	std::wstring nameAlias = L"";
+	double valuesScale = 1.0;
 };
 
 typedef std::map<std::string, Data> DataMap;

@@ -50,14 +50,12 @@ int CMobile_Carbs_Generator::sizeY = 800;
 
 constexpr time_t DosageColumnWidth = 10 * 60; // column is "X minutes wide"
 
-void CMobile_Carbs_Generator::Set_Canvas_Size(int width, int height)
-{
+void CMobile_Carbs_Generator::Set_Canvas_Size(int width, int height) {
 	sizeX = width;
 	sizeY = height;
 }
 
-void CMobile_Carbs_Generator::Write_Description()
-{
+void CMobile_Carbs_Generator::Write_Description() {
 	auto& grp = mDraw.Root().Add<drawing::Group>("background");
 
 	grp.Set_Default_Stroke_Width(0);
@@ -68,8 +66,7 @@ void CMobile_Carbs_Generator::Write_Description()
 		.Set_Anchor(drawing::Text::TextAnchor::START)
 		.Set_Font_Size(MobileHeaderTextSize);
 
-	for (a = mTimeRange.first; a < mTimeRange.second; a += ThreeHours)
-	{
+	for (a = mTimeRange.first; a < mTimeRange.second; a += ThreeHours) {
 		grp.Add<drawing::Rectangle>(startX + Normalize_Time_X(a), startY, Normalize_Time_X(a + ThreeHours) - Normalize_Time_X(a), sizeY)
 			.Set_Fill_Color(RGBColor::From_HTML_Color(Get_Time_Of_Day_Color(a)));
 	}
@@ -90,27 +87,28 @@ void CMobile_Carbs_Generator::Write_Description()
 		.Set_Font_Weight(drawing::Text::FontWeight::BOLD);
 }
 
-void CMobile_Carbs_Generator::Write_Body()
-{
+void CMobile_Carbs_Generator::Write_Body() {
 	ValueVector& cob = Utility::Get_Value_Vector_Ref(mInputData, "cob");
 	ValueVector& carbs = Utility::Get_Value_Vector_Ref(mInputData, "carbs");
 
 	mMaxValueY = 1.0;
 
-	for (auto& val : carbs)
-	{
-		if (val.date > mTimeRange.second || val.date < mTimeRange.first)
+	for (auto& val : carbs) {
+		if (val.date > mTimeRange.second || val.date < mTimeRange.first) {
 			continue;
-		if (val.value > mMaxValueY)
+		}
+		if (val.value > mMaxValueY) {
 			mMaxValueY = val.value;
+		}
 	}
 
-	for (auto& val : cob)
-	{
-		if (val.date < mTimeRange.first || val.date > mTimeRange.second)
+	for (auto& val : cob) {
+		if (val.date < mTimeRange.first || val.date > mTimeRange.second) {
 			continue;
-		if (val.value > mMaxValueY)
+		}
+		if (val.value > mMaxValueY) {
 			mMaxValueY = val.value;
+		}
 	}
 
 	// insert 10% padding
@@ -134,15 +132,14 @@ void CMobile_Carbs_Generator::Write_Body()
 		double lastX = Normalize_Time_X(mTimeRange.first);
 		bool first = true;
 
-		for (size_t i = 0; i < cob.size(); i++)
-		{
+		for (size_t i = 0; i < cob.size(); i++) {
 			Value& val = cob[i];
 
-			if (val.date > mTimeRange.second || val.date < mTimeRange.first)
+			if (val.date > mTimeRange.second || val.date < mTimeRange.first) {
 				continue;
+			}
 
-			if (first)
-			{
+			if (first) {
 				first = false;
 				poly.Add_Point(startX + Normalize_Time_X(val.date), Normalize_Y(0));
 			}
@@ -162,10 +159,10 @@ void CMobile_Carbs_Generator::Write_Body()
 		grp.Set_Default_Stroke_Width(0);
 		grp.Set_Default_Fill_Color(RGBColor::From_HTML_Color(CarbsColumnColor));
 
-		for (auto& val : carbs)
-		{
-			if (val.date > mTimeRange.second || val.date < mTimeRange.first)
+		for (auto& val : carbs) {
+			if (val.date > mTimeRange.second || val.date < mTimeRange.first) {
 				continue;
+			}
 
 			const double ColWidth = Normalize_Time_X(val.date + DosageColumnWidth) - Normalize_Time_X(val.date);
 
@@ -174,26 +171,21 @@ void CMobile_Carbs_Generator::Write_Body()
 	}
 }
 
-double CMobile_Carbs_Generator::Normalize_Time_X(time_t date) const
-{
+double CMobile_Carbs_Generator::Normalize_Time_X(time_t date) const {
 	return ((static_cast<double>(date - mTimeRange.first) / static_cast<double>(mTimeRange.second - mTimeRange.first)) * (sizeX - startX));
 }
 
-double CMobile_Carbs_Generator::Normalize_Y(double val) const
-{
+double CMobile_Carbs_Generator::Normalize_Y(double val) const {
 	double v = (sizeY - startY) * (val / mMaxValueY);
 	// invert axis
 	return startY + ((sizeY - startY) - v);
 }
 
-std::string CMobile_Carbs_Generator::Build_SVG()
-{
-	try
-	{
+std::string CMobile_Carbs_Generator::Build_SVG() {
+	try {
 		Write_Body();
 	}
-	catch (...)
-	{
+	catch (...) {
 		//
 	}
 
@@ -205,7 +197,6 @@ std::string CMobile_Carbs_Generator::Build_SVG()
 }
 
 CMobile_Carbs_Generator::CMobile_Carbs_Generator(DataMap &inputData, double maxValue, LocalizationMap &localization, int mmolFlag)
-	: CMobile_Generator(inputData, maxValue, localization, mmolFlag)
-{
+	: CMobile_Generator(inputData, maxValue, localization, mmolFlag) {
 	mTimeRange = Get_Display_Time_Range(inputData);
 }

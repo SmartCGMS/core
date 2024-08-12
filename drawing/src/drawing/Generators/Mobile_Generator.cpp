@@ -62,21 +62,20 @@ const char* InsulinBasalDotColor = "#5390F5";
 const char* InsulinIoBFillColor = "#5390F5";
 const char* InsulinIoBStrokeColor = "#5390F5";
 
-std::pair<time_t, time_t> CMobile_Generator::Get_Display_Time_Range(const DataMap& inputData) const
-{
+std::pair<time_t, time_t> CMobile_Generator::Get_Display_Time_Range(const DataMap& inputData) const {
 	time_t maxVal = 0;
 
-	for (const auto& mp : inputData)
-	{
-		for (const auto& val : mp.second.values)
-		{
-			if (val.date > maxVal)
+	for (const auto& mp : inputData) {
+		for (const auto& val : mp.second.values) {
+			if (val.date > maxVal) {
 				maxVal = val.date;
+			}
 		}
 	}
 
-	if (maxVal < 0)
+	if (maxVal < 0) {
 		maxVal = time(nullptr);
+	}
 
 	// we align time to 3h blocks (to the future)
 
@@ -89,28 +88,33 @@ std::pair<time_t, time_t> CMobile_Generator::Get_Display_Time_Range(const DataMa
 	return { maxVal - 12 * 60 * 60, maxVal };
 }
 
-std::string CMobile_Generator::Get_Time_Of_Day_Color(time_t curTime)
-{
+std::string CMobile_Generator::Get_Time_Of_Day_Color(time_t curTime) {
 	const time_t curHr = (curTime % OneDay) / (60 * 60);
-	if (curHr >= 21)		// 21-24
+	if (curHr >= 21) {		// 21-24
 		return ColumnColor_Shade2;
-	else if (curHr >= 18)	// 18-21
+	}
+	else if (curHr >= 18) {	// 18-21
 		return ColumnColor_Shade3;
-	else if (curHr >= 15)	// 15-18
+	}
+	else if (curHr >= 15) {	// 15-18
 		return ColumnColor_Shade4;
-	else if (curHr >= 12)	// 12-15
+	}
+	else if (curHr >= 12) {	// 12-15
 		return ColumnColor_Shade5;
-	else if (curHr >= 9)	// 9-12
+	}
+	else if (curHr >= 9) {	// 9-12
 		return ColumnColor_Shade4;
-	else if (curHr >= 6)	// 6-9
+	}
+	else if (curHr >= 6) {	// 6-9
 		return ColumnColor_Shade3;
-	else if (curHr >= 3)	// 3-6
+	}
+	else if (curHr >= 3) {	// 3-6
 		return ColumnColor_Shade2;
+	}
 	return ColumnColor_Shade1;
 }
 
-std::string CMobile_Generator::Get_Time_Of_Day_Title(time_t curTime)
-{
+std::string CMobile_Generator::Get_Time_Of_Day_Title(time_t curTime) {
 	const time_t curHr = (curTime % OneDay) / (60 * 60);
 	return std::to_string(curHr - curHr % 3) + ":00";
 }

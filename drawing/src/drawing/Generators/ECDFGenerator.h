@@ -45,10 +45,18 @@ class Stats;
 /*
  * Empirical cummulative dist. function (ECDF) generator class
  */
-class CECDF_Generator : public IGenerator
-{
-	private:
-		//
+class CECDF_Generator : public IGenerator {
+	protected:
+		// image start X coordinate
+		static int startX;
+		// image maximum X coordinate (excl. padding)
+		static int maxX;
+		// image maximum Y coordinate (excl. padding)
+		static int maxY;
+		// image limit X coordinate
+		static int sizeX;
+		// image limit Y coordinate
+		static int sizeY;
 
 	protected:
 		// writes plot body
@@ -62,17 +70,6 @@ class CECDF_Generator : public IGenerator
 
 		virtual double Normalize_X(double x) const override;
 		virtual double Normalize_Y(double y) const override;
-
-		// image start X coordinate
-		static int startX;
-		// image maximum X coordinate (excl. padding)
-		static int maxX;
-		// image maximum Y coordinate (excl. padding)
-		static int maxY;
-		// image limit X coordinate
-		static int sizeX;
-		// image limit Y coordinate
-		static int sizeY;
 
 	public:
 		CECDF_Generator(DataMap &inputData, double maxValue, LocalizationMap &localization, int mmolFlag);

@@ -45,11 +45,19 @@ class Stats;
 /*
  * Glucose profile generator class
  */
-class CMobile_Glucose_Generator : public CMobile_Generator
-{
+class CMobile_Glucose_Generator : public CMobile_Generator {
 	private:
 		double mMinValueY, mMaxValueY;
 		std::pair<time_t, time_t> mTimeRange;
+
+		// image start X coordinate
+		static int startX;
+		// image start Y coordinate
+		static int startY;
+		// image limit X coordinate
+		static int sizeX;
+		// image limit Y coordinate
+		static int sizeY;
 
 	protected:
 		// writes plot body
@@ -61,15 +69,6 @@ class CMobile_Glucose_Generator : public CMobile_Generator
 		virtual double Normalize_Y(double y) const override;
 
 		void Set_Stroke_By_Value(drawing::Group& target, double value, int width = 1);
-
-		// image start X coordinate
-		static int startX;
-		// image start Y coordinate
-		static int startY;
-		// image limit X coordinate
-		static int sizeX;
-		// image limit Y coordinate
-		static int sizeY;
 
 	public:
 		CMobile_Glucose_Generator(DataMap &inputData, double maxValue, LocalizationMap &localization, int mmolFlag);

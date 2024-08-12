@@ -44,47 +44,44 @@
  * @param delimiterClose - closing delimiter
  * @return a vector of strings originally delimited by delimiter
  */
-std::vector<std::string> split_string(std::string str, std::string delimiterOpen, std::string delimiterClose)
-{
-    std::vector<std::string> data;
-    std::replace(str.begin(), str.end(), '"', ' ');
-    size_t pos_open = 0;
-    size_t pos_close = 0;
-    size_t search_by = 0;
-    size_t start_by = 0;
-    int zanoreni = 0;
+std::vector<std::string> split_string(std::string str, std::string delimiterOpen, std::string delimiterClose) {
+	std::vector<std::string> data;
+	std::replace(str.begin(), str.end(), '"', ' ');
+	size_t pos_open = 0;
+	size_t pos_close = 0;
+	size_t search_by = 0;
+	size_t start_by = 0;
+	int depth = 0;
 
-    while (true)
-    {
-        pos_close = str.find(delimiterClose, search_by);
-        pos_open = str.find(delimiterOpen, search_by);
-        if (search_by == 0)
-            start_by = pos_open;
+	while (true) {
+		pos_close = str.find(delimiterClose, search_by);
+		pos_open = str.find(delimiterOpen, search_by);
+		if (search_by == 0) {
+			start_by = pos_open;
+		}
 
-        if (pos_close == std::string::npos)
-            break;
+		if (pos_close == std::string::npos) {
+			break;
+		}
 
-        if (pos_open < pos_close)
-        {
-            search_by = pos_open + 1;
-            zanoreni++;
-        }
-        else
-        {
-            search_by = pos_close;
-            zanoreni--;
-        }
+		if (pos_open < pos_close) {
+			search_by = pos_open + 1;
+			depth++;
+		}
+		else {
+			search_by = pos_close;
+			depth--;
+		}
 
-        if (zanoreni == 0)
-        {
-            size_t start = start_by + delimiterOpen.length();
-            data.push_back(str.substr(start, search_by - start));
-            str.erase(0, search_by + delimiterClose.length());
-            search_by = 0;
-        }
-    }
+		if (depth == 0) {
+			size_t start = start_by + delimiterOpen.length();
+			data.push_back(str.substr(start, search_by - start));
+			str.erase(0, search_by + delimiterClose.length());
+			search_by = 0;
+		}
+	}
 
-    return data;
+	return data;
 }
 
 /**
@@ -93,22 +90,20 @@ std::vector<std::string> split_string(std::string str, std::string delimiterOpen
  * @param delimiter - delimiter
  * @return a vector of strings originally delimited by delimiter
  */
-std::vector<std::string> split_string(std::string str, std::string delimiter)
-{
-    std::vector<std::string> data;
-    size_t pos = 0;
+std::vector<std::string> split_string(std::string str, std::string delimiter) {
+	std::vector<std::string> data;
+	size_t pos = 0;
 
-    while ((pos = str.find(delimiter)) != std::string::npos)
-    {
-        std::string pom = (str.substr(0, pos));
-        trim(pom);
-        data.push_back(pom);
-        str.erase(0, pos + delimiter.length());
-    }
+	while ((pos = str.find(delimiter)) != std::string::npos) {
+		std::string pom = (str.substr(0, pos));
+		trim(pom);
+		data.push_back(pom);
+		str.erase(0, pos + delimiter.length());
+	}
 
-    trim(str);
-    data.push_back(str);
-    return data;
+	trim(str);
+	data.push_back(str);
+	return data;
 }
 
 /**
@@ -117,21 +112,20 @@ std::vector<std::string> split_string(std::string str, std::string delimiter)
  * @param delimiter - delimiter
  * @return a vector of string with maximum size of 2, containing parts of string split by delimiter
  */
-std::vector<std::string> split_first_string(std::string str, std::string delimiter)
-{
-    std::vector<std::string> data;
-    size_t pos = 0;
+std::vector<std::string> split_first_string(std::string str, std::string delimiter) {
+	std::vector<std::string> data;
+	size_t pos = 0;
 
-    if ((pos = str.find(delimiter)) != std::string::npos)
-    {
-        std::string pom = (str.substr(0, pos));
-        trim(pom);
-        data.push_back(pom);
-        str.erase(0, pos + delimiter.length());
-    }
+	if ((pos = str.find(delimiter)) != std::string::npos)
+	{
+		std::string pom = (str.substr(0, pos));
+		trim(pom);
+		data.push_back(pom);
+		str.erase(0, pos + delimiter.length());
+	}
 
-    trim(str);
-    data.push_back(str);
+	trim(str);
+	data.push_back(str);
 
-    return data;
+	return data;
 }

@@ -51,15 +51,6 @@ class CMobile_Insulin_Generator : public CMobile_Generator
 		double mMaxValueY;
 		std::pair<time_t, time_t> mTimeRange;
 
-	protected:
-		// writes plot body
-		void Write_Body();
-		// writes plot description (axis titles, ..)
-		void Write_Description();
-
-		virtual double Normalize_Time_X(time_t x) const override;
-		virtual double Normalize_Y(double y) const override;
-
 		// image start X coordinate
 		static int startX;
 		// image start Y coordinate
@@ -68,6 +59,15 @@ class CMobile_Insulin_Generator : public CMobile_Generator
 		static int sizeX;
 		// image limit Y coordinate
 		static int sizeY;
+
+	protected:
+		// writes plot body
+		void Write_Body();
+		// writes plot description (axis titles, ..)
+		void Write_Description();
+
+		virtual double Normalize_Time_X(time_t x) const override;
+		virtual double Normalize_Y(double y) const override;
 
 	public:
 		CMobile_Insulin_Generator(DataMap &inputData, double maxValue, LocalizationMap &localization, int mmolFlag);

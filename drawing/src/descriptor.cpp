@@ -44,8 +44,7 @@
 
 #include <vector>
 
-namespace drawing
-{
+namespace drawing {
 	constexpr size_t param_count = 8;
 
 	constexpr scgms::NParameter_Type param_type[param_count] = {
@@ -111,8 +110,9 @@ DLL_EXPORT HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descrip
 }
 
 DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
-	if (*id == drawing::Drawing_Descriptor.id)
+	if (*id == drawing::Drawing_Descriptor.id) {
 		return Manufacture_Object<CDrawing_Filter>(filter, output);
+	}
 
 	return E_NOTIMPL;
 }
