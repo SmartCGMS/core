@@ -45,32 +45,32 @@
 
 #ifdef _WIN32
 std::string Get_VS_Installation_Path(std::string vswhere, const char* tool, const char* tool_switch, const std::string &install_dir_id) {
+
 	std::string result;
-	std::vector<char> output;	
+	std::vector<char> output;
 	vswhere.append(tool);
 	vswhere = quote(vswhere);
 	vswhere.append(" ");
 	vswhere.append(tool_switch);
-			
 
 	const std::vector<std::string> commands{ vswhere};
 	const wchar_t* rsShell = L"cmd.exe";
 	if (Execute_Commands(rsShell, L".", commands, output)) {
 		output.push_back(0);	//ensure ASCIIZ
- 			
+
 		char* install_dir_val = strstr(output.data(), install_dir_id.c_str());
 		if (install_dir_val) {
 			install_dir_val += install_dir_id.size();
 			char* install_dir_val_end = install_dir_val;
 
 			//until EOL (on any OS, or null-terminating char)
-			while ((*install_dir_val_end != 10) && (*install_dir_val_end != 13) && (*install_dir_val_end != 0))
+			while ((*install_dir_val_end != 10) && (*install_dir_val_end != 13) && (*install_dir_val_end != 0)) {
 				install_dir_val_end++;
+			}
 
 			result.assign(install_dir_val, install_dir_val_end);
 		}
 	}
-
 
 	return result;
 }
@@ -82,13 +82,14 @@ std::string Visual_Studio() {
 	size_t dummy_len;
 	if (getenv_s(&dummy_len, program_files_x86.data(), program_files_x86.size(), "ProgramFiles(x86)") == 0) {		
 		std::string vswhere_root{ program_files_x86.data() };		
-		if (!vswhere_root.empty())
+		if (!vswhere_root.empty()) {
 			vswhere_root.append("\\Microsoft Visual Studio\\Installer\\");
+		}
 
 		result = Get_VS_Installation_Path(vswhere_root, "vswhere.exe",  "-latest", "installationPath: ");
-		if (result.empty())
+		if (result.empty()) {
 			result = Get_VS_Installation_Path(vswhere_root, "vs_layout.exe", "instance", "InstallationPath = ");
-
+		}
 
 		if (!result.empty()) {
 			result.append("\\VC\\Auxiliary\\Build\\vcvarsall.bat");
@@ -99,13 +100,13 @@ std::string Visual_Studio() {
 		}
 
 #if defined(_M_AMD64) || defined(_M_X64)
-			result += "x64";
+		result += "x64";
 #elif defined(_M_IX86)
-			result += "x86";
+		result += "x86";
 #else
-			result += "arm64";
+		result += "arm64";
 #endif
-		}
+	}
 
 	return result;
 }

@@ -54,7 +54,6 @@ void load_custom_signals() {
 	path /= L"formats";
 	path /= L"custom_signals.csv";
 
-
 	std::wifstream data_file{ path, std::fstream::in };	
 	if (data_file.is_open()) {
 
@@ -69,7 +68,9 @@ void load_custom_signals() {
 				retstr = line.substr(0, pos);
 				line.erase(0, pos + 1/*len of ';'*/);
 			}
-			else retstr = line;
+			else {
+				retstr = line;
+			}
 
 			return trim(retstr);
 		};
@@ -81,7 +82,9 @@ void load_custom_signals() {
 			scgms::TSignal_Descriptor sig_desc = scgms::Null_Signal_Descriptor;
 			
 			*const_cast<GUID*>(&sig_desc.id) = WString_To_GUID(cut_column(), converted_ok);
-			if (!converted_ok) continue;
+			if (!converted_ok) {
+				continue;
+			}
 
 			signal_strings.push_back(cut_column());
 			sig_desc.signal_description = signal_strings[signal_strings.size() - 1].c_str();
@@ -91,18 +94,28 @@ void load_custom_signals() {
 
 
 			*const_cast<scgms::NSignal_Unit*>(&sig_desc.unit_id) = static_cast<scgms::NSignal_Unit>(str_2_int(cut_column(), converted_ok));
-			if (!converted_ok) continue;
+			if (!converted_ok) {
+				continue;
+			}
 			
 			*const_cast<uint32_t*>(&sig_desc.fill_color) = static_cast<uint32_t>(str_2_int(cut_column(), converted_ok));
-			if (!converted_ok) continue;
+			if (!converted_ok) {
+				continue;
+			}
 			*const_cast<uint32_t*>(&sig_desc.stroke_color) = static_cast<uint32_t>(str_2_int(cut_column(), converted_ok));
-			if (!converted_ok) continue;
+			if (!converted_ok) {
+				continue;
+			}
 
 			*const_cast<scgms::NSignal_Visualization*>(&sig_desc.visualization) = static_cast<scgms::NSignal_Visualization>(str_2_int(cut_column(), converted_ok));
-			if (!converted_ok) continue;
+			if (!converted_ok) {
+				continue;
+			}
 
 			auto tmp = Narrow_WString(cut_column());
-			if (tmp.size() != 1) continue;
+			if (tmp.size() != 1) {
+				continue;
+			}
 			*const_cast<scgms::NSignal_Mark*>(&sig_desc.mark) = static_cast<scgms::NSignal_Mark>(tmp[0]);
 			
 			tmp = Narrow_WString(cut_column());
@@ -110,14 +123,14 @@ void load_custom_signals() {
 				stroke_patterns.push_back(tmp);
 				sig_desc.stroke_pattern = reinterpret_cast<const scgms::NSignal_Mark*>(stroke_patterns[stroke_patterns.size() - 1].c_str());
 			}
-			else
+			else {
 				sig_desc.stroke_pattern = nullptr;
+			}
 
 			custom_signals.push_back(sig_desc);
 		}
 	}
 }
-
 
 DLL_EXPORT HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descriptor * *begin, scgms::TSignal_Descriptor * *end) {
 	std::call_once(signals_loaded, load_custom_signals);

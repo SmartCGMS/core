@@ -122,7 +122,7 @@ namespace native {
 		rsRequired_Signal_7,
 		rsRequired_Signal_8,
 		rsRequired_Signal_9,
-		rsRequired_Signal_10,		
+		rsRequired_Signal_10,
 		rsParameters,
 		nullptr,
 		rsEnvironment_Init,
@@ -146,7 +146,6 @@ namespace native {
 		config_param_name,
 		ui_param_tooltips
 	};
-	
 }
 
 
@@ -207,8 +206,9 @@ DLL_EXPORT HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descrip
 }
 
 DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
-	if (*id == native::native_filter_id)
+	if (*id == native::native_filter_id) {
 		return Manufacture_Object<CNative_Script>(filter, output);
+	}
 
 	return E_NOTIMPL;
 }

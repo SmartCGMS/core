@@ -50,7 +50,6 @@ CNative_Segment::CNative_Segment(scgms::SFilter output, const uint64_t segment_i
 	const size_t custom_data_size, const bool sync_to_any_signal) :
 	mSegment_Id(segment_id), mOutput(output), mEntry_Point(entry_point) {
 
-
 	mEnvironment.send = &Send_Handler;
 
 	mState_Container.resize(custom_data_size);
@@ -77,8 +76,9 @@ HRESULT CNative_Segment::Emit_Info(const bool is_error, const std::wstring& msg)
 		event.device_time() = mRecent_Time;
 		return mOutput.Send(event);
 	}
-	else
+	else {
 		return E_OUTOFMEMORY;
+	}
 }
 
 HRESULT CNative_Segment::Execute(const size_t signal_idx, GUID& signal_id, double& device_time, double& level) noexcept {
@@ -98,11 +98,13 @@ HRESULT CNative_Segment::Execute(const size_t signal_idx, GUID& signal_id, doubl
 
 		if (!Is_Any_NaN(mPrevious_Device_Time[signal_idx], mLast_Device_Time[signal_idx], mPrevious_Level[signal_idx], mLast_Level[signal_idx])) {
 			const double dx = mLast_Device_Time[signal_idx] - mPrevious_Device_Time[signal_idx];
-			if (dx > 0.0)
+			if (dx > 0.0) {
 				mEnvironment.slope[signal_idx] = (mLast_Level[signal_idx] - mPrevious_Level[signal_idx]) / dx;
-			else
+			}
+			else {
 				//time must advance forward only
 				mEnvironment.slope[signal_idx] = std::numeric_limits<double>::quiet_NaN();
+			}
 		}
 		else {
 			mEnvironment.slope[signal_idx] = std::numeric_limits<double>::quiet_NaN();
@@ -112,7 +114,7 @@ HRESULT CNative_Segment::Execute(const size_t signal_idx, GUID& signal_id, doubl
 	HRESULT rc = S_OK;
 
 	if (mSync_To_Any || user_set_signal) {	
-			rc = mEntry_Point(&signal_id, &device_time, &level, &mEnvironment, this);
+		rc = mEntry_Point(&signal_id, &device_time, &level, &mEnvironment, this);
 	}
 
 	return rc;
@@ -135,8 +137,9 @@ HRESULT CNative_Segment::Send_Event(const GUID* sig_id, const double device_time
 
 			rc = mOutput.Send(evt);
 		}
-		else
+		else {
 			rc = E_OUTOFMEMORY;
+		}
 	}
 	else {
 		//we are emitting an info event

@@ -41,7 +41,6 @@
 
 
 CNative_Script::CNative_Script(scgms::IFilter* output) : CBase_Filter(output) {
-
 }
 
 HRESULT CNative_Script::Do_Execute(scgms::UDevice_Event event) {
@@ -70,7 +69,6 @@ HRESULT CNative_Script::Do_Execute(scgms::UDevice_Event event) {
 				sig_index = sig_iter->second;
 			}
 
-
 			double device_time = event.device_time();
 			double level = event.level();
 			rc = seg_iter->second.Execute(sig_index, signal_id, device_time, level);
@@ -83,17 +81,15 @@ HRESULT CNative_Script::Do_Execute(scgms::UDevice_Event event) {
 				rc = mOutput.Send(event);
 			}	//otherwise, we discard the event and return the code
 		}
-
 	}
 	else {
 		//on segment stop, remove the segment from memory
-		if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Stop)
+		if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Stop) {
 			mSegments.erase(event.segment_id());
-
+		}
 
 		rc = mOutput.Send(event);
 	}
-
 
 	return rc;
 }
@@ -109,11 +105,14 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 		const bool is_any_signal = sig_id == scgms::signal_All;
 
 		//add only the meaningful, particular signals for which we get a particular level
-		if ((sig_id != scgms::signal_Null) && (sig_id != Invalid_GUID) && (!is_any_signal))	
+		if ((sig_id != scgms::signal_Null) && (sig_id != Invalid_GUID) && (!is_any_signal)) {
 			mSignal_To_Ordinal[sig_id] = i;
+		}
 
-		if (is_any_signal) //yet allow the possibility to invoke on any signal
+		//yet allow the possibility to invoke on any signal
+		if (is_any_signal) {
 			mInvoke_On_Any_Signal = true;
+		}
 	}
 
 	{
@@ -122,7 +121,6 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 			error_description.push(L"Failed to read the parameters. Please, review that all variables are set (if used).");
 			return E_INVALIDARG;
 		}
-
 
 		if (def.size() > native::max_parameter_count) {			
 			std::wstring err_desc = L"NativeScript: There is an excessive number of parameters (loaded: ";
@@ -152,15 +150,12 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 	filesystem::path init_path = configuration.Read_String(native::rsEnvironment_Init);
 	filesystem::path compiler_path = configuration.Read_String(native::rsCompiler_Name);
 
-
-
 	if (script_path.empty()) {
 		error_description.push(L"Script cannot be empty.");	//because we may still attempt to derive and load dll by its path
 		return E_INVALIDARG;
 	}
 
 	filesystem::path dll_path = filesystem::path{ script_path }.replace_extension(CDynamic_Library::Default_Extension());
-
 
 	//if there would be no script given, we will try to execute the dll
 	bool rebuild = Is_Regular_File_Or_Symlink(script_path) && filesystem::exists(script_path);
@@ -201,7 +196,6 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 			const std::wstring sdk_include = configuration.Read_String(native::rsSmartCGMS_Include_Dir);
 			if (Compile(compiler_path, init_path, script_path, dll_path, sdk_include, custom_compile_options)) {
 				//compilation seems to complete OK
-			
 			}
 			else {
 				error_description.push(L"Failed to compile. Please, review the build log file.");
@@ -228,8 +222,9 @@ HRESULT CNative_Script::Do_Configure(scgms::SFilter_Configuration configuration,
 	//if the script supports a state, then we must know its size
 	{
 		native::TCustom_Data_Size custom_data_size = reinterpret_cast<native::TCustom_Data_Size>(mDll.Resolve(native::rsCustom_Data_Size));
-		if (custom_data_size != nullptr)
+		if (custom_data_size != nullptr) {
 			mCustom_Data_Size = custom_data_size();
+		}
 	}
 
 	return S_OK;

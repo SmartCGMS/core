@@ -40,7 +40,6 @@
 #include <scgms/rtl/hresult.h>
 #include <scgms/rtl/ModelsLib.h>
 
-
 namespace native {
 	constexpr GUID native_filter_id = { 0x2abad468, 0x1708, 0x48cc, { 0xa1, 0x7a, 0x64, 0xab, 0xbe, 0xc8, 0x73, 0x27 } };	// {2ABAD468-1708-48CC-A17A-64ABBEC87327}	
 

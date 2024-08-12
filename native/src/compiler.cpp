@@ -54,7 +54,6 @@
 	#endif
 #endif
 
-
 struct TCompiler_Invokation {
 	const wchar_t* file_name_prefix;
 	const char* options;
@@ -66,15 +65,17 @@ const char* def_file_var = "$(export)";
 const char* sdk_include_var = "$(include)";
 const char* intermediate_var = "$(intermediate)";
 
-const filesystem::path out_dir{ "out" };	//subdirectory where to place all the intermediate, object files
+//subdirectory where to place all the intermediate, object files
+const filesystem::path out_dir{ "out" };
 
 const std::vector<TCompiler_Invokation> compilers = {
 	{L"g++",  "-O2 -fanalyzer -march=native -Weverything, -Wl,-rpath,. -fPIC -shared -save-temps=$(intermediate) -o $(output) -DSCGMS_SCRIPT -std=c++17 -lstdc++fs -lm -I $(include)  $(source)"},
-	#ifdef WIN32
-		{L"clang++",  "-O2 -march=native  -Wall -Wextra -shared -save-temps=$(intermediate) -o $(output) -DSCGMS_SCRIPT -std=c++17 -v -I $(include)  $(source)"},
-	#else
-		{L"clang++",  "-O2 -march=native -Wall -Wextra -Wl,-rpath,. -fPIC -shared -save-temps=$(intermediate) -o $(output) -DSCGMS_SCRIPT -std=c++17 -lstdc++fs -lm -I $(include)  $(source)"},
-	#endif
+#ifdef WIN32
+	{L"clang++",  "-O2 -march=native  -Wall -Wextra -shared -save-temps=$(intermediate) -o $(output) -DSCGMS_SCRIPT -std=c++17 -v -I $(include)  $(source)"},
+#else
+	{L"clang++",  "-O2 -march=native -Wall -Wextra -Wl,-rpath,. -fPIC -shared -save-temps=$(intermediate) -o $(output) -DSCGMS_SCRIPT -std=c++17 -lstdc++fs -lm -I $(include)  $(source)"},
+#endif
+
 #ifdef AVX512
 	{L"cl",  "/std:c++17 /analyze /sdl /GS /guard:cf /Ox /GL /Gv /arch:AVX512 /EHsc /D \"UNICODE\" /D \"SCGMS_SCRIPT\" /I $(include) /LD /Fe: $(output) /MD $(source) /Fo:$(intermediate) /link /MACHINE:X64 /DEF:$(export) /DEBUG:FULL"}
 #elif __AVX2__
@@ -130,8 +131,9 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 			}
 		}
 	}
-	else
+	else {
 		effective_compiler_options = Narrow_WString(custom_options);
+	}
 
 	//at this moment, custom options may be empty - but it may a that user supplied e.g.; own custom build batch file
 
@@ -142,17 +144,17 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	const filesystem::path intermediate_path = dst_path / out_dir;// / "";
 	std::error_code ec;
 	filesystem::create_directories(intermediate_path, ec);
-	if (ec)
+	if (ec) {
 		return false;
+	}
 
 	//filesystem::path effective_intermediate_dll_path{ intermediate_dll_path };
-		//effective_intermediate_dll_path.replace_extension(CDynamic_Library::Default_Extension());
+	//effective_intermediate_dll_path.replace_extension(CDynamic_Library::Default_Extension());
 
 	const filesystem::path intermediate_dll_path = filesystem::path{ intermediate_path / target_dll.stem() }.replace_extension(CDynamic_Library::Default_Extension());
 
 	const filesystem::path def_path = intermediate_path / (name_prefix + L"_export.def");
 	const filesystem::path build_log_path = intermediate_path / (name_prefix + L"_build.log");
-	
 
 	//let's try to locate the SmartCGMS include dir
 	filesystem::path sdk_include = configured_sdk_include;
@@ -173,13 +175,16 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	std::string intermediate_patched_path{ intermediate_path.string() };
 	//there's MSVC bug, which requires that this particular dir needs at least one forward slash
 	if (effective_compiler == "cl") {
-		for (auto& ch : intermediate_patched_path)
+		for (auto& ch : intermediate_patched_path) {
 			if (ch == '\\') ch = '/';
+		}
 		intermediate_patched_path += '/';	//must end as a directory
 
 		replace_in_place(effective_compiler_options, out_file_var, quote(intermediate_patched_path));
-	} else
-			replace_in_place(effective_compiler_options, out_file_var, quote(intermediate_dll_path.string()));
+	}
+	else {
+		replace_in_place(effective_compiler_options, out_file_var, quote(intermediate_dll_path.string()));
+	}
 	
 	replace_in_place(effective_compiler_options, def_file_var, quote(def_path.string()));
 	replace_in_place(effective_compiler_options, source_files_var, complete_sources);
@@ -190,21 +195,27 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	{
 		std::error_code ec;
 		filesystem::remove(target_dll, ec);		//returns true if deleted, false not exist => need to check ec
-		if (!ec) filesystem::remove(def_path, ec);
-		if (!ec) filesystem::remove(build_log_path, ec);
-		if (!ec) filesystem::remove(intermediate_dll_path, ec);
-		if (ec)
+		if (!ec) {
+			filesystem::remove(def_path, ec);
+		}
+		if (!ec) {
+			filesystem::remove(build_log_path, ec);
+		}
+		if (!ec) {
+			filesystem::remove(intermediate_dll_path, ec);
+		}
+
+		if (ec) {
 			return false;
+		}
 	}
 
 	//4. create the native.cpp, native.h a source.def files
 	{
-		{
-			std::ofstream def_file{ def_path };
-			def_file << "LIBRARY " << target_dll.filename().string() << std::endl << std::endl << //.string to remove quotes
-				"EXPORTS" << std::endl << "\t" << native::rsScript_Entry_Symbol << std::endl
-				<< "\t" << native::rsCustom_Data_Size << std::endl;
-		}
+		std::ofstream def_file{ def_path };
+		def_file << "LIBRARY " << target_dll.filename().string() << std::endl << std::endl << //.string to remove quotes
+			"EXPORTS" << std::endl << "\t" << native::rsScript_Entry_Symbol << std::endl
+			<< "\t" << native::rsCustom_Data_Size << std::endl;
 	}
 
 	//5. eventually, compile the script to dll
@@ -216,8 +227,9 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	else {
 		if (effective_compiler_index != std::numeric_limits<size_t>::max()) {
 			const auto default_env_init = Get_Env_Init(compilers[effective_compiler_index].file_name_prefix);
-			if (!default_env_init.empty())
+			if (!default_env_init.empty()) {
 				commands.push_back(default_env_init);
+			}
 		}
 	}
 	commands.push_back(effective_compiler.string() + " " + effective_compiler_options);
@@ -238,8 +250,9 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 		error_log << "Shell: " << Narrow_WChar(rsShell)  << std::endl;
 		error_log << "Working dir: " << intermediate_path << std::endl;
 		error_log << "Commands:" << std::endl;
-		for (const auto &cmd : commands)
+		for (const auto& cmd : commands) {
 			error_log << '\t' << cmd << std::endl;
+		}
 		error_log << std::endl << "Captured output:" << std::endl << std::endl;
 
 		error_log.write(error_output.data(), error_output.size());

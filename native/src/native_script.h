@@ -46,23 +46,25 @@
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 class CNative_Script : public virtual scgms::CBase_Filter {
-protected:
-    std::map<uint64_t, CNative_Segment> mSegments;    
-    std::array<GUID, native::max_signal_count> mSignal_Ids{ { Invalid_GUID } };
-    bool mInvoke_On_Any_Signal = false;
-    std::array<double, native::max_parameter_count> mParameters{ 0.0 };
-    std::map<GUID, size_t> mSignal_To_Ordinal;    
-protected:
-    CDynamic_Library mDll;
-    TNative_Execute_Wrapper mEntry_Point = nullptr;
-    size_t mCustom_Data_Size = 0;
-protected:
-    // scgms::CBase_Filter iface implementation
-    virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-    virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-    CNative_Script(scgms::IFilter* output);
-    virtual ~CNative_Script() {}
+	protected:
+		std::map<uint64_t, CNative_Segment> mSegments;    
+		std::array<GUID, native::max_signal_count> mSignal_Ids{ { Invalid_GUID } };
+		bool mInvoke_On_Any_Signal = false;
+		std::array<double, native::max_parameter_count> mParameters{ 0.0 };
+		std::map<GUID, size_t> mSignal_To_Ordinal;
+
+		CDynamic_Library mDll;
+		TNative_Execute_Wrapper mEntry_Point = nullptr;
+		size_t mCustom_Data_Size = 0;
+
+	protected:
+		// scgms::CBase_Filter iface implementation
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+
+	public:
+		CNative_Script(scgms::IFilter* output);
+		virtual ~CNative_Script() {}
 };
 
 #pragma warning( pop )

@@ -45,30 +45,32 @@
 #include <map>
 
 class CNative_Segment {
-protected:
-	TNative_Environment mEnvironment;
-	std::array<double, native::max_signal_count> mPrevious_Device_Time, mLast_Device_Time;
-	std::array<double, native::max_signal_count> mPrevious_Level, mLast_Level;
-	//Although the mLast_* arrays duplicate the respective environment arrays, we keep the duplicities
-	//to recover from possibly faulty script, which could rewrite the environment
+	protected:
+		TNative_Environment mEnvironment;
+		std::array<double, native::max_signal_count> mPrevious_Device_Time, mLast_Device_Time;
+		std::array<double, native::max_signal_count> mPrevious_Level, mLast_Level;
+		//Although the mLast_* arrays duplicate the respective environment arrays, we keep the duplicities
+		//to recover from possibly faulty script, which could rewrite the environment
 
-	std::vector<unsigned char> mState_Container;
-protected:
-	double mRecent_Time = std::numeric_limits<double>::quiet_NaN();	//time for Send_Event
-	uint64_t mSegment_Id;
-	bool mSync_To_Any = false;
-	scgms::SFilter mOutput;	//aka the next_filter
-	TNative_Execute_Wrapper mEntry_Point;
+		std::vector<unsigned char> mState_Container;
 
-	HRESULT Send_Event(const GUID* sig_id, const double device_time, const double level, const char* msg);
-	HRESULT Emit_Info(const bool is_error, const std::wstring& msg);
-protected:
-	friend HRESULT IfaceCalling Send_Handler(const GUID* sig_id, const double device_time, const double level, const char* msg, const void* context);
-public:
-	CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Execute_Wrapper entry_point,
-		const std::array<GUID, native::max_signal_count>& signal_ids, const std::array<double, native::max_parameter_count> &parameters,
-		const size_t custom_data_size, const bool sync_to_any_signal);
-	HRESULT Execute(const size_t signal_idx, GUID& signal_id, double& device_time, double& level) noexcept;
+		double mRecent_Time = std::numeric_limits<double>::quiet_NaN();	//time for Send_Event
+		uint64_t mSegment_Id;
+		bool mSync_To_Any = false;
+		scgms::SFilter mOutput;	//aka the next_filter
+		TNative_Execute_Wrapper mEntry_Point;
+
+	protected:
+		HRESULT Send_Event(const GUID* sig_id, const double device_time, const double level, const char* msg);
+		HRESULT Emit_Info(const bool is_error, const std::wstring& msg);
+
+		friend HRESULT IfaceCalling Send_Handler(const GUID* sig_id, const double device_time, const double level, const char* msg, const void* context);
+
+	public:
+		CNative_Segment(scgms::SFilter output, const uint64_t segment_id, TNative_Execute_Wrapper entry_point,
+			const std::array<GUID, native::max_signal_count>& signal_ids, const std::array<double, native::max_parameter_count> &parameters,
+			const size_t custom_data_size, const bool sync_to_any_signal);
+		HRESULT Execute(const size_t signal_idx, GUID& signal_id, double& device_time, double& level) noexcept;
 };
 
 HRESULT IfaceCalling Send_Handler(const GUID* sig_id, const double device_time, const double level, const char* msg, const void* context);
