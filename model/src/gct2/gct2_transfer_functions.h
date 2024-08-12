@@ -41,8 +41,7 @@
 
 #include "gct2_common.h"
 
-namespace gct2_model
-{
+namespace gct2_model {
 
 	class CTransfer_Function;
 
@@ -275,8 +274,9 @@ namespace gct2_model
 
 			double Calculate_Transfer_Input(double time) const override {
 
-				if ((mSource.Get_Concentration() > mThreshold && mInverseThreshold) || (mSource.Get_Concentration() < mThreshold && !mInverseThreshold))
+				if ((mSource.Get_Concentration() > mThreshold && mInverseThreshold) || (mSource.Get_Concentration() < mThreshold && !mInverseThreshold)) {
 					return mTransfer_Factor;
+				}
 
 				const double ratio = (mSource.Get_Concentration() / mThreshold);
 

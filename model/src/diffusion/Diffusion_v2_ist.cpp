@@ -42,6 +42,7 @@
 
 #include <cmath>
 #include <algorithm>
+#include <stdexcept>
 
 #undef max
 
@@ -54,14 +55,18 @@ struct TIst_Estimate_Data {
 	const double *times;
 };
 
-
 double present_time_objective(unsigned, const double *present_time, double *, void *estimation_data_ptr) {
 	const TIst_Estimate_Data &estimation_data = *static_cast<TIst_Estimate_Data*>(estimation_data_ptr);
 
 	const double ist_times[2] = { *present_time - estimation_data.h, *present_time };
 	double ist_levels[2];
-	if (estimation_data.ist->Get_Continuous_Levels(nullptr, ist_times, ist_levels, 2, scgms::apxNo_Derivation) != S_OK) return std::numeric_limits<double>::max();
-	if (std::isnan(ist_levels[0]) || std::isnan(ist_levels[1])) return std::numeric_limits<double>::max();
+	if (estimation_data.ist->Get_Continuous_Levels(nullptr, ist_times, ist_levels, 2, scgms::apxNo_Derivation) != S_OK) {
+		return std::numeric_limits<double>::max();
+	}
+
+	if (std::isnan(ist_levels[0]) || std::isnan(ist_levels[1])) {
+		return std::numeric_limits<double>::max();
+	}
 
 	double estimated_present_time = *present_time + estimation_data.dt + estimation_data.kh * ist_levels[1] * (ist_levels[1] - ist_levels[0]);
 
@@ -69,9 +74,10 @@ double present_time_objective(unsigned, const double *present_time, double *, vo
 };
 
 CDiffusion_v2_ist::CDiffusion_v2_ist(scgms::WTime_Segment segment) : CDiffusion_v2_blood(segment), mBlood(segment.Get_Signal(scgms::signal_BG)) {
-	if (!refcnt::Shared_Valid_All(mBlood)) throw std::exception{};
+	if (!refcnt::Shared_Valid_All(mBlood)) {
+		throw std::runtime_error{ "Could not find blood signal" };
+	}
 }
-
 
 HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
@@ -116,8 +122,13 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(scgms::IModel_Para
 				auto calculate_current_error= [&parameters, this, kh](const double present_time, const double reference_time) {
 					const double ist_times[2] = { present_time - parameters.h, present_time };
 					double ist_levels[2];
-					if (mIst->Get_Continuous_Levels(nullptr, ist_times, ist_levels, 2, scgms::apxNo_Derivation) != S_OK) return std::numeric_limits<double>::max();
-					if (std::isnan(ist_levels[0]) || std::isnan(ist_levels[1])) return std::numeric_limits<double>::max();
+					if (mIst->Get_Continuous_Levels(nullptr, ist_times, ist_levels, 2, scgms::apxNo_Derivation) != S_OK) {
+						return std::numeric_limits<double>::max();
+					}
+
+					if (std::isnan(ist_levels[0]) || std::isnan(ist_levels[1])) {
+						return std::numeric_limits<double>::max();
+					}
 
 					double estimated_present_time = present_time + parameters.dt + kh * ist_levels[1] * (ist_levels[1] - ist_levels[0]);
 
@@ -142,11 +153,15 @@ HRESULT IfaceCalling CDiffusion_v2_ist::Get_Continuous_Levels(scgms::IModel_Para
 
 	auto present_blood = Reserve_Eigen_Buffer(mPresent_Blood,  count );
 	HRESULT rc = mBlood->Get_Continuous_Levels(nullptr, dt.data(), present_blood.data(), count, scgms::apxNo_Derivation);
-	if (rc != S_OK) return rc;
+	if (rc != S_OK) {
+		return rc;
+	}
 
 	auto present_ist = Reserve_Eigen_Buffer(mPresent_Ist, count );
 	rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), present_ist.data(), count, scgms::apxNo_Derivation);
-	if (rc != S_OK) return rc;
+	if (rc != S_OK) {
+		return rc;
+	}
 
 	converted_levels =  parameters.p*present_blood
 					  + parameters.cg*present_blood*(present_blood - present_ist)

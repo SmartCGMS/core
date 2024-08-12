@@ -49,176 +49,185 @@
 #undef max
 
 CPattern_Prediction_Data::CPattern_Prediction_Data() {
-    std::fill(mState.begin(), mState.end(), 0.0);
+	std::fill(mState.begin(), mState.end(), 0.0);
 }
 
 void CPattern_Prediction_Data::push(const double device_time, const double level) {
-    if (Is_Any_NaN(level)) return;
+	if (Is_Any_NaN(level)) {
+		return;
+	}
 
-    if (mCollect_Learning_Data) {
-        mLearning_Data.push_back({ device_time, level });
-    }
-       
-    mState[mHead] = level;
-    mInvalidated = true;
+	if (mCollect_Learning_Data) {
+		mLearning_Data.push_back({ device_time, level });
+	}
+	   
+	mState[mHead] = level;
+	mInvalidated = true;
 
-    mHead++;    
-    if (mHead >= mState.size()) {
-        mHead = 0;
-        mFull = true;
-    }
+	mHead++;    
+	if (mHead >= mState.size()) {
+		mHead = 0;
+		mFull = true;
+	}
 }
 
-
 double CPattern_Prediction_Data::predict() {
-    //this is a stub for the future, shall we ever find a reliable way for on-line learning
-    //for now, we just repeat the recent prediction or the configured level - depending on the do_not_learn switch
-    
-    if (mInvalidated) {
-        const size_t full_set_n = mFull ? mState.size() : mHead;
-        if (full_set_n > 0) {
-            const size_t last_write_position = mHead > 0 ? mHead - 1 : mState.size() - 1;
-            mRecent_Prediction = mState[last_write_position];
-            mInvalidated = false;
-        }
-        else
-            mRecent_Prediction = std::numeric_limits<double>::quiet_NaN();
-    }
+	//this is a stub for the future, shall we ever find a reliable way for on-line learning
+	//for now, we just repeat the recent prediction or the configured level - depending on the do_not_learn switch
+	
+	if (mInvalidated) {
+		const size_t full_set_n = mFull ? mState.size() : mHead;
+		if (full_set_n > 0) {
+			const size_t last_write_position = mHead > 0 ? mHead - 1 : mState.size() - 1;
+			mRecent_Prediction = mState[last_write_position];
+			mInvalidated = false;
+		}
+		else {
+			mRecent_Prediction = std::numeric_limits<double>::quiet_NaN();
+		}
+	}
 
-    return mRecent_Prediction;
+	return mRecent_Prediction;
 }
    
 CPattern_Prediction_Data::operator bool() const {
-    return (mHead > 0) || mFull;
+	return (mHead > 0) || mFull;
 }
 
 
 void CPattern_Prediction_Data::Set_State(const double& level) {    
-    for (auto& e : mState)
-        e = level;
-    
-    mHead = 0;
-    mFull = true;
-    mRecent_Prediction = level;
-    mInvalidated = false;
+	for (auto& e : mState) {
+		e = level;
+	}
+	
+	mHead = 0;
+	mFull = true;
+	mRecent_Prediction = level;
+	mInvalidated = false;
 }
 
 void CPattern_Prediction_Data::State_from_String(const std::wstring& state) {
-    
-    bool ok = false;
-    const auto converted = str_2_dbls(state.c_str(), ok);
-    if (ok) {
-        for (const auto value : converted)
-            push(0.0, value);
-    }
+	
+	bool ok = false;
+	const auto converted = str_2_dbls(state.c_str(), ok);
+	if (ok) {
+		for (const auto value : converted) {
+			push(0.0, value);
+		}
+	}
 }
 
 std::wstring CPattern_Prediction_Data::State_To_String() const {
-    std::wstringstream converted;
+	std::wstringstream converted;
 
-    //unused keeps static analysis happy about creating an unnamed object
-    auto dec_sep = new CDecimal_Separator<wchar_t>{ L'.' };
-    auto unused = converted.imbue(std::locale{std::wcout.getloc(), std::move(dec_sep)}); //locale takes owner ship of dec_sep
-    converted << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+	//unused keeps static analysis happy about creating an unnamed object
+	auto dec_sep = new CDecimal_Separator<wchar_t>{ L'.' };
+	auto unused = converted.imbue(std::locale{std::wcout.getloc(), std::move(dec_sep)}); //locale takes owner ship of dec_sep
+	converted << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
 
+	bool not_empty = false;
 
-    bool not_empty = false;
+	const size_t full_set_n = mFull ? mState.size() : mHead;
 
-    const size_t full_set_n = mFull ? mState.size() : mHead;
+	for (size_t i = 0; i< full_set_n; i++) {
+		if (not_empty) {
+			converted << L" ";
+		}
+		else {
+			not_empty = true;
+		}
 
-    for (size_t i = 0; i< full_set_n; i++) {
-        if (not_empty)
-            converted << L" ";
-        else
-            not_empty = true;
+		converted << mState[i];
+	}
 
-        converted << mState[i];
-    }
-
-    return converted.str();
+	return converted.str();
 }
 
 void CPattern_Prediction_Data::Start_Collecting_Learning_Data() {
-    mCollect_Learning_Data = true;
+	mCollect_Learning_Data = true;
 }
 
 std::wstring CPattern_Prediction_Data::Learning_Data(const size_t sliding_window_length, const double dt) const {
-    std::wstringstream converted;
-    //unused keeps static analysis happy about creating an unnamed object
-    auto dec_sep = new CDecimal_Separator<wchar_t>{ L'.' };
-    auto unused = converted.imbue(std::locale{ std::wcout.getloc(), std::move(dec_sep) }); //locale takes owner ship of dec_sep
-    converted << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
-    
-    {   //write csv header
-        for (size_t i = 0; i < sliding_window_length; i++) {
-            converted << i+1 << "; ";
-        }
-        converted << "Subclass; Exact" << std::endl;
-    }
+
+	std::wstringstream converted;
+	//unused keeps static analysis happy about creating an unnamed object
+	auto dec_sep = new CDecimal_Separator<wchar_t>{ L'.' };
+	auto unused = converted.imbue(std::locale{ std::wcout.getloc(), std::move(dec_sep) }); //locale takes owner ship of dec_sep
+	converted << std::setprecision(std::numeric_limits<long double>::digits10 + 1);
+	
+	//write csv header
+	{
+		for (size_t i = 0; i < sliding_window_length; i++) {
+			converted << i+1 << "; ";
+		}
+		converted << "Subclass; Exact" << std::endl;
+	}
 
 
-    if (!mLearning_Data.empty()) {       
-        size_t last_recent_idx = mLearning_Data.size() - 1;
+	if (!mLearning_Data.empty()) {       
+		size_t last_recent_idx = mLearning_Data.size() - 1;
 
-        for (size_t predicted_idx = mLearning_Data.size() - 1; predicted_idx > 0; predicted_idx--) {
-            const double predicted_time = mLearning_Data[predicted_idx].device_time;
+		for (size_t predicted_idx = mLearning_Data.size() - 1; predicted_idx > 0; predicted_idx--) {
+			const double predicted_time = mLearning_Data[predicted_idx].device_time;
 
-            //find the last value in the recent sequence for the given prediction
-            while ((mLearning_Data[last_recent_idx].device_time + dt > predicted_time) && (last_recent_idx > 0))
-                last_recent_idx--;
+			//find the last value in the recent sequence for the given prediction
+			while ((mLearning_Data[last_recent_idx].device_time + dt > predicted_time) && (last_recent_idx > 0)) {
+				last_recent_idx--;
+			}
 
-            //if ((last_recent_idx==0) && (mLearning_Data[last_recent_idx].device_time + dt > predicted_time))
-             //  continue;   //no data available
+			//if ((last_recent_idx==0) && (mLearning_Data[last_recent_idx].device_time + dt > predicted_time))
+			//  continue;   //no data available
 
-            {//write the recent sequence
-                size_t first_recent_idx = 0;
+			//write the recent sequence
+			{
+				size_t first_recent_idx = 0;
 
-                const size_t recent_levels_count = last_recent_idx - first_recent_idx + 1;
-                if (recent_levels_count < sliding_window_length) {
-                    for (size_t i = 0; i < sliding_window_length - recent_levels_count; i++) {
-                        converted << "n/a; ";
-                    }
-                }
-                else
-                    first_recent_idx = last_recent_idx - sliding_window_length;
+				const size_t recent_levels_count = last_recent_idx - first_recent_idx + 1;
+				if (recent_levels_count < sliding_window_length) {
+					for (size_t i = 0; i < sliding_window_length - recent_levels_count; i++) {
+						converted << "n/a; ";
+					}
+				}
+				else {
+					first_recent_idx = last_recent_idx - sliding_window_length;
+				}
 
-                for (size_t i = first_recent_idx; i <= last_recent_idx; i++) {
-                    converted << mLearning_Data[i].level << "; ";
-                }
-            }
+				for (size_t i = first_recent_idx; i <= last_recent_idx; i++) {
+					converted << mLearning_Data[i].level << "; ";
+				}
+			}
 
-            //write the subclassed level
-            converted << pattern_prediction::Subclassed_Level(mLearning_Data[predicted_idx].level) << "; ";
+			//write the subclassed level
+			converted << pattern_prediction::Subclassed_Level(mLearning_Data[predicted_idx].level) << "; ";
 
-            //write the exact level
-            converted << mLearning_Data[predicted_idx].level << std::endl;
-        }
-    }
+			//write the exact level
+			converted << mLearning_Data[predicted_idx].level << std::endl;
+		}
+	}
 
-
-    return converted.str();
+	return converted.str();
 }
 
 void CPattern_Prediction_Data::Encounter() {
-    mEncountered = true;
+	mEncountered = true;
 }
 
 bool CPattern_Prediction_Data::Was_Encountered() const {
-    return mEncountered;
+	return mEncountered;
 }
 
 std::stringstream CPattern_Prediction_Data::Level_Series() const {
-    std::stringstream result;
+	std::stringstream result;
 
+	bool fired_once = false;
+	for (const auto e : mLearning_Data) {
+		if (fired_once) {
+			result << " ";
+		}
+		fired_once = true;
 
-    bool fired_once = false;
-    for (const auto e : mLearning_Data) {
-        if (fired_once)
-            result << " ";
-        fired_once = true;
+		result << dbl_2_str(e.level);
+	}
 
-        result << dbl_2_str(e.level);
-    }
-
-    return result;
+	return result;
 }

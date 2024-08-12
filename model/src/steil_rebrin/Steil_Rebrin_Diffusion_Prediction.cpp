@@ -41,11 +41,14 @@
 #include <scgms/rtl/SolverLib.h>
 
 #include <cmath>
+#include <stdexcept>
 
 thread_local TVector1D CSteil_Rebrin_Diffusion_Prediction::mDt, CSteil_Rebrin_Diffusion_Prediction::mPresent_Ist, CSteil_Rebrin_Diffusion_Prediction::mDeriveed_Ist;
 
 CSteil_Rebrin_Diffusion_Prediction::CSteil_Rebrin_Diffusion_Prediction(scgms::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(scgms::signal_IG)) {
-	if (!mIst) throw std::exception{};
+	if (!mIst) {
+		throw std::runtime_error{ "Could not find IG signal" };
+	}
 }
 
 HRESULT IfaceCalling CSteil_Rebrin_Diffusion_Prediction::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
@@ -60,12 +63,15 @@ HRESULT IfaceCalling CSteil_Rebrin_Diffusion_Prediction::Get_Continuous_Levels(s
 
 	auto present_ist = Reserve_Eigen_Buffer(mPresent_Ist,  count );
 	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), present_ist.data(), count, scgms::apxNo_Derivation);
-	if (rc != S_OK) return rc;
+	if (rc != S_OK) {
+		return rc;
+	}
 
 	auto derived_ist = Reserve_Eigen_Buffer(mDeriveed_Ist, count );
 	rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), derived_ist.data(), count, scgms::apxFirst_Order_Derivation);
-	if (rc != S_OK) return rc;
-
+	if (rc != S_OK) {
+		return rc;
+	}
 	
 	//we have all the signals, let's calculate blood
 	auto &blood = dt;	//reused old bfuffer

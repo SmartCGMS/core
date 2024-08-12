@@ -41,8 +41,7 @@
 
 #include "gct3_common.h"
 
-namespace gct3_model
-{
+namespace gct3_model {
 
 	/**
 	 * Base for all moderation functions

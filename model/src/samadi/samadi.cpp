@@ -75,8 +75,7 @@ CSamadi_Discrete_Model::CSamadi_Discrete_Model(scgms::IModel_Parameter_Vector *p
 		{ mState.E1,    std::bind<double>(&CSamadi_Discrete_Model::eq_dE1,     this, std::placeholders::_1, std::placeholders::_2) },
 		{ mState.E2,    std::bind<double>(&CSamadi_Discrete_Model::eq_dE2,     this, std::placeholders::_1, std::placeholders::_2) },
 		{ mState.TE,    std::bind<double>(&CSamadi_Discrete_Model::eq_dTE,     this, std::placeholders::_1, std::placeholders::_2) },
-	}
-{
+	} {
 	mState.lastTime = -std::numeric_limits<decltype(mState.lastTime)>::max();
 	mInitialized = false;
 	mState.Q1   = mParameters.Q1_0;
@@ -100,8 +99,7 @@ CSamadi_Discrete_Model::CSamadi_Discrete_Model(scgms::IModel_Parameter_Vector *p
 	mHeart_Rate.Add_Uptake(0, std::numeric_limits<double>::max(), mParameters.HRbase);
 }
 
-double CSamadi_Discrete_Model::eq_dQ1(const double _T, const double _X) const
-{
+double CSamadi_Discrete_Model::eq_dQ1(const double _T, const double _X) const {
 	const double VgBW = mParameters.Vg * mParameters.BW;
 	const double EGP0BW = mParameters.EGP_0 * mParameters.BW;
 
@@ -120,20 +118,17 @@ double CSamadi_Discrete_Model::eq_dQ1(const double _T, const double _X) const
 	return ret;
 }
 
-double CSamadi_Discrete_Model::eq_dQ2(const double _T, const double _X) const
-{
+double CSamadi_Discrete_Model::eq_dQ2(const double _T, const double _X) const {
 	return /*(1 + mParameters.alpha * mState.E2 * mState.E2) * */mState.x1 * mState.Q1 - mParameters.k12 * _X - mState.x2 * _X/* * (1 + mParameters.alpha * mState.E2 * mState.E2 - mParameters.beta * mState.E1 / mParameters.HRbase)*/;
 }
 
-double CSamadi_Discrete_Model::eq_dGsub(const double _T, const double _X) const
-{
+double CSamadi_Discrete_Model::eq_dGsub(const double _T, const double _X) const {
 	const double VgBW = mParameters.Vg * mParameters.BW;
 
 	return (1.0 / mParameters.tau_g) * ((mState.Q1 / VgBW) - _X);
 }
 
-double CSamadi_Discrete_Model::eq_dS1(const double _T, const double _X) const
-{
+double CSamadi_Discrete_Model::eq_dS1(const double _T, const double _X) const {
 	const double bolusDisturbance = mBolus_Insulin_Ext.Get_Disturbance(mState.lastTime, _T * scgms::One_Minute);	// U/min
 	const double basalSubcutaneousDisturbance = mSubcutaneous_Basal_Ext.Get_Recent(_T * scgms::One_Minute);			// U/min
 	const double insulinSubcutaneousDisturbance = (bolusDisturbance + basalSubcutaneousDisturbance) * 1000;			// U/min -> mU/min
@@ -141,59 +136,49 @@ double CSamadi_Discrete_Model::eq_dS1(const double _T, const double _X) const
 	return insulinSubcutaneousDisturbance - _X / mParameters.tmaxi;
 }
 
-double CSamadi_Discrete_Model::eq_dS2(const double _T, const double _X) const
-{
+double CSamadi_Discrete_Model::eq_dS2(const double _T, const double _X) const {
 	return mState.S1 / mParameters.tmaxi - _X / mParameters.tmaxi;
 }
 
-double CSamadi_Discrete_Model::eq_dI(const double _T, const double _X) const
-{
+double CSamadi_Discrete_Model::eq_dI(const double _T, const double _X) const {
 	const double ViBW = mParameters.Vi * mParameters.BW;
 
 	return mState.S2 / (ViBW * mParameters.tmaxi) -mParameters.ke * _X;
 }
 
-double CSamadi_Discrete_Model::eq_dx1(const double _T, const double _X) const
-{
+double CSamadi_Discrete_Model::eq_dx1(const double _T, const double _X) const {
 	return -mParameters.ka1 * _X + mParameters.kb1 * mState.I;
 }
 
-double CSamadi_Discrete_Model::eq_dx2(const double _T, const double _X) const
-{
+double CSamadi_Discrete_Model::eq_dx2(const double _T, const double _X) const {
 	return -mParameters.ka2 * _X + mParameters.kb2 * mState.I;
 }
 
-double CSamadi_Discrete_Model::eq_dx3(const double _T, const double _X) const
-{
+double CSamadi_Discrete_Model::eq_dx3(const double _T, const double _X) const {
 	return -mParameters.ka3 * _X + mParameters.kb3 * mState.I;
 }
 
-double CSamadi_Discrete_Model::eq_dD1(const double _T, const double _X) const
-{
+double CSamadi_Discrete_Model::eq_dD1(const double _T, const double _X) const {
 	const double mealDisturbance = mMeal_Ext.Get_Disturbance(mState.lastTime, _T * scgms::One_Minute) / GlucoseMolWeight;
 
 	return mParameters.Ag * mealDisturbance - _X / mParameters.tmaxG;
 }
 
-double CSamadi_Discrete_Model::eq_dD2(const double _T, const double _X) const
-{
+double CSamadi_Discrete_Model::eq_dD2(const double _T, const double _X) const {
 	return mState.D1 / mParameters.tmaxG - _X / mParameters.tmaxG;
 }
 
-double CSamadi_Discrete_Model::eq_dDH1(const double _T, const double _X) const
-{
+double CSamadi_Discrete_Model::eq_dDH1(const double _T, const double _X) const {
 	const double mealDisturbance = mRescue_Meal_Ext.Get_Disturbance(mState.lastTime, _T * scgms::One_Minute);
 
 	return mParameters.Ag* mealDisturbance - _X / (mParameters.tmaxG / 2.0);
 }
 
-double CSamadi_Discrete_Model::eq_dDH2(const double _T, const double _X) const
-{
+double CSamadi_Discrete_Model::eq_dDH2(const double _T, const double _X) const {
 	return mState.DH1 / (mParameters.tmaxG / 2.0) - _X / (mParameters.tmaxG / 2.0);
 }
 
-double CSamadi_Discrete_Model::eq_dE1(const double _T, const double _X) const
-{
+double CSamadi_Discrete_Model::eq_dE1(const double _T, const double _X) const {
 	const double HRdelta = mParameters.HRbase - mHeart_Rate.Get_Recent(_T * scgms::One_Minute);
 
 	const double ret = (1.0 / mParameters.t_HR)* (HRdelta - _X);
@@ -201,8 +186,7 @@ double CSamadi_Discrete_Model::eq_dE1(const double _T, const double _X) const
 	return std::isnan(ret) ? 0 : ret;
 }
 
-double CSamadi_Discrete_Model::eq_dE2(const double _T, const double _X) const
-{
+double CSamadi_Discrete_Model::eq_dE2(const double _T, const double _X) const {
 	const double e1fact = std::pow(mState.E1 / (mParameters.a * mParameters.HRbase), mParameters.n);
 	const double fE1 = e1fact / (1 + e1fact);
 
@@ -211,8 +195,7 @@ double CSamadi_Discrete_Model::eq_dE2(const double _T, const double _X) const
 	return std::isnan(ret) ? 0 : ret;
 }
 
-double CSamadi_Discrete_Model::eq_dTE(const double _T, const double _X) const
-{
+double CSamadi_Discrete_Model::eq_dTE(const double _T, const double _X) const {
 	const double e1fact = std::pow(mState.E1 / (mParameters.a * mParameters.HRbase), mParameters.n);
 	const double fE1 = e1fact / (1 + e1fact);
 
@@ -220,8 +203,7 @@ double CSamadi_Discrete_Model::eq_dTE(const double _T, const double _X) const
 	return std::isnan(ret) ? 0 : ret;
 }
 
-void CSamadi_Discrete_Model::Emit_All_Signals(double time_advance_delta)
-{
+void CSamadi_Discrete_Model::Emit_All_Signals(double time_advance_delta) {
 	const double _T = mState.lastTime + time_advance_delta;	// locally-scoped because we might have been asked to emit the current state only
 
 	/*
@@ -229,22 +211,19 @@ void CSamadi_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 	 */
 
 	// transform requested basal rate to actually set basal rate
-	if (mRequested_Subcutaneous_Insulin_Rate.requested)
-	{
+	if (mRequested_Subcutaneous_Insulin_Rate.requested) {
 		Emit_Signal_Level(scgms::signal_Delivered_Insulin_Basal_Rate, mRequested_Subcutaneous_Insulin_Rate.time, mRequested_Subcutaneous_Insulin_Rate.amount);
 		mRequested_Subcutaneous_Insulin_Rate.requested = false;
 	}
 
 	// transform requested intradermal rate to actually set basal rate
-	if (mRequested_Intradermal_Insulin_Rate.requested)
-	{
+	if (mRequested_Intradermal_Insulin_Rate.requested) {
 		Emit_Signal_Level(scgms::signal_Delivered_Insulin_Intradermal_Rate, mRequested_Intradermal_Insulin_Rate.time, mRequested_Intradermal_Insulin_Rate.amount);
 		mRequested_Intradermal_Insulin_Rate.requested = false;
 	}
 
 	// transform requested bolus insulin to delivered bolus insulin amount
-	for (auto& reqBolus : mRequested_Insulin_Boluses)
-	{
+	for (auto& reqBolus : mRequested_Insulin_Boluses) {
 		if (reqBolus.requested) {
 			Emit_Signal_Level(scgms::signal_Delivered_Insulin_Bolus, reqBolus.time, reqBolus.amount);
 		}
@@ -289,14 +268,14 @@ HRESULT CSamadi_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 
 	if (mInitialized) {
 
-		if (event.event_code() == scgms::NDevice_Event_Code::Level)
-		{
-			if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate)
-			{
-				if (event.device_time() < mState.lastTime)
-					return E_ILLEGAL_STATE_CHANGE;	//got no time-machine to deliver insulin in the past
-													//although we could allow this by setting it (if no newer basal is requested),
-													//it would defeat the purpose of any verification
+		if (event.event_code() == scgms::NDevice_Event_Code::Level) {
+			if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate) {
+				if (event.device_time() < mState.lastTime) {
+					//got no time-machine to deliver insulin in the past
+					//although we could allow this by setting it (if no newer basal is requested),
+					//it would defeat the purpose of any verification
+					return E_ILLEGAL_STATE_CHANGE;
+				}
 
 				std::unique_lock<std::mutex> lck(mStep_Mtx);
 
@@ -309,20 +288,22 @@ HRESULT CSamadi_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 
 				res = S_OK;
 			}
-			else if (event.signal_id() == scgms::signal_Heartbeat)
-			{
-				if (event.device_time() < mState.lastTime)
+			else if (event.signal_id() == scgms::signal_Heartbeat) {
+
+				if (event.device_time() < mState.lastTime) {
 					return E_ILLEGAL_STATE_CHANGE;
+				}
 
 				std::unique_lock<std::mutex> lck(mStep_Mtx);
 
 				// TODO: is 10 minutes interval correct? This means, that if no heart rate comes in 10 minutes, we take it as "no heart rate info" and let the excercise submodel just slowly fade to its mean level
 				mHeart_Rate.Add_Uptake(event.device_time(), event.device_time() + scgms::One_Minute * 10, event.level());
 			}
-			else if (event.signal_id() == scgms::signal_Requested_Insulin_Bolus)
-			{
-				if (event.device_time() < mState.lastTime) 
+			else if (event.signal_id() == scgms::signal_Requested_Insulin_Bolus) {
+
+				if (event.device_time() < mState.lastTime) {
 					return E_ILLEGAL_STATE_CHANGE;	// got no time-machine to deliver insulin in the past
+				}
 
 				// spread boluses to this much minutes
 				constexpr double MinsBolusing = 1.0;
@@ -339,8 +320,7 @@ HRESULT CSamadi_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 
 				res = S_OK;
 			}
-			else if ((event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue))
-			{
+			else if ((event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue)) {
 				// TODO: got no time-machine to consume meal in the past, but still can account for the present part of it
 
 				// we assume 10-minute eating period
@@ -352,10 +332,12 @@ HRESULT CSamadi_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 
 				// Samadi/Hovorka model differentiates between regular and rescue CHO
 
-				if (event.signal_id() == scgms::signal_Carb_Intake)
-					mMeal_Ext.Add_Uptake(event.device_time() + 3.0*scgms::One_Minute, MinsEating * scgms::One_Minute, InvMinsEating * 1000.0 * event.level());
-				else if (event.signal_id() == scgms::signal_Carb_Rescue)
+				if (event.signal_id() == scgms::signal_Carb_Intake) {
+					mMeal_Ext.Add_Uptake(event.device_time() + 3.0 * scgms::One_Minute, MinsEating * scgms::One_Minute, InvMinsEating * 1000.0 * event.level());
+				}
+				else if (event.signal_id() == scgms::signal_Carb_Rescue) {
 					mRescue_Meal_Ext.Add_Uptake(event.device_time(), MinsEating * scgms::One_Minute, InvMinsEating * 1000.0 * event.level());
+				}
 
 				// res = S_OK; - do not unless we have another signal called consumed CHO
 			}
@@ -363,15 +345,18 @@ HRESULT CSamadi_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 	}
 	else {
 		if (event.event_code() == scgms::NDevice_Event_Code::Level) {
+			//cannot modify our state prior initialization!
 			if ((event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate) ||
 				(event.signal_id() == scgms::signal_Requested_Insulin_Bolus) ||
-				(event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue))
-				res = E_ILLEGAL_STATE_CHANGE;	//cannot modify our state prior initialization!
+				(event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue)) {
+				res = E_ILLEGAL_STATE_CHANGE;
+			}
 		}
 	}
 
-	if (res == S_FALSE)
+	if (res == S_FALSE) {
 		res = mOutput.Send(event);
+	}
 
 	return res;
 }
@@ -383,8 +368,9 @@ HRESULT CSamadi_Discrete_Model::Do_Configure(scgms::SFilter_Configuration config
 
 HRESULT IfaceCalling CSamadi_Discrete_Model::Step(const double time_advance_delta) {
 
-	if (!mInitialized)
+	if (!mInitialized) {
 		return E_ILLEGAL_METHOD_CALL;
+	}
 
 	HRESULT rc = E_FAIL;
 	if (time_advance_delta > 0.0) {
@@ -404,19 +390,20 @@ HRESULT IfaceCalling CSamadi_Discrete_Model::Step(const double time_advance_delt
 
 			std::vector<double> next_step_values(mEquation_Binding.size());
 
-			for (size_t i = 0; i < microStepCount; i++)
-			{
+			for (size_t i = 0; i < microStepCount; i++) {
 				const double nowTime = mState.lastTime + static_cast<double>(i)*microStepSize;
 
 				// Note: times in ODE solver are represented in minutes (and its fractions), as original model parameters are tuned to one minute unit
 
 				// calculate next step
-				for (size_t j = 0; j < mEquation_Binding.size(); j++)
+				for (size_t j = 0; j < mEquation_Binding.size(); j++) {
 					next_step_values[j] = ODE_Solver.Step(mEquation_Binding[j].fnc, nowTime / scgms::One_Minute, mEquation_Binding[j].x, microStepSize / scgms::One_Minute);
+				}
 
 				// commit
-				for (size_t j = 0; j < mEquation_Binding.size(); j++)
+				for (size_t j = 0; j < mEquation_Binding.size(); j++) {
 					mEquation_Binding[j].x = next_step_values[j];
+				}
 
 				mState.lastTime += static_cast<double>(i)*microStepSize;
 			}

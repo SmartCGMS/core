@@ -58,8 +58,8 @@ CGCT3_Discrete_Model::CGCT3_Discrete_Model(scgms::IModel_Parameter_Vector* param
 	mParameters(scgms::Convert_Parameters<gct3_model::TParameters>(parameters, gct3_model::default_parameters.vector)),
 
 	mPhysical_Activity(mCompartments[NGCT_Compartment::Physical_Activity].Create_Depot<CExternal_State_Depot>(0.0, false)),
-	mInsulin_Sink(mCompartments[NGCT_Compartment::Insulin_Peripheral].Create_Depot<CSink_Depot>(0.0, false))
-{
+	mInsulin_Sink(mCompartments[NGCT_Compartment::Insulin_Peripheral].Create_Depot<CSink_Depot>(0.0, false)) {
+
 	// ensure basic parametric bounds - in case some unconstrained optimization algorithm takes place
 	// parameters with such values would cause trouble, as signals may yield invalid values
 	Ensure_Min_Value(mParameters.t_d, scgms::One_Minute);
@@ -370,8 +370,9 @@ HRESULT CGCT3_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 			// physical activity
 			else if (event.signal_id() == scgms::signal_Physical_Activity) {
 
-				//if (event.device_time() >= mLast_Time)
+				//if (event.device_time() >= mLast_Time) {
 					mPhysical_Activity.Set_Quantity(event.level());
+				//}
 			}
 			// bolus insulin
 			else if (event.signal_id() == scgms::signal_Requested_Insulin_Bolus) {
@@ -388,8 +389,9 @@ HRESULT CGCT3_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 
 					const double PortionSize = event.level() / static_cast<double>(Portions);
 
-					for (size_t i = 0; i < Portions; i++)
+					for (size_t i = 0; i < Portions; i++) {
 						Add_To_Isc1(PortionSize, event.device_time() + static_cast<double>(i) * PortionTimeSpacing, mParameters.t_i);
+					}
 
 					mPending_Signals.push_back(TPending_Signal{ scgms::signal_Delivered_Insulin_Bolus, event.device_time(), event.level() });
 
@@ -405,16 +407,18 @@ HRESULT CGCT3_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 
 				const double PortionSize = (1000.0 * event.level() * mParameters.Ag / Glucose_Molar_Weight) / static_cast<double>(Portions);
 
-				for (size_t i = 0; i < Portions; i++)
+				for (size_t i = 0; i < Portions; i++) {
 					Add_To_D1(PortionSize, event.device_time() + static_cast<double>(i) * PortionTimeSpacing, mParameters.t_d);
+				}
 
 				// res = S_OK; - do not unless we have another signal called consumed CHO
 			}
 		}
 	}
 
-	if (res == S_FALSE)
+	if (res == S_FALSE) {
 		res = mOutput.Send(event);
+	}
 
 	return res;
 }
@@ -442,8 +446,9 @@ HRESULT IfaceCalling CGCT3_Discrete_Model::Step(const double time_advance_delta)
 			for (size_t i = 0; i < microStepCount; i++) {
 
 				// for each step, retrieve insulin pump subcutaneous injection if any
-				if (mInsulin_Pump.Get_Dosage(mLast_Time, dosage))
+				if (mInsulin_Pump.Get_Dosage(mLast_Time, dosage)) {
 					Add_To_Isc1(dosage.amount, dosage.start, dosage.duration);
+				}
 
 				// step all compartments
 				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
@@ -497,15 +502,18 @@ HRESULT IfaceCalling CGCT3_Discrete_Model::Initialize(const double current_time,
 
 		// this is a subject of future re-evaluation - how to consider initial conditions for food-related patient state
 
-		if (mParameters.D1_0 > 0)
+		if (mParameters.D1_0 > 0) {
 			Add_To_D1(mParameters.D1_0, mLast_Time, scgms::One_Minute * 15);
-		if (mParameters.Isc_0 > 0)
+		}
+		if (mParameters.Isc_0 > 0) {
 			Add_To_Isc1(mParameters.Isc_0, mLast_Time, scgms::One_Minute * 15);
+		}
 
 		mInsulin_Pump.Initialize(mLast_Time, 0.0, 0.0, 0.0);
 
-		for (auto& cmp : mCompartments)
+		for (auto& cmp : mCompartments) {
 			cmp.Init(current_time);
+		}
 
 		return S_OK;
 	}
@@ -526,8 +534,9 @@ void CInfusion_Device::Set_Infusion_Parameter(double currentTime, double infusio
 
 	if (!std::isnan(infusionRate)) {
 
-		if (mInfusion_Rate == 0.0)
+		if (mInfusion_Rate == 0.0) {
 			mLast_Time = currentTime;
+		}
 
 		mInfusion_Rate = infusionRate;
 	}

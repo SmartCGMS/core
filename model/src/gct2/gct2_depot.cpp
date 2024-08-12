@@ -36,8 +36,8 @@
 
 #include "gct2_depot.h"
 
-namespace gct2_model
-{
+namespace gct2_model {
+
 	void CDepot_Link::Step(const double currentTime) {
 		// Transfer amount from source to target
 		// If the target refuses to accept given amount, return it back to source
@@ -62,8 +62,9 @@ namespace gct2_model
 		const double fnc_future_time = (currentTime > end ? end : currentTime);
 
 		// not in std::abs on purpose - in case the times got somehow mixed up
-		if (fnc_future_time - fnc_past_time < std::numeric_limits<double>::epsilon())
+		if (fnc_future_time - fnc_past_time < std::numeric_limits<double>::epsilon()) {
 			return;
+		}
 
 		double baseAmount = transfer_fnc.Get_Transfer_Amount(mSource.get().Get_Quantity());
 
@@ -76,8 +77,9 @@ namespace gct2_model
 
 			amount *= amt;
 			double eliminateAmount = -mods.function.get()->Get_Elimination_Input(mods.depot.get().Get_Quantity());
-			if (eliminateAmount != 0.0)
+			if (eliminateAmount != 0.0) {
 				mods.depot.get().Mod_Quantity(eliminateAmount);
+			}
 		}
 
 		// only transfer if there is something to transfer; the transfer function determined this amount, so if it returned 0.0, that means, no transfer will be done in this step

@@ -49,20 +49,18 @@
 class CUVA_Padova_S2017_Discrete_Model;
 struct CDiffusion_Compartments_State;
 
-namespace uva_padova_S2017
-{
+namespace uva_padova_S2017 {
+
 	using TDiff_Eq_Fnc = double (CUVA_Padova_S2017_Discrete_Model::*)(const double, const double) const;
 	using TDiff_Eq = decltype(std::bind<double>(std::declval<TDiff_Eq_Fnc>(), std::declval<CUVA_Padova_S2017_Discrete_Model*>(), std::declval<const decltype(std::placeholders::_1)&>(), std::declval<const decltype(std::placeholders::_2)&>()));
 
 	// helper structure for equation binding
-	struct CEquation_Binding
-	{
+	struct CEquation_Binding {
 		double& x;
 		TDiff_Eq fnc;
 	};
 
-	struct CDiffusion_Compartment_Equation_Binding
-	{
+	struct CDiffusion_Compartment_Equation_Binding {
 		CDiffusion_Compartments_State& x;
 		TDiff_Eq fnc_input;
 		TDiff_Eq fnc_intermediate;
@@ -71,8 +69,7 @@ namespace uva_padova_S2017
 }
 
 // helper structure for diffusion compartments 
-struct CDiffusion_Compartments_State
-{
+struct CDiffusion_Compartments_State {
 	std::vector<double> quantity;
 	double transferCoefficient = 0.0;
 
@@ -92,19 +89,20 @@ struct CDiffusion_Compartments_State
 		if (count > compartmentCount())
 		{
 			quantity.reserve(count);
-			while (compartmentCount() < count)
+			while (compartmentCount() < count) {
 				quantity.push_back(0);
+			}
 		}
-		else
+		else {
 			quantity.resize(count);
+		}
 	}
 
 	size_t solverStateIdx = std::numeric_limits<size_t>::max(); // currently solved index
 };
 
 // state of UVa/Padova S2017 model equation system
-struct CUVa_Padova_S2017_State
-{
+struct CUVa_Padova_S2017_State {
 	double lastTime = 0.0;
 
 	double Gp = std::numeric_limits<double>::quiet_NaN();
@@ -137,8 +135,7 @@ struct CUVa_Padova_S2017_State
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 //DOI: 10.1177/1932296818757747
-class CUVA_Padova_S2017_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscrete_Model
-{
+class CUVA_Padova_S2017_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscrete_Model {
 	private:
 		// maximum accepted error estimate for ODE solvers for this model
 		static constexpr double ODE_epsilon0 = 0.001;
@@ -166,8 +163,7 @@ class CUVA_Padova_S2017_Discrete_Model : public scgms::CBase_Filter, public scgm
 		// bound equations in a single vector - but instead of binding a single quantity, a diffusion compartment vector is bound instead
 		const std::vector<uva_padova_S2017::CDiffusion_Compartment_Equation_Binding> mDiffusion_Compartment_Equation_Binding;
 
-		struct TRequested_Amount
-		{
+		struct TRequested_Amount {
 			double time = 0;
 			double amount = 0;
 			bool requested = false;

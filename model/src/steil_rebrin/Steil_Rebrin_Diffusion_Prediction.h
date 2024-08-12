@@ -43,18 +43,20 @@
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 class CSteil_Rebrin_Diffusion_Prediction : public virtual CCommon_Calculated_Signal {
-protected:
-	scgms::SSignal mIst;	
-protected:
-	static thread_local TVector1D mDt, mPresent_Ist, mDeriveed_Ist;
-public:
-	CSteil_Rebrin_Diffusion_Prediction(scgms::WTime_Segment segment);
-	virtual ~CSteil_Rebrin_Diffusion_Prediction() {};
+	protected:
+		scgms::SSignal mIst;
 
-	//scgms::ISignal iface
-	virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
-		const double* times, double* const levels, const size_t count, const size_t derivation_order) const final;
-	virtual HRESULT IfaceCalling Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const final;
+	protected:
+		static thread_local TVector1D mDt, mPresent_Ist, mDeriveed_Ist;
+
+	public:
+		CSteil_Rebrin_Diffusion_Prediction(scgms::WTime_Segment segment);
+		virtual ~CSteil_Rebrin_Diffusion_Prediction() {};
+
+		//scgms::ISignal iface
+		virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
+			const double* times, double* const levels, const size_t count, const size_t derivation_order) const final;
+		virtual HRESULT IfaceCalling Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const final;
 };
 
 #pragma warning( pop )

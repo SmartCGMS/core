@@ -263,8 +263,9 @@ class CDepot : public IQuantizable {
 		void Commit(const double currentTime) {
 			mQuantity = mNext_Quantity;
 
-			for (auto& lnk : mLinks)
+			for (auto& lnk : mLinks) {
 				lnk.Commit(currentTime);
+			}
 
 			// erase expired links
 			mLinks.erase(std::remove_if(mLinks.begin(), mLinks.end(),
@@ -310,8 +311,9 @@ class CSink_Depot : public CDepot {
 
 	protected:
 		virtual void Mod_Quantity(double& total) override {
-			if (total > 0.0)
+			if (total > 0.0) {
 				total = -total;
+			}
 		}
 
 	public:
@@ -326,8 +328,9 @@ class CSource_Depot : public CDepot {
 
 	protected:
 		virtual void Mod_Quantity(double& total) override {
-			if (total < 0.0)
+			if (total < 0.0) {
 				total = -total;
+			}
 		}
 
 	public:
@@ -380,8 +383,9 @@ class CCompartment : public IQuantizable {
 		double Get_Quantity() const override {
 			double result = 0.0;
 
-			for (const auto& depot : mDepots)
+			for (const auto& depot : mDepots) {
 				result += depot->Get_Quantity();
+			}
 
 			return result;
 		}
@@ -389,8 +393,9 @@ class CCompartment : public IQuantizable {
 		double Get_Solution_Volume() const {
 			double result = 0.0;
 
-			for (const auto& depot : mDepots)
+			for (const auto& depot : mDepots) {
 				result += depot->Get_Solution_Volume();
+			}
 
 			return result;
 		}

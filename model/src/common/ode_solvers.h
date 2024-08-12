@@ -46,8 +46,7 @@
  * All derived classes must define strategy of step reduction and evaluation of next step count
  */
 template <size_t N>
-class CRunge_Kutta_Adaptive_Strategy
-{
+class CRunge_Kutta_Adaptive_Strategy {
 	public:
 		// adjusts the step size; returns true if successfull, false if no step size reduction is possible (or viable)
 		virtual bool Adjust_Step(const double currentError, const double errorThreshold, const double remainingStep, double& step, size_t& remStepCnt) const = 0;
@@ -61,20 +60,15 @@ class CRunge_Kutta_Adaptive_Strategy
  * Otherwise try to double the step size and halve step count, if the remaining step count is even
  */
 template <size_t N>
-class CRunge_Kuttta_Adaptive_Strategy_Binary_Subdivision : public CRunge_Kutta_Adaptive_Strategy<N>
-{
+class CRunge_Kuttta_Adaptive_Strategy_Binary_Subdivision : public CRunge_Kutta_Adaptive_Strategy<N> {
 	public:
-		virtual bool Adjust_Step(const double currentError, const double errorThreshold, const double remainingStep, double& step, size_t& remStepCnt) const override final
-		{
-			if (currentError > errorThreshold)
-			{
+		virtual bool Adjust_Step(const double currentError, const double errorThreshold, const double remainingStep, double& step, size_t& remStepCnt) const override final {
+			if (currentError > errorThreshold) {
 				step /= 2.0;
 				remStepCnt *= 2;
 			}
-			else
-			{
-				if ((remStepCnt % 2) == 0)
-				{
+			else {
+				if ((remStepCnt % 2) == 0) {
 					step *= 2.0;
 					remStepCnt /= 2;
 				}
@@ -91,30 +85,30 @@ class CRunge_Kuttta_Adaptive_Strategy_Binary_Subdivision : public CRunge_Kutta_A
  * The step size is adjusted using current to threshold error ratio and method order
  */
 template <size_t N>
-class CRunge_Kuttta_Adaptive_Strategy_Optimal_Estimation : public CRunge_Kutta_Adaptive_Strategy<N>
-{
+class CRunge_Kuttta_Adaptive_Strategy_Optimal_Estimation : public CRunge_Kutta_Adaptive_Strategy<N> {
 	private:
 		const double Beta = 0.9;
 
 	public:
-		virtual bool Adjust_Step(const double currentError, const double errorThreshold, const double remainingStep, double& step, size_t& remStepCnt) const override final
-		{
-			if (currentError > std::numeric_limits<double>::epsilon())
+		virtual bool Adjust_Step(const double currentError, const double errorThreshold, const double remainingStep, double& step, size_t& remStepCnt) const override final {
+			if (currentError > std::numeric_limits<double>::epsilon()) {
 				step = Beta * step * std::pow(errorThreshold / currentError, 1.0 / ((currentError >= errorThreshold) ? N + 1 : N));
+			}
 
-			if (step >= remainingStep) // we would exceed the total step
-			{
+			if (step >= remainingStep) // we would exceed the total step {
 				step = remainingStep;
 
 				// when the result is about to get rejected, set step count to 1, so the next one is re-adjusted by current calculations with new step size
-				if (currentError > errorThreshold)
+				if (currentError > errorThreshold) {
 					remStepCnt = 1;
+				}
 
 				return true;
 			}
 
-			if (step < std::numeric_limits<double>::epsilon()) // step is too low
+			if (step < std::numeric_limits<double>::epsilon()) { // step is too low
 				step = std::numeric_limits<double>::epsilon();
+			}
 
 			remStepCnt++; // this will guarantee another call to this method, so we can re-evaluate the step size
 
@@ -126,8 +120,7 @@ class CRunge_Kuttta_Adaptive_Strategy_Optimal_Estimation : public CRunge_Kutta_A
  * Base for all RK solvers (adaptive and non-adaptive)
  */
 template<size_t N>
-class CRunge_Kutta_ODE_Solver_Base
-{
+class CRunge_Kutta_ODE_Solver_Base {
 	protected:
 		using TCoef_Array = std::array<double, N>;
 		using TCoef_Matrix = std::array<TCoef_Array, N>;
@@ -144,16 +137,15 @@ class CRunge_Kutta_ODE_Solver_Base
 	protected:
 		// Evaluates the K function and stores the outputs into kfunc array
 		template<typename _ObjFunc>
-		void Evaluate_K_Func(_ObjFunc& objectiveFnc, TK_Coef_Array& kfunc, const double T, const double X, const double stepSize) const
-		{
+		void Evaluate_K_Func(_ObjFunc& objectiveFnc, TK_Coef_Array& kfunc, const double T, const double X, const double stepSize) const {
 			kfunc[0] = 0;
 
-			for (size_t j = 1; j <= N; j++)
-			{
+			for (size_t j = 1; j <= N; j++) {
 				double xacc = 0.0;
 				const auto& RK_Matrix_j_less_1 = mRKMatrix[j - 1];
-				for (size_t ki = 0; ki < j; ki++)
+				for (size_t ki = 0; ki < j; ki++) {
 					xacc += RK_Matrix_j_less_1[ki] * kfunc[ki];
+				}
 				xacc *= stepSize;
 				xacc += X;
 
@@ -164,8 +156,7 @@ class CRunge_Kutta_ODE_Solver_Base
 
 	public:
 		CRunge_Kutta_ODE_Solver_Base(const TCoef_Matrix& rkMatrix, const TCoef_Array& weights, const TCoef_Array& nodes)
-			: mRKMatrix(rkMatrix), mWeights(weights), mNodes(nodes)
-		{
+			: mRKMatrix(rkMatrix), mWeights(weights), mNodes(nodes) {
 		}
 
 		// Perform one step of RK ODE solver - returns new value of input variable
@@ -176,8 +167,7 @@ class CRunge_Kutta_ODE_Solver_Base
  * Runge-Kutta non-adaptive solver class
  */
 template<size_t N>
-class CRunge_Kutta_ODE_Solver_NonAdaptive : public CRunge_Kutta_ODE_Solver_Base<N>
-{
+class CRunge_Kutta_ODE_Solver_NonAdaptive : public CRunge_Kutta_ODE_Solver_Base<N> {
 	protected:
 		using TCoef_Array = typename CRunge_Kutta_ODE_Solver_Base<N>::TCoef_Array;
 		using TCoef_Matrix = typename CRunge_Kutta_ODE_Solver_Base<N>::TCoef_Matrix;
@@ -185,24 +175,22 @@ class CRunge_Kutta_ODE_Solver_NonAdaptive : public CRunge_Kutta_ODE_Solver_Base<
 
 	protected:
 		// Evaluates K coefficients and performs K-summation to estimate process variable difference
-		double Evaluate_K_Coefs(const TK_Coef_Array& kfunc, const double stepSize) const
-		{
+		double Evaluate_K_Coefs(const TK_Coef_Array& kfunc, const double stepSize) const {
 			double sumK = 0;
-			for (size_t j = 0; j < N; j++)
+			for (size_t j = 0; j < N; j++) {
 				sumK += CRunge_Kutta_ODE_Solver_Base<N>::mWeights[j] * kfunc[j + 1];
+			}
 
 			return sumK * stepSize;
 		}
 
 	public:
 		explicit CRunge_Kutta_ODE_Solver_NonAdaptive(const TCoef_Matrix& rkMatrix, const TCoef_Array& weights, const TCoef_Array& nodes)
-			: CRunge_Kutta_ODE_Solver_Base<N>(rkMatrix, weights, nodes)
-		{
+			: CRunge_Kutta_ODE_Solver_Base<N>(rkMatrix, weights, nodes) {
 		}
 
 		template<typename _ObjFunc>
-		double Step(_ObjFunc& objectiveFnc, const double T, const double X, const double stepSize) const
-		{
+		double Step(_ObjFunc& objectiveFnc, const double T, const double X, const double stepSize) const {
 			TK_Coef_Array kfunc;
 			CRunge_Kutta_ODE_Solver_Base<N>::Evaluate_K_Func(objectiveFnc, kfunc, T, X, stepSize);
 
@@ -210,14 +198,12 @@ class CRunge_Kutta_ODE_Solver_NonAdaptive : public CRunge_Kutta_ODE_Solver_Base<
 		}
 };
 
-
 /*
  * Runge-Kutta adaptive solver class
  */
 template<size_t N,
 	class Adaptive_Strategy = CRunge_Kuttta_Adaptive_Strategy_Binary_Subdivision<N>>
-class CRunge_Kutta_ODE_Solver_Adaptive : public CRunge_Kutta_ODE_Solver_Base<N>
-{
+class CRunge_Kutta_ODE_Solver_Adaptive : public CRunge_Kutta_ODE_Solver_Base<N> {
 	protected:
 		using TCoef_Array = typename CRunge_Kutta_ODE_Solver_Base<N>::TCoef_Array;
 		using TCoef_Matrix = typename CRunge_Kutta_ODE_Solver_Base<N>::TCoef_Matrix;
@@ -235,12 +221,10 @@ class CRunge_Kutta_ODE_Solver_Adaptive : public CRunge_Kutta_ODE_Solver_Base<N>
 
 	protected:
 		// Evaluates K coefficients and performs K-summation to estimate process variable difference and error of this estimation
-		double Evaluate_K_Coefs(const TK_Coef_Array& kfunc, const double stepSize, double& errEstimate) const
-		{
+		double Evaluate_K_Coefs(const TK_Coef_Array& kfunc, const double stepSize, double& errEstimate) const {
 			double sumK = 0;
 			double sumK_Alt = 0;
-			for (size_t j = 0; j < N; j++)
-			{
+			for (size_t j = 0; j < N; j++) {
 				sumK += CRunge_Kutta_ODE_Solver_Base<N>::mWeights[j] * kfunc[j + 1];
 				sumK_Alt += mWeights_Alt[j] * kfunc[j + 1];
 			}
@@ -256,8 +240,7 @@ class CRunge_Kutta_ODE_Solver_Adaptive : public CRunge_Kutta_ODE_Solver_Base<N>
 		}
 
 		template<typename _ObjFunc>
-		double Step(_ObjFunc& objectiveFnc, const double T, const double X, const double stepSize) const
-		{
+		double Step(_ObjFunc& objectiveFnc, const double T, const double X, const double stepSize) const {
 			size_t stepCnt;
 			double xDiff;
 			double errEst;
@@ -271,18 +254,15 @@ class CRunge_Kutta_ODE_Solver_Adaptive : public CRunge_Kutta_ODE_Solver_Base<N>
 
 			size_t max_stepCnt = 0;
 			// perform N steps, stepCnt may be further adjusted during iteration (in Adjust_Step call)
-			for (stepCnt = 1; stepCnt > 0; )
-			{
+			for (stepCnt = 1; stepCnt > 0; ) {
 				CRunge_Kutta_ODE_Solver_Base<N>::Evaluate_K_Func(objectiveFnc, kfunc, T + (stepSize - totalRemaining), xRes, curStep);
 
 				xDiff = Evaluate_K_Coefs(kfunc, curStep, errEst);
 
 				// error above threshold
-				if (errEst > mError_Threshold)
-				{
+				if (errEst > mError_Threshold) {
 					// attempt to adjust step size
-					if (!mStep_Adjuster.Adjust_Step(errEst, mError_Threshold, totalRemaining, curStep, stepCnt))
-					{
+					if (!mStep_Adjuster.Adjust_Step(errEst, mError_Threshold, totalRemaining, curStep, stepCnt)) {
 						// if failed, no step reduction is possible and we have to accept current solution
 
 						xRes += xDiff;
@@ -290,8 +270,7 @@ class CRunge_Kutta_ODE_Solver_Adaptive : public CRunge_Kutta_ODE_Solver_Base<N>
 						totalRemaining -= curStep;
 					}
 				}
-				else // error under threshold, accept solution and attempt to reduce step size up (reduce number of steps)
-				{
+				else { // error under threshold, accept solution and attempt to reduce step size up (reduce number of steps)
 					xRes += xDiff;
 					stepCnt--;
 					totalRemaining -= curStep;
@@ -299,9 +278,11 @@ class CRunge_Kutta_ODE_Solver_Adaptive : public CRunge_Kutta_ODE_Solver_Base<N>
 					mStep_Adjuster.Adjust_Step(errEst, mError_Threshold, totalRemaining, curStep, stepCnt);
 				}
 
-				max_stepCnt++;		
-				if ((mMax_stepCnt >0) && (max_stepCnt>=mMax_stepCnt)) break;
-			}			
+				max_stepCnt++;
+				if ((mMax_stepCnt > 0) && (max_stepCnt >= mMax_stepCnt)) {
+					break;
+				}
+			}
 
 			return xRes;
 		}
@@ -315,8 +296,7 @@ template<size_t N, bool AdaptiveStep = false,
 	class T = std::conditional_t<AdaptiveStep,
 									CRunge_Kutta_ODE_Solver_Adaptive<N, Adaptive_Strategy>,
 									CRunge_Kutta_ODE_Solver_NonAdaptive<N>>>
-class CRunge_Kutta_ODE_Solver : public T
-{
+class CRunge_Kutta_ODE_Solver : public T {
 	public:
 		using T::T; // inherit constructors
 };

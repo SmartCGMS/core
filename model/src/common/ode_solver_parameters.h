@@ -40,8 +40,8 @@
 
 #include "ode_solvers.h"
 
-namespace ode
-{
+namespace ode {
+
 	/*
 	 * rkmatrix = matrix a_ij from Butcher's tableau
 	 * weights = vector b_i from Butcher's tableau
@@ -58,8 +58,7 @@ namespace ode
 #define DEFINE_ODE_SOLVER_ADAPTIVE(name) template <class Adaptive_Strategy = DEFAULT_ADAPTIVE_STRATEGY<order>> class name : public CRunge_Kutta_ODE_Solver<order, true, Adaptive_Strategy> { public: name(const double errorThreshold, const size_t max_steps) : CRunge_Kutta_ODE_Solver<order, true, Adaptive_Strategy>(rkmatrix, weights, weights_alt, nodes, errorThreshold, max_steps) {} };
 
 	// Euler's method (1st order)
-	namespace euler
-	{
+	namespace euler {
 		constexpr size_t order = 1;
 
 		static const std::array<std::array<double, order>, order> rkmatrix = { {
@@ -73,8 +72,7 @@ namespace ode
 	}
 
 	// Heun's method (2nd order)
-	namespace heun
-	{
+	namespace heun {
 		constexpr size_t order = 2;
 
 		static std::array<std::array<double, order>, order> rkmatrix = { {
@@ -89,8 +87,7 @@ namespace ode
 	}
 
 	// Kutta's method ("original") (3rd order)
-	namespace kutta
-	{
+	namespace kutta {
 		constexpr size_t order = 3;
 
 		static std::array<std::array<double, order>, order> rkmatrix = { {
@@ -106,8 +103,7 @@ namespace ode
 	}
 
 	// 3/8 rule (4th order)
-	namespace rule38
-	{
+	namespace rule38 {
 		constexpr size_t order = 4;
 
 		static std::array<std::array<double, order>, order> rkmatrix = { {
@@ -124,8 +120,7 @@ namespace ode
 	}
 
 	// Dormand-Prince method (5th order with 4th order error estimation)
-	namespace dormandprince
-	{
+	namespace dormandprince {
 		constexpr size_t order = 7;
 
 		static std::array<std::array<double, order>, order> rkmatrix = { {

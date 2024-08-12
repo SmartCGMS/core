@@ -57,8 +57,7 @@ CBergman_Discrete_Model::CBergman_Discrete_Model(scgms::IModel_Parameter_Vector 
 		{ mState.Gsc, std::bind<double>(&CBergman_Discrete_Model::eq_dGsc, this, std::placeholders::_1, std::placeholders::_2) },
 		{ mState.D1,  std::bind<double>(&CBergman_Discrete_Model::eq_dD1,  this, std::placeholders::_1, std::placeholders::_2) },
 		{ mState.D2,  std::bind<double>(&CBergman_Discrete_Model::eq_dD2,  this, std::placeholders::_1, std::placeholders::_2) },
-	}
-{
+	} {
 	mState.lastTime = -std::numeric_limits<decltype(mState.lastTime)>::max();
 	mInitialized = false;
 	mState.Q1 = mParameters.Q10;
@@ -77,72 +76,63 @@ CBergman_Discrete_Model::CBergman_Discrete_Model(scgms::IModel_Parameter_Vector 
 	mBasal_Ext.Add_Uptake(0, std::numeric_limits<double>::infinity(), mParameters.BasalRate0);
 }
 
-double CBergman_Discrete_Model::eq_dQ1(const double _T, const double _Q1) const
-{
+double CBergman_Discrete_Model::eq_dQ1(const double _T, const double _Q1) const {
 	return -(mParameters.p1 + mParameters.k21 + mState.X)*_Q1 + mParameters.k12*mState.Q2 + mParameters.p1 * mParameters.Qb + mParameters.d1rate * mState.D1 / mParameters.BodyWeight;
 }
 
-double CBergman_Discrete_Model::eq_dQ2(const double _T, const double _Q2) const
-{
+double CBergman_Discrete_Model::eq_dQ2(const double _T, const double _Q2) const {
 	return mParameters.k21*mState.Q1 - mParameters.k12*_Q2;
 }
 
-double CBergman_Discrete_Model::eq_dX(const double _T, const double _X) const
-{
+double CBergman_Discrete_Model::eq_dX(const double _T, const double _X) const {
 	return -mParameters.p2 * _X + mParameters.p3 * (mState.I - mParameters.Ib);
 }
 
-double CBergman_Discrete_Model::eq_dI(const double _T, const double _I) const
-{
+double CBergman_Discrete_Model::eq_dI(const double _T, const double _I) const {
 	return -mParameters.p4 * _I + mParameters.irate * mState.Isc;
 }
 
-double CBergman_Discrete_Model::eq_dD1(const double _T, const double _D1) const
-{
+double CBergman_Discrete_Model::eq_dD1(const double _T, const double _D1) const {
 	return -mParameters.d1rate * _D1 + mParameters.d2rate * mState.D2;
 }
 
-double CBergman_Discrete_Model::eq_dD2(const double _T, const double _D2) const
-{
+double CBergman_Discrete_Model::eq_dD2(const double _T, const double _D2) const {
 	return -mParameters.d2rate * _D2 + mParameters.Ag * mMeal_Ext.Get_Disturbance(mState.lastTime, _T * scgms::One_Minute);
 }
 
-double CBergman_Discrete_Model::eq_dIsc(const double _T, const double _Isc) const
-{
+double CBergman_Discrete_Model::eq_dIsc(const double _T, const double _Isc) const {
 	return -mParameters.irate * _Isc + (mBasal_Ext.Get_Recent(_T * scgms::One_Minute) + mBolus_Ext.Get_Disturbance(mState.lastTime, _T * scgms::One_Minute)) / mParameters.Vi;
 }
 
-double CBergman_Discrete_Model::eq_dGsc(const double _T, const double _Gsc) const
-{
+double CBergman_Discrete_Model::eq_dGsc(const double _T, const double _Gsc) const {
 	// Ikaros game calculates Gsc as follows (left here, for now):
 	//return ((mParameters.p * mLastBG + mParameters.cg * mLastBG * (mLastBG - mLastIG) + mParameters.c) - _Gsc) / (0.05 + _T - mState.lastTime / scgms::One_Minute);
 
 	const double GscDt = (mParameters.p * mLastBG + mParameters.cg * mLastBG * (mLastBG - mLastIG) + mParameters.c);
 
-	if (mParameters.dt == 0.0)
+	if (mParameters.dt == 0.0) {
 		return 0.0;
+	}
 
 	double timeDelta = mParameters.dt;
-	if (mParameters.k != 0.0 && mParameters.h != 0.0)
+	if (mParameters.k != 0.0 && mParameters.h != 0.0) {
 		timeDelta += mParameters.k * mLastIG * (mLastIG - mDiffIG_h_Value) / mParameters.h;
+	}
 
 	// this basicaly yields a line approximation, which is enough - as we know the future Gsc, the adaptive-step methods gives no error, so there's no need to perform
 	// steps shorter than requested step size
 	return (GscDt - _Gsc) / (timeDelta / scgms::One_Minute);
 }
 
-void CBergman_Discrete_Model::Emit_All_Signals(double time_advance_delta)
-{
+void CBergman_Discrete_Model::Emit_All_Signals(double time_advance_delta) {
 	const double _T = mState.lastTime + time_advance_delta;	//locally-scoped because we might have been asked to emit the current state only
 
-	if (mRequested_Basal.requested)
-	{
+	if (mRequested_Basal.requested) {
 		Emit_Signal_Level(scgms::signal_Delivered_Insulin_Basal_Rate, mRequested_Basal.time, mRequested_Basal.amount);
 		mRequested_Basal.requested = false;
 	}
 
-	for (auto& reqBolus : mRequested_Boluses)
-	{
+	for (auto& reqBolus : mRequested_Boluses) {
 		if (reqBolus.requested) {
 			Emit_Signal_Level(scgms::signal_Delivered_Insulin_Bolus, reqBolus.time, reqBolus.amount);
 		}
@@ -154,12 +144,11 @@ void CBergman_Discrete_Model::Emit_All_Signals(double time_advance_delta)
 	Emit_Signal_Level(bergman_model::signal_Bergman_IG, _T, iglevel);
 
 	// store I(t - h) for Gsc calculation
-	if (mParameters.k != 0.0 && mParameters.h != 0.0)
-	{
-		if (mDiffIG_h_Time < 0.0)
+	if (mParameters.k != 0.0 && mParameters.h != 0.0) {
+		if (mDiffIG_h_Time < 0.0) {
 			mDiffIG_h_Value = iglevel;
-		else if (mDiffIG_h_Time + mParameters.h < _T)
-		{
+		}
+		else if (mDiffIG_h_Time + mParameters.h < _T) {
 			const double progress = (mDiffIG_h_Time + mParameters.h - mState.lastTime) / (_T - mState.lastTime);
 
 			mDiffIG_h_Value = (iglevel - mLastIG) * progress;
@@ -194,14 +183,14 @@ HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 
 	if (mInitialized) {
 
-		if (event.event_code() == scgms::NDevice_Event_Code::Level)
-		{
-			if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate)
-			{
-				if (event.device_time() < mState.lastTime)
-					return E_ILLEGAL_STATE_CHANGE;	//got no time-machine to deliver insulin in the past
-													//although we could allow this by setting it (if no newer basal is requested),
-													//it would defeat the purpose of any verification
+		if (event.event_code() == scgms::NDevice_Event_Code::Level) {
+			if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate) {
+				if (event.device_time() < mState.lastTime) {
+					//got no time-machine to deliver insulin in the past
+					//although we could allow this by setting it (if no newer basal is requested),
+					//it would defeat the purpose of any verification
+					return E_ILLEGAL_STATE_CHANGE;
+				}
 
 				mBasal_Ext.Add_Uptake(event.device_time(), std::numeric_limits<double>::max(), 1000.0 * (event.level() / 60.0));
 				if (!mRequested_Basal.requested || event.device_time() > mRequested_Basal.time) {
@@ -212,10 +201,11 @@ HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 
 				res = S_OK;
 			}
-			else if (event.signal_id() == scgms::signal_Requested_Insulin_Bolus)
-			{
-				if (event.device_time() < mState.lastTime) 
-					return E_ILLEGAL_STATE_CHANGE;	//got no time-machine to deliver insulin in the past
+			else if (event.signal_id() == scgms::signal_Requested_Insulin_Bolus) {
+				//got no time-machine to deliver insulin in the past
+				if (event.device_time() < mState.lastTime) {
+					return E_ILLEGAL_STATE_CHANGE;
+				}
 
 				// we assume that bolus is spread to 5-minute rate
 				constexpr double MinsBolusing = 5.0;
@@ -230,8 +220,7 @@ HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 
 				res = S_OK;
 			}
-			else if ((event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue))
-			{
+			else if ((event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue)) {
 				//TODO: got no time-machine to consume meal in the past, but still can account for the present part of it
 
 				// we assume 10-minute eating period
@@ -242,16 +231,21 @@ HRESULT CBergman_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 				// res = S_OK; - do not unless we have another signal called consumed CHO
 			}
 		}
-	} else 
+	}
+	else {
 		if (event.event_code() == scgms::NDevice_Event_Code::Level) {
+			//cannot modify our state prior initialization!
 			if ((event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate) ||
 				(event.signal_id() == scgms::signal_Requested_Insulin_Bolus) ||
-				(event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue))
-				res = E_ILLEGAL_STATE_CHANGE;	//cannot modify our state prior initialization!
+				(event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue)) {
+				res = E_ILLEGAL_STATE_CHANGE;
+			}
 		}
+	}
 
-	if (res == S_FALSE)
+	if (res == S_FALSE) {
 		res = mOutput.Send(event);
+	}
 
 	return res;
 }
@@ -263,10 +257,11 @@ HRESULT CBergman_Discrete_Model::Do_Configure(scgms::SFilter_Configuration confi
 
 HRESULT IfaceCalling CBergman_Discrete_Model::Step(const double time_advance_delta) {
 	HRESULT rc = E_INVALIDARG;
-	if (!mInitialized)
+	if (!mInitialized) {
 		return E_ILLEGAL_METHOD_CALL;
+	}
 
-	if (time_advance_delta > 0.0) {	
+	if (time_advance_delta > 0.0) {
 		// perform a few microsteps within advancement delta
 		// we expect the spacing to be 5 minutes (between IG values) +- few seconds; however, bolus, basal intake and CHO intake may vary during this time period
 		// therefore, this spreads single 5min step to 5 one-minute steps in ideal case; in less-than-ideal case (spacing greater than 5 mins), this still proceeds
@@ -275,13 +270,13 @@ HRESULT IfaceCalling CBergman_Discrete_Model::Step(const double time_advance_del
 		constexpr size_t microStepCount = 5;
 		const double microStepSize = time_advance_delta / static_cast<double>(microStepCount);
 
-		for (size_t i = 0; i < microStepCount; i++)
-		{
+		for (size_t i = 0; i < microStepCount; i++) {
 			const double nowTime = mState.lastTime + static_cast<double>(i)*microStepSize;
 
 			// Note: times in ODE solver is represented in minutes (and its fractions), as original Bergman model parameters are tuned to one minute unit
-			for (auto& binding : mEquation_Binding)
+			for (auto& binding : mEquation_Binding) {
 				binding.x = ODE_Solver.Step(binding.fnc, nowTime / scgms::One_Minute, binding.x, microStepSize / scgms::One_Minute);
+			}
 		}
 
 		Emit_All_Signals(time_advance_delta);
@@ -322,6 +317,7 @@ HRESULT IfaceCalling CBergman_Discrete_Model::Initialize(const double current_ti
 		mInitialized = true;
 		return S_OK;
 	}
-	else
+	else {
 		return E_ILLEGAL_STATE_CHANGE;
+	}
 }

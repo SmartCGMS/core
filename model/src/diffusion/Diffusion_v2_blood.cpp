@@ -40,26 +40,36 @@
 
 #include <scgms/rtl/SolverLib.h>
 
+#include <stdexcept>
+
 #undef max
 
 thread_local TVector1D CDiffusion_v2_blood::mPresent_Ist, CDiffusion_v2_blood::mFuture_Ist, CDiffusion_v2_blood::mDt;
 
 CDiffusion_v2_blood::CDiffusion_v2_blood(scgms::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(scgms::signal_IG)) {
-	if (!refcnt::Shared_Valid_All(mIst)) throw std::exception{};
+	if (!refcnt::Shared_Valid_All(mIst)) {
+		throw std::runtime_error{ "Cannot find IG signal" };
+	}
 }
-
 
 HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 																const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
-	if (count == 0) return S_FALSE;
-	if ((times == nullptr) || (levels == nullptr) || (derivation_order != scgms::apxNo_Derivation)) return E_INVALIDARG;
+
+	if (count == 0) {
+		return S_FALSE;
+	}
+
+	if ((times == nullptr) || (levels == nullptr) || (derivation_order != scgms::apxNo_Derivation)) {
+		return E_INVALIDARG;
+	}
 
 	const diffusion_v2_model::TParameters &parameters = scgms::Convert_Parameters<diffusion_v2_model::TParameters>(params, diffusion_v2_model::default_parameters);
 	
 	auto present_ist = Reserve_Eigen_Buffer(mPresent_Ist, count );
 	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, times, present_ist.data(), count, scgms::apxNo_Derivation);
-	if (rc != S_OK) return rc;
-
+	if (rc != S_OK) {
+		return rc;
+	}
 
 	auto future_ist = Reserve_Eigen_Buffer(mFuture_Ist, count );
 	auto dt = Reserve_Eigen_Buffer(mDt, count );
@@ -72,15 +82,20 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(scgms::IModel_Pa
 
 		auto &h_back_ist = future_ist;	//temporarily re-use this buffer to calculate dt vector
 		rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), h_back_ist.data(), count, scgms::apxNo_Derivation);
-		if (rc != S_OK) return rc;
+		if (rc != S_OK) {
+			return rc;
+		}
 
 		dt = converted_times + parameters.dt + parameters.k*present_ist*(present_ist - h_back_ist)/parameters.h;
 	}
-	else
+	else {
 		dt = converted_times + parameters.dt;
+	}
 
 	rc = mIst->Get_Continuous_Levels(nullptr, dt.data(), future_ist.data(), count, scgms::apxNo_Derivation);
-	if (rc != S_OK) return rc;
+	if (rc != S_OK) {
+		return rc;
+	}
 
 	//floattype alpha = params.cg;
 	//floattype beta = params.p - alpha * presentist;
@@ -119,10 +134,13 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(scgms::IModel_Pa
 
 		converted_levels = beta.square() - 4.0*parameters.cg*(parameters.c - future_ist);
 		//converted_levels.max(0.0);	//max cannot be inlined to make a one large equation
-		for (size_t i = 0; i < count; i++)
-			if (converted_levels[i] < 0.0) return E_FAIL; // shouldn't we fail rather? converted_levels[i] = 0.0;	//max would be nice solution, but it fails for some reason
+		for (size_t i = 0; i < count; i++) {
+			if (converted_levels[i] < 0.0) {
+				return E_FAIL; // shouldn't we fail rather? converted_levels[i] = 0.0;	//max would be nice solution, but it fails for some reason
+			}
+		}
 		converted_levels = (converted_levels.sqrt() - beta)*0.5 / parameters.cg;		
-	} else {		
+	} else {
 		//with alpha==0.0 we cannot calculate discriminant D as it would lead to division by zero(alpha)
 		//=> BG = -gamma/beta but only if beta != 0.0
 		//as beta degrades to params.p with zero alpha, we only need to check params.p for non-zero value
@@ -141,9 +159,11 @@ HRESULT IfaceCalling CDiffusion_v2_blood::Get_Continuous_Levels(scgms::IModel_Pa
 		// By all means, of the orignal equation, the glucose level is constant,
 		// thus the subject is dead => thus NaN, in-fact, would be the correct value.
 		// However, let us return the constat glucose level instead.
-		else ///converted_levels = parameters.c;
-			return E_FAIL;	//no, it is physiologically implausible result
-							//that allows stochastics methods to collapse into invalid, singular solution
+		else { ///converted_levels = parameters.c;
+			//no, it is physiologically implausible result
+			//that allows stochastics methods to collapse into invalid, singular solution
+			return E_FAIL;
+		}
 	}
 
 	return S_OK;

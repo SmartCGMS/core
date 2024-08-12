@@ -42,7 +42,7 @@
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 /*
- *
+ * Model emitting a constant value
  */
 class CConstant_Model : public virtual CCommon_Calculated_Signal {
 	public:

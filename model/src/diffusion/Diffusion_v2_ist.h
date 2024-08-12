@@ -43,17 +43,19 @@
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 class CDiffusion_v2_ist : public virtual CDiffusion_v2_blood {
-protected:
-	scgms::SSignal mBlood;
-protected:
-	static thread_local TVector1D mDt, mPresent_Blood, mPresent_Ist;
-public:
-	CDiffusion_v2_ist(scgms::WTime_Segment segment);
-	virtual ~CDiffusion_v2_ist() {};
+	protected:
+		scgms::SSignal mBlood;
 
-	//scgms::ISignal iface
-	virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
-		const double* times, double* const levels, const size_t count, const size_t derivation_order) const final;
+	protected:
+		static thread_local TVector1D mDt, mPresent_Blood, mPresent_Ist;
+
+	public:
+		CDiffusion_v2_ist(scgms::WTime_Segment segment);
+		virtual ~CDiffusion_v2_ist() {};
+
+		//scgms::ISignal iface
+		virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
+			const double* times, double* const levels, const size_t count, const size_t derivation_order) const final;
 };
 
 #pragma warning( pop )

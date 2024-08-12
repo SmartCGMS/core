@@ -339,8 +339,9 @@ namespace gct3_model
 			void Commit(const double currentTime) {
 				mQuantity = mNext_Quantity;
 
-				for (auto& lnk : mLinks)
+				for (auto& lnk : mLinks) {
 					lnk.Commit(currentTime);
+				}
 
 				// erase expired links
 				mLinks.erase(std::remove_if(mLinks.begin(), mLinks.end(),
@@ -392,8 +393,9 @@ namespace gct3_model
 
 		protected:
 			virtual void Mod_Quantity(double& total) override {
-				if (total > 0.0)
+				if (total > 0.0) {
 					total = -total;
+				}
 			}
 
 		public:
@@ -408,8 +410,9 @@ namespace gct3_model
 
 		protected:
 			virtual void Mod_Quantity(double& total) override {
-				if (total < 0.0)
+				if (total < 0.0) {
 					total = -total;
+				}
 			}
 
 		public:
@@ -465,8 +468,9 @@ namespace gct3_model
 			}
 
 			virtual double Get_Quantity() const override {
-				if (mKnots.size() < 2)
+				if (mKnots.size() < 2) {
 					return CDepot::Get_Quantity();
+				}
 
 				const double curTime = Get_Current_Time();
 				double tod = curTime - static_cast<long>(curTime);
@@ -489,8 +493,9 @@ namespace gct3_model
 						low = mKnots.size() - 1;
 						high = 0;
 					}
-					else // should not happen
+					else { // should not happen
 						return CDepot::Get_Quantity();
+					}
 				}
 
 				const double tstart = mKnots[low].first;
@@ -499,8 +504,9 @@ namespace gct3_model
 
 				if (tstart > tend) {
 					tend += 1.0;
-					if (tod < tstart)
+					if (tod < tstart) {
 						tod += 1.0;
+					}
 				}
 
 				return vstart + (vend - vstart) * ( (tod - tstart) / (tend - tstart) );
@@ -540,8 +546,9 @@ namespace gct3_model
 			double Get_Quantity() const override {
 				double result = 0.0;
 
-				for (const auto& depot : mDepots)
+				for (const auto& depot : mDepots) {
 					result += depot->Get_Quantity();
+				}
 
 				return result;
 			}
@@ -549,8 +556,9 @@ namespace gct3_model
 			double Get_Solution_Volume() const {
 				double result = 0.0;
 
-				for (const auto& depot : mDepots)
+				for (const auto& depot : mDepots) {
 					result += depot->Get_Solution_Volume();
+				}
 
 				return result;
 			}

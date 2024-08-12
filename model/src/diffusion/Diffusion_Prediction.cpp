@@ -41,13 +41,15 @@
 #include <scgms/rtl/SolverLib.h>
 
 #include <cmath>
+#include <stdexcept>
 
 thread_local TVector1D CDiffusion_Prediction::mRetrospective_Present_Ist, CDiffusion_Prediction::mRetrospective_Dt, CDiffusion_Prediction::mBeta;
 
 CDiffusion_Prediction::CDiffusion_Prediction(scgms::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(scgms::signal_IG)) {
-	if (!mIst) throw std::exception{};
+	if (!mIst) {
+		throw std::runtime_error{ "Cannot find IG signal" };
+	}
 }
-
 
 HRESULT IfaceCalling CDiffusion_Prediction::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
@@ -67,26 +69,33 @@ HRESULT IfaceCalling CDiffusion_Prediction::Get_Continuous_Levels(scgms::IModel_
 	//=>therefore, we need to calculate BG back in time by both retro- and pred- dts
 	//and use converted_times - pred.dt
 
-	retrospective_dt = converted_times - parameters.predictive.dt;	
+	retrospective_dt = converted_times - parameters.predictive.dt;
 	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, retrospective_dt.data(), retrospective_future_ist.data(), count, scgms::apxNo_Derivation);
-	if (rc != S_OK) return rc;
+	if (rc != S_OK) {
+		return rc;
+	}
+
 	retrospective_dt -= parameters.retrospective.dt;
 	rc = mIst->Get_Continuous_Levels(nullptr, retrospective_dt.data(), retrospective_present_ist.data(), count, scgms::apxNo_Derivation);
-	if (rc != S_OK) return rc;
-	
-	
+	if (rc != S_OK) {
+		return rc;
+	}
 
-	if (parameters.retrospective.cg != 0.0) {		
+	if (parameters.retrospective.cg != 0.0) {
 		auto beta = Reserve_Eigen_Buffer(mBeta, count);
 		beta = parameters.retrospective.p - parameters.retrospective.cg * retrospective_present_ist;	
 		converted_levels = beta.square() - 4.0*parameters.retrospective.cg*(parameters.retrospective.c - retrospective_future_ist);
-		for (size_t i = 0; i < count; i++)
+		for (size_t i = 0; i < count; i++) {
 			if (converted_levels[i] < 0.0) converted_levels[i] = 0.0;	//max would be nice solution, but it fails for some reason
+		}
 		converted_levels = (converted_levels.sqrt() - beta)*0.5 / parameters.retrospective.cg;
 	} else {
-		if (parameters.retrospective.p != 0.0) 
-			converted_levels = (retrospective_future_ist - parameters.retrospective.c) / parameters.retrospective.p; 
-			else converted_levels = parameters.retrospective.c;
+		if (parameters.retrospective.p != 0.0) {
+			converted_levels = (retrospective_future_ist - parameters.retrospective.c) / parameters.retrospective.p;
+		}
+		else {
+			converted_levels = parameters.retrospective.c;
+		}
 	}
 	//Now, converted_levels hold BG at times-parameters.retrospective.dt - parameters.predictive.dt
 
@@ -95,7 +104,7 @@ HRESULT IfaceCalling CDiffusion_Prediction::Get_Continuous_Levels(scgms::IModel_
 	converted_levels =  parameters.predictive.p*retro_present_BG
 					  + parameters.predictive.cg*retro_present_BG*(retro_present_BG - retrospective_present_ist)
 					  + parameters.predictive.c;
-	
+
 	return S_OK;
 }
 

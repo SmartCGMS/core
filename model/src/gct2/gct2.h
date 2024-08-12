@@ -43,8 +43,8 @@
 #include "gct2_moderation_functions.h"
 #include "gct2_depot.h"
 
-namespace gct2_model
-{
+namespace gct2_model {
+
 	enum class NGCT_Compartment : size_t {
 		// physical compartments
 		Glucose_1,
@@ -72,8 +72,7 @@ namespace gct2_model
 	/**
 	 * Class representing a vector of compartments within GCT model
 	 */
-	class CGCT_Compartments final : public std::vector<CCompartment>
-	{
+	class CGCT_Compartments final : public std::vector<CCompartment> {
 		public:
 			CGCT_Compartments() : std::vector<CCompartment>(GCT_Compartment_Count) {
 				//

@@ -128,11 +128,8 @@ namespace pattern_prediction {
 			effective_level = std::min(high_bound, level);
 		}
 
-				
 		const double subclass_size = (high_bound - low_bound) / static_cast<double>(Subclasses_Count);
 		const double idx = (effective_level - low_bound) / subclass_size;
 		return low_bound + std::round(idx) * subclass_size;
 	}
-
-
 }

@@ -43,18 +43,20 @@
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 class CDiffusion_Prediction : public virtual CCommon_Calculated_Signal {
-protected:
-	scgms::SSignal mIst;
-protected:
-	static thread_local TVector1D mRetrospective_Present_Ist, mRetrospective_Dt, mBeta;
-public:
-	CDiffusion_Prediction(scgms::WTime_Segment segment);
-	virtual ~CDiffusion_Prediction() {};
+	protected:
+		scgms::SSignal mIst;
 
-	//scgms::ISignal iface
-	virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
-		const double* times, double* const levels, const size_t count, const size_t derivation_order) const final;
-	virtual HRESULT IfaceCalling Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const final;
+	protected:
+		static thread_local TVector1D mRetrospective_Present_Ist, mRetrospective_Dt, mBeta;
+
+	public:
+		CDiffusion_Prediction(scgms::WTime_Segment segment);
+		virtual ~CDiffusion_Prediction() {};
+
+		//scgms::ISignal iface
+		virtual HRESULT IfaceCalling Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
+			const double* times, double* const levels, const size_t count, const size_t derivation_order) const final;
+		virtual HRESULT IfaceCalling Get_Default_Parameters(scgms::IModel_Parameter_Vector *parameters) const final;
 };
 
 #pragma warning( pop )

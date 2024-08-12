@@ -42,20 +42,23 @@
 #include <scgms/utils/math_utils.h>
 
 #include <cmath>
+#include <stdexcept>
 
 thread_local TVector1D CWMA::mPresent_Ist, CWMA::mOffsets;
 
 CWMA::CWMA(scgms::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(scgms::signal_IG)) {
-	if (!refcnt::Shared_Valid_All(mIst)) throw std::exception{};
+	if (!refcnt::Shared_Valid_All(mIst)) {
+		throw std::runtime_error{ "Could not find IG signal" };
+	}
 }
-
-
 
 HRESULT IfaceCalling CWMA::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 
 	const wma::TParameters &parameters = scgms::Convert_Parameters<wma::TParameters>(params, wma::default_parameters);
-	if (parameters.dt <= 0.0) return E_INVALIDARG;	//this parameter must be positive
+	if (parameters.dt <= 0.0) {
+		return E_INVALIDARG;	//this parameter must be positive
+	}
 
 	auto present_ist = Reserve_Eigen_Buffer(mPresent_Ist, wma::coeff_count);
 	
@@ -70,18 +73,20 @@ HRESULT IfaceCalling CWMA::Get_Continuous_Levels(scgms::IModel_Parameter_Vector 
 
 		HRESULT rc= mIst->Get_Continuous_Levels(nullptr, times, present_ist.data(), wma::coeff_count, derivation_order);
 		if (rc == S_OK) {
-			if (Is_Any_NaN(present_ist))
+			if (Is_Any_NaN(present_ist)) {
 				rc = MK_E_UNAVAILABLE;
+			}
 		}
 
-		return rc;		
+		return rc;
 	};
 
 	
 	auto non_adaptive = [&parameters, &present_ist]() {
 		double result = 0.0;
-		for (size_t i = 0; i < wma::coeff_count; i++)
+		for (size_t i = 0; i < wma::coeff_count; i++) {
 			result += parameters.coeff[i] * present_ist[i];
+		}
 
 		return result;
 	};
@@ -90,8 +95,10 @@ HRESULT IfaceCalling CWMA::Get_Continuous_Levels(scgms::IModel_Parameter_Vector 
 	for (size_t i = 0; i < count; i++) {
 		if (get_times(times[i]) == S_OK) {
 			levels[i] = non_adaptive();
-		} else
+		}
+		else {
 			levels[i] = std::numeric_limits<double>::quiet_NaN();
+		}
 	}
 	
 	return S_OK;

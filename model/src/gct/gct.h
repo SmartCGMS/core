@@ -71,8 +71,7 @@ constexpr size_t GCT_Compartment_Count = static_cast<size_t>(NGCT_Compartment::c
 /**
  * Class representing a vector of compartments within GCT model
  */
-class CGCT_Compartments final : public std::vector<CCompartment>
-{
+class CGCT_Compartments final : public std::vector<CCompartment> {
 	public:
 		CGCT_Compartments() : std::vector<CCompartment>(GCT_Compartment_Count) {
 			//

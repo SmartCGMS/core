@@ -39,16 +39,14 @@
 #include <vector>
 
 // single uptake event to be taken into account
-struct Uptake_Event
-{
+struct Uptake_Event {
 	double t_min;		// device time of start
 	double t_max;		// device time offset of end from start
 	double amount;		// [UNITS/min] - unit could be anything (U, g, ...)
 };
 
 // container of uptake events
-class Uptake_Accumulator : public std::vector<Uptake_Event>
-{
+class Uptake_Accumulator : public std::vector<Uptake_Event> {
 	public:
 		// adds a new uptake record
 		void Add_Uptake(double t, double t_delta_end, double amount);

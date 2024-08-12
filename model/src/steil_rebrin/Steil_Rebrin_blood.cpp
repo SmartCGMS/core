@@ -41,49 +41,61 @@
 #include <scgms/rtl/SolverLib.h>
 
 #include <cmath>
+#include <stdexcept>
 
 thread_local TVector1D CSteil_Rebrin_blood::mPresent_Ist, CSteil_Rebrin_blood::mDerived_Ist, CSteil_Rebrin_blood::mCalibration_Offsets;
 
 CSteil_Rebrin_blood::CSteil_Rebrin_blood(scgms::WTime_Segment segment) : CCommon_Calculated_Signal(segment), mIst(segment.Get_Signal(scgms::signal_IG)), mCalibration(segment.Get_Signal(scgms::signal_BG_Calibration)) {
-	if (!refcnt::Shared_Valid_All(mIst, mCalibration)) throw std::exception{};
+	if (!refcnt::Shared_Valid_All(mIst, mCalibration)) {
+		throw std::runtime_error{ "Could not find IG or Calibration signals" };
+	}
 }
-
-
 
 HRESULT IfaceCalling CSteil_Rebrin_blood::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
 	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
 
 	const steil_rebrin::TParameters &parameters = scgms::Convert_Parameters<steil_rebrin::TParameters>(params, steil_rebrin::default_parameters);
-	if (parameters.alpha == 0.0) return E_INVALIDARG;	//this parameter cannot be zero
+	if (parameters.alpha == 0.0) {
+		return E_INVALIDARG;	//this parameter cannot be zero
+	}
 
 	auto present_ist = Reserve_Eigen_Buffer(mPresent_Ist, count );
 	HRESULT rc = mIst->Get_Continuous_Levels(nullptr, times, present_ist.data(), count, scgms::apxNo_Derivation);
-	if (rc != S_OK) return rc;
+	if (rc != S_OK) {
+		return rc;
+	}
 
 	auto derived_ist = Reserve_Eigen_Buffer(mDerived_Ist, count );
 	rc = mIst->Get_Continuous_Levels(nullptr, times, derived_ist.data(), count, scgms::apxFirst_Order_Derivation);
-	if (rc != S_OK) return rc;
+	if (rc != S_OK) {
+		return rc;
+	}
 
 	auto calibration_offsets = Reserve_Eigen_Buffer(mCalibration_Offsets, count );
 	//we need to go through the calibration vector and convert it to the time offset of the first calibrations
 	//and for that we need to consider the very first BG measurement as calibration
 	scgms::TBounds time_bounds;
 	rc = mIst->Get_Discrete_Bounds(&time_bounds, nullptr, nullptr);
-	if (rc != S_OK) return rc;
+	if (rc != S_OK) {
+		return rc;
+	}
 
 	double recent_calibration_time = time_bounds.Min;
 
 	rc = mCalibration->Get_Continuous_Levels(nullptr, times, calibration_offsets.data(), count, scgms::apxNo_Derivation);
-	if (rc != S_OK) calibration_offsets.setConstant(std::numeric_limits<double>::quiet_NaN());	//if failed, well, let's behave like if there was no calibration at all
-
-	for (size_t i = 0; i < count; i++) {
-		if (std::isnan(calibration_offsets[i])) calibration_offsets[i] = times[i] - recent_calibration_time;
-			else {
-				calibration_offsets[i] = 0.0;
-				recent_calibration_time = times[i];
-			}
+	if (rc != S_OK) {
+		calibration_offsets.setConstant(std::numeric_limits<double>::quiet_NaN());	//if failed, well, let's behave like if there was no calibration at all
 	}
 
+	for (size_t i = 0; i < count; i++) {
+		if (std::isnan(calibration_offsets[i])) {
+			calibration_offsets[i] = times[i] - recent_calibration_time;
+		}
+		else {
+			calibration_offsets[i] = 0.0;
+			recent_calibration_time = times[i];
+		}
+	}
 
 	//we have all the signals, let's calculate blood
 	Eigen::Map<TVector1D> converted_levels{ Map_Double_To_Eigen<TVector1D>(levels, count) };

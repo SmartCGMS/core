@@ -44,9 +44,7 @@
 #undef max
 #undef min
 
-namespace gct2_model
-{
-
+namespace gct2_model {
 	/**
 	 * Interface for all objects having quantity and concentration
 	 */

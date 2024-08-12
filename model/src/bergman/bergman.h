@@ -46,8 +46,7 @@
 #include "../common/uptake_accumulator.h"
 
 // state of bergman minimal model equation system
-struct CBergman_State
-{
+struct CBergman_State {
 	double lastTime;
 
 	double Q1;
@@ -62,14 +61,12 @@ struct CBergman_State
 
 class CBergman_Discrete_Model;
 
-namespace bergman_model
-{
+namespace bergman_model {
 	using TDiff_Eq_Fnc = double (CBergman_Discrete_Model::*)(const double, const double) const;
 	using TDiff_Eq = decltype(std::bind<double>(std::declval<TDiff_Eq_Fnc>(), std::declval<CBergman_Discrete_Model*>(), std::declval<const decltype(std::placeholders::_1)&>(), std::declval<const decltype(std::placeholders::_2)&>()));
 
 	// helper structure for equation binding
-	struct CEquation_Binding
-	{
+	struct CEquation_Binding {
 		double& x;
 		TDiff_Eq fnc;
 	};
@@ -78,12 +75,12 @@ namespace bergman_model
 #pragma warning( push )
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
-class CBergman_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscrete_Model
-{
+class CBergman_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscrete_Model {
 	private:
 		// maximum accepted error estimate for ODE solvers for this model
 		const double ODE_epsilon0 = 0.001;
 		const size_t mODE_Max_Steps = 100;
+
 	private:
 		bergman_model::TParameters mParameters;
 
@@ -104,8 +101,7 @@ class CBergman_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscr
 		double mDiffIG_h_Time = -1;
 		double mDiffIG_h_Value = 0.0;
 
-		struct TRequested_Amount
-		{
+		struct TRequested_Amount {
 			double time = 0;
 			double amount = 0;
 			bool requested = false;

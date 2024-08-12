@@ -76,8 +76,9 @@ namespace gct3_model
 
 			amount *= amt;
 			double eliminateAmount = -mods.function.get()->Get_Elimination_Input(mods.depot.get().Get_Quantity());
-			if (eliminateAmount != 0.0)
+			if (eliminateAmount != 0.0) {
 				mods.depot.get().Mod_Quantity(eliminateAmount);
+			}
 		}
 
 		// only transfer if there is something to transfer; the transfer function determined this amount, so if it returned 0.0, that means, no transfer will be done in this step

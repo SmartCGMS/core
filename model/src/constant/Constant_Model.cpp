@@ -46,16 +46,16 @@ CConstant_Model::CConstant_Model(scgms::WTime_Segment segment) : CCommon_Calcula
 }
 
 HRESULT IfaceCalling CConstant_Model::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params,
-	const double* times, double* const levels, const size_t count, const size_t derivation_order) const
-{
+	const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
+
 	const constant_model::TParameters &parameters = scgms::Convert_Parameters<constant_model::TParameters>(params, constant_model::default_parameters);
 
 	// for all input times (reference signal times), output constant value
 	// this comes in handy for e.g. measuring quality of regulation - metrics then can tell us, how good the regulation actually was,
 	// how many values were in target range, etc.
 
-    const double val = derivation_order == scgms::apxNo_Derivation ? parameters.c : 0.0;
-    std::fill(levels, levels + count, val);
+	const double val = derivation_order == scgms::apxNo_Derivation ? parameters.c : 0.0;
+	std::fill(levels, levels + count, val);
 
 	return S_OK;
 }

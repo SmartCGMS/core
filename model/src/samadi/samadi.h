@@ -48,22 +48,20 @@
 
 class CSamadi_Discrete_Model;
 
-namespace samadi_model
-{
+namespace samadi_model {
+
 	using TDiff_Eq_Fnc = double (CSamadi_Discrete_Model::*)(const double, const double) const;
 	using TDiff_Eq = decltype(std::bind<double>(std::declval<TDiff_Eq_Fnc>(), std::declval<CSamadi_Discrete_Model*>(), std::declval<const decltype(std::placeholders::_1)&>(), std::declval<const decltype(std::placeholders::_2)&>()));
 
 	// helper structure for equation binding
-	struct CEquation_Binding
-	{
+	struct CEquation_Binding {
 		double& x;
 		TDiff_Eq fnc;
 	};
 }
 
 // state of Samadi model equation system
-struct CSamadi_Model_State
-{
+struct CSamadi_Model_State {
 	double lastTime;
 
 	double Q1;
@@ -88,8 +86,7 @@ struct CSamadi_Model_State
 #pragma warning( disable : 4250 ) // C4250 - 'class1' : inherits 'class2::member' via dominance
 
 //DOI: 10.1016/j.compchemeng.2019.106565
-class CSamadi_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscrete_Model
-{
+class CSamadi_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscrete_Model {
 	private:
 		// maximum accepted error estimate for ODE solvers for this model
 		static constexpr double ODE_epsilon0 = 0.001;
@@ -116,8 +113,7 @@ class CSamadi_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscre
 		// bound equations in a single vector - quantity and equation bound together
 		const std::vector<samadi_model::CEquation_Binding> mEquation_Binding;
 
-		struct TRequested_Amount
-		{
+		struct TRequested_Amount {
 			double time = 0;
 			double amount = 0;
 			bool requested = false;

@@ -109,8 +109,8 @@ CUVA_Padova_S2013_Discrete_Model::CUVA_Padova_S2013_Discrete_Model(scgms::IModel
 		{ mState.SRHS,    std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dSRHS, this, std::placeholders::_1, std::placeholders::_2) },
 		{ mState.Hsc1,    std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dHsc1, this, std::placeholders::_1, std::placeholders::_2) },
 		{ mState.Hsc2,    std::bind<double>(&CUVA_Padova_S2013_Discrete_Model::eq_dHsc2, this, std::placeholders::_1, std::placeholders::_2) },
-	}
-{
+	} {
+
 	mState.lastTime = -1;
 	mState.Gp = mParameters.Gp_0;
 	mState.Gt = mParameters.Gt_0;
@@ -135,8 +135,7 @@ CUVA_Padova_S2013_Discrete_Model::CUVA_Padova_S2013_Discrete_Model(scgms::IModel
 	mBasal_Ext.Add_Uptake(0, std::numeric_limits<double>::infinity(), 0.0); // TODO: BasalRate0 as a parameter
 }
 
-double CUVA_Padova_S2013_Discrete_Model::eq_dGp(const double _T, const double _X) const
-{
+double CUVA_Padova_S2013_Discrete_Model::eq_dGp(const double _T, const double _X) const {
 	const double Rat = mParameters.f * mParameters.kabs * mState.Qgut / mParameters.BW;
 	const double EGPt = mParameters.kp1 - mParameters.kp2 * mState.Gp - mParameters.kp3 * mState.XL + mParameters.xi * mState.XH;
 	const double Uiit = mParameters.Fsnc;
@@ -145,8 +144,7 @@ double CUVA_Padova_S2013_Discrete_Model::eq_dGp(const double _T, const double _X
 	return mState.Gp > 0 ? std::max(0.0, EGPt) + Rat - Uiit - Et - mParameters.k1 * _X + mParameters.k2 * mState.Gt : 0;
 }
 
-double CUVA_Padova_S2013_Discrete_Model::eq_dGt(const double _T, const double _X) const
-{
+double CUVA_Padova_S2013_Discrete_Model::eq_dGt(const double _T, const double _X) const {
 	const double Vmt = mParameters.Vm0 + mParameters.Vmx * mState.X;
 	const double Kmt = mParameters.Km0;
 	const double Uidt = Vmt * mState.Gt / (Kmt + mState.Gt);
@@ -154,33 +152,28 @@ double CUVA_Padova_S2013_Discrete_Model::eq_dGt(const double _T, const double _X
 	return mState.Gt > 0 ? -Uidt + mParameters.k1 * mState.Gp - mParameters.k2 * _X : 0;
 }
 
-double CUVA_Padova_S2013_Discrete_Model::eq_dIp(const double _T, const double _X) const
-{
+double CUVA_Padova_S2013_Discrete_Model::eq_dIp(const double _T, const double _X) const {
 	return mState.Ip > 0 ? -(mParameters.m2 + mParameters.m4) * _X + mParameters.m1 * mState.Il + mParameters.ka1 * mState.Isc1 + mParameters.ka2 * mState.Isc2 : 0;
 }
 
-double CUVA_Padova_S2013_Discrete_Model::eq_dIl(const double _T, const double _X) const
-{
+double CUVA_Padova_S2013_Discrete_Model::eq_dIl(const double _T, const double _X) const {
 	return mState.Il > 0 ? -(mParameters.m1 + mParameters.m30) * _X + mParameters.m2 * mState.Ip : 0;
 }
 
-double CUVA_Padova_S2013_Discrete_Model::eq_dQsto1(const double _T, const double _X) const
-{
+double CUVA_Padova_S2013_Discrete_Model::eq_dQsto1(const double _T, const double _X) const {
 	const double mealDisturbance = mMeal_Ext.Get_Disturbance(mState.lastTime, _T * scgms::One_Minute);
 
 	return -mParameters.kmax * _X + mealDisturbance;
 }
 
-double CUVA_Padova_S2013_Discrete_Model::Get_K_gut(const double _T) const
-{
+double CUVA_Padova_S2013_Discrete_Model::Get_K_gut(const double _T) const {
 	const double mealDisturbance = mMeal_Ext.Get_Disturbance(mState.lastTime, _T * scgms::One_Minute);
 
 	double kgut = mParameters.kmax;
 	const double qsto = mState.Qsto1 + mState.Qsto2;
 
 	const double Dbar = mealDisturbance; // TODO: revisit this, SimGlucose is probably wrong in this one
-	if (Dbar > 0)
-	{
+	if (Dbar > 0) {
 		// TODO: verify the origin of 'aa' and 'cc' constants - probably obtained empirically by SimGlucose
 		const double aa = 5 / 2 / (1 - mParameters.b) / Dbar;
 		const double cc = 5 / 2 / mParameters.d / Dbar;
@@ -190,41 +183,35 @@ double CUVA_Padova_S2013_Discrete_Model::Get_K_gut(const double _T) const
 	return kgut;
 }
 
-double CUVA_Padova_S2013_Discrete_Model::eq_dQsto2(const double _T, const double _X) const
-{
+double CUVA_Padova_S2013_Discrete_Model::eq_dQsto2(const double _T, const double _X) const {
 	const double kgut = Get_K_gut(_T);
 
 	return mParameters.kmax * mState.Qsto1 - kgut * _X;
 }
 
-double CUVA_Padova_S2013_Discrete_Model::eq_dQgut(const double _T, const double _X) const
-{
+double CUVA_Padova_S2013_Discrete_Model::eq_dQgut(const double _T, const double _X) const {
 	const double kgut = Get_K_gut(_T);
 
 	return kgut * mState.Qsto2 - mParameters.kabs * _X;
 }
 
-double CUVA_Padova_S2013_Discrete_Model::eq_dXL(const double _T, const double _X) const
-{
+double CUVA_Padova_S2013_Discrete_Model::eq_dXL(const double _T, const double _X) const {
 	return -mParameters.ki * (_X - mState.I);
 }
 
-double CUVA_Padova_S2013_Discrete_Model::eq_dI(const double _T, const double _X) const
-{
+double CUVA_Padova_S2013_Discrete_Model::eq_dI(const double _T, const double _X) const {
 	const double It = mState.Ip / mParameters.Vi;
 
 	return -mParameters.ki * (_X - It);
 }
 
-double CUVA_Padova_S2013_Discrete_Model::eq_dX(const double _T, const double _X) const
-{
+double CUVA_Padova_S2013_Discrete_Model::eq_dX(const double _T, const double _X) const {
 	const double It = mState.Ip / mParameters.Vi;
 
 	return -mParameters.p2u * _X + mParameters.p2u * (It - mParameters.Ib);
 }
 
-double CUVA_Padova_S2013_Discrete_Model::eq_dIsc1(const double _T, const double _X) const
-{
+double CUVA_Padova_S2013_Discrete_Model::eq_dIsc1(const double _T, const double _X) const {
 	const double bolusDisturbance = mBolus_Ext.Get_Disturbance(mState.lastTime, _T * scgms::One_Minute);
 	const double basalDisturbance = mBasal_Ext.Get_Recent(_T * scgms::One_Minute);
 
@@ -233,50 +220,44 @@ double CUVA_Padova_S2013_Discrete_Model::eq_dIsc1(const double _T, const double 
 	return mState.Isc1 > 0 ? insulinDisturbance - (mParameters.ka1 + mParameters.kd) * _X : 0;
 }
 
-double CUVA_Padova_S2013_Discrete_Model::eq_dIsc2(const double _T, const double _X) const
-{
+double CUVA_Padova_S2013_Discrete_Model::eq_dIsc2(const double _T, const double _X) const {
 	return mState.Isc2 > 0 ? mParameters.kd * mState.Isc1 - mParameters.ka2 * _X : 0;
 }
 
-double CUVA_Padova_S2013_Discrete_Model::eq_dGs(const double _T, const double _X) const
-{
+double CUVA_Padova_S2013_Discrete_Model::eq_dGs(const double _T, const double _X) const {
 	return mState.Gs > 0 ? (-mParameters.ksc * _X + mParameters.ksc * mState.Gp) : 0;
 }
 
-double CUVA_Padova_S2013_Discrete_Model::eq_dH(const double _T, const double _X) const
-{
+double CUVA_Padova_S2013_Discrete_Model::eq_dH(const double _T, const double _X) const {
 	const double SRHD = std::max(0.0, -eq_dGp(_T, mState.Gp)); // original equation uses -dG(t)/dt, but since G(t) = Gp(t)/Vg, the slope is identical
 
 	return -mParameters.n * _X + (mState.SRHS + SRHD) + mParameters.kh3 * mState.Hsc2;
 }
 
-double CUVA_Padova_S2013_Discrete_Model::eq_dXH(const double _T, const double _X) const
-{
+double CUVA_Padova_S2013_Discrete_Model::eq_dXH(const double _T, const double _X) const {
 	return -mParameters.kH * _X + mParameters.kH * std::max(0.0, mState.H - mParameters.Hb);
 }
 
-double CUVA_Padova_S2013_Discrete_Model::eq_dSRHS(const double _T, const double _X) const
-{
+double CUVA_Padova_S2013_Discrete_Model::eq_dSRHS(const double _T, const double _X) const {
 	constexpr double Gth = 60; // hypoglycaemic threshold, constant, as suggested by https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4454102/pdf/10.1177_1932296813514502.pdf
 
-	if (mState.Gp / mParameters.Vg >= mParameters.Gb)
-		return -mParameters.rho*(_X - std::max(0.0, mParameters.sigma2 * (Gth - mState.Gp / mParameters.Vg) + mParameters.SRHb));
-	else
-		return -mParameters.rho*(_X - std::max(0.0, mParameters.sigma1 * (Gth - mState.Gp / mParameters.Vg) / (mState.I + 1.0) + mParameters.SRHb));
+	if (mState.Gp / mParameters.Vg >= mParameters.Gb) {
+		return -mParameters.rho * (_X - std::max(0.0, mParameters.sigma2 * (Gth - mState.Gp / mParameters.Vg) + mParameters.SRHb));
+	}
+	else {
+		return -mParameters.rho * (_X - std::max(0.0, mParameters.sigma1 * (Gth - mState.Gp / mParameters.Vg) / (mState.I + 1.0) + mParameters.SRHb));
+	}
 }
 
-double CUVA_Padova_S2013_Discrete_Model::eq_dHsc1(const double _T, const double _X) const
-{
+double CUVA_Padova_S2013_Discrete_Model::eq_dHsc1(const double _T, const double _X) const {
 	return mState.Hsc1 > 0 ? -(mParameters.kh1 + mParameters.kh2) * _X : 0;
 }
 
-double CUVA_Padova_S2013_Discrete_Model::eq_dHsc2(const double _T, const double _X) const
-{
+double CUVA_Padova_S2013_Discrete_Model::eq_dHsc2(const double _T, const double _X) const {
 	return mState.Hsc2 > 0 ? mParameters.kh1 * mState.Hsc1 - mParameters.kh3 * _X : 0;
 }
 
-void CUVA_Padova_S2013_Discrete_Model::Emit_All_Signals(double time_advance_delta)
-{
+void CUVA_Padova_S2013_Discrete_Model::Emit_All_Signals(double time_advance_delta) {
 	const double _T = mState.lastTime;	//locally-scoped because we might have been asked to emit the current state only
 
 	/*
@@ -284,15 +265,13 @@ void CUVA_Padova_S2013_Discrete_Model::Emit_All_Signals(double time_advance_delt
 	 */
 
 	// transform requested basal rate to actually set basal rate
-	if (mRequested_Basal.requested)
-	{
+	if (mRequested_Basal.requested) {
 		Emit_Signal_Level(scgms::signal_Delivered_Insulin_Basal_Rate, mRequested_Basal.time, mRequested_Basal.amount);
 		mRequested_Basal.requested = false;
 	}
 
 	// transform requested bolus insulin to delivered bolus insulin amount
-	for (auto& reqBolus : mRequested_Boluses)
-	{
+	for (auto& reqBolus : mRequested_Boluses) {
 		if (reqBolus.requested) {
 			Emit_Signal_Level(scgms::signal_Delivered_Insulin_Bolus, reqBolus.time, reqBolus.amount);
 		}
@@ -319,18 +298,10 @@ void CUVA_Padova_S2013_Discrete_Model::Emit_All_Signals(double time_advance_delt
 HRESULT CUVA_Padova_S2013_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 	HRESULT res = S_FALSE;
 
-	if (mState.lastTime > 0)
-	{
-		if (event.event_code() == scgms::NDevice_Event_Code::Level)
-		{
-			if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate)
-			{
-				if (event.device_time() >= mState.lastTime)
-				{
-					//return E_ILLEGAL_STATE_CHANGE;	//got no time-machine to deliver insulin in the past
-													//although we could allow this by setting it (if no newer basal is requested),
-													//it would defeat the purpose of any verification
-
+	if (mState.lastTime > 0) {
+		if (event.event_code() == scgms::NDevice_Event_Code::Level) {
+			if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate) {
+				if (event.device_time() >= mState.lastTime) {
 					std::unique_lock<std::mutex> lck(mStep_Mtx);
 
 					mBasal_Ext.Add_Uptake(event.device_time(), std::numeric_limits<double>::max(), (event.level() / 60.0));
@@ -343,12 +314,8 @@ HRESULT CUVA_Padova_S2013_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 					res = S_OK;
 				}
 			}
-			else if (event.signal_id() == scgms::signal_Requested_Insulin_Bolus)
-			{
-				if (event.device_time() >= mState.lastTime)
-				{
-					//return E_ILLEGAL_STATE_CHANGE;	//got no time-machine to deliver insulin in the past
-
+			else if (event.signal_id() == scgms::signal_Requested_Insulin_Bolus) {
+				if (event.device_time() >= mState.lastTime) {
 					// spread boluses to this much minutes
 					constexpr double MinsBolusing = 1.0;
 
@@ -360,15 +327,12 @@ HRESULT CUVA_Padova_S2013_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 						event.device_time(),
 						event.level(),
 						true
-						});
+					});
 
 					res = S_OK;
 				}
 			}
-			else if ((event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue))
-			{
-				//TODO: got no time-machine to consume meal in the past, but still can account for the present part of it
-
+			else if ((event.signal_id() == scgms::signal_Carb_Intake) || (event.signal_id() == scgms::signal_Carb_Rescue)) {
 				// we assume 10-minute eating period
 				// TODO: this should be a parameter of CHO intake
 				constexpr double MinsEating = 10.0;
@@ -382,8 +346,9 @@ HRESULT CUVA_Padova_S2013_Discrete_Model::Do_Execute(scgms::UDevice_Event event)
 		}
 	}
 
-	if (res == S_FALSE)
+	if (res == S_FALSE) {
 		res = mOutput.Send(event);
+	}
 
 	return res;
 }
@@ -415,8 +380,9 @@ HRESULT IfaceCalling CUVA_Padova_S2013_Discrete_Model::Step(const double time_ad
 				const double nowTime = oldTime + static_cast<double>(i)*microStepSize;
 
 				// Note: times in ODE solver is represented in minutes (and its fractions), as original model parameters are tuned to one minute unit
-				for (auto& binding : mEquation_Binding)
+				for (auto& binding : mEquation_Binding) {
 					binding.x = ODE_Solver.Step(binding.fnc, nowTime / scgms::One_Minute, binding.x, microStepSize / scgms::One_Minute);
+				}
 
 				mState.lastTime += static_cast<double>(i)*microStepSize;
 			}

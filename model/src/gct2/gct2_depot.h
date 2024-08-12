@@ -48,8 +48,8 @@
 
 #include <scgms/utils/DebugHelper.h>
 
-namespace gct2_model
-{
+namespace gct2_model {
+
 	class CDepot;
 
 	// Simspon's 1/3 rule for integration
@@ -371,8 +371,9 @@ namespace gct2_model
 			void Commit(const double currentTime) {
 				mQuantity = mNext_Quantity;
 
-				for (auto& lnk : mLinks)
+				for (auto& lnk : mLinks) {
 					lnk.Commit(currentTime);
+				}
 
 				// erase expired links
 				mLinks.erase(std::remove_if(mLinks.begin(), mLinks.end(),
@@ -424,8 +425,9 @@ namespace gct2_model
 
 		protected:
 			virtual void Mod_Quantity(double& total) override {
-				if (total > 0.0)
+				if (total > 0.0) {
 					total = -total;
+				}
 			}
 
 		public:
@@ -440,8 +442,9 @@ namespace gct2_model
 
 		protected:
 			virtual void Mod_Quantity(double& total) override {
-				if (total < 0.0)
+				if (total < 0.0) {
 					total = -total;
+				}
 			}
 
 		public:
@@ -497,8 +500,9 @@ namespace gct2_model
 			double Get_Quantity() const override {
 				double result = 0.0;
 
-				for (const auto& depot : mDepots)
+				for (const auto& depot : mDepots) {
 					result += depot->Get_Quantity();
+				}
 
 				return result;
 			}
@@ -506,8 +510,9 @@ namespace gct2_model
 			double Get_Solution_Volume() const {
 				double result = 0.0;
 
-				for (const auto& depot : mDepots)
+				for (const auto& depot : mDepots) {
 					result += depot->Get_Solution_Volume();
+				}
 
 				return result;
 			}

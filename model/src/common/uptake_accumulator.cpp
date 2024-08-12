@@ -43,24 +43,21 @@
 #include <iostream>
 #include <limits>
 
-void Uptake_Accumulator::Add_Uptake(double t, double t_delta_end, double amount)
-{
+void Uptake_Accumulator::Add_Uptake(double t, double t_delta_end, double amount) {
 	push_back({ t, t + t_delta_end, amount });
 }
 
-double Uptake_Accumulator::Get_Disturbance(double t_start, double t_end) const
-{
-	if (t_end - t_start < std::numeric_limits<double>::epsilon())
+double Uptake_Accumulator::Get_Disturbance(double t_start, double t_end) const {
+	if (t_end - t_start < std::numeric_limits<double>::epsilon()) {
 		return 0.0;
+	}
 
 	double sum = 0;
-	for (auto itr = begin(); itr != end(); ++itr)
-	{
+	for (auto itr = begin(); itr != end(); ++itr) {
 		auto& evt = *itr;
 
 		// overlaps?
-		if (t_start < evt.t_max && evt.t_min < t_end)
-		{
+		if (t_start < evt.t_max && evt.t_min < t_end) {
 			auto a = std::max(evt.t_min, t_start);
 			auto b = std::min(evt.t_max, t_end);
 
@@ -72,53 +69,54 @@ double Uptake_Accumulator::Get_Disturbance(double t_start, double t_end) const
 }
 
 double Uptake_Accumulator::Get_Recent(double t) const {
-	if (empty())
+	if (empty()) {
 		return 0.0;
+	}
 
 	const Uptake_Event* cur = &(*rbegin());
-	for (auto itr = rbegin(); itr != rend(); ++itr)
-	{
+	for (auto itr = rbegin(); itr != rend(); ++itr) {
 		auto &evt = *itr;
-		if (t >= evt.t_min && t <= evt.t_max && cur->t_min < evt.t_min)
+		if (t >= evt.t_min && t <= evt.t_max && cur->t_min < evt.t_min) {
 			cur = &evt;
+		}
 	}
 
 	return cur->amount;	
 }
 
-void Uptake_Accumulator::Cleanup(double t)
-{
-	for (auto itr = begin(); itr != end(); )
-	{
+void Uptake_Accumulator::Cleanup(double t) {
+	for (auto itr = begin(); itr != end(); ) {
 		auto& evt = *itr;
-		if (t > evt.t_max)
+		if (t > evt.t_max) {
 			itr = erase(itr);
-		else
+		}
+		else {
 			itr++;
+		}
 	}
 }
 
-void Uptake_Accumulator::Cleanup_Not_Recent(double t)
-{
-	if (empty())
+void Uptake_Accumulator::Cleanup_Not_Recent(double t) {
+	if (empty()) {
 		return;
+	}
 
 	const Uptake_Event* cur = &(*rbegin());
 
-	for (auto itr = rbegin(); itr != rend(); ++itr)
-	{
+	for (auto itr = rbegin(); itr != rend(); ++itr) {
 		auto& evt = *itr;
-		if (t >= evt.t_min && t <= evt.t_max && cur->t_min < evt.t_min)
+		if (t >= evt.t_min && t <= evt.t_max && cur->t_min < evt.t_min) {
 			cur = &evt;
+		}
 	}
 
 	std::vector<Uptake_Event> remains;
 
-	for (auto itr = begin(); itr != end(); itr++)
-	{
+	for (auto itr = begin(); itr != end(); itr++) {
 		auto& evt = *itr;
-		if (&evt == cur || evt.t_min >= t)
+		if (&evt == cur || evt.t_min >= t) {
 			remains.push_back(evt);
+		}
 	}
 
 	clear();

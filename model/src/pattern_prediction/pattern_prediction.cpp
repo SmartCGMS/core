@@ -51,17 +51,20 @@ CPattern_Prediction_Filter::CPattern_Prediction_Filter(scgms::IFilter *output)
 }
 
 CPattern_Prediction_Filter::~CPattern_Prediction_Filter() {
-	if (mUpdate_Parameters_File)
+	if (mUpdate_Parameters_File) {
 		Write_Parameters_File();
+	}
 
-	if (mSanitize_Unused_Patterns)
+	if (mSanitize_Unused_Patterns) {
 		Sanitize_Parameters();
+	}
 
 	if (!mLearned_Data_Filename_Prefix.empty()) {
 		Write_Full_Learning_Level_Series();
 
-		if (mSliding_Window_Length > 0)
+		if (mSliding_Window_Length > 0) {
 			Write_Learning_Data();
+		}
 	}	
 }
 
@@ -90,17 +93,18 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 			}
 		}
 
-
 		return rc;
 	};
 
 	auto handle_segment_stop = [&event, this]() {
 		auto iter = mIst.find(event.segment_id());
-		if (iter != mIst.end())
+		if (iter != mIst.end()) {
 			mIst.erase(iter);
+		}
 
-		if (mUpdate_Parameters_File)
+		if (mUpdate_Parameters_File) {
 			Write_Parameters_File();
+		}
 	};
 
 
@@ -108,8 +112,9 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 
 	switch (event.event_code()) {
 		case scgms::NDevice_Event_Code::Level:
-			if (event.signal_id() == scgms::signal_IG)
+			if (event.signal_id() == scgms::signal_IG) {
 				rc = handle_ig_level();
+			}
 			break;
 
 		case scgms::NDevice_Event_Code::Time_Segment_Stop:
@@ -123,7 +128,9 @@ HRESULT CPattern_Prediction_Filter::Do_Execute(scgms::UDevice_Event event) {
 		default: break;
 	}
 
-	if (!sent) rc = mOutput.Send(event);
+	if (!sent) {
+		rc = mOutput.Send(event);
+	}
 
 	return rc;
 
@@ -174,8 +181,9 @@ HRESULT CPattern_Prediction_Filter::Do_Configure(scgms::SFilter_Configuration co
 	mSliding_Window_Length = configuration.Read_Int(rsSliding_Window_Length);
 	if (!mLearned_Data_Filename_Prefix.empty()) {
 		for (auto& pattern : mPatterns) {
-			for (auto& band : pattern)
+			for (auto& band : pattern) {
 				band.Start_Collecting_Learning_Data();
+			}
 		}
 	}
 
@@ -190,8 +198,9 @@ double CPattern_Prediction_Filter::Update_And_Predict(const uint64_t segment_id,
 			auto inserted = mIst.insert(std::make_pair(segment_id, new_ist));
 			seg_iter = inserted.first;
 		}
-		else
+		else {
 			return std::numeric_limits<double>::quiet_NaN();	//a failure with this segment
+		}
 	}
 
 	auto ist = seg_iter->second;
@@ -235,9 +244,15 @@ CPattern_Prediction_Filter::TClassification CPattern_Prediction_Filter::Classify
 			auto cmp_lev = [&](const double l, const double r)->std::tuple<bool, bool, bool> {
 				std::tuple<bool, bool, bool> result{ false, false, false };
 
-				if (fabs(l - r) <= pattern_prediction::Steady_Epsilon) std::get<1>(result) = true;
-				else if (l < r) std::get<0>(result) = true;
-				else std::get<2>(result) = true;	//l>r
+				if (fabs(l - r) <= pattern_prediction::Steady_Epsilon) {
+					std::get<1>(result) = true;
+				}
+				else if (l < r) {
+					std::get<0>(result) = true;
+				}
+				else {
+					std::get<2>(result) = true;	//l>r
+				}
 
 				return result;
 			};
@@ -248,18 +263,35 @@ CPattern_Prediction_Filter::TClassification CPattern_Prediction_Filter::Classify
 			const auto [blc, bec, bgc] = cmp_lev(levels[1], levels[2]);
 			//const auto [alc, aec, agc] = cmp_lev(levels[0], levels[2]);
 
+			if (alb && blc && acc) {
+				std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::accel;
+			}
+			else if (alb && blc && !acc) {
+				std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::up;
+			}
+			else if (alb && !blc) {
+				std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::concave;
+			}
 
-			if (alb && blc && acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::accel;
-			else if (alb && blc && !acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::up;
-			else if (alb && !blc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::concave;
+			else if (agb && !bgc) {
+				std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::convex;
+			}
+			else if (agb && bgc && !acc) {
+				std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::down;
+			}
+			else if (agb && bgc && acc) {
+				std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::deccel;
+			}
 
-			else if (agb && !bgc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::convex;
-			else if (agb && bgc && !acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::down;
-			else if (agb && bgc && acc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::deccel;
-
-			else if (aeb && blc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::steady_up;
-			else if (aeb && bgc) std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::steady_down;
-			else std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::steady;	//no more options left		
+			else if (aeb && blc) {
+				std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::steady_up;
+			}
+			else if (aeb && bgc) {
+				std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::steady_down;
+			}
+			else {
+				std::get<NClassify::pattern>(result) = pattern_prediction::NPattern::steady;	//no more options left
+			}
 		}
 	}
 
@@ -273,8 +305,9 @@ double CPattern_Prediction_Filter::Predict(scgms::SSignal& ist, const double cur
 
 		auto& patterns = mPatterns[static_cast<size_t>(pattern)];
 		auto& pattern = patterns[pattern_band_index];
-		if (pattern)
+		if (pattern) {
 			predicted_level = pattern.predict();
+		}
 	}
 
 	return predicted_level;
@@ -297,7 +330,6 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(scgms::SFilter_Configur
 				if ((pattern_idx < static_cast<int>(mPatterns.size())) &&
 					(band_idx < static_cast<int>(pattern_prediction::Band_Count))) {
 
-
 					auto& pattern = mPatterns[pattern_idx][band_idx];
 
 					std::wstring state = ini.GetValue(section_name.pItem, iiState);
@@ -306,8 +338,6 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(scgms::SFilter_Configur
 				} //else, invalid record - let's ignore it
 			}
 		}
-
-
 	};
 
 	auto write_params_to_config = [this, &configuration, &error_description]() {
@@ -317,9 +347,7 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(scgms::SFilter_Configur
 				error_description.push(L"Corrupted pattern-prediction configuration parameters!");
 				return E_INVALIDARG;
 			}
-
 		}
-
 
 		//update the parameters
 		size_t def_idx = 0;
@@ -343,7 +371,6 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(scgms::SFilter_Configur
 		if (!configuration.Write_Parameters(rsParameters, lower, def, upper)) {
 			error_description.push(L"Could not update the configuration!");
 			return E_INVALIDARG;			
-
 		}
 
 		return S_OK;
@@ -372,8 +399,6 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(scgms::SFilter_Configur
 			std::wstring desc = dsCannot_Open_File + mParameters_File_Path.wstring();
 			error_description.push(desc);
 		}
-
-
 	}
 	catch (const std::exception& ex) {
 		// specific handling for all exceptions extending std::exception, except
@@ -386,8 +411,10 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_File(scgms::SFilter_Configur
 		rc = E_FAIL;
 	}
 
-	if (rc == S_OK) 
+	if (rc == S_OK) {
 		mUpdated_Levels = false;	//if not S_OK, keep the current state
+	}
+
 	return rc;	
 }
 
@@ -400,30 +427,33 @@ HRESULT CPattern_Prediction_Filter::Read_Parameters_From_Config(scgms::SFilter_C
 			return E_INVALIDARG;
 		}
 
-
 		size_t def_idx = 0;
 
-		for (size_t pattern_idx = 0; pattern_idx < mPatterns.size(); pattern_idx++) {			
-			for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {					
+		for (size_t pattern_idx = 0; pattern_idx < mPatterns.size(); pattern_idx++) {
+			for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {
 				auto& pattern = mPatterns[pattern_idx][band_idx];
 				
 				const double state = def[def_idx];
-				if (!std::isnan(state))
+				if (!std::isnan(state)) {
 					pattern.Set_State(state);
+				}
 
 				def_idx++;
 			}
 		}
 	}
-	else
+	else {
 		return S_FALSE;	//indicate empty parameters
+	}
 
 	mUpdated_Levels = true;	//so that they can be flushed to the external file
 	return S_OK;
 }
 
 void CPattern_Prediction_Filter::Write_Parameters_File() const {
-	if (!mUpdated_Levels /* && !mUse_Config_Parameters*/) return;	//we may be flushing the config to external files
+	if (!mUpdated_Levels /* && !mUse_Config_Parameters*/) {
+		return;	//we may be flushing the config to external files
+	}
 
 	CSimpleIniW ini;
 
@@ -467,7 +497,6 @@ void CPattern_Prediction_Filter::Write_Learning_Data() const {
 			const auto& band = mPatterns[pattern_idx][band_idx];
 			const std::wstring band_data = band.Learning_Data(mSliding_Window_Length, mDt);
 		
-			
 			const std::wstring section_name = std::wstring{ L"." } + isPattern + std::to_wstring(pattern_idx) + isBand + std::to_wstring(band_idx) + L".csv";
 			const filesystem::path fpath = mLearned_Data_Filename_Prefix.wstring() + section_name;
 
@@ -499,37 +528,32 @@ void CPattern_Prediction_Filter::Write_Full_Learning_Level_Series() const {
 
 				band_data_file << band_data.str();
 
-
 				dst_idx++;
 			}
 		}
 		band_data_file << std::endl;
-	}	
+	}
 }
-
 
 void CPattern_Prediction_Filter::Sanitize_Parameters() {
 	if (!mSanitize_Unused_Patterns)
 		return;
 
-
 	std::vector<double> lower, def, upper;
 
 	if (mConfiguration.Read_Parameters(rsParameters, lower, def, upper)) {
 		if (def.size() == pattern_prediction::model_param_count) {
-
-
 			size_t def_idx = 0;
 
 			for (size_t pattern_idx = 0; pattern_idx < mPatterns.size(); pattern_idx++) {
 				for (size_t band_idx = 0; band_idx < pattern_prediction::Band_Count; band_idx++) {
 					auto& band = mPatterns[pattern_idx][band_idx];
-					if (!band.Was_Encountered())
+					if (!band.Was_Encountered()) {
 						def[def_idx] = std::numeric_limits<double>::quiet_NaN();
+					}
 					def_idx++;
 				}
 			}
-
 
 			mConfiguration.Write_Parameters(rsParameters, lower, def, upper);
 		}

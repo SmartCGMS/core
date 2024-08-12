@@ -46,51 +46,53 @@
 #include <map>
 #include <functional>
 
-
 #include <scgms/rtl/manufactory.h>
 #include <scgms/rtl/DeviceLib.h>
-
 
 using TCreate_Signal = std::function<HRESULT(scgms::ITime_Segment *segment, scgms::ISignal **signal)>;
 
 class CId_Dispatcher {
-protected:
-	std::map <const GUID, TCreate_Signal, std::less<GUID>> id_map;
+	protected:
+		std::map<const GUID, TCreate_Signal, std::less<GUID>> id_map;
 
-	template <typename T>
-	HRESULT Create_X(scgms::ITime_Segment *segment, scgms::ISignal **signal) const {
-		scgms::WTime_Segment weak_segment{ segment };
-		return Manufacture_Object<T, scgms::ISignal>(signal, weak_segment);
-	}
+		template <typename T>
+		HRESULT Create_X(scgms::ITime_Segment *segment, scgms::ISignal **signal) const {
+			scgms::WTime_Segment weak_segment{ segment };
+			return Manufacture_Object<T, scgms::ISignal>(signal, weak_segment);
+		}
 
-	template <typename T>
-	void Add_Signal(const GUID &id) {
-		id_map[id] = std::bind(&CId_Dispatcher::Create_X<T>, this, std::placeholders::_1, std::placeholders::_2);
-	}
-public:
-	CId_Dispatcher() {
-		Add_Signal<CDiffusion_v2_blood>(diffusion_v2_model::signal_Diffusion_v2_Blood);
-		Add_Signal<CDiffusion_v2_ist>(diffusion_v2_model::signal_Diffusion_v2_Ist);
-		Add_Signal<CSteil_Rebrin_blood>(steil_rebrin::signal_Steil_Rebrin_Blood);
-		Add_Signal<CSteil_Rebrin_Diffusion_Prediction>(steil_rebrin_diffusion_prediction::signal_Steil_Rebrin_Diffusion_Prediction);
-		Add_Signal<CDiffusion_Prediction>(diffusion_prediction::signal_Diffusion_Prediction);
-		Add_Signal<CConstant_Model>(constant_model::signal_Constant);
-		Add_Signal<CConstant_Insulin_Sensitivity_Model>(const_isf::const_isf_signal_id);
-		Add_Signal<CConstant_Carb_Ratio_Model>(const_cr::const_cr_signal_id);
-	}
+		template <typename T>
+		void Add_Signal(const GUID &id) {
+			id_map[id] = std::bind(&CId_Dispatcher::Create_X<T>, this, std::placeholders::_1, std::placeholders::_2);
+		}
+	public:
+		CId_Dispatcher() {
+			Add_Signal<CDiffusion_v2_blood>(diffusion_v2_model::signal_Diffusion_v2_Blood);
+			Add_Signal<CDiffusion_v2_ist>(diffusion_v2_model::signal_Diffusion_v2_Ist);
+			Add_Signal<CSteil_Rebrin_blood>(steil_rebrin::signal_Steil_Rebrin_Blood);
+			Add_Signal<CSteil_Rebrin_Diffusion_Prediction>(steil_rebrin_diffusion_prediction::signal_Steil_Rebrin_Diffusion_Prediction);
+			Add_Signal<CDiffusion_Prediction>(diffusion_prediction::signal_Diffusion_Prediction);
+			Add_Signal<CConstant_Model>(constant_model::signal_Constant);
+			Add_Signal<CConstant_Insulin_Sensitivity_Model>(const_isf::const_isf_signal_id);
+			Add_Signal<CConstant_Carb_Ratio_Model>(const_cr::const_cr_signal_id);
+		}
 
-	HRESULT Create_Signal(const GUID &calc_id, scgms::ITime_Segment *segment, scgms::ISignal **signal) const {
-		const auto iter = id_map.find(calc_id);
-		if (iter != id_map.end())
-			return iter->second(segment, signal);
-		else
-			return E_NOTIMPL;
-	}
+		HRESULT Create_Signal(const GUID &calc_id, scgms::ITime_Segment *segment, scgms::ISignal **signal) const {
+			const auto iter = id_map.find(calc_id);
+			if (iter != id_map.end()) {
+				return iter->second(segment, signal);
+			}
+			else {
+				return E_NOTIMPL;
+			}
+		}
 };
 
 static CId_Dispatcher Id_Dispatcher;
 
 DLL_EXPORT HRESULT IfaceCalling do_create_signal(const GUID *calc_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal) {
-	if ((calc_id ==nullptr) || (segment == nullptr)) return E_INVALIDARG;
+	if ((calc_id == nullptr) || (segment == nullptr)) {
+		return E_INVALIDARG;
+	}
 	return Id_Dispatcher.Create_Signal(*calc_id, segment, signal);
 }

@@ -87,7 +87,7 @@ namespace diffusion_v2_model {
 		default_parameters,
 		upper_bound,
 		signal_count,
-		signal_ids,		
+		signal_ids,
 		reference_signal_ids
 	};
 
@@ -127,7 +127,7 @@ namespace steil_rebrin {
 		default_parameters,
 		upper_bound,
 		signal_count,
-		signal_ids,		
+		signal_ids,
 		reference_signal_ids
 	};
 
@@ -165,7 +165,7 @@ namespace steil_rebrin_diffusion_prediction {
 		default_parameters,
 		upper_bound,
 		signal_count,
-		signal_ids,		
+		signal_ids,
 		reference_signal_ids
 	};
 
@@ -243,7 +243,7 @@ namespace constant_model {
 		default_parameters,
 		upper_bound,
 		signal_count,
-		signal_ids,		
+		signal_ids,
 		reference_signal_ids
 	};
 
@@ -364,7 +364,7 @@ namespace bergman_model {
 		upper_bounds.vector,
 
 		number_of_calculated_signals,
-		calculated_signal_ids,		
+		calculated_signal_ids,
 		reference_signal_ids,
 	};
 
@@ -1098,16 +1098,36 @@ DLL_EXPORT HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descrip
 }
 
 DLL_EXPORT HRESULT IfaceCalling do_create_discrete_model(const GUID *model_id, scgms::IModel_Parameter_Vector *parameters, scgms::IFilter *output, scgms::IDiscrete_Model **model) {
-	if (*model_id == bergman_model::model_id) return Manufacture_Object<CBergman_Discrete_Model>(model, parameters, output);
-	else if (*model_id == uva_padova_S2013::model_id) return Manufacture_Object<CUVA_Padova_S2013_Discrete_Model>(model, parameters, output);
-	else if (*model_id == uva_padova_S2017::model_id) return Manufacture_Object<CUVA_Padova_S2017_Discrete_Model>(model, parameters, output);
-	else if (*model_id == insulin_bolus::model_id) return Manufacture_Object<CDiscrete_Insulin_Bolus_Calculator>(model, parameters, output);
-	else if (*model_id == samadi_model::model_id) return Manufacture_Object<CSamadi_Discrete_Model>(model, parameters, output);
-	else if (*model_id == samadi_gct2_model::model_id) return Manufacture_Object<CSamadi_GCT2_Discrete_Model>(model, parameters, output);
-	else if (*model_id == gct_model::model_id) return Manufacture_Object<CGCT_Discrete_Model>(model, parameters, output);
-	else if (*model_id == gct2_model::model_id) return Manufacture_Object<CGCT2_Discrete_Model>(model, parameters, output);
-	else if (*model_id == gct3_model::model_id) return Manufacture_Object<CGCT3_Discrete_Model>(model, parameters, output);
-		else return E_NOTIMPL;
+	if (*model_id == bergman_model::model_id) {
+		return Manufacture_Object<CBergman_Discrete_Model>(model, parameters, output);
+	}
+	else if (*model_id == uva_padova_S2013::model_id) {
+		return Manufacture_Object<CUVA_Padova_S2013_Discrete_Model>(model, parameters, output);
+	}
+	else if (*model_id == uva_padova_S2017::model_id) {
+		return Manufacture_Object<CUVA_Padova_S2017_Discrete_Model>(model, parameters, output);
+	}
+	else if (*model_id == insulin_bolus::model_id) {
+		return Manufacture_Object<CDiscrete_Insulin_Bolus_Calculator>(model, parameters, output);
+	}
+	else if (*model_id == samadi_model::model_id) {
+		return Manufacture_Object<CSamadi_Discrete_Model>(model, parameters, output);
+	}
+	else if (*model_id == samadi_gct2_model::model_id) {
+		return Manufacture_Object<CSamadi_GCT2_Discrete_Model>(model, parameters, output);
+	}
+	else if (*model_id == gct_model::model_id) {
+		return Manufacture_Object<CGCT_Discrete_Model>(model, parameters, output);
+	}
+	else if (*model_id == gct2_model::model_id) {
+		return Manufacture_Object<CGCT2_Discrete_Model>(model, parameters, output);
+	}
+	else if (*model_id == gct3_model::model_id) {
+		return Manufacture_Object<CGCT3_Discrete_Model>(model, parameters, output);
+	}
+	else {
+		return E_NOTIMPL;
+	}
 }
 
 DLL_EXPORT HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
@@ -1117,8 +1137,9 @@ DLL_EXPORT HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descrip
 }
 
 DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
-	if (*id == pattern_prediction::filter_id)
+	if (*id == pattern_prediction::filter_id) {
 		return Manufacture_Object<CPattern_Prediction_Filter>(filter, output);
+	}
 
 	return E_NOTIMPL;
 }

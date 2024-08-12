@@ -64,8 +64,8 @@ CSamadi_GCT2_Discrete_Model::CSamadi_GCT2_Discrete_Model(scgms::IModel_Parameter
 
 	mHeart_Rate(mCompartments[NGCT_Compartment::Heart_Rate].Create_Depot<CExternal_State_Depot>(mParameters.HRbase, false)),
 	mSink(mCompartments[NGCT_Compartment::Generic_Sink].Create_Depot<CSink_Depot>(1.0, false)),
-	mGlucose_Source(mCompartments[NGCT_Compartment::Generic_Source].Create_Depot<CSource_Depot>(1.0, false))
-{
+	mGlucose_Source(mCompartments[NGCT_Compartment::Generic_Source].Create_Depot<CSource_Depot>(1.0, false)) {
+
 	mHeart_Rate.Set_Solution_Volume(1.0); // so the concentration numerically equals mass
 
 	mHeart_Rate.Set_Persistent(true).Set_Name(L"HR");
@@ -464,8 +464,9 @@ HRESULT CSamadi_GCT2_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 			// physical activity
 			else if (event.signal_id() == scgms::signal_Heartbeat) {
 
-				if (event.device_time() >= mLast_Time)
+				if (event.device_time() >= mLast_Time) {
 					mHeart_Rate.Set_Quantity(event.level());
+				}
 			}
 			// bolus insulin
 			else if (event.signal_id() == scgms::signal_Requested_Insulin_Bolus || event.signal_id() == scgms::signal_Delivered_Insulin_Bolus) {
@@ -502,8 +503,9 @@ HRESULT CSamadi_GCT2_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 		}
 	}
 
-	if (res == S_FALSE)
+	if (res == S_FALSE) {
 		res = mOutput.Send(event);
+	}
 
 	return res;
 }
@@ -531,8 +533,9 @@ HRESULT IfaceCalling CSamadi_GCT2_Discrete_Model::Step(const double time_advance
 			for (size_t i = 0; i < microStepCount; i++) {
 
 				// for each step, retrieve insulin pump subcutaneous injection if any
-				if (mInsulin_Pump.Get_Dosage(mLast_Time, dosage))
+				if (mInsulin_Pump.Get_Dosage(mLast_Time, dosage)) {
 					Add_Insulin(dosage.amount * 1000.0, dosage.start, dosage.duration);
+				}
 
 				// step all compartments
 				std::for_each(std::execution::seq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
@@ -586,17 +589,21 @@ HRESULT IfaceCalling CSamadi_GCT2_Discrete_Model::Initialize(const double curren
 
 		// this is a subject of future re-evaluation - how to consider initial conditions for food-related patient state
 
-		//if (mParameters.D1_0 > 0)
+		//if (mParameters.D1_0 > 0) {
 		//	Add_Carbs(mParameters.D1_0, mLast_Time, 60.0_min, false);
-		//if (mParameters.DH1_0 > 0)
+		//}
+		//if (mParameters.DH1_0 > 0) {
 		//	Add_Carbs(mParameters.DH1_0, mLast_Time, 60.0_min, true);
-		//if (mParameters.Isc_0 > 0)
+		//}
+		//if (mParameters.Isc_0 > 0) {
 		//	Add_Insulin(mParameters.I, mLast_Time, scgms::One_Minute * 15);
+		//}
 
 		mInsulin_Pump.Initialize(mLast_Time, 0.0, 0.0, 0.0);
 
-		for (auto& cmp : mCompartments)
+		for (auto& cmp : mCompartments) {
 			cmp.Init(current_time / scgms::One_Minute);
+		}
 
 		return S_OK;
 	}
@@ -617,8 +624,9 @@ void CInfusion_Device::Set_Infusion_Parameter(double currentTime, double infusio
 
 	if (!std::isnan(infusionRate)) {
 
-		if (mInfusion_Rate == 0.0)
+		if (mInfusion_Rate == 0.0) {
 			mLast_Time = currentTime;
+		}
 
 		mInfusion_Rate = infusionRate;
 	}

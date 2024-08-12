@@ -43,8 +43,8 @@
 #include "gct3_common.h"
 #include "gct3_integrators.h"
 
-namespace gct3_model
-{
+namespace gct3_model {
+
 	/**
 	 * Base for all transfer functions between two depots
 	 */
@@ -319,8 +319,9 @@ namespace gct3_model
 
 			double Calculate_Transfer_Input(double time) const override {
 
-				if ((mSource.Get_Concentration() > mThreshold && mInverseThreshold) || (mSource.Get_Concentration() < mThreshold && !mInverseThreshold))
+				if ((mSource.Get_Concentration() > mThreshold && mInverseThreshold) || (mSource.Get_Concentration() < mThreshold && !mInverseThreshold)) {
 					return mTransfer_Factor;
+				}
 
 				const double ratio = (mSource.Get_Concentration() / mThreshold);
 
