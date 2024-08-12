@@ -54,46 +54,48 @@
   * Filter class for loading previously stored log file and "replay" it through pipe
   */
 class CLog_Replay_Filter : public virtual scgms::CBase_Filter {
-protected:
-	struct TLog_Entry {
-		double device_time = std::numeric_limits<double>::quiet_NaN();
-		size_t line_counter = std::numeric_limits<size_t>::max();		//this really is not the logical clock
-		std::wstring info;
-		uint64_t segment_id = scgms::Invalid_Segment_Id;
-		scgms::NDevice_Event_Code code = scgms::NDevice_Event_Code::Nothing;
-		std::wstring the_rest;
-	}; 
-protected:
-	struct TLog_Segment_id {
-		filesystem::path file_name;
-		uint64_t segment_id = scgms::Invalid_Segment_Id;
-	};
-	std::vector<TLog_Segment_id> Enumerate_Log_Segments();
-protected:
-	bool mReset_Segment_Id = false;
-	bool mEmit_Shutdown = false;
-	bool mEmit_All_Events_Before_Shutdown = false;
-	double mLast_Event_Time = std::numeric_limits<double>::quiet_NaN();
-	bool mInterpret_Filename_As_Segment_Id = false;
-	filesystem::path mLog_Filename_Or_Dirpath;  //would preferred wildcard, but this is not covered by C++ standard and do not need that so much to implement it using regex
-	std::unique_ptr<std::thread> mLog_Replay_Thread;
-protected:
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-protected:
-	// thread method
-	std::atomic<bool> mShutdown_Received { false};
-	void Replay_Log(const filesystem::path& log_filename, uint64_t filename_segment_id);
+	protected:
+		struct TLog_Entry {
+			double device_time = std::numeric_limits<double>::quiet_NaN();
+			size_t line_counter = std::numeric_limits<size_t>::max();		//this really is not the logical clock
+			std::wstring info;
+			uint64_t segment_id = scgms::Invalid_Segment_Id;
+			scgms::NDevice_Event_Code code = scgms::NDevice_Event_Code::Nothing;
+			std::wstring the_rest;
+		};
 
-	// opens log for reading, returns true if success, false if failed
-	void Open_Logs(std::vector<CLog_Replay_Filter::TLog_Segment_id> logs_to_replay);
-	// converts string to parameters vector; note that this method have no knowledge of models at all (does not validate parameter count, ..)
-	void WStr_To_Parameters(const std::wstring& src, scgms::SModel_Parameter_Vector& target);
+		struct TLog_Segment_id {
+			filesystem::path file_name;
+			uint64_t segment_id = scgms::Invalid_Segment_Id;
+		};
+		std::vector<TLog_Segment_id> Enumerate_Log_Segments();
 
-	void Correct_Timings(std::vector<TLog_Entry>& log_lines);
-public:
-	CLog_Replay_Filter(scgms::IFilter* output);
-	virtual ~CLog_Replay_Filter();
+		bool mReset_Segment_Id = false;
+		bool mEmit_Shutdown = false;
+		bool mEmit_All_Events_Before_Shutdown = false;
+		double mLast_Event_Time = std::numeric_limits<double>::quiet_NaN();
+		bool mInterpret_Filename_As_Segment_Id = false;
+		filesystem::path mLog_Filename_Or_Dirpath;  //would preferred wildcard, but this is not covered by C++ standard and do not need that so much to implement it using regex
+		std::unique_ptr<std::thread> mLog_Replay_Thread;
+
+	protected:
+		// thread method
+		std::atomic<bool> mShutdown_Received { false};
+		void Replay_Log(const filesystem::path& log_filename, uint64_t filename_segment_id);
+
+		// opens log for reading, returns true if success, false if failed
+		void Open_Logs(std::vector<CLog_Replay_Filter::TLog_Segment_id> logs_to_replay);
+		// converts string to parameters vector; note that this method have no knowledge of models at all (does not validate parameter count, ..)
+		void WStr_To_Parameters(const std::wstring& src, scgms::SModel_Parameter_Vector& target);
+
+		void Correct_Timings(std::vector<TLog_Entry>& log_lines);
+
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+
+	public:
+		CLog_Replay_Filter(scgms::IFilter* output);
+		virtual ~CLog_Replay_Filter();
 };
 
 #pragma warning( pop )

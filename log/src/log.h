@@ -56,39 +56,41 @@
  * Filter class for logging all incoming events and dropping them (terminating the chain)
  */
 class CLog_Filter : public scgms::CBase_Filter, public scgms::ILog_Filter_Inspection{
-protected:
-	std::wofstream mLog;	//all segments logging
-	std::map<uint64_t, std::wofstream> mSegmented_Logs;
-	bool mLog_Per_Segment = false;
-	bool mReduce_Log = false;
-	double mSecond_Threshold = 0.0;
+	protected:
+		std::wofstream mLog;	//all segments logging
+		std::map<uint64_t, std::wofstream> mSegmented_Logs;
+		bool mLog_Per_Segment = false;
+		bool mReduce_Log = false;
+		double mSecond_Threshold = 0.0;
 
-	bool mHas_Queried_Log_Interface = false;
+		bool mHas_Queried_Log_Interface = false;
 
-	scgms::CSignal_Description mSignal_Names;
-	filesystem::path mLog_Filename;
+		scgms::CSignal_Description mSignal_Names;
+		filesystem::path mLog_Filename;
 
-	bool mIs_Terminated = false;
+		bool mIs_Terminated = false;
 	
-	std::mutex mLog_Records_Guard;
-	std::shared_ptr<refcnt::wstr_list> mNew_Log_Records;
-	
-	std::wofstream Open_Log(const filesystem::path&log_filename);
-	void Log_Event(std::wofstream& log, const scgms::UDevice_Event &evt, const bool push_to_ui_container);
-protected:
-	// vector of model descriptors; stored for parameter formatting
-	std::vector<scgms::TModel_Descriptor> mModelDescriptors;
-	std::wstring Parameters_To_WStr(const scgms::UDevice_Event& evt);
-protected:
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-	CLog_Filter(scgms::IFilter *output);
-	virtual ~CLog_Filter();
-	
-	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
+		std::mutex mLog_Records_Guard;
+		std::shared_ptr<refcnt::wstr_list> mNew_Log_Records;
 
-	virtual HRESULT IfaceCalling Pop(refcnt::wstr_list **str) override final;
+	protected:
+		std::wofstream Open_Log(const filesystem::path&log_filename);
+		void Log_Event(std::wofstream& log, const scgms::UDevice_Event &evt, const bool push_to_ui_container);
+
+		// vector of model descriptors; stored for parameter formatting
+		std::vector<scgms::TModel_Descriptor> mModelDescriptors;
+		std::wstring Parameters_To_WStr(const scgms::UDevice_Event& evt);
+
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+
+	public:
+		CLog_Filter(scgms::IFilter *output);
+		virtual ~CLog_Filter();
+	
+		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
+
+		virtual HRESULT IfaceCalling Pop(refcnt::wstr_list **str) override final;
 };
 
 #pragma warning( pop )

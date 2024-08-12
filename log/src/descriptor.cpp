@@ -45,8 +45,8 @@
 
 #include <vector>
 
-namespace logger
-{
+namespace logger {
+
 	constexpr size_t param_count = 4;
 
 	constexpr scgms::NParameter_Type param_type[param_count] = {
@@ -142,10 +142,12 @@ DLL_EXPORT HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descrip
 }
 
 DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
-	if (*id == log_replay::Log_Replay_Descriptor.id)
+	if (*id == log_replay::Log_Replay_Descriptor.id) {
 		return Manufacture_Object<CLog_Replay_Filter>(filter, output);
-	else if (*id == logger::Log_Descriptor.id)
+	}
+	else if (*id == logger::Log_Descriptor.id) {
 		return Manufacture_Object<CLog_Filter>(filter, output);
+	}
 
 	return E_NOTIMPL;
 }
