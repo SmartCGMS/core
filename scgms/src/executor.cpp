@@ -110,14 +110,14 @@ HRESULT IfaceCalling CTerminal_Filter::Execute(scgms::IDevice_Event *event) {
 		mShutdown_Condition.notify_all();
 	}
 
-	if (mCustom_Output) //if there's anybody interested in consuming the event
-		return mCustom_Output->Execute(event);	
+	if (mCustom_Output) { //if there's anybody interested in consuming the event
+		return mCustom_Output->Execute(event);
+	}
 
 	event->Release();	//instead of us releasing it
 	
-	return S_OK; 
-};
-
+	return S_OK;
+}
 
 CCopying_Terminal_Filter::CCopying_Terminal_Filter(std::vector<CDevice_Event> &events, bool do_not_copy_info_events) : CTerminal_Filter(nullptr), mEvents(events), mDo_Not_Copy_Info_Events(do_not_copy_info_events) {
 

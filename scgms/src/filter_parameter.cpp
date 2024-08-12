@@ -246,8 +246,9 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::Evaluate_Variable(const std
 	//try our variables as they may hide the OS ones to actually customize them
 	{
 		auto iter = mNon_OS_Variables.find(var_name);
-		if (iter != mNon_OS_Variables.end())
+		if (iter != mNon_OS_Variables.end()) {
 			return std::tuple<bool, std::wstring>{S_OK, iter->second};
+		}
 	}
 
 	//try OS variables
@@ -307,8 +308,9 @@ HRESULT CFilter_Parameter::from_string(const scgms::NParameter_Type desired_type
 			effective_str = const_cast<wchar_t*>(possibly_deferred_content.c_str());
 		}
 	}
-	else
+	else {
 		mDeferred_Path_Or_Var.clear();
+	}
 
 	auto [is_var, var_name] = scgms::Is_Variable_Name(effective_str);
 	if (is_var) {
@@ -432,7 +434,8 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string(bool read_interpr
 					converted = GUID_To_WString(mData.guid);
 				break;
 
-				default: break;
+				default:
+					break;
 			} //switch (source_type) {
 
 		}
@@ -483,8 +486,9 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::to_string(bool read_interpr
 		auto [deffered_success, effective_deffered_path] = Resolve_Deferred_Path();
 
 		if (deffered_success != E_NOT_SET) {
-			if (Succeeded(deffered_success))
+			if (Succeeded(deffered_success)) {
 				rc = Save_To_File(converted, effective_deffered_path.c_str());
+			}
 		}
 		else {
 			rc = deffered_success;
@@ -535,8 +539,9 @@ std::tuple<HRESULT, std::wstring> CFilter_Parameter::Load_From_File(const wchar_
 
 		return { S_OK, raw_content };
 	}
-	else
+	else {
 		return { S_FALSE, L"" };	//empty file is like an empty line
+	}
 }
 
 HRESULT CFilter_Parameter::Save_To_File(const std::wstring& text, const wchar_t* path) {

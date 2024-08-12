@@ -124,15 +124,17 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 				err_str += std::to_wstring(link_position);
 				
 				bool failed_to_resolve_descriptor = false;
-				{//try to obtain filter's name
+				//try to obtain filter's name
+				{
 					scgms::TFilter_Descriptor desc = scgms::Null_Filter_Descriptor;
 					if (scgms::get_filter_descriptor_by_id(filter_id, desc) ) {
 						err_str += L" \"";
 						err_str += desc.description;
 						err_str += L'"';
 					}
-					else
+					else {
 						failed_to_resolve_descriptor = true;
+					}
 				}
 				error_description.push(err_str.c_str());
 

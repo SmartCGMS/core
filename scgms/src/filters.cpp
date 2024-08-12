@@ -224,8 +224,9 @@ void CLoaded_Filters::describe_loaded_filters(refcnt::Swstr_list error_descripti
 	error_description.push(dsLoaded_Filters);
 
 	if (!mLibraries.empty()) {
-		for (auto& lib : mLibraries)
+		for (auto& lib : mLibraries) {
 			error_description.push(lib.library.Lib_Path().wstring());
+		}
 	}
 	else {
 		error_description.push(dsNone);
@@ -257,8 +258,9 @@ scgms::SFilter create_filter_body(const GUID &id, scgms::IFilter *next_filter) {
 	scgms::SFilter result;
 	scgms::IFilter *filter;
 
-	if (loaded_filters.create_filter_body(&id, next_filter, &filter) == S_OK)
+	if (loaded_filters.create_filter_body(&id, next_filter, &filter) == S_OK) {
 		result = refcnt::make_shared_reference_ext<scgms::SFilter, scgms::IFilter>(filter, false);
+	}
 
 	return result;
 }

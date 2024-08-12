@@ -67,7 +67,7 @@ class CLoaded_Filters {
 
 	protected:
 		template <typename TDesc_Func, typename TDesc_Item>
-		bool Load_Descriptors(std::vector<TDesc_Item> &dst, CDynamic_Library &lib, const char *func_name)  {
+		bool Load_Descriptors(std::vector<TDesc_Item> &dst, CDynamic_Library &lib, const char *func_name) {
 			bool result = false;
 			//try to load filter descriptions just once
 			TDesc_Func desc_func = reinterpret_cast<decltype(desc_func)> (lib.Resolve(func_name));

@@ -361,10 +361,11 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Save_To_File(const wchar_t
 						comment = L"; ";
 						comment += id_desc_ptr;
 					}
+					break;
 				}
-				break;
 
-				default: break;
+				default:
+					break;
 			} //switch param_type
 
 			//and, write the value

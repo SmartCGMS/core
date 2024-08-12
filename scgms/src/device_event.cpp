@@ -83,14 +83,12 @@ class CEvent_Pool {
 			bool locked = false;
 			size_t retries_count = Event_Pool_Size * 2;
 
-
 			while ((!locked) && (retries_count-- > 0)) {
 				working_idx = (working_idx + 1) % Event_Pool_Size;
 				if (!mAllocated_Flags[working_idx]) {
 					locked = !mAllocated_Flags[working_idx].exchange(true);
 				}
 			}
-
 
 			if (locked) {
 				mRecent_Allocated_Event_Idx.store(working_idx);
@@ -106,8 +104,6 @@ class CEvent_Pool {
 				mAllocated_Flags[slot] = false;
 		}
 };
-
-
 
 
 CEvent_Pool event_pool;
@@ -134,7 +130,8 @@ void Clone_Raw(const scgms::TDevice_Event& src_raw, scgms::TDevice_Event& dst_ra
 			}
 			break;
 		}
-		default: break;	//just keeping the checkers happy
+		default:
+			break;	//just keeping the checkers happy
 	}
 }
 
@@ -181,14 +178,16 @@ void CDevice_Event::Clean_Up() noexcept {
 	switch (scgms::UDevice_Event_internal::major_type(mRaw.event_code)) {
 		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::info:
 		{
-			if (mRaw.info) 
+			if (mRaw.info) {
 				mRaw.info->Release();
+			}
 			break;
 		}
 		case scgms::UDevice_Event_internal::NDevice_Event_Major_Type::parameters:
 		{
-			if (mRaw.parameters)
+			if (mRaw.parameters) {
 				mRaw.parameters->Release();
+			}
 			break;
 		}
 		default:
@@ -221,8 +220,10 @@ HRESULT IfaceCalling CDevice_Event::Clone(IDevice_Event** event) const noexcept 
 		Clone_Raw(mRaw, clone->mRaw);
 		*event = static_cast<scgms::IDevice_Event*>(clone);
 		return S_OK;
-	} else
+	}
+	else {
 		return E_OUTOFMEMORY;
+	}
 }
 
 //syntactic sugar 

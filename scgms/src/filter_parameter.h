@@ -189,8 +189,9 @@ class CFilter_Parameter : public virtual scgms::IFilter_Parameter, public virtua
 			else if (source_container) {
 				return Update_Container_By_Vars<D, refcnt::SReferenced<C>>(source_container, conv);
 			}
-			else
+			else {
 				return E_NOT_SET;
+			}
 		}
 
 		template <typename C, typename D>
@@ -260,7 +261,7 @@ class CFilter_Parameter : public virtual scgms::IFilter_Parameter, public virtua
 		}
 
 		template <typename D, typename R>
-		std::tuple<HRESULT, std::wstring>  Array_To_String(R* container, const bool read_interpreted) {		
+		std::tuple<HRESULT, std::wstring>  Array_To_String(R* container, const bool read_interpreted) {
 			if (!container) {
 				return { E_UNEXPECTED, L"" };
 			}
@@ -319,7 +320,7 @@ class CFilter_Parameter : public virtual scgms::IFilter_Parameter, public virtua
 
 		//when resolving deferred path
 		//HRESULT means:
-		//	S_OK - path resolved succesfully			
+		//	S_OK - path resolved succesfully
 		//  E_NOT_SET - syntax correct, but cannot resolve the system variable
 		//				we need to support this scenario, when editing the config
 		//wstring is the path

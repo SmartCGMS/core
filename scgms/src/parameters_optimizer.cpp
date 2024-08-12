@@ -338,7 +338,8 @@ class  CParameters_Optimizer {
 					}
 					break;
 
-					default: break;
+					default:
+						break;
 				} //switch (source_type) {
 			}
 
@@ -608,8 +609,9 @@ class  CParameters_Optimizer {
 				}
 				parent_path->Release();
 			}
-			else
+			else {
 				mConfiguration.reset();
+			}
 
 			//mEmpty_Error_Description.reset();
 			//having this with nullptr, no error write will actually occur

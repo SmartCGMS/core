@@ -46,7 +46,7 @@
 
 class CFilter_Configuration_Link : public virtual refcnt::internal::CVector_Container<scgms::IFilter_Parameter*>, public virtual scgms::IFilter_Configuration_Link {
 	protected:
-		const GUID mID;	
+		const GUID mID;
 		std::wstring mParent_Path;	//for resolving relative paths; see CPersistent_Chain_Configuration for unique_ptr exaplanation
 
 	public:
