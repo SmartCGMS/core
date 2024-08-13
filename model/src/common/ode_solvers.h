@@ -95,7 +95,7 @@ class CRunge_Kuttta_Adaptive_Strategy_Optimal_Estimation : public CRunge_Kutta_A
 				step = Beta * step * std::pow(errorThreshold / currentError, 1.0 / ((currentError >= errorThreshold) ? N + 1 : N));
 			}
 
-			if (step >= remainingStep) // we would exceed the total step {
+			if (step >= remainingStep) { // we would exceed the total step
 				step = remainingStep;
 
 				// when the result is about to get rejected, set step count to 1, so the next one is re-adjusted by current calculations with new step size
