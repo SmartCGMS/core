@@ -55,32 +55,33 @@ TUsed_Solution Vector_2_Solution(const double *vector, const size_t n) {
 	//to avoid all the complications with Eigein-class deriving, let's do this as a standalone function
 	TUsed_Solution result;
 	result.resize(Eigen::NoChange, n);
-	std::copy(vector, vector + n, result.data());	
+	std::copy(vector, vector + n, result.data());
 	return result;
 }
 
+//Beware, origin is the ultimate, best fitness - negative fitness are not allowed by all strategies
+//Dominance based strategies must go first!
+enum class NFitness_Strategy : size_t {
+	Strict_Dominance = 0,                   //solution A must be strictly better than solution B
+	Soft_Dominance,                         //A is better if it has more dominating fitnesses than B
+	Any_Non_Dominated,                      //A is better if it dominates B on at least one fitness - can be used for parent-child only, not for sorting!!
+	Euclidean_Dominance,                    //if A does not strictly dominate B, better solution is chosen by its Euclidean distance from the Origin
+	Weighted_Euclidean_Dominance,           //metrics are assigned weights, while the first one has the greatest weight (weights: n, n-1, n-2... 1, where n is the number of objectives)
+	Ratio_Dominance,                        //if A nor B is not softly dominant, better solution is chosen by Euclidean distance of A[i]/(A[i]+B[i]) and its complement (1.0-a/sum) ratios from the Origin
+	Weighted_Ratio_Dominance,
 
-	
-		//Beware, origin is the ultimate, best fitness - negative fitness are not allowed by all strategies
-		//Dominance based strategies must go first!
-enum class NFitness_Strategy : size_t { Strict_Dominance = 0,					//solution A must be strictly better than solution B
-									    Soft_Dominance,							//A is better if it has more dominating fitnesses than B	
-										Any_Non_Dominated,						//A is better if it dominates B on at least one fitness - can be used for parent-child only, not for sorting!!
-										Euclidean_Dominance,					//if A does not strictly dominate B, better solution is chosen by its Euclidean distance from the Origin
-										Weighted_Euclidean_Dominance,			//metrics are assigned weights, while the first one has the greatest weight (weights: n, n-1, n-2... 1, where n is the number of objectives)
-										Ratio_Dominance,						//if A nor B is not softly dominant, better solution is chosen by Euclidean distance of A[i]/(A[i]+B[i]) and its complement (1.0-a/sum) ratios from the Origin
-										Weighted_Ratio_Dominance,				
-		
-										//any dominance-based strategy must be less than this element!!!
-										Dominance_Count,						
-										Euclidean_Distance = Dominance_Count,
-										Weighted_Euclidean_Distance,
-										Max_Reduction,
+	//any dominance-based strategy must be less than this element!!!
 
-										count,
+	Dominance_Count,
+	Euclidean_Distance = Dominance_Count,
+	Weighted_Euclidean_Distance,
+	Max_Reduction,
 
-										//unused aliases has to go as the last [with optionally, disabled strategies moved here in the source code]
-										Master = Euclidean_Dominance};			//the master, default strategy used to slect the final solution};
+	count,
 
+	//unused aliases has to go as the last [with optionally, disabled strategies moved here in the source code]
+	Master = Euclidean_Dominance           //the master, default strategy used to slect the final solution};
+};
+
+//returns true if a is better than b - i.e.; if a dominates b
 bool Compare_Solutions(const solver::TFitness & a, const solver::TFitness & b, const size_t objectives_count, const NFitness_Strategy strategy);
-		//returns true if a is better than b - i.e.; if a dominates b

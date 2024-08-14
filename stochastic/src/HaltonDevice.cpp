@@ -39,18 +39,21 @@
 std::atomic<size_t> last_prime;
 
 size_t CHalton_Device::Get_Next_Prime(size_t last_number) {	
-	if (!(last_number & 1)) last_number++;	//no need to test odd numbers
+	if (!(last_number & 1)) {
+		last_number++;	//no need to test odd numbers
+	}
 
 	bool is_prime;
 	do {
 		last_number += 2;
 		is_prime = true;
-		for (size_t c = 2; c*c <= last_number; c++)
+		for (size_t c = 2; c * c <= last_number; c++) {
 			//if the last_number divides by c with zero reminder, then the last_number is not prime
 			if (!(last_number % c)) {
 				is_prime = false;
 				break;
 			}
+		}
 
 	} while (!is_prime);
 
@@ -68,16 +71,14 @@ CHalton_Device::CHalton_Device() {
 	mLast_Index = 409;
 }
 
-
 double CHalton_Device::advance() {
 
 	lldiv_t qr;	//qr.quot is the working index
-	qr.quot = mLast_Index.fetch_add(1);	//advance the current state	
+	qr.quot = mLast_Index.fetch_add(1);	//advance the current state
 
-	double fraction = 1.0;	//current fraction		
+	double fraction = 1.0;	//current fraction
 	double result = 0.0;	//halton sequence number to return
 
-	
 	while (qr.quot) {
 		//we need to divide the fraction by the base
 		fraction *= mInv_Base;
@@ -88,7 +89,6 @@ double CHalton_Device::advance() {
 		//and add shift to the result
 		result += fraction * static_cast<double>(qr.rem);
 	}
-
 
 	return result;
 }

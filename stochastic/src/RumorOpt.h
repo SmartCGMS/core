@@ -55,8 +55,7 @@
 
 constexpr bool DebugOut = false;
 
-namespace rumoropt
-{
+namespace rumoropt {
 	enum class NRumor_Strategy {
 		Skeptic,			// individual believe his own truth, but considers the opinion of others slightly
 		Realist,			// individual tends to consider his own perception equally to the perception of others
@@ -179,8 +178,7 @@ namespace rumoropt
 
 
 template <typename TUsed_Solution, typename TRandom_Device = std::random_device>
-class CRumor_Opt
-{
+class CRumor_Opt {
 	protected:
 		const solver::TSolver_Setup mSetup;
 		const TUsed_Solution mLower_Bound;
@@ -222,8 +220,8 @@ class CRumor_Opt
 			mSetup(solver::Check_Default_Parameters(setup, 1'000, 100)),
 			mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)),
 			mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)),
-			mBounds_Range(mUpper_Bound - mLower_Bound)
-		{
+			mBounds_Range(mUpper_Bound - mLower_Bound) {
+
 			Init_Population();
 		}
 
@@ -255,17 +253,18 @@ class CRumor_Opt
 				// and sort the select up to the initialized_count best of them - if actually needed
 				std::partial_sort(hint_indexes.begin(), hint_indexes.begin() + initialized_count, hint_indexes.end(),
 					[&](const size_t& a, const size_t& b) {
-						if (!hint_validity[hint_indexes[a]])
+						if (!hint_validity[hint_indexes[a]]) {
 							return false;
-						if (!hint_validity[hint_indexes[b]])
+						}
+						if (!hint_validity[hint_indexes[b]]) {
 							return true;
+						}
 
-						return Compare_Solutions(hint_fitness[hint_indexes[a]], hint_fitness[hint_indexes[b]], mSetup.objectives_count, NFitness_Strategy::Master);
 						// true/false domination see the sorting in the main cycle
-					});
+						return Compare_Solutions(hint_fitness[hint_indexes[a]], hint_fitness[hint_indexes[b]], mSetup.objectives_count, NFitness_Strategy::Master);
+					}
+				);
 			}
-
-			// 1. create the initial population
 
 			// b) by storing suggested params
 			size_t effectively_initialized_count = 0;
@@ -275,8 +274,9 @@ class CRumor_Opt
 					mPopulation[i].current = trimmed_hints[hint_indexes[i]];
 					mPopulation[i].current_fitness = hint_fitness[hint_indexes[i]];
 				}
-				else
+				else {
 					break;
+				}
 			}
 
 			// c) by complementing it with randomly generated numbers
@@ -287,8 +287,9 @@ class CRumor_Opt
 				// optimized away in compile time
 				tmp.resize(Eigen::NoChange, mSetup.problem_size);
 
-				for (size_t j = 0; j < mSetup.problem_size; j++)
+				for (size_t j = 0; j < mSetup.problem_size; j++) {
 					tmp[j] = mUniform_Distribution_dbl(mRandom_Generator);
+				}
 
 				mPopulation[i].current = mLower_Bound + tmp.cwiseProduct(mBounds_Range);
 				mPopulation[i].next = mPopulation[i].current;
@@ -299,8 +300,9 @@ class CRumor_Opt
 			// compute the fitness in parallel
 			std::for_each(std::execution::par_unseq, mPopulation.begin(), mPopulation.end(), [this](auto& candidate_solution) {
 				if (mSetup.objective(mSetup.data, 1, candidate_solution.current.data(), candidate_solution.current_fitness.data()) != TRUE) {
-					for (auto& elem : candidate_solution.current_fitness)
+					for (auto& elem : candidate_solution.current_fitness) {
 						elem = std::numeric_limits<double>::quiet_NaN();
+					}
 				}
 
 				candidate_solution.next = candidate_solution.current;
@@ -315,8 +317,9 @@ class CRumor_Opt
 				
 				slice.rumored.resize(Eigen::NoChange, mSetup.problem_size);
 
-				for (size_t j = 0; j < mSetup.problem_size; j++)
+				for (size_t j = 0; j < mSetup.problem_size; j++) {
 					slice.rumored[j] = (mUniform_Distribution_dbl(mRandom_Generator) < 0.5) ? 0 : 1;
+				}
 
 				slice.delta = -100000; // for the actual delta to be unknown, let's assign something significantly small
 			});
@@ -338,16 +341,25 @@ class CRumor_Opt
 		// generates a new rumor weight (and possibly a strategy) for a given candidate by its iterator
 		void Generate_Rumor_Weight(typename rumoropt::TPopulation_Vector<TUsed_Solution>::iterator itr, bool refreshStrategy)
 		{
-			if (refreshStrategy)
+			if (refreshStrategy) {
 				itr->strategy = rumoropt::Rumor_Strategy_Dist[mStrategy_Distribution(mRandom_Generator)]; // generate strategy according to pre-determined distribution
+			}
 
-			switch (itr->strategy)
-			{
-				case rumoropt::NRumor_Strategy::Skeptic: itr->rumor_weight = rumoropt::w_Skeptic_start + mUniform_Distribution_dbl(mRandom_Generator) * (rumoropt::w_Skeptic_end - rumoropt::w_Skeptic_start); break;
-				case rumoropt::NRumor_Strategy::Realist: itr->rumor_weight = rumoropt::w_Realist_start + mUniform_Distribution_dbl(mRandom_Generator) * (rumoropt::w_Realist_end - rumoropt::w_Realist_start); break;
-				case rumoropt::NRumor_Strategy::Naive:   itr->rumor_weight = rumoropt::w_Naive_start + mUniform_Distribution_dbl(mRandom_Generator) * (rumoropt::w_Naive_end - rumoropt::w_Naive_start); break;
-				case rumoropt::NRumor_Strategy::Gossiper:itr->rumor_weight = rumoropt::w_Gossiper_start + mUniform_Distribution_dbl(mRandom_Generator) * (rumoropt::w_Gossiper_end - rumoropt::w_Gossiper_start); break;
-				default: break;
+			switch (itr->strategy) {
+				case rumoropt::NRumor_Strategy::Skeptic:
+					itr->rumor_weight = rumoropt::w_Skeptic_start + mUniform_Distribution_dbl(mRandom_Generator) * (rumoropt::w_Skeptic_end - rumoropt::w_Skeptic_start);
+					break;
+				case rumoropt::NRumor_Strategy::Realist:
+					itr->rumor_weight = rumoropt::w_Realist_start + mUniform_Distribution_dbl(mRandom_Generator) * (rumoropt::w_Realist_end - rumoropt::w_Realist_start);
+					break;
+				case rumoropt::NRumor_Strategy::Naive:
+					itr->rumor_weight = rumoropt::w_Naive_start + mUniform_Distribution_dbl(mRandom_Generator) * (rumoropt::w_Naive_end - rumoropt::w_Naive_start);
+					break;
+				case rumoropt::NRumor_Strategy::Gossiper:
+					itr->rumor_weight = rumoropt::w_Gossiper_start + mUniform_Distribution_dbl(mRandom_Generator) * (rumoropt::w_Gossiper_end - rumoropt::w_Gossiper_start);
+					break;
+				default:
+					break;
 			}
 		}
 
@@ -362,26 +374,25 @@ class CRumor_Opt
 			double rnd = mUniform_Distribution_dbl(mRandom_Generator);
 
 			// a vector of changes retained from bank
-			if (rnd < rumoropt::p_Rumor_Bank)
-			{
+			if (rnd < rumoropt::p_Rumor_Bank) {
 				// use exponential distribution to prefer better bank members
 				const size_t idx = std::min(static_cast<size_t>(mExp_Distribution_dbl(mRandom_Generator) * static_cast<double>(rumoropt::Bank_Size)), rumoropt::Bank_Size - 1);
 				slice.rumored = mBank[idx].rumored;
 			}
 			// a vector of changes generated randomly
-			else if (rnd < rumoropt::p_Rumor_Bank + rumoropt::p_Rumor_Noise)
-			{
-				for (size_t j = 0; j < mSetup.problem_size; j++)
+			else if (rnd < rumoropt::p_Rumor_Bank + rumoropt::p_Rumor_Noise) {
+				for (size_t j = 0; j < mSetup.problem_size; j++) {
 					slice.rumored[j] = (mUniform_Distribution_dbl(mRandom_Generator) < 0.5) ? 0 : 1;
+				}
 			}
-			else
+			else {
 				return; // no rumoring
+			}
 
 			// choose a rumor source
 			rumoropt::NRumor_Source src = static_cast<rumoropt::NRumor_Source>(mSource_Distribution(mRandom_Generator));
 
-			switch (src)
-			{
+			switch (src) {
 				// current - take current "truth" from second candidate
 				case rumoropt::NRumor_Source::Current:
 				{
@@ -397,8 +408,7 @@ class CRumor_Opt
 				// noise - take a randomly generated noise as source
 				/*case rumoropt::NRumor_Source::Noise:
 				{
-					for (size_t i = 0; i < mSetup.problem_size; i++)
-					{
+					for (size_t i = 0; i < mSetup.problem_size; i++) {
 						const double noise = mLower_Bound[i] + mUniform_Distribution_dbl(mRandom_Generator) * mBounds_Range[i];
 						a.next[i] = noise * a.rumor_weight * slice.rumored[i] + noise * (1 - slice.rumored[i]) + a.current[i] * (1 - a.rumor_weight) * slice.rumored[i];
 					}
@@ -407,8 +417,7 @@ class CRumor_Opt
 				// noisy best - take best known "truth" from second candidate and add a little bit of noise
 				case rumoropt::NRumor_Source::Noisy_Best:
 				{
-					for (size_t i = 0; i < mSetup.problem_size; i++)
-					{
+					for (size_t i = 0; i < mSetup.problem_size; i++) {
 						const double noise = mLower_Bound[i] + mUniform_Distribution_dbl(mRandom_Generator) * mBounds_Range[i];
 						a.next[i] = (noise * rumoropt::w_Noise * slice.rumored[i] + b.best[i] * (1 - rumoropt::w_Noise)) * a.rumor_weight * slice.rumored[i] + b.best[i] * (1 - slice.rumored[i]) + a.current[i] * (1 - a.rumor_weight) * slice.rumored[i];
 					}
@@ -427,39 +436,36 @@ class CRumor_Opt
 		void Update_Bank(const rumoropt::TSlice<TUsed_Solution>& slice) {
 
 			// update bank only if the rumored slice is not all zeroes
-			if (slice.rumored.isZero())
+			if (slice.rumored.isZero()) {
 				return;
+			}
 
 			size_t sliceIdx = static_cast<size_t>(-1);
 
 			// find existing slice
-			for (size_t i = 0; i < rumoropt::Bank_Size - 1; i++)
-			{
-				if ((slice.rumored == mBank[i].rumored).all())
-				{
+			for (size_t i = 0; i < rumoropt::Bank_Size - 1; i++) {
+				if ((slice.rumored == mBank[i].rumored).all()) {
 					sliceIdx = i;
 					break;
 				}
 			}
 
 			// slice already exists - update weight
-			if (sliceIdx != static_cast<size_t>(-1))
-			{
+			if (sliceIdx != static_cast<size_t>(-1)) {
 				// automatically accept globally improving instances
-				if (mBank[sliceIdx].delta < 0 && slice.delta > 0)
+				if (mBank[sliceIdx].delta < 0 && slice.delta > 0) {
 					mBank[sliceIdx].delta = slice.delta;
+				}
 				// accept locally improving instances
-				else if (slice.delta > mBank[sliceIdx].delta)
+				else if (slice.delta > mBank[sliceIdx].delta) {
 					mBank[sliceIdx].delta = (mBank[sliceIdx].delta + slice.delta) / 2.0; // TODO: a better strategy?
+				}
 				// discard worsening instances
 				// TODO: is this right?
 			}
-			else // slice does not exist - select the weakest bank slice and replace it, if the newly discovered slice performs better
-			{
-				for (size_t i = rumoropt::Bank_Size - 1; i > 0; i--)
-				{
-					if (mBank[i].delta < slice.delta)
-					{
+			else { // slice does not exist - select the weakest bank slice and replace it, if the newly discovered slice performs better
+				for (size_t i = rumoropt::Bank_Size - 1; i > 0; i--) {
+					if (mBank[i].delta < slice.delta) {
 						mBank[i].rumored = slice.rumored;
 						mBank[i].delta = slice.delta;
 						break;
@@ -472,8 +478,7 @@ class CRumor_Opt
 
 			population_helpers::CPopulation_Dump dumper(mSetup.problem_size);
 
-			if constexpr (DebugOut)
-			{
+			if constexpr (DebugOut) {
 				dumper.Init("rumor_dump.csv");
 			}
 
@@ -486,15 +491,15 @@ class CRumor_Opt
 
 			// prepare epoch slice map
 			mEpoch_Slice_Map.resize(incidence_per_epoch);
-			for (size_t i = 0; i < incidence_per_epoch; i++)
+			for (size_t i = 0; i < incidence_per_epoch; i++) {
 				mEpoch_Slice_Map[i].rumored.resize(Eigen::NoChange, mSetup.problem_size);
+			}
 
 			// generate population indices vector in order to be able to perform parallel population update whilst having all indices
 			std::vector<size_t> mPop_Idx(mPopulation.size());
 			std::iota(mPop_Idx.begin(), mPop_Idx.end(), 0);
 
-			if constexpr (DebugOut)
-			{
+			if constexpr (DebugOut) {
 				dumper.Dump(cur_progress, mPopulation, [](const rumoropt::TCandidate_Solution<TUsed_Solution>& solution) {
 					return solution.current_fitness[0];
 				}, [](const rumoropt::TCandidate_Solution<TUsed_Solution>& solution, size_t paramIdx) {
@@ -502,15 +507,12 @@ class CRumor_Opt
 				});
 			}
 
-			while (cur_progress++ < mSetup.max_generations && (progress.cancelled == FALSE))
-			{
-				if constexpr (rumoropt::Rumor_Order == rumoropt::NRumor_Order::Random)
-				{
+			while (cur_progress++ < mSetup.max_generations && (progress.cancelled == FALSE)) {
+				if constexpr (rumoropt::Rumor_Order == rumoropt::NRumor_Order::Random) {
 					// shuffle the population at each epoch, so the incidence is different from epoch to epoch
 					std::shuffle(mPopulation.begin(), mPopulation.end(), mRandom_Generator);
 				}
-				else if constexpr (rumoropt::Rumor_Order == rumoropt::NRumor_Order::Best_To_Rest)
-				{
+				else if constexpr (rumoropt::Rumor_Order == rumoropt::NRumor_Order::Best_To_Rest) {
 					// update worse candidates with better ones
 					std::sort(mPopulation.begin(), mPopulation.end(), [this](const rumoropt::TCandidate_Solution<TUsed_Solution>& a, const rumoropt::TCandidate_Solution<TUsed_Solution>& b) {
 						return !Compare_Solutions(a.current_fitness, b.current_fitness, mSetup.objectives_count, NFitness_Strategy::Master);
@@ -529,60 +531,57 @@ class CRumor_Opt
 					// generate incidence
 					Rumor(mPopulation[candidate_solution_idx], mPopulation[Gen_Random_Population_Idx(candidate_solution_idx + 1)], candidate_solution_idx);
 
-					if (mSetup.objective(mSetup.data, 1, candidate_solution.next.data(), candidate_solution.next_fitness.data()) == TRUE)
-					{
+					if (mSetup.objective(mSetup.data, 1, candidate_solution.next.data(), candidate_solution.next_fitness.data()) == TRUE) {
 						// store incidence delta
 						mEpoch_Slice_Map[candidate_solution_idx].delta = candidate_solution.next_fitness[0] - candidate_solution.current_fitness[0];
-						if (std::isnan(mEpoch_Slice_Map[candidate_solution_idx].delta))
+						if (std::isnan(mEpoch_Slice_Map[candidate_solution_idx].delta)) {
 							mEpoch_Slice_Map[candidate_solution_idx].delta = candidate_solution.next_fitness[0]; // TODO: solve this better
+						}
 
 						// if the newly generated solution is better, use it; otherwise discard it
-						if (Compare_Solutions(candidate_solution.next_fitness, candidate_solution.current_fitness, mSetup.objectives_count, NFitness_Strategy::Master))
-						{
+						if (Compare_Solutions(candidate_solution.next_fitness, candidate_solution.current_fitness, mSetup.objectives_count, NFitness_Strategy::Master)) {
 							candidate_solution.current = candidate_solution.next;
 							candidate_solution.current_fitness = candidate_solution.next_fitness;
 						}
-						else
-						{
+						else {
 							//candidate_solution.next = candidate_solution.current;
 							//candidate_solution.next_fitness = candidate_solution.current_fitness;
 						}
 					}
-					else
-					{
+					else {
 						//candidate_solution.next = candidate_solution.current;
 						//candidate_solution.next_fitness = candidate_solution.current_fitness;
 					}
 
 					// did we generate a solution, that is better than current best? If yes, update best known "truth"
-					if (Compare_Solutions(candidate_solution.current_fitness, candidate_solution.best_fitness, mSetup.objectives_count, NFitness_Strategy::Master))
-					{
+					if (Compare_Solutions(candidate_solution.current_fitness, candidate_solution.best_fitness, mSetup.objectives_count, NFitness_Strategy::Master)) {
 						candidate_solution.best = candidate_solution.current;
 						candidate_solution.best_fitness = candidate_solution.current_fitness;
 					}
 				});
 
 				// 2) decay bank - this allows for less improving update vectors to become more visible to the rumoring process, if they are still improving the candidates
-				for (size_t i = 0; i < rumoropt::Bank_Size; i++)
+				for (size_t i = 0; i < rumoropt::Bank_Size; i++) {
 					mBank[i].delta = (1.0 - rumoropt::Bank_Decay) * mBank[i].delta;
+				}
 
 				// 3) update bank - update with new improvement data
-				for (size_t i = 0; i < incidence_per_epoch; i++)
+				for (size_t i = 0; i < incidence_per_epoch; i++) {
 					Update_Bank(mEpoch_Slice_Map[i]);
+				}
 
 				// 4) sort the bank - best bank members first
 				std::sort(mBank.begin(), mBank.end(), [](const rumoropt::TSlice<TUsed_Solution>& a, const rumoropt::TSlice<TUsed_Solution>& b) {
 					return a.delta > b.delta;
 				});
 
-				if constexpr (DebugOut)
-				{
+				if constexpr (DebugOut) {
 					dprintf("*** Bank dump begin ***\r\n");
-					for (size_t i = 0; i < rumoropt::Bank_Size; i++)
-					{
+					for (size_t i = 0; i < rumoropt::Bank_Size; i++) {
 						dprintf("Slice");
-						for (size_t j = 0; j < mSetup.problem_size; j++)
+						for (size_t j = 0; j < mSetup.problem_size; j++) {
 							dprintf(" %d", static_cast<size_t>(mBank[i].rumored[j]));
+						}
 						dprintf(", delta %llf\r\n", mBank[i].delta);
 					}
 					dprintf("*** Bank dump end ***\r\n");
@@ -598,30 +597,29 @@ class CRumor_Opt
 				Update_Best_Candidate();
 
 				// regenerate too old candidate solutions (time-to-live)
-				for (auto itr = mPopulation.begin(); itr != mPopulation.end(); ++itr)
-				{
+				for (auto itr = mPopulation.begin(); itr != mPopulation.end(); ++itr) {
 					// the best candidate may live past his time-to-live, until superceded by another
-					if (itr != mBest_Itr)
-					{
+					if (itr != mBest_Itr) {
 						itr->life_counter--;
-						if (itr->life_counter == 0)
-						{
+						if (itr->life_counter == 0) {
 							TUsed_Solution tmp;
 
 							// this helps when we use generic dst vector, and does nothing when we use fixed lengths (since ColsAtCompileTime already equals bounds_range.cols(), so it gets
 							// optimized away in compile time
 							tmp.resize(Eigen::NoChange, mSetup.problem_size);
 
-							for (size_t j = 0; j < mSetup.problem_size; j++)
+							for (size_t j = 0; j < mSetup.problem_size; j++) {
 								tmp[j] = mUniform_Distribution_dbl(mRandom_Generator);
+							}
 
 							itr->current = mLower_Bound + tmp.cwiseProduct(mBounds_Range);
 							itr->next = itr->current;
 							itr->best = itr->current;
 
 							if (mSetup.objective(mSetup.data, 1, itr->current.data(), itr->current_fitness.data()) != TRUE) {
-								for (auto& elem : itr->current_fitness)
+								for (auto& elem : itr->current_fitness) {
 									elem = std::numeric_limits<double>::quiet_NaN();
+								}
 							}
 
 							itr->best_fitness = itr->current_fitness;

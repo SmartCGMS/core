@@ -73,8 +73,7 @@ namespace pso
 
 	// base for CRTP type of swarm generator
 	template<typename TUsed_Solution, typename TRandom_Device, typename TPop_Gen>
-	class ISwarm_Generator
-	{
+	class ISwarm_Generator {
 		protected:
 			inline static TRandom_Device mRandom_Generator;
 			inline static thread_local std::uniform_real_distribution<double> mUniform_Distribution_dbl{ 0.0, 1.0 };
@@ -87,8 +86,7 @@ namespace pso
 
 	// Random swarm generator - generates random swarm members within given bounds
 	template<typename TUsed_Solution, typename TRandom_Device>
-	class CRandom_Swarm_Generator final : public ISwarm_Generator<TUsed_Solution, TRandom_Device, CRandom_Swarm_Generator<TUsed_Solution, TRandom_Device>>
-	{
+	class CRandom_Swarm_Generator final : public ISwarm_Generator<TUsed_Solution, TRandom_Device, CRandom_Swarm_Generator<TUsed_Solution, TRandom_Device>> {
 		using TBase = ISwarm_Generator<TUsed_Solution, TRandom_Device, CRandom_Swarm_Generator<TUsed_Solution, TRandom_Device>>;
 		protected:
 			inline void Generate_Random_Candidate(TSwarm_Vector<TUsed_Solution>& target, size_t idx, const size_t problem_size, const TUsed_Solution& lower_bound, const TUsed_Solution& upper_bound) {
@@ -98,35 +96,36 @@ namespace pso
 				// optimized away in compile time
 				tmp.resize(Eigen::NoChange, problem_size);
 
-				for (size_t j = 0; j < problem_size; j++)
+				for (size_t j = 0; j < problem_size; j++) {
 					tmp[j] = TBase::mUniform_Distribution_dbl(TBase::mRandom_Generator);
+				}
 
 				target[idx].current = lower_bound + tmp.cwiseProduct(upper_bound - lower_bound);
 			}
 
 		public:
 			void Generate_Swarm_Impl(TSwarm_Vector<TUsed_Solution>& target, size_t begin, size_t end, const size_t problem_size, const TUsed_Solution& lower_bound, const TUsed_Solution& upper_bound) {
-				for (size_t i = begin; i < end; i++)
+				for (size_t i = begin; i < end; i++) {
 					Generate_Random_Candidate(target, i, problem_size, lower_bound, upper_bound);
+				}
 			}
 	};
 
 	// Diagonal swarm generator - generates swarm members as equally-distributed points on first diagonal
 	template<typename TUsed_Solution, typename TRandom_Device>
-	class CDiagonal_Swarm_Generator final : public ISwarm_Generator<TUsed_Solution, TRandom_Device, CDiagonal_Swarm_Generator<TUsed_Solution, TRandom_Device>>
-	{
+	class CDiagonal_Swarm_Generator final : public ISwarm_Generator<TUsed_Solution, TRandom_Device, CDiagonal_Swarm_Generator<TUsed_Solution, TRandom_Device>> {
 		public:
 			void Generate_Swarm_Impl(TSwarm_Vector<TUsed_Solution>& target, size_t begin, size_t end, const size_t problem_size, const TUsed_Solution& lower_bound, const TUsed_Solution& upper_bound) {
 				const double step = 1.0 / (end - begin);
-				for (size_t i = begin; i < end; i++)
+				for (size_t i = begin; i < end; i++) {
 					target[i].current = lower_bound + static_cast<double>(i - begin) * step * (upper_bound - lower_bound);
+				}
 			}
 	};
 
 	// Cross-diagonal swarm generator - generates swarm members as equally-distributed points on two diagonals
 	template<typename TUsed_Solution, typename TRandom_Device>
-	class CCross_Diagonal_Swarm_Generator final : public ISwarm_Generator<TUsed_Solution, TRandom_Device, CCross_Diagonal_Swarm_Generator<TUsed_Solution, TRandom_Device>>
-	{
+	class CCross_Diagonal_Swarm_Generator final : public ISwarm_Generator<TUsed_Solution, TRandom_Device, CCross_Diagonal_Swarm_Generator<TUsed_Solution, TRandom_Device>> {
 		public:
 			void Generate_Swarm_Impl(TSwarm_Vector<TUsed_Solution>& target, size_t begin, size_t end, const size_t problem_size, const TUsed_Solution& lower_bound, const TUsed_Solution& upper_bound) {
 				const size_t half = begin + (end - begin) / 2;
@@ -134,8 +133,9 @@ namespace pso
 
 				const auto bounds_range = upper_bound - lower_bound;
 
-				for (size_t i = begin; i < half; i++)
+				for (size_t i = begin; i < half; i++) {
 					target[i].current = lower_bound + static_cast<double>(i - begin) * step * bounds_range;
+				}
 
 				for (size_t i = half; i < end; i++) {
 					target[i].current = lower_bound + static_cast<double>(i - half) * step * bounds_range;
@@ -147,12 +147,9 @@ namespace pso
 			}
 	};
 
-
-
 	// base for CRTP type of velocity modifier
 	template<typename TUsed_Solution, typename TRandom_Device, typename TMod>
-	class IVelocity_Modifier
-	{
+	class IVelocity_Modifier {
 		protected:
 			inline static TRandom_Device mRandom_Generator;
 			inline static thread_local std::uniform_real_distribution<double> mUniform_Distribution_dbl{ 0.0, 1.0 };
@@ -165,12 +162,10 @@ namespace pso
 
 	// single coefficient velocity modifier - one single random value is used for each dimension of local and global memory
 	template<typename TUsed_Solution, typename TRandom_Device>
-	class CSingle_Coefficient_Velocity_Modifier final : public IVelocity_Modifier<TUsed_Solution, TRandom_Device, CSingle_Coefficient_Velocity_Modifier<TUsed_Solution, TRandom_Device>>
-	{
+	class CSingle_Coefficient_Velocity_Modifier final : public IVelocity_Modifier<TUsed_Solution, TRandom_Device, CSingle_Coefficient_Velocity_Modifier<TUsed_Solution, TRandom_Device>> {
 		using TBase = IVelocity_Modifier<TUsed_Solution, TRandom_Device, CSingle_Coefficient_Velocity_Modifier<TUsed_Solution, TRandom_Device>>;
 		public:
-			auto Generate_Velocity_Change_Impl(const size_t problem_size)
-			{
+			auto Generate_Velocity_Change_Impl(const size_t problem_size) {
 				double val = TBase::mUniform_Distribution_dbl(TBase::mRandom_Generator);
 
 				return std::pair<double, double>(val, val);
@@ -179,12 +174,10 @@ namespace pso
 
 	// dual coefficient velocity modifier - two random values are used for each dimension, one for local and one for global memory
 	template<typename TUsed_Solution, typename TRandom_Device>
-	class CDual_Coefficient_Velocity_Modifier final : public IVelocity_Modifier<TUsed_Solution, TRandom_Device, CDual_Coefficient_Velocity_Modifier<TUsed_Solution, TRandom_Device>>
-	{
+	class CDual_Coefficient_Velocity_Modifier final : public IVelocity_Modifier<TUsed_Solution, TRandom_Device, CDual_Coefficient_Velocity_Modifier<TUsed_Solution, TRandom_Device>> {
 		using TBase = IVelocity_Modifier<TUsed_Solution, TRandom_Device, CDual_Coefficient_Velocity_Modifier<TUsed_Solution, TRandom_Device>>;
 		public:
-			auto Generate_Velocity_Change_Impl(const size_t problem_size)
-			{
+			auto Generate_Velocity_Change_Impl(const size_t problem_size) {
 				double val1 = TBase::mUniform_Distribution_dbl(TBase::mRandom_Generator);
 				double val2 = TBase::mUniform_Distribution_dbl(TBase::mRandom_Generator);
 
@@ -194,12 +187,10 @@ namespace pso
 
 	// single coefficient vector velocity modifier - one vector of random values is used for local and global memory
 	template<typename TUsed_Solution, typename TRandom_Device>
-	class CSingle_Coefficient_Vector_Velocity_Modifier final : public IVelocity_Modifier<TUsed_Solution, TRandom_Device, CSingle_Coefficient_Vector_Velocity_Modifier<TUsed_Solution, TRandom_Device>>
-	{
+	class CSingle_Coefficient_Vector_Velocity_Modifier final : public IVelocity_Modifier<TUsed_Solution, TRandom_Device, CSingle_Coefficient_Vector_Velocity_Modifier<TUsed_Solution, TRandom_Device>> {
 		using TBase = IVelocity_Modifier<TUsed_Solution, TRandom_Device, CSingle_Coefficient_Vector_Velocity_Modifier<TUsed_Solution, TRandom_Device>>;
 		public:
-			auto Generate_Velocity_Change_Impl(const size_t problem_size)
-			{
+			auto Generate_Velocity_Change_Impl(const size_t problem_size) {
 				TUsed_Solution rndvec, rndvec2;
 				rndvec.resize(Eigen::NoChange, problem_size);
 
@@ -215,12 +206,10 @@ namespace pso
 
 	// single coefficient vector velocity modifier - two vectors of random values are used, one for local and one for global memory
 	template<typename TUsed_Solution, typename TRandom_Device>
-	class CDual_Coefficient_Vector_Velocity_Modifier final : public IVelocity_Modifier<TUsed_Solution, TRandom_Device, CDual_Coefficient_Vector_Velocity_Modifier<TUsed_Solution, TRandom_Device>>
-	{
+	class CDual_Coefficient_Vector_Velocity_Modifier final : public IVelocity_Modifier<TUsed_Solution, TRandom_Device, CDual_Coefficient_Vector_Velocity_Modifier<TUsed_Solution, TRandom_Device>> {
 		using TBase = IVelocity_Modifier<TUsed_Solution, TRandom_Device, CDual_Coefficient_Vector_Velocity_Modifier<TUsed_Solution, TRandom_Device>>;
 		public:
-			auto Generate_Velocity_Change_Impl(const size_t problem_size)
-			{
+			auto Generate_Velocity_Change_Impl(const size_t problem_size) {
 				TUsed_Solution rndvec1, rndvec2;
 				rndvec1.resize(Eigen::NoChange, problem_size);
 				rndvec2.resize(Eigen::NoChange, problem_size);
@@ -234,7 +223,6 @@ namespace pso
 			}
 	};
 }
-
 
 template <typename TUsed_Solution, typename TRandom_Device = std::random_device,
 	template<typename, typename> typename TSwarm_Generator = pso::CRandom_Swarm_Generator,
@@ -273,6 +261,11 @@ class CPSO
 		TUsed_Solution mOverall_Best;
 		solver::TFitness mOverall_Best_Fitness = solver::Nan_Fitness;
 
+		inline static TRandom_Device mRandom_Generator;
+		inline static thread_local std::uniform_real_distribution<double> mUniform_Distribution_dbl{ 0.0, 1.0 };
+
+	protected:
+
 		// updates global memory with best known position of the whole swarm
 		inline void Update_Best_Candidate() {
 			mBest_Itr = std::min_element(mSwarm.begin(), mSwarm.end(), [&](const pso::TCandidate_Solution<TUsed_Solution>& a, const pso::TCandidate_Solution<TUsed_Solution>& b) {
@@ -288,18 +281,14 @@ class CPSO
 			}
 		}
 
-	protected:
-		inline static TRandom_Device mRandom_Generator;
-		inline static thread_local std::uniform_real_distribution<double> mUniform_Distribution_dbl{ 0.0, 1.0 };
-
 	public:
 		CPSO(const solver::TSolver_Setup &setup) : 
 			mSetup(solver::Check_Default_Parameters(setup, 1'000, 100)),
 			mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)),
 			mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)),
 			mVelocity_Lower_Bound(- max_velocity * (mUpper_Bound - mLower_Bound)),
-			mVelocity_Upper_Bound(  max_velocity * (mUpper_Bound - mLower_Bound))
-		{
+			mVelocity_Upper_Bound(  max_velocity * (mUpper_Bound - mLower_Bound)) {
+
 			Init_PSO();
 		}
 
@@ -309,8 +298,9 @@ class CPSO
 			// create the initial swarm using supplied hints; fill up to a half of a swarm with hints
 			const size_t initialized_count = std::min(mSwarm.size() / 2, mSetup.hint_count);
 
-			for (size_t i = 0; i < initialized_count; i++)
+			for (size_t i = 0; i < initialized_count; i++) {
 				mSwarm[i].current = Vector_2_Solution<TUsed_Solution>(mSetup.hints[i], mSetup.problem_size);
+			}
 
 			// complement the rest with generated candidates
 			TSwarm_Generator<TUsed_Solution, TRandom_Device> gen;
@@ -318,10 +308,10 @@ class CPSO
 
 			// calculate initial fitness
 			std::for_each(std::execution::par_unseq, mSwarm.begin(), mSwarm.end(), [this](auto& candidate_solution) {
-				if (mSetup.objective(mSetup.data, 1, candidate_solution.current.data(), candidate_solution.current_fitness.data()) != TRUE)
-				{
-					for (auto& elem : candidate_solution.current_fitness)
+				if (mSetup.objective(mSetup.data, 1, candidate_solution.current.data(), candidate_solution.current_fitness.data()) != TRUE) {
+					for (auto& elem : candidate_solution.current_fitness) {
 						elem = std::numeric_limits<double>::quiet_NaN();	// sanitize on error
+					}
 				}
 
 				// current is also the best known
@@ -335,8 +325,9 @@ class CPSO
 				TUsed_Solution rand_init;
 				rand_init.resize(Eigen::NoChange, mSetup.problem_size);
 
-				for (size_t j = 0; j < mSetup.problem_size; j++)
+				for (size_t j = 0; j < mSetup.problem_size; j++) {
 					rand_init[j] = mUniform_Distribution_dbl(mRandom_Generator);
+				}
 
 				candidate_solution.velocity = mVelocity_Lower_Bound + rand_init * (mVelocity_Upper_Bound - mVelocity_Lower_Bound);
 			});
@@ -351,22 +342,21 @@ class CPSO
 			progress.max_progress = mSetup.max_generations;
 
 			size_t repulsory_iterations = repulsory ? std::max(static_cast<size_t>(repulsory_itr_param_ratio * mSetup.problem_size) + 1, min_repulsory_iterations) : 1;
-			if constexpr (repulsory)
+			if constexpr (repulsory) {
 				progress.max_progress *= repulsory_iterations;
+			}
 
 			size_t cur_progress = 0;
 	
 			const size_t solution_size = mSwarm[0].current.cols();
 			TVelocity_Modifier<TUsed_Solution, TRandom_Device> mod;
 
-			while ((cur_progress++ < mSetup.max_generations && repulsory_iterations > 0) && (progress.cancelled == FALSE))
-			{
+			while ((cur_progress++ < mSetup.max_generations && repulsory_iterations > 0) && (progress.cancelled == FALSE)) {
+
 				progress.current_progress++;
 
-				if constexpr (repulsory)
-				{
-					if (cur_progress == mSetup.max_generations)
-					{
+				if constexpr (repulsory) {
+					if (cur_progress == mSetup.max_generations) {
 						cur_progress = 0;
 						repulsory_iterations--;
 
@@ -384,35 +374,33 @@ class CPSO
 					// generate velocity update vectors/scalars (depends on chosen velocity update operator)
 					auto [r_p, r_g] = mod.Generate_Velocity_Change(solution_size);
 
-					if constexpr (repulsory)
-					{
+					if constexpr (repulsory) {
 						// update velocity
 						candidate_solution.velocity = 
 							omega * candidate_solution.velocity
 							+ phi_p * r_p * (candidate_solution.best - candidate_solution.current)
 							+ phi_g * r_g * (mBest_Itr->best - candidate_solution.current);
 
-						if (repulsory_iterations > 0)
-						{
+						if (repulsory_iterations > 0) {
 							// repulse (stronger in each repulsory iteration)
-							for (auto& repulsor : mRepulsors)
+							for (auto& repulsor : mRepulsors) {
 								//candidate_solution.velocity -= phi_r * 1.0 / (repulsor.best - candidate_solution.current);
 								//candidate_solution.velocity -= phi_r * (repulsor.best - candidate_solution.current) * (1.0 / (repulsor.best_fitness * candidate_solution.best_fitness)) / std::sqrt((repulsor.best - candidate_solution.current).pow(2).sum());
 								candidate_solution.velocity -= phi_r * r_g * (repulsor.best - candidate_solution.current) / std::pow((repulsor.best - candidate_solution.current).pow(static_cast<double>(mRepulsors.size())).sum(), 1.0 / static_cast<double>(mRepulsors.size()));
 								//candidate_solution.velocity -= phi_r * (repulsor.best - candidate_solution.current) * (repulsor.best_fitness / candidate_solution.best_fitness) / std::sqrt((repulsor.best - candidate_solution.current).pow(2).sum());
+							}
 						}
-						else
-						{
+						else {
 							// attract in last iteration - take all repulsors and make them attractors (so they now become solution hints)
-							for (auto& repulsor : mRepulsors)
+							for (auto& repulsor : mRepulsors) {
 								candidate_solution.velocity += phi_r * r_g * (repulsor.best - candidate_solution.current);
+							}
 						}
 
 						// ensure bounds
 						candidate_solution.velocity = mVelocity_Upper_Bound.min(mVelocity_Lower_Bound.max(candidate_solution.velocity));
 					}
-					else
-					{
+					else {
 						// update velocity and ensure bounds
 						candidate_solution.velocity = mVelocity_Upper_Bound.min(mVelocity_Lower_Bound.max(
 							omega * candidate_solution.velocity
@@ -425,15 +413,14 @@ class CPSO
 					candidate_solution.current = mUpper_Bound.min(mLower_Bound.max(candidate_solution.current + candidate_solution.velocity));
 
 					// evaluate candidate solution
-					if (mSetup.objective(mSetup.data, 1, candidate_solution.current.data(), candidate_solution.current_fitness.data()) != TRUE)
-					{
-						for (auto& elem : candidate_solution.current_fitness)
+					if (mSetup.objective(mSetup.data, 1, candidate_solution.current.data(), candidate_solution.current_fitness.data()) != TRUE) {
+						for (auto& elem : candidate_solution.current_fitness) {
 							elem = std::numeric_limits<double>::quiet_NaN();	// sanitize on error
+						}
 					}
 
 					// update best solution
-					if (candidate_solution.current_fitness < candidate_solution.best_fitness)
-					{
+					if (candidate_solution.current_fitness < candidate_solution.best_fitness) {
 						candidate_solution.best = candidate_solution.current;
 						candidate_solution.best_fitness = candidate_solution.current_fitness;
 					}

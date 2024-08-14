@@ -39,30 +39,37 @@
 #include <string>
 #include <atomic>
 
-
 #undef min
 
 class CHalton_Device {
-public:
-	using result_type = unsigned int;
-protected:	
-	size_t mBase;	
-	double mInv_Base;
-	std::atomic<size_t> mLast_Index;
-	size_t Get_Next_Prime(size_t last_number);
-	static constexpr result_type max_result = 0x7FFFffff;
-public:
-	CHalton_Device();
-	explicit CHalton_Device(const std::string &token) : CHalton_Device() {};
-	CHalton_Device(const CHalton_Device&) = delete;
+	public:
+		using result_type = unsigned int;
 
-	CHalton_Device operator= (const CHalton_Device &other) = delete;
+	protected:
+		size_t mBase;
+		double mInv_Base;
+		std::atomic<size_t> mLast_Index;
+		size_t Get_Next_Prime(size_t last_number);
+		static constexpr result_type max_result = 0x7FFFffff;
 
-	result_type operator()();
+	public:
+		CHalton_Device();
+		explicit CHalton_Device(const std::string &token) : CHalton_Device() {};
+		CHalton_Device(const CHalton_Device&) = delete;
 
-	double advance();
+		CHalton_Device operator= (const CHalton_Device &other) = delete;
 
-	static constexpr result_type min() { return 0; }
-	static constexpr result_type max() { return max_result; }
-	double entropy() const noexcept;
+		result_type operator()();
+
+		double advance();
+
+		static constexpr result_type min() {
+			return 0;
+		}
+
+		static constexpr result_type max() {
+			return max_result;
+		}
+
+		double entropy() const noexcept;
 };

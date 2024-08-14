@@ -40,8 +40,6 @@
 #include <scgms/utils/descriptor_utils.h>
 #include <vector>
 
-
-
 namespace mt_metade {
 	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsMT_MetaDE);
 }
@@ -53,7 +51,6 @@ namespace halton_metade {
 namespace rnd_metade {
 	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, dsRnd_MetaDE);
 }
-
 
 namespace xss_metade {
 	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, L"Xor-Shift* MetaDE");
@@ -80,12 +77,11 @@ namespace rumoropt {
 	const scgms::TSolver_Descriptor desc = Describe_Non_Specialized_Solver(id, L"RumorOpt");
 }
 
-
-const std::array<scgms::TSolver_Descriptor, 10> solver_descriptions = 
-	{ mt_metade::desc, halton_metade::desc, rnd_metade::desc, xss_metade::desc,
-	  pso::desc, pso::desc_r,
-	  sequential_brute_force_scan::desc, sequential_convex_scan::desc,
-	  mutation::desc, rumoropt::desc,
+const std::array<scgms::TSolver_Descriptor, 10> solver_descriptions = {
+	mt_metade::desc, halton_metade::desc, rnd_metade::desc, xss_metade::desc,
+	pso::desc, pso::desc_r,
+	sequential_brute_force_scan::desc, sequential_convex_scan::desc,
+	mutation::desc, rumoropt::desc,
 };
 
 

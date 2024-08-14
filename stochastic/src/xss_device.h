@@ -92,132 +92,152 @@ namespace {
 #undef min
 #undef max
 
-template <size_t N>				//N je pocet stavu, mezi kterymi budeme nahodne prepinat
+// N is a number of states we are switching between
+template <size_t N>
 class CXor_Shift_Star_Device {
-protected:
-	using TState = std::array<uint64_t, N>;
-	static constexpr uint64_t mMultiplier = 0x2545F4914F6CDD1DULL;
-	TState mState{ {} };
-	TState mHistory{ {} };			//kruhovy buffer, ktery slouzi jako zdroj pseudoentropie
-	size_t mHistory_Head = 0;
-protected:
-	uint64_t rtdsc_index() {
-		uint64_t bit_pool = mHistory[__rdtsc() % mHistory.size()];
-			//v aktualnim casovem kvantu vlakna neni zaruceno, ze se rdtsc nebude volat po konstantnich intervalech
-			//proto k nemu jeste prixorujeme stavy
+	public:
+		using result_type = uint64_t;
 
-		for (size_t i = 0; i < mState.size(); i++)
-			bit_pool ^= mState[i];
+	protected:
+		using TState = std::array<uint64_t, N>;
+		static constexpr uint64_t mMultiplier = 0x2545F4914F6CDD1DULL;
+		TState mState{ {} };
+		TState mHistory{ {} }; // circular buffer serving as a source of pseudoentropy
+		size_t mHistory_Head = 0;
 
-		static_assert(N < 64);
-		const size_t idx = std::popcount(bit_pool) % mState.size();
+		bool mHas_CPU_Entropy = false;
+	protected:
+		uint64_t rtdsc_index() {
+			uint64_t bit_pool = mHistory[__rdtsc() % mHistory.size()];
 
-		return idx;
-	}
-
-	uint64_t rand_index() {
-		uint64_t result;
-		rdrand64_step(&result);
-		return result % mState.size();
-	}
-
-	template <bool return_high_in_low, bool has_cpu_entropy>
-	uint64_t advance() {
-		//abychom smysluplne vyuzili vektorizaci na tak jednoduchem algoritmu
-		//tak mame N malych generatoru, z nich nahodne vybirame jeden, jehoz vystup pak vratime
-
-		uint64_t im;
-		if constexpr (has_cpu_entropy) {
-			//nicmene, pokud cpu podporuje DRNG, tak nemusime posouvat vsechny generatory, ale staci nam jenom jeden
-
-			const uint64_t idx = rand_index();
-
-			im = mState[idx] ^ (mState[idx] >> 12);
-			im ^= im << 25;
-			im ^= im >> 27;
-			mState[idx] = im;
-			im *= mMultiplier;
-		}
-		else {
-			//pokud ale pouzivame n streamu pro generovani pseudonahodneho indexu, tak bychom proudy meli posouvat vsechny
-
-			//kdybychom vse dali do jednoho cyklu, tak prekladac odmitne autovektorizovat s tim, ze je prilis malo prace
-			//takto pochopi kazdou radku jako ekvivalent jedne instrukce
-			for (size_t i = 0; i < mState.size(); i++)
-				mState[i] ^= mState[i] >> 12;
-
-			for (size_t i = 0; i < mState.size(); i++)
-				mState[i] ^= mState[i] << 25;
-
-			for (size_t i = 0; i < mState.size(); i++)
-				mState[i] ^= mState[i] >> 27;
-
-			const uint64_t idx = rtdsc_index();
-			im = mState[idx] * mMultiplier;
-		}
-		
-
-		if constexpr (return_high_in_low)
-			return im >> 32;		//nisich 32 bitu neni uplne nahodnych
-		else
-			return im << 32;
-	}
-protected:
-	bool mHas_CPU_Entropy = false;
-public:
-	using result_type = uint64_t;
-public:
-	CXor_Shift_Star_Device() {
-		uint64_t local_entropy = 0;
-		mHas_CPU_Entropy = true;
-		for (size_t i = 0; i < std::max(static_cast<size_t>(10), mState.size()); i++) {	//see 5.2.1 Retry Recommendations in the Intel® Digital Random Number Generator (DRNG) Software Implementation Guide 
-			const bool local_success = rdrand64_step(&local_entropy) != 0;
-			mHas_CPU_Entropy &= local_success;
-
-			if (i < mState.size()) {
-				if (local_success)
-					mState[i] = local_entropy;
-				else
-					mState[i] = __rdtsc();
-			}
-		}
-
-		if (!mHas_CPU_Entropy) {
+			// in the current time quantum of the thread is not guaranteed, that rdtsc won't be called after constant time intervals
+			// hence, we XOR the state into it
 			for (size_t i = 0; i < mState.size(); i++) {
-				uint64_t tmp = mState[i] ^ (mState[i] >> 12);
-				tmp ^= tmp << 25;
-				tmp ^= tmp >> 27;
-				mHistory[i] = tmp * mMultiplier;	//nepotrebujeme prave ted se starat o nizsich 32bitu
+				bit_pool ^= mState[i];
+			}
+
+			static_assert(N < 64);
+			const size_t idx = std::popcount(bit_pool) % mState.size();
+
+			return idx;
+		}
+
+		uint64_t rand_index() {
+			uint64_t result;
+			rdrand64_step(&result);
+			return result % mState.size();
+		}
+
+		template <bool return_high_in_low, bool has_cpu_entropy>
+		uint64_t advance() {
+			// to meaningfully utilize vectorization on such a simple algorithm, we have N small generators, randomly choose one of it and we return its state
+
+			uint64_t im;
+			if constexpr (has_cpu_entropy) {
+				// however, if the CPU supports DRNS, we don't have to shift all the generators, one suffices
+
+				const uint64_t idx = rand_index();
+
+				im = mState[idx] ^ (mState[idx] >> 12);
+				im ^= im << 25;
+				im ^= im >> 27;
+				mState[idx] = im;
+				im *= mMultiplier;
+			}
+			else {
+				// if we use N streams for pseudorandom index generating, we should shift all generators
+
+				// if we put everything into a single loop, the compiler will refuse to autovectorize due to small portion of work
+				// this will hopefully make the compiler think that one loop equals one instruction
+				for (size_t i = 0; i < mState.size(); i++) {
+					mState[i] ^= mState[i] >> 12;
+				}
+
+				for (size_t i = 0; i < mState.size(); i++) {
+					mState[i] ^= mState[i] << 25;
+				}
+
+				for (size_t i = 0; i < mState.size(); i++) {
+					mState[i] ^= mState[i] >> 27;
+				}
+
+				const uint64_t idx = rtdsc_index();
+				im = mState[idx] * mMultiplier;
+			}
+
+			if constexpr (return_high_in_low) {
+				return im >> 32; // lower 32 bits aren't as random as we need
+			}
+			else {
+				return im << 32;
 			}
 		}
-	}
 
-	explicit CXor_Shift_Star_Device(const std::string& token) : CXor_Shift_Star_Device() {};
-	CXor_Shift_Star_Device(const CXor_Shift_Star_Device&) = delete;
+	public:
+		CXor_Shift_Star_Device() {
+			uint64_t local_entropy = 0;
+			mHas_CPU_Entropy = true;
 
-	CXor_Shift_Star_Device operator=(const CXor_Shift_Star_Device& other) = delete;
+			//see 5.2.1 Retry Recommendations in the Intel® Digital Random Number Generator (DRNG) Software Implementation Guide 
+			for (size_t i = 0; i < std::max(static_cast<size_t>(10), mState.size()); i++) {
+				const bool local_success = rdrand64_step(&local_entropy) != 0;
+				mHas_CPU_Entropy &= local_success;
 
-	result_type operator()() {
-		//nizsich 32 bitu neni uplne nahodnych, neprojdou MatrixRank test z baliku BigCrush
-		//=> zahodime je a generujeme 2x
-		
-		if (mHas_CPU_Entropy) {
-			return advance<true, true>() | advance<false, true>();
-		} else {
-			//cpu nema podporu DRNG, takze musime udelat vic prace sami
-			const uint64_t result = advance<true, false>() | advance<false, false>();
+				if (i < mState.size()) {
+					if (local_success) {
+						mState[i] = local_entropy;
+					}
+					else {
+						mState[i] = __rdtsc();
+					}
+				}
+			}
 
-			//vysledek si jeste ulozime do historie
-			mHistory[mHistory_Head] = result;
-			if (mHistory_Head > 0)
-				mHistory_Head--;
-			else
-				mHistory_Head = N - 1;
-
-			return result;
+			if (!mHas_CPU_Entropy) {
+				for (size_t i = 0; i < mState.size(); i++) {
+					uint64_t tmp = mState[i] ^ (mState[i] >> 12);
+					tmp ^= tmp << 25;
+					tmp ^= tmp >> 27;
+					// we don't have to worry about the lower 32 bits
+					mHistory[i] = tmp * mMultiplier;
+				}
+			}
 		}
-	}
 
-	static constexpr result_type min() { return 0; }
-	static constexpr result_type max() { return std::numeric_limits<result_type>::max(); }
+		explicit CXor_Shift_Star_Device(const std::string& token) : CXor_Shift_Star_Device() {};
+		CXor_Shift_Star_Device(const CXor_Shift_Star_Device&) = delete;
+
+		CXor_Shift_Star_Device operator=(const CXor_Shift_Star_Device& other) = delete;
+
+		result_type operator()() {
+			// lower 32 bits aren't as random as we need, they won't pass the MatrixRank test from the BigCrush package
+			// we discard them and generate twice
+		
+			if (mHas_CPU_Entropy) {
+				return advance<true, true>() | advance<false, true>();
+			}
+			else {
+				// CPU does not support DRNS, we have to perform slightly more work ourselves
+				const uint64_t result = advance<true, false>() | advance<false, false>();
+
+				// store the result into the history buffer
+				mHistory[mHistory_Head] = result;
+				if (mHistory_Head > 0) {
+					mHistory_Head--;
+				}
+				else {
+					mHistory_Head = N - 1;
+				}
+
+				return result;
+			}
+		}
+
+		static constexpr result_type min() {
+			return 0;
+		}
+
+		static constexpr result_type max() {
+			return std::numeric_limits<result_type>::max();
+		}
 };
