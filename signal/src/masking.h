@@ -53,24 +53,25 @@ constexpr size_t BitmaskMaxBitCount = 64;
  * Filter class for masking input levels using configured bitmask
  */
 class CMasking_Filter : public virtual scgms::CBase_Filter {
-protected:		
-	// masking is performed separatelly for each segment
-	std::map<uint64_t, uint8_t> mSegmentMaskState;
+	protected:
+		// masking is performed separatelly for each segment
+		std::map<uint64_t, uint8_t> mSegmentMaskState;
 
-	// signal ID to be masked
-	GUID mSignal_Id = Invalid_GUID;
-	// bitset used for masking
-	std::bitset<BitmaskMaxBitCount> mMask;
-	// real bit count in a given bitmask
-	size_t mBitCount = 0;
-protected:
-	bool Parse_Bitmask(std::wstring in);
-protected:
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-	CMasking_Filter(scgms::IFilter *output);
-	virtual ~CMasking_Filter() {};	
+		// signal ID to be masked
+		GUID mSignal_Id = Invalid_GUID;
+		// bitset used for masking
+		std::bitset<BitmaskMaxBitCount> mMask;
+		// real bit count in a given bitmask
+		size_t mBitCount = 0;
+	protected:
+		bool Parse_Bitmask(std::wstring in);
+
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+
+	public:
+		CMasking_Filter(scgms::IFilter *output);
+		virtual ~CMasking_Filter() = default;
 };
 
 #pragma warning( pop )

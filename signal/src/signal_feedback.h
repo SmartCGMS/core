@@ -47,26 +47,26 @@
   * i.e., it mimicks CGMS
   */
 class CSignal_Feedback : public scgms::CBase_Filter, public scgms::IFilter_Feedback_Sender {
-protected:
-	std::atomic<size_t> mStack_Counter{ 0 };	//counter used to detect possibly infinity loop
-	const size_t mMaximum_Stack_Depth = 10;		//maximum depth of Do_Execute
-protected:
-	scgms::SFilter_Feedback_Receiver mReceiver;
-	std::wstring mFeedback_Name;
-    GUID mSignal_ID = Invalid_GUID;
-    bool mForward_Clone = false;
-protected:
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+	protected:
+		std::atomic<size_t> mStack_Counter{ 0 };	//counter used to detect possibly infinity loop
+		const size_t mMaximum_Stack_Depth = 10;		//maximum depth of Do_Execute
 
-public:
-    CSignal_Feedback(scgms::IFilter *output);
-	virtual ~CSignal_Feedback();
+		scgms::SFilter_Feedback_Receiver mReceiver;
+		std::wstring mFeedback_Name;
+		GUID mSignal_ID = Invalid_GUID;
+		bool mForward_Clone = false;
 
-	virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
-	virtual HRESULT IfaceCalling Sink(scgms::IFilter_Feedback_Receiver *receiver) override final;
-	virtual HRESULT IfaceCalling Name(wchar_t** const name) override final;
+	protected:
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+
+	public:
+		CSignal_Feedback(scgms::IFilter *output);
+		virtual ~CSignal_Feedback();
+
+		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override;
+		virtual HRESULT IfaceCalling Sink(scgms::IFilter_Feedback_Receiver *receiver) override final;
+		virtual HRESULT IfaceCalling Name(wchar_t** const name) override final;
 };
 
 #pragma warning( pop )
-

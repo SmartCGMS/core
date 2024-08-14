@@ -43,28 +43,29 @@ CMapping_Filter::CMapping_Filter(scgms::IFilter *output) : CBase_Filter(output) 
 	//
 }
 
-
 HRESULT IfaceCalling CMapping_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {	
 	mSource_Id = configuration.Read_GUID(rsSignal_Source_Id);
 	mDestination_Id = configuration.Read_GUID(rsSignal_Destination_Id);
-    if (Is_Invalid_GUID(mDestination_Id)) {     //mSource_Id can be Invalid_GUID due to external reasons, such as malformed CSV log events
-        error_description.push(dsDestination_Signal_Cannot_Be_Invalid);
-        return E_INVALIDARG;  
-    }
-    mDestination_Null = mDestination_Id == scgms::signal_Null;
+
+	if (Is_Invalid_GUID(mDestination_Id)) {     //mSource_Id can be Invalid_GUID due to external reasons, such as malformed CSV log events
+		error_description.push(dsDestination_Signal_Cannot_Be_Invalid);
+		return E_INVALIDARG;
+	}
+	mDestination_Null = mDestination_Id == scgms::signal_Null;
 
 	return S_OK;
 }
 
 HRESULT IfaceCalling CMapping_Filter::Do_Execute(scgms::UDevice_Event event) {
-    if (event.signal_id() == mSource_Id) {
-        if (mDestination_Null && (event.event_code() != scgms::NDevice_Event_Code::Shut_Down)) { // && !event.is_control_event() && !event.is_info_event()) {
-            event.reset(nullptr);
-            return S_OK;
-        }
-        else
-            event.signal_id() = mDestination_Id;    //just changes the signal id
-    }
+	if (event.signal_id() == mSource_Id) {
+		if (mDestination_Null && (event.event_code() != scgms::NDevice_Event_Code::Shut_Down)) { // && !event.is_control_event() && !event.is_info_event()) {
+			event.reset(nullptr);
+			return S_OK;
+		}
+		else {
+			event.signal_id() = mDestination_Id;    //just changes the signal id
+		}
+	}
 
 	return mOutput.Send(event);
 }

@@ -46,28 +46,29 @@ CMedian_Response_Filter::CMedian_Response_Filter(scgms::IFilter *output) : CBase
 	//
 }
 
-
 HRESULT IfaceCalling CMedian_Response_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mSignal_Id = configuration.Read_GUID(rsSignal_Id);
 	mTime_Window = configuration.Read_Double(rsResponse_Window);
 
-	if (mTime_Window < 0)
+	if (mTime_Window < 0) {
 		return E_INVALIDARG;
+	}
 
 	return S_OK;
 }
 
-HRESULT IfaceCalling CMedian_Response_Filter::Do_Execute(scgms::UDevice_Event event)
-{
-	if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start)
+HRESULT IfaceCalling CMedian_Response_Filter::Do_Execute(scgms::UDevice_Event event) {
+	if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Start) {
 		mLast_Time.emplace(event.segment_id(), std::numeric_limits<double>::lowest());
-	else if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Stop)
+	}
+	else if (event.event_code() == scgms::NDevice_Event_Code::Time_Segment_Stop) {
 		mLast_Time.erase(event.segment_id());
+	}
 
-	if (event.signal_id() == mSignal_Id && event.is_level_event())
-	{
-		if (event.device_time() < mLast_Time[event.segment_id()])
+	if (event.signal_id() == mSignal_Id && event.is_level_event()) {
+		if (event.device_time() < mLast_Time[event.segment_id()]) {
 			return E_FAIL;
+		}
 
 		event.level() = Median_Response(event.segment_id(), event.device_time(), event.level());
 	}
@@ -75,17 +76,16 @@ HRESULT IfaceCalling CMedian_Response_Filter::Do_Execute(scgms::UDevice_Event ev
 	return mOutput.Send(event);
 }
 
-double CMedian_Response_Filter::Median_Response(const uint64_t time_segment, const double time, const double value)
-{
+double CMedian_Response_Filter::Median_Response(const uint64_t time_segment, const double time, const double value) {
 	auto& values = mValues[time_segment];
 	const auto lastTime = std::max(mLast_Time[time_segment], time);
 
-	if (mTime_Window > std::numeric_limits<double>::epsilon())
-	{
+	if (mTime_Window > std::numeric_limits<double>::epsilon()) {
 		const double minTime = lastTime - mTime_Window;
 
-		while (!values.empty() && (*values.begin()).first < minTime)
+		while (!values.empty() && (*values.begin()).first < minTime) {
 			values.pop_front();
+		}
 	}
 
 	values.emplace_back(time, value);
@@ -93,21 +93,20 @@ double CMedian_Response_Filter::Median_Response(const uint64_t time_segment, con
 	mLast_Time[time_segment] = lastTime;
 
 	std::vector<double> signal_values;
-	for (auto& val : values)
+	for (auto& val : values) {
 		signal_values.push_back(val.second);
+	}
 
 	std::sort(signal_values.begin(), signal_values.end());
 
 	auto first = signal_values.begin();
 	auto last = signal_values.end();
 	double median = std::numeric_limits<double>::quiet_NaN();
-	if ((signal_values.size() % 2) == 1)
-	{
+	if ((signal_values.size() % 2) == 1) {
 		auto middle = first + (last - first) / 2;
 		median = *middle;
 	}
-	else if (signal_values.size() != 0)
-	{
+	else if (signal_values.size() != 0) {
 		auto middle_upper = first + (last - first) / 2;
 		auto middle_lower = first + (last - first) / 2 - 1;
 		median = (*middle_upper + *middle_lower) / 2.0;

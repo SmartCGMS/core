@@ -48,15 +48,17 @@
  * Filter class for unmasking input levels 
  */
 class CUnmasking_Filter : public virtual scgms::CBase_Filter {
-protected:			
-	// signal ID to be masked
-	GUID mSignal_Id = Invalid_GUID;	
-protected:
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-	CUnmasking_Filter(scgms::IFilter *output);
-	virtual ~CUnmasking_Filter() {};
+	protected:
+		// signal ID to be unmasked
+		GUID mSignal_Id = Invalid_GUID;
+
+	protected:
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+
+	public:
+		CUnmasking_Filter(scgms::IFilter *output);
+		virtual ~CUnmasking_Filter() = default;
 };
 
 #pragma warning( pop )

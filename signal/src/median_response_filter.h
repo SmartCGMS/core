@@ -68,7 +68,7 @@ class CMedian_Response_Filter : public virtual scgms::CBase_Filter
 
 	public:
 		CMedian_Response_Filter(scgms::IFilter *output);
-		virtual ~CMedian_Response_Filter() {};
+		virtual ~CMedian_Response_Filter() = default;
 };
 
 #pragma warning( pop )

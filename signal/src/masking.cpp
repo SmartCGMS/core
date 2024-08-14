@@ -49,30 +49,37 @@ CMasking_Filter::CMasking_Filter(scgms::IFilter *output) : CBase_Filter(output) 
 
 bool CMasking_Filter::Parse_Bitmask(std::wstring inw)
 {
-	if (inw.empty())
+	if (inw.empty()) {
 		return false;
+	}
 	
 	std::string in = Narrow_WString(inw);
 
 	// erase spaces - typically the string is split to groups
-	in.erase(std::remove_if(in.begin(), in.end(), [](unsigned char x) { return std::isspace(static_cast<int>(x)); }), in.end());
+	in.erase(std::remove_if(in.begin(), in.end(), [](unsigned char x) {
+		return std::isspace(static_cast<int>(x));
+	}), in.end());
 
 	mBitCount = in.length();
 
 	// limit bit count from both sides
-	if (mBitCount < BitmaskMinBitCount || mBitCount > BitmaskMaxBitCount)
+	if (mBitCount < BitmaskMinBitCount || mBitCount > BitmaskMaxBitCount) {
 		return false;
+	}
 
 	// parse bitmask - only 0's and 1's are allowed
-	for (size_t i = 0; i < mBitCount; i++)
-	{
-		switch (in[i])
-		{
+	for (size_t i = 0; i < mBitCount; i++) {
+		switch (in[i]) {
 			//zeroes represent levels to suppres
 			//ones represent levels to pass through
-			case L'1': mMask.reset(i); break;
-			case L'0': mMask.set(i);   break;
-			default:   return false;
+			case L'1':
+				mMask.reset(i);
+				break;
+			case L'0':
+				mMask.set(i);
+				break;
+			default:
+				return false;
 		}
 	}
 
@@ -81,7 +88,9 @@ bool CMasking_Filter::Parse_Bitmask(std::wstring inw)
 
 HRESULT IfaceCalling CMasking_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mSignal_Id = configuration.Read_GUID(rsSignal_Masked_Id);
-	if (Is_Invalid_GUID(mSignal_Id)) return E_INVALIDARG;
+	if (Is_Invalid_GUID(mSignal_Id)) {
+		return E_INVALIDARG;
+	}
 
 	const std::wstring mask = configuration.Read_String(rsSignal_Value_Bitmask);
 	if (!Parse_Bitmask(mask)) {
@@ -100,24 +109,26 @@ HRESULT IfaceCalling CMasking_Filter::Do_Configure(scgms::SFilter_Configuration 
 }
 
 HRESULT IfaceCalling CMasking_Filter::Do_Execute(scgms::UDevice_Event event) {
+
 	// mask only configured signal and event of type "Level"
 	if (event.event_code() == scgms::NDevice_Event_Code::Level && event.signal_id() == mSignal_Id) {
-		auto itr = mSegmentMaskState.find(event.segment_id());
-		if (itr == mSegmentMaskState.end())
-			mSegmentMaskState[event.segment_id()] = 0;
 
-		if (mMask.test(mSegmentMaskState[event.segment_id()]))
-		{
+		auto itr = mSegmentMaskState.find(event.segment_id());
+		if (itr == mSegmentMaskState.end()) {
+			mSegmentMaskState[event.segment_id()] = 0;
+		}
+
+		if (mMask.test(mSegmentMaskState[event.segment_id()])) {
 			// This is certainly not nice, but we want to avoid creating a new device event, because it will generate new logical clock value, which would be
 			// out of order with the rest of levels; also Level and Masked_Level uses the same union value, so it's fine to just change the type
 			scgms::TDevice_Event* raw;
-			if (event.get()->Raw(&raw) == S_OK)
+			if (event.get()->Raw(&raw) == S_OK) {
 				raw->event_code = scgms::NDevice_Event_Code::Masked_Level;
+			}
 		}
 
 		mSegmentMaskState[event.segment_id()] = (mSegmentMaskState[event.segment_id()] + static_cast<uint64_t>(1)) % mBitCount;
 	}
-
 
 	return mOutput.Send(event);
 }

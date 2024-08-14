@@ -39,23 +39,22 @@
 #include <scgms/lang/dstrings.h>
 #include <scgms/utils/string_utils.h>
 
-
 class CAtomic_Counter {
-protected:
-	std::atomic<size_t>& mCounter;
-public:
-	CAtomic_Counter(std::atomic<size_t>& counter) : mCounter(counter) {
-		counter++;
-	}
+	protected:
+		std::atomic<size_t>& mCounter;
 
-	~CAtomic_Counter() {
-		mCounter--;
-	}
+	public:
+		CAtomic_Counter(std::atomic<size_t>& counter) : mCounter(counter) {
+			counter++;
+		}
 
+		~CAtomic_Counter() {
+			mCounter--;
+		}
 
-	size_t Value() {
-		return mCounter.load();
-	}
+		size_t Value() {
+			return mCounter.load();
+		}
 };
 
 CSignal_Feedback::CSignal_Feedback(scgms::IFilter *output) : CBase_Filter(output) {
@@ -67,19 +66,23 @@ CSignal_Feedback::~CSignal_Feedback() {
 }
 
 HRESULT IfaceCalling CSignal_Feedback::QueryInterface(const GUID*  riid, void ** ppvObj) {
-	if (Internal_Query_Interface<scgms::IFilter_Feedback_Sender>(scgms::IID_Filter_Feedback_Sender, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<scgms::IFilter_Feedback_Sender>(scgms::IID_Filter_Feedback_Sender, *riid, ppvObj)) {
+		return S_OK;
+	}
 	return E_NOINTERFACE;
 }
 
 HRESULT CSignal_Feedback::Do_Execute(scgms::UDevice_Event event) {
 	CAtomic_Counter stack_guard{ mStack_Counter };
 
-	if (mStack_Counter >= mMaximum_Stack_Depth)
+	if (mStack_Counter >= mMaximum_Stack_Depth) {
 		return	EVENT_E_TOO_MANY_METHODS;	//looks better than ERROR_STACK_OVERFLOW, because we actually prevented the stack overflow
+	}
 
 	auto send_to_receiver = [this](scgms::UDevice_Event &event)->HRESULT {
-		if (!mReceiver)
+		if (!mReceiver) {
 			return ERROR_DS_DRA_EXTN_CONNECTION_FAILED;
+		}
 
 		scgms::IDevice_Event* raw_event = event.get();
 		event.release();
@@ -96,8 +99,9 @@ HRESULT CSignal_Feedback::Do_Execute(scgms::UDevice_Event event) {
 					return rc;
 				}
 			}
-			else
+			else {
 				return send_to_receiver(event);
+			}
 		}
 	}
 	else if (event.event_code() == scgms::NDevice_Event_Code::Shut_Down) {
@@ -113,24 +117,26 @@ HRESULT CSignal_Feedback::Do_Configure(scgms::SFilter_Configuration configuratio
 	mSignal_ID = configuration.Read_GUID(rsSignal_Source_Id);
 	mForward_Clone = !configuration.Read_Bool(rsRemove_From_Source);
 
-	if (Is_Empty(mFeedback_Name) || Is_Invalid_GUID(mSignal_ID))
+	if (Is_Empty(mFeedback_Name) || Is_Invalid_GUID(mSignal_ID)) {
 		return E_INVALIDARG;
+	}
 
 	return S_OK;
 }
 
 HRESULT IfaceCalling CSignal_Feedback::Sink(scgms::IFilter_Feedback_Receiver *receiver) {
 
-	if (receiver)
+	if (receiver) {
 		mReceiver = refcnt::make_shared_reference_ext<scgms::SFilter_Feedback_Receiver, scgms::IFilter_Feedback_Receiver>(receiver, true);
-	else
+	}
+	else {
 		mReceiver.reset();
+	}
 
 	return S_OK;
 }
 
 HRESULT IfaceCalling CSignal_Feedback::Name(wchar_t** const name) {
-
 	*name = const_cast<wchar_t*>(mFeedback_Name.c_str());
 	return S_OK;
 }

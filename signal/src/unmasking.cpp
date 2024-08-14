@@ -49,7 +49,9 @@ CUnmasking_Filter::CUnmasking_Filter(scgms::IFilter *output) : CBase_Filter(outp
 
 HRESULT IfaceCalling CUnmasking_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mSignal_Id = configuration.Read_GUID(rsSignal_Masked_Id);
-	if (Is_Invalid_GUID(mSignal_Id)) return E_INVALIDARG;
+	if (Is_Invalid_GUID(mSignal_Id)) {
+		return E_INVALIDARG;
+	}
 
 	return S_OK;
 }
@@ -57,13 +59,11 @@ HRESULT IfaceCalling CUnmasking_Filter::Do_Configure(scgms::SFilter_Configuratio
 HRESULT IfaceCalling CUnmasking_Filter::Do_Execute(scgms::UDevice_Event event) {
 	// mask only configured signal and event of type "Level"
 	if (event.event_code() == scgms::NDevice_Event_Code::Masked_Level && event.signal_id() == mSignal_Id) {
-
-
 		scgms::TDevice_Event* raw;
-		if (event.get()->Raw(&raw) == S_OK)
+		if (event.get()->Raw(&raw) == S_OK) {
 			raw->event_code = scgms::NDevice_Event_Code::Level;
+		}
 	}
-
 
 	return mOutput.Send(event);
 }

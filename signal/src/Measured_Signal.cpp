@@ -44,9 +44,8 @@
 
 CMeasured_Signal::CMeasured_Signal(const GUID* approx_id): mApprox(nullptr) {
 	scgms::ISignal* self_signal = static_cast<scgms::ISignal*>(this);
-	
 
-	mApprox = approx_id ? scgms::Create_Approximator(*approx_id, self_signal) : scgms::Create_Approximator(self_signal);				
+	mApprox = approx_id ? scgms::Create_Approximator(*approx_id, self_signal) : scgms::Create_Approximator(self_signal);
 }
 
 HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Levels(double* const times, double* const levels, const size_t count, size_t *filled) const {
@@ -63,11 +62,13 @@ HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Levels(double* const times, 
 }
 
 HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Bounds(scgms::TBounds* const time_bounds, scgms::TBounds* const level_bounds, size_t *level_count) const {
-	if (level_count)
+	if (level_count) {
 		*level_count = mLevels.size();
+	}
 
-	if (mLevels.size() == 0)
+	if (mLevels.size() == 0) {
 		return S_FALSE;
+	}
 
 	if (time_bounds) {
 		time_bounds->Min = mTimes[0];
@@ -83,7 +84,7 @@ HRESULT IfaceCalling CMeasured_Signal::Get_Discrete_Bounds(scgms::TBounds* const
 	return S_OK;
 }
 
-HRESULT IfaceCalling CMeasured_Signal::Update_Levels(const double *times, const double *levels, const size_t count) {	
+HRESULT IfaceCalling CMeasured_Signal::Update_Levels(const double *times, const double *levels, const size_t count) {
 	double last_time = mTimes.empty() ? 0.0 : mTimes[mTimes.size() - 1];
 
 	for (size_t i = 0; i < count; i++) {
@@ -113,15 +114,16 @@ HRESULT IfaceCalling CMeasured_Signal::Update_Levels(const double *times, const 
 			else {
 				search_begin = mTimes.begin() + mLast_Update_Index;
 				search_end = mTimes.end();
-			}			
+			}
 
 			auto first = std::lower_bound(search_begin, search_end, times[i]);
 			mLast_Update_Index = std::distance(mTimes.begin(), first);
 
 			if (!(first == search_end) && !(times[i] < *first)) {
-				//we have found the time, we just update the value				
-				mLevels[mLast_Update_Index] = levels[i];				
-			} else {
+				//we have found the time, we just update the value
+				mLevels[mLast_Update_Index] = levels[i];
+			}
+			else {
 				//not found, we have to insert
 				//we expect inserts to be a rare phenomenon
 				mTimes.insert(mTimes.begin() + mLast_Update_Index, times[i]);
@@ -134,8 +136,12 @@ HRESULT IfaceCalling CMeasured_Signal::Update_Levels(const double *times, const 
 }
 
 HRESULT IfaceCalling CMeasured_Signal::Get_Continuous_Levels(scgms::IModel_Parameter_Vector *params, const double* times, double* const levels, const size_t count, const size_t derivation_order) const {
-	if (count == 0) return S_FALSE;
-	if ((times == nullptr) || (levels == nullptr)) return E_INVALIDARG;
+	if (count == 0) {
+		return S_FALSE;
+	}
+	if ((times == nullptr) || (levels == nullptr)) {
+		return E_INVALIDARG;
+	}
 
 	return mApprox ? mApprox->GetLevels(times, levels, count, derivation_order) : E_FAIL;
 }

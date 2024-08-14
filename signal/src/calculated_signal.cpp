@@ -52,7 +52,6 @@ constexpr unsigned char bool_2_uc(const bool b) {
 	return b ? static_cast<unsigned char>(1) : static_cast<unsigned char>(0);
 }
 
-
 CCalculate_Filter::CCalculate_Filter(scgms::IFilter *output) : CBase_Filter(output) {
 	//
 }
@@ -62,7 +61,9 @@ CCalculate_Filter::~CCalculate_Filter() {
 }
 
 HRESULT IfaceCalling CCalculate_Filter::QueryInterface(const GUID*  riid, void ** ppvObj) {
-	if (Internal_Query_Interface<scgms::ICalculate_Filter_Inspection>(scgms::IID_Calculate_Filter_Inspection, *riid, ppvObj)) return S_OK;
+	if (Internal_Query_Interface<scgms::ICalculate_Filter_Inspection>(scgms::IID_Calculate_Filter_Inspection, *riid, ppvObj)) {
+		return S_OK;
+	}
 
 	return E_NOINTERFACE;
 }
@@ -70,7 +71,9 @@ HRESULT IfaceCalling CCalculate_Filter::QueryInterface(const GUID*  riid, void *
 std::unique_ptr<CTime_Segment>& CCalculate_Filter::Get_Segment(const uint64_t segment_id) {
 	const auto iter = mSegments.find(segment_id);
 
-	if (iter != mSegments.end()) return iter->second;
+	if (iter != mSegments.end()) {
+		return iter->second;
+	}
 	else {
 		std::unique_ptr<CTime_Segment> segment = std::make_unique<CTime_Segment>(segment_id, mCalculated_Signal_Id, mDefault_Parameters, mPrediction_Window, mOutput);
 		const auto ret = mSegments.insert(std::make_pair(segment_id, std::move(segment)));
@@ -116,7 +119,8 @@ HRESULT IfaceCalling CCalculate_Filter::Do_Configure(scgms::SFilter_Configuratio
 				break;
 			}
 		}
-	} else {
+	}
+	else {
 		std::wstring str = dsCannot_Get_Model_Descriptor_By_Signal_Id;
 		str += GUID_To_WString(mCalculated_Signal_Id);
 		error_description.push(str);
@@ -131,8 +135,12 @@ HRESULT IfaceCalling CCalculate_Filter::Do_Configure(scgms::SFilter_Configuratio
 	mUse_Measured_Levels = configuration.Read_Bool(rsUse_Measured_Levels, mUse_Measured_Levels);
 	mLevels_Required = configuration.Read_Int(rsMetric_Levels_Required, desc.total_number_of_parameters);
 
-	if (Is_Invalid_GUID(mCalculated_Signal_Id) || std::isnan(mPrediction_Window)) return E_INVALIDARG;
-	if (mSolver_Enabled && (Is_Invalid_GUID(mSolver_Id, mMetric_Id) || std::isnan(mMetric_Threshold))) return E_INVALIDARG;
+	if (Is_Invalid_GUID(mCalculated_Signal_Id) || std::isnan(mPrediction_Window)) {
+		return E_INVALIDARG;
+	}
+	if (mSolver_Enabled && (Is_Invalid_GUID(mSolver_Id, mMetric_Id) || std::isnan(mMetric_Threshold))) {
+		return E_INVALIDARG;
+	}
 
 	return S_OK;
 }
@@ -144,114 +152,125 @@ HRESULT CCalculate_Filter::Do_Execute(scgms::UDevice_Event event)  {
 
 	switch (event.event_code()) {
 		case scgms::NDevice_Event_Code::Level:
-			{
-				//copy those values, which may be gone once we send the event in the original order
-				const uint64_t segment_id = event.segment_id();
-				const GUID signal_id = event.signal_id();
-				const double level = event.level();
-				const double device_time = event.device_time();
+		{
+			//copy those values, which may be gone once we send the event in the original order
+			const uint64_t segment_id = event.segment_id();
+			const GUID signal_id = event.signal_id();
+			const double level = event.level();
+			const double device_time = event.device_time();
 
-				Schedule_Solving(signal_id);
+			Schedule_Solving(signal_id);
 
-				//send the original event before other events are emitted
-				result = mOutput.Send(event);
-				if (Succeeded(result)) {
-					//now, evt is gone!
-					event_already_sent = true;
-					Add_Level(segment_id, signal_id, level, device_time);
-				}
-				else
-					return result;
+			//send the original event before other events are emitted
+			result = mOutput.Send(event);
+			if (Succeeded(result)) {
+				//now, evt is gone!
+				event_already_sent = true;
+				Add_Level(segment_id, signal_id, level, device_time);
+			}
+			else {
+				return result;
 			}
 			break;
+		}
 
 		case scgms::NDevice_Event_Code::Parameters:
-
-			if ((!mWarm_Reset_Done && mSolver_Enabled) || (!mSolver_Enabled))
+		{
+			if ((!mWarm_Reset_Done && mSolver_Enabled) || (!mSolver_Enabled)) {
 
 				//we either do not solve and therefore we do not preserve calculated parameters
 				//or, we calculate parameters and therefore we stop accepting new ones once warm-resetted
 
 				if (event.signal_id() == mCalculated_Signal_Id) {
-					if (event.segment_id() != scgms::Invalid_Segment_Id){
+					if (event.segment_id() != scgms::Invalid_Segment_Id) {
 
-						auto test_and_apply_parameters = [&event, this](const std::unique_ptr<CTime_Segment> &segment) {
+						auto test_and_apply_parameters = [&event, this](const std::unique_ptr<CTime_Segment>& segment) {
 							//do these parameters improve?
-							if (Is_Invalid_GUID(mMetric_Id)) 
+							if (Is_Invalid_GUID(mMetric_Id)) {
 								return true;	//if there's no metric set, we believe the parameters as we got them
-
+							}
 
 							scgms::SMetric metric{ scgms::TMetric_Parameters{ mMetric_Id, bool_2_uc(mUse_Relative_Error),  bool_2_uc(mUse_Squared_Differences), bool_2_uc(mPrefer_More_Levels),  mMetric_Threshold } };
-							scgms::ITime_Segment *segment_raw = segment.get();
+							scgms::ITime_Segment* segment_raw = segment.get();
 							const double current_fitness = Calculate_Fitness(&segment_raw, 1, metric, segment->Get_Parameters().get());
 							const double new_fitness = Calculate_Fitness(&segment_raw, 1, metric, event.parameters.get());
 
-							if (new_fitness < current_fitness)
+							if (new_fitness < current_fitness) {
 								segment->Set_Parameters(event.parameters);
+							}
 
 							return true; // does this lambda really need to return anything?
 						};
 
 						if (event.segment_id() != scgms::All_Segments_Id) {
-							const auto &segment = Get_Segment(event.segment_id());
-							if (segment) 
+							const auto& segment = Get_Segment(event.segment_id());
+							if (segment) {
 								test_and_apply_parameters(segment);
-						} else {
-							for (const auto &segment:mSegments)
-								test_and_apply_parameters(segment.second);
+							}
 						}
-
+						else {
+							for (const auto& segment : mSegments) {
+								test_and_apply_parameters(segment.second);
+							}
+						}
 
 						Add_Parameters_Hint(event.parameters);
 					}
 				}
+			}
 			break;
-
+		}
 		case scgms::NDevice_Event_Code::Parameters_Hint:
-			if (event.signal_id() == mCalculated_Signal_Id) Add_Parameters_Hint(event.parameters);
+			if (event.signal_id() == mCalculated_Signal_Id) {
+				Add_Parameters_Hint(event.parameters);
+			}
 			break;
-
 		case scgms::NDevice_Event_Code::Time_Segment_Stop:
 			if (mSolver_Enabled && mSolve_On_Time_Segment_End) {
 				mTriggered_Solver_Time = event.device_time();
 				Run_Solver(event.segment_id());
 			}
-				//in this particular case, we do not preserve the original order of events
-				//to emit the paramters before the time segment actually ends
+			//in this particular case, we do not preserve the original order of events
+			//to emit the paramters before the time segment actually ends
 			break;
-
-		case scgms::NDevice_Event_Code::Solve_Parameters: {
-				if (event.signal_id() == scgms::signal_All || event.signal_id() == mCalculated_Signal_Id) {
-					// note that the Run_Solver method can handle Any_Segment_Id case properly, so we don't need to disambiguate here
-					const auto segment_id = event.segment_id();
-					result = mOutput.Send(event);
-					event_already_sent = result == S_OK;	//preserve the original order of the events
-					mTriggered_Solver_Time = event.device_time();
-					Run_Solver(segment_id);
-				}
+		case scgms::NDevice_Event_Code::Solve_Parameters:
+		{
+			if (event.signal_id() == scgms::signal_All || event.signal_id() == mCalculated_Signal_Id) {
+				// note that the Run_Solver method can handle Any_Segment_Id case properly, so we don't need to disambiguate here
+				const auto segment_id = event.segment_id();
+				result = mOutput.Send(event);
+				event_already_sent = result == S_OK;	//preserve the original order of the events
+				mTriggered_Solver_Time = event.device_time();
+				Run_Solver(segment_id);
 			}
 			break;
+		}
 
 		case scgms::NDevice_Event_Code::Warm_Reset:
-			for (const auto &segment : mSegments)
+			for (const auto& segment : mSegments) {
 				segment.second->Clear_Data();
+			}
 			mWarm_Reset_Done = true;
 			break;
 		default:
 			break;
 	}
 
-
-	if (!event_already_sent)
+	if (!event_already_sent) {
 		result = mOutput.Send(event);
+	}
 	
 	return result;
 }
 
 void CCalculate_Filter::Add_Level(const uint64_t segment_id, const GUID &signal_id, const double level, const double time_stamp) {
 
-	if ((signal_id == Invalid_GUID) || (signal_id == mCalculated_Signal_Id)) return;	//cannot add what unknown signal and cannot add what we have to compute
-	if (segment_id == scgms::Invalid_Segment_Id || segment_id == scgms::All_Segments_Id) return;
+	if ((signal_id == Invalid_GUID) || (signal_id == mCalculated_Signal_Id)) {
+		return;	//cannot add what unknown signal and cannot add what we have to compute
+	}
+	if (segment_id == scgms::Invalid_Segment_Id || segment_id == scgms::All_Segments_Id) {
+		return;
+	}
 
 	const auto &segment = Get_Segment(segment_id);
 	if (segment) {
@@ -265,7 +284,6 @@ void CCalculate_Filter::Add_Level(const uint64_t segment_id, const GUID &signal_
 	}
 }
 
-
 void CCalculate_Filter::Add_Parameters_Hint(scgms::SModel_Parameter_Vector parameters) {
 	scgms::SModel_Parameter_Vector hint;
 	if (hint.set(parameters)) {
@@ -275,18 +293,23 @@ void CCalculate_Filter::Add_Parameters_Hint(scgms::SModel_Parameter_Vector param
 
 void CCalculate_Filter::Schedule_Solving(const GUID &level_signal_id) {
 
-	if (!mSolver_Enabled) return;
+	if (!mSolver_Enabled) {
+		return;
+	}
 
 	mSolving_Scheduled = false;
 
-	if (level_signal_id == mReference_Signal_Id) mReference_Level_Counter++;
+	if (level_signal_id == mReference_Signal_Id) {
+		mReference_Level_Counter++;
+	}
 	if ((mReference_Level_Threshold_Count > 0) && (mReference_Level_Counter >= mReference_Level_Threshold_Count)) {
 		mReference_Level_Counter = 0;
 		mSolving_Scheduled = true;
 	}
 
-	if ((level_signal_id == scgms::signal_BG_Calibration) && mSolve_On_Calibration) 
+	if ((level_signal_id == scgms::signal_BG_Calibration) && mSolve_On_Calibration) {
 		mSolving_Scheduled = true;
+	}
 }
 
 double CCalculate_Filter::Calculate_Fitness(scgms::ITime_Segment **segments, const size_t segment_count, scgms::SMetric metric, scgms::IModel_Parameter_Vector *parameters) {
@@ -295,12 +318,15 @@ double CCalculate_Filter::Calculate_Fitness(scgms::ITime_Segment **segments, con
 	size_t real_levels_required = mLevels_Required;
 	size_t global_count = 0;
 	std::vector<double> reference, times, calculated;
+
 	for (size_t i = 0; i < segment_count; i++) {
 		scgms::STime_Segment segment = refcnt::make_shared_reference_ext<scgms::STime_Segment, scgms::ITime_Segment>(segments[i], true);
 		auto reference_signal = segment.Get_Signal(mReference_Signal_Id);
 		auto calculated_signal = segment.Get_Signal(mCalculated_Signal_Id);
 
-		if (!reference_signal || !calculated_signal) return std::numeric_limits<double>::max();
+		if (!reference_signal || !calculated_signal) {
+			return std::numeric_limits<double>::max();
+		}
 
 		size_t count, filled;
 		if (reference_signal->Get_Discrete_Bounds(nullptr, nullptr, &count) == S_OK) {
@@ -310,9 +336,9 @@ double CCalculate_Filter::Calculate_Fitness(scgms::ITime_Segment **segments, con
 			times.resize(count);
 			calculated.resize(count);
 			if (reference_signal->Get_Discrete_Levels(times.data(), reference.data(), count, &filled) == S_OK) {
-				if (!mUse_Measured_Levels)
+				if (!mUse_Measured_Levels) {
 					reference_signal->Get_Continuous_Levels(nullptr, times.data(), reference.data(), count, scgms::apxNo_Derivation);
-
+				}
 
 				if (calculated_signal->Get_Continuous_Levels(parameters, times.data(), calculated.data(), count, scgms::apxNo_Derivation) == S_OK) {
 					metric->Accumulate(times.data(), reference.data(), calculated.data(), count);
@@ -322,10 +348,10 @@ double CCalculate_Filter::Calculate_Fitness(scgms::ITime_Segment **segments, con
 	}
 
 
-	if (mLevels_Required < 0) 	//get the number of levels required
+	if (mLevels_Required < 0) { //get the number of levels required
 		//handle the relative value
 		real_levels_required = static_cast<size_t>(static_cast<int64_t>(global_count) + mLevels_Required);
-
+	}
 
 	double fitness;
 	size_t accumulated = 0;
@@ -358,8 +384,9 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 					scgms::ISignal *signal;
 					if (segments[i]->Get_Signal(&mReference_Signal_Id, &signal) == S_OK) {
 						size_t local_count = 0;
-						if (signal->Get_Discrete_Bounds(nullptr, nullptr, &local_count) == S_OK)
+						if (signal->Get_Discrete_Bounds(nullptr, nullptr, &local_count) == S_OK) {
 							global_count += local_count;
+						}
 					}
 				}
 			}
@@ -369,9 +396,12 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 		//get the raw hints
 		std::vector<scgms::IModel_Parameter_Vector*> raw_hints;
 		{
-			for (auto &hint : mParameter_Hints)
+			for (auto& hint : mParameter_Hints) {
 				raw_hints.push_back(hint.get());
-			if (mDefault_Parameters) raw_hints.push_back(mDefault_Parameters.get());
+			}
+			if (mDefault_Parameters) {
+				raw_hints.push_back(mDefault_Parameters.get());
+			}
 
 			//find the best parameters
 			if (raw_hints.size()>1) {
@@ -379,11 +409,15 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 				size_t best_index = 0;
 				for (size_t i = 1; i < raw_hints.size(); i++) {
 					const double local_fitness = Calculate_Fitness(segments, segment_count, metric, raw_hints[i]);
-					if (local_fitness < best_fitness) best_index = i;
+					if (local_fitness < best_fitness) {
+						best_index = i;
+					}
 				}
 
 				//swap the best hint to the first position
-				if (best_index>0) std::swap(raw_hints[0], raw_hints[best_index]);
+				if (best_index > 0) {
+					std::swap(raw_hints[0], raw_hints[best_index]);
+				}
 			}
 		}
 
@@ -404,7 +438,6 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 
 		if (Solve_Model_Parameters(setup) == S_OK) {
 			//calculate and compare the present parameters with the new one
-			
 
 			const double original_fitness = Calculate_Fitness(segments, segment_count, metric, working_parameters.get());
 			const double solved_fitness = Calculate_Fitness(segments, segment_count, metric, solved_parameters.get());
@@ -414,12 +447,14 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 				//OK, we have found better fitness => set it and send respective message
 				if (segment_id != scgms::All_Segments_Id) {
 					const auto &segment = Get_Segment(segment_id);
-					if (segment) 
+					if (segment) {
 						segment->Set_Parameters(solved_parameters);
+					}
 				}
 				else {
-					for (auto &segment : mSegments)
+					for (auto& segment : mSegments) {
 						segment.second->Set_Parameters(solved_parameters);
+					}
 				}
 
 				Add_Parameters_Hint(solved_parameters);
@@ -479,24 +514,23 @@ void CCalculate_Filter::Run_Solver(const uint64_t segment_id) {
 		//solve using all segments
 		if (!mSegments.empty()) {
 			std::vector<scgms::ITime_Segment*> raw_segments;
-			for (auto &segment : mSegments) 
+			for (auto& segment : mSegments) {
 				raw_segments.push_back(static_cast<scgms::ITime_Segment*>(segment.second.get()));
+			}
 
 			solve_segment(raw_segments.data(), raw_segments.size(), mSegments.begin()->second->Get_Parameters());
 		}
 	}
 }
 
-HRESULT IfaceCalling CCalculate_Filter::Get_Solver_Progress(solver::TSolver_Progress* const progress)
-{
+HRESULT IfaceCalling CCalculate_Filter::Get_Solver_Progress(solver::TSolver_Progress* const progress) {
 	// copy progress structure
 	*progress = mSolver_Progress;
 
 	return S_OK;
 }
 
-HRESULT IfaceCalling CCalculate_Filter::Get_Solver_Information(GUID* const calculated_signal_id, scgms::TSolver_Status* const status) const
-{
+HRESULT IfaceCalling CCalculate_Filter::Get_Solver_Information(GUID* const calculated_signal_id, scgms::TSolver_Status* const status) const {
 	*calculated_signal_id = mCalculated_Signal_Id;
 	*status = mSolver_Status;
 

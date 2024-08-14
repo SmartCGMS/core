@@ -46,7 +46,6 @@ CWhite_Noise_Generator_Filter::CWhite_Noise_Generator_Filter(scgms::IFilter *out
 	//
 }
 
-
 HRESULT IfaceCalling CWhite_Noise_Generator_Filter::Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) {
 	mSignal_Id = configuration.Read_GUID(rsSignal_Id);
 
@@ -58,8 +57,9 @@ HRESULT IfaceCalling CWhite_Noise_Generator_Filter::Do_Configure(scgms::SFilter_
 
 HRESULT IfaceCalling CWhite_Noise_Generator_Filter::Do_Execute(scgms::UDevice_Event event)
 {
-	if (event.signal_id() == mSignal_Id && event.is_level_event())
+	if (event.signal_id() == mSignal_Id && event.is_level_event()) {
 		event.level() += mRandom_Distribution(mRandom_Engine);
+	}
 
 	return mOutput.Send(event);
 }

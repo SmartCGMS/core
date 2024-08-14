@@ -46,18 +46,19 @@
  * Filter class for mapping input signal GUID to another
  */
 class CMapping_Filter : public virtual scgms::CBase_Filter {
-protected:
-	// source signal ID (what signal will be mapped)
-	GUID mSource_Id = Invalid_GUID;
-	// destination signal ID (to what ID it will be mapped)
-	GUID mDestination_Id = Invalid_GUID;
-    bool mDestination_Null = false;
-protected:
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-	CMapping_Filter(scgms::IFilter *output);
-	virtual ~CMapping_Filter() {};
+	protected:
+		// source signal ID (what signal will be mapped)
+		GUID mSource_Id = Invalid_GUID;
+		// destination signal ID (to what ID it will be mapped)
+		GUID mDestination_Id = Invalid_GUID;
+		bool mDestination_Null = false;
+
+	protected:
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+	public:
+		CMapping_Filter(scgms::IFilter *output);
+		virtual ~CMapping_Filter() = default;
 };
 
 #pragma warning( pop )

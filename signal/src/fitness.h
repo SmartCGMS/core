@@ -36,17 +36,14 @@
 
 #pragma once
 
-
 #include <scgms/rtl/SolverLib.h>
 #include <scgms/rtl/AlignmentAllocator.h>
 
 #include <vector>
 
-
 #undef max
 
 using aligned_double_vector = std::vector<double, AlignmentAllocator<double>>;	//Needed for Eigen and SIMD optimizations
-
 
 struct TSegment_Solver_Setup {
 	const GUID solver_id; const GUID calculated_signal_id; const GUID reference_signal_id;
@@ -67,22 +64,24 @@ struct TSegment_Info {
 };
 
 class CFitness {
-protected:	
-	scgms::TMetric_Parameters mMetric_Params = scgms::Null_Metric_Parameters;		
-	static thread_local scgms::SMetric mMetric_Per_Thread;
-protected:
-	std::vector<TSegment_Info> mSegment_Info;	
-	size_t mLevels_Required;
-	size_t mMax_Levels_Per_Segment;	//to avoid multiple resize of memory block when calculating the error
-	static thread_local aligned_double_vector mTemporal_Levels;
-	double* Reserve_Temporal_Levels_Data();
-public:
-	const size_t mSolution_Size;
+	protected:
+		scgms::TMetric_Parameters mMetric_Params = scgms::Null_Metric_Parameters;
+		static thread_local scgms::SMetric mMetric_Per_Thread;
 
-	CFitness(const TSegment_Solver_Setup &setup, const size_t solution_size);
-	double Calculate_Fitness(const double *solution);
+		std::vector<TSegment_Info> mSegment_Info;	
+		size_t mLevels_Required;
+		size_t mMax_Levels_Per_Segment;	//to avoid multiple resize of memory block when calculating the error
+		static thread_local aligned_double_vector mTemporal_Levels;
+
+	protected:
+		double* Reserve_Temporal_Levels_Data();
+
+	public:
+		const size_t mSolution_Size;
+
+		CFitness(const TSegment_Solver_Setup &setup, const size_t solution_size);
+		double Calculate_Fitness(const double *solution);
 };
-
 
 BOOL IfaceCalling Fitness_Wrapper(const void* data, const size_t solution_count, const double* solutions, double* const fitnesses);
 HRESULT Solve_Model_Parameters(const TSegment_Solver_Setup &setup);

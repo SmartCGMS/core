@@ -68,7 +68,7 @@ class CImpulse_Response_Filter : public virtual scgms::CBase_Filter
 
 	public:
 		CImpulse_Response_Filter(scgms::IFilter *output);
-		virtual ~CImpulse_Response_Filter() {};
+		virtual ~CImpulse_Response_Filter() = default;
 };
 
 #pragma warning( pop )

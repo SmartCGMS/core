@@ -291,19 +291,19 @@ namespace unmasking {
 	constexpr size_t param_count = 1;
 
 	constexpr scgms::NParameter_Type param_type[param_count] = {
-		scgms::NParameter_Type::ptSignal_Id,		
+		scgms::NParameter_Type::ptSignal_Id,
 	};
 
 	const wchar_t* ui_param_name[param_count] = {
-		dsSignal_Masked_Id,		
+		dsSignal_Masked_Id,
 	};
 
 	const wchar_t* config_param_name[param_count] = {
-		rsSignal_Masked_Id,		
+		rsSignal_Masked_Id,
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
-		dsMasked_Signal_Tooltip,		
+		dsMasked_Signal_Tooltip,
 	};
 
 	const scgms::TFilter_Descriptor Unmasking_Descriptor = {
@@ -537,7 +537,7 @@ namespace feedback_sender {
 	};
 
 	const scgms::TFilter_Descriptor desc = {
-			{ 0x5d29ea43, 0x4fac, 0x4141, { 0xa0, 0x3f, 0x73, 0x3b, 0x10, 0x29, 0x67, 0x27 } }, //// {5D29EA43-4FAC-4141-A03F-733B10296727},
+		{ 0x5d29ea43, 0x4fac, 0x4141, { 0xa0, 0x3f, 0x73, 0x3b, 0x10, 0x29, 0x67, 0x27 } }, //// {5D29EA43-4FAC-4141-A03F-733B10296727},
 		scgms::NFilter_Flags::None,
 		dsSignal_Feedback,
 		param_count,
@@ -639,37 +639,48 @@ DLL_EXPORT HRESULT IfaceCalling do_get_signal_descriptors(scgms::TSignal_Descrip
 	return S_OK;
 }
 
-DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {	
-	if (*id == calculate::Calculate_Descriptor.id)
+DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
+	if (*id == calculate::Calculate_Descriptor.id) {
 		return Manufacture_Object<CCalculate_Filter>(filter, output);
-	else if (*id == masking::Masking_Descriptor.id)
+	}
+	else if (*id == masking::Masking_Descriptor.id) {
 		return Manufacture_Object<CMasking_Filter>(filter, output);
-	else if (*id == unmasking::Unmasking_Descriptor.id)
+	}
+	else if (*id == unmasking::Unmasking_Descriptor.id) {
 		return Manufacture_Object<CUnmasking_Filter>(filter, output);
-	else if (*id == mapping::Mapping_Descriptor.id)
+	}
+	else if (*id == mapping::Mapping_Descriptor.id) {
 		return Manufacture_Object<CMapping_Filter>(filter, output);
-	else if (*id == decoupling::desc.id)
+	}
+	else if (*id == decoupling::desc.id) {
 		return Manufacture_Object<CDecoupling_Filter>(filter, output);
+	}
 	// NOTE: signal generator and network variant shares one implementation, the latter having an extra set of parameters
-	else if (*id == signal_generator::desc.id || *id == network_signal_generator::desc.id)
+	else if (*id == signal_generator::desc.id || *id == network_signal_generator::desc.id) {
 		return Manufacture_Object<CSignal_Generator>(filter, output);
-	else if (*id == feedback_sender::desc.id)
+	}
+	else if (*id == feedback_sender::desc.id) {
 		return Manufacture_Object<CSignal_Feedback>(filter, output);
-	else if (*id == impulse_response::desc.id)
+	}
+	else if (*id == impulse_response::desc.id) {
 		return Manufacture_Object<CImpulse_Response_Filter>(filter, output);
-	else if (*id == noise_generator::desc.id)
+	}
+	else if (*id == noise_generator::desc.id) {
 		return Manufacture_Object<CWhite_Noise_Generator_Filter>(filter, output);
+	}
 
 	return E_NOTIMPL;
 }
 
 DLL_EXPORT HRESULT IfaceCalling do_create_signal(const GUID *signal_id, scgms::ITime_Segment *segment, const GUID * approx_id, scgms::ISignal **signal) {
-	if (signal_id == nullptr)	//signal error sets segment to nullptr as it does not need it, so we check signal_id only
+	if (signal_id == nullptr) {	//signal error sets segment to nullptr as it does not need it, so we check signal_id only
 		return E_INVALIDARG;
+	}
 
 	for (const auto& supported_signal : signal_descriptor::signals) {
-		if (supported_signal.id == *signal_id)
+		if (supported_signal.id == *signal_id) {
 			return Manufacture_Object<CMeasured_Signal>(signal, approx_id);
+		}
 	}
 
 	return E_FAIL;

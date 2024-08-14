@@ -43,6 +43,7 @@
 
 CTime_Segment::CTime_Segment(const int64_t segment_id, const GUID &calculated_signal_id, scgms::SModel_Parameter_Vector &working_parameters, const double prediction_window, scgms::SFilter output)
 	: mOutput(output), mCalculated_Signal_Id(calculated_signal_id), mSegment_id(segment_id), mPrediction_Window(prediction_window) {
+
 	Clear_Data();
 
 	mWorking_Parameters.set(working_parameters);
@@ -53,23 +54,29 @@ CTime_Segment::CTime_Segment(const int64_t segment_id, const GUID &calculated_si
 	if (result) {
 		//find the proper reference id
 		//mReference_Signal_Id = Invalid_GUID;	//sanity check  - already initiliazed at the variable declaration 
-		for (size_t i = 0; i < desc.number_of_calculated_signals; i++)
+		for (size_t i = 0; i < desc.number_of_calculated_signals; i++) {
 			if (desc.calculated_signal_ids[i] == calculated_signal_id) {
 				mReference_Signal_Id = desc.reference_signal_ids[i];
 				break;
 			}
+		}
 	}
 }
 
 scgms::SSignal CTime_Segment::Get_Signal_Internal(const GUID &signal_id) {
+
 	auto itr = mSignals.find(signal_id);
 	if (itr != mSignals.end()) {
 		return itr->second;
-	} else {
+	}
+	else {
 		//we have to create signal's instance for this object
 		scgms::STime_Segment shared_this = refcnt::make_shared_reference_ext<scgms::STime_Segment, scgms::ITime_Segment>(this, true);
 		scgms::SSignal new_signal{shared_this, signal_id };
-		if (!new_signal) return scgms::SSignal{};
+		if (!new_signal) {
+			return scgms::SSignal{};
+		}
+
 		mSignals[signal_id] = new_signal;
 		return new_signal;
 	}
@@ -81,8 +88,10 @@ HRESULT IfaceCalling CTime_Segment::Get_Signal(const GUID *signal_id, scgms::ISi
 		*signal = shared_signal.get();
 		(*signal)->AddRef();
 		return S_OK;
-	} else
+	}
+	else {
 		return E_FAIL;
+	}
 }
 
 bool CTime_Segment::Update_Level(const GUID &signal_id, const double level, const double time_stamp) {
@@ -91,22 +100,27 @@ bool CTime_Segment::Update_Level(const GUID &signal_id, const double level, cons
 		if (signal->Update_Levels(&time_stamp, &level, 1) == S_OK) {
 
 			auto insert_the_time = [this](const double time_to_insert) {
-				if (mEmitted_Times.find(time_to_insert) == mEmitted_Times.end())
+				if (mEmitted_Times.find(time_to_insert) == mEmitted_Times.end()) {
 					mPending_Times.insert(time_to_insert);
+				}
 			};
 
 			insert_the_time(time_stamp + mPrediction_Window);
-			if (signal_id == mReference_Signal_Id)
-				insert_the_time(time_stamp);		//for the reference signal, we also request calculation at the present time
-													//so that we can determine calculation errors easily and precisly with measured, 
-													//not interpolated levels => the metrics filter simply stores calculated-measured
-													//pair of levels with no need for another calculation nor interpolation/approximation
+			if (signal_id == mReference_Signal_Id) {
+				//for the reference signal, we also request calculation at the present time
+				//so that we can determine calculation errors easily and precisly with measured, 
+				//not interpolated levels => the metrics filter simply stores calculated-measured
+				//pair of levels with no need for another calculation nor interpolation/approximation
+				insert_the_time(time_stamp);
+			}
 			
 		}
+
 		return true;
 	}
-	else
+	else {
 		return false;
+	}
 }
 
 bool CTime_Segment::Set_Parameters(scgms::SModel_Parameter_Vector parameters) {
@@ -127,10 +141,14 @@ bool CTime_Segment::Calculate(const std::vector<double> &times, std::vector<doub
 }
 
 void CTime_Segment::Emit_Levels_At_Pending_Times() {
-	if (mPending_Times.empty() || !mCalculated_Signal) return;
+	if (mPending_Times.empty() || !mCalculated_Signal) {
+		return;
+	}
 
 	std::vector<double> levels(mPending_Times.size()), times{ mPending_Times.begin(), mPending_Times.end() };
-	if (levels.size() != times.size()) return;	//allocation error!
+	if (levels.size() != times.size()) {
+		return;	//allocation error!
+	}
 
 	//auto params_ptr = mWorking_Parameters.operator bool() ? mWorking_Parameters.get() : nullptr;	- mWorking params are always initialized => the same effect as nullptr
 	if (mCalculated_Signal->Get_Continuous_Levels(mWorking_Parameters.get(), times.data(), levels.data(), levels.size(), scgms::apxNo_Derivation) == S_OK) {
@@ -147,11 +165,13 @@ void CTime_Segment::Emit_Levels_At_Pending_Times() {
 				calcEvt.segment_id() = mSegment_id;
 				scgms::IDevice_Event *raw_calcEvt = calcEvt.get();
 				calcEvt.release();
-				if (mOutput->Execute(raw_calcEvt) == S_OK)
+				if (mOutput->Execute(raw_calcEvt) == S_OK) {
 					mEmitted_Times.insert(times[i]);
+				}
 			}
-			else
+			else {
 				mPending_Times.insert(times[i]);
+			}
 		}
 	}
 }

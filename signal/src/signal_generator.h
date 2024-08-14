@@ -39,7 +39,6 @@
 #include <scgms/rtl/FilterLib.h>
 #include <scgms/rtl/referencedImpl.h>
 
-
 #include <memory>
 #include <thread>
 #include <map>
@@ -51,25 +50,26 @@
 
 namespace signal_generator_internal {
 	class CSynchronized_Generator : public scgms::IFilter, public refcnt::CNotReferenced {
-	protected:
-		uint64_t mSegment_Id = scgms::Invalid_Segment_Id;
-		bool mCatching_Up = false;
-		GUID mSync_Signal = Invalid_GUID;		
-		double mTime_To_Catch_Up = 0.0;
-		double mFixed_Stepping = 5.0*scgms::One_Minute;
-		double mLast_Device_Time = std::numeric_limits<double>::quiet_NaN();
-		scgms::SDiscrete_Model mSync_Model;
+		protected:
+			uint64_t mSegment_Id = scgms::Invalid_Segment_Id;
+			bool mCatching_Up = false;
+			GUID mSync_Signal = Invalid_GUID;
+			double mTime_To_Catch_Up = 0.0;
+			double mFixed_Stepping = 5.0*scgms::One_Minute;
+			double mLast_Device_Time = std::numeric_limits<double>::quiet_NaN();
+			scgms::SDiscrete_Model mSync_Model;
 
-		scgms::IFilter *mDirect_Output;	//output we use if the event was for a single event
-		scgms::IFilter *mChained_Output; //output we use if the event was shutdown all for all segments
-	public:
-		CSynchronized_Generator(scgms::IFilter *direct_output, scgms::IFilter *chained_output, const uint64_t segment_id);
-		virtual ~CSynchronized_Generator();
+			scgms::IFilter *mDirect_Output;	//output we use if the event was for a single event
+			scgms::IFilter *mChained_Output; //output we use if the event was shutdown all for all segments
 
-		HRESULT Execute_Sync(scgms::UDevice_Event &event);
+		public:
+			CSynchronized_Generator(scgms::IFilter *direct_output, scgms::IFilter *chained_output, const uint64_t segment_id);
+			virtual ~CSynchronized_Generator();
 
-		virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list* error_description) override final;
-		virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
+			HRESULT Execute_Sync(scgms::UDevice_Event &event);
+
+			virtual HRESULT IfaceCalling Configure(scgms::IFilter_Configuration* configuration, refcnt::wstr_list* error_description) override final;
+			virtual HRESULT IfaceCalling Execute(scgms::IDevice_Event *event) override final;
 	};
 }
 
@@ -77,41 +77,42 @@ namespace signal_generator_internal {
  * Filter class for generating signals using a specific model 
  */
 class CSignal_Generator : public scgms::CBase_Filter, public scgms::IFilter_Feedback_Receiver {
-protected:
-	bool mSync_To_Signal = false;	
-	double mFixed_Stepping = 5.0*scgms::One_Minute;
-	double mMax_Time = 24.0 * scgms::One_Hour;			//maximum time, for which the generator can run
-	double mTotal_Time = 0.0;	//time for which the generator runs	
-	bool mEmit_Shutdown = true;	
-	scgms::SDiscrete_Model mAsync_Model;
-	scgms::SFilter_Configuration mSync_Configuration;
-protected:
-	signal_generator_internal::CSynchronized_Generator* mLast_Sync_Generator = nullptr;
-	using TSync_Model = std::unique_ptr<signal_generator_internal::CSynchronized_Generator>;
-	std::map<uint64_t, TSync_Model> mSync_Models;
-protected:
-	std::wstring mFeedback_Name;	
-	std::unique_ptr<std::thread> mThread;
-	std::atomic<bool> mQuitting = false;
-	void Stop_Generator(bool wait);
-protected:
-	size_t mNumber_Of_Segment_Specific_Parameters = 0;
-	size_t mCurrent_Segment_Idx = 0;
-    scgms::SFilter_Configuration mOriginal_Configuration;
-	std::vector<double> mSegment_Agnostic_Parameters, mSegment_Agnostic_Lower_Bound, mSegment_Agnostic_Upper_Bound;
-	std::vector<std::vector<double>> mSegment_Specific_Parameters, mSegment_Specific_Lower_Bound, mSegment_Specific_Upper_Bound;
+	protected:
+		bool mSync_To_Signal = false;	
+		double mFixed_Stepping = 5.0*scgms::One_Minute;
+		double mMax_Time = 24.0 * scgms::One_Hour;			//maximum time, for which the generator can run
+		double mTotal_Time = 0.0;	//time for which the generator runs	
+		bool mEmit_Shutdown = true;
+		scgms::SDiscrete_Model mAsync_Model;
+		scgms::SFilter_Configuration mSync_Configuration;
 
-	void Update_Sync_Configuration_Parameters();	//increments the current segment and expands mSegment_Specific_Parameters if needed
+		signal_generator_internal::CSynchronized_Generator* mLast_Sync_Generator = nullptr;
+		using TSync_Model = std::unique_ptr<signal_generator_internal::CSynchronized_Generator>;
+		std::map<uint64_t, TSync_Model> mSync_Models;
 
-protected:
-	virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
-	virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
-public:
-	CSignal_Generator(scgms::IFilter *output);
-	virtual ~CSignal_Generator();
+		std::wstring mFeedback_Name;
+		std::unique_ptr<std::thread> mThread;
+		std::atomic<bool> mQuitting = false;
+		void Stop_Generator(bool wait);
 
-	virtual HRESULT IfaceCalling Name(wchar_t** const name) override final;
-	virtual HRESULT IfaceCalling QueryInterface(const GUID* riid, void** ppvObj) override;
+		size_t mNumber_Of_Segment_Specific_Parameters = 0;
+		size_t mCurrent_Segment_Idx = 0;
+		scgms::SFilter_Configuration mOriginal_Configuration;
+		std::vector<double> mSegment_Agnostic_Parameters, mSegment_Agnostic_Lower_Bound, mSegment_Agnostic_Upper_Bound;
+		std::vector<std::vector<double>> mSegment_Specific_Parameters, mSegment_Specific_Lower_Bound, mSegment_Specific_Upper_Bound;
+
+	protected:
+		void Update_Sync_Configuration_Parameters();	//increments the current segment and expands mSegment_Specific_Parameters if needed
+
+		virtual HRESULT Do_Execute(scgms::UDevice_Event event) override final;
+		virtual HRESULT Do_Configure(scgms::SFilter_Configuration configuration, refcnt::Swstr_list& error_description) override final;
+
+	public:
+		CSignal_Generator(scgms::IFilter *output);
+		virtual ~CSignal_Generator();
+
+		virtual HRESULT IfaceCalling Name(wchar_t** const name) override final;
+		virtual HRESULT IfaceCalling QueryInterface(const GUID* riid, void** ppvObj) override;
 };
 
 #pragma warning( pop )
