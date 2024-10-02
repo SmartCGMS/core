@@ -111,60 +111,64 @@ DLL_EXPORT HRESULT IfaceCalling create_approximator(const GUID *approx_id, scgms
 	return loaded_filters.create_approximator_body(approx_id, signal, approx);
 }
 
-void CLoaded_Filters::load_libraries() {
-#ifndef ANDROID
-	const auto filters_dir = Get_Dll_Dir() / std::wstring{rsSolversDir};
-#else
-	const auto filters_dir = Get_Dll_Dir();
-#endif
+#ifndef  __wasm__
+	void CLoaded_Filters::load_libraries() {
+	#ifndef ANDROID
+		const auto filters_dir = Get_Dll_Dir() / std::wstring{rsSolversDir};
+	#else
+		const auto filters_dir = Get_Dll_Dir();
+	#endif
 
-	// filters directory must exist and must be a directory
-	if (!filesystem::exists(filters_dir) || !filesystem::is_directory(filters_dir)) {
-		return;
-	}
+		// filters directory must exist and must be a directory
+		if (!filesystem::exists(filters_dir) || !filesystem::is_directory(filters_dir)) {
+			return;
+		}
 
-	for (const auto& dir_entry : filesystem::directory_iterator(filters_dir)) {
-		const auto &filepath = dir_entry.path();
+		for (const auto& dir_entry : filesystem::directory_iterator(filters_dir)) {
+			const auto &filepath = dir_entry.path();
 
-		// just checks the platform-dependent extension to filter out unwanted 
-		if (CDynamic_Library::Is_Library(filepath)) {
-			imported::TLibraryInfo lib;
+			// just checks the platform-dependent extension to filter out unwanted 
+			if (CDynamic_Library::Is_Library(filepath)) {
+				imported::TLibraryInfo lib;
 
-			if (lib.library.Load(filepath)) {
-				bool lib_used = Resolve_Func<scgms::TCreate_Filter>(lib.create_filter, lib.library, imported::rsDo_Create_Filter);
+				if (lib.library.Load(filepath)) {
+					bool lib_used = Resolve_Func<scgms::TCreate_Filter>(lib.create_filter, lib.library, imported::rsDo_Create_Filter);
 				
-				lib_used |= Resolve_Func<scgms::TCreate_Metric>(lib.create_metric, lib.library, imported::rsDo_Create_Metric);
-				lib_used |= Resolve_Func<scgms::TCreate_Signal>(lib.create_signal, lib.library, imported::rsDo_Create_Signal);
-				lib_used |= Resolve_Func<scgms::TCreate_Discrete_Model>(lib.create_discrete_model, lib.library, imported::rsDo_Create_Discrete_model);
-				lib_used |= Resolve_Func<scgms::TCreate_Approximator>(lib.create_approximator, lib.library, imported::rsDo_Create_Approximator);
-				lib_used |= Resolve_Func<solver::TGeneric_Solver>(lib.solve_generic, lib.library, imported::rsDo_Solve_Generic);
+					lib_used |= Resolve_Func<scgms::TCreate_Metric>(lib.create_metric, lib.library, imported::rsDo_Create_Metric);
+					lib_used |= Resolve_Func<scgms::TCreate_Signal>(lib.create_signal, lib.library, imported::rsDo_Create_Signal);
+					lib_used |= Resolve_Func<scgms::TCreate_Discrete_Model>(lib.create_discrete_model, lib.library, imported::rsDo_Create_Discrete_model);
+					lib_used |= Resolve_Func<scgms::TCreate_Approximator>(lib.create_approximator, lib.library, imported::rsDo_Create_Approximator);
+					lib_used |= Resolve_Func<solver::TGeneric_Solver>(lib.solve_generic, lib.library, imported::rsDo_Solve_Generic);
 
-				lib_used |= Load_Descriptors<scgms::TGet_Filter_Descriptors, scgms::TFilter_Descriptor>(mFilter_Descriptors, lib.library, imported::rsGet_Filter_Descriptors);
-				lib_used |= Load_Descriptors<scgms::TGet_Metric_Descriptors, scgms::TMetric_Descriptor>(mMetric_Descriptors, lib.library, imported::rsGet_Metric_Descriptors);
-				lib_used |= Load_Descriptors<scgms::TGet_Model_Descriptors, scgms::TModel_Descriptor>(mModel_Descriptors, lib.library, imported::rsGet_Model_Descriptors);
-				lib_used |= Load_Descriptors<scgms::TGet_Solver_Descriptors, scgms::TSolver_Descriptor>(mSolver_Descriptors, lib.library, imported::rsGet_Solvers_Descriptors);
-				lib_used |= Load_Descriptors<scgms::TGet_Approx_Descriptors, scgms::TApprox_Descriptor>(mApprox_Descriptors, lib.library, imported::rsGet_Approx_Descriptors);
-				lib_used |= Load_Descriptors<scgms::TGet_Signal_Descriptors, scgms::TSignal_Descriptor>(mSignal_Descriptors, lib.library, imported::rsGet_Signal_Descriptors);
+					lib_used |= Load_Descriptors<scgms::TGet_Filter_Descriptors, scgms::TFilter_Descriptor>(mFilter_Descriptors, lib.library, imported::rsGet_Filter_Descriptors);
+					lib_used |= Load_Descriptors<scgms::TGet_Metric_Descriptors, scgms::TMetric_Descriptor>(mMetric_Descriptors, lib.library, imported::rsGet_Metric_Descriptors);
+					lib_used |= Load_Descriptors<scgms::TGet_Model_Descriptors, scgms::TModel_Descriptor>(mModel_Descriptors, lib.library, imported::rsGet_Model_Descriptors);
+					lib_used |= Load_Descriptors<scgms::TGet_Solver_Descriptors, scgms::TSolver_Descriptor>(mSolver_Descriptors, lib.library, imported::rsGet_Solvers_Descriptors);
+					lib_used |= Load_Descriptors<scgms::TGet_Approx_Descriptors, scgms::TApprox_Descriptor>(mApprox_Descriptors, lib.library, imported::rsGet_Approx_Descriptors);
+					lib_used |= Load_Descriptors<scgms::TGet_Signal_Descriptors, scgms::TSignal_Descriptor>(mSignal_Descriptors, lib.library, imported::rsGet_Signal_Descriptors);
 
-				if (lib_used) {
-					mLibraries.push_back(std::move(lib));
-				}
-				else {
-					lib.library.Unload();
+					if (lib_used) {
+						mLibraries.push_back(std::move(lib));
+					}
+					else {
+						lib.library.Unload();
+					}
 				}
 			}
 		}
 	}
-}
 
 
-HRESULT CLoaded_Filters::create_filter_body(const GUID *id, scgms::IFilter *next_filter, scgms::IFilter **filter) {
-	if ((!id) || (!next_filter)) {
-		return E_INVALIDARG;
+
+	HRESULT CLoaded_Filters::create_filter_body(const GUID *id, scgms::IFilter *next_filter, scgms::IFilter **filter) {
+		if ((!id) || (!next_filter)) {
+			return E_INVALIDARG;
+		}
+		auto call_create_filter = [](const imported::TLibraryInfo &info) { return info.create_filter; }; 
+		return Call_Func(call_create_filter, id, next_filter, filter);
 	}
-	auto call_create_filter = [](const imported::TLibraryInfo &info) { return info.create_filter; }; 
-	return Call_Func(call_create_filter, id, next_filter, filter);
-}
+
+#endif
 
 HRESULT CLoaded_Filters::create_metric_body(const scgms::TMetric_Parameters *parameters, scgms::IMetric **metric) {
 	auto call_create_metric = [](const imported::TLibraryInfo &info) { return info.create_metric; }; 
@@ -195,6 +199,7 @@ HRESULT CLoaded_Filters::get_filter_descriptors_body(scgms::TFilter_Descriptor *
 	return do_get_descriptors<scgms::TFilter_Descriptor>(mFilter_Descriptors, begin, end);
 }
 
+
 HRESULT CLoaded_Filters::get_metric_descriptors_body(scgms::TMetric_Descriptor **begin, scgms::TMetric_Descriptor **end) {
 	return do_get_descriptors<scgms::TMetric_Descriptor>(mMetric_Descriptors, begin, end);
 }
@@ -216,6 +221,7 @@ HRESULT CLoaded_Filters::get_signal_descriptors_body(scgms::TSignal_Descriptor**
 }
 
 void CLoaded_Filters::describe_loaded_filters(refcnt::Swstr_list error_description) {
+#ifndef __wasm__
 	std::wstring desc = dsDefault_Filters_Path;	
 	auto appdir = Get_Application_Dir();
 	desc += (appdir / std::wstring{ rsSolversDir }).wstring();
@@ -231,7 +237,11 @@ void CLoaded_Filters::describe_loaded_filters(refcnt::Swstr_list error_descripti
 	else {
 		error_description.push(dsNone);
 	}
+#endif
+	//No DLL in WASM!
 }
+
+
 
 GUID CLoaded_Filters::Resolve_Signal_By_Name(const wchar_t* name, bool& valid) {
 	valid = false;
@@ -254,16 +264,18 @@ GUID CLoaded_Filters::Resolve_Signal_By_Name(const wchar_t* name, bool& valid) {
 	return Invalid_GUID;
 }
 
-scgms::SFilter create_filter_body(const GUID &id, scgms::IFilter *next_filter) {
-	scgms::SFilter result;
-	scgms::IFilter *filter;
+#ifndef __wasm__
+	scgms::SFilter create_filter_body(const GUID &id, scgms::IFilter *next_filter) {
+		scgms::SFilter result;
+		scgms::IFilter *filter;
 
-	if (loaded_filters.create_filter_body(&id, next_filter, &filter) == S_OK) {
-		result = refcnt::make_shared_reference_ext<scgms::SFilter, scgms::IFilter>(filter, false);
+		if (loaded_filters.create_filter_body(&id, next_filter, &filter) == S_OK) {
+			result = refcnt::make_shared_reference_ext<scgms::SFilter, scgms::IFilter>(filter, false);
+		}
+
+		return result;
 	}
-
-	return result;
-}
+#endif
 
 void describe_loaded_filters(refcnt::Swstr_list error_description) {
 	loaded_filters.describe_loaded_filters(error_description);

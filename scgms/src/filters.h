@@ -141,3 +141,7 @@ DLL_EXPORT HRESULT IfaceCalling solve_generic(const GUID * solver_id, const solv
 scgms::SFilter create_filter_body(const GUID &id, scgms::IFilter *next_filter);
 void describe_loaded_filters(refcnt::Swstr_list error_description);
 GUID resolve_signal_by_name(const wchar_t* name, bool& valid);
+
+#ifdef __wasm__
+	DLL_EXPORT HRESULT IfaceCalling get_filter_descriptors(scgms::TFilter_Descriptor** begin, scgms::TFilter_Descriptor** end);
+#endif
