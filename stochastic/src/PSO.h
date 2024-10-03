@@ -369,7 +369,7 @@ class CPSO
 				// update the progress
 				progress.best_metric = mOverall_Best_Fitness;
 
-				std::for_each(std::execution::par_unseq, mSwarm.begin(), mSwarm.end(), [=, this, &mod](auto &candidate_solution) {
+				std::for_each(std::execution::par_unseq, mSwarm.begin(), mSwarm.end(), [=, &mod](auto &candidate_solution) {
 
 					// generate velocity update vectors/scalars (depends on chosen velocity update operator)
 					auto [r_p, r_g] = mod.Generate_Velocity_Change(solution_size);

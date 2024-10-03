@@ -52,42 +52,58 @@
 	#include <Windows.h>
 #endif
 
-#if (defined(__x86_64__) || defined(_M_X64))
+#if ((defined(__x86_64__) || defined(_M_X64))) && defined(__INTEL_LLVM_COMPILER)
 	#include <immintrin.h>
-	#ifdef __APPLE__
-		#if __has_include(<x86intrin.h>)
-			#include <x86intrin.h>
-		#endif
 
-		// Apple Clang does not support std::popcount yet
-		namespace std {
-			template< class T >
-			constexpr int popcount(T x) noexcept {
-				return __popcount(x);
-			}
-		}
-	#endif
-#else
-// no rdrand available at the current platform
-#define DISABLE_RDRAND
-#endif
-
-namespace {
-
-#ifndef DISABLE_RDRAND
 	int rdrand64_step(uint64_t* random_val) {
 		return _rdrand64_step(reinterpret_cast<unsigned long long*>(random_val));
 	}
-#else
-	#include <random>
-	std::random_device rdev;
+#else	
+	std::random_device rdrand_rdev;
 
 	// fallback when no RDRAND is available
 	int rdrand64_step(uint64_t* random_val) {
-		return (static_cast<uint64_t>(rdev()) << 32ULL) | static_cast<uint64_t>(rdev());
-	}
+		return (static_cast<uint64_t>(rdrand_rdev()) << 32ULL) | static_cast<uint64_t>(rdrand_rdev());
+	}	
 #endif
-}
+
+#if (__cplusplus >= 201907L)
+		//we have std::popcnout
+#elif defined(__clang__)
+	namespace std {
+		template< class T >
+		constexpr int popcount(T x) noexcept {
+			return __builtin_popcount(x);
+		}
+	}
+#elif defined(__GNUC__)
+	namespace std {
+		constexpr int popcount(uint64_t x) noexcept {
+			return __builtin_popcountl(x);
+		}
+	}
+#elif __has_include(<intrin.h>)
+	#include <intrin.h>
+	
+	namespace std {		
+		constexpr int popcount(uint64_t x) noexcept {
+			return _mm_popcnt_u64(x);
+		}
+	}
+#elif __has_include(<x86intrin.h>)
+	#include <x86intrin.h>
+
+	namespace std {
+		template< class T >
+		constexpr int popcount(T x) noexcept {
+			return __popcount(x);
+		}
+	}
+#else
+	//platform with no support for popcount, likely old C++ and Arm
+	#error ("Please, upgrade your compiler to C++20 compatible")
+#endif
+
 
 #undef min
 #undef max

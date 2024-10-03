@@ -524,7 +524,7 @@ class CRumor_Opt {
 				progress.best_metric = mBest_Fitness;
 
 				// 1) rumors, recalculate objective function, update best solution
-				std::for_each(std::execution::par_unseq, mPop_Idx.begin(), mPop_Idx.begin() + incidence_per_epoch, [=, this](auto candidate_solution_idx) {
+				std::for_each(std::execution::par_unseq, mPop_Idx.begin(), mPop_Idx.begin() + incidence_per_epoch, [=](auto candidate_solution_idx) {
 
 					auto& candidate_solution = mPopulation[candidate_solution_idx];
 
