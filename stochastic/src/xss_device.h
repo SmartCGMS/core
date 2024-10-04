@@ -59,49 +59,30 @@
 		return _rdrand64_step(reinterpret_cast<unsigned long long*>(random_val));
 	}
 #else	
-	std::random_device rdrand_rdev;
-
 	// fallback when no RDRAND is available
 	int rdrand64_step(uint64_t* random_val) {
-		return (static_cast<uint64_t>(rdrand_rdev()) << 32ULL) | static_cast<uint64_t>(rdrand_rdev());
+		//on some configurations, Apple ones, purely static initialization failed
+		//by adding thread_local, we actually impose lazy initialization that causes no more problems
+		static thread_local std::random_device rdrand_rdev;
+		return (static_cast<uint64_t>(rdrand_rdev()) << 32ULL) | static_cast<uint64_t>(rdrand_rdev());		
 	}	
 #endif
 
 #if (__cplusplus >= 201907L)
 		//we have std::popcnout
-#elif defined(__clang__)
-	namespace std {
-		template< class T >
-		constexpr int popcount(T x) noexcept {
-			return __builtin_popcount(x);
-		}
-	}
-#elif defined(__GNUC__)
-	namespace std {
-		constexpr int popcount(uint64_t x) noexcept {
-			return __builtin_popcountl(x);
-		}
-	}
-#elif __has_include(<intrin.h>)
-	#include <intrin.h>
-	
-	namespace std {		
-		constexpr int popcount(uint64_t x) noexcept {
-			return _mm_popcnt_u64(x);
-		}
-	}
-#elif __has_include(<x86intrin.h>)
-	#include <x86intrin.h>
+#elif __has_include(<bitset>)
+	//let us prefer C++ -pure solution over built-ins and other specific intrinsics
+	#include <bitset>
 
 	namespace std {
 		template< class T >
 		constexpr int popcount(T x) noexcept {
-			return __popcount(x);
+			using S = std::bitset<CHAR_BIT * sizeof(T)>;
+			return S(x).count();	//numeric_limits::digits does not count the sign bit!
 		}
 	}
 #else
-	//platform with no support for popcount, likely old C++ and Arm
-	#error ("Please, upgrade your compiler to C++20 compatible")
+	#error ("Please, upgrade your compiler to C++17 (preferably 20) compatible")
 #endif
 
 
