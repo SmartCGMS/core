@@ -602,7 +602,7 @@ HRESULT IfaceCalling CDrawing_Filter::New_Data_Available() {
 	return mChanged.exchange(false) ? S_OK : S_FALSE;
 }
 
-HRESULT IfaceCalling CDrawing_Filter::Draw(scgms::TDrawing_Image_Type type, scgms::TDiagnosis diagnosis, refcnt::str_container *svg, refcnt::IVector_Container<uint64_t> *segmentIds, refcnt::IVector_Container<GUID> *signalIds) {	
+HRESULT IfaceCalling CDrawing_Filter::Draw(scgms::TDrawing_Image_Type type, scgms::NDiagnosis diagnosis, refcnt::str_container *svg, refcnt::IVector_Container<uint64_t> *segmentIds, refcnt::IVector_Container<GUID> *signalIds) {	
 	std::unordered_set<uint64_t> segmentSet{};
 	std::set<GUID> signalSet{};
 
@@ -634,11 +634,11 @@ HRESULT IfaceCalling CDrawing_Filter::Draw(scgms::TDrawing_Image_Type type, scgm
 		case scgms::TDrawing_Image_Type::Parkes:
 		{
 			switch (diagnosis) {
-				case scgms::TDiagnosis::Type1:
+				case scgms::NDiagnosis::Type1:
 					return Get_Plot(mParkes_type1_SVG, svg);
-				case scgms::TDiagnosis::Type2: 
+				case scgms::NDiagnosis::Type2: 
 					[[fallthrough]];
-				case scgms::TDiagnosis::Gestational:
+				case scgms::NDiagnosis::Gestational:
 					return Get_Plot(mParkes_type2_SVG, svg);
 					// TODO: Parkes error grid for gestational diabetes
 				default:
