@@ -214,7 +214,14 @@ class CRumor_Opt {
 
 		// a vector of update vectors and their fitness improvements
 		std::vector<rumoropt::TSlice<TUsed_Solution>> mEpoch_Slice_Map;
-
+	protected:
+		//porting from MetaDE 
+		//these are the containers, which allow bulk objective calls - Eigen::Map does not work due to missing construct_at
+		std::vector<double, AlignmentAllocator<double>> mNext_Solutions, mNext_Fitnesses;
+		
+			double* Next_Solution(const size_t index) const {
+			return const_cast<double*>(mNext_Solutions.data() + index * mSetup.problem_size);
+		}
 	public:
 		CRumor_Opt(const solver::TSolver_Setup &setup) :
 			mSetup(solver::Check_Default_Parameters(setup, 1'000, 100)),
@@ -227,6 +234,9 @@ class CRumor_Opt {
 
 		void Init_Population() {
 			mPopulation.resize(std::max(mSetup.population_size, static_cast<decltype(mSetup.population_size)>(5)));
+
+			mNext_Solutions.resize(mPopulation.size() * mSetup.problem_size, std::numeric_limits<double>::quiet_NaN());
+			mNext_Fitnesses.resize(mPopulation.size() * solver::Maximum_Objectives_Count, std::numeric_limits<double>::quiet_NaN());
 
 			// create the initial population using supplied hints; fill up to a half of a population with hints
 			const size_t initialized_count = std::min(mPopulation.size() / 2, mSetup.hint_count);
@@ -524,41 +534,61 @@ class CRumor_Opt {
 				progress.best_metric = mBest_Fitness;
 
 				// 1) rumors, recalculate objective function, update best solution
-				std::for_each(std::execution::par_unseq, mPop_Idx.begin(), mPop_Idx.begin() + incidence_per_epoch, [=](auto candidate_solution_idx) {
 
+				//transform population to a continuous vector, while generating the incidence
+				for (size_t candidate_solution_idx = 0; candidate_solution_idx < incidence_per_epoch; candidate_solution_idx++) {
 					auto& candidate_solution = mPopulation[candidate_solution_idx];
+					Rumor(mPopulation[candidate_solution_idx], mPopulation[Gen_Random_Population_Idx(candidate_solution_idx + 1)], candidate_solution_idx);					
+					std::copy(candidate_solution.next.data(), candidate_solution.next.data() + mSetup.problem_size, Next_Solution(candidate_solution_idx));
+				}
 
-					// generate incidence
-					Rumor(mPopulation[candidate_solution_idx], mPopulation[Gen_Random_Population_Idx(candidate_solution_idx + 1)], candidate_solution_idx);
+				//evaluate as a bulk
+				if (mSetup.objective(mSetup.data, mPopulation.size(), mNext_Solutions.data(), mNext_Fitnesses.data()) == TRUE) {
+									
+					std::for_each(std::execution::par_unseq, mPop_Idx.begin(), mPop_Idx.begin() + incidence_per_epoch, [=](auto candidate_solution_idx) {
 
-					if (mSetup.objective(mSetup.data, 1, candidate_solution.next.data(), candidate_solution.next_fitness.data()) == TRUE) {
-						// store incidence delta
-						mEpoch_Slice_Map[candidate_solution_idx].delta = candidate_solution.next_fitness[0] - candidate_solution.current_fitness[0];
-						if (std::isnan(mEpoch_Slice_Map[candidate_solution_idx].delta)) {
-							mEpoch_Slice_Map[candidate_solution_idx].delta = candidate_solution.next_fitness[0]; // TODO: solve this better
-						}
+						auto& candidate_solution = mPopulation[candidate_solution_idx];
 
-						// if the newly generated solution is better, use it; otherwise discard it
-						if (Compare_Solutions(candidate_solution.next_fitness, candidate_solution.current_fitness, mSetup.objectives_count, NFitness_Strategy::Master)) {
-							candidate_solution.current = candidate_solution.next;
-							candidate_solution.current_fitness = candidate_solution.next_fitness;
+						//copy fitness to the expected form	
+						const auto bg = mNext_Fitnesses.data() + candidate_solution_idx * solver::Maximum_Objectives_Count;
+						//std::copy(bg, bg + solver::Maximum_Objectives_Count, mPopulation[candidate_solution_idx].next_fitness.data());
+						const solver::TFitness& candidate_solution_next_fitness = *reinterpret_cast<const solver::TFitness*>(bg); //avoid the copy
+						
+
+						// generate incidence
+						//Rumor(mPopulation[candidate_solution_idx], mPopulation[Gen_Random_Population_Idx(candidate_solution_idx + 1)], candidate_solution_idx);
+
+						//if (mSetup.objective(mSetup.data, 1, candidate_solution.next.data(), candidate_solution.next_fitness.data()) == TRUE) {
+						if (true) {	//replaced with the bulk objective call
+							// store incidence delta
+							mEpoch_Slice_Map[candidate_solution_idx].delta = candidate_solution_next_fitness[0] - candidate_solution.current_fitness[0];
+							if (std::isnan(mEpoch_Slice_Map[candidate_solution_idx].delta)) {
+								mEpoch_Slice_Map[candidate_solution_idx].delta = candidate_solution_next_fitness[0]; // TODO: solve this better
+							}
+
+							// if the newly generated solution is better, use it; otherwise discard it
+							if (Compare_Solutions(candidate_solution_next_fitness, candidate_solution.current_fitness, mSetup.objectives_count, NFitness_Strategy::Master)) {
+								candidate_solution.current = candidate_solution.next;
+								candidate_solution.current_fitness = candidate_solution_next_fitness;
+							}
+							else {
+								//candidate_solution.next = candidate_solution.current;
+								//candidate_solution.next_fitness = candidate_solution.current_fitness;
+							}
 						}
 						else {
 							//candidate_solution.next = candidate_solution.current;
 							//candidate_solution.next_fitness = candidate_solution.current_fitness;
 						}
-					}
-					else {
-						//candidate_solution.next = candidate_solution.current;
-						//candidate_solution.next_fitness = candidate_solution.current_fitness;
-					}
 
-					// did we generate a solution, that is better than current best? If yes, update best known "truth"
-					if (Compare_Solutions(candidate_solution.current_fitness, candidate_solution.best_fitness, mSetup.objectives_count, NFitness_Strategy::Master)) {
-						candidate_solution.best = candidate_solution.current;
-						candidate_solution.best_fitness = candidate_solution.current_fitness;
-					}
-				});
+						// did we generate a solution, that is better than current best? If yes, update best known "truth"
+						if (Compare_Solutions(candidate_solution.current_fitness, candidate_solution.best_fitness, mSetup.objectives_count, NFitness_Strategy::Master)) {
+							candidate_solution.best = candidate_solution.current;
+							candidate_solution.best_fitness = candidate_solution.current_fitness;
+						}
+					});
+
+				}
 
 				// 2) decay bank - this allows for less improving update vectors to become more visible to the rumoring process, if they are still improving the candidates
 				for (size_t i = 0; i < rumoropt::Bank_Size; i++) {
@@ -597,8 +627,9 @@ class CRumor_Opt {
 				Update_Best_Candidate();
 
 				// regenerate too old candidate solutions (time-to-live)
+				//TODO: individuals to regenerate should be enumerated first to allow a bulk call of the objective function
 				for (auto itr = mPopulation.begin(); itr != mPopulation.end(); ++itr) {
-					// the best candidate may live past his time-to-live, until superceded by another
+					// the best candidate may live past his time-to-live, until superseded by another					
 					if (itr != mBest_Itr) {
 						itr->life_counter--;
 						if (itr->life_counter == 0) {
