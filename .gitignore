@@ -7,3 +7,8 @@
 /scgms/msvc
 /stochastic/msvc
 /drawing/msvc
+/nlopt4scgms/msvc
+/native/msvc
+/data/msvc
+/signal/msvc
+/controllers/msvc
