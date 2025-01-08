@@ -388,6 +388,17 @@ HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration con
 			}
 		}
 
+		{
+			auto errs = mFile_Format_Rules.Get_Errors();
+			if (!errs.empty()) {
+				error_description.push(L"There were errors, while parsing custom file format rules:");
+				for (const auto& err : errs) {
+					error_description.push(err);
+				}
+				rc = RPC_S_ENTRY_NOT_FOUND;
+			}
+		}
+
 		if (Succeeded(rc)) {
 			mFileName = configuration.Read_File_Path(rsInput_Values_File);
 			mMaximum_IG_Interval = configuration.Read_Double(rsMaximum_IG_Interval, mMaximum_IG_Interval);

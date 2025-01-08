@@ -110,7 +110,7 @@
 
 		std::vector<TFilter_Descriptor> get_filter_descriptor_list() {
 			std::vector<TFilter_Descriptor> result;
-			TFilter_Descriptor* desc_begin, * desc_end;
+			TFilter_Descriptor *desc_begin, *desc_end;
 
 			if (get_filter_descriptors(&desc_begin, &desc_end) == S_OK) {
 				std::copy(desc_begin, desc_end, std::back_inserter(result));
@@ -120,12 +120,12 @@
 		}
 
 		bool get_filter_descriptor_by_id(const GUID& id, TFilter_Descriptor& desc) {
-			TFilter_Descriptor* desc_begin, * desc_end;
+			TFilter_Descriptor *desc_begin, *desc_end;
 
-			bool result = get_filter_descriptors(&desc_begin, &desc_end) == S_OK;
+			bool result = get_filter_descriptors(&desc_begin, &desc_end) == S_OK;			
 			if (result) {
 				result = false;	//we have to find the filter yet
-				for (auto iter = desc_begin; iter != desc_end; iter++) {
+				for (auto iter = desc_begin; iter != desc_end; iter++) {					
 					if (iter->id == id) {
 						//desc = *iter;							assign const won't work with const members and custom operator= will result into undefined behavior as it has const members (so it does not have to be const itself)
 						memcpy(&desc, iter, sizeof(decltype(desc)));	//=> memcpy https://stackoverflow.com/questions/9218454/struct-with-const-member

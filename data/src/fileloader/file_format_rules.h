@@ -104,4 +104,6 @@ class CFile_Format_Rules {
 		TFormat_Signature_Rules Signature_Rules() const;	
 		std::optional<CFormat_Layout> Format_Layout(const std::string& format_name) const;
 		bool Load_Additional_Format_Layout(const filesystem::path& path);
+
+		const std::vector<std::wstring>& Get_Errors() const;
 };

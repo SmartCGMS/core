@@ -356,3 +356,8 @@ bool CFile_Format_Rules::Load_Additional_Format_Layout(const filesystem::path& p
 
 	return Load_Format_Definition(ini);
 }
+
+
+const std::vector<std::wstring>& CFile_Format_Rules::Get_Errors() const {
+	return mErrors;
+}

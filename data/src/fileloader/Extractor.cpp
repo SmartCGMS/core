@@ -144,7 +144,7 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 
 					if (sig == signal_Comment) {
 						if (!comments.empty()) {
-							comments += "; ";
+							comments += ", ";		//DO NOT put semicolon there as it WILL BREAK the csv log replay!!!
 						}
 						
 						if (!elem.cell.series.comment_name.empty()) {

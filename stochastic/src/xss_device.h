@@ -52,7 +52,7 @@
 	#include <Windows.h>
 #endif
 
-#if ((defined(__x86_64__) || defined(_M_X64))) && defined(__INTEL_LLVM_COMPILER)
+#if ((defined(__x86_64__) || defined(_M_X64))) && __has_include(<immintrin.h>)
 	#include <immintrin.h>
 
 	int rdrand64_step(uint64_t* random_val) {

@@ -58,7 +58,7 @@ namespace native {
 	const wchar_t* rsSource_Filepath = L"Source_File";
 	const wchar_t* rsCompiler_Name = L"Compiler_Name";	
 	const wchar_t* rsCustom_Compile_Options = L"Custom_Compile_Options";
-	const wchar_t* rsSmartCGMS_Include_Dir = L"SCMGS_Include_Dir";
+	const wchar_t* rsSmartCGMS_Include_Dir = L"SCGMS_Include_Dir";
 
 	const char* rsScript_Entry_Symbol = "execute_wrapper";
 	const char* rsCustom_Data_Size = "custom_data_size";

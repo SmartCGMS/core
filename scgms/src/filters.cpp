@@ -196,7 +196,7 @@ HRESULT CLoaded_Filters::create_approximator_body(const GUID *approx_id, scgms::
 }
 
 HRESULT CLoaded_Filters::get_filter_descriptors_body(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
-	return do_get_descriptors<scgms::TFilter_Descriptor>(mFilter_Descriptors, begin, end);
+	return do_get_descriptors<scgms::TFilter_Descriptor>(mFilter_Descriptors, begin, end);	
 }
 
 

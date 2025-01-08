@@ -53,53 +53,6 @@
 
 #include <vector>
 
-namespace basal_2_bolus {
-	const size_t filter_param_count = 1;
-	const scgms::NParameter_Type filter_param_types[filter_param_count] = { scgms::NParameter_Type::ptDouble_Array};
-	const wchar_t* filter_param_ui_names[filter_param_count] = { dsParameters};
-	const wchar_t* filter_param_config_names[filter_param_count] = { rsParameters };
-	const wchar_t* filter_param_tooltips[filter_param_count] = { nullptr};
-
-	const scgms::TFilter_Descriptor filter_desc = {
-		filter_id,
-		scgms::NFilter_Flags::Encapsulated_Model,
-		dsBasal_2_Bolus,
-		filter_param_count,
-		filter_param_types,
-		filter_param_ui_names,
-		filter_param_config_names,
-		filter_param_tooltips
-	};
-
-
-	const scgms::NModel_Parameter_Value model_types[model_param_count] = { scgms::NModel_Parameter_Value::mptDouble, scgms::NModel_Parameter_Value::mptTime };
-	const wchar_t* model_param_ui_names[model_param_count] = { dsMinimum_Volume, dsPPeriod };
-	const wchar_t* model_param_config_names[model_param_count] = { rsMinimum, rsPeriod };
-
-	const double lower_bound[model_param_count] = { 0.0, 0.0};	
-	const double upper_bound[model_param_count] = { 100.0, 1.0 };
-
-	const scgms::TModel_Descriptor model_desc = {
-		filter_id,
-		scgms::NModel_Flags::None,
-		dsParameters,
-		rsParameters,
-
-		model_param_count,
-		0,
-		model_types,
-		model_param_ui_names,
-		model_param_config_names,
-
-		lower_bound,
-		default_parameters,
-		upper_bound,
-
-		0,
-		&scgms::signal_Null,
-		&scgms::signal_Null
-	};
-}
 
 namespace sensor {
 

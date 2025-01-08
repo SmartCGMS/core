@@ -36,16 +36,60 @@
  *    Volume 177, pp. 354-362, 2020
  */
 
-#include "log.h"
-#include "log_replay.h"
+#include <scgms/iface/SolverIface.h>
 
-#include "../../../common/iface/UIIface.h"
-#include "../../../common/lang/dstrings.h"
-#include "../../../common/rtl/manufactory.h"
-#include "../../../common/rtl/hresult.h"
-#include "../../../common/utils/descriptor_utils.h"
+#include "tpNLOpt.h"
 
 
-DLL_EXPORT HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end);
+#include "descriptor.h"
 
-DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter);
+#include <functional>
+
+
+template <nlopt::algorithm algo>
+bool Solve_NLOpt(const solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
+	CNLOpt<algo> nlopt{ setup };
+	return nlopt.Solve(progress);	
+}
+
+
+
+using  TSolver_Func = std::function<bool(solver::TSolver_Setup &, solver::TSolver_Progress&)>;
+
+struct TSolver_Info
+{
+	TSolver_Info() = delete;
+	explicit TSolver_Info(const GUID& _id, const TSolver_Func& _fnc)
+		: id(_id), func(_fnc) {};
+
+	GUID id = Invalid_GUID;
+	TSolver_Func func;
+};
+
+const std::array<TSolver_Info, 6> solvers = {	TSolver_Info{nlopt::newuoa_id, Solve_NLOpt<nlopt::LN_NEWUOA>},
+												TSolver_Info{nlopt::bobyqa_id, Solve_NLOpt<nlopt::LN_BOBYQA>},
+												TSolver_Info{nlopt::simplex_id, Solve_NLOpt<nlopt::LN_NELDERMEAD>},
+												TSolver_Info{nlopt::subplex_id, Solve_NLOpt<nlopt::LN_SBPLX>},
+												TSolver_Info{nlopt::praxis_id, Solve_NLOpt<nlopt::LN_PRAXIS>},
+												TSolver_Info{nlopt::cobyla_id, Solve_NLOpt<nlopt::LN_COBYLA>},
+};
+
+
+
+DLL_EXPORT HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, solver::TSolver_Setup *setup, solver::TSolver_Progress *progress) {
+	
+	//instead of traversing an array, we could have used map
+	//but we no longe have the desire to use these solvers as the Pathfinder outperforms them
+	//hence traversing the array is easy to write and the overhead is neglible compared to the work of a solver
+	for (const auto &solver : solvers) {
+		if (solver.id == *solver_id)
+			try {			
+				return solver.func(*setup, *progress) ? S_OK : E_INVALIDARG;
+			}
+			catch (...) {
+				return E_FAIL;
+			}
+  }
+
+	return E_NOTIMPL;
+}
