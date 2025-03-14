@@ -52,8 +52,6 @@ double ComputeExpK(const TGlucoseLevel& lpt, const TGlucoseLevel& rpt) {
 		k = 0.0;	//seems like there are two levels at the same time
 	}
 
-	assert(!isnan(k));
-
 	return k;
 }
 
@@ -61,8 +59,6 @@ double ComputeExpKX(const TAvgExpPoint& lpt, const double rx) {
 	double ry = lpt.pt.level*std::exp(lpt.k*(rx - lpt.pt.datetime));
 
 	//double ry = (rx - lpt->pt.datetime)*lpt->k + lpt->pt.level;
-
-	assert(!isnan(ry));
 
 	return ry;
 }
