@@ -72,7 +72,7 @@ namespace expression {
 					result.bval = mValue;
 				}
 				else {
-					static_assert(false, __FUNCTION__ ": Unsupported type!");
+					static_assert(std::is_floating_point_v<std::remove_cvref_t<T>> || std::is_same_v<std::remove_cvref_t<T>, bool>, "Unsupported type!");
 				}
 
 				return result; 
