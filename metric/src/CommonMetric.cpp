@@ -135,6 +135,6 @@ HRESULT IfaceCalling CCommon_Metric::Calculate(double *metric, size_t *levels_ac
 
 HRESULT IfaceCalling CCommon_Metric::Get_Parameters(scgms::TMetric_Parameters *parameters) {
 	//*parameters = mParameters;
-	memcpy(parameters, &mParameters, sizeof(mParameters));
+	memcpy(reinterpret_cast<void*>(parameters), &mParameters, sizeof(mParameters));
 	return S_OK;
 }
