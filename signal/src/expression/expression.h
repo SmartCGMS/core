@@ -65,14 +65,14 @@ namespace expression {
 			virtual TIntermediate evaluate(const scgms::UDevice_Event& event) override final {
 				TIntermediate result;
 
-				if constexpr (std::is_floating_point<T>::value) {
+				if constexpr (std::is_floating_point_v<std::remove_cvref_t<T>>) {
 					result.dval = static_cast<T>(mValue);
 				}
-				else if constexpr (std::is_same<T, bool>::value) {
+				else if constexpr (std::is_same_v<std::remove_cvref_t<T>, bool>) {
 					result.bval = mValue;
 				}
 				else {
-					static_assert(false, "Unsupported type!");
+					static_assert(false, __FUNCTION__ ": Unsupported type!");
 				}
 
 				return result; 
