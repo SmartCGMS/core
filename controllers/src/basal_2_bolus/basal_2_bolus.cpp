@@ -129,6 +129,17 @@ HRESULT CBasal_2_Bolus::Deliver_Bolus(const double delivery_device_time, const u
 
 HRESULT CBasal_2_Bolus::Do_Execute(scgms::UDevice_Event event) {
 	const double current_device_time = event.device_time();
+	
+	//fire all the boluses up to now, which might have beeen needed to deliver
+	if (event.segment_id() != scgms::Invalid_Segment_Id) {
+		while ((current_device_time >= mNext_Delivery_Time) && (mValid_Settings)) {
+			const HRESULT rc = Deliver_Bolus(mNext_Delivery_Time, event.segment_id());
+			if (!Succeeded(rc)) {
+				return rc;
+			}
+		}
+	}
+
 
 	if (event.signal_id() == scgms::signal_Requested_Insulin_Basal_Rate) {
 		if (!Schedule_Delivery(current_device_time, event.level(), event.segment_id())) {
@@ -143,15 +154,6 @@ HRESULT CBasal_2_Bolus::Do_Execute(scgms::UDevice_Event event) {
 		event.signal_id() = scgms::signal_Delivered_Insulin_Basal_Rate;
 	}
 	
-	if (event.segment_id() != scgms::Invalid_Segment_Id) {
-		if ((current_device_time >= mNext_Delivery_Time) && (mValid_Settings)) {
-			const HRESULT rc = Deliver_Bolus(current_device_time, event.segment_id());
-			if (!Succeeded(rc)) {
-				return rc;
-			}
-		}
-	}
-
 	return mOutput.Send(event);
 }
 

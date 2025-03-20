@@ -41,6 +41,7 @@
 #include <scgms/iface/UIIface.h>
 
 namespace log_replay {
-	extern const scgms::TFilter_Descriptor Log_Replay_Descriptor;
+	extern const GUID Log_Replay_Descriptor_ID;
+	scgms::TFilter_Descriptor Get_Log_Replay_Descriptor();	
 }
 

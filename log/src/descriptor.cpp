@@ -90,14 +90,14 @@ namespace logger {
 }
 
 
-const std::array<scgms::TFilter_Descriptor, 2> filter_descriptions = { { logger::Log_Descriptor, log_replay::Log_Replay_Descriptor } };
+const std::array<scgms::TFilter_Descriptor, 2> filter_descriptions = { { logger::Log_Descriptor, log_replay::Get_Log_Replay_Descriptor()}};
 
 DLL_EXPORT HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
 DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
-	if (*id == log_replay::Log_Replay_Descriptor.id) {
+	if (*id == log_replay::Log_Replay_Descriptor_ID) {
 		return Manufacture_Object<CLog_Replay_Filter>(filter, output);
 	}
 	else if (*id == logger::Log_Descriptor.id) {
