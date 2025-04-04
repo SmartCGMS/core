@@ -914,7 +914,7 @@ namespace gct3_model {
 				// effect of IG on absorption
 				double dqscm, iqscm;
 				// circadian insulin response
-				double ci_0, ci_1, ci_2;
+				double ci_0, ci_1, ci_off;
 			};
 			double vector[model_param_count];
 		};
@@ -942,8 +942,8 @@ namespace gct3_model {
 			1_min,
 		//	dqscm, iqscm
 			-1,    -1,
-		//	ci_0, ci_1, ci_2
-			-1,   -1,   -1
+		//	ci_0, ci_1, ci_off
+			-1,   -1,   0
 	}} };
 
 	const TParameters default_parameters = { { {
@@ -968,8 +968,8 @@ namespace gct3_model {
 			5_min,
 		//	dqscm, iqscm
 			0,     0,
-		//	ci_0, ci_1, ci_2
-			0,    0,    0,
+		//	ci_0, ci_1, ci_off
+			0,    0,    0.5,
 	}} };
 
 	const TParameters upper_bounds = { { {
@@ -994,7 +994,7 @@ namespace gct3_model {
 			2_hr,
 		//	dqscm, iqscm
 			1,     1,
-		//	ci_0, ci_1, ci_2
+		//	ci_0, ci_1, ci_off
 			1,    1,    1
 	}} };
 }

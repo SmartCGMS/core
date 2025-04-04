@@ -138,9 +138,9 @@ CGCT3_Discrete_Model::CGCT3_Discrete_Model(scgms::IModel_Parameter_Vector* param
 	cins.Set_Persistent(true);
 	cins.Set_Name(L"Circadian Is");
 
-	cins.Add_Knot(0.25, mParameters.ci_0);
-	cins.Add_Knot(0.5, mParameters.ci_1);
-	cins.Add_Knot(0.75, mParameters.ci_2);
+	cins.Add_Knot(0.0, mParameters.ci_0);
+	cins.Add_Knot(mParameters.ci_off, mParameters.ci_1);
+	cins.Add_Knot(1.0, mParameters.ci_0);
 
 	//// Glucose subsystem links
 
