@@ -54,7 +54,7 @@
 #include <scgms/rtl/Eigen_Buffer.h>
 #include <scgms/utils/DebugHelper.h>
 
-namespace metade {
+namespace metade_v2 {
 	
 	//Mutation strategy
 	enum class NStrategy : size_t { desPolynomial = 0, desSBX_Children, desCurrentToPBest, desCurrentToUmPBest, desBest2Bin, desUmBest1, desCurrentToRand1, desTournament, desSBX_Alike_Random, desSBX_Alike_PBest, count };
@@ -89,7 +89,11 @@ namespace metade {
 		NFitness_Strategy fitness_strategy = NFitness_Strategy::Master;
 
 		solver::TFitness current_fitness{ solver::Nan_Fitness };
-		solver::TFitness *next_fitness = nullptr;		
+		solver::TFitness *next_fitness = nullptr;
+
+		std::vector<bool> recent_recombinations;
+		std::vector<size_t> successeful_recombinations;
+		size_t total_recombinations = 0;	//1 to avoid division by zero
 	};
 
 	struct TMetaDE_Stats {
@@ -107,7 +111,7 @@ namespace metade {
 }
 
 template <typename TUsed_Solution, typename TRandom_Device = std::random_device>
-class CMetaDE {
+class CMetaDEv2 {
 	protected:
 		static constexpr size_t mPBest_Count = 5;
 		const double mCR_min = 0.0;
@@ -119,11 +123,11 @@ class CMetaDE {
 		const bool mPrint_Brief_Statistics = true;
 		std::chrono::high_resolution_clock::time_point mSolve_Start_Time, mSolve_Stop_Time;
 
-		std::vector<metade::TMetaDE_Stats> mStatistics;
+		std::vector<metade_v2::TMetaDE_Stats> mStatistics;
 
 		const TUsed_Solution mLower_Bound;
 		const TUsed_Solution mUpper_Bound;
-		using TCandidate_Solution = metade::TMetaDE_Candidate_Solution<TUsed_Solution>;
+		using TCandidate_Solution = metade_v2::TMetaDE_Candidate_Solution<TUsed_Solution>;
 		std::vector<TCandidate_Solution, AlignmentAllocator<TCandidate_Solution>> mPopulation;
 		std::vector<size_t> mPopulation_Best;	//indexes into mPopulation sorted by mPopulation's member's current fitness
 		//we do not sort mPopulation due to performance costs and not to loose population diversity
@@ -136,7 +140,7 @@ class CMetaDE {
 		inline static TRandom_Device mRandom_Generator;
 		inline static thread_local std::uniform_real_distribution<double> mUniform_Distribution_dbl{ 0.0, 1.0 };
 		inline static thread_local std::uniform_int_distribution<size_t> mUniform_Distribution_PBest{ 0, mPBest_Count - 1 };
-		inline static thread_local std::uniform_int_distribution<size_t> mUniform_Distribution_Strategy{ 0, static_cast<size_t>(metade::NStrategy::count) - 1 };
+		inline static thread_local std::uniform_int_distribution<size_t> mUniform_Distribution_Strategy{ 0, static_cast<size_t>(metade_v2::NStrategy::count) - 1 };
 		inline static thread_local std::uniform_int_distribution<size_t> mUniform_Distribution_Fitness_Strategy{ 0, static_cast<size_t>(NFitness_Strategy::count) - 1 };
 		solver::TSolver_Setup mSetup;
 
@@ -147,8 +151,8 @@ class CMetaDE {
 
 		void Take_Statistics_Snapshot(void) {
 			//just takes a current snapshot of the population
-			metade::TMetaDE_Stats snapshot;
-			for (size_t j = 0; j < static_cast<size_t>(metade::NStrategy::count); j++) {
+			metade_v2::TMetaDE_Stats snapshot;
+			for (size_t j = 0; j < static_cast<size_t>(metade_v2::NStrategy::count); j++) {
 				snapshot.strategy_counter[j] = 0;
 				snapshot.strategy_fitness[j] = std::numeric_limits<double>::max();
 			}
@@ -188,22 +192,22 @@ class CMetaDE {
 			dprintf("\n\nStatistics begin\n\n");
 
 			dprintf("Iteration; best");
-			for (auto i = static_cast<metade::NStrategy>(0); i < metade::NStrategy::count; metade::increment(i)) {
-				dprintf((char*)"; %s_fit", (char*)metade::strategy_name.find(i)->second);
+			for (auto i = static_cast<metade_v2::NStrategy>(0); i < metade_v2::NStrategy::count; metade_v2::increment(i)) {
+				dprintf((char*)"; %s_fit", (char*)metade_v2::strategy_name.find(i)->second);
 			}
 
-			for (auto i = static_cast<metade::NStrategy>(0); i < metade::NStrategy::count; metade::increment(i)) {
-				dprintf((char*)"; %s_cnt", (char*)metade::strategy_name.find(i)->second);
+			for (auto i = static_cast<metade_v2::NStrategy>(0); i < metade_v2::NStrategy::count; metade_v2::increment(i)) {
+				dprintf((char*)"; %s_cnt", (char*)metade_v2::strategy_name.find(i)->second);
 			}
 
 			for (size_t i = 0; i < mStatistics.size(); i++) {
 				dprintf((char*)"\n%d; %g", i, mStatistics[i].best_fitness);
 
-				for (size_t j = 0; j < static_cast<size_t>(metade::NStrategy::count); j++) {
+				for (size_t j = 0; j < static_cast<size_t>(metade_v2::NStrategy::count); j++) {
 					dprintf((char*)"; %g", mStatistics[i].strategy_fitness[j]);
 				}
 
-				for (size_t j = 0; j < static_cast<size_t>(metade::NStrategy::count); j++) {
+				for (size_t j = 0; j < static_cast<size_t>(metade_v2::NStrategy::count); j++) {
 					dprintf((char*)"; %d", mStatistics[i].strategy_counter[j]);
 				}
 			}
@@ -233,7 +237,7 @@ class CMetaDE {
 				solution.strategy_TTL--;		//CR and FR paremeters may have been wrong only, do not change strategy so soon
 			}
 			else {
-				solution.strategy = Generate_New_Strategy<metade::NStrategy>(solution.strategy, mUniform_Distribution_Strategy);
+				solution.strategy = Generate_New_Strategy<metade_v2::NStrategy>(solution.strategy, mUniform_Distribution_Strategy);
 				solution.fitness_strategy = Generate_New_Strategy<NFitness_Strategy>(solution.fitness_strategy, mUniform_Distribution_Fitness_Strategy);
 				solution.strategy_TTL = Max_Strategy_TTL / 2;
 			}
@@ -347,7 +351,7 @@ class CMetaDE {
 		}
 
 	public:
-		CMetaDE(const solver::TSolver_Setup &setup) : 
+		CMetaDEv2(const solver::TSolver_Setup &setup) : 
 			mLower_Bound(Vector_2_Solution<TUsed_Solution>(setup.lower_bound, setup.problem_size)), mUpper_Bound(Vector_2_Solution<TUsed_Solution>(setup.upper_bound, setup.problem_size)),
 			mSetup(solver::Check_Default_Parameters(setup, 100'000, 100)) {
 
@@ -455,6 +459,11 @@ class CMetaDE {
 				//solution.current_fitness = solver::Nan_Fitness;	//next fitness is dereferenced only
 				solution.next_fitness = reinterpret_cast<solver::TFitness*>(&mNext_Fitnesses[i * solver::Maximum_Objectives_Count]);
 				*solution.next_fitness = solution.current_fitness;
+
+				solution.recent_recombinations.resize(mSetup.problem_size);
+				solution.successeful_recombinations.resize(mSetup.problem_size);
+				std::fill(solution.successeful_recombinations.begin(), solution.successeful_recombinations.end(), 1);//1 is needed to get off
+				solution.total_recombinations = 0;
 			}
 
 			//3. finally, create and fill mpopulation indexes
@@ -531,7 +540,7 @@ class CMetaDE {
 					};
 
 					switch (candidate_solution.strategy) {
-						case metade::NStrategy::desCurrentToPBest:
+						case metade_v2::NStrategy::desCurrentToPBest:
 						{
 							const size_t p_index = mUniform_Distribution_PBest(mRandom_Generator);
 							intermediate = candidate_solution.current +
@@ -539,7 +548,7 @@ class CMetaDE {
 								candidate_solution.F * random_difference_vector();
 							break;
 						}
-						case metade::NStrategy::desCurrentToUmPBest:
+						case metade_v2::NStrategy::desCurrentToUmPBest:
 						{
 							const size_t p_index = mUniform_Distribution_PBest(mRandom_Generator);
 							intermediate = candidate_solution.current +
@@ -547,28 +556,28 @@ class CMetaDE {
 								mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector();
 							break;
 						}
-						case metade::NStrategy::desBest2Bin: 
+						case metade_v2::NStrategy::desBest2Bin: 
 						{
 							intermediate = candidate_solution.current +
 								candidate_solution.F * random_difference_vector() +
 								candidate_solution.F * random_difference_vector();
 							break;
 						}
-						case metade::NStrategy::desUmBest1:
+						case metade_v2::NStrategy::desUmBest1:
 						{
 							intermediate = candidate_solution.current +
 								candidate_solution.F*(mPopulation[mPopulation_Best[0]].current - candidate_solution.current) +
 								mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector();
 							break;
 						}
-						case metade::NStrategy::desCurrentToRand1:
+						case metade_v2::NStrategy::desCurrentToRand1:
 						{
 							intermediate = candidate_solution.current +
 								mUniform_Distribution_dbl(mRandom_Generator)*random_difference_vector() +
 								candidate_solution.F*random_difference_vector();
 							break;
 						}
-						case metade::NStrategy::desTournament:
+						case metade_v2::NStrategy::desTournament:
 						{
 							//we choose mPBest_Count-number of random candidates for a direct crossbreeding with the current candidate dst
 
@@ -593,16 +602,16 @@ class CMetaDE {
 							intermediate = mPopulation[best_tournament_index].current;
 							break;
 						}
-						case metade::NStrategy::desSBX_Alike_Random:
+						case metade_v2::NStrategy::desSBX_Alike_Random:
 							intermediate = SBX_alike(true);
 							break;
-						case metade::NStrategy::desSBX_Alike_PBest:
+						case metade_v2::NStrategy::desSBX_Alike_PBest:
 							intermediate = SBX_alike(false);
 							break;
-						case metade::NStrategy::desPolynomial:
+						case metade_v2::NStrategy::desPolynomial:
 							intermediate = Polynomial_Mutation(candidate_solution);
 							break;
-						case metade::NStrategy::desSBX_Children:
+						case metade_v2::NStrategy::desSBX_Children:
 						{
 							const size_t p_index = mUniform_Distribution_PBest(mRandom_Generator);
 							intermediate = SBX_Children(candidate_solution, mPopulation[p_index]);
@@ -617,17 +626,26 @@ class CMetaDE {
 
 					//crossbreed aka recombination
 					//it does not make sense for NSGA mutations, which already do it
-					const bool do_recombine = (candidate_solution.strategy != metade::NStrategy::desPolynomial) && (candidate_solution.strategy != metade::NStrategy::desSBX_Children);
+					const bool do_recombine = (candidate_solution.strategy != metade_v2::NStrategy::desPolynomial) && (candidate_solution.strategy != metade_v2::NStrategy::desSBX_Children);
 					if (do_recombine) {
+						std::fill(candidate_solution.recent_recombinations.begin(), candidate_solution.recent_recombinations.end(), false);
+						candidate_solution.total_recombinations++;	//so we do not divide by zero
+
 						for (size_t element_iter = 0; element_iter < solution_size; element_iter++) {
 							if (mUniform_Distribution_dbl(mRandom_Generator) > candidate_solution.CR) {
-								intermediate[element_iter] = candidate_solution.current[element_iter];
+
+								const double likehood = static_cast<double>(candidate_solution.successeful_recombinations[element_iter]) / static_cast<double>(candidate_solution.total_recombinations);
+								if (mUniform_Distribution_dbl(mRandom_Generator) < likehood) {
+									intermediate[element_iter] = candidate_solution.current[element_iter];
+									candidate_solution.recent_recombinations[element_iter] = true;
+								}
 							}
 						}
 
 						//and, we always have to keep at least one original/current element
 						const size_t element_to_replace = mUniform_Distribution_Solution(mRandom_Generator);
 						intermediate[element_to_replace] = candidate_solution.current[element_to_replace];
+						candidate_solution.recent_recombinations[element_to_replace] = true;
 					}
 
 					//and write
@@ -663,6 +681,13 @@ class CMetaDE {
 						Store_Next_Solution(solution.population_index, solution.current);
 						solution.current_fitness = *solution.next_fitness;
 						solution.strategy_TTL = std::min(Max_Strategy_TTL, solution.strategy_TTL + 1);	//increase the chances of keeping a working strategy
+
+
+						//update the recombination strategy probability
+						for (size_t element_iter = 0; element_iter < solution_size; element_iter++) {
+							if (solution.recent_recombinations[element_iter])
+								solution.successeful_recombinations[element_iter]++;
+						}
 					}
 					else {
 						//the offspring is worse than its parents => modify parents' DE parameters
@@ -681,7 +706,7 @@ class CMetaDE {
 			}
 
 			//find the best result and return it
-			const auto result = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const metade::TMetaDE_Candidate_Solution<TUsed_Solution> &a, const metade::TMetaDE_Candidate_Solution<TUsed_Solution> &b) {
+			const auto result = std::min_element(mPopulation.begin(), mPopulation.end(), [&](const metade_v2::TMetaDE_Candidate_Solution<TUsed_Solution> &a, const metade_v2::TMetaDE_Candidate_Solution<TUsed_Solution> &b) {
 				return Compare_Solutions(a.current_fitness, b.current_fitness, mSetup.objectives_count, NFitness_Strategy::Master);
 			});
 

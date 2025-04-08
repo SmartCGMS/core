@@ -52,7 +52,7 @@
 	#include <Windows.h>
 #endif
 
-#if ((defined(__x86_64__) || defined(_M_X64))) && __has_include(<immintrin.h>)
+#if ((defined(__x86_64__) || defined(_M_X64))) && __has_include(<immintrin.h>) && defined(__AVX2__)
 	#include <immintrin.h>
 
 	int rdrand64_step(uint64_t* random_val) {
