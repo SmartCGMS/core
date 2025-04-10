@@ -67,6 +67,26 @@ class CMeasured_Values_At_Single_Time {
 		double mMeasured_At = std::numeric_limits<double>::quiet_NaN();
 		std::map<const GUID, TValue> mValues;
 
+		template <typename T, typename D>
+		bool accumulate(const GUID& signal_id, T const& val) {
+			bool accumulated = false;
+			auto base = CMeasured_Values_At_Single_Time::get<D>(signal_id);
+			if (base.has_value()) {
+				if constexpr (std::is_same<D, T>::value) {
+					mValues[signal_id] = base.value() + val;
+					accumulated = true;
+				}
+				else if constexpr (std::is_same<TValue, T>::value) {
+					auto addend = std::get_if<D>(&val);
+					if (addend) {
+						mValues[signal_id] = base.value() + *addend;
+						accumulated = true;
+					}
+				}
+			}
+
+			return accumulated;
+		}
 	public:
 		void set_measured_at(const double measured_at) {
 			mMeasured_At = measured_at;
@@ -75,9 +95,21 @@ class CMeasured_Values_At_Single_Time {
 			return mMeasured_At;
 		}
 
+
 		template <typename T>
-		void push(const GUID &signal_id, T const& val) {
-			mValues[signal_id] = val;
+		void push(const GUID &signal_id, T const &val, const bool can_accumulate) {
+			//datasets are usually broken, for example a patient may log two meals at the same time
+			//=> we cannot choose one, but we have to account them both to reduce the human error in logging
+			//on the other, we cannot do this e.g.; with time stamps						
+			bool accumulated = false;
+			if (can_accumulate) {		
+				accumulated = accumulate<T, double>(signal_id, val);
+				if (!accumulated)
+					accumulated = accumulate<T, std::string>(signal_id, val);
+			} 
+			
+			if (!accumulated)
+				mValues[signal_id] = val;
 		}
 
 		template <typename T>
@@ -111,9 +143,9 @@ class CMeasured_Values_At_Single_Time {
 			}
 		}
 
-		void update(const CMeasured_Values_At_Single_Time& other) {
-			other.enumerate([this](const GUID sig, const TValue& val) {
-				this->push(sig, val);
+		void update(const CMeasured_Values_At_Single_Time& other, const std::set<GUID>& accumulation_map) {
+			other.enumerate([this, &accumulation_map](const GUID sig, const TValue& val) {
+				this->push(sig, val, accumulation_map.find(sig) != accumulation_map.end());
 			});
 		}
 };
@@ -128,7 +160,7 @@ class CMeasured_Levels {
 		TSet mLevels{ Measured_Value_Comparator };
 
 	public:
-		bool update(const CMeasured_Values_At_Single_Time& val);
+		bool update(const CMeasured_Values_At_Single_Time& val, const std::set<GUID>& accumulation_map);
 
 		TSet::iterator begin();
 		TSet::iterator end();
@@ -160,7 +192,7 @@ class CMeasured_Levels {
 
 /*
 * When coding, it looks as the best solution to:
-* 1. maintain single datetime-level pairs as stuct{uint_64t idx, double level}, where the reamining 6bytes woudl be 8-bytes double with two least bytes
+* 1. maintain single datetime-level pairs as stuct{uint_64t idx, double level}, where the remaining 6bytes would be 8-bytes double with two least bytes
 *	 zeroed and encoding delta from the previous time stamp. As it won't encode a day, then the missing two bytes should be just OK.
 * 2. encode any other datetime and multiple levels/or single text event would be encoded as the CMeasure Value as single time
 *	

@@ -40,13 +40,13 @@ bool Measured_Value_Comparator(const CMeasured_Values_At_Single_Time& a, const C
 	return a.measured_at() < b.measured_at(); 
 };
 
-bool CMeasured_Levels::update(const CMeasured_Values_At_Single_Time& val) {
+bool CMeasured_Levels::update(const CMeasured_Values_At_Single_Time& val, const std::set<GUID> &accumulation_map) {
 	if (val.valid()) {
 		//unlikely, but we may need to update via removal due to the const iterators
 		auto iter = mLevels.find(val);
 		if (iter != mLevels.end()) {
 			CMeasured_Values_At_Single_Time tmp = *iter;
-			tmp.update(val);
+			tmp.update(val, accumulation_map);
 			mLevels.erase(iter);
 
 			mLevels.insert(tmp);

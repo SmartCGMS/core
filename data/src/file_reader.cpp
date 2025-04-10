@@ -357,7 +357,7 @@ TValue_Vector CFile_Reader::Extract() {
 		//a then, we merge the locally extracted data to the master CMeasured_Levels
 		if (!extracted_data.empty()) {
 			for (const auto& elem : extracted_data) {
-				master.update(elem);
+				master.update(elem, std::set<GUID>{});	//not merging here as this would be way too much unexpected
 			}
 		} else {
 			Emit_Info(scgms::NDevice_Event_Code::Error, L"No data extracted from: " + files_to_extract[fileIndex].wstring());
