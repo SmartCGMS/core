@@ -38,11 +38,23 @@
 
 #include <scgms/rtl/SolverLib.h>
 
+//#define GCT3_ENABLE_DEBUG_DRAWING
+
+#ifdef GCT3_ENABLE_DEBUG_DRAWING
+#include <scgms/utils/drawing/DebugDrawing.h>
+debug_drawing::CCoupled_Drawing gDebugDrawing;
+#endif
+
 // this selects GCTv3 support implementations
 using namespace gct3_model;
 
 /** model-wide constants **/
 
+// how much time is needed to initialize the model; this does not necessarily mean reaching steady state,
+// as the data may contain some tendency at the beginning of the segment
+constexpr double Init_Time_Delta = scgms::One_Hour * 2;
+
+// molar weight of glucose
 constexpr const double Glucose_Molar_Weight = 180.156; // [g/mol]
 
 static inline void Ensure_Min_Value(double& target, double value) {
@@ -173,8 +185,9 @@ CGCT3_Discrete_Model::CGCT3_Discrete_Model(scgms::IModel_Parameter_Vector* param
 
 	// glucose appearance due to exercise
 	q_src.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(q1,
-		[&emp, this](CDepot_Link& link) {
+		[&emp, &elt, this](CDepot_Link& link) {
 			link.Add_Moderator<CPA_Production_Moderation_Function>(emp, mParameters.q_ep);
+			link.Add_Moderator<CPA_Production_Moderation_Function>(elt, mParameters.e_Si);
 		},
 		CTransfer_Function::Start,
 		CTransfer_Function::Unlimited,
@@ -414,6 +427,11 @@ HRESULT CGCT3_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 				// res = S_OK; - do not unless we have another signal called consumed CHO
 			}
 		}
+#ifdef GCT3_ENABLE_DEBUG_DRAWING
+		else if (event.event_code() == scgms::NDevice_Event_Code::Shut_Down) {
+			gDebugDrawing.Render_SVG("gct3.svg", 800, 600);
+		}
+#endif
 	}
 
 	if (res == S_FALSE) {
@@ -468,6 +486,21 @@ HRESULT IfaceCalling CGCT3_Discrete_Model::Step(const double time_advance_delta)
 
 		Emit_All_Signals(time_advance_delta);
 
+#ifdef GCT3_ENABLE_DEBUG_DRAWING
+		gDebugDrawing.Get("G1").Push_Value(mLast_Time, mCompartments[NGCT_Compartment::Glucose_1].Get_Concentration());
+		gDebugDrawing.Get("G2").Push_Value(mLast_Time, mCompartments[NGCT_Compartment::Glucose_2].Get_Concentration());
+		gDebugDrawing.Get("Gsc").Push_Value(mLast_Time, mCompartments[NGCT_Compartment::Glucose_Subcutaneous].Get_Concentration());
+		gDebugDrawing.Get("I").Push_Value(mLast_Time, mCompartments[NGCT_Compartment::Insulin_Base].Get_Concentration());
+		gDebugDrawing.Get("I").Set_Custom_Max_Y(100.0);
+		gDebugDrawing.Get("Isc").Push_Value(mLast_Time, mCompartments[NGCT_Compartment::Insulin_Subcutaneous].Get_Concentration());
+		gDebugDrawing.Get("X").Push_Value(mLast_Time, mCompartments[NGCT_Compartment::Insulin_Remote].Get_Concentration());
+		gDebugDrawing.Get("PA").Push_Value(mLast_Time, mPhysical_Activity.Get_Quantity());
+		gDebugDrawing.Get("Emp").Push_Value(mLast_Time, mCompartments[NGCT_Compartment::Physical_Activity_Glucose_Moderation_Short_Term].Get_Concentration());
+		gDebugDrawing.Get("Emu").Push_Value(mLast_Time, mCompartments[NGCT_Compartment::Physical_Activity_Glucose_Moderation_Short_Term].Get_Concentration());
+		gDebugDrawing.Get("Elt").Push_Value(mLast_Time, mCompartments[NGCT_Compartment::Physical_Activity_Glucose_Moderation_Long_Term].Get_Concentration());
+		gDebugDrawing.Get("Cins").Push_Value(mLast_Time, mCompartments[NGCT_Compartment::Circadian_Insulin].Get_Concentration());
+#endif
+
 		rc = S_OK;
 	}
 	else if (time_advance_delta == 0.0) {
@@ -497,7 +530,7 @@ HRESULT IfaceCalling CGCT3_Discrete_Model::Initialize(const double current_time,
 
 	if (std::isnan(mLast_Time)) {
 
-		mLast_Time = current_time;
+		mLast_Time = current_time - Init_Time_Delta;
 		mSegment_Id = segment_id;
 
 		// this is a subject of future re-evaluation - how to consider initial conditions for food-related patient state
@@ -512,8 +545,29 @@ HRESULT IfaceCalling CGCT3_Discrete_Model::Initialize(const double current_time,
 		mInsulin_Pump.Initialize(mLast_Time, 0.0, 0.0, 0.0);
 
 		for (auto& cmp : mCompartments) {
-			cmp.Init(current_time);
+			cmp.Init(current_time - Init_Time_Delta);
 		}
+
+		// step all compartments for Init_Time_Delta, assume 5 minute step size
+		constexpr size_t microStepCount = static_cast<size_t>(Init_Time_Delta / (scgms::One_Minute * 5));
+		const double microStepSize = Init_Time_Delta / static_cast<double>(microStepCount);
+		const double oldTime = mLast_Time;
+		const double futureTime = mLast_Time + Init_Time_Delta;
+		// stepping scope
+		{
+			for (size_t i = 0; i < microStepCount; i++) {
+				// step all compartments
+				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
+					comp.Step(mLast_Time);
+				});
+				// commit all compartments
+				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
+					comp.Commit(mLast_Time);
+				});
+				mLast_Time = oldTime + static_cast<double>(i) * microStepSize;
+			}
+		}
+		mLast_Time = futureTime; // to avoid precision loss
 
 		return S_OK;
 	}

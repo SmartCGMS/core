@@ -491,6 +491,9 @@ namespace signal_descriptor {
 	const scgms::TSignal_Descriptor cob_desc{ scgms::signal_COB, dsSignal_GUI_Name_COB, L"", scgms::NSignal_Unit::Other, 0xFF55DD55, 0xFF55DD55, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 0.1 };
 	const scgms::TSignal_Descriptor cho_in_desc{ scgms::signal_Carb_Intake, dsSignal_GUI_Name_Carbs, L"", scgms::NSignal_Unit::g, 0xF00AA00, 0xF00AA00, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::cross, nullptr, 0.1 };
 	const scgms::TSignal_Descriptor cho_resc_desc{ scgms::signal_Carb_Rescue, dsSignal_GUI_Name_Carb_Rescue, L"", scgms::NSignal_Unit::g, 0xFF80FF80, 0xFF80FF80, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::cross, nullptr, 0.1 };
+	const scgms::TSignal_Descriptor protein_in_desc{ scgms::signal_Protein_Intake, dsSignal_GUI_Name_Proteins, L"", scgms::NSignal_Unit::g, 0xFF00AAAA, 0xFF00AAAA, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::cross, nullptr, 0.1 };
+	const scgms::TSignal_Descriptor fat_in_desc{ scgms::signal_Fat_Intake, dsSignal_GUI_Name_Fats, L"", scgms::NSignal_Unit::g, 0xFFAAAA00, 0xFFAAAA00, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::cross, nullptr, 0.1 };
+	const scgms::TSignal_Descriptor fiber_in_desc{ scgms::signal_Dietary_Fiber, dsSignal_GUI_Name_Fiber, L"", scgms::NSignal_Unit::g, 0xFFAAAAAA, 0xFFAAAAAA, scgms::NSignal_Visualization::mark, scgms::NSignal_Mark::cross, nullptr, 0.1 };
 	const scgms::TSignal_Descriptor phys_act_desc{ scgms::signal_Physical_Activity, dsSignal_GUI_Name_Physical_Activity, L"", scgms::NSignal_Unit::Percent, 0xFF8F8F00, 0xFF8F8F00, scgms::NSignal_Visualization::step, scgms::NSignal_Mark::none, nullptr, 10.0 };
 
 	const scgms::TSignal_Descriptor skin_temp_desc{ scgms::signal_Skin_Temperature, dsSignal_GUI_Name_Skin_Temperature, L"", scgms::NSignal_Unit::Percent, 0xFF808080, 0xFF808080, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 0.1 };
@@ -505,8 +508,12 @@ namespace signal_descriptor {
 	const scgms::TSignal_Descriptor ins_sens_desc{ scgms::signal_Insulin_Sensitivity, dsSignal_GUI_Name_Insulin_Sensitivity, L"", scgms::NSignal_Unit::Other, 0xFF0088DD, 0xFF0088DD, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 	const scgms::TSignal_Descriptor carb_ratio_desc{ scgms::signal_Carb_Ratio, dsSignal_GUI_Name_Carb_Ratio, L"", scgms::NSignal_Unit::Other, 0xFF00DD88, 0xFF00DD88, scgms::NSignal_Visualization::smooth, scgms::NSignal_Mark::none, nullptr, 1.0 };
 
-	const std::array<scgms::TSignal_Descriptor, 28> signals = { {bg_desc, bg_cal_desc, ig_desc, isig_desc, req_bolus_desc, req_ibr_desc, del_bolus_desc, del_ins_total_desc, del_ibr_desc, ins_act_desc, iob_desc, cob_desc, cho_in_desc, cho_resc_desc, phys_act_desc,
-																 skin_temp_desc, air_temp_desc, heartbeat_desc, eda_desc, steps_desc, accel_desc, sleep_quality_desc, ins_sens_desc, carb_ratio_desc, req_iidr_desc, del_iidr_desc, del_ihins_desc, movspeed_desc} };
+	const std::array<scgms::TSignal_Descriptor, 31> signals = { {
+			bg_desc, bg_cal_desc, ig_desc, isig_desc, req_bolus_desc, req_ibr_desc, del_bolus_desc, del_ins_total_desc, del_ibr_desc, ins_act_desc, iob_desc, cob_desc, cho_in_desc, cho_resc_desc,
+			protein_in_desc, fat_in_desc, fiber_in_desc, phys_act_desc, skin_temp_desc, air_temp_desc, heartbeat_desc, eda_desc, steps_desc, accel_desc, sleep_quality_desc, ins_sens_desc, carb_ratio_desc,
+			req_iidr_desc, del_iidr_desc, del_ihins_desc, movspeed_desc
+		}
+	};
 }
 
 namespace feedback_sender {
