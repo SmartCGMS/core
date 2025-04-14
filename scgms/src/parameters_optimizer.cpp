@@ -384,9 +384,10 @@ class  CParameters_Optimizer {
 
 								if (success) {
 									success = dst_link->add(&deep_copy, &deep_copy + 1) == S_OK;
-									if (!success) {
-										deep_copy->Release();
-									}
+
+									// we either release it due to success being false (and thus releasing immediatelly)
+									// or release to pass ownership to dst_link
+									deep_copy->Release();
 								}
 							}
 						});
@@ -500,6 +501,8 @@ class  CParameters_Optimizer {
 				return true;
 			}
 
+			bool success = false;
+
 			scgms::SFilter_Chain_Configuration reduced_filter_configuration = Deep_Copy_Subconfiguration(0, optimizing_body_begin, mConfiguration, false);
 
 			std::recursive_mutex communication_guard;
@@ -514,16 +517,18 @@ class  CParameters_Optimizer {
 
 				if (composite_filter.Build_Filter_Chain(reduced_filter_configuration.get(), &terminal_filter, mOn_Filter_Created, mOn_Filter_Created_Data, error_description) == S_OK) {
 					terminal_filter.Wait_For_Shutdown();
-					return true;
+					success = true;
 				}
 				else {
 					composite_filter.Clear();	//terminate for sure
 					mEvents_To_Replay_Master_Copy.clear(); //sanitize as this might have been filled partially
 					error_description.push(dsFailed_to_execute_first_filters);
 
-					return false;
+					success = false;
 				}
 			}
+
+			return success;
 		}
 
 	protected:
