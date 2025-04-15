@@ -276,6 +276,8 @@ bool CFile_Format_Rules::Load_Series_Descriptors(CSimpleIniA& ini) {
 			desc.comment_name = trim(value);
 		}
 
+		desc.can_accumulate = ini.GetBoolValue(section.pItem, "can_accumulate", false);		
+
 		value = ini.GetValue(section.pItem, "conversion");
 		if (value) {
 			if (!desc.conversion.init(trim(value))) {
@@ -355,4 +357,9 @@ bool CFile_Format_Rules::Load_Additional_Format_Layout(const filesystem::path& p
 	}
 
 	return Load_Format_Definition(ini);
+}
+
+
+const std::vector<std::wstring>& CFile_Format_Rules::Get_Errors() const {
+	return mErrors;
 }

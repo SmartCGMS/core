@@ -41,6 +41,7 @@
 
 #include "HaltonDevice.h"
 #include "MetaDE.h"
+#include "MetaDEv2.h"
 #include "PSO.h"
 #include "Sequential_Brute_Force_Scan.h"
 #include "Sequential_Convex_Scan.h"
@@ -75,6 +76,9 @@ class CSolution_Dispatcher {
 		
 			using TRandom_MetaDE = CMetaDE<TUsed_Solution, std::random_device>;
 			mSolver_Id_Map[rnd_metade::id] = std::bind(&Solve_By_Class<TRandom_MetaDE, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
+
+			using TRandom_MetaDEv2 = CMetaDEv2<TUsed_Solution, std::random_device>;
+			mSolver_Id_Map[rnd_metadev2::id] = std::bind(&Solve_By_Class<TRandom_MetaDEv2, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 
 			mSolver_Id_Map[sequential_brute_force_scan::id] = std::bind(&Solve_By_Class<CSequential_Brute_Force_Scan<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);
 			mSolver_Id_Map[sequential_convex_scan::id] = std::bind(&Solve_By_Class<CSequential_Convex_Scan<TUsed_Solution>, TUsed_Solution>, std::placeholders::_1, std::placeholders::_2);		

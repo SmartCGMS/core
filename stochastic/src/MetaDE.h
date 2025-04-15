@@ -77,7 +77,7 @@ namespace metade {
 
 	template <typename TUsed_Solution>
 	struct TMetaDE_Candidate_Solution {
-		TUsed_Solution current;		//declared as first to aid the alignement
+		TUsed_Solution current;		//declared as first to aid the alignment
 
 		size_t population_index = 0;	//only because of the tournament and =0 to keep static analyzer happy
 		NStrategy strategy = NStrategy::desCurrentToPBest;
@@ -89,7 +89,7 @@ namespace metade {
 		NFitness_Strategy fitness_strategy = NFitness_Strategy::Master;
 
 		solver::TFitness current_fitness{ solver::Nan_Fitness };
-		solver::TFitness *next_fitness = nullptr;
+		solver::TFitness *next_fitness = nullptr;		
 	};
 
 	struct TMetaDE_Stats {
@@ -617,14 +617,15 @@ class CMetaDE {
 
 					//crossbreed aka recombination
 					//it does not make sense for NSGA mutations, which already do it
-					if ((candidate_solution.strategy != metade::NStrategy::desPolynomial) && (candidate_solution.strategy != metade::NStrategy::desSBX_Children)) {
+					const bool do_recombine = (candidate_solution.strategy != metade::NStrategy::desPolynomial) && (candidate_solution.strategy != metade::NStrategy::desSBX_Children);
+					if (do_recombine) {
 						for (size_t element_iter = 0; element_iter < solution_size; element_iter++) {
 							if (mUniform_Distribution_dbl(mRandom_Generator) > candidate_solution.CR) {
 								intermediate[element_iter] = candidate_solution.current[element_iter];
 							}
 						}
 
-						//and, we alway have to keep at least one original/current element
+						//and, we always have to keep at least one original/current element
 						const size_t element_to_replace = mUniform_Distribution_Solution(mRandom_Generator);
 						intermediate[element_to_replace] = candidate_solution.current[element_to_replace];
 					}
@@ -661,7 +662,7 @@ class CMetaDE {
 						//dst.current = dst.next;
 						Store_Next_Solution(solution.population_index, solution.current);
 						solution.current_fitness = *solution.next_fitness;
-						solution.strategy_TTL = std::max(Max_Strategy_TTL, solution.strategy_TTL + 1);	//increase the chances of keeping a working strategy
+						solution.strategy_TTL = std::min(Max_Strategy_TTL, solution.strategy_TTL + 1);	//increase the chances of keeping a working strategy
 					}
 					else {
 						//the offspring is worse than its parents => modify parents' DE parameters

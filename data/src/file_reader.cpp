@@ -357,7 +357,7 @@ TValue_Vector CFile_Reader::Extract() {
 		//a then, we merge the locally extracted data to the master CMeasured_Levels
 		if (!extracted_data.empty()) {
 			for (const auto& elem : extracted_data) {
-				master.update(elem);
+				master.update(elem, std::set<GUID>{});	//not merging here as this would be way too much unexpected
 			}
 		} else {
 			Emit_Info(scgms::NDevice_Event_Code::Error, L"No data extracted from: " + files_to_extract[fileIndex].wstring());
@@ -385,6 +385,17 @@ HRESULT IfaceCalling CFile_Reader::Do_Configure(scgms::SFilter_Configuration con
 				msg += additional_file_format_rules_path.wstring();
 				error_description.push(msg);
 				rc = MK_E_CANTOPENFILE;
+			}
+		}
+
+		{
+			auto errs = mFile_Format_Rules.Get_Errors();
+			if (!errs.empty()) {
+				error_description.push(L"There were errors, while parsing custom file format rules:");
+				for (const auto& err : errs) {
+					error_description.push(err);
+				}
+				rc = RPC_S_ENTRY_NOT_FOUND;
 			}
 		}
 

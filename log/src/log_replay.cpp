@@ -173,7 +173,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 		if (line.find(dsLog_Header) == 0) {
 			continue; //likely to concatenated logs
 		}
-
+		
 		try {
 
 			// skip; logical time is not modifiable, and there's no point in loading it anyway
@@ -184,7 +184,7 @@ void CLog_Replay_Filter::Replay_Log(const filesystem::path& log_filename, uint64
 			if (std::isnan(device_time)) {
 				std::wstring msg{ dsUnknown_Date_Time_Format };
 				msg.append(specificval);
-				emit_parsing_exception_w(msg, line_counter);
+				emit_parsing_exception_w(msg, line_counter);				
 				return;
 			}
 

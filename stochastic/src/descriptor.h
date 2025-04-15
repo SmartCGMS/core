@@ -47,8 +47,12 @@ namespace halton_metade {
 	constexpr GUID id = { 0x1274b08, 0xf721, 0x42bc, { 0xa5, 0x62, 0x5, 0x56, 0x71, 0x4c, 0x56, 0x85 } };
 }
 
-namespace rnd_metade {		//std::random_device, should be cryprographicallly secure depending on the implementation
+namespace rnd_metade {		//std::random_device, should be cryptographically secure depending on the implementation
 	constexpr GUID id = { 0x2332f9a7, 0x39a2, 0x4fd6, { 0x90, 0xd5, 0x90, 0xb8, 0x85, 0x20, 0x18, 0x69 } };
+}
+
+namespace rnd_metadev2 {
+	constexpr GUID id = { 0x2c4cb66a, 0x3188, 0x4cc2, { 0x90, 0xd5, 0xda, 0x42, 0xe6, 0x3e, 0x63, 0x5c } }; // {2C4CB66A-3188-4CC2-90D5-DA42E63E635C}
 }
 
 namespace xss_metade {

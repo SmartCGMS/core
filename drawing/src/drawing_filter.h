@@ -163,7 +163,7 @@ class CDrawing_Filter : public scgms::CBase_Filter, public scgms::IDrawing_Filte
 		virtual HRESULT IfaceCalling QueryInterface(const GUID*  riid, void ** ppvObj) override final;
 	
 		virtual HRESULT IfaceCalling New_Data_Available() override final;
-		virtual HRESULT IfaceCalling Draw(scgms::TDrawing_Image_Type type, scgms::TDiagnosis diagnosis, refcnt::str_container *svg, refcnt::IVector_Container<uint64_t> *segmentIds, refcnt::IVector_Container<GUID> *signalIds) override final;
+		virtual HRESULT IfaceCalling Draw(scgms::TDrawing_Image_Type type, scgms::NDiagnosis diagnosis, refcnt::str_container *svg, refcnt::IVector_Container<uint64_t> *segmentIds, refcnt::IVector_Container<GUID> *signalIds) override final;
 };
 
 #pragma warning( pop )

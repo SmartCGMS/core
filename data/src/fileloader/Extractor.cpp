@@ -116,6 +116,12 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 
 	source.Set_Cache_Mode(NCache_Mode::Single_Record_Cache);
 
+	std::set<GUID> accumulation_map;
+	for (const auto& elem : cursors[0]) {
+		if (elem.cell.series.can_accumulate)
+			accumulation_map.insert(elem.cell.series.target_signal);
+	}
+
 	for (auto& cursor : cursors) {
 
 		bool read_anything = false;	//keeping compiler happy
@@ -144,7 +150,7 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 
 					if (sig == signal_Comment) {
 						if (!comments.empty()) {
-							comments += "; ";
+							comments += ", ";		//DO NOT put semicolon there as it WILL BREAK the csv log replay!!!
 						}
 						
 						if (!elem.cell.series.comment_name.empty()) {
@@ -178,7 +184,7 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 						}
 
 						if (!std::isnan(val)) {
-							mval.push(sig, val);
+							mval.push(sig, val, elem.cell.series.can_accumulate);
 						}
 					}
 				}
@@ -187,7 +193,7 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 			}
 
 			if (!comments.empty()) {
-				mval.push(signal_Comment, comments);
+				mval.push(signal_Comment, comments, true);
 			}
 
 			if (std::isnan(datetime)) {	//some formats give date and time in separate series
@@ -201,7 +207,7 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 				mval.set_measured_at(datetime);
 
 				//check that mval actually contains any value other than the time, which is always required - done in CMeasuredLevels::update
-				result.update(mval);
+				result.update(mval, accumulation_map);
 			}
 			
 		} while (read_anything);	//EOF proved to be a bad choice due to XML where we disabled adverse effect of modifying xml pos on reading, which should be const only

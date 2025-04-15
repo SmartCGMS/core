@@ -39,7 +39,7 @@
 #include <scgms/iface/DeviceIface.h>
 #include <scgms/rtl/FilterLib.h>
 
-#include "../descriptor.h"
+#include "basal_2_bolus_descriptor.h"
 
 #include <map>
 #include <array>

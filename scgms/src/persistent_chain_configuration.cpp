@@ -148,7 +148,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 
 			//OK, this is filter section - extract the guid
 			const std::wstring section_id_str { name_str.begin() + uspos + 1, name_str.end() };
-			bool section_id_ok;
+			bool section_id_ok = false;
 			const GUID id = WString_To_GUID(section_id_str, section_id_ok);
 			//and get the filter descriptor to load the parameters
 

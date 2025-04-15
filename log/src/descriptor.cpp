@@ -36,8 +36,8 @@
 
 #include "log.h"
 #include "log_replay.h"
+#include "log_replay_descriptor.h"
 
-#include <scgms/iface/UIIface.h>
 #include <scgms/lang/dstrings.h>
 #include <scgms/rtl/manufactory.h>
 #include <scgms/rtl/hresult.h>
@@ -89,60 +89,15 @@ namespace logger {
 	};
 }
 
-namespace log_replay {
-	constexpr size_t param_count = 5;
 
-	constexpr scgms::NParameter_Type param_type[param_count] = {
-		scgms::NParameter_Type::ptWChar_Array,
-		scgms::NParameter_Type::ptBool,
-		scgms::NParameter_Type::ptBool,
-		scgms::NParameter_Type::ptBool,
-		scgms::NParameter_Type::ptBool
-	};
-
-	const wchar_t* ui_param_name[param_count] = {
-		dsLog_Input_File_Or_Dir,
-		dsEmit_Shutdown_Msg,
-		dsInterpret_Filename_As_Segment_Id,
-		dsReset_Segment_Id,
-		dsEmit_All_Events_Before_Shutdown,		
-	};
-
-	const wchar_t* config_param_name[param_count] = {
-		rsLog_Output_File,
-		rsEmit_Shutdown_Msg,
-		rsInterpret_Filename_As_Segment_Id,
-		rsReset_Segment_Id,
-		rsEmit_All_Events_Before_Shutdown
-	};
-
-	const wchar_t* ui_param_tooltips[param_count] = {
-		dsLog_File_Input_Tooltip,
-		nullptr,
-		nullptr,
-		nullptr
-	};
-
-	const scgms::TFilter_Descriptor Log_Replay_Descriptor = {
-		{ 0x172ea814, 0x9df1, 0x657c,{ 0x12, 0x89, 0xc7, 0x18, 0x93, 0xf1, 0xd0, 0x85 } }, // {172EA814-9DF1-657C-1289-C71893F1D085}
-		scgms::NFilter_Flags::None,
-		dsLog_Filter_Replay,
-		param_count,
-		param_type,
-		ui_param_name,
-		config_param_name,
-		ui_param_tooltips
-	};
-}
-
-const std::array<scgms::TFilter_Descriptor, 2> filter_descriptions = { { logger::Log_Descriptor, log_replay::Log_Replay_Descriptor } };
+const std::array<scgms::TFilter_Descriptor, 2> filter_descriptions = { { logger::Log_Descriptor, log_replay::Get_Log_Replay_Descriptor()}};
 
 DLL_EXPORT HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
 	return do_get_descriptors(filter_descriptions, begin, end);
 }
 
 DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter *output, scgms::IFilter **filter) {
-	if (*id == log_replay::Log_Replay_Descriptor.id) {
+	if (*id == log_replay::Log_Replay_Descriptor_ID) {
 		return Manufacture_Object<CLog_Replay_Filter>(filter, output);
 	}
 	else if (*id == logger::Log_Descriptor.id) {

@@ -53,7 +53,8 @@ struct TSeries_Descriptor {
 	std::string comment_name;
 	std::string datetime_format;		//string format used to extract the values
 	GUID target_signal = Invalid_GUID;
-	CValue_Convertor conversion;		//we support expressions to e.g.; make Fahrenheit to Celsius converion easy	
+	CValue_Convertor conversion;		//we support expressions to e.g.; make Fahrenheit to Celsius conversion easy
+	bool can_accumulate = false;
 };
 
 struct TCell_Descriptor {
@@ -104,4 +105,6 @@ class CFile_Format_Rules {
 		TFormat_Signature_Rules Signature_Rules() const;	
 		std::optional<CFormat_Layout> Format_Layout(const std::string& format_name) const;
 		bool Load_Additional_Format_Layout(const filesystem::path& path);
+
+		const std::vector<std::wstring>& Get_Errors() const;
 };

@@ -1,0 +1,14 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/log/msvc
+/scgms/msvc
+/stochastic/msvc
+/drawing/msvc
+/nlopt4scgms/msvc
+/native/msvc
+/data/msvc
+/signal/msvc
+/controllers/msvc
