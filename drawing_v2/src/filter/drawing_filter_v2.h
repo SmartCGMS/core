@@ -75,7 +75,7 @@ class CDrawing_Filter_v2 : public scgms::CBase_Filter, public scgms::IDrawing_Fi
 		ULONG mLogical_Clock = 0;
 
 		// available plots in this implementation
-		static std::array<scgms::TPlot_Descriptor, 2> mAvailable_Plots;
+		static std::array<scgms::TPlot_Descriptor, 3> mAvailable_Plots;
 
 		// registered view handlers (generators)
 		std::map<GUID, TRegistered_View> mViews;

@@ -38,6 +38,7 @@
 
 #include "../views/graph_view.h"
 #include "../views/cvga.h"
+#include "../views/phasespace_view.h"
 #include <scgms/utils/string_utils.h>
 
 #include <set>
@@ -55,15 +56,17 @@
 
 constexpr scgms::TPlot_Descriptor Graph_v2 = { scgms::dcGraph, L"Graph (v2)" };
 constexpr scgms::TPlot_Descriptor CVGA_v2 = { scgms::dcCVGA, L"CVGA (v2)" };
+constexpr scgms::TPlot_Descriptor PhaseSpace_v2 = { scgms::dcPhase_Space, L"Phase-space (v2)" };
 
 // vector of supported views
-std::array<scgms::TPlot_Descriptor, 2> CDrawing_Filter_v2::mAvailable_Plots = { Graph_v2, CVGA_v2 };
+std::array<scgms::TPlot_Descriptor, 3> CDrawing_Filter_v2::mAvailable_Plots = { Graph_v2, CVGA_v2, PhaseSpace_v2 };
 
 CDrawing_Filter_v2::CDrawing_Filter_v2(scgms::IFilter *output) : CBase_Filter(output) {
 
 	// register known views
 	Register_View<CGraph_View>(scgms::dcGraph, drawing_filter_v2::rsConfig_Save_Filename_Graph_View);
 	Register_View<CCVGA_View>(scgms::dcCVGA, drawing_filter_v2::rsConfig_Save_Filename_CVGA);
+	Register_View<CPhase_Space_View>(scgms::dcPhase_Space, L"" );
 }
 
 HRESULT IfaceCalling CDrawing_Filter_v2::QueryInterface(const GUID*  riid, void ** ppvObj) {
@@ -228,19 +231,39 @@ HRESULT IfaceCalling CDrawing_Filter_v2::Draw(const GUID* plot_id, refcnt::str_c
 
 		// copy signal GUIDs
 		if (options->in_signals == nullptr) {
+
+			auto models = scgms::get_model_descriptor_list();
+
 			for (auto& seg : mPlots_Segments) {
 				for (auto& sig : seg.second.mPlots_Signals) {
-					opts.signal_ids.insert(sig.first);
+					opts.signal_ids.push_back(sig.first);
+
+					bool found = false;
+					// find a model that produces given signal ID using a for loop
+					for (auto& model : models) {
+						for (size_t si = 0; si < model.number_of_calculated_signals; si++) {
+							if (model.calculated_signal_ids[si] == sig.first) {
+								// add reference signal ID to the list
+								opts.reference_signal_ids.push_back(model.reference_signal_ids[si]);
+								found = true;
+								break;
+							}
+						}
+
+						if (found) {
+							break;
+						}
+					}
 				}
 			}
 		}
 		else {
-			opts.signal_ids.insert(options->in_signals, options->in_signals + options->signal_count);
+			opts.signal_ids.assign(options->in_signals, options->in_signals + options->signal_count);
 		}
 
 		// copy reference signal GUIDs
 		if (options->reference_signals != nullptr) {
-			opts.reference_signal_ids.insert(options->reference_signals, options->reference_signals + options->signal_count);
+			opts.reference_signal_ids.assign(options->reference_signals, options->reference_signals + options->signal_count);
 		}
 
 		// render
@@ -292,13 +315,31 @@ void CDrawing_Filter_v2::Render_All_To_File_Default() {
 			opts.segment_ids.push_back(seg.first);
 		}
 
+		auto models = scgms::get_model_descriptor_list();
+
 		for (auto& seg : mPlots_Segments) {
 			for (auto& sig : seg.second.mPlots_Signals) {
-				opts.signal_ids.insert(sig.first);
+				opts.signal_ids.push_back(sig.first);
+
+				bool found = false;
+				// find a model that produces given signal ID using a for loop
+				for (auto& model : models) {
+					for (size_t si = 0; si < model.number_of_calculated_signals; si++) {
+						if (model.calculated_signal_ids[si] == sig.first) {
+							// add reference signal ID to the list
+							opts.reference_signal_ids.push_back(model.reference_signal_ids[si]);
+							found = true;
+							break;
+						}
+					}
+
+					if (found) {
+						break;
+					}
+				}
+
 			}
 		}
-
-		// TODO: reference signals caching?
 
 		// render
 		std::string drawing;

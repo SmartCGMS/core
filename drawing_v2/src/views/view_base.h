@@ -90,10 +90,10 @@ struct TDraw_Options_Local {
 
 	std::vector<uint64_t> segment_ids;
 
-	// purposedly an "ordered" set; the ordering matches the ordering in reference_signal_ids set
-	std::set<GUID> signal_ids;
+	// the ordering matches the ordering in reference_signal_ids set
+	std::vector<GUID> signal_ids;
 
-	std::set<GUID> reference_signal_ids;
+	std::vector<GUID> reference_signal_ids;
 
 	int width = 0;
 

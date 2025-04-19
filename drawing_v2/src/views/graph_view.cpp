@@ -70,11 +70,15 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 	double min_y = 0.0;// std::numeric_limits<double>::max(); - not debugged yet
 	double max_y = -std::numeric_limits<double>::max();
 
+	auto vector_contains_guid = [](const std::vector<GUID>& vec, const GUID& val) {
+		return std::find(vec.begin(), vec.end(), val) != vec.end();
+	};
+
 	for (const auto seg_id : opts.segment_ids) {
 		const TPlot_Segment& segment = source.Get_Segment(seg_id);
 
 		for (const auto& signal : segment.mPlots_Signals) {
-			if (opts.signal_ids.find(signal.first) == opts.signal_ids.end()) {
+			if (!vector_contains_guid(opts.signal_ids, signal.first)) {
 				continue;
 			}
 
@@ -166,7 +170,14 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 		.Set_Font_Size(15)
 		.Set_Anchor(drawing::Text::TextAnchor::MIDDLE);
 
-	const double y_step = (max_y - min_y < 10.0) ? 1.0 : 2.0;
+	double y_step = (max_y - min_y < 10.0) ? 1.0 : 2.0;
+
+	size_t y_step_cnt = static_cast<size_t>((max_y - min_y) / y_step);
+	while (y_step_cnt > 20) {
+		y_step *= 2.0;
+
+		y_step_cnt = static_cast<size_t>((max_y - min_y) / y_step);
+	}
 
 	// descriptions on Y axis
 	{
@@ -201,7 +212,7 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 
 		for (const auto& signal : segment.mPlots_Signals) {
 
-			if (opts.signal_ids.find(signal.first) == opts.signal_ids.end()) {
+			if (!vector_contains_guid(opts.signal_ids, signal.first)) {
 				continue;
 			}
 
