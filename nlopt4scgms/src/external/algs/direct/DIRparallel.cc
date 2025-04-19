@@ -43,6 +43,7 @@ static integer c_n1 = -1;
     integer mytid;
     doublereal fscale;
     integer nprocs;
+	integer force_stop;
 
 /* +-----------------------------------------------------------------------+ */
 /* | Parameters                                                            | */
@@ -101,7 +102,8 @@ static integer c_n1 = -1;
 /* | Call Direct main routine. This routine calls DIRSamplef for the       | */
 /* | function evaluations, which are then done in parallel.                | */
 /* +-----------------------------------------------------------------------+ */
-	direct_direct_(fcn, &x[1], n, eps, maxf, maxt, minf, &l[1], &u[1], 
+	// NOTE: adjusted to compile, we dont really use this method - added zeroes and force_stop flag (unused anyways when defined this way)
+	direct_direct_(fcn, &x[1], n, eps, 0, maxf, maxt, 0, 0, &force_stop, minf, &l[1], &u[1],
 		algmethod, ierror, logfile, fglobal, fglper, volper, sigmaper,
 		fcn_data);
 /* +-----------------------------------------------------------------------+ */
@@ -147,7 +149,7 @@ static integer c_n1 = -1;
 /* | Subroutine for sampling. This sampling is done in parallel, the master| */
 /* | prozessor is also evaluating the function sometimes.                  | */
 /* +-----------------------------------------------------------------------+ */
-/* Subroutine */ void direct_dirsamplef_(doublereal *c__, integer *arrayi, doublereal 
+/* Subroutine */ void direct_dirsamplef_parallel_(doublereal *c__, integer *arrayi, doublereal 
 	*delta, integer *sample, integer *new__, integer *length, 
 	FILE *logfile, doublereal *f, integer *free, integer *maxi, 
 	integer *point, fp fcn, doublereal *x, doublereal *l, doublereal *

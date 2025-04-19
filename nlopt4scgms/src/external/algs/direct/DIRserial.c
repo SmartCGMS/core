@@ -14,7 +14,7 @@
 /* +-----------------------------------------------------------------------+ */
 /* | SUBROUTINE for sampling.                                              | */
 /* +-----------------------------------------------------------------------+ */
-/* Subroutine */ void direct_dirsamplef_(doublereal *c__, integer *arrayi, doublereal
+/* Subroutine */ void direct_dirsamplef_serial_(doublereal *c__, integer *arrayi, doublereal
 	*delta, integer *sample, integer *new__, integer *length,
 	FILE *logfile, doublereal *f, integer *free, integer *maxi,
 	integer *point, fp fcn, doublereal *x, doublereal *l, doublereal *

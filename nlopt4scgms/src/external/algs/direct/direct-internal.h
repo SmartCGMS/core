@@ -96,7 +96,7 @@ extern void direct_dirinfcn_(
      void *fcn_data);
 
 /* DIRserial.c / DIRparallel.c */
-extern void direct_dirsamplef_(
+extern void direct_dirsamplef_serial_(
      doublereal *c__, integer *arrayi, doublereal 
      *delta, integer *sample, integer *new__, integer *length, 
      FILE *logfile, doublereal *f, integer *free, integer *maxi, 
@@ -104,6 +104,15 @@ extern void direct_dirsamplef_(
      minf, integer *minpos, doublereal *u, integer *n, integer *maxfunc, 
      const integer *maxdeep, integer *oops, doublereal *fmax, integer *
      ifeasiblef, integer *iinfesiblef, void *fcn_data, int *force_stop);
+
+extern void direct_dirsamplef_parallel_(
+    doublereal* c__, integer* arrayi, doublereal
+    * delta, integer* sample, integer* new__, integer* length,
+    FILE* logfile, doublereal* f, integer* free, integer* maxi,
+    integer* point, fp fcn, doublereal* x, doublereal* l, doublereal*
+    minf, integer* minpos, doublereal* u, integer* n, integer* maxfunc,
+    const integer* maxdeep, integer* oops, doublereal* fmax, integer*
+    ifeasiblef, integer* iinfesiblef, void* fcn_data, int* force_stop);
 
 /* DIRect.c */
 extern void direct_direct_(

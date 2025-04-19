@@ -1293,7 +1293,8 @@ L50:
 /* | JG 01/22/01 Added variable to keep track of the maximum value found.  | */
 /* |             Added variable to keep track if feasible point was found. | */
 /* +-----------------------------------------------------------------------+ */
-    direct_dirsamplef_(&c__[c_offset], &arrayi[1], &delta, &c__1, &new__, &length[
+	// NOTE: choose serial as it is the safer way to run legacy code (out of order execution, etc.)
+    direct_dirsamplef_serial_(&c__[c_offset], &arrayi[1], &delta, &c__1, &new__, &length[
 	    length_offset], logfile, &f[3], free, maxi, &point[
 	    1], fcn, &x[1], &l[1], minf, minpos, &u[1], n, maxfunc,
 	    maxdeep, &oops, fmax, ifeasiblef, iinfeasible, fcndata,

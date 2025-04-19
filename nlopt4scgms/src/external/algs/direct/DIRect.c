@@ -541,7 +541,8 @@
 /* +-----------------------------------------------------------------------+ */
 /* | JG 01/22/01 Added variable to keep track of the maximum value found.  | */
 /* +-----------------------------------------------------------------------+ */
-		direct_dirsamplef_(c__, arrayi, &delta, &help, &start, length,
+		// NOTE: explicitly using serial version of direct_dirsamplef (generally safer for running legacy code on modern HW)
+		direct_dirsamplef_serial_(c__, arrayi, &delta, &help, &start, length,
 			    logfile, f, &ifree, &maxi, point, fcn, &x[
 			1], &l[1], minf, &minpos, &u[1], n, &MAXFUNC, &
 			MAXDEEP, &oops, &fmax, &ifeasiblef, &iinfesiblef, 
