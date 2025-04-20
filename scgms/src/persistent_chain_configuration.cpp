@@ -135,6 +135,17 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 		return std::wstring(a.pItem).compare(b.pItem) < 0;
 	});
 
+	auto get_available_parameter_description = [](const scgms::TFilter_Descriptor& desc, size_t parameter_index) {
+		if (desc.ui_parameter_name[parameter_index]) {
+			return desc.ui_parameter_name[parameter_index];
+		}
+		else if (desc.config_parameter_name[parameter_index]) {
+			return desc.config_parameter_name[parameter_index];
+		}
+
+		return L"???";
+	};
+
 	for (auto& section_name : section_names) {
 		std::wstring name_str{ section_name.pItem };
 		const std::wstring prefix{ rsFilter_Section_Prefix };
@@ -181,7 +192,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 									std::wstring error_desc = dsVar_Not_Set_Filter_Parameter_Value;
 									error_desc.append(desc.description);
 									error_desc.append(L" (2)");
-									error_desc.append(desc.ui_parameter_name[i]);
+									error_desc.append(get_available_parameter_description(desc, i));
 									error_desc.append(L" (3)");
 									error_desc.append(str_value);
 									shared_error_description.push(error_desc.c_str());
@@ -191,7 +202,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 								std::wstring error_desc = dsMalformed_Filter_Parameter_Value;
 								error_desc.append(desc.description);
 								error_desc.append(L" (2)");
-								error_desc.append(desc.ui_parameter_name[i]);
+								error_desc.append(get_available_parameter_description(desc, i));
 								error_desc.append(L" (3)");
 								error_desc.append(str_value);
 								shared_error_description.push(error_desc.c_str());
@@ -203,7 +214,7 @@ HRESULT IfaceCalling CPersistent_Chain_Configuration::Load_From_Memory(const cha
 							std::wstring error_desc = dsFilter_Parameter_Not_Configured;
 							error_desc.append(desc.description);
 							error_desc.append(L" (2)");
-							error_desc.append(desc.ui_parameter_name[i]);
+							error_desc.append(get_available_parameter_description(desc, i));
 							shared_error_description.push(error_desc.c_str());
 						}
 					}
