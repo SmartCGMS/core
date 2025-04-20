@@ -40,6 +40,7 @@
 #include "../views/cvga.h"
 #include "../views/phasespace_view.h"
 #include <scgms/utils/string_utils.h>
+#include <scgms/rtl/FilesystemLib.h>
 
 #include <set>
 #include <cmath>
@@ -64,9 +65,9 @@ std::array<scgms::TPlot_Descriptor, 3> CDrawing_Filter_v2::mAvailable_Plots = { 
 CDrawing_Filter_v2::CDrawing_Filter_v2(scgms::IFilter *output) : CBase_Filter(output) {
 
 	// register known views
-	Register_View<CGraph_View>(scgms::dcGraph, drawing_filter_v2::rsConfig_Save_Filename_Graph_View);
-	Register_View<CCVGA_View>(scgms::dcCVGA, drawing_filter_v2::rsConfig_Save_Filename_CVGA);
-	Register_View<CPhase_Space_View>(scgms::dcPhase_Space, L"" );
+	Register_View<CGraph_View>(scgms::dcGraph, L"graph");
+	Register_View<CCVGA_View>(scgms::dcCVGA, L"cvga");
+	Register_View<CPhase_Space_View>(scgms::dcPhase_Space, L"phasespace");
 }
 
 HRESULT IfaceCalling CDrawing_Filter_v2::QueryInterface(const GUID*  riid, void ** ppvObj) {
@@ -88,11 +89,36 @@ HRESULT IfaceCalling CDrawing_Filter_v2::Do_Configure(scgms::SFilter_Configurati
 		return E_INVALIDARG;
 	}
 
-	std::wstring tmpFilename;
-	for (const auto& view : mViews) {
-		tmpFilename = configuration.Read_File_Path(view.second.output_filename_config_option_name.c_str()).wstring();
-		if (!tmpFilename.empty()) {
-			mOutput_Files.insert({ view.second.id, tmpFilename });
+	if (configuration.Read_Bool(drawing_filter_v2::rsSave_To_File, false)) {
+
+		auto basePath = configuration.Read_File_Path(drawing_filter_v2::rsConfig_Save_Base_Path, L"");
+		if (basePath.empty()) {
+			// use "current working directory" when empty string given
+			basePath = "./";
+		}
+		if (!filesystem::exists(basePath)) {
+			error_description.push(L"Base path does not exist! Create the directory first");
+			return E_INVALIDARG;
+		}
+
+		auto filenameBase = configuration.Read_String(drawing_filter_v2::rsConfig_Save_Filename_Base, L"");
+
+		for (const auto& view : mViews) {
+
+			filesystem::path ph = basePath;
+
+			std::wstring tmpFilename = view.second.output_filename_suffix;
+			if (!filenameBase.empty()) {
+				tmpFilename = filenameBase + L"_" + view.second.output_filename_suffix;
+			}
+
+			tmpFilename += L".svg";
+
+			ph /= tmpFilename;
+
+			if (!tmpFilename.empty()) {
+				mOutput_Files.insert({ view.second.id, tmpFilename });
+			}
 		}
 	}
 

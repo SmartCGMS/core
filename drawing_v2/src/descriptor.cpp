@@ -51,11 +51,12 @@
 
 namespace drawing_filter_v2 {
 
-	constexpr size_t param_count = 4;
+	constexpr size_t param_count = 5;
 
 	const scgms::NParameter_Type param_type[param_count] = {
 		scgms::NParameter_Type::ptInt64,
 		scgms::NParameter_Type::ptInt64,
+		scgms::NParameter_Type::ptBool,
 		scgms::NParameter_Type::ptWChar_Array,
 		scgms::NParameter_Type::ptWChar_Array,
 	};
@@ -63,28 +64,32 @@ namespace drawing_filter_v2 {
 	const wchar_t* ui_param_name[param_count] = {
 		L"Default canvas width",
 		L"Default canvas height",
-		L"Graph view filename",
-		L"CVGA filename",
+		L"Save drawings to file?",
+		L"Base path for drawings",
+		L"Filename base for drawings",
 	};
 
 	const wchar_t* rsConfig_Drawing_Width = L"default_width";
 	const wchar_t* rsConfig_Drawing_Height = L"default_height";
 
-	const wchar_t* rsConfig_Save_Filename_Graph_View = L"graph_view_filename";
-	const wchar_t* rsConfig_Save_Filename_CVGA = L"cvga_filename";
+	const wchar_t* rsSave_To_File = L"save_to_file";
+	const wchar_t* rsConfig_Save_Base_Path = L"save_base_path";
+	const wchar_t* rsConfig_Save_Filename_Base = L"save_filename_base";
 
 	const wchar_t* config_param_name[param_count] = {
 		rsConfig_Drawing_Width,
 		rsConfig_Drawing_Height,
-		rsConfig_Save_Filename_Graph_View,
-		rsConfig_Save_Filename_CVGA,
+		rsSave_To_File,
+		rsConfig_Save_Base_Path,
+		rsConfig_Save_Filename_Base,
 	};
 
 	const wchar_t* ui_param_tooltips[param_count] = {
 		L"Default width of drawing canvas",
 		L"Default height of drawing canvas",
-		L"Save graph view to this file on Shut_Down",
-		L"Save CVGA to this file on Shut_Down",
+		L"Save drawings to file?",
+		L"Save SVGs to this path on Shut_Down",
+		L"Save SVGs with this base name",
 	};
 
 	const wchar_t* filter_name = L"Drawing filter v2";
