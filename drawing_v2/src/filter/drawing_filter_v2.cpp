@@ -51,8 +51,7 @@
  * 1) create descriptor below
  * 2) add it to the mAvailable_Plots array
  * 3) implement a view handler
- * 4) create configuration option to save it to file (descriptor.h and descriptor.cpp)
- * 5) register the view handler for the given view in CDrawing_Filter_v2 constructor with its GUID and the output filename option name
+ * 4) register the view handler for the given view in CDrawing_Filter_v2 constructor with its GUID and the output filename option name
  */
 
 constexpr scgms::TPlot_Descriptor Graph_v2 = { scgms::dcGraph, L"Graph (v2)" };
