@@ -138,6 +138,9 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 	const double firstFullDay = std::floor(min_x + 1.0);
 	const double firstFullHour = std::floor(min_x / scgms::One_Hour) * scgms::One_Hour;
 
+	const double x_range = max_x - min_x;
+
+	if (x_range < 5.0)
 	{
 		double fdx = firstFullHour;
 		do {
@@ -152,6 +155,20 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 		} while (fdx < max_x);
 	}
 
+	double dayStepping = 1.0;
+	if (x_range < 5.0) {
+		dayStepping = 1.0;
+	}
+	else if (x_range < 10.0) {
+		dayStepping = 2.0;
+	}
+	else if (x_range < 20.0) {
+		dayStepping = 4.0;
+	}
+	else {
+		dayStepping = 8.0;
+	}
+
 	{
 		double fdx = firstFullDay;
 		do {
@@ -162,7 +179,7 @@ NDrawing_Error CGraph_View::Draw(std::string& target, const TDraw_Options_Local&
 				.Set_Stroke_Opacity(1.0)
 				.Set_Stroke_Width(1.0);
 
-			fdx += 1.0;
+			fdx += dayStepping;
 		} while (fdx < max_x);
 	}
 
