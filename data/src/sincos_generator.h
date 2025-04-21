@@ -47,11 +47,11 @@
 // helper struct for storing signal generation parameters
 struct TGenerator_Signal_Parameters
 {
-	double offset;
-	double amplitude;
-	double period;
+	double offset = 0.0;
+	double amplitude = 0.0;
+	double period = 0.0;
 
-	double samplingPeriod;
+	double samplingPeriod = 0.0;
 };
 
 #pragma warning( push )
@@ -69,11 +69,11 @@ class CSinCos_Generator : public scgms::CBase_Filter {
 		std::atomic<bool> mExit_Flag;
 
 		// generator parameters for IG
-		TGenerator_Signal_Parameters mIG_Params;
+		TGenerator_Signal_Parameters mIG_Params{};
 		// generator parameters for BG
-		TGenerator_Signal_Parameters mBG_Params;
+		TGenerator_Signal_Parameters mBG_Params{};
 		// total time to be generated
-		double mTotal_Time;
+		double mTotal_Time = 0.0;
 
 	protected:
 		void Run_Generator();
