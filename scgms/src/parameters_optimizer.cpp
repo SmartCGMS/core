@@ -378,12 +378,15 @@ class  CParameters_Optimizer {
 								scgms::IFilter_Parameter* deep_copy = nullptr;
 								success = src_parameter->Clone(&deep_copy) == S_OK;
 
-								if (success && remove_variables) {
-									success = Remove_Variables_From_Parameter(deep_copy);
-								}
-
 								if (success) {
-									success = dst_link->add(&deep_copy, &deep_copy + 1) == S_OK;
+
+									if (remove_variables) {
+										success = Remove_Variables_From_Parameter(deep_copy);
+									}
+
+									if (success) {
+										success = dst_link->add(&deep_copy, &deep_copy + 1) == S_OK;
+									}
 
 									// we either release it due to success being false (and thus releasing immediatelly)
 									// or release to pass ownership to dst_link
