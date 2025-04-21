@@ -234,12 +234,12 @@ double CTemporal_Signal_Error::Calculate_Metric(const uint64_t segment_id) {
 			scaled_err[i] = std::fabs(scaled_err[i] - scaled_ref[i]);
 		}
 
-		auto [lev_minitr, lev_maxitr] = std::minmax(reference_levels.begin(), reference_levels.end());
+		auto [lev_minitr, lev_maxitr] = std::minmax_element(reference_levels.begin(), reference_levels.end());
 		
 		double lev_smin, lev_smax;
 		std::tie(lev_smin, lev_smax) = std::make_pair(*lev_minitr, *lev_maxitr);
 
-		auto [minitr, maxitr] = std::minmax(scaled_err.begin(), scaled_err.end());
+		auto [minitr, maxitr] = std::minmax_element(scaled_err.begin(), scaled_err.end());
 		
 		double smin, smax;
 		std::tie(smin, smax) = std::make_pair(*minitr, *maxitr);
