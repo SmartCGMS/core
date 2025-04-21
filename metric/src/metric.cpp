@@ -318,9 +318,9 @@ double CCrossWalkMetric::Do_Calculate_Metric() {
 			}
 		}
 
-		bool mestocalccross = mCross_Measured_With_Calculated_Only || ((mesA>calcA) && (mesB > calcB)) || ((mesA < calcA) && (mesB < calcB));
+		bool mestocalccross = ((mesA>calcA) && (mesB > calcB)) || ((mesA < calcA) && (mesB < calcB));
 
-		if (mestocalccross) {
+		if (mCross_Measured_With_Calculated_Only || mestocalccross) {
 			//Measured-to-calculated and calculated-to-measured
 			double height = mesA - calcB;	//do not forget fabs when experimenting with odd-powers
 			height *= height;
