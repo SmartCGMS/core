@@ -259,6 +259,8 @@ NDrawing_Error CPhase_Space_View::Draw(std::string& target, const TDraw_Options_
 			bool firstValue = true;
 			double lastX = 0, lastY = 0;
 
+			auto& signal_grp = grp.Add<drawing::Group>(Narrow_WString(L"signal_" + GUID_To_WString(signal.first)));
+
 			for (const auto& val : signal.second.mPlots_Values) {
 
 				auto matching = find_matching_ref_value(val);
@@ -269,7 +271,7 @@ NDrawing_Error CPhase_Space_View::Draw(std::string& target, const TDraw_Options_
 				const double base_x = mCanvas_WidthOff + (opts.width - mCanvas_WidthOff) * ((val.value * desc.value_scale - min_x) / (max_x - min_x));
 				const double base_y = mCanvas_HeightOff - (mCanvas_HeightOff * (matching.value * ref_desc.value_scale / (max_y - min_y)));
 
-				grp.Add<drawing::Circle>(base_x, base_y, 1.0)
+				signal_grp.Add<drawing::Circle>(base_x, base_y, 1.0)
 					.Set_Stroke_Color(RGBColor::From_UInt32(desc.stroke_color, true))
 					.Set_Fill_Color(RGBColor::From_UInt32(desc.fill_color, true))
 					.Set_Stroke_Width(0.5)
@@ -277,7 +279,7 @@ NDrawing_Error CPhase_Space_View::Draw(std::string& target, const TDraw_Options_
 					.Set_Fill_Opacity(1.0);
 
 				if (!firstValue) {
-					grp.Add<drawing::Line>(lastX, lastY, base_x, base_y)
+					signal_grp.Add<drawing::Line>(lastX, lastY, base_x, base_y)
 						.Set_Stroke_Color(RGBColor::From_UInt32(desc.stroke_color, true))
 						.Set_Stroke_Width(1.0)
 						.Set_Stroke_Opacity(0.3);
