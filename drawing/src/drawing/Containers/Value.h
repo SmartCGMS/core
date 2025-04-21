@@ -55,7 +55,6 @@ struct Value {
 
 	double value;
 	time_t date;
-	time_t normalize;
 	uint64_t segment_id;
 };
 

@@ -47,7 +47,7 @@ class Stats;
  */
 class CMobile_Glucose_Generator : public CMobile_Generator {
 	private:
-		double mMinValueY, mMaxValueY;
+		double mMinValueY = 1000.0, mMaxValueY = 0.0;
 		std::pair<time_t, time_t> mTimeRange;
 
 		// image start X coordinate

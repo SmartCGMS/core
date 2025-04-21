@@ -52,7 +52,7 @@ class CGraph_Generator : public IGenerator {
 		scgms::CSignal_Description mSignal_Desc{};
 
 		// maximum value on Y axis
-		double mMaxValueY;
+		double mMaxValueY = 0.0;
 		// time limits
 		time_t mMinD{ 0 }, mMaxD{ 0 }, mDifD{ 0 };
 

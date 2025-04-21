@@ -47,7 +47,7 @@ class SVG {
 		std::stringstream mSvgStream;
 
 		// current stroke width
-		int mWidthStroke;
+		int mWidthStroke = 0;
 		// current stroke color
 		std::string mColor;
 		// current fill color

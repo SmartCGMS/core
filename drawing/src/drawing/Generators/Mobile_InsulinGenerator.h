@@ -48,7 +48,7 @@ class Stats;
 class CMobile_Insulin_Generator : public CMobile_Generator
 {
 	private:
-		double mMaxValueY;
+		double mMaxValueY = 0.0;
 		std::pair<time_t, time_t> mTimeRange;
 
 		// image start X coordinate
