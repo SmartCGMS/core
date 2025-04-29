@@ -71,7 +71,7 @@ class CLog_Filter : public scgms::CBase_Filter, public scgms::ILog_Filter_Inspec
 		bool mIs_Terminated = false;
 	
 		std::mutex mLog_Records_Guard;
-		std::shared_ptr<refcnt::wstr_list> mNew_Log_Records;
+		refcnt::SReferenced<refcnt::wstr_list> mNew_Log_Records;
 
 	protected:
 		std::wofstream Open_Log(const filesystem::path&log_filename);
