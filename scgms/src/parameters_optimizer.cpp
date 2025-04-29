@@ -94,7 +94,7 @@ class CError_Metric_Future {
 		HRESULT On_Filter_Created(scgms::IFilter *filter) {
 
 			if (mError_Metric_Count < mError_Metric.size()) {	//check if we actually have a room to store the promised metric
-				scgms::SSignal_Error_Inspection insp = scgms::SSignal_Error_Inspection{ scgms::SFilter{filter} };
+				scgms::SSignal_Error_Inspection insp = scgms::SSignal_Error_Inspection{ filter };
 				if (insp) {
 					const bool metric_available = insp->Promise_Metric(scgms::All_Segments_Id, &mError_Metric[mError_Metric_Count], true) == S_OK;
 					if (!metric_available) {
@@ -438,7 +438,7 @@ class  CParameters_Optimizer {
 					if (ok) {
 						if (first_feedback_receiver_idx == std::numeric_limits<size_t>::max()) {
 							//try feedback receiver, if have not already found it
-							std::shared_ptr<scgms::IFilter_Feedback_Receiver> feedback_receiver;
+							refcnt::SReferenced<scgms::IFilter_Feedback_Receiver> feedback_receiver;
 							refcnt::Query_Interface<scgms::IFilter, scgms::IFilter_Feedback_Receiver>(filter.get(), scgms::IID_Filter_Feedback_Receiver, feedback_receiver);
 							if (feedback_receiver.operator bool()) {
 								first_feedback_receiver_idx = last_metric_or_feedback_sender_idx = filter_counter;
@@ -457,7 +457,7 @@ class  CParameters_Optimizer {
 							}
 							else {	//we do else, because one of these ifaces is enough
 							 //do not forget to try a feedback sender iface too
-								std::shared_ptr<scgms::IFilter_Feedback_Sender> feedback_sender;
+								refcnt::SReferenced<scgms::IFilter_Feedback_Sender> feedback_sender;
 								refcnt::Query_Interface<scgms::IFilter, scgms::IFilter_Feedback_Sender>(filter.get(), scgms::IID_Filter_Feedback_Sender, feedback_sender);
 								if (feedback_sender.operator bool()) {
 									last_metric_or_feedback_sender_idx = filter_counter;

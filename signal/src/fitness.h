@@ -56,9 +56,9 @@ struct TSegment_Solver_Setup {
 };
 
 struct TSegment_Info {
-	std::shared_ptr<scgms::ITime_Segment> segment;
-	std::shared_ptr<scgms::ISignal> calculated_signal;
-	std::shared_ptr<scgms::ISignal> reference_signal;
+	refcnt::SReferenced<scgms::ITime_Segment> segment;
+	refcnt::SReferenced<scgms::ISignal> calculated_signal;
+	refcnt::SReferenced<scgms::ISignal> reference_signal;
 	aligned_double_vector reference_time;
 	aligned_double_vector reference_level;
 };
@@ -68,7 +68,7 @@ class CFitness {
 		scgms::TMetric_Parameters mMetric_Params = scgms::Null_Metric_Parameters;
 		static thread_local scgms::SMetric mMetric_Per_Thread;
 
-		std::vector<TSegment_Info> mSegment_Info;	
+		std::vector<TSegment_Info> mSegment_Info;
 		size_t mLevels_Required;
 		size_t mMax_Levels_Per_Segment;	//to avoid multiple resize of memory block when calculating the error
 		static thread_local aligned_double_vector mTemporal_Levels;

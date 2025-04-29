@@ -55,7 +55,7 @@ CFitness::CFitness(const TSegment_Solver_Setup &setup, const size_t solution_siz
 
 	for (size_t segment_iter = 0; segment_iter < setup.segment_count; segment_iter++) {
 
-		std::shared_ptr<scgms::ITime_Segment> setup_segment= refcnt::make_shared_reference<scgms::ITime_Segment>(setup.segments[segment_iter], true);
+		refcnt::SReferenced<scgms::ITime_Segment> setup_segment = refcnt::make_shared_reference<scgms::ITime_Segment>(setup.segments[segment_iter], true);
 
 		TSegment_Info info{ nullptr, nullptr, nullptr, {}, {} };
 		info.segment = setup_segment;
