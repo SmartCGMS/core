@@ -50,6 +50,11 @@ CComposite_Filter::CComposite_Filter(std::recursive_mutex &communication_guard) 
 	//
 }
 
+CComposite_Filter::~CComposite_Filter() noexcept {
+	// ensure the filters are released in correct order
+	Clear();
+}
+
 HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::IFilter *next_filter, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, refcnt::Swstr_list& error_description) noexcept {
 	mRefuse_Execute = true;
 	if (!mExecutors.empty()) {
@@ -235,7 +240,7 @@ HRESULT CComposite_Filter::Clear() noexcept {
 	for (size_t i = 0; i < mExecutors.size(); i++) {
 		mExecutors[i]->Release_Filter();
 	}
-	mExecutors.clear();	//calls reset on all contained unique ptr's	
+	mExecutors.clear();	//calls reset on all contained unique ptr's
 
 	return S_OK;
 }
