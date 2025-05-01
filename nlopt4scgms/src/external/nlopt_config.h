@@ -139,7 +139,27 @@
 
 /* Define to C thread-local keyword, or to nothing if this is not supported in
    your compiler. */
-#define THREADLOCAL __declspec( thread )
+#if defined(_MSC_VER)
+
+/* MSVC compiler(Windows) */
+#define THREADLOCAL __declspec(thread)
+
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
+
+/* C11 with thread support */
+#define THREADLOCAL _Thread_local
+
+#elif defined(__GNUC__) || defined(__clang__)
+
+/* GCC or Clang (before C11) */
+#define THREADLOCAL __thread
+
+#else
+
+#define THREADLOCAL
+#warning "WARNING: no thread_local storage available or the definition of THREADLOCAL macro is incomplete"
+
+#endif
 
 /* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
 //#cmakedefine TIME_WITH_SYS_TIME
