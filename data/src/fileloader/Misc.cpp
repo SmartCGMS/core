@@ -38,6 +38,7 @@
 
 #include <sstream>
 #include <cstring>
+#include <cstdint>
 
 void Discard_BOM_If_Present(std::istream& is) {
 	uint8_t bom[4];
