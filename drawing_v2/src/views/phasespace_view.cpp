@@ -164,7 +164,7 @@ NDrawing_Error CPhase_Space_View::Draw(std::string& target, const TDraw_Options_
 	size_t total_y_label_cnt = static_cast<size_t>((static_cast<double>(opts.height) - mCanvas_HeightOff) / 150.0);
 	total_y_label_cnt = std::clamp(total_y_label_cnt, static_cast<size_t>(4), static_cast<size_t>(18));
 
-	double y_label_step_val = (max_y - min_y) / static_cast<double>(total_y_label_cnt);
+	double y_label_step_val = 1.0 + (max_y - min_y) / static_cast<double>(total_y_label_cnt);
 	double y_label_step_px = (opts.height - mCanvas_HeightOff) * y_label_step_val / (max_y - min_y);
 
 	// descriptions on Y axis
