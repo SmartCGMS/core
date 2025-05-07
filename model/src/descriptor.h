@@ -1010,7 +1010,7 @@ namespace gct4_model {
 	constexpr GUID signal_IOB = { 0xcb921b7, 0x22c6, 0x4b80, { 0xa5, 0x87, 0xf4, 0x50, 0x16, 0xfb, 0x23, 0x4a } };					// {0CB921B7-22C6-4B80-A587-F45016FB234A}
 	constexpr GUID signal_COB = { 0x2af4c577, 0x965d, 0x4be0, { 0xa9, 0x5, 0x8a, 0x64, 0x7e, 0x98, 0x96, 0x30 } };					// {2AF4C577-965D-4BE0-A905-8A647E989630}
 
-	constexpr size_t model_param_count = 50;
+	constexpr size_t model_param_count = 52;
 	constexpr size_t segment_specific_param_count = 9;
 
 	/*
@@ -1057,6 +1057,7 @@ namespace gct4_model {
 
 	f_Dp - CHO spreading factor by protein presence
 	f_Df - CHO spreading factor by fat presence
+	f_Db - CHO spreading factor by fiber presence
 	FPU - fat-protein unit size
 	t_fp - fat-protein absorption time
 	*/
@@ -1065,7 +1066,7 @@ namespace gct4_model {
 		union {
 			struct {
 				// initial quantities
-				double Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, Dc_0, Dp_0, Df_0;
+				double Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, Dc_0, Dp_0, Df_0, Db_0;
 				// patient quantity and base parameters
 				double Vq, Vqsc, Vi, Q1b, Gthr, GIthr;
 				// transfer parameters
@@ -1085,15 +1086,15 @@ namespace gct4_model {
 				// circadian insulin response
 				double ci_0, ci_1, ci_off;
 				// protein and fat metabolism
-				double f_Dp, f_Df, FPU, t_fp;
+				double f_Dp, f_Df, f_Db, FPU, t_fp;
 			};
 			double vector[model_param_count];
 		};
 	};
 
 	const TParameters lower_bounds = { {{
-		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, Dc_0, Dp_0, Df_0,
-			0,    0,    0,     0,   0,     0,   0,    0,    0,
+		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, Dc_0, Dp_0, Df_0, Db_0,
+			0,    0,    0,     0,   0,     0,   0,    0,    0,    0,
 		//	Vq,  Vqsc, Vi, Q1b, Gthr, GIthr,
 			3,   2,    3,  50,  10.0,  4.0,
 		//	q12,  q1sc, ix, xq1, iscimod
@@ -1115,13 +1116,13 @@ namespace gct4_model {
 			-1,    -1,
 		//	ci_0, ci_1, ci_off
 			-1,   -1,   0,
-		//	f_Dp, f_Df, FPU, t_fp
-			0.1,  0.1,  5,  5_min
+		//	f_Dp,  f_Df,  f_Db, FPU, t_fp
+			0.01,  0.01,  0.01,  5,  5_min
 	}} };
 
 	const TParameters default_parameters = { { {
-		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, Dc_0, Dp_0, Df_0,
-			350,  65,   250,   0,   0,     0,   0,    0,    0,
+		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, Dc_0, Dp_0, Df_0, Db_0,
+			350,  65,   250,   0,   0,     0,   0,    0,    0,    0,
 		//	Vq,  Vqsc, Vi, Q1b, Gthr, GIthr,
 			8,   5,    10, 240, 8.0, 5.0,
 		//	q12, q1sc, ix, xq1, iscimod
@@ -1143,13 +1144,13 @@ namespace gct4_model {
 			0,     0,
 		//	ci_0, ci_1, ci_off
 			0,    0,    0.5,
-		//	f_Dp, f_Df, FPU, t_fp
-			0.5,  0.5,  15,  30_min
+		//	f_Dp,  f_Df,  f_Db, FPU, t_fp
+			0.05,  0.05,  0.05,  15,  30_min
 	}} };
 
 	const TParameters upper_bounds = { { {
-		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, Dc_0, Dp_0, Df_0,
-			500,  500,  500,   500, 500,   500, 200,   200,  200,
+		//	Q1_0, Q2_0, Qsc_0, I_0, Isc_0, X_0, Dc_0, Dp_0, Df_0, Db_0,
+			500,  500,  500,   500, 500,   500, 200,   200,  200, 0,
 		//	Vq,  Vqsc, Vi, Q1b,  Gthr, GIthr,
 			10,  10,   20, 1000, 14.0, 8.0,
 		//	q12, q1sc, ix,  xq1,   iscimod
@@ -1171,8 +1172,8 @@ namespace gct4_model {
 			1,     1,
 		//	ci_0, ci_1, ci_off
 			1,    1,    1,
-		//	f_Dp, f_Df, FPU, t_fp
-			0.9,    0.9,    100,  6_hr
+		//	f_Dp, f_Df, f_Db, FPU, t_fp
+			0.5,  0.5,  0.5,  100,  6_hr
 	}} };
 }
 

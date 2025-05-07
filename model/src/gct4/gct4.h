@@ -39,9 +39,7 @@
 #include "../descriptor.h"
 #include <scgms/rtl/FilterLib.h>
 
-#include "gct4_transfer_functions.h"
-#include "gct4_moderation_functions.h"
-#include "gct4_depot.h"
+#include <scgms/utils/gct/gct.h>
 
 namespace gct4_model {
 
@@ -58,6 +56,7 @@ namespace gct4_model {
 		Carbs,
 		Proteins,
 		Fats,
+		Fiber,
 
 		// coupled compartments - i.e.; we don't identify exact causes of elimination/production, we just recognize them as coupled compartment that "gives" and "takes"
 		Glucose_Peripheral,			// source for basal glucose (constant glucose production) and sink for glucose (basal metabolism consumption)
@@ -79,18 +78,18 @@ namespace gct4_model {
 	/**
 	 * Class representing a vector of compartments within GCT model
 	 */
-	class CGCT_Compartments final : public std::vector<CCompartment> {
+	class CGCT_Compartments final : public std::vector<gct::CCompartment> {
 		public:
-			CGCT_Compartments() : std::vector<CCompartment>(GCT_Compartment_Count) {
+			CGCT_Compartments() : std::vector<gct::CCompartment>(GCT_Compartment_Count) {
 				//
 			}
 
-			CCompartment& operator[](NGCT_Compartment idx) {
-				return std::vector<CCompartment>::operator[](static_cast<size_t>(idx));
+			gct::CCompartment& operator[](NGCT_Compartment idx) {
+				return std::vector<gct::CCompartment>::operator[](static_cast<size_t>(idx));
 			}
 
-			const CCompartment& operator[](NGCT_Compartment idx) const {
-				return std::vector<CCompartment>::operator[](static_cast<size_t>(idx));
+			const gct::CCompartment& operator[](NGCT_Compartment idx) const {
+				return std::vector<gct::CCompartment>::operator[](static_cast<size_t>(idx));
 			}
 	};
 
@@ -159,9 +158,9 @@ class CGCT4_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscrete
 		gct4_model::CInfusion_Device mInsulin_Pump;
 
 		// physical activity external depot reference
-		gct4_model::CExternal_State_Depot& mPhysical_Activity;
+		gct::CExternal_State_Depot& mPhysical_Activity;
 		// insulin sink report to properly link bolus/basal injections to it to simulate local degradation
-		gct4_model::CDepot& mInsulin_Sink;
+		gct::CDepot& mInsulin_Sink;
 
 		std::map<gct4_model::NGCT_Compartment, std::map<uintptr_t, std::vector<std::pair<double, double>>>> mDebug_Values;
 		std::map<uintptr_t, std::wstring> mDebug_Names;
@@ -172,9 +171,9 @@ class CGCT4_Discrete_Model : public scgms::CBase_Filter, public scgms::IDiscrete
 		void Emit_All_Signals(double time_advance_delta);
 
 		// adds depot to D1 compartment and links to a new compartment in D2
-		gct4_model::CDepot& Add_To_Gut_Staging(const GUID& signal_id, double amount, double start, double duration);
+		gct::CDepot& Add_To_Gut_Staging(const GUID& signal_id, double amount, double start, double duration);
 		// adds depot to Isc_1 compartment and links to a new compartment in Isc_2
-		gct4_model::CDepot& Add_To_Isc1(double amount, double start, double duration);
+		gct::CDepot& Add_To_Isc1(double amount, double start, double duration);
 
 	protected:
 		// scgms::CBase_Filter iface implementation

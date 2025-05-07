@@ -807,7 +807,7 @@ namespace gct3_model {
 namespace gct4_model {
 
 	const wchar_t* model_param_ui_names[model_param_count] = {
-		L"Q1_0", L"Q2_0", L"Qsc_0", L"I_0", L"Isc_0", L"X_0", L"Dc_0", L"Dp_0", L"Df_0",
+		L"Q1_0", L"Q2_0", L"Qsc_0", L"I_0", L"Isc_0", L"X_0", L"Dc_0", L"Dp_0", L"Df_0", L"Db_0",
 		L"Vq", L"Vqsc", L"Vi", L"Q1b", L"Gthr", L"GIthr",
 		L"q12", L"q1sc", L"ix", L"xq1", L"iscimod",
 		L"q1e", L"q1ee", L"q1e_thr", L"xe",
@@ -818,7 +818,7 @@ namespace gct4_model {
 		L"t_id",
 		L"dqscm", L"iqscm",
 		L"ci_0", L"ci_1", L"ci_off",
-		L"f_Dp", L"f_Df", L"FPU", L"t_fp"
+		L"f_Dp", L"f_Df", L"f_Db", L"FPU", L"t_fp"
 	};
 
 	const wchar_t* dsGCT_Model_v4 = L"GCT model v4";
@@ -829,7 +829,7 @@ namespace gct4_model {
 	const wchar_t* dsGCT_Model_v4_COB = L"GCT model v4 - COB";
 
 	const scgms::NModel_Parameter_Value model_param_types[model_param_count] = {
-		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
@@ -839,7 +839,7 @@ namespace gct4_model {
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptTime,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
 		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,
-		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime
+		scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptDouble,scgms::NModel_Parameter_Value::mptTime
 	};
 
 	constexpr size_t number_of_calculated_signals = 5;

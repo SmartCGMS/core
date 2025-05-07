@@ -35,6 +35,7 @@
  */
 
 #include "gct4.h"
+#include <scgms/utils/gct/gct.h>
 
 #include <scgms/rtl/SolverLib.h>
 
@@ -69,8 +70,8 @@ CGCT4_Discrete_Model::CGCT4_Discrete_Model(scgms::IModel_Parameter_Vector* param
 	CBase_Filter(output),
 	mParameters(scgms::Convert_Parameters<gct4_model::TParameters>(parameters, gct4_model::default_parameters.vector)),
 
-	mPhysical_Activity(mCompartments[NGCT_Compartment::Physical_Activity].Create_Depot<CExternal_State_Depot>(0.0, false)),
-	mInsulin_Sink(mCompartments[NGCT_Compartment::Insulin_Peripheral].Create_Depot<CSink_Depot>(0.0, false)) {
+	mPhysical_Activity(mCompartments[NGCT_Compartment::Physical_Activity].Create_Depot<gct::CExternal_State_Depot>(0.0, false)),
+	mInsulin_Sink(mCompartments[NGCT_Compartment::Insulin_Peripheral].Create_Depot<gct::CSink_Depot>(0.0, false)) {
 
 	// ensure basic parametric bounds - in case some unconstrained optimization algorithm takes place
 	// parameters with such values would cause trouble, as signals may yield invalid values
@@ -96,20 +97,21 @@ CGCT4_Discrete_Model::CGCT4_Discrete_Model(scgms::IModel_Parameter_Vector* param
 	auto& dc = mCompartments[NGCT_Compartment::Carbs].Create_Depot(mParameters.Dc_0, false);
 	auto& dp = mCompartments[NGCT_Compartment::Proteins].Create_Depot(mParameters.Dp_0, false);
 	auto& df = mCompartments[NGCT_Compartment::Fats].Create_Depot(mParameters.Df_0, false);
+	auto& db = mCompartments[NGCT_Compartment::Fiber].Create_Depot(mParameters.Db_0, false);
 
 	// glucose peripheral depots
-	auto& q_src  = mCompartments[NGCT_Compartment::Glucose_Peripheral].Create_Depot<CSource_Depot>(mParameters.Q1b, false);
-	auto& q_sink = mCompartments[NGCT_Compartment::Glucose_Peripheral].Create_Depot<CSink_Depot>(0.0, false);
+	auto& q_src  = mCompartments[NGCT_Compartment::Glucose_Peripheral].Create_Depot<gct::CSource_Depot>(mParameters.Q1b, false);
+	auto& q_sink = mCompartments[NGCT_Compartment::Glucose_Peripheral].Create_Depot<gct::CSink_Depot>(0.0, false);
 
 	// insulin peripheral depots
-	auto& i_src  = mCompartments[NGCT_Compartment::Insulin_Peripheral].Create_Depot<CSource_Depot>(1.0, false); // use 1.0 as "unit amount" (is further multiplied by parameter)
+	auto& i_src  = mCompartments[NGCT_Compartment::Insulin_Peripheral].Create_Depot<gct::CSource_Depot>(1.0, false); // use 1.0 as "unit amount" (is further multiplied by parameter)
 
 	// physical activity depots
 	auto& emp = mCompartments[NGCT_Compartment::Physical_Activity_Glucose_Moderation_Short_Term].Create_Depot(0.0, false);
 	auto& emu = mCompartments[NGCT_Compartment::Physical_Activity_Glucose_Moderation_Short_Term].Create_Depot(0.0, false);
 	auto& elt = mCompartments[NGCT_Compartment::Physical_Activity_Glucose_Moderation_Long_Term].Create_Depot(0.0, false);
 
-	auto& cins = mCompartments[NGCT_Compartment::Circadian_Insulin].Create_Depot<CExternal_Circadian_State_Depot>(0.0, true);
+	auto& cins = mCompartments[NGCT_Compartment::Circadian_Insulin].Create_Depot<gct::CExternal_Circadian_State_Depot>(0.0, true);
 
 	q1.Set_Persistent(true);
 	q1.Set_Solution_Volume(mParameters.Vq);
@@ -143,6 +145,10 @@ CGCT4_Discrete_Model::CGCT4_Discrete_Model(scgms::IModel_Parameter_Vector* param
 	df.Set_Solution_Volume(1.0);
 	df.Set_Name(L"Df");
 
+	db.Set_Persistent(true);
+	db.Set_Solution_Volume(1.0);
+	db.Set_Name(L"Db");
+
 	q_src.Set_Persistent(true);
 	q_src.Set_Solution_Volume(mParameters.Vq);
 	q_src.Set_Name(L"Qsrc");
@@ -174,72 +180,72 @@ CGCT4_Discrete_Model::CGCT4_Discrete_Model(scgms::IModel_Parameter_Vector* param
 	//// Glucose subsystem links
 
 	// two glucose compartments diffusion flux
-	q1.Link_To<CTwo_Way_Diffusion_Unbounded_Transfer_Function>(q2,
-		CTransfer_Function::Start,
-		CTransfer_Function::Unlimited,
+	q1.Link_To<gct::CTwo_Way_Diffusion_Unbounded_Transfer_Function>(q2,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
 		std::ref(q1), std::ref(q2),
 		mParameters.q12);
 
 	// diffusion between main compartment and subcutaneous tissue
-	q1.Link_To<CTwo_Way_Diffusion_Unbounded_Transfer_Function>(qsc,
-		CTransfer_Function::Start,
-		CTransfer_Function::Unlimited,
+	q1.Link_To<gct::CTwo_Way_Diffusion_Unbounded_Transfer_Function>(qsc,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
 		std::ref(q1), std::ref(qsc),
 		mParameters.q1sc);
 
 	// glucose appearance due to endogennous production
-	q_src.Moderated_Link_To<CDifference_Unbounded_Transfer_Function>(q1,
-		[&q1, &x, this](CDepot_Link& link) {
+	q_src.Moderated_Link_To<gct::CDifference_Unbounded_Transfer_Function>(q1,
+		[&q1, &x, this](gct::CDepot_Link& link) {
 			// production is inhibited by insulin presence
-			link.Add_Moderator<CGaussian_Base_Moderation_No_Elimination_Function>(x, mParameters.q1pi);
+			link.Add_Moderator<gct::CGaussian_Base_Moderation_No_Elimination_Function>(x, mParameters.q1pi);
 			// glucose appearance moderated by itself
-			link.Add_Moderator<CLinear_Base_Moderation_No_Elimination_Function>(q1, mParameters.dqscm);
+			link.Add_Moderator<gct::CLinear_Base_Moderation_No_Elimination_Function>(q1, mParameters.dqscm);
 		},
-		CTransfer_Function::Start,
-		CTransfer_Function::Unlimited,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
 		std::ref(q_src), std::ref(q1),
 		mParameters.q1p);
 
 	// glucose appearance due to exercise
-	q_src.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(q1,
-		[&emp, &elt, this](CDepot_Link& link) {
-			link.Add_Moderator<CPA_Production_Moderation_Function>(emp, mParameters.q_ep);
-			link.Add_Moderator<CPA_Production_Moderation_Function>(elt, mParameters.e_Si);
+	q_src.Moderated_Link_To<gct::CConstant_Unbounded_Transfer_Function>(q1,
+		[&emp, &elt, this](gct::CDepot_Link& link) {
+			link.Add_Moderator<gct::CPA_Production_Moderation_Function>(emp, mParameters.q_ep);
+			link.Add_Moderator<gct::CPA_Production_Moderation_Function>(elt, mParameters.e_Si);
 		},
-		CTransfer_Function::Start,
-		CTransfer_Function::Unlimited,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
 		mParameters.q1pe);
 
 	// glucose elimination due to basal and peripheral needs
-	q1.Moderated_Link_To<CDifference_Unbounded_Transfer_Function>(q_sink,
-		[&q1, &x, &elt, &cins, this](CDepot_Link& link) {
+	q1.Moderated_Link_To<gct::CDifference_Unbounded_Transfer_Function>(q_sink,
+		[&q1, &x, &elt, &cins, this](gct::CDepot_Link& link) {
 			// glucose elimination is moderated by insulin
-			link.Add_Moderator<CLinear_Moderation_Linear_Elimination_Function>(x, mParameters.xq1, mParameters.xe);
+			link.Add_Moderator<gct::CLinear_Moderation_Linear_Elimination_Function>(x, mParameters.xq1, mParameters.xe);
 			// glucose elimination moderated by insulin and circadian response
-			link.Add_Moderator<CLinear_Base_Moderation_No_Elimination_Function>(cins, 1.0);
+			link.Add_Moderator<gct::CLinear_Base_Moderation_No_Elimination_Function>(cins, 1.0);
 			// glucose elimination moderated by itself
-			link.Add_Moderator<CLinear_Base_Moderation_No_Elimination_Function>(q1, mParameters.iqscm);
+			link.Add_Moderator<gct::CLinear_Base_Moderation_No_Elimination_Function>(q1, mParameters.iqscm);
 			// insulin sensitivity change as a result of physical activity
-			link.Add_Moderator<CLinear_Base_Moderation_No_Elimination_Function>(elt, mParameters.e_Si);
+			link.Add_Moderator<gct::CLinear_Base_Moderation_No_Elimination_Function>(elt, mParameters.e_Si);
 		},
-		CTransfer_Function::Start,
-		CTransfer_Function::Unlimited,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
 		std::ref(q1), std::ref(q_sink),
 		mParameters.q1e);
 
 	// glucose elimination due to exercise
-	q1.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(q_sink,
-		[&emu, this](CDepot_Link& link) {
-			link.Add_Moderator<CLinear_Moderation_No_Elimination_Function>(emu, mParameters.q_eu);
+	q1.Moderated_Link_To<gct::CConstant_Unbounded_Transfer_Function>(q_sink,
+		[&emu, this](gct::CDepot_Link& link) {
+			link.Add_Moderator<gct::CLinear_Moderation_No_Elimination_Function>(emu, mParameters.q_eu);
 		},
-		CTransfer_Function::Start,
-		CTransfer_Function::Unlimited,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
 		mParameters.q1ee);
 
 	// glucose elimination over certain threshold (glycosuria)
-	q1.Link_To<CConcentration_Threshold_Disappearance_Unbounded_Transfer_Function>(q_sink,
-		CTransfer_Function::Start,
-		CTransfer_Function::Unlimited,
+	q1.Link_To<gct::CConcentration_Threshold_Disappearance_Unbounded_Transfer_Function>(q_sink,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
 		std::ref(q1),
 		mParameters.Gthr,
 		mParameters.q1e_thr);
@@ -247,87 +253,97 @@ CGCT4_Discrete_Model::CGCT4_Discrete_Model(scgms::IModel_Parameter_Vector* param
 	//// Insulin subsystem links
 
 	// available insulin to remote insulin pool
-	i.Link_To<CConstant_Unbounded_Transfer_Function>(x,
-		CTransfer_Function::Start,
-		CTransfer_Function::Unlimited,
+	i.Link_To<gct::CConstant_Unbounded_Transfer_Function>(x,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
 		mParameters.ix);
 
 	// insulin production, moderated by glucose presence in Q1 depot over certain threshold
-	i_src.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(i,
-		[&q1, this](CDepot_Link& link) {
-			link.Add_Moderator<CThreshold_Linear_Moderation_No_Elimination_Function>(q1, 1.0, mParameters.GIthr);
+	i_src.Moderated_Link_To<gct::CConstant_Unbounded_Transfer_Function>(i,
+		[&q1, this](gct::CDepot_Link& link) {
+			link.Add_Moderator<gct::CThreshold_Linear_Moderation_No_Elimination_Function>(q1, 1.0, mParameters.GIthr);
 		},
-		CTransfer_Function::Start,
-		CTransfer_Function::Unlimited,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
 		mParameters.ip);
 
 	//// Meal absorption links
 	// glucose absorption from gut to Q1
-	dc.Moderated_Link_To<CConstant_Unbounded_Transfer_Function>(q1,
-		[&dp, &df, this](CDepot_Link& link) {
+	dc.Moderated_Link_To<gct::CConstant_Unbounded_Transfer_Function>(q1,
+		[&dp, &df, &db, &cins, this](gct::CDepot_Link& link) {
 			// glucose absorption moderated by protein presence
-			link.Add_Moderator<CLinear_Base_Moderation_No_Elimination_Function>(dp, mParameters.f_Dp);
+			link.Add_Moderator<gct::CLinear_Base_Moderation_No_Elimination_Function>(dp, -mParameters.f_Dp);
 			// glucose absorption moderated by fat presence
-			link.Add_Moderator<CLinear_Base_Moderation_No_Elimination_Function>(df, mParameters.f_Df);
+			link.Add_Moderator<gct::CLinear_Base_Moderation_No_Elimination_Function>(df, -mParameters.f_Df);
+			// glucose absorption moderated by fiber presence
+			link.Add_Moderator<gct::CLinear_Base_Moderation_No_Elimination_Function>(db, -mParameters.f_Db);
+
+			//link.Add_Moderator<gct::CLinear_Base_Moderation_No_Elimination_Function>(cins, 1.0);
 		},
-		CTransfer_Function::Start,
-		CTransfer_Function::Unlimited,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
 		1.0 / mParameters.t_d);
 
 	// protein absorption from gut to Q1
-	dp.Link_To<CConstant_Unbounded_Transfer_Function>(q1,
-		CTransfer_Function::Start,
-		CTransfer_Function::Unlimited,
+	dp.Link_To<gct::CConstant_Unbounded_Transfer_Function>(q1,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
 		mParameters.FPU / mParameters.t_fp);
 
 	// fat absorption from gut to Q1
-	df.Link_To<CConstant_Unbounded_Transfer_Function>(q1,
-		CTransfer_Function::Start,
-		CTransfer_Function::Unlimited,
+	df.Link_To<gct::CConstant_Unbounded_Transfer_Function>(q1,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
 		mParameters.FPU / mParameters.t_fp);
+
+	// fiber to sink
+	db.Link_To<gct::CConstant_Unbounded_Transfer_Function>(q_sink,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
+		1.0 / mParameters.t_fp);
 
 	//// Physical activity subsystem links
 	// mostly based on https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5872070/ and https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2769951/
 
 	// appearance of virtual "production modulator"
-	mPhysical_Activity.Link_To<CDifference_Unbounded_Transfer_Function>(emp,
-		CTransfer_Function::Start,
-		CTransfer_Function::Unlimited,
+	mPhysical_Activity.Link_To<gct::CDifference_Unbounded_Transfer_Function>(emp,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
 		std::ref(mPhysical_Activity), std::ref(emp),
 		mParameters.e_pa);
 
 	// appearance of virtual "utilization modulator"
-	mPhysical_Activity.Link_To<CDifference_Unbounded_Transfer_Function>(emu,
-		CTransfer_Function::Start,
-		CTransfer_Function::Unlimited,
+	mPhysical_Activity.Link_To<gct::CDifference_Unbounded_Transfer_Function>(emu,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
 		std::ref(mPhysical_Activity), std::ref(emu),
 		mParameters.e_ua);
 
 	// elimination rate of virtual "production modulator"
-	emp.Link_To<CDifference_Unbounded_Transfer_Function>(mPhysical_Activity,
-		CTransfer_Function::Start,
-		CTransfer_Function::Unlimited,
+	emp.Link_To<gct::CDifference_Unbounded_Transfer_Function>(mPhysical_Activity,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
 		std::ref(emp), std::ref(mPhysical_Activity),
 		mParameters.e_pe);
 
 	// elimination rate of virtual "utilization modulator"
-	emu.Link_To<CDifference_Unbounded_Transfer_Function>(mPhysical_Activity,
-		CTransfer_Function::Start,
-		CTransfer_Function::Unlimited,
+	emu.Link_To<gct::CDifference_Unbounded_Transfer_Function>(mPhysical_Activity,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
 		std::ref(emu), std::ref(mPhysical_Activity),
 		mParameters.e_ue);
 
 	// appearance of virtual "long-term modulator"
-	mPhysical_Activity.Link_To<CDifference_Unbounded_Transfer_Function>(elt,
-		CTransfer_Function::Start,
-		CTransfer_Function::Unlimited,
+	mPhysical_Activity.Link_To<gct::CDifference_Unbounded_Transfer_Function>(elt,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
 		std::ref(mPhysical_Activity), std::ref(elt),
 		mParameters.e_lta);
 
 	// elimination rate of virtual "long-term modulator"
-	elt.Link_To<CConstant_Unbounded_Transfer_Function>(mPhysical_Activity,
-		CTransfer_Function::Start,
-		CTransfer_Function::Unlimited,
+	elt.Link_To<gct::CConstant_Unbounded_Transfer_Function>(mPhysical_Activity,
+		gct::CTransfer_Function::Start,
+		gct::CTransfer_Function::Unlimited,
 		mParameters.e_lte);
 
 	/*
@@ -341,33 +357,36 @@ CGCT4_Discrete_Model::CGCT4_Discrete_Model(scgms::IModel_Parameter_Vector* param
 	*/
 }
 
-CDepot& CGCT4_Discrete_Model::Add_To_Gut_Staging(const GUID& signal_id, double amount, double start, double duration) {
+gct::CDepot& CGCT4_Discrete_Model::Add_To_Gut_Staging(const GUID& signal_id, double amount, double start, double duration) {
 
-	CDepot& depot = mCompartments[NGCT_Compartment::Gut_Staging].Create_Depot(amount, false);
+	gct::CDepot& depot = mCompartments[NGCT_Compartment::Gut_Staging].Create_Depot(amount, false);
 
 	depot.Set_Name(std::wstring(L"GutStaging (") + std::to_wstring(amount) + L")");
 
 	if (signal_id == scgms::signal_Carb_Intake || signal_id == scgms::signal_Carb_Rescue) {
-		depot.Link_To<CConstant_Bounded_Transfer_Function>(mCompartments[NGCT_Compartment::Carbs].Get_Persistent_Depot(), start, duration, amount);
+		depot.Link_To<gct::CConstant_Bounded_Transfer_Function>(mCompartments[NGCT_Compartment::Carbs].Get_Persistent_Depot(), start, duration, amount);
 	}
 	else if (signal_id == scgms::signal_Protein_Intake) {
-		depot.Link_To<CConstant_Bounded_Transfer_Function>(mCompartments[NGCT_Compartment::Proteins].Get_Persistent_Depot(), start, duration, amount);
+		depot.Link_To<gct::CConstant_Bounded_Transfer_Function>(mCompartments[NGCT_Compartment::Proteins].Get_Persistent_Depot(), start, duration, amount);
 	}
 	else if (signal_id == scgms::signal_Fat_Intake) {
-		depot.Link_To<CConstant_Bounded_Transfer_Function>(mCompartments[NGCT_Compartment::Fats].Get_Persistent_Depot(), start, duration, amount);
+		depot.Link_To<gct::CConstant_Bounded_Transfer_Function>(mCompartments[NGCT_Compartment::Fats].Get_Persistent_Depot(), start, duration, amount);
+	}
+	else if (signal_id == scgms::signal_Dietary_Fiber) {
+		depot.Link_To<gct::CConstant_Bounded_Transfer_Function>(mCompartments[NGCT_Compartment::Fiber].Get_Persistent_Depot(), start, duration, amount);
 	}
 
 	return depot;
 }
 
-CDepot& CGCT4_Discrete_Model::Add_To_Isc1(double amount, double start, double duration) {
+gct::CDepot& CGCT4_Discrete_Model::Add_To_Isc1(double amount, double start, double duration) {
 
-	CDepot& depot = mCompartments[NGCT_Compartment::Insulin_Subcutaneous].Create_Depot(amount * mParameters.iscimod, false);
+	gct::CDepot& depot = mCompartments[NGCT_Compartment::Insulin_Subcutaneous].Create_Depot(amount * mParameters.iscimod, false);
 
 	depot.Set_Name(std::wstring(L"Isc1 (") + std::to_wstring(amount) + L")");
 
 	// absorbed insulin is lowered by the ratio of absorption to elimination
-	depot.Link_To<CConstant_Bounded_Transfer_Function>(mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot(), start, duration, amount * mParameters.iscimod);
+	depot.Link_To<gct::CConstant_Bounded_Transfer_Function>(mCompartments[NGCT_Compartment::Insulin_Base].Get_Persistent_Depot(), start, duration, amount * mParameters.iscimod);
 
 	return depot;
 }
@@ -463,10 +482,10 @@ HRESULT CGCT4_Discrete_Model::Do_Execute(scgms::UDevice_Event event) {
 			}
 			// meal absorption
 			else if (event.signal_id() == scgms::signal_Carb_Intake || event.signal_id() == scgms::signal_Carb_Rescue || event.signal_id() == scgms::signal_Protein_Intake
-				|| event.signal_id() == scgms::signal_Fat_Intake) {
+				|| event.signal_id() == scgms::signal_Fat_Intake || event.signal_id() == scgms::signal_Dietary_Fiber) {
 
 				double transferTime = mParameters.t_d;
-				if (event.signal_id() == scgms::signal_Protein_Intake || event.signal_id() == scgms::signal_Fat_Intake) {
+				if (event.signal_id() == scgms::signal_Protein_Intake || event.signal_id() == scgms::signal_Fat_Intake || event.signal_id() == scgms::signal_Dietary_Fiber) {
 					transferTime = mParameters.t_fp;
 				}
 
@@ -517,12 +536,12 @@ HRESULT IfaceCalling CGCT4_Discrete_Model::Step(const double time_advance_delta)
 				}
 
 				// step all compartments
-				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
+				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](gct::CCompartment& comp) {
 					comp.Step(mLast_Time);
 				});
 
 				// commit all compartments
-				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
+				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](gct::CCompartment& comp) {
 					comp.Commit(mLast_Time);
 				});
 
@@ -592,6 +611,9 @@ HRESULT IfaceCalling CGCT4_Discrete_Model::Initialize(const double current_time,
 		if (mParameters.Df_0 > 0) {
 			Add_To_Gut_Staging(scgms::signal_Fat_Intake, mParameters.Df_0, mLast_Time, 5_min);
 		}
+		if (mParameters.Db_0 > 0) {
+			Add_To_Gut_Staging(scgms::signal_Dietary_Fiber, mParameters.Db_0, mLast_Time, 5_min);
+		}
 		if (mParameters.Isc_0 > 0) {
 			Add_To_Isc1(mParameters.Isc_0, mLast_Time, scgms::One_Minute * 15);
 		}
@@ -611,11 +633,11 @@ HRESULT IfaceCalling CGCT4_Discrete_Model::Initialize(const double current_time,
 		{
 			for (size_t i = 0; i < microStepCount; i++) {
 				// step all compartments
-				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
+				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](gct::CCompartment& comp) {
 					comp.Step(mLast_Time);
 				});
 				// commit all compartments
-				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](CCompartment& comp) {
+				std::for_each(std::execution::par_unseq, mCompartments.begin(), mCompartments.end(), [this](gct::CCompartment& comp) {
 					comp.Commit(mLast_Time);
 				});
 				mLast_Time = oldTime + static_cast<double>(i) * microStepSize;
