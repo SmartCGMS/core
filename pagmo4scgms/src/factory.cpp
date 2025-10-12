@@ -36,11 +36,11 @@
  *    Volume 177, pp. 354-362, 2020
  */
 
-#include "../../../common/iface/SolverIface.h"
+#include <scgms/iface/SolverIface.h>
 
 #include "tpNLOpt.h"
 #include "pagmo2.h"
-#include "spo.h"
+//#include "spo.h" TODO: What is this?
 
 #include "descriptor.h"
 
