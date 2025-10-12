@@ -42,7 +42,8 @@
 #include <scgms/utils/descriptor_utils.h>
 #include <array>
 
-namespace pagmo {
+namespace pagmo
+{
 	const scgms::TSolver_Descriptor pso_desc = Describe_Non_Specialized_Solver(pso_id, dsPSO);
 	const scgms::TSolver_Descriptor sade_desc = Describe_Non_Specialized_Solver(sade_id, dsSADE);
 	const scgms::TSolver_Descriptor de1220_desc = Describe_Non_Specialized_Solver(de1220_id, dsDE1220);
@@ -53,18 +54,25 @@ namespace pagmo {
 
 	const scgms::TSolver_Descriptor ihs_desc = Describe_Non_Specialized_Solver(ihs_id, dsIHS);
 	const scgms::TSolver_Descriptor nsga_desc = Describe_Non_Specialized_Solver(nsga2_id, L"NSGA2");
-	const scgms::TSolver_Descriptor moead_desc = Describe_Non_Specialized_Solver(moead_id, L"Multi-objective EA vith Decomposition");
-	const scgms::TSolver_Descriptor mhaco_desc = Describe_Non_Specialized_Solver(maco_id, L"Multi-objective Hypervolume-based ACO");
-	const scgms::TSolver_Descriptor nspso_desc = Describe_Non_Specialized_Solver(nspso_id, L"Non-dominated Sorting PSO");
+	const scgms::TSolver_Descriptor moead_desc = Describe_Non_Specialized_Solver(
+		moead_id, L"Multi-objective EA vith Decomposition");
+	const scgms::TSolver_Descriptor mhaco_desc = Describe_Non_Specialized_Solver(
+		maco_id, L"Multi-objective Hypervolume-based ACO");
+	const scgms::TSolver_Descriptor nspso_desc =
+		Describe_Non_Specialized_Solver(nspso_id, L"Non-dominated Sorting PSO");
 }
 
 
-const std::array<scgms::TSolver_Descriptor, 12> solver_descriptions = { pagmo::pso_desc, pagmo::sade_desc, pagmo::de1220_desc,
-																		pagmo::abc_desc, pagmo::cmaes_desc, pagmo::xnes_desc,
-																		pagmo::gpso_desc, pagmo::ihs_desc, pagmo::nspso_desc,
-																		pagmo::nsga_desc, pagmo::moead_desc, pagmo::mhaco_desc};
+const std::array<scgms::TSolver_Descriptor, 12> solver_descriptions = {
+	pagmo::pso_desc, pagmo::sade_desc, pagmo::de1220_desc,
+	pagmo::abc_desc, pagmo::cmaes_desc, pagmo::xnes_desc,
+	pagmo::gpso_desc, pagmo::ihs_desc, pagmo::nspso_desc,
+	pagmo::nsga_desc, pagmo::moead_desc, pagmo::mhaco_desc
+};
 
 
-DLL_EXPORT HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descriptor** begin, scgms::TSolver_Descriptor** end) {
+DLL_EXPORT HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descriptor** begin,
+                                                          scgms::TSolver_Descriptor** end)
+{
 	return do_get_descriptors(solver_descriptions, begin, end);
 }
