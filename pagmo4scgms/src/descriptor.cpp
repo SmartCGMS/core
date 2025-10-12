@@ -10,8 +10,8 @@
  * Faculty of Applied Sciences, University of West Bohemia
  * Univerzitni 8, 301 00 Pilsen
  * Czech Republic
- * 
- * 
+ *
+ *
  * Purpose of this software:
  * This software is intended to demonstrate work of the diabetes.zcu.cz research
  * group to other scientists, to complement our published papers. It is strictly
@@ -28,11 +28,11 @@
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *
  * a) Without a specific agreement, you are not authorized to make or keep any copies of this file.
- * b) For any use, especially commercial use, you must contact us and obtain specific terms and conditions 
+ * b) For any use, especially commercial use, you must contact us and obtain specific terms and conditions
  *    for the use of the software.
  * c) When publishing any derivative work or results obtained using this software, you agree to cite the following paper:
- *    Tomas Koutny and Martin Ubl, "SmartCGMS as a Testbed for a Blood-Glucose Level Prediction and/or 
- *    Control Challenge with (an FDA-Accepted) Diabetic Patient Simulation", Procedia Computer Science,  
+ *    Tomas Koutny and Martin Ubl, "SmartCGMS as a Testbed for a Blood-Glucose Level Prediction and/or
+ *    Control Challenge with (an FDA-Accepted) Diabetic Patient Simulation", Procedia Computer Science,
  *    Volume 177, pp. 354-362, 2020
  */
 
@@ -42,14 +42,6 @@
 #include <scgms/utils/descriptor_utils.h>
 #include <array>
 
-namespace nlopt {
-	const scgms::TSolver_Descriptor newuoa_desc = Describe_Non_Specialized_Solver(newuoa_id, dsNewUOA);
-	const scgms::TSolver_Descriptor bobyqa_desc = Describe_Non_Specialized_Solver(bobyqa_id, dsBOBYQA);
-	const scgms::TSolver_Descriptor simplex_desc = Describe_Non_Specialized_Solver(simplex_id, dsSimplex);
-	const scgms::TSolver_Descriptor subplex_desc = Describe_Non_Specialized_Solver(subplex_id, dsSubplex);
-	const scgms::TSolver_Descriptor praxis_desc = Describe_Non_Specialized_Solver(praxis_id, dsPraxis);
-}
-
 namespace pagmo {
 	const scgms::TSolver_Descriptor pso_desc = Describe_Non_Specialized_Solver(pso_id, dsPSO);
 	const scgms::TSolver_Descriptor sade_desc = Describe_Non_Specialized_Solver(sade_id, dsSADE);
@@ -58,7 +50,7 @@ namespace pagmo {
 	const scgms::TSolver_Descriptor cmaes_desc = Describe_Non_Specialized_Solver(cmaes_id, dsCMAES);
 	const scgms::TSolver_Descriptor xnes_desc = Describe_Non_Specialized_Solver(xnes_id, dsXNES);
 	const scgms::TSolver_Descriptor gpso_desc = Describe_Non_Specialized_Solver(gpso_id, dsGPSO);
-	
+
 	const scgms::TSolver_Descriptor ihs_desc = Describe_Non_Specialized_Solver(ihs_id, dsIHS);
 	const scgms::TSolver_Descriptor nsga_desc = Describe_Non_Specialized_Solver(nsga2_id, L"NSGA2");
 	const scgms::TSolver_Descriptor moead_desc = Describe_Non_Specialized_Solver(moead_id, L"Multi-objective EA vith Decomposition");
@@ -67,28 +59,12 @@ namespace pagmo {
 }
 
 
-namespace ppr {
-    /*
-    [1] K. Tamura and K. Yasuda. Spiral optimization -a new multipoint search method.
-        In 2011 IEEE International Conference on Systems, Man, and Cybernetics,
-        pages 1759–1764, Oct 2011.
-    [2] Kenichi Tamura and Keiichiro Yasuda.Primary study of spiral dynamics inspired
-        optimization.IEEJ Transactions on Electrical and Electronic Engineering,
-        6(S1) : S98–S100, 2011.        
-        */
-
-    const wchar_t* dsSPO = L"Spiral Optimization";
-    const scgms::TSolver_Descriptor spo = Describe_Non_Specialized_Solver(spo_id, dsSPO);
-}
-
-const std::array<scgms::TSolver_Descriptor, 18> solver_descriptions = { nlopt::newuoa_desc, nlopt::bobyqa_desc, nlopt::simplex_desc, nlopt::subplex_desc, nlopt::praxis_desc,
-																		 pagmo::pso_desc, pagmo::sade_desc, pagmo::de1220_desc, pagmo::abc_desc, pagmo::cmaes_desc, pagmo::xnes_desc,
-																		 pagmo::gpso_desc, 
-																		 pagmo::ihs_desc, pagmo::nspso_desc, pagmo::nsga_desc, pagmo::moead_desc, pagmo::mhaco_desc,
-	
-																		  ppr::spo};
+const std::array<scgms::TSolver_Descriptor, 12> solver_descriptions = { pagmo::pso_desc, pagmo::sade_desc, pagmo::de1220_desc,
+																		pagmo::abc_desc, pagmo::cmaes_desc, pagmo::xnes_desc,
+																		pagmo::gpso_desc, pagmo::ihs_desc, pagmo::nspso_desc,
+																		pagmo::nsga_desc, pagmo::moead_desc, pagmo::mhaco_desc};
 
 
-DLL_EXPORT HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descriptor **begin, scgms::TSolver_Descriptor **end) {
+DLL_EXPORT HRESULT IfaceCalling do_get_solver_descriptors(scgms::TSolver_Descriptor** begin, scgms::TSolver_Descriptor** end) {
 	return do_get_descriptors(solver_descriptions, begin, end);
 }

@@ -38,20 +38,10 @@
 
 #include <scgms/iface/SolverIface.h>
 
-#include "tpNLOpt.h"
 #include "pagmo2.h"
-//#include "spo.h" TODO: What is this?
+//#include "spo.h" TODO: What is this? - Solution: Everything regarding SPO removed
 
 #include "descriptor.h"
-
-
-template <nlopt::algorithm algo>
-bool Solve_NLOpt(const solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
-	CNLOpt<algo> nlopt{ setup };
-	return nlopt.Solve(progress);	
-}
-
-
 
 template <pagmo2::NPagmo_Algo algo>
 bool Solve_Pagmo(solver::TSolver_Setup &setup, solver::TSolver_Progress &progress) {
@@ -68,9 +58,6 @@ bool Solve_Pagmo(solver::TSolver_Setup &setup, solver::TSolver_Progress &progres
 	}
 }
 
-
-
-
 using  TSolver_Func = std::function<bool(solver::TSolver_Setup &, solver::TSolver_Progress&)>;
 
 struct TSolver_Info
@@ -83,12 +70,7 @@ struct TSolver_Info
 	TSolver_Func func;
 };
 
-const std::array<TSolver_Info, 18> solvers = {	TSolver_Info{nlopt::newuoa_id, Solve_NLOpt<nlopt::LN_NEWUOA>},
-												TSolver_Info{nlopt::bobyqa_id, Solve_NLOpt<nlopt::LN_BOBYQA>},
-												TSolver_Info{nlopt::simplex_id, Solve_NLOpt<nlopt::LN_NELDERMEAD>},
-												TSolver_Info{nlopt::subplex_id, Solve_NLOpt<nlopt::LN_SBPLX>},
-												TSolver_Info{nlopt::praxis_id, Solve_NLOpt<nlopt::LN_PRAXIS>},
-
+const std::array<TSolver_Info, 12> solvers = {
 												TSolver_Info{pagmo::pso_id, Solve_Pagmo<pagmo2::NPagmo_Algo::PSO>},
 												TSolver_Info{pagmo::sade_id, Solve_Pagmo<pagmo2::NPagmo_Algo::SADE>},
 												TSolver_Info{pagmo::de1220_id, Solve_Pagmo<pagmo2::NPagmo_Algo::DE1220>},
@@ -96,16 +78,12 @@ const std::array<TSolver_Info, 18> solvers = {	TSolver_Info{nlopt::newuoa_id, So
 												TSolver_Info{pagmo::cmaes_id, Solve_Pagmo<pagmo2::NPagmo_Algo::CMAES>},
 												TSolver_Info{pagmo::xnes_id, Solve_Pagmo<pagmo2::NPagmo_Algo::xNES>},
 												TSolver_Info{pagmo::gpso_id, Solve_Pagmo<pagmo2::NPagmo_Algo::GPSO>},
-												
 												TSolver_Info{pagmo::ihs_id, Solve_Pagmo<pagmo2::NPagmo_Algo::IHS>},
 												TSolver_Info{pagmo::nsga2_id, Solve_Pagmo<pagmo2::NPagmo_Algo::NSGA2>},
 												TSolver_Info{pagmo::moead_id, Solve_Pagmo<pagmo2::NPagmo_Algo::MOEAD>},
 												TSolver_Info{pagmo::maco_id, Solve_Pagmo<pagmo2::NPagmo_Algo::MACO>},
-												TSolver_Info{pagmo::nspso_id, Solve_Pagmo<pagmo2::NPagmo_Algo::NSPSO>},
-
-												TSolver_Info{ppr::spo_id, solve_spo},
+												TSolver_Info{pagmo::nspso_id, Solve_Pagmo<pagmo2::NPagmo_Algo::NSPSO>}
 };
-
 
 
 DLL_EXPORT HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, solver::TSolver_Setup *setup, solver::TSolver_Progress *progress) {
@@ -121,7 +99,7 @@ DLL_EXPORT HRESULT IfaceCalling do_solve_generic(const GUID *solver_id, solver::
 			catch (...) {
 				return E_FAIL;
 			}
-  }
+	}
 
 	return E_NOTIMPL;
 }

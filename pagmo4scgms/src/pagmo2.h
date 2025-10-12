@@ -38,8 +38,7 @@
 
 #pragma once
 
-#include "../../../common/rtl/SolverLib.h"
-#include "tpNLOpt.h"
+#include <scgms/rtl/SolverLib.h>
 
 #include <algorithm>
 #include <mutex>
