@@ -3,25 +3,20 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
 SET(PROJ "pagmo4scgms")
 
 
-message(${CMAKE_CURRENT_LIST_DIR})
-message("${CMAKE_CURRENT_LIST_DIR}/cmake/")
-message("${CMAKE_CURRENT_LIST_DIR}/src/external")
-message("HERE HERE HERE")
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/")
 # Download all external dependencies into the /src/external directory
 set(FETCHCONTENT_BASE_DIR "${CMAKE_CURRENT_LIST_DIR}/src/external")
 
-# Suppress CMP0135 CMake FetchContent warning
-if(POLICY CMP0135)
-    cmake_policy(SET CMP0135 NEW)
-endif()
 
-# Download pagmo dependencies
-include(GetBoost)
-include(GetTBB)
+message("> Make sure that you've installed Boost and Intel TBB before using the Pagmo library")
 
 include(GetPagmo)
+
+# This needs to be added or Pagmo won't compile with newest MSVC (14.44)
+if(MSVC)
+    target_compile_definitions(pagmo PRIVATE _SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS)
+    target_compile_options(pagmo PRIVATE /W2)
+endif()
 
 
 #FILE(GLOB SRC_FILES "src/*.cpp" "src/*.c" "src/*.h")
