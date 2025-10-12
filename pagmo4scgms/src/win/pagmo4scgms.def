@@ -1,4 +1,4 @@
-LIBRARY tpsolvers.dll
+LIBRARY pagmo4scgms.dll
 
 
 EXPORTS

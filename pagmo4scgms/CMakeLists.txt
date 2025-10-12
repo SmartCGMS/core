@@ -6,6 +6,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/")
 set(FETCHCONTENT_BASE_DIR "${CMAKE_CURRENT_LIST_DIR}/src/external")
 
 message(AUTHOR_WARNING "Make sure that you've installed Boost and Intel TBB before using the Pagmo library.")
+
+set(PAGMO_WITH_EIGEN3 ON)
 include(GetPagmo)
 
 # This needs to be added or Pagmo won't compile with newest MSVC (14.44)
