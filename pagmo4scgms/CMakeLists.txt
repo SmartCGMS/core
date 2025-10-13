@@ -26,6 +26,12 @@ ENDIF()
 SCGMS_ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES})
 # Add Pagmo as a dependency of the "pagmo4scgms" (variable ${PROJ}) target created by the command above
 target_link_libraries(${PROJ} pagmo)
+# The pagmo.dll file need to be inside /compiled/ dir TODO: remove this and use APPLY_SCGMS_LIBRARY_BUILD_SETTINGS instead?
+set_target_properties(pagmo
+    PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/compiled/"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/compiled/"
+)
 
 SCGMS_LINK_COMMON_LIBRARIES(${PROJ})
 APPLY_SCGMS_LIBRARY_BUILD_SETTINGS(${PROJ})
