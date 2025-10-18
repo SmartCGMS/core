@@ -1,14 +1,12 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
 SET(PROJ "pagmo4scgms")
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/")
-# Download all external dependencies into the /src/external directory
-set(FETCHCONTENT_BASE_DIR "${CMAKE_CURRENT_LIST_DIR}/src/external")
-
 message(AUTHOR_WARNING "Make sure that you've installed Boost and Intel TBB before using the Pagmo library.")
 
+message(AUTHOR_WARNING "Both Boost and Intel TBB must be in your env PATH variable (e.g. C:\\Program Files (x86)\\Intel\\oneAPI\\tbb\\2022.2\\bin) or else pagmo.dll won't load.'")
+
 set(PAGMO_WITH_EIGEN3 ON)
-include(GetPagmo)
+add_subdirectory(src/external/pagmo)
 
 # This needs to be added or Pagmo won't compile with newest MSVC (14.44)
 if(MSVC)

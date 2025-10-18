@@ -1,0 +1,3 @@
+[submodule "pagmo4scgms/src/external/pagmo"]
+	path = pagmo4scgms/src/external/pagmo
+	url = https://github.com/jonas-s-s-s/pagmo2.git
