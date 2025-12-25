@@ -225,7 +225,7 @@ protected:
 		pagmo::problem prob{std::move(my_problem)};
 
 		pagmo::algorithm algo{solver};
-		algo.set_verbosity(10/*0*/);
+		algo.set_verbosity(0/*10*/);
 
 
 		//isle population must be greater at least and divisable by 4
