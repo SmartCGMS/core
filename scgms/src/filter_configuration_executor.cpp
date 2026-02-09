@@ -48,19 +48,18 @@ CFilter_Configuration_Executor::CFilter_Configuration_Executor(scgms::IFilter *c
 }
 
 HRESULT CFilter_Configuration_Executor::Build_Filter_Chain(scgms::IFilter_Chain_Configuration *configuration, scgms::TOn_Filter_Created on_filter_created, const void* on_filter_created_data, refcnt::Swstr_list& error_description) {
-
 	return mComposite_Filter.Build_Filter_Chain(configuration, &mTerminal_Filter, on_filter_created, on_filter_created_data, error_description);
 }
-
 
 CFilter_Configuration_Executor::~CFilter_Configuration_Executor() {
 	Terminate(FALSE);
 }
 
-HRESULT IfaceCalling CFilter_Configuration_Executor::Execute(scgms::IDevice_Event *event) {	
+HRESULT IfaceCalling CFilter_Configuration_Executor::Execute(scgms::IDevice_Event *event) {		
 	if (!event) {
 		return E_INVALIDARG;
 	}
+
 	return mComposite_Filter.Execute(event);    //also frees the event	
 }
 
@@ -86,7 +85,7 @@ DLL_EXPORT HRESULT IfaceCalling execute_filter_configuration(scgms::IFilter_Chai
 	HRESULT rc = raw_executor->Build_Filter_Chain(configuration, on_filter_created, on_filter_created_data, shared_error_description);
 	raw_executor.release();	//can release the unique pointer as it did its job and is needed no more
 
-	if (!Succeeded(rc)) {
+	if (!Succeeded(rc)) {		
 		(*executor)->Release();
 		return rc;
 	}

@@ -198,12 +198,14 @@ HRESULT CComposite_Filter::Build_Filter_Chain(scgms::IFilter_Chain_Configuration
 				}
 			}
 	}
+	
 
 	mRefuse_Execute = false;
 	return S_OK;
 }
 
-HRESULT CComposite_Filter::Execute(scgms::IDevice_Event *event) noexcept {
+HRESULT CComposite_Filter::Execute(scgms::IDevice_Event *event) noexcept {	
+	
 	if (!event) {
 		return E_INVALIDARG;
 	}
@@ -217,7 +219,7 @@ HRESULT CComposite_Filter::Execute(scgms::IDevice_Event *event) noexcept {
 		event->Release();
 		return E_ILLEGAL_METHOD_CALL;
 	}
-
+	
 	return mExecutors[0]->Execute(event);	//and by this, we delegate event's release to the filters
 }
 

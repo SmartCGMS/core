@@ -53,7 +53,7 @@ const TApproximationParams dfApproximationParams = {
 	apxmAverageExponential, //ApproximationMethod
 	{	//avgexp
 		10, //Passes
-		0, // Iterations
+		50, // Iterations
 		etFixedIterations, // EpsilonType
 		0.1, //Epsilon
 		scgms::One_Second// ResamplingStepping
@@ -122,6 +122,9 @@ bool CAvgExpApprox::Update() {
 
 			tmplevel.pt.datetime += mParameters.avgexp.ResamplingStepping;
 		}
+
+		if (vmPoints.empty())
+			return false;
 
 		//add the last point if we have missed it
 		if (time_bounds.Max > vmPoints[vmPoints.size()-1].pt.datetime) {

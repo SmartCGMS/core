@@ -1,0 +1,82 @@
+/**
+ * SmartCGMS - continuous glucose monitoring and controlling framework
+ * https://diabetes.zcu.cz/
+ *
+ * Copyright (c) since 2018 University of West Bohemia.
+ *
+ * Contact:
+ * diabetes@mail.kiv.zcu.cz
+ * Medical Informatics, Department of Computer Science and Engineering
+ * Faculty of Applied Sciences, University of West Bohemia
+ * Univerzitni 8, 301 00 Pilsen
+ * Czech Republic
+ * 
+ * 
+ * Purpose of this software:
+ * This software is intended to demonstrate work of the diabetes.zcu.cz research
+ * group to other scientists, to complement our published papers. It is strictly
+ * prohibited to use this software for diagnosis or treatment of any medical condition,
+ * without obtaining all required approvals from respective regulatory bodies.
+ *
+ * Especially, a diabetic patient is warned that unauthorized use of this software
+ * may result into severe injure, including death.
+ *
+ *
+ * Licensing terms:
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under these license terms is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *
+ * a) This file is available under the Apache License, Version 2.0.
+ * b) When publishing any derivative work or results obtained using this software, you agree to cite the following paper:
+ *    Tomas Koutny and Martin Ubl, "SmartCGMS as a Testbed for a Blood-Glucose Level Prediction and/or 
+ *    Control Challenge with (an FDA-Accepted) Diabetic Patient Simulation", Procedia Computer Science,  
+ *    Volume 177, pp. 354-362, 2020
+ */
+
+#include "mapping_descriptor.h"
+
+#include <scgms/lang/dstrings.h>
+#include <scgms/rtl/manufactory.h>
+
+
+namespace mapping
+{
+	constexpr size_t param_count = 2;
+
+	constexpr scgms::NParameter_Type param_type[param_count] = {
+		scgms::NParameter_Type::ptSignal_Id,
+		scgms::NParameter_Type::ptSignal_Id
+	};
+
+	const wchar_t* ui_param_name[param_count] = {
+		dsSignal_Source_Id,
+		dsSignal_Destination_Id
+	};
+
+	const wchar_t* config_param_name[param_count] = {
+		rsSignal_Source_Id,
+		rsSignal_Destination_Id
+	};
+
+	const wchar_t* ui_param_tooltips[param_count] = {
+		dsMapping_Source_Signal_Tooltip,
+		dsMapping_Destination_Signal_Tooltip
+	};
+
+	scgms::TFilter_Descriptor Get_Mapping_Descriptor() {
+
+		const scgms::TFilter_Descriptor Mapping_Descriptor = {
+			mapping::filter_id,
+			scgms::NFilter_Flags::None,
+			dsMapping_Filter,
+			param_count,
+			param_type,
+			ui_param_name,
+			config_param_name,
+			ui_param_tooltips
+		};
+
+		return Mapping_Descriptor;
+	}
+}

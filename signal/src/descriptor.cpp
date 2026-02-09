@@ -35,6 +35,11 @@
  */
 
 #include "descriptor.h"
+
+#include "copy_signal_descriptor.h"
+#include "mapping_descriptor.h"
+
+#include "copy_signal.h"
 #include "calculated_signal.h"
 #include "mapping.h"
 #include "decoupling.h"
@@ -152,42 +157,6 @@ namespace calculate {
 		{ 0x14a25f4c, 0xe1b1, 0x85c4,{ 0x12, 0x74, 0x9a, 0x0d, 0x11, 0xe0, 0x98, 0x13 } },  // {14A25F4C-E1B1-85C4-1274-9A0D11E09813}
 		scgms::NFilter_Flags::None,
 		dsCalculated_Signal_Filter,
-		param_count,
-		param_type,
-		ui_param_name,
-		config_param_name,
-		ui_param_tooltips
-	};
-}
-
-namespace mapping
-{
-	constexpr size_t param_count = 2;
-
-	constexpr scgms::NParameter_Type param_type[param_count] = {
-		scgms::NParameter_Type::ptSignal_Id,
-		scgms::NParameter_Type::ptSignal_Id
-	};
-
-	const wchar_t* ui_param_name[param_count] = {
-		dsSignal_Source_Id,
-		dsSignal_Destination_Id
-	};
-
-	const wchar_t* config_param_name[param_count] = {
-		rsSignal_Source_Id,
-		rsSignal_Destination_Id
-	};
-
-	const wchar_t* ui_param_tooltips[param_count] = {
-		dsMapping_Source_Signal_Tooltip,
-		dsMapping_Destination_Signal_Tooltip
-	};
-
-	const scgms::TFilter_Descriptor Mapping_Descriptor = {
-		{ 0x8fab525c, 0x5e86, 0xab81,{ 0x12, 0xcb, 0xd9, 0x5b, 0x15, 0x88, 0x53, 0x0A } }, //// {8FAB525C-5E86-AB81-12CB-D95B1588530A}
-		scgms::NFilter_Flags::None,
-		dsMapping_Filter,
 		param_count,
 		param_type,
 		ui_param_name,
@@ -624,7 +593,7 @@ namespace noise_generator {
 	};
 }
 
-const std::array<scgms::TFilter_Descriptor, 10> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Mapping_Descriptor, decoupling::desc, masking::Masking_Descriptor, unmasking::Unmasking_Descriptor, signal_generator::desc, network_signal_generator::desc, feedback_sender::desc, impulse_response::desc, noise_generator::desc } };
+const std::array<scgms::TFilter_Descriptor, 11> filter_descriptions = { { calculate::Calculate_Descriptor, mapping::Get_Mapping_Descriptor(), copy_signal::Get_Copy_Signal_Descriptor(), decoupling::desc, masking::Masking_Descriptor, unmasking::Unmasking_Descriptor, signal_generator::desc, network_signal_generator::desc, feedback_sender::desc, impulse_response::desc, noise_generator::desc}};
 
 
 DLL_EXPORT HRESULT IfaceCalling do_get_filter_descriptors(scgms::TFilter_Descriptor **begin, scgms::TFilter_Descriptor **end) {
@@ -649,7 +618,10 @@ DLL_EXPORT HRESULT IfaceCalling do_create_filter(const GUID *id, scgms::IFilter 
 	else if (*id == unmasking::Unmasking_Descriptor.id) {
 		return Manufacture_Object<CUnmasking_Filter>(filter, output);
 	}
-	else if (*id == mapping::Mapping_Descriptor.id) {
+	else if (*id == copy_signal::filter_id) {
+		return Manufacture_Object<CCopy_Signal_Filter>(filter, output);
+	}
+	else if (*id == mapping::filter_id) {
 		return Manufacture_Object<CMapping_Filter>(filter, output);
 	}
 	else if (*id == decoupling::desc.id) {

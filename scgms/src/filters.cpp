@@ -87,9 +87,11 @@ DLL_EXPORT HRESULT IfaceCalling get_signal_descriptors(scgms::TSignal_Descriptor
 	return loaded_filters.get_signal_descriptors_body(begin, end);
 }
 
-DLL_EXPORT HRESULT IfaceCalling create_filter(const GUID *id, scgms::IFilter* next_filter, scgms::IFilter **filter) {
-	return loaded_filters.create_filter_body(id, next_filter, filter);
-}
+#if !(defined(__wasm__) || defined(SCGMS_MONOLITH))
+	DLL_EXPORT HRESULT IfaceCalling create_filter(const GUID *id, scgms::IFilter* next_filter, scgms::IFilter **filter) {
+		return loaded_filters.create_filter_body(id, next_filter, filter);
+	}
+#endif
 
 DLL_EXPORT HRESULT IfaceCalling create_metric(const scgms::TMetric_Parameters *parameters, scgms::IMetric **metric) {
 	return loaded_filters.create_metric_body(parameters, metric);
@@ -111,7 +113,7 @@ DLL_EXPORT HRESULT IfaceCalling create_approximator(const GUID *approx_id, scgms
 	return loaded_filters.create_approximator_body(approx_id, signal, approx);
 }
 
-#ifndef  __wasm__
+#if !(defined(__wasm__) || defined(SCGMS_MONOLITH))
 	void CLoaded_Filters::load_libraries() {
 	#ifndef ANDROID
 		const auto filters_dir = Get_Dll_Dir() / std::wstring{rsSolversDir};
@@ -221,7 +223,7 @@ HRESULT CLoaded_Filters::get_signal_descriptors_body(scgms::TSignal_Descriptor**
 }
 
 void CLoaded_Filters::describe_loaded_filters(refcnt::Swstr_list error_description) {
-#ifndef __wasm__
+#if !(defined(__wasm__) || (SCGMS_MONOLITH))
 	std::wstring desc = dsDefault_Filters_Path;	
 	auto appdir = Get_Application_Dir();
 	desc += (appdir / std::wstring{ rsSolversDir }).wstring();
@@ -264,7 +266,7 @@ GUID CLoaded_Filters::Resolve_Signal_By_Name(const wchar_t* name, bool& valid) {
 	return Invalid_GUID;
 }
 
-#ifndef __wasm__
+#if !(defined(__wasm__) || defined(SCGMS_MONOLITH))
 	scgms::SFilter create_filter_body(const GUID &id, scgms::IFilter *next_filter) {
 		scgms::SFilter result;
 		scgms::IFilter *filter;
