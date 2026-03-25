@@ -1,5 +1,5 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
-SET(PROJ "external4scgms")
+SET(PROJ "distributed4scgms")
 
 set(DISTRIBUTED_SOLVER_RUNTIME_OUTPUT_DIR "${CMAKE_BINARY_DIR}/compiled/")
 
@@ -14,7 +14,7 @@ ENDIF()
 
 SCGMS_ADD_LIBRARY(${PROJ} SHARED ${SRC_FILES})
 
-target_link_libraries(${PROJ} distributed)
+target_link_libraries(${PROJ} distributed pagmo)
 
 SCGMS_LINK_COMMON_LIBRARIES(${PROJ})
 APPLY_SCGMS_LIBRARY_BUILD_SETTINGS(${PROJ})

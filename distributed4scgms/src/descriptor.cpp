@@ -42,23 +42,17 @@
 #include <scgms/utils/descriptor_utils.h>
 #include <array>
 
-namespace distributed_solver
+namespace scgms_distributed_solver
 {
-    const scgms::TSolver_Descriptor distributed_solver_single_objective_desc = Describe_Non_Specialized_Solver(
-        distributed_solver_single_objective,
-        L"Single objective distributed solver"
-    );
-
-    const scgms::TSolver_Descriptor distributed_solver_multi_objective_desc = Describe_Non_Specialized_Solver(
-        distributed_solver_multi_objective,
-        L"Multi objective distributed solver"
+    const scgms::TSolver_Descriptor distributed_solver_generic_desc = Describe_Non_Specialized_Solver(
+        distributed_solver_generic,
+        L"Generic distributed solver"
     );
 }
 
 
-const std::array<scgms::TSolver_Descriptor, 2> solver_descriptions = {
-    distributed_solver::distributed_solver_single_objective_desc,
-    distributed_solver::distributed_solver_multi_objective_desc,
+const std::array<scgms::TSolver_Descriptor, 1> solver_descriptions = {
+    scgms_distributed_solver::distributed_solver_generic_desc,
 };
 
 
