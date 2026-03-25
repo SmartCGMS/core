@@ -1,3 +1,6 @@
 [submodule "pagmo4scgms/src/external/pagmo"]
 	path = pagmo4scgms/src/external/pagmo
 	url = https://github.com/jonas-s-s-s/pagmo2.git
+[submodule "distributed4scgms/src/external/Pagmo-solver-distributed"]
+	path = distributed4scgms/src/external/Pagmo-solver-distributed
+	url = https://github.com/jonas-s-s-s/Pagmo-solver-distributed.git
