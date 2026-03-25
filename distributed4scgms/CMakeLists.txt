@@ -3,7 +3,7 @@ SET(PROJ "external4scgms")
 
 set(DISTRIBUTED_SOLVER_RUNTIME_OUTPUT_DIR "${CMAKE_BINARY_DIR}/compiled/")
 
-add_subdirectory(src/external/distributed)
+add_subdirectory(src/external/Pagmo-solver-distributed)
 
 file(GLOB SRC_FILES "src/*.cpp" "src/*.c" "src/*.h")
 
