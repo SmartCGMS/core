@@ -251,7 +251,7 @@ namespace scgms_distributed_solver
 
             // 3) Construct a pagmo Algorithm
             //####################################################
-            pagmo::algorithm algo{pagmo::nsga2(generationCount)};
+            pagmo::algorithm algo{pagmo::nsga2(generationCount)}; // TODO: Different algorithm for single-objective
             algo.set_verbosity(0u);
 
             // 4) Set up distributed solver + hints
@@ -297,6 +297,7 @@ namespace scgms_distributed_solver
 //# SCGMS entry point
 //#############################################################################################
 
+// TODO: Is this really used?, seems like only the function in factory.cpp is exported from the DLL
 DLL_EXPORT HRESULT IfaceCalling do_solve(
     const GUID* solver_id,
     const solver::TSolver_Setup* setup,
