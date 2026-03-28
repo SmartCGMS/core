@@ -2,22 +2,19 @@
 
 TProblem::TProblem(const solver::TSolver_Setup& setup, solver::TSolver_Progress& progress)
     : mSetup(setup),
-      mRemap(setup),
-      mProgress(progress)
+      mRemap(setup)
 {
 }
 
 TProblem::TProblem()
     : mSetup(solver::Default_Solver_Setup),
-      mRemap(solver::Default_Solver_Setup),
-      mProgress(mVoid_Progress)
+      mRemap(solver::Default_Solver_Setup)
 {
 }
 
 TProblem::TProblem(const TProblem& other)
     : mSetup(other.mSetup),
-      mRemap(other.mRemap),
-      mProgress(other.mProgress)
+      mRemap(other.mRemap)
 {
 }
 

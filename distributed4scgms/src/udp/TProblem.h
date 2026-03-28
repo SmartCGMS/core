@@ -12,14 +12,10 @@
 //#############################################################################################
 class TProblem : public udp_base
 {
-protected:
-        solver::TSolver_Setup mSetup;
+    solver::TSolver_Setup mSetup;
+
     // We're using this remapper (defined above) to convert SCGMS individual vector representation into a pagmo-compatible one
     CRemap mRemap;
-
-protected:
-    solver::TSolver_Progress mVoid_Progress = solver::Null_Solver_Progress;
-    solver::TSolver_Progress& mProgress;
 
 public:
     TProblem(const solver::TSolver_Setup& setup, solver::TSolver_Progress& progress);
