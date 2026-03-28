@@ -1,0 +1,9 @@
+LIBRARY tproblem_udp.dll
+
+
+EXPORTS
+  
+	run_after_load
+	allocator
+	deleter
+	cloner

@@ -19,3 +19,6 @@ target_link_libraries(${PROJ} distributed pagmo)
 SCGMS_LINK_COMMON_LIBRARIES(${PROJ})
 APPLY_SCGMS_LIBRARY_BUILD_SETTINGS(${PROJ})
 CONFIGURE_FILTER_OUTPUT(${PROJ})
+
+# Call CMake file in the UDP directory
+add_subdirectory(./src/udp)
