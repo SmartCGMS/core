@@ -1,28 +1,40 @@
 #pragma once
+
+// We're assuming that the following two headers are available (or we can simply copy them if they're not)
 #include "../CRemap.h"
+#include "../TUdpParams.h"
+
 #include "udp_base.h"
 #include "scgms/iface/SolverIface.h"
 
 #include <pagmo/s11n.hpp>
 #include <boost/serialization/export.hpp>
+#include <boost/serialization/shared_ptr.hpp>
 #include <any>
+
+#include "TProblemData.h"
+#include "TProblemObjective.h"
 
 //#############################################################################################
 //# TProblem - Pagmo-style UDP
 //#############################################################################################
 class TProblem : public udp_base
 {
-    solver::TSolver_Setup mSetup;
-
-    // We're using this remapper (defined above) to convert SCGMS individual vector representation into a pagmo-compatible one
+    // We're using this remapper to convert SCGMS individual vector representation into a pagmo-compatible one
     CRemap mRemap;
+    TUdpParamsSerializable mParams{};
+
+    // Declared in TProblemData.h
+    std::shared_ptr<CCommon_Problem> mUdpData{};
 
 public:
-    TProblem(const solver::TSolver_Setup& setup, solver::TSolver_Progress& progress);
+    TProblem(const TUdpParams& params);
 
     TProblem();
 
     TProblem(const TProblem& other);
+
+    TProblem& operator=(const TProblem& other);
 
     /**
      * Pagmo UDP's standard fitness function,
@@ -52,6 +64,8 @@ public:
     const CRemap& remap() const;
 
 private:
+    void _process_data_pointer(const void* data);
+
     //####################################
     //# BOOST SERIALIZE
     //####################################
@@ -61,8 +75,10 @@ private:
     void save(Archive& ar, unsigned) const
     {
         boost::serialization::void_cast_register<TProblem, udp_base>();
+
         ar << mRemap;
-        // mSetup intentionally not serialized (TODO)
+        ar << mParams;
+        ar << mUdpData;
     }
 
     template <typename Archive>
@@ -70,16 +86,9 @@ private:
     {
         boost::serialization::void_cast_register<TProblem, udp_base>();
 
-        try
-        {
-            ar >> mRemap;
-            // mSetup and mProgress left at defaults set by the default constructor
-        }
-        catch (...)
-        {
-            //*this = TProblem{};
-            throw;
-        }
+        ar >> mRemap;
+        ar >> mParams;
+        ar >> mUdpData;
     }
 
     BOOST_SERIALIZATION_SPLIT_MEMBER()

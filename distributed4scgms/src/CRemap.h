@@ -38,20 +38,23 @@ public:
     // Default constructor required for boost serialization
     CRemap() : mProblem_Size(0) {}
 
+
+    // Constructor from TSolver_Setup
     CRemap(const solver::TSolver_Setup& setup)
         : mProblem_Size(setup.problem_size),
           mLower_Bound(setup.lower_bound, setup.lower_bound + setup.problem_size),
           mUpper_Bound(setup.upper_bound, setup.upper_bound + setup.problem_size)
     {
-        for (size_t i = 0; i < mProblem_Size; i++)
-        {
-            if (mLower_Bound[i] != mUpper_Bound[i])
-            {
-                mDimension_Remap.push_back(i);
-                mRemapped_Lower.push_back(mLower_Bound[i]);
-                mRemapped_Upper.push_back(mUpper_Bound[i]);
-            }
-        }
+        initialize_remapper();
+    }
+
+    // Constructor from C++ vectors
+    CRemap(const std::vector<double>& lower, const std::vector<double>& upper)
+        : mProblem_Size(lower.size()),
+          mLower_Bound(lower),
+          mUpper_Bound(upper)
+    {
+        initialize_remapper();
     }
 
     pagmo::vector_double Expand_Solution(const pagmo::vector_double& x) const
@@ -86,6 +89,27 @@ public:
     }
 
 private:
+
+    void initialize_remapper()
+    {
+        mRemapped_Lower.clear();
+        mRemapped_Upper.clear();
+        mDimension_Remap.clear();
+
+        mRemapped_Lower.reserve(mProblem_Size);
+        mRemapped_Upper.reserve(mProblem_Size);
+
+        for (size_t i = 0; i < mProblem_Size; i++)
+        {
+            if (mLower_Bound[i] != mUpper_Bound[i])
+            {
+                mDimension_Remap.push_back(i);
+                mRemapped_Lower.push_back(mLower_Bound[i]);
+                mRemapped_Upper.push_back(mUpper_Bound[i]);
+            }
+        }
+    }
+
     //####################################
     //# BOOST SERIALIZE
     //####################################

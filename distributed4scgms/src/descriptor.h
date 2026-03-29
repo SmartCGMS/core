@@ -45,5 +45,4 @@ namespace scgms_distributed_solver
 {
 	constexpr GUID distributed_solver_generic = {0x7c9d3a41, 0x2f6b, 0x4e8d, {0xa1, 0x5c, 0x9e, 0x73, 0x4b, 0xd2, 0x11, 0xf8}};
 	// {7C9D3A41-2F6B-4E8D-A15C-9E734BD211F8}
-
 }

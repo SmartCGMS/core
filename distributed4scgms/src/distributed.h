@@ -44,90 +44,20 @@
 #include <vector>
 #include <numeric>
 #include <limits>
-#include <cassert>
 
 #include <pagmo/types.hpp>
 #include <pagmo/problem.hpp>
 
-#include "descriptor.h"
+#include "CRemap.h"
 #include "distributed_solver.h"
-#include "pagmo/algorithms/nsga2.hpp"
+#include "TUdpParams.h"
+#include "udp_dll_wrapper.h"
+#include "pagmo/algorithms/de.hpp"
+#include "pagmo/algorithms/gaco.hpp"
+#include "scgms/iface/DistributedSolverIface.h"
 
 namespace scgms_distributed_solver
 {
-    //#############################################################################################
-    //# CRemap - "dimension reduction / dimension expansion"
-    //#############################################################################################
-    /**
-     * - This class is needed because:
-     *  - SCGMS problem (defined in TSolver_Setup) can have parameters which are "fixed"
-     *      - Those parameters cannot change because their lower_bound == upper_bound
-     *      - Therefore, it makes no sense to use them with a Pagmo optimization algorithm
-     *
-     *  - Expand_Solution(x)
-     *      - This function converts the "pagmo" representation of individual into a "full" representation
-     *      - "full" representation contains both the "fixed" parameters and the parameters we're optimizing
-     *
-     *  - Reduce_Solution(solution)
-     *      - Takes a "full" individual vector and extracts only those parameters which aren't "fixed"
-     *
-     *  - get_bounds() and problem_size()
-     *      - Adapters for pagmo, bounds and problem size only for the non-fixed parameters
-     */
-    class CRemap
-    {
-    protected:
-        pagmo::vector_double mRemapped_Lower, mRemapped_Upper;
-        std::vector<size_t> mDimension_Remap;
-        const solver::TSolver_Setup mSetup;
-
-    public:
-        CRemap(const solver::TSolver_Setup& setup) : mSetup(setup)
-        {
-            for (size_t i = 0; i < mSetup.problem_size; i++)
-            {
-                if (mSetup.lower_bound[i] != mSetup.upper_bound[i])
-                {
-                    mDimension_Remap.push_back(i);
-                    mRemapped_Lower.push_back(mSetup.lower_bound[i]);
-                    mRemapped_Upper.push_back(mSetup.upper_bound[i]);
-                }
-            }
-        }
-
-        pagmo::vector_double Expand_Solution(const pagmo::vector_double& x) const
-        {
-            pagmo::vector_double solution(mSetup.lower_bound, mSetup.lower_bound + mSetup.problem_size);
-
-            for (size_t i = 0; i < x.size(); i++)
-            {
-                solution[mDimension_Remap[i]] = std::min(mRemapped_Upper[i], std::max(x[i], mRemapped_Lower[i]));
-            }
-            return solution;
-        }
-
-        pagmo::vector_double Reduce_Solution(const double* solution) const
-        {
-            pagmo::vector_double result;
-
-            for (size_t i = 0; i < mDimension_Remap.size(); i++)
-                result.push_back(solution[mDimension_Remap[i]]);
-
-            return result;
-        }
-
-        std::pair<pagmo::vector_double, pagmo::vector_double> get_bounds() const
-        {
-            return {mRemapped_Lower, mRemapped_Upper};
-        }
-
-        size_t problem_size() const
-        {
-            return mDimension_Remap.size();
-        }
-    };
-
-
     //#############################################################################################
     //# CDistributed_Solver - SCGMS adapter
     //#############################################################################################
@@ -136,38 +66,51 @@ namespace scgms_distributed_solver
     protected:
         solver::TSolver_Setup mSetup;
         CRemap mRemap;
+        solver::TDistributedSolver_Data* mSolverData;
 
     public:
         CDistributed_Solver(const solver::TSolver_Setup& setup)
             : mSetup(solver::Check_Default_Parameters(setup, 100'000, 100)),
               mRemap(setup)
         {
+            // We assume that the user provides us with the right data object
+            mSolverData = reinterpret_cast<solver::TDistributedSolver_Data*>(const_cast<void*>(mSetup.data));
         }
 
         bool Solve(solver::TSolver_Progress& progress)
         {
             // TODO: Maybe wrap in try catch - setting succeeded? Or no - factory.cpp has try catch block
 
+            // TODO: Silence logger? Add logger configuration functions into the lib?
+            AixLog::Log::init<AixLog::SinkCout>(AixLog::Severity::trace);
+
             // 1) Initialize key variables
             //####################################################
-            progress = solver::Null_Solver_Progress;
             const size_t popSize = mSetup.population_size;
             const size_t generationCount = mSetup.max_generations;
+            const std::string libName = mSolverData->solver_lib_name;
+            const std::string controllerAddress = mSolverData->controller_address;
+            const size_t expectedWorkerCount = mSolverData->expected_worker_count;
+            const void* originalData = mSolverData->solverData;
+
+            progress = solver::Null_Solver_Progress;
             bool succeeded = false;
 
             // 2) Construct a pagmo UDP using our TProblem wrapper
             //####################################################
-            TProblem udp{mSetup, progress}; // TODO: DLL problem?
+            // TODO: Set up UDP registry?
+            TUdpParams udpParams = {originalData, ExtractSerializable(mSetup)};
+            udp_dll_wrapper udp{libName, udpParams};
             const pagmo::problem prob{udp};
 
             // 3) Construct a pagmo Algorithm
             //####################################################
-            pagmo::algorithm algo{pagmo::nsga2(generationCount)}; // TODO: Different algorithm for single-objective
+            pagmo::algorithm algo{pagmo::de(generationCount)}; // TODO: Different algorithms for single-objective / multi-objective
             algo.set_verbosity(0u);
 
             // 4) Set up distributed solver + hints
             //####################################################
-            distributed_solver distSolver{"tcp://localhost:5000", 1}; // TODO: Params
+            distributed_solver distSolver{controllerAddress, expectedWorkerCount};
 
             std::vector<pagmo::vector_double> hints{};
             if (mSetup.hint_count > 0)
@@ -176,8 +119,8 @@ namespace scgms_distributed_solver
                 {
                     hints.emplace_back(mRemap.Reduce_Solution(mSetup.hints[i]));
                 }
+                distSolver.set_initial_hints(hints);
             }
-            distSolver.set_initial_hints(hints);
 
             // 5) Run the distributed evolution
             //####################################################
@@ -192,7 +135,7 @@ namespace scgms_distributed_solver
 
             // 7) Write back result and return
             //####################################################
-            pagmo::vector_double champion_x(mRemap.problem_size(),std::numeric_limits<double>::quiet_NaN());
+            pagmo::vector_double champion_x(mRemap.problem_size(), std::numeric_limits<double>::quiet_NaN());
             champion_x = mRemap.Expand_Solution(bestIndividual);
 
             if (succeeded)
@@ -202,26 +145,3 @@ namespace scgms_distributed_solver
         }
     };
 } // namespace scgms_distributed_solver
-
-
-//#############################################################################################
-//# SCGMS entry point
-//#############################################################################################
-
-// TODO: Is this really used?, seems like only the function in factory.cpp is exported from the DLL
-DLL_EXPORT HRESULT IfaceCalling do_solve(
-    const GUID* solver_id,
-    const solver::TSolver_Setup* setup,
-    solver::TSolver_Progress* progress)
-{
-    if (!setup || !progress)
-        return E_INVALIDARG;
-
-    if (*solver_id == scgms_distributed_solver::distributed_solver_generic)
-    {
-        scgms_distributed_solver::CDistributed_Solver solver{*setup}; // TODO?
-        return solver.Solve(*progress) ? S_OK : E_FAIL;
-    }
-
-    return E_NOTIMPL;
-}

@@ -1,26 +1,42 @@
 #include "TProblem.h"
 
-TProblem::TProblem(const solver::TSolver_Setup& setup, solver::TSolver_Progress& progress)
-    : mSetup(setup),
-      mRemap(setup)
+TProblem::TProblem(const TUdpParams& params)
+{
+    mParams = params.params;
+    mRemap = CRemap{mParams.lower_bound_vec, mParams.upper_bound_vec};
+    _process_data_pointer(params.data);
+}
+
+TProblem::TProblem() : mRemap(solver::Default_Solver_Setup)
 {
 }
 
-TProblem::TProblem()
-    : mSetup(solver::Default_Solver_Setup),
-      mRemap(solver::Default_Solver_Setup)
+TProblem::TProblem(const TProblem& other): udp_base(other),
+                                           mRemap(other.mRemap),
+                                           mParams(other.mParams),
+                                           mUdpData(other.mUdpData.get()->Clone()) // CLONE THE OBJECT INSIDE PTR INSTEAD OF COPYING PTR
 {
 }
 
-TProblem::TProblem(const TProblem& other)
-    : mSetup(other.mSetup),
-      mRemap(other.mRemap)
+TProblem& TProblem::operator=(const TProblem& other)
 {
+    if (this == &other)
+        return *this;
+    udp_base::operator =(other);
+    mRemap = other.mRemap;
+    mParams = other.mParams;
+    mUdpData = other.mUdpData.get()->Clone(); // CLONE THE OBJECT INSIDE PTR INSTEAD OF COPYING PTR
+    return *this;
 }
+
+
+//#############################################################################################
+//# Pagmo UDP functions
+//#############################################################################################
 
 pagmo::vector_double TProblem::fitness(const pagmo::vector_double& x) const
 {
-    assert(mSetup.problem_size > 0);
+    //assert(mSetup.problem_size > 0);
 
     const auto solution = mRemap.Expand_Solution(x);
 
@@ -29,9 +45,11 @@ pagmo::vector_double TProblem::fitness(const pagmo::vector_double& x) const
         std::numeric_limits<double>::quiet_NaN()
     );
 
-    mSetup.objective(mSetup.data, 1, solution.data(), result.data());
+    // Fitness_Wrapper is declared in TProblemObjective.h, this replaces the original mSetup.objective call, mUdpData.get() replaces mObjective.data
+    Fitness_Wrapper(mUdpData.get(), 1, solution.data(), result.data());
 
-    result.resize(mSetup.objectives_count);
+    // TODO: Does this really work? Why is remapper not used here?
+    result.resize(mParams.objectives_count);
     return result;
 }
 
@@ -42,8 +60,12 @@ std::pair<pagmo::vector_double, pagmo::vector_double> TProblem::get_bounds() con
 
 pagmo::vector_double::size_type TProblem::get_nobj() const
 {
-    return mSetup.objectives_count;
+    return mParams.objectives_count;
 }
+
+//#############################################################################################
+//# Other member functions
+//#############################################################################################
 
 std::string TProblem::get_lib_file_name()
 {
@@ -60,13 +82,38 @@ const CRemap& TProblem::remap() const
     return mRemap;
 }
 
+void TProblem::_process_data_pointer(const void* data)
+{
+    // We assume that the data is passed correctly as this type
+    CCommon_Problem* cProblemPtr = reinterpret_cast<CCommon_Problem*>(const_cast<void*>(data));
+
+    mUdpData = cProblemPtr->Clone();
+}
+
+//#############################################################################################
+//# Extern C lib functions
+//#############################################################################################
+
 void run_after_load()
 {
 }
 
 TProblem* allocator(const std::any& params)
 {
-    return new TProblem();
+    TUdpParams castedParams;
+    if (params.has_value())
+    {
+        try
+        {
+            castedParams = std::any_cast<TUdpParams>(params);
+        }
+        catch (...)
+        {
+            throw std::runtime_error("TProblem UDP only accepts TUdpParams as its parameter.");
+        }
+    }
+
+    return new TProblem(castedParams);
 }
 
 void deleter(TProblem* ptr)

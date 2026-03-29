@@ -47,7 +47,7 @@
 
 
 //#############################################################################################
-//# Generic wrapper
+//# Generic wrapper - wraps construction of a solver and calls its "Solve" function
 //#############################################################################################
 template <typename TSolver>
 bool Solve_Distributed(solver::TSolver_Setup& setup, solver::TSolver_Progress& progress)
@@ -66,7 +66,7 @@ bool Solve_Distributed(solver::TSolver_Setup& setup, solver::TSolver_Progress& p
 
 
 //#############################################################################################
-//# Solver mapping
+//# Solver mapping - "solver table item"
 //#############################################################################################
 using TSolver_Func = std::function<bool(solver::TSolver_Setup&, solver::TSolver_Progress&)>;
 
@@ -85,7 +85,7 @@ struct TSolver_Info
 
 
 //#############################################################################################
-//# Solver table
+//# Solver table - contains pairs of {solver_description, solver's Solve_Distributed call}
 //#############################################################################################
 const std::array<TSolver_Info, 1> solvers = {
     TSolver_Info{
@@ -96,7 +96,7 @@ const std::array<TSolver_Info, 1> solvers = {
 
 
 //#############################################################################################
-//# SCGMS entry point
+//# SCGMS entry point - call different Solve_Distributed functions (from "solvers" table) depending on GUID
 //#############################################################################################
 DLL_EXPORT HRESULT IfaceCalling do_solve_generic(
     const GUID* solver_id,

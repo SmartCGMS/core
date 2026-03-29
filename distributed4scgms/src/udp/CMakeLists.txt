@@ -17,8 +17,16 @@ target_link_libraries(${PROJ} distributed pagmo)
 
 SCGMS_LINK_COMMON_LIBRARIES(${PROJ})
 APPLY_SCGMS_LIBRARY_BUILD_SETTINGS(${PROJ})
-CONFIGURE_FILTER_OUTPUT(${PROJ})
+#CONFIGURE_FILTER_OUTPUT(${PROJ})
+
+# Put this dll into the compiled directory
+set_target_properties(${PROJ}
+        PROPERTIES
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/compiled/"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/compiled/"
+)
 
 # Add the current directory into target's include dirs, anything that links against this lib at build time will be able
 # to include our headers
 target_include_directories(tproblem_udp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
