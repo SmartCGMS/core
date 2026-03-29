@@ -22,6 +22,8 @@ APPLY_SCGMS_LIBRARY_BUILD_SETTINGS(${PROJ})
 # Put this dll into the compiled directory
 set_target_properties(${PROJ}
         PROPERTIES
+        PREFIX ""
+        OUTPUT_NAME ${PROJ}
         LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/compiled/"
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/compiled/"
 )

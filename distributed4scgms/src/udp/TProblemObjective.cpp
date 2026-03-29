@@ -17,13 +17,20 @@ BOOL IfaceCalling Fitness_Wrapper(const void* data, const size_t solution_count,
     std::vector<size_t> solidx(solution_count);
     std::iota(solidx.begin(), solidx.end(), 0);
 
-    // TODO: REMOVE PARALLELISM?
+    // TODO: REMOVE PARALLELISM? - Perhaps useless here because solution_count is always 1
 
     //for (size_t i = 0; i < solution_count; i++)
+#ifdef __APPLE__
+    for (size_t i = 0; i < solution_count; i++) {
+        fitnesses[i] = fitness->Calculate_Fitness(&solutions[i * problemSize]);
+    }
+#else
+    std::vector<size_t> solidx(solution_count);
+    std::iota(solidx.begin(), solidx.end(), 0);
     std::for_each(std::execution::par_unseq, solidx.begin(), solidx.end(), [&fitnesses, &solutions, &fitness, problemSize](size_t i) {
         fitnesses[i] = fitness->Calculate_Fitness(&solutions[i * problemSize]);
     });
-
+#endif
     return TRUE;
 }
 
