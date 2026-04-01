@@ -92,7 +92,6 @@ std::vector<CRandom_Playback::result_type> Load_All_The_Numbers()  {
 CRandom_Playback::CRandom_Playback() : mNumbers(Load_All_The_Numbers()) {	//move would prevent copy ellision
 	std::random_device rd;
 	std::uniform_int_distribution<size_t> dist(0.0, mNumbers.size());
-	mRecent_Number_Index = dist(rd); 	
 	mCurrent_Number_Index = dist(rd); 	//choose pseudo random starting index
 }
 
@@ -100,23 +99,13 @@ CRandom_Playback::CRandom_Playback() : mNumbers(Load_All_The_Numbers()) {	//move
 CRandom_Playback::result_type CRandom_Playback::operator()() {
 	const auto number = mNumbers[mCurrent_Number_Index];
 	
-	//you know, it would be just nice to switch to C++20 and use the std::popcount
-	//but, we used Eigen, which does not compile under C++20...
-	//so, we either need to replace Eigen, or wait if they adapt. so far, we wait..
-	//const auto jump_distance = _mm_popcnt_u64(mRecent_Number_Index ^ mCurrent_Number_Index) % 7;	//7 just feels right
-	const auto jump_distance = 1+(mRecent_Number_Index + mCurrent_Number_Index) % 7;	//7 just feels right
-			//popcnt problems all the way, let's do it this way
-	//const auto jump_distance = std::popcount(mRecent_Number_Index ^ mCurrent_Number_Index) % 7;	//7 just feels right
-		//we combine two recent indexes to avoid a trivial repeating of the produced series
+	const auto jump_distance = 1 + ((number / 16) + mCurrent_Number_Index) % 7;	//7 just feels right
+		//let's combine the random number with the position to avoid accidently repeating series
+		//while adding 1+ as the minimum jump distance
 	
-	mRecent_Number_Index = mCurrent_Number_Index;
 	mCurrent_Number_Index += jump_distance;
 	if (mCurrent_Number_Index >= mNumbers.size()) {
-		mCurrent_Number_Index = 0;
-		
-		std::random_device rd;
-		std::uniform_int_distribution<size_t> dist(0.0, mNumbers.size());
-		mRecent_Number_Index = dist(rd);
+		mCurrent_Number_Index = 0;	
 	}	
 
 	return number;

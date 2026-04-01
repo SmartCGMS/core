@@ -43,8 +43,7 @@ public:
 	using result_type = uint64_t;
 protected:
 	const std::vector<result_type> mNumbers;
-	size_t mCurrent_Number_Index = 0;
-	size_t mRecent_Number_Index = 0;
+	size_t mCurrent_Number_Index = 0;	
 public:
 	CRandom_Playback();
 	explicit CRandom_Playback(const std::string& token) : CRandom_Playback() {};
