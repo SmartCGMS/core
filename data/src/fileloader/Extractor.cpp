@@ -147,44 +147,49 @@ CMeasured_Levels Extract_Series(CFormat_Adapter& source, TCursors<TPosition>& cu
 				if (str_val_opt.has_value()) {
 					read_anything = true;	//signal the cursor-watchdog
 					const std::string str_val = trim(str_val_opt.value());
-
-					if (sig == signal_Comment) {
-						if (!comments.empty()) {
-							comments += ", ";		//DO NOT put semicolon there as it WILL BREAK the csv log replay!!!
-						}
-						
-						if (!elem.cell.series.comment_name.empty()) {
-							comments += elem.cell.series.comment_name;
-							comments += ": ";
-						}
-						comments += str_val;
-					}
-					else if (sig == signal_Date_Only) {
-						date_part = Local_Time_Str_To_Rat_Time(str_val, elem.cell.series.datetime_format.c_str());
-					}
-					else if (sig == signal_Date_Time) {
-						datetime = Local_Time_Str_To_Rat_Time(str_val, elem.cell.series.datetime_format.c_str());
-					}
-					else if (sig == signal_Time_Only) {
-						time_part = Local_Time_Str_To_Rat_Time(str_val, elem.cell.series.datetime_format.c_str());
-					}
-					else {
-						double val = std::numeric_limits<double>::quiet_NaN();
-
-						//are we reading a time marker?
-						if (!elem.cell.series.datetime_format.empty()) {
-							val = Local_Time_Str_To_Rat_Time(str_val, elem.cell.series.datetime_format.c_str());
-						} else {
-							//we are reading a generic signal, double value
-							bool ok = false;
-							val = str_2_dbl(str_val.c_str(), ok);
-							if (ok) {
-								val = elem.cell.series.conversion.eval(val);
+				
+					if (str_val.size() > 0) {//coud be "" due to terminating char
+						if (sig == signal_Comment) {
+							if (comments.empty()) {
+								if (!elem.cell.series.comment_name.empty()) {
+									comments += elem.cell.series.comment_name;
+									comments += ": ";
+								}
 							}
-						}
+							else {
+								comments += ", ";		//DO NOT put semicolon there as it WILL BREAK the csv log replay!!!
+							}
 
-						if (!std::isnan(val)) {
-							mval.push(sig, val, elem.cell.series.can_accumulate);
+							comments += str_val;
+						}
+						else if (sig == signal_Date_Only) {
+							date_part = Local_Time_Str_To_Rat_Time(str_val, elem.cell.series.datetime_format.c_str());
+						}
+						else if (sig == signal_Date_Time) {
+							datetime = Local_Time_Str_To_Rat_Time(str_val, elem.cell.series.datetime_format.c_str());
+						}
+						else if (sig == signal_Time_Only) {
+							time_part = Local_Time_Str_To_Rat_Time(str_val, elem.cell.series.datetime_format.c_str());
+						}
+						else {
+							double val = std::numeric_limits<double>::quiet_NaN();
+
+							//are we reading a time marker?
+							if (!elem.cell.series.datetime_format.empty()) {
+								val = Local_Time_Str_To_Rat_Time(str_val, elem.cell.series.datetime_format.c_str());
+							}
+							else {
+								//we are reading a generic signal, double value
+								bool ok = false;
+								val = str_2_dbl(str_val.c_str(), ok);
+								if (ok) {
+									val = elem.cell.series.conversion.eval(val);
+								}
+							}
+
+							if (!std::isnan(val)) {
+								mval.push(sig, val, elem.cell.series.can_accumulate);
+							}
 						}
 					}
 				}
