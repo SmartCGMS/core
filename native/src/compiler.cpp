@@ -160,7 +160,7 @@ bool Compile(const filesystem::path& compiler, const filesystem::path& env_init,
 	filesystem::path sdk_include = configured_sdk_include;
 	if (sdk_include.empty()) {
 		//let's try to locate it
-		sdk_include = Get_Dll_Dir().parent_path().parent_path().parent_path() / "common";
+		sdk_include = Get_Dll_Dir().parent_path().parent_path().parent_path() / "common" / "scgms";
 
 		std::error_code ec;
 		if (!Is_Regular_File_Or_Symlink(sdk_include / "iface" / "DeviceIface.cpp")) {
